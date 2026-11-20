@@ -92,6 +92,35 @@ const plateClientModules = [
   "packages/plate/src/pci/type-identifier.ts",
 ];
 
+/**
+ * The React Compiler's rules, as the toolchain preset turns them on in edullm's apps: oxlint's
+ * correctness category's compiler rules, which the preset runs by category, and the ones it names
+ * (react/todo, react/unsupported-syntax, react/syntax and react/invariant refuse a function the
+ * compiler cannot compile at all).
+ */
+const reactCompilerRules = {
+  "react/capitalized-calls": "error",
+  "react/error-boundaries": "error",
+  "react/exhaustive-effect-dependencies": "error",
+  "react/globals": "error",
+  "react/hooks": "error",
+  "react/immutability": "error",
+  "react/incompatible-library": "error",
+  "react/invariant": "error",
+  "react/memo-dependencies": "error",
+  "react/preserve-manual-memoization": "error",
+  "react/purity": "error",
+  "react/refs": "error",
+  "react/set-state-in-effect": "error",
+  "react/set-state-in-render": "error",
+  "react/static-components": "error",
+  "react/syntax": "error",
+  "react/todo": "error",
+  "react/unsupported-syntax": "error",
+  "react/use-memo": "error",
+  "react/void-use-memo": "error",
+} as const;
+
 export default defineConfig({
   extends: [core, antiSlop],
   // A fixture package's JS modules (a PCI's AMD module, its JSON module resolution file) are data a
@@ -201,6 +230,15 @@ export default defineConfig({
         ],
         "workspace/no-bare-error": "error",
       },
+    },
+    // plate's UI is React that its host's Next build compiles with the React Compiler at
+    // panicThreshold all_errors (@bjornpagen/devtools/react-compiler), which fails the build on any
+    // component or hook it cannot compile. These are the compiler's rules as the toolchain preset
+    // runs them on edullm's apps, so the lint refuses such a function before a build meets it.
+    {
+      files: ["packages/plate/src/**/*.ts", "packages/plate/src/**/*.tsx"],
+      plugins: ["react"],
+      rules: reactCompilerRules,
     },
     // plate's look is its separate stylesheets, plate/src/styles/base.css and theme.css, which a host
     // imports: its UI writes no class but the author's, at the sites `passthrough` lists, no style,
