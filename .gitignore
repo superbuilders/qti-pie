@@ -7,3 +7,4 @@ work/
 .worktrees/
 .claude/worktrees/
 docs/research/
+.turbo/
