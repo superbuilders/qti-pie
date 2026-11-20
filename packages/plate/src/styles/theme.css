@@ -2080,8 +2080,8 @@
 
   /*
    * A Hotspot: its prompt, its stage, the list of its areas and the message a refused pick shows,
-   * 12 px apart, as a Choice's. The list is the path a keyboard and a screen reader take, always
-   * shown, its rows a Choice's options.
+   * 12 px apart, as a Choice's. The list is the path a keyboard and a screen reader take, its rows a
+   * Choice's options, shown unless the host's `hotspotList` hides it from the eye (the base sheet).
    */
   [data-slot="plate-hotspot"] {
     display: grid;

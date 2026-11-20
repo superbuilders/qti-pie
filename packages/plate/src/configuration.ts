@@ -75,6 +75,23 @@ const Assets = Schema.Array(AssetEntry)
   );
 
 /**
+ * How a Hotspot shows the list of its areas under its image, plate's own path to them for a
+ * keyboard, a screen reader and a large target, which QTI's vocabulary says nothing of: `shown`;
+ * or `visually-hidden`, out of sight but in the accessibility tree and the tab order, each row's
+ * keyboard focus still drawn on its area, and shown again wherever the stage draws no areas, an
+ * image whose size is unknown, where the list is the only way to answer.
+ */
+const hotspotLists = ["shown", "visually-hidden"] as const;
+
+/**
+ * How a Hotspot shows a picked area, which QTI's vocabulary leaves to the platform ("colors and
+ * opacities of the platform's choosing", shared vocabulary 1.2.5.1): `ring`, its ring widened and
+ * a check badge in its corner; or `fill`, the area's own shape filled, as a shaded part of a
+ * partitioned figure is, and no badge.
+ */
+const hotspotPicks = ["ring", "fill"] as const;
+
+/**
  * The Schema of the renderer's configuration, which owns every field's constraint and default, and
  * which field has none.
  *
@@ -85,27 +102,37 @@ const Assets = Schema.Array(AssetEntry)
  * default (placement ruling 9), the one item session control setting the item's interactions read;
  * a host applies the others itself. `headingLevel` is the level the item's shallowest heading
  * takes, every other heading keeping its distance from it, capped at `h6`; it starts at 2 because
- * the host owns `h1`. `assets` maps each file an item's package URLs may name, by its path from the
- * package root, to its address, the URL `<Item>` writes in its place: `<Item>` resolves each
- * package URL against the item's location, the path from the package root the host opened it by, so
- * `media/a.png` in `items/q1.xml` names `items/media/a.png`, and it throws `AssetMissing` for a
- * file `assets` gives no address, never writing a path relative to the page. It is empty by
- * default, and `configure` reads it as an array of `[path, address]` entries, each path once.
- * `outputBudget` bounds the characters an item's printed variables print, counted as a string's
- * `length` counts them (UTF-16 code units), and is 16,777,216 (16 MiB of ASCII) by default:
- * `redact` stops printing once their text passes it, and `<Item>` then refuses the item with
- * `OutputTooLarge`. Its maximum, 536,870,888, is V8's longest string, the smallest of the engines'
- * limits, so no budget asks an engine for a string it cannot build. `seed` is a string, used as
- * given and required, since every order a page shows is keyed by it: the served item's shuffle seed
- * (`itemSeeds`), or the key a host's preview states for itself, which keys a shuffled interaction's
- * order with the response, and nothing else. Processing never reads it: `begin` takes the record's
- * own seed. So a served item has two seeds: the configuration's keys the shuffle, and the record's
- * keys the processing.
+ * the host owns `h1`. `hotspotList` and `hotspotPicks` are how every Hotspot of the item shows its
+ * list of areas and a picked area, `shown` and `ring` by default; `<Item>` writes them on its root,
+ * where the stylesheet reads them, and nothing else reads them, so neither changes the markup, the
+ * response or its scoring. Whether an area shows a ring before it is picked is the item's own word,
+ * QTI's `qti-unselected-hidden` class, never the host's. `assets` maps each file an item's package
+ * URLs may name, by its path from the package root, to its address, the URL `<Item>` writes in its
+ * place: `<Item>` resolves each package URL against the item's location, the path from the package
+ * root the host opened it by, so `media/a.png` in `items/q1.xml` names `items/media/a.png`, and it
+ * throws `AssetMissing` for a file `assets` gives no address, never writing a path relative to the
+ * page. It is empty by default, and `configure` reads it as an array of `[path, address]` entries,
+ * each path once. `outputBudget` bounds the characters an item's printed variables print, counted
+ * as a string's `length` counts them (UTF-16 code units), and is 16,777,216 (16 MiB of ASCII) by
+ * default: `redact` stops printing once their text passes it, and `<Item>` then refuses the item
+ * with `OutputTooLarge`. Its maximum, 536,870,888, is V8's longest string, the smallest of the
+ * engines' limits, so no budget asks an engine for a string it cannot build. `seed` is a string,
+ * used as given and required, since every order a page shows is keyed by it: the served item's
+ * shuffle seed (`itemSeeds`), or the key a host's preview states for itself, which keys a shuffled
+ * interaction's order with the response, and nothing else. Processing never reads it: `begin` takes
+ * the record's own seed. So a served item has two seeds: the configuration's keys the shuffle, and
+ * the record's keys the processing.
  */
 export const ConfigurationSchema = Schema.Struct({
   assets: Assets.pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   headingLevel: Schema.Int.check(Schema.isBetween({ maximum: 6, minimum: 2 })).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(2)),
+  ),
+  hotspotList: Schema.Literals(hotspotLists).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("shown")),
+  ),
+  hotspotPicks: Schema.Literals(hotspotPicks).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("ring")),
   ),
   locale: Schema.Literals(locales).pipe(Schema.withDecodingDefaultKey(Effect.succeed("en"))),
   outputBudget: Schema.Int.check(
@@ -132,6 +159,8 @@ const allowedValues: Readonly<Record<Field, string>> = {
   assets:
     'an array of [path, address] entries: each path a file\'s path from the package root, such as "items/media/a.png", in one entry only, and each address a URL with no whitespace that neither starts nor ends with a comma, such as "https://cdn.example/sha256/9f86…"',
   headingLevel: "an integer from 2 to 6",
+  hotspotList: `how a Hotspot shows its list of areas: ${hotspotLists.map((value) => `"${value}"`).join(" or ")}`,
+  hotspotPicks: `how a Hotspot shows a picked area: ${hotspotPicks.map((value) => `"${value}"`).join(" or ")}`,
   locale: `a supported locale: ${locales.map((locale) => `"${locale}"`).join(", ")}`,
   outputBudget:
     "an integer from 1 to 536,870,888, the most characters an item's printed variables may print",

@@ -481,6 +481,8 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-fraction",
   "data-full",
   "data-highlighted",
+  "data-hotspot-list",
+  "data-hotspot-picks",
   "data-indeterminate",
   "data-index",
   "data-invalid",

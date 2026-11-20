@@ -23,9 +23,11 @@
  * State is a `data-*` attribute (`data-picked`, `data-dragging`, `data-over`, `data-full`,
  * `data-empty`, `data-refuses`, `data-copies`, `data-used`, `data-selected`, `data-disabled`,
  * `data-pending`, `data-mark`, `data-missed`) or a UI SDK one (`data-checked`, `data-open`,
- * `data-highlighted`, `data-placeholder`, `data-invalid`). The only classes read are the author's:
- * QTI's shared vocabulary, in the body and on an interaction's island root. A UI SDK component is
- * styled only inside a plate part, so the host's own UI SDK components keep the host's look.
+ * `data-highlighted`, `data-placeholder`, `data-invalid`). The host's settings that change a look
+ * are `data-*` on the item's root (`data-hotspot-list`, `data-hotspot-picks`). The only classes
+ * read are the author's: QTI's shared vocabulary, in the body and on an interaction's island root.
+ * A UI SDK component is styled only inside a plate part, so the host's own UI SDK components keep
+ * the host's look.
  *
  * Layers. Every rule sits in `@layer plate`, so any unlayered rule of the host's, or one in a
  * later layer, wins whatever its specificity. The theme's rules sit in the same layer after these,
@@ -1814,17 +1816,20 @@
 
   /*
    * Unselected areas hidden (1.2.5.1, 1.2.10.3): on a Hotspot, an area neither picked nor focused
-   * from its row is drawn with no ring until a pointer is over it; on a Graphic Gap Match, every
-   * area is, unless the child holds a gap image to place. Hidden by transparent paint alone, never
-   * by `visibility` or `display`: an area's hit shape takes a press through `pointer-events=
-   * "visibleFill"`, which needs it visible and ignores its paint, so a hidden area still takes the
-   * tap that picks it. Nor by the overlay's opacity, which would hide its other marks with it, a
-   * placed gap image among them. The list of areas under the image stays as it is.
+   * from its row is drawn with no ring until a pointer is over it, but for a review's mark on it, a
+   * right answer the child missed, which the class does not hide since the child is no longer
+   * choosing; on a Graphic Gap Match, every area is, unless the child holds a gap image to place.
+   * Hidden by transparent paint alone, never by `visibility` or `display`: an area's hit shape
+   * takes a press through `pointer-events="visibleFill"`, which needs it visible and ignores its
+   * paint, so a hidden area still takes the tap that picks it. Nor by the overlay's opacity, which
+   * would hide its other marks with it, a placed gap image among them. The list of areas under the
+   * image stays as the host's `hotspotList` says.
    */
   :where([data-slot="plate-hotspot"].qti-unselected-hidden)
     [data-slot="plate-graphic-mark"]:not(
       [data-selected],
       [data-focus-visible],
+      [data-mark],
       :has(> [data-slot="plate-graphic-area"]:hover)
     )
     > [data-tone],
@@ -1835,6 +1840,59 @@
     [data-slot="plate-graphic-mark"]
     > [data-tone] {
     stroke: transparent;
+  }
+
+  /* == the host's settings for a Hotspot, on the item's root == */
+
+  /*
+   * A picked area filled (`hotspotPicks: "fill"`), as a shaded part of a partitioned figure is: its
+   * own shape, the light tone's copy of its outline, filled with the ink at 55%, which over a white
+   * figure is about rgb(127, 127, 127), 4:1 against the white of an unpicked part (WCAG 1.4.11),
+   * while the figure's own dark lines stay 4.4:1 over it. The fill is the ink's, so
+   * `qti-selections-light` turns it white over a dark picture. The fill is the pick's whole cue, a
+   * change of the area's own lightness and not a hue (1.4.1), so the ring is not drawn over it, the
+   * figure's own lines bounding it, and no check badge is; a review's marks and a row's keyboard
+   * focus keep their rings over the fill.
+   */
+  :where([data-slot="plate-item"][data-hotspot-picks="fill"] [data-slot="plate-hotspot"])
+    [data-slot="plate-graphic-mark"][data-selected]
+    > [data-tone="light"] {
+    fill: color-mix(in oklab, var(--plate-tone-ink) 55%, transparent);
+  }
+
+  :where([data-slot="plate-item"][data-hotspot-picks="fill"] [data-slot="plate-hotspot"])
+    [data-slot="plate-graphic-mark"][data-selected]:not([data-mark], [data-focus-visible])
+    > [data-tone] {
+    stroke: transparent;
+  }
+
+  :where([data-slot="plate-item"][data-hotspot-picks="fill"] [data-slot="plate-hotspot"])
+    [data-slot="plate-graphic-check"] {
+    display: none;
+  }
+
+  /*
+   * The list of areas under the image hidden from the eye (`hotspotList: "visually-hidden"`), and
+   * only from the eye: its rows stay in the accessibility tree and the tab order, and the area of
+   * the row a keyboard focuses is drawn focused on the image (`data-focus-visible`), so the image is
+   * the sighted child's way in and the list everyone else's. Only where the stage draws its areas,
+   * which it does once it has an overlay: over an image of unknown size the list is the only way to
+   * answer, and it shows.
+   */
+  [data-slot="plate-item"][data-hotspot-list="visually-hidden"]
+    [data-slot="plate-hotspot"]:has(
+      > [data-slot="plate-graphic"] [data-slot="plate-graphic-overlay"]
+    )
+    > :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   /* == a review's marks == */

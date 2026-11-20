@@ -265,7 +265,9 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  * - `plate-item`, the root, a `div` with the scoped id `<instance>-item`, the item's `lang`,
  *   `data-mode` naming the mode, and `data-keyword-emphasis` when the host enabled the candidate's
  *   keyword emphasis (A-23), under which the stylesheet emphasises the body's
- *   `qti-keyword-emphasis` text;
+ *   `qti-keyword-emphasis` text, and `data-hotspot-list` and `data-hotspot-picks`, the
+ *   configuration's `hotspotList` and `hotspotPicks`, by which the stylesheet shows a Hotspot's
+ *   list of areas and its picked areas;
  * - `plate-companion-materials`, before the body, an `aside` listing the materials the item says the
  *   candidate may use, each with the data attributes a host reads to supply it
  *   (`#plate/ui/item/contents/companion-materials.tsx`);
@@ -466,6 +468,8 @@ export const Item = (props: ItemProps): ReactNode => {
 
   return (
     <div
+      data-hotspot-list={configuration.hotspotList}
+      data-hotspot-picks={configuration.hotspotPicks}
       data-keyword-emphasis={keywordEmphasis ? "" : undefined}
       data-mode={mode}
       data-slot="plate-item"

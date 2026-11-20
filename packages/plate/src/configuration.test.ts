@@ -17,6 +17,10 @@ const refused = [
   { field: "showSolutions", input: { seed: "", showSolutions: true, validateResponses: false } },
   { field: "trust", input: { seed: "", trust: "full", validateResponses: false } },
   { field: "locale", input: { locale: "fr", seed: "", validateResponses: false } },
+  { field: "hotspotPicks", input: { hotspotPicks: "shade", seed: "", validateResponses: false } },
+  { field: "hotspotPicks", input: { hotspotPicks: true, seed: "", validateResponses: false } },
+  { field: "hotspotList", input: { hotspotList: "hidden", seed: "", validateResponses: false } },
+  { field: "hotspotList", input: { hotspotList: false, seed: "", validateResponses: false } },
   { field: "maxAttempts", input: { maxAttempts: 1, seed: "", validateResponses: false } },
   { field: "showFeedback", input: { seed: "", showFeedback: true, validateResponses: false } },
   { field: "outputBudget", input: { outputBudget: 0, seed: "", validateResponses: false } },
@@ -123,6 +127,8 @@ describe("configure", () => {
       assert.deepStrictEqual(yield* configure({ seed: "7", validateResponses: false }), {
         assets: new Map(),
         headingLevel: 2,
+        hotspotList: "shown",
+        hotspotPicks: "ring",
         locale: "en",
         outputBudget: 16_777_216,
         seed: "7",
@@ -166,6 +172,19 @@ describe("configure", () => {
         (yield* configure({ headingLevel: 6, seed: "", validateResponses: false })).headingLevel,
         6,
       );
+    }),
+  );
+
+  it.effect('decodes hotspotPicks "fill" and hotspotList "visually-hidden"', () =>
+    Effect.gen(function* quietHotspots() {
+      const { hotspotList, hotspotPicks } = yield* configure({
+        hotspotList: "visually-hidden",
+        hotspotPicks: "fill",
+        seed: "",
+        validateResponses: false,
+      });
+
+      assert.deepStrictEqual([hotspotList, hotspotPicks], ["visually-hidden", "fill"]);
     }),
   );
 
