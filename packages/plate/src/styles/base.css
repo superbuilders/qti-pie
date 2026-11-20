@@ -817,6 +817,22 @@
     gap: var(--plate-gap);
   }
 
+  /*
+   * A Hotspot's row with its read-aloud control: the row's option, taking what the control leaves,
+   * then the control, the answers' gap apart, the control going under the option where the list's
+   * column is too narrow for both, so neither runs into the next row.
+   */
+  [data-slot="plate-hotspot-row"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--plate-gap);
+  }
+
+  [data-slot="plate-hotspot-row"] > [data-slot="plate-hotspot-option"] {
+    flex: 1;
+  }
+
   /* == portable custom == */
 
   /*
@@ -1895,14 +1911,17 @@
    * The list of areas under the image hidden from the eye (`hotspotList: "visually-hidden"`), and
    * only from the eye: its rows stay in the accessibility tree and the tab order, and the area of
    * the row a keyboard focuses is drawn focused on the image (`data-focus-visible`), so the image is
-   * the sighted child's way in and the list everyone else's. Only where the stage draws its areas,
-   * which it does once it has an overlay: over an image of unknown size the list is the only way to
-   * answer, and it shows.
+   * the sighted child's way in and the list everyone else's. A row's read-aloud control stays in
+   * the list, reached by Tab and named for its area, but no area is drawn for a control that
+   * picks nothing: while a keyboard focuses one the list shows, so the focused control is seen
+   * beside the area it reads (WCAG 2.4.7). Only where the stage draws its areas, which it does once
+   * it has an overlay: over an image of unknown size the list is the only way to answer, and it
+   * shows.
    */
   [data-slot="plate-item"][data-hotspot-list="visually-hidden"]
     [data-slot="plate-hotspot"]:has(
       > [data-slot="plate-graphic"] [data-slot="plate-graphic-overlay"]
-    )
+    ):not(:has([data-slot="plate-read-aloud"] :focus-visible))
     > :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
     position: absolute;
     width: 1px;

@@ -4588,16 +4588,17 @@ C2: the oracle's own reader.)
      place and never inside a control: a Choice's choice in its row, a Hot Text's hottext after it in its line, a
      Match's group and a Graphic Gap Match's hotspot after its name in its target, and beside its chip in the bank an
      Order's, a Gap Match's and a Graphic Gap Match's gap text or gap image, a Match's first set, an Associate's choice,
-     and a Graphic Order's and a Graphic Associate's hotspot, the K–5 kinds whose options and bins Becky Allen's items
-     record clips for. At any other referencing part (an element at a phrasing position or inside an interaction's
-     own content, a `qti-gap`, which has no text to read, an Inline Choice's choice, an option of a select where no
-     control can stand, and a hottext its template shows as plain text) it is not presented, and the card is never
-     listed, since a recording heard apart from its text, or a link to it, presents nothing the candidate can follow.
-     The entry's other files (the guide's `application/xml`) are not presented, and a `spoken` card with no audio file
-     is listed as before. A review and a solution present no control: their page ships no island but a Media's replay
-     (plate's UI suite's J1). This changes no verdict. This is not a case of documents in conflict. (Stated 2026-11-20
-     by lane IMPL-READALOUD; widened from Choice and Order, AlphaTest's two, to every choice kind the same day by lane
-     MM-PLATE-READALOUD; to be confirmed by the owner, Bjorn.)
+     and a Graphic Order's and a Graphic Associate's hotspot, and a Hotspot's hotspot beside its row, the K–5 kinds
+     whose options and bins Becky Allen's items record clips for. At any other referencing part (an element at a
+     phrasing position or inside an interaction's own content, a `qti-gap`, which has no text to read, an Inline
+     Choice's choice, an option of a select where no control can stand, and a hottext its template shows as plain
+     text) it is not presented, and the card is never listed, since a recording heard apart from its text, or a link
+     to it, presents nothing the candidate can follow. The entry's other files (the guide's `application/xml`) are not
+     presented, and a `spoken` card with no audio file is listed as before. A review and a solution present no
+     control: their page ships no island but a Media's replay (plate's UI suite's J1). This changes no verdict. This
+     is not a case of documents in conflict. (Stated 2026-11-20 by lane IMPL-READALOUD; widened from Choice and Order,
+     AlphaTest's two, to every choice kind the same day by lane MM-PLATE-READALOUD; to be confirmed by the owner,
+     Bjorn.)
 
 238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the exact binary values of its floats, the
      ends of its range computed exactly over them.** The information model gives the range, "In absolute mode the result

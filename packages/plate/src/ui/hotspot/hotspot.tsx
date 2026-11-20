@@ -32,13 +32,16 @@ import { PickOption, PicksGroup, usePicks } from "#plate/ui/picks/picks-group.ts
 import type { Picks } from "#plate/ui/picks/picks.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
+import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * One hotspot as the island takes it: its area, its geometry and `coords` as written, in the
  * image's pixels or as percentages of the image, which the stage resolves once it knows the image's
- * size; its identifier, which a pick posts; and its name in the list.
+ * size; its identifier, which a pick posts; its name in the list; and its read-aloud, which stands
+ * beside its row.
  */
-export interface HotspotArea extends StageArea {
+export interface HotspotArea extends StageArea, Spoken {
   /**
    * The hotspot's name, which its row shows and its control is named by: the author's
    * `hotspot-label` where it is written and not blank, else "Area n of count", its place among the
@@ -171,6 +174,8 @@ const HotspotStage = (props: {
  *   wraps the UI SDK `radio` or `checkbox` button and the hotspot's name, so a press anywhere on it
  *   presses the control, and the stylesheet gives it the K–3 minimum height of 64 px;
  * - `plate-hotspot-label`, the hotspot's name;
+ * - `plate-hotspot-row`, a hotspot the candidate hears read aloud: its `plate-hotspot-option`, then
+ *   read-aloud's control, outside the `label`, so a press on it picks nothing;
  * - `plate-hotspot-limit`, the `limit` label, shown from a refused pick until the next accepted one.
  *
  * A pick past `max-choices`, from the image or the list, is refused by the picks group before the
@@ -205,22 +210,26 @@ export const Hotspot = (props: HotspotProps) => {
       response={name}
       root={{ ...root, "data-slot": "plate-hotspot" }}
     >
-      {hotspots.map((hotspot) => (
-        <PickOption
-          key={hotspot.identifier}
-          identifier={hotspot.identifier}
-          label={undefined}
-          slot="plate-hotspot-option"
-          onBlur={() => {
-            setFocused(undefined);
-          }}
-          onFocus={(event) => {
-            setFocused(event.target.matches(":focus-visible") ? hotspot.identifier : undefined);
-          }}
-        >
-          <span data-slot="plate-hotspot-label">{hotspot.label}</span>
-        </PickOption>
-      ))}
+      {hotspots.map((hotspot) =>
+        spokenBeside(
+          <PickOption
+            key={hotspot.identifier}
+            identifier={hotspot.identifier}
+            label={undefined}
+            slot="plate-hotspot-option"
+            onBlur={() => {
+              setFocused(undefined);
+            }}
+            onFocus={(event) => {
+              setFocused(event.target.matches(":focus-visible") ? hotspot.identifier : undefined);
+            }}
+          >
+            <span data-slot="plate-hotspot-label">{hotspot.label}</span>
+          </PickOption>,
+          hotspot,
+          { key: hotspot.identifier, slot: "plate-hotspot-row" },
+        ),
+      )}
     </PicksGroup>
   );
 };

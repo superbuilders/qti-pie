@@ -28,7 +28,7 @@ import { Hotspot } from "#plate/ui/hotspot/hotspot.tsx";
 import { hotspotKeys } from "#plate/ui/hotspot/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
-import { namedAreasOf } from "#plate/ui/item/interactions/areas.ts";
+import { namedAreasOf, spokenAreasOf } from "#plate/ui/item/interactions/areas.ts";
 import {
   controlNameOf,
   groupNameOf,
@@ -62,7 +62,7 @@ export const island = (
 
   return (
     <Hotspot
-      hotspots={namedAreasOf(node.choices, context.locale)}
+      hotspots={spokenAreasOf(node.choices, context)}
       image={contentOf(node.image, "flow", context)}
       labels={labelsOf(hotspotKeys, context.locale, { limit: model.messages.max })}
       name={node.formName}
