@@ -32,6 +32,7 @@ import {
 } from "#plate/ui/placement/parts.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
 import { useResponse } from "#plate/ui/responses.tsx";
 
 /**
@@ -124,17 +125,19 @@ export interface MatchProps extends Authored<NameAttributes> {
  * - `plate-placement-bank`, the bank, with `data-over` under a dragged chip. It holds one
  *   `plate-placement-chip` per source, with `data-picked`, `data-dragging`, `data-copies` when its
  *   `match-max` is not 1, and `data-used`, a placeholder that keeps its place, once it has no uses
- *   left, and last, always, the `plate-placement-slot` that puts a chip picked up from a group
- *   back, which the stylesheet hides, keeping its space, until such a chip is held, so nothing
- *   moves under a finger;
+ *   left, a source the candidate hears read aloud standing with its control in
+ *   `plate-match-choice`, and last, always, the `plate-placement-slot` that puts a chip picked up
+ *   from a group back, which the stylesheet hides, keeping its space, until such a chip is held, so
+ *   nothing moves under a finger;
  * - `plate-placement-message`, the latest refusal, as it was announced;
  * - `plate-match-group`, one per target, the card that holds its `plate-placement-target`, a group
  *   named by its `plate-placement-target-label`, the target's content, or by its `label` when it
  *   has one. The target has `data-over` under a dragged chip, `data-empty` while it holds none,
  *   `data-refuses` while it would refuse the held chip, and `data-full` at its `match-max`. It
- *   holds `plate-match-full`, the `full` label, while it is full; a `plate-placement-chip` for each
- *   chip placed in it, in the order they came; and, while it has room, a `plate-placement-slot` a
- *   tap or a key puts the held chip in.
+ *   holds, after its label, read-aloud's control where the candidate hears the group read aloud,
+ *   which a press places nothing by; `plate-match-full`, the `full` label, while it is full; a
+ *   `plate-placement-chip` for each chip placed in it, in the order they came; and, while it has
+ *   room, a `plate-placement-slot` a tap or a key puts the held chip in.
  *
  * A group holds as many chips as its `match-max`, a chip goes to as many groups as its own, never
  * twice to one and only where both sides' `match-group`s allow, and the groups hold
@@ -192,15 +195,19 @@ export const Match = (props: MatchProps) => {
         <PlacementBank
           {...(header === undefined ? {} : { "aria-labelledby": header.id, role: "group" })}
         >
-          {sources.map((source) => (
-            <PlacementChip
-              key={source.identifier}
-              aria-label={source.label}
-              value={source.identifier}
-            >
-              {source.content}
-            </PlacementChip>
-          ))}
+          {sources.map((source) =>
+            spokenBeside(
+              <PlacementChip
+                key={source.identifier}
+                aria-label={source.label}
+                value={source.identifier}
+              >
+                {source.content}
+              </PlacementChip>,
+              source,
+              { key: source.identifier, slot: "plate-match-choice" },
+            ),
+          )}
           <PlacementSlot />
         </PlacementBank>
         <PlacementMessage />
@@ -211,6 +218,7 @@ export const Match = (props: MatchProps) => {
                 {({ chips, full }) => (
                   <>
                     <PlacementTargetLabel>{target.content}</PlacementTargetLabel>
+                    {target.readAloud}
                     {full ? <span data-slot="plate-match-full">{labels.full}</span> : null}
                     {chips.map((chip) => (
                       <PlacementChip key={chip} aria-label={chipsBy.get(chip)?.label} value={chip}>

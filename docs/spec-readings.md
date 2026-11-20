@@ -4565,10 +4565,12 @@ C2: the oracle's own reader.)
      'assessmentItem' definition" (section 5.15.9, BasePromptInteraction, and the same text on the BaseSequence classes,
      sections 5.16.7 to 5.21.8), and the implementation guide says "Catalogs can be referenced from the qti-item-body
      element, from any element within the qti-item-body node" (section 3.7.10.2). So plate records the reference of an
-     interaction's `qti-prompt` and of a `qti-simple-choice` (of a Choice or an Order) and a `qti-inline-choice` beside
-     every HTML element's, and keeps the catalog it names, which it dropped as named by no element before. This binds
-     plate; pantry already holds every such reference to its catalog ("Catalog reference"). This changes no verdict. This
-     is not a case of documents in conflict. (Stated 2026-11-20 by lane IMPL-READALOUD.)
+     interaction's `qti-prompt` and of a choice (a `qti-simple-choice` of a Choice or an Order, a `qti-inline-choice`,
+     a `qti-gap-text`, a `qti-gap-img`, a `qti-simple-associable-choice`, a `qti-hotspot-choice`, a
+     `qti-associable-hotspot` and a `qti-hottext`) beside every HTML element's, and keeps the catalog it names, which
+     it dropped as named by no element before. This binds plate; pantry already holds every such reference to its
+     catalog ("Catalog reference"). This changes no verdict. This is not a case of documents in conflict. (Stated
+     2026-11-20 by lane IMPL-READALOUD; its choices widened the same day by lane MM-PLATE-READALOUD.)
 
 237. **Read-aloud presents a `spoken` card's audio as a play control beside the part that references it, while the
      candidate answers.** A catalog holds "dormant content that can be made active (a part of the perceivable content
@@ -4582,13 +4584,20 @@ C2: the oracle's own reader.)
      plays, over an `audio` element with one `source` per audio file in document order, among which the browser plays
      the first format it can (HTML's source selection; the guide's example stores one recording as `audio/mpeg` and
      `audio/ogg`), so plate picks none (step 7). The control follows an element of the body at a flow position, an
-     interaction's prompt, and stands beside a Choice's choice and beside an Order's choice in its bank, the two kinds
-     whose choices AlphaTest's player read aloud; at any other referencing part (an element at a phrasing position or
-     inside an interaction's own content, an Inline Choice's choice) it is not presented, and the card is never listed,
-     since a recording heard apart from its text, or a link to it, presents nothing the candidate can follow. The entry's other files (the guide's `application/xml`) are not presented, and a `spoken`
-     card with no audio file is listed as before. A review and a solution present no control: their page ships no
-     island but a Media's replay (plate's UI suite's J1). This changes no verdict. This is not a case of documents in
-     conflict. (Stated 2026-11-20 by lane IMPL-READALOUD; to be confirmed by the owner, Bjorn.)
+     interaction's prompt, and stands beside every choice the child picks, moves, orders or fills, each heard from one
+     place and never inside a control: a Choice's choice in its row, a Hot Text's hottext after it in its line, a
+     Match's group and a Graphic Gap Match's hotspot after its name in its target, and beside its chip in the bank an
+     Order's, a Gap Match's and a Graphic Gap Match's gap text or gap image, a Match's first set, an Associate's choice,
+     and a Graphic Order's and a Graphic Associate's hotspot, the K–5 kinds whose options and bins Becky Allen's items
+     record clips for. At any other referencing part (an element at a phrasing position or inside an interaction's
+     own content, a `qti-gap`, which has no text to read, an Inline Choice's choice, an option of a select where no
+     control can stand, and a hottext its template shows as plain text) it is not presented, and the card is never
+     listed, since a recording heard apart from its text, or a link to it, presents nothing the candidate can follow.
+     The entry's other files (the guide's `application/xml`) are not presented, and a `spoken` card with no audio file
+     is listed as before. A review and a solution present no control: their page ships no island but a Media's replay
+     (plate's UI suite's J1). This changes no verdict. This is not a case of documents in conflict. (Stated 2026-11-20
+     by lane IMPL-READALOUD; widened from Choice and Order, AlphaTest's two, to every choice kind the same day by lane
+     MM-PLATE-READALOUD; to be confirmed by the owner, Bjorn.)
 
 238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the exact binary values of its floats, the
      ends of its range computed exactly over them.** The information model gives the range, "In absolute mode the result

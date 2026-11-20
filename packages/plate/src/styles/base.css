@@ -797,6 +797,26 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /*
+   * A chip in a bank, or a hottext in its line, with its read-aloud control: the choice, then the
+   * control, side by side, so the pair wraps as one item of the row or line. They stand the
+   * answers' gap apart, so the control stays clear of a chip's widened target, which reaches half
+   * that gap around it.
+   */
+  :is(
+    [data-slot="plate-gap-match-choice"],
+    [data-slot="plate-graphic-gap-match-choice"],
+    [data-slot="plate-match-choice"],
+    [data-slot="plate-associate-choice"],
+    [data-slot="plate-graphic-order-choice"],
+    [data-slot="plate-graphic-associate-choice"],
+    [data-slot="plate-hottext-spoken"]
+  ) {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--plate-gap);
+  }
+
   /* == portable custom == */
 
   /*

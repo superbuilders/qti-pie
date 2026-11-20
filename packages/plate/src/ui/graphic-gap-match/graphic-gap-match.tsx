@@ -58,6 +58,8 @@ import {
 } from "#plate/ui/placement/parts.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
+import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 import { useResponse } from "#plate/ui/responses.tsx";
 
 /**
@@ -72,9 +74,9 @@ export interface GapChoice extends AssociableChoice {
 /**
  * One `qti-associable-hotspot` as the island takes it: its area, `shape` and `coords` as written,
  * which the stage resolves once it knows the image's size; its identifier, the target of the pairs
- * that name it; its name; and its limits.
+ * that name it; its name; its limits; and its read-aloud, which stands after its name in its row.
  */
-export interface GraphicGapHotspot extends StageArea {
+export interface GraphicGapHotspot extends StageArea, Spoken {
   /**
    * The hotspot's name, which its row shows and announcements say: the author's `hotspot-label`
    * where it is written and not blank, else plate's "Area n of count", its place among the
@@ -239,8 +241,9 @@ const StagePlaced = (props: { readonly placed: readonly PlacedIn[] }) => {
  * - `plate-prompt`, the prompt, when there is one;
  * - `plate-placement`, the primitive's root, holding the rest;
  * - `plate-placement-bank`, the bank, a chip per gap choice in display order, which stays as a
- *   placeholder once it has no uses left, and its `plate-placement-slot`, named by the `bankSlot`
- *   label, which puts a placed choice back;
+ *   placeholder once it has no uses left, a choice the candidate hears read aloud standing with its
+ *   control in `plate-graphic-gap-match-choice`, and its `plate-placement-slot`, named by the
+ *   `bankSlot` label, which puts a placed choice back;
  * - The graphic stage's parts, `plate-graphic`, the region named as the root is, and below it: each
  *   hotspot's `plate-graphic-mark`, its two-tone outline, `data-placed` while the hotspot holds a
  *   choice and `data-focus-visible` while its row's control has keyboard focus, holding a `g` that
@@ -251,9 +254,10 @@ const StagePlaced = (props: { readonly placed: readonly PlacedIn[] }) => {
  *   hotspot a `plate-placement-target`, a group named by the hotspot's name through `aria-label`,
  *   so it and its slot are named in the server's markup too, before the primitive reads the page,
  *   showing the name in its `plate-placement-target-label`, hidden from assistive technology since
- *   it repeats the group's name, then a `plate-placement-chip` per choice placed there and, unless
- *   it holds the one choice it takes, a `plate-placement-slot` that puts the held choice there,
- *   named by the `slot` label with the hotspot's name;
+ *   it repeats the group's name, then, where the candidate hears the hotspot read aloud,
+ *   read-aloud's control, which a press places nothing by, then a `plate-placement-chip` per choice
+ *   placed there and, unless it holds the one choice it takes, a `plate-placement-slot` that puts
+ *   the held choice there, named by the `slot` label with the hotspot's name;
  * - `plate-placement-message`, the latest refusal, as the primitive announced it.
  *
  * Every change goes through the primitive's machine, which refuses a move before any state changes
@@ -312,15 +316,19 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
         }}
       >
         <PlacementBank>
-          {gapChoices.map((choice) => (
-            <PlacementChip
-              key={choice.identifier}
-              aria-label={choice.label}
-              value={choice.identifier}
-            >
-              {choice.content}
-            </PlacementChip>
-          ))}
+          {gapChoices.map((choice) =>
+            spokenBeside(
+              <PlacementChip
+                key={choice.identifier}
+                aria-label={choice.label}
+                value={choice.identifier}
+              >
+                {choice.content}
+              </PlacementChip>,
+              choice,
+              { key: choice.identifier, slot: "plate-graphic-gap-match-choice" },
+            ),
+          )}
           <PlacementSlot />
         </PlacementBank>
         <GraphicStage
@@ -368,6 +376,7 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
               {({ chips }) => (
                 <>
                   <PlacementTargetLabel aria-hidden="true">{hotspot.label}</PlacementTargetLabel>
+                  {hotspot.readAloud}
                   {chips.map((chip, index) => (
                     <PlacementChip
                       key={`${chip} ${String(index)}`}

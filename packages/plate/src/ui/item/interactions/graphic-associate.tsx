@@ -17,8 +17,6 @@
  */
 import type { ReactNode } from "react";
 import { countsOf } from "#plate/interactions/counts.ts";
-import type { Locale } from "#plate/messages.ts";
-import type { PayloadOf } from "#plate/model/interactions.ts";
 import type { Paired } from "#plate/payload.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import { GraphicAssociate } from "#plate/ui/graphic-associate/graphic-associate.tsx";
@@ -30,7 +28,7 @@ import { paintedOf } from "#plate/ui/graphic/geometry.ts";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
-import { namedAreasOf } from "#plate/ui/item/interactions/areas.ts";
+import { namedAreasOf, spokenAreasOf } from "#plate/ui/item/interactions/areas.ts";
 import { limitOf } from "#plate/ui/item/interactions/facts.ts";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
@@ -41,23 +39,17 @@ import { markPart, wordsOfMark } from "#plate/ui/item/interactions/words.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 
 /**
- * A Graphic Associate's payload node, as its module's `redact` gave it.
- */
-type GraphicAssociateNode = PayloadOf<"graphic-associate">;
-
-/**
- * Give the hotspots as the island and the review show them, in document order: each one named
- * ({@link namedAreasOf}), with its `match-group` and its `match-max`, 0 being no limit.
+ * Give the hotspots as the island and the review show them, in document order: each one named, by
+ * {@link namedAreasOf}, or by {@link spokenAreasOf} with its read-aloud for the island, with its
+ * `match-group` and its `match-max`, 0 being no limit.
  *
- * @param node The Graphic Associate's payload: its hotspots.
- * @param locale The locale of plate's own text.
+ * @param hotspots The hotspots, each named.
  * @returns The hotspots.
  */
 const areasOf = (
-  node: Pick<GraphicAssociateNode, "hotspots">,
-  locale: Locale,
+  hotspots: readonly (Omit<GraphicAssociateArea, "matchMax"> & { readonly matchMax: bigint })[],
 ): readonly GraphicAssociateArea[] =>
-  namedAreasOf(node.hotspots, locale).map((hotspot) => ({
+  hotspots.map((hotspot) => ({
     ...hotspot,
     matchMax: limitOf(hotspot.matchMax),
   }));
@@ -83,7 +75,7 @@ export const island = (
 
   return (
     <GraphicAssociate
-      areas={areasOf(node, context.locale)}
+      areas={areasOf(spokenAreasOf(node.hotspots, context))}
       image={contentOf(node.image, "flow", context)}
       labels={labelsOf(graphicAssociateKeys, context.locale, {})}
       maxAssociations={limitOf(node.maxAssociations)}
@@ -128,7 +120,7 @@ export const review = (
   const labels = labelsOf(graphicAssociateKeys, locale, {});
   const prompt = promptAt(node.prompt, node.response, context);
   const names = groupNameOf(prompt, node, context);
-  const areas = areasOf(node, locale);
+  const areas = areasOf(namedAreasOf(node.hotspots, locale));
   const byIdentifier = new Map(areas.map((area) => [area.identifier, area]));
   const given = node.pairs;
   const boxes = boxesShown(given, markingOf(node.response, context));

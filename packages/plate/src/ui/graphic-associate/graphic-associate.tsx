@@ -56,13 +56,16 @@ import { madePairs } from "#plate/ui/placement/primitive.ts";
 import type { Held } from "#plate/ui/placement/primitive.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
+import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * One `qti-associable-hotspot` as the island takes it: its area, `shape` and `coords` as written,
  * which the stage resolves once it knows the image's size; its identifier, which a pair posts; its
- * name; and the limits on the pairs it may be in.
+ * name; the limits on the pairs it may be in; and its read-aloud, which stands beside its chip in
+ * the bank.
  */
-export interface GraphicAssociateArea extends StageArea {
+export interface GraphicAssociateArea extends StageArea, Spoken {
   /**
    * The area's name, which its chip shows and announcements say: the author's `hotspot-label`
    * where it is written and not blank, else "Area n of count", its place among the areas in
@@ -173,7 +176,9 @@ const PairLines = (props: {
  * - `plate-graphic-associate-message`, the latest refusal of a tap on the image, as it was announced,
  *   until the next move;
  * - `plate-placement-bank`, the bank, one `plate-placement-chip` per area showing its name, with
- *   `data-used` once the area is in as many pairs as its `match-max` allows, then the bank's slot;
+ *   `data-used` once the area is in as many pairs as its `match-max` allows, an area the candidate
+ *   hears read aloud standing with its control in `plate-graphic-associate-choice`, then the bank's
+ *   slot;
  * - `plate-placement-message`, the latest refusal in the list, as it was announced;
  * - `plate-placement-boxes`, the pairs as text, one `plate-placement-box` per box
  *   ({@link PairBoxes}), each two `plate-placement-target` halves named by the `box` label.
@@ -360,15 +365,19 @@ export const GraphicAssociate = (props: GraphicAssociateProps) => {
                 <p data-slot="plate-graphic-associate-message">{message}</p>
               )}
               <PlacementBank>
-                {areas.map((area) => (
-                  <PlacementChip
-                    key={area.identifier}
-                    value={area.identifier}
-                    {...mirrored(area.identifier)}
-                  >
-                    {area.label}
-                  </PlacementChip>
-                ))}
+                {areas.map((area) =>
+                  spokenBeside(
+                    <PlacementChip
+                      key={area.identifier}
+                      value={area.identifier}
+                      {...mirrored(area.identifier)}
+                    >
+                      {area.label}
+                    </PlacementChip>,
+                    area,
+                    { key: area.identifier, slot: "plate-graphic-associate-choice" },
+                  ),
+                )}
                 <PlacementSlot />
               </PlacementBank>
               <PlacementMessage />

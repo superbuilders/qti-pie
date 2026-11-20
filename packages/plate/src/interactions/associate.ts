@@ -62,7 +62,14 @@ import type { MatchGroup } from "#plate/interactions/match-group.ts";
 import { unorderedKey, unorderedPairsOf } from "#plate/interactions/pair.ts";
 import type { UnorderedPair } from "#plate/interactions/pair.ts";
 import { counted, message } from "#plate/messages.ts";
-import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
+import type {
+  BodyNode,
+  Level,
+  ModelLevel,
+  Nodes,
+  RedactedLevel,
+  ReferencingChoice,
+} from "#plate/model/item.ts";
 import type { Single, Value } from "#plate/model/values.ts";
 
 /**
@@ -82,11 +89,12 @@ const element = "qti-associate-interaction";
 const binding = { baseTypes: ["pair"], cardinalities: ["single", "multiple"] } as const;
 
 /**
- * One `qti-simple-associable-choice` of an Associate: a choice either side of a pair.
+ * One `qti-simple-associable-choice` of an Associate: a choice either side of a pair, with the
+ * catalog it references.
  *
  * @template L The level of its content.
  */
-interface AssociateChoice<L extends Level = ModelLevel> {
+interface AssociateChoice<L extends Level = ModelLevel> extends ReferencingChoice {
   /**
    * The choice's content as the body walk read it.
    */
@@ -95,7 +103,6 @@ interface AssociateChoice<L extends Level = ModelLevel> {
    * `fixed`: the choice keeps its document position when the Associate shuffles.
    */
   readonly fixed: boolean;
-  readonly identifier: string;
   /**
    * `match-group`: the choices this one may pair with.
    */
@@ -153,11 +160,11 @@ interface AssociateByLevel extends ByLevel {
 }
 
 /**
- * One choice as the page may know it: its content, and what the server shell reads of its limits.
+ * One choice as the page may know it: the catalog it references, its content, and what the server
+ * shell reads of its limits.
  */
-interface AssociatePayloadChoice {
+interface AssociatePayloadChoice extends ReferencingChoice {
   readonly content: Nodes<RedactedLevel>;
-  readonly identifier: string;
   /**
    * The choices this one may pair with, none listed when it may pair with any.
    */
@@ -199,9 +206,10 @@ interface AssociatePayload {
 }
 
 /**
- * Read one `qti-simple-associable-choice` into its choice: its identifier, its limits and its
- * content as the body walk reads it. A `template-identifier` the choice carries is recorded as a
- * mark: plate shows no choice by a template value here.
+ * Read one `qti-simple-associable-choice` into its choice: its identifier, its limits, the catalog
+ * it references (its `data-catalog-idref`, recorded before its content's so the references stay in
+ * document order) and its content as the body walk reads it. A `template-identifier` the choice
+ * carries is recorded as a mark: plate shows no choice by a template value here.
  *
  * @param context The element's path, its notice and the reader kit.
  * @param choice The `qti-simple-associable-choice`.
@@ -215,8 +223,10 @@ const readChoice = (context: ParseContext, choice: SourceElement): AssociateChoi
 
   const matchMax = read.countAttribute(choice, "match-max");
   const matchMin = read.countAttribute(choice, "match-min");
+  const catalog = read.catalog(choice);
 
   return {
+    catalog,
     content: read.nodes(choice),
     fixed: read.xsBoolean(choice, "fixed", false),
     identifier: read.identifierAttribute(choice, "identifier"),
@@ -483,6 +493,7 @@ export const associateModule: InteractionModule<"associate", AssociateByLevel, A
     ariaLabel: interaction.ariaLabel,
     ariaLabelledby: interaction.ariaLabelledby,
     choices: presented(interaction, kit.seed).map((choice) => ({
+      catalog: choice.catalog,
       content: choice.content,
       identifier: choice.identifier,
       matchGroup: listedIn(choice.matchGroup),

@@ -45,6 +45,7 @@ import type {
   ModelLevel,
   Nodes,
   RedactedLevel,
+  ReferencingChoice,
   SimpleChoice,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
@@ -107,13 +108,11 @@ interface OrderByLevel extends ByLevel {
 }
 
 /**
- * One choice of an Order as the page may know it: the catalog it references, none where it
- * references none, its identifier and its content.
+ * One choice of an Order as the page may know it: its identifier and the catalog it references,
+ * and its content.
  */
-interface OrderChoicePayload {
-  readonly catalog: Option.Option<string>;
+interface OrderChoicePayload extends ReferencingChoice {
   readonly content: Nodes<RedactedLevel>;
-  readonly identifier: string;
 }
 
 /**

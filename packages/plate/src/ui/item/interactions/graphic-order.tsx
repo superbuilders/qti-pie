@@ -27,7 +27,7 @@ import { paintedOf } from "#plate/ui/graphic/geometry.ts";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
-import { namedAreasOf } from "#plate/ui/item/interactions/areas.ts";
+import { namedAreasOf, spokenAreasOf } from "#plate/ui/item/interactions/areas.ts";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf, slotsOf } from "#plate/ui/item/interactions/marks.ts";
 import type { AnswerMark, Slot } from "#plate/ui/item/interactions/marks.ts";
@@ -53,7 +53,7 @@ export const island = (
 
   return (
     <GraphicOrder
-      hotspots={namedAreasOf(node.hotspots, context.locale)}
+      hotspots={spokenAreasOf(node.hotspots, context)}
       image={contentOf(node.image, "flow", context)}
       labels={labelsOf(graphicOrderKeys, context.locale, {})}
       name={node.formName}

@@ -71,7 +71,14 @@ import type { UnorderedPair } from "#plate/interactions/pair.ts";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
 import { counted, message, numeral } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
-import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
+import type {
+  BodyNode,
+  Level,
+  ModelLevel,
+  Nodes,
+  RedactedLevel,
+  ReferencingChoice,
+} from "#plate/model/item.ts";
 import { isRecordValue } from "#plate/model/values.ts";
 import type { ResponseValue, Single, Value } from "#plate/model/values.ts";
 import { areaGeometries } from "#plate/vocabulary.ts";
@@ -94,17 +101,16 @@ const element = "qti-graphic-associate-interaction";
 const binding = { baseTypes: ["pair"], cardinalities: ["single", "multiple"] } as const;
 
 /**
- * One `qti-associable-hotspot` of a Graphic Associate (Q-7): its identifier, the geometry of its
- * area and the coordinates that geometry reads, its name ({@link areaLabel}), and the limits on the
- * pairs it may be in.
+ * One `qti-associable-hotspot` of a Graphic Associate (Q-7): its identifier and the catalog it
+ * references, the geometry of its area and the coordinates that geometry reads, its name ({@link
+ * areaLabel}), and the limits on the pairs it may be in.
  */
-interface GraphicAssociateHotspot {
+interface GraphicAssociateHotspot extends ReferencingChoice {
   readonly coords: readonly AreaCoordinate[];
   /**
    * The area's geometry, its `shape`.
    */
   readonly geometry: AreaGeometry;
-  readonly identifier: string;
   readonly label: Option.Option<string>;
   /**
    * `match-group`: the hotspots this one may pair with.
@@ -168,15 +174,15 @@ interface GraphicAssociateByLevel extends ByLevel {
 }
 
 /**
- * One hotspot as the page may know it: what the server shell reads of it.
+ * One hotspot as the page may know it: what the server shell reads of it, the catalog it
+ * references among it.
  */
-interface GraphicAssociatePayloadHotspot {
+interface GraphicAssociatePayloadHotspot extends ReferencingChoice {
   readonly coords: readonly AreaCoordinate[];
   /**
    * The area's geometry, its `shape`.
    */
   readonly geometry: AreaGeometry;
-  readonly identifier: string;
   readonly label: Option.Option<string>;
   /**
    * The hotspots this one may pair with, none listed when it may pair with any.
@@ -322,9 +328,9 @@ const shownValue = (
 };
 
 /**
- * Read one `qti-associable-hotspot`: its identifier, its geometry and coordinates, its name ({@link
- * areaLabel}) and its limits. A `template-identifier` is a mark, since no template value reaches a
- * module's `parse`.
+ * Read one `qti-associable-hotspot`: its identifier, the catalog it references, its geometry and
+ * coordinates, its name ({@link areaLabel}) and its limits. A `template-identifier` is a mark,
+ * since no template value reaches a module's `parse`.
  *
  * @param read The reader kit.
  * @param choice The `qti-associable-hotspot` element.
@@ -338,12 +344,14 @@ const hotspotOf = (read: ReaderKit, choice: SourceElement): GraphicAssociateHots
   const geometry = read.listed(choice, "shape", written, areaGeometries);
   const coords = coordinatesOf(read, choice);
   const label = areaLabel(read, choice);
+  const catalog = read.catalog(choice);
 
   const matchMax = read.countAttribute(choice, "match-max");
   const matchMin = read.countAttribute(choice, "match-min");
   markTemplate(read, choice);
 
   return {
+    catalog,
     coords,
     geometry,
     identifier,
@@ -521,6 +529,7 @@ const redactGraphicAssociate = (
   class: interaction.class,
   formName: kit.formName(interaction.response),
   hotspots: interaction.hotspots.map((hotspot) => ({
+    catalog: hotspot.catalog,
     coords: hotspot.coords,
     geometry: hotspot.geometry,
     identifier: hotspot.identifier,

@@ -19,6 +19,7 @@ import type {
   Pairs,
   PartnerRule,
 } from "#plate/ui/placement/machine.ts";
+import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * One associable choice as an island shows it: a `qti-simple-associable-choice` of either match
@@ -35,8 +36,11 @@ import type {
  *   5.58.4, 5.56.4).
  * - `matchMax` is the choice's `match-max`, which QTI requires: how many associations it may be in
  *   (5.131.6, 5.58.5, 5.56.5). The server writes 0 as no limit (see {@link Limit}).
+ * - `readAloud` is read-aloud's control for the catalog the choice references, absent where the
+ *   candidate hears none: the island writes it beside the choice's chip in the bank alone, which
+ *   lists every choice once, so each choice is heard from one place.
  */
-export interface AssociableChoice {
+export interface AssociableChoice extends Spoken {
   readonly content: ReactNode;
   readonly identifier: string;
   readonly label: string | undefined;

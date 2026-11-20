@@ -17,7 +17,7 @@ import type { Paired } from "#plate/payload.ts";
 import { Associate } from "#plate/ui/associate/associate.tsx";
 import { associateKeys } from "#plate/ui/associate/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
-import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
+import { contentOf, spokenOf } from "#plate/ui/item/interactions/answering.tsx";
 import { limitOf } from "#plate/ui/item/interactions/facts.ts";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { bankChipPart, bankedOf } from "#plate/ui/item/interactions/chips.tsx";
@@ -37,16 +37,16 @@ type AssociateNode = PayloadOf<"associate">;
 /**
  * Give an Associate's choices as its island takes them, in the order the payload presents them:
  * each one's content written where phrasing content stands, since a chip is a button, with the
- * name plate gives a choice whose content shows no text ("Choice 2 of 5"), and its `match-group`
- * and `match-max`.
+ * name plate gives a choice whose content shows no text ("Choice 2 of 5"), its `match-group`
+ * and `match-max`, and its read-aloud.
  *
  * @param node The Associate's payload: its choices as presented.
- * @param context What the shell knows: its content walk and the locale.
+ * @param context What the shell knows: its content walk, the locale and read-aloud.
  * @returns The choices.
  */
 const choicesOf = (
   node: Pick<AssociateNode, "choices">,
-  context: Pick<IslandContext, "content" | "locale">,
+  context: Pick<IslandContext, "content" | "locale" | "readAloud">,
 ): readonly AssociableChoice[] =>
   node.choices.map((choice, index) => ({
     content: contentOf(choice.content, "phrasing", context),
@@ -59,6 +59,7 @@ const choicesOf = (
     ),
     matchGroup: choice.matchGroup,
     matchMax: limitOf(choice.matchMax),
+    ...spokenOf(choice, index + 1, "readAloudChoice", context),
   }));
 
 /**

@@ -56,7 +56,14 @@ import { authoredSizeOf, imageElementOf } from "#plate/interactions/image-size.t
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
 import { counted, message, numeral } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
-import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
+import type {
+  BodyNode,
+  Level,
+  ModelLevel,
+  Nodes,
+  RedactedLevel,
+  ReferencingChoice,
+} from "#plate/model/item.ts";
 import { format, isRecordValue } from "#plate/model/values.ts";
 import type { ResponseValue, Value } from "#plate/model/values.ts";
 import { areaGeometries } from "#plate/vocabulary.ts";
@@ -79,17 +86,16 @@ const element = "qti-graphic-order-interaction";
 const binding = { baseTypes: ["identifier"], cardinalities: ["ordered"] } as const;
 
 /**
- * One `qti-hotspot-choice` of a Graphic Order (Q-9): its identifier, the geometry of its area and
- * the coordinates that area's geometry reads, and its name: its `hotspot-label`, else its
- * `aria-label`, none when the author wrote neither ({@link areaLabel}).
+ * One `qti-hotspot-choice` of a Graphic Order (Q-9): its identifier and the catalog it references,
+ * the geometry of its area and the coordinates that area's geometry reads, and its name: its
+ * `hotspot-label`, else its `aria-label`, none when the author wrote neither ({@link areaLabel}).
  */
-interface GraphicOrderHotspot {
+interface GraphicOrderHotspot extends ReferencingChoice {
   readonly coords: readonly AreaCoordinate[];
   /**
    * The area's geometry, its `shape`.
    */
   readonly geometry: AreaGeometry;
-  readonly identifier: string;
   readonly label: Option.Option<string>;
 }
 
@@ -282,9 +288,9 @@ const shownValue = (interaction: GraphicOrderInteraction, stored: ResponseValue)
 };
 
 /**
- * Read one `qti-hotspot-choice`: its identifier, its geometry and coordinates, and its name ({@link
- * areaLabel}). A `template-identifier` is a mark, since no template value reaches a module's
- * `parse`.
+ * Read one `qti-hotspot-choice`: its identifier, the catalog it references, its geometry and
+ * coordinates, and its name ({@link areaLabel}). A `template-identifier` is a mark, since no
+ * template value reaches a module's `parse`.
  *
  * @param read The reader kit.
  * @param choice The `qti-hotspot-choice` element.
@@ -298,10 +304,12 @@ const hotspotOf = (read: ReaderKit, choice: SourceElement): GraphicOrderHotspot 
   const geometry = read.listed(choice, "shape", written, areaGeometries);
   const coords = coordinatesOf(read, choice);
   const label = areaLabel(read, choice);
+  const catalog = read.catalog(choice);
 
   markTemplate(read, choice);
 
   return {
+    catalog,
     coords,
     geometry,
     identifier,

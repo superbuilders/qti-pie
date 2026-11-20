@@ -80,6 +80,7 @@ import type {
   ModelLevel,
   Nodes,
   RedactedLevel,
+  ReferencingChoice,
   Unsupported,
 } from "#plate/model/item.ts";
 import type { Value } from "#plate/model/values.ts";
@@ -124,13 +125,12 @@ const geometries = [
  *
  * @template L The level of its content.
  */
-interface GraphicGapMatchChoice<L extends Level = ModelLevel> {
+interface GraphicGapMatchChoice<L extends Level = ModelLevel> extends ReferencingChoice {
   /**
    * The choice's content as the body walk read it: the gap text's text and markup, or the gap
    * image's `img`, `picture` or `object`.
    */
   readonly content: Nodes<L>;
-  readonly identifier: string;
   /**
    * `object-label` of a `qti-gap-img`: the text that names the image, none for a gap text.
    */
@@ -158,15 +158,14 @@ interface GraphicGapMatchChoice<L extends Level = ModelLevel> {
 
 /**
  * One `qti-associable-hotspot` of a Graphic Gap Match (Q-8): a gap of the pair's target side, an
- * area of the image.
+ * area of the image, with the catalog it references.
  */
-interface AssociableHotspot {
+interface AssociableHotspot extends ReferencingChoice {
   readonly coords: readonly AreaCoordinate[];
   /**
    * The area's geometry, its `shape`.
    */
   readonly geometry: HotspotGeometry;
-  readonly identifier: string;
   /**
    * The area's name, which names the gap: its `hotspot-label`, else its `aria-label`; none when the
    * author wrote neither ({@link areaLabel}).
@@ -239,11 +238,11 @@ interface GraphicGapMatchByLevel extends ByLevel {
 }
 
 /**
- * One choice as the page may know it: its content, and what the server shell reads of its limits.
+ * One choice as the page may know it: the catalog it references, its content, and what the server
+ * shell reads of its limits.
  */
-interface GraphicGapMatchPayloadChoice {
+interface GraphicGapMatchPayloadChoice extends ReferencingChoice {
   readonly content: Nodes<RedactedLevel>;
-  readonly identifier: string;
   readonly label: Option.Option<string>;
   /**
    * The hotspots the choice may go to, none listed when it may go to any.
@@ -254,13 +253,12 @@ interface GraphicGapMatchPayloadChoice {
 }
 
 /**
- * One hotspot as the page may know it: its identifier, label, geometry and coordinates, and what
- * the server shell reads of its limits.
+ * One hotspot as the page may know it: its identifier and the catalog it references, label,
+ * geometry and coordinates, and what the server shell reads of its limits.
  */
-interface GraphicGapMatchPayloadHotspot {
+interface GraphicGapMatchPayloadHotspot extends ReferencingChoice {
   readonly coords: readonly AreaCoordinate[];
   readonly geometry: HotspotGeometry;
-  readonly identifier: string;
   readonly label: Option.Option<string>;
   /**
    * The choices the hotspot accepts, none listed when it accepts any.
@@ -306,8 +304,9 @@ interface GraphicGapMatchPayload {
 }
 
 /**
- * Read one `qti-gap-text` or `qti-gap-img` into its choice: its identifier, its limits and its
- * content as the body walk reads it.
+ * Read one `qti-gap-text` or `qti-gap-img` into its choice: its identifier, its limits, the catalog
+ * it references (its `data-catalog-idref`, recorded before its content's so the references stay in
+ * document order) and its content as the body walk reads it.
  *
  * @param read The reader kit.
  * @param choice The gap text or gap image.
@@ -319,8 +318,10 @@ const readChoice = (read: ReaderKit, choice: SourceElement): GraphicGapMatchChoi
 
   const matchMax = read.countAttribute(choice, "match-max");
   const matchMin = read.countAttribute(choice, "match-min");
+  const catalog = read.catalog(choice);
 
   return {
+    catalog,
     content: read.nodes(choice),
     identifier: read.identifierAttribute(choice, "identifier"),
     label: read.valueOf(choice, "object-label"),
@@ -335,8 +336,8 @@ const readChoice = (read: ReaderKit, choice: SourceElement): GraphicGapMatchChoi
 };
 
 /**
- * Read one `qti-associable-hotspot` into its hotspot: its identifier, its geometry and coordinates
- * as written, its name and its limits.
+ * Read one `qti-associable-hotspot` into its hotspot: its identifier, the catalog it references,
+ * its geometry and coordinates as written, its name and its limits.
  *
  * @param read The reader kit.
  * @param hotspot The associable hotspot.
@@ -351,11 +352,13 @@ const readHotspot = (read: ReaderKit, hotspot: SourceElement): AssociableHotspot
   const geometry = read.listed(hotspot, "shape", geometryAttribute, geometries);
   const coords = coordinatesOf(read, hotspot);
   const label = areaLabel(read, hotspot);
+  const catalog = read.catalog(hotspot);
 
   const matchMax = read.countAttribute(hotspot, "match-max");
   const matchMin = read.countAttribute(hotspot, "match-min");
 
   return {
+    catalog,
     coords,
     geometry,
     identifier,
@@ -653,6 +656,7 @@ export const graphicGapMatchModule: InteractionModule<
     ariaLabel: interaction.ariaLabel,
     ariaLabelledby: interaction.ariaLabelledby,
     choices: interaction.choices.map((choice) => ({
+      catalog: choice.catalog,
       content: choice.content,
       identifier: choice.identifier,
       label: choice.label,
@@ -663,6 +667,7 @@ export const graphicGapMatchModule: InteractionModule<
     class: interaction.class,
     formName: kit.formName(interaction.response),
     hotspots: interaction.hotspots.map((hotspot) => ({
+      catalog: hotspot.catalog,
       coords: hotspot.coords,
       geometry: hotspot.geometry,
       identifier: hotspot.identifier,

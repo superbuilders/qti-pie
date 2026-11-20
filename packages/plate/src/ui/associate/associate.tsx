@@ -28,6 +28,7 @@ import {
 } from "#plate/ui/placement/parts.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * What the server gives an Associate's island, as QTI's `qti-associate-interaction` and plate's
@@ -83,7 +84,8 @@ export interface AssociateProps extends Authored<NameAttributes> {
  * - `plate-placement-bank`, the bank, with `data-over` under a dragged chip. It holds one
  *   `plate-placement-chip` per choice, with `data-picked`, `data-dragging`, `data-copies` when its
  *   `match-max` is not 1, and `data-used`, a placeholder that keeps its place, once it is in as
- *   many pairs as it may be; and last, always, the `plate-placement-slot` that puts a chip picked
+ *   many pairs as it may be, a choice the candidate hears read aloud standing with its control in
+ *   `plate-associate-choice`; and last, always, the `plate-placement-slot` that puts a chip picked
  *   up from a box back, which the stylesheet hides, keeping its space, until such a chip is held,
  *   so nothing moves under a finger;
  * - `plate-placement-message`, the latest refusal, as it was announced;
@@ -112,15 +114,19 @@ export const Associate = (props: AssociateProps) => {
       <PromptPart prompt={prompt} />
       <PlacementRoot {...pairs.root} labels={labels}>
         <PlacementBank>
-          {choices.map((choice) => (
-            <PlacementChip
-              key={choice.identifier}
-              aria-label={choice.label}
-              value={choice.identifier}
-            >
-              {choice.content}
-            </PlacementChip>
-          ))}
+          {choices.map((choice) =>
+            spokenBeside(
+              <PlacementChip
+                key={choice.identifier}
+                aria-label={choice.label}
+                value={choice.identifier}
+              >
+                {choice.content}
+              </PlacementChip>,
+              choice,
+              { key: choice.identifier, slot: "plate-associate-choice" },
+            ),
+          )}
           <PlacementSlot />
         </PlacementBank>
         <PlacementMessage />

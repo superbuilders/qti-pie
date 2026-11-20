@@ -12,13 +12,11 @@
  *
  * @module
  */
-import { Option } from "effect";
 import type { ReactNode } from "react";
-import { message, numeral } from "#plate/messages.ts";
 import type { Paired } from "#plate/payload.ts";
 import { Choice } from "#plate/ui/choice/choice.tsx";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
-import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
+import { contentOf, spokenOf } from "#plate/ui/item/interactions/answering.tsx";
 import {
   controlNameOf,
   labelsOf,
@@ -52,31 +50,16 @@ export const island = (
 
   return (
     <Choice
-      choices={node.choices.map((choice, index) => {
-        const shown = {
-          content: contentOf(choice.content, "phrasing", context),
-          identifier: choice.identifier,
-          label: optionName(
-            choice.content,
-            { count: node.choices.length, n: index + 1 },
-            context.locale,
-          ),
-        };
-        const readAloud = choice.catalog.pipe(
-          Option.flatMap((catalog) =>
-            context.readAloud(
-              catalog,
-              message(context.locale, "readAloudChoice", { n: numeral(context.locale, index + 1) }),
-              choice.identifier,
-            ),
-          ),
-        );
-
-        return Option.match(readAloud, {
-          onNone: () => shown,
-          onSome: (control) => ({ ...shown, readAloud: control }),
-        });
-      })}
+      choices={node.choices.map((choice, index) => ({
+        content: contentOf(choice.content, "phrasing", context),
+        identifier: choice.identifier,
+        label: optionName(
+          choice.content,
+          { count: node.choices.length, n: index + 1 },
+          context.locale,
+        ),
+        ...spokenOf(choice, index + 1, "readAloudChoice", context),
+      }))}
       labels={labelsOf(picksKeys, context.locale, { limit: model.messages.max })}
       name={node.formName}
       naming={controlNameOf(prompt, node, ownName(model, context), context)}

@@ -50,7 +50,14 @@ import type { Pair } from "#plate/interactions/pair.ts";
 import { selectionWords } from "#plate/interactions/selection.ts";
 import { counted, message } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
-import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
+import type {
+  BodyNode,
+  Level,
+  ModelLevel,
+  Nodes,
+  RedactedLevel,
+  ReferencingChoice,
+} from "#plate/model/item.ts";
 import type { Value } from "#plate/model/values.ts";
 import { presentedOrder } from "#plate/shuffle.ts";
 
@@ -86,7 +93,7 @@ const choiceTag = "qti-simple-associable-choice";
  *
  * @template L The level of its content.
  */
-interface MatchChoice<L extends Level = ModelLevel> {
+interface MatchChoice<L extends Level = ModelLevel> extends ReferencingChoice {
   /**
    * The choice's content as the body walk read it.
    */
@@ -95,7 +102,6 @@ interface MatchChoice<L extends Level = ModelLevel> {
    * `fixed`: the choice keeps its document position when the Match shuffles its set.
    */
   readonly fixed: boolean;
-  readonly identifier: string;
   /**
    * `match-group`: the choices of the other set this choice may pair with.
    */
@@ -171,12 +177,11 @@ interface MatchByLevel extends ByLevel {
 }
 
 /**
- * One choice as the page may know it: its content and what the page reads of its
- * limits.
+ * One choice as the page may know it: the catalog it references, its content and what the page
+ * reads of its limits.
  */
-interface MatchPayloadChoice {
+interface MatchPayloadChoice extends ReferencingChoice {
   readonly content: Nodes<RedactedLevel>;
-  readonly identifier: string;
   /**
    * The choices of the other set it may pair with, none listed when it may pair with any.
    */
@@ -240,10 +245,12 @@ const presented = <C extends { readonly fixed: boolean; readonly identifier: str
     : set.choices;
 
 /**
- * Read one `qti-simple-associable-choice` into its choice: its identifier, its limits and its
- * content as the body walk reads it. `match-max` is required (`SimpleAssociableChoiceDType`), and
- * the database refuses a choice without it before any item is built. A `template-identifier`
- * the choice carries is recorded as a mark: plate shows no choice by a template value here.
+ * Read one `qti-simple-associable-choice` into its choice: its identifier, its limits, the catalog
+ * it references (its `data-catalog-idref`, recorded before its content's so the references stay in
+ * document order) and its content as the body walk reads it. `match-max` is required
+ * (`SimpleAssociableChoiceDType`), and the database refuses a choice without it before any item is
+ * built. A `template-identifier` the choice carries is recorded as a mark: plate shows no choice by
+ * a template value here.
  *
  * @param read The reader kit.
  * @param choice The choice element.
@@ -260,8 +267,10 @@ const readChoice = (read: ReaderKit, choice: SourceElement): MatchChoice => {
     }),
   );
   const matchMin = read.countAttribute(choice, "match-min");
+  const catalog = read.catalog(choice);
 
   return {
+    catalog,
     content: read.nodes(choice),
     fixed: read.xsBoolean(choice, "fixed", false),
     identifier: read.identifierAttribute(choice, "identifier"),
@@ -490,6 +499,7 @@ const validate = (
  */
 const redactSet = (choices: readonly MatchChoice<RedactedLevel>[]): readonly MatchPayloadChoice[] =>
   choices.map((choice) => ({
+    catalog: choice.catalog,
     content: choice.content,
     identifier: choice.identifier,
     matchGroup: listedIn(choice.matchGroup),

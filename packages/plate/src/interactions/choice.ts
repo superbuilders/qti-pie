@@ -41,6 +41,7 @@ import type {
   ModelLevel,
   Nodes,
   RedactedLevel,
+  ReferencingChoice,
   SimpleChoice,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
@@ -127,11 +128,7 @@ export interface ChoicePayload {
    * the instance and the response key, each fixed choice at its document position; else document
    * order. Each carries the catalog it references, none where it references none.
    */
-  readonly choices: readonly {
-    readonly catalog: Option.Option<string>;
-    readonly content: Nodes<RedactedLevel>;
-    readonly identifier: string;
-  }[];
+  readonly choices: readonly (ReferencingChoice & { readonly content: Nodes<RedactedLevel> })[];
   /**
    * The author's `class`, as written, none when absent.
    */

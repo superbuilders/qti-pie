@@ -16,12 +16,12 @@
  */
 import { Option } from "effect";
 import type { ReactNode } from "react";
-import { message, numeral } from "#plate/messages.ts";
+import { numeral } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { Paired } from "#plate/payload.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
-import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
+import { contentOf, spokenOf } from "#plate/ui/item/interactions/answering.tsx";
 import { bankChipPart, chipPart } from "#plate/ui/item/interactions/chips.tsx";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf, slotsOf } from "#plate/ui/item/interactions/marks.ts";
@@ -132,33 +132,18 @@ export const island = (
 
   return (
     <Order
-      choices={node.choices.map((choice, index) => {
-        const shown = {
-          content: contentOf(choice.content, "phrasing", context),
-          copy: context.content(choice.content, { position: "phrasing", writing: "copy" }),
-          identifier: choice.identifier,
-          label: chipName(
-            choice.content,
-            Option.none(),
-            { count: node.choices.length, n: index + 1 },
-            context.locale,
-          ),
-        };
-        const readAloud = choice.catalog.pipe(
-          Option.flatMap((catalog) =>
-            context.readAloud(
-              catalog,
-              message(context.locale, "readAloudChoice", { n: numeral(context.locale, index + 1) }),
-              choice.identifier,
-            ),
-          ),
-        );
-
-        return Option.match(readAloud, {
-          onNone: () => shown,
-          onSome: (control) => ({ ...shown, readAloud: control }),
-        });
-      })}
+      choices={node.choices.map((choice, index) => ({
+        content: contentOf(choice.content, "phrasing", context),
+        copy: context.content(choice.content, { position: "phrasing", writing: "copy" }),
+        identifier: choice.identifier,
+        label: chipName(
+          choice.content,
+          Option.none(),
+          { count: node.choices.length, n: index + 1 },
+          context.locale,
+        ),
+        ...spokenOf(choice, index + 1, "readAloudChoice", context),
+      }))}
       labels={labelsOf(orderKeys, context.locale, {})}
       name={node.formName}
       naming={groupNameOf(prompt, node, context)}

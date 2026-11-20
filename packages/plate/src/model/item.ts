@@ -422,24 +422,32 @@ export interface TemplateVisibility {
 }
 
 /**
+ * A choice of an interaction's own content as read-aloud knows it: its identifier, and the catalog
+ * it references, its `data-catalog-idref` as written (`ReaderKit.catalog` in
+ * `#plate/interactions/contract.ts`), none where it references none (plate's reading 236). Each
+ * module reads it where it reads the choice and its payload carries it as read, so the server
+ * shell writes read-aloud's control beside the choice from this alone (`spokenOf` in
+ * `#plate/ui/item/interactions/answering.tsx`).
+ */
+export interface ReferencingChoice {
+  readonly catalog: Option.Option<string>;
+  readonly identifier: string;
+}
+
+/**
  * A `qti-simple-choice` of a Choice, or a `qti-inline-choice` of an Inline Choice, which carries
- * the same fields: its identifier, its content, whether it is fixed, and its template visibility.
+ * the same fields: its identifier and the catalog it references, its content, whether it is fixed,
+ * and its template visibility.
  *
  * @template L The level of its content.
  */
-export interface SimpleChoice<L extends Level = ModelLevel> {
-  /**
-   * The catalog the choice references, its `data-catalog-idref` as written (`ReaderKit.catalog` in
-   * `#plate/interactions/contract.ts`), none where it references none.
-   */
-  readonly catalog: Option.Option<string>;
+export interface SimpleChoice<L extends Level = ModelLevel> extends ReferencingChoice {
   readonly content: Nodes<L>;
   /**
    * `fixed`, an `xs:boolean`, false when absent: a fixed choice keeps its document position when
    * its interaction is shuffled.
    */
   readonly fixed: boolean;
-  readonly identifier: string;
   /**
    * The choice's `template-identifier` and `show-hide`, none when it has no `template-identifier`:
    * a choice with none is always shown.

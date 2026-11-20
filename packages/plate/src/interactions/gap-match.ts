@@ -59,7 +59,14 @@ import type { Pair } from "#plate/interactions/pair.ts";
 import { selectionWords } from "#plate/interactions/selection.ts";
 import { counted, message } from "#plate/messages.ts";
 import { bodyAttributeOf, xsBooleanOf } from "#plate/model/attributes.ts";
-import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
+import type {
+  BodyNode,
+  Level,
+  ModelLevel,
+  Nodes,
+  RedactedLevel,
+  ReferencingChoice,
+} from "#plate/model/item.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
 import type { Value } from "#plate/model/values.ts";
 import { presentedOrder } from "#plate/shuffle.ts";
@@ -82,17 +89,17 @@ const element = "qti-gap-match-interaction";
 const binding = { baseTypes: ["directedPair"], cardinalities: ["single", "multiple"] } as const;
 
 /**
- * One `qti-gap-text` or `qti-gap-img` of a Gap Match: a choice of the pair's source side.
+ * One `qti-gap-text` or `qti-gap-img` of a Gap Match: a choice of the pair's source side, with the
+ * catalog it references.
  *
  * @template L The level of its content.
  */
-interface GapMatchChoice<L extends Level = ModelLevel> {
+interface GapMatchChoice<L extends Level = ModelLevel> extends ReferencingChoice {
   /**
    * The choice's content as the body walk read it: the gap text's text and markup, or the gap
    * image's `object`.
    */
   readonly content: Nodes<L>;
-  readonly identifier: string;
   /**
    * `object-label` of a `qti-gap-img`: the text that names the image, none for a gap text.
    */
@@ -196,11 +203,11 @@ export interface GapElement {
 }
 
 /**
- * One choice as the page may know it: its content, and what the page reads of its limits.
+ * One choice as the page may know it: the catalog it references, its content, and what the page
+ * reads of its limits.
  */
-interface GapMatchPayloadChoice {
+interface GapMatchPayloadChoice extends ReferencingChoice {
   readonly content: Nodes<RedactedLevel>;
-  readonly identifier: string;
   readonly label: Option.Option<string>;
   /**
    * The gaps the choice may fill, none listed when it may fill any.
@@ -322,10 +329,12 @@ const isReadByName = (read: ReaderKit, child: SourceChild): boolean =>
     read.isQti(child, "qti-gap-img"));
 
 /**
- * Read one `qti-gap-text` or `qti-gap-img` into its choice: its identifier, its limits and its
- * content as the body walk reads it. `match-max` is required (`GapTextDType`, `GapImgDType`), and
- * the database refuses a choice without it before any item is built. A `template-identifier`
- * the choice carries is recorded as a mark: plate shows no choice by a template value here.
+ * Read one `qti-gap-text` or `qti-gap-img` into its choice: its identifier, its limits, the catalog
+ * it references (its `data-catalog-idref`, recorded before its content's so the references stay in
+ * document order) and its content as the body walk reads it. `match-max` is required
+ * (`GapTextDType`, `GapImgDType`), and the database refuses a choice without it before any item is
+ * built. A `template-identifier` the choice carries is recorded as a mark: plate shows no choice by
+ * a template value here.
  *
  * @param read The reader kit.
  * @param choice The gap text or gap image.
@@ -342,8 +351,10 @@ const readChoice = (read: ReaderKit, choice: SourceElement): GapMatchChoice => {
     }),
   );
   const matchMin = read.countAttribute(choice, "match-min");
+  const catalog = read.catalog(choice);
 
   return {
+    catalog,
     content: read.nodes(choice),
     identifier: read.identifierAttribute(choice, "identifier"),
     label: read.valueOf(choice, "object-label"),
@@ -610,6 +621,7 @@ export const gapMatchModule: InteractionModule<"gap-match", GapMatchByLevel, Gap
     ariaLabel: interaction.ariaLabel,
     ariaLabelledby: interaction.ariaLabelledby,
     choices: presented(interaction, kit.seed).map((choice) => ({
+      catalog: choice.catalog,
       content: choice.content,
       identifier: choice.identifier,
       label: choice.label,

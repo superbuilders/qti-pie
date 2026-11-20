@@ -19,7 +19,7 @@ import type { PayloadOf } from "#plate/model/interactions.ts";
 import type { Paired } from "#plate/payload.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
-import { associableOf, contentOf } from "#plate/ui/item/interactions/answering.tsx";
+import { associableOf, contentOf, spokenOf } from "#plate/ui/item/interactions/answering.tsx";
 import {
   bankChipPart,
   bankedOf,
@@ -41,17 +41,17 @@ import type { MatchHeader, MatchTarget } from "#plate/ui/match/match.tsx";
  * Give a choice of a Match's second set as the island takes it, a group: its content written where
  * flow content stands, its limits, and its name, the text its content shows, or, for content that
  * shows none, the name plate gives it ("Choice 2 of 5"), which its group then carries as its
- * `aria-label`.
+ * `aria-label`, and its read-aloud.
  *
  * @param target The choice, as the payload presents it.
  * @param place Its place among the second set as presented.
- * @param context What the shell knows: its content walk and the locale.
+ * @param context What the shell knows: its content walk, the locale and read-aloud.
  * @returns The group.
  */
 const targetOf = (
   target: PayloadOf<"match">["targets"][number],
   place: Place,
-  context: Pick<IslandContext, "content" | "locale">,
+  context: Pick<IslandContext, "content" | "locale" | "readAloud">,
 ): MatchTarget => {
   const label = chipName(target.content, Option.none(), place, context.locale);
 
@@ -64,6 +64,7 @@ const targetOf = (
       label === undefined
         ? { by: "label-part", text: shownText(target.content, context.locale) }
         : { by: "aria-label", text: label },
+    ...spokenOf(target, place.n, "readAloudGroup", context),
   };
 };
 

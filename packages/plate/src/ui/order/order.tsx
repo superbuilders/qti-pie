@@ -38,6 +38,8 @@ import {
 import { useSequence } from "#plate/ui/placement/sequence.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
+import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * What the server gives an Order's island, as QTI's `qti-order-interaction` and plate's
@@ -61,13 +63,12 @@ export interface OrderProps extends Authored<NameAttributes> {
    * `plate-order-choice`, never in the chip, a button, and the bank lists every choice once,
    * placed or not, so each choice is heard from one place.
    */
-  readonly choices: readonly {
+  readonly choices: readonly (Spoken & {
     readonly content: ReactNode;
     readonly copy: ReactNode;
     readonly identifier: string;
     readonly label: string | undefined;
-    readonly readAloud?: ReactNode;
-  }[];
+  })[];
   /**
    * The texts the island writes for the child, from plate's message catalog (`orderKeys` in
    * `#plate/ui/order/labels.ts`).
@@ -117,7 +118,8 @@ export interface OrderProps extends Authored<NameAttributes> {
  * - The placement primitive's root, `plate-placement`, with `data-picked` while a chip is held and
  *   `data-dragging` during a drag;
  * - `plate-placement-bank`, the bank: a `plate-placement-chip` per choice in display order, which a
- *   placed choice leaves as a layout-holding placeholder (`data-used`), then a
+ *   placed choice leaves as a layout-holding placeholder (`data-used`), a choice the candidate
+ *   hears read aloud standing with its control in `plate-order-choice`, then a
  *   `plate-placement-slot` that returns a held placed chip, which the primitive names with the
  *   `bankSlot` label;
  * - `plate-order-positions`, the positions, an `ol`, as many as `positions`. It says `role="list"`
@@ -172,22 +174,19 @@ export const Order = (props: OrderProps) => {
       <PromptPart prompt={prompt} />
       <PlacementRoot {...root} labels={labels}>
         <PlacementBank>
-          {choices.map(({ content, identifier, label, readAloud }) => {
-            const chip = (
-              <PlacementChip key={identifier} aria-label={label} value={identifier}>
-                {content}
-              </PlacementChip>
-            );
-
-            return readAloud === undefined ? (
-              chip
-            ) : (
-              <span data-slot="plate-order-choice" key={identifier}>
-                {chip}
-                {readAloud}
-              </span>
-            );
-          })}
+          {choices.map((choice) =>
+            spokenBeside(
+              <PlacementChip
+                key={choice.identifier}
+                aria-label={choice.label}
+                value={choice.identifier}
+              >
+                {choice.content}
+              </PlacementChip>,
+              choice,
+              { key: choice.identifier, slot: "plate-order-choice" },
+            ),
+          )}
           <PlacementSlot />
         </PlacementBank>
         <ol data-slot="plate-order-positions" role="list">

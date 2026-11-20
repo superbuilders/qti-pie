@@ -61,13 +61,15 @@ import type { PlacementRootState } from "#plate/ui/placement/primitive.ts";
 import { useSequence } from "#plate/ui/placement/sequence.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
+import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * One hotspot as the island takes it: its area, `shape` and `coords` as written, which the stage
- * resolves once it knows the image's size; its identifier, which the response holds; and its name,
- * which its chip shows.
+ * resolves once it knows the image's size; its identifier, which the response holds; its name,
+ * which its chip shows; and its read-aloud, which stands beside its chip in the bank.
  */
-export interface GraphicOrderArea extends StageArea {
+export interface GraphicOrderArea extends StageArea, Spoken {
   /**
    * The hotspot's name, which its chip shows and announcements read: the author's `hotspot-label`
    * where it is written and not blank, else "Area n of count", its place among the hotspots in
@@ -184,8 +186,9 @@ const Badges = (props: {
  *   stage's pins, each ordered area's badge, `plate-graphic-order-badge`, holding
  *   `plate-graphic-order-badge-disc` and `plate-graphic-order-badge-number`;
  * - `plate-placement-bank`, the bank: a `plate-placement-chip` per hotspot in document order, showing
- *   its name, which an ordered hotspot leaves as a layout-holding placeholder (`data-used`), then a
- *   `plate-placement-slot` that returns a held placed chip;
+ *   its name, which an ordered hotspot leaves as a layout-holding placeholder (`data-used`), a
+ *   hotspot the candidate hears read aloud standing with its control in
+ *   `plate-graphic-order-choice`, then a `plate-placement-slot` that returns a held placed chip;
  * - `plate-graphic-order-positions`, the positions, an `ol`, as many as `positions`. It says
  *   `role="list"` outright, as an Order's does, since WebKit stops exposing a list without markers
  *   as a list;
@@ -312,15 +315,19 @@ export const GraphicOrder = (props: GraphicOrderProps) => {
         {image}
       </GraphicStage>
       <PlacementBank>
-        {hotspots.map((hotspot) => (
-          <PlacementChip
-            key={hotspot.identifier}
-            value={hotspot.identifier}
-            {...mirrored(hotspot.identifier)}
-          >
-            {hotspot.label}
-          </PlacementChip>
-        ))}
+        {hotspots.map((hotspot) =>
+          spokenBeside(
+            <PlacementChip
+              key={hotspot.identifier}
+              value={hotspot.identifier}
+              {...mirrored(hotspot.identifier)}
+            >
+              {hotspot.label}
+            </PlacementChip>,
+            hotspot,
+            { key: hotspot.identifier, slot: "plate-graphic-order-choice" },
+          ),
+        )}
         <PlacementSlot />
       </PlacementBank>
       <ol data-slot="plate-graphic-order-positions" role="list">

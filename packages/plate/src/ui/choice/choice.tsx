@@ -48,6 +48,7 @@ import { PickOption, PicksGroup } from "#plate/ui/picks/picks-group.tsx";
 import type { Picks } from "#plate/ui/picks/picks.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * What the server gives a Choice's island, as QTI's `qti-choice-interaction` and plate's
@@ -66,12 +67,11 @@ export interface ChoiceProps extends Authored<Named> {
    * `readAloud` is read-aloud's control for the catalog the choice references, absent where the
    * candidate hears none (`#plate/ui/read-aloud/read-aloud.tsx`).
    */
-  readonly choices: readonly {
+  readonly choices: readonly (Spoken & {
     readonly content: ReactNode;
     readonly identifier: string;
     readonly label: string | undefined;
-    readonly readAloud?: ReactNode;
-  }[];
+  })[];
   readonly labels: Labels<typeof picksKeys>;
   /**
    * The entry name the response posts under, plate's `entryName` for the item's instance.

@@ -280,10 +280,12 @@ const dropMargin = 24;
 const svgNamespace = "http://www.w3.org/2000/svg";
 
 /**
- * The primitive's buttons, chips and slots, which act on a press of their own; an area's click
- * leaves them alone.
+ * The parts that act on a press of their own, the primitive's chips and slots and read-aloud's
+ * control beside a chip or a target (`#plate/ui/read-aloud/read-aloud.tsx`), so a child hears a
+ * choice while holding another; an area's click leaves them alone.
  */
-const buttonParts = '[data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]';
+const buttonParts =
+  '[data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"], [data-slot="plate-read-aloud"]';
 
 /**
  * Every part a press inside the root can mean something on; a press on none puts a held chip down.

@@ -34,7 +34,7 @@ import { sizeOf } from "#plate/ui/graphic/size.ts";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { associableOf, contentOf } from "#plate/ui/item/interactions/answering.tsx";
-import { namedAreasOf } from "#plate/ui/item/interactions/areas.ts";
+import { namedAreasOf, spokenAreasOf } from "#plate/ui/item/interactions/areas.ts";
 import { limitOf } from "#plate/ui/item/interactions/facts.ts";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
@@ -50,18 +50,17 @@ import { shownText } from "#plate/ui/item/interactions/text.ts";
 import type { Paired } from "#plate/payload.ts";
 
 /**
- * Give the hotspots as the island and the review show them, in document order: each one named
- * ({@link namedAreasOf}), with its `match-group` and its `match-max`, 0 being no limit.
+ * Give the hotspots as the island and the review show them, in document order: each one named, by
+ * {@link namedAreasOf}, or by {@link spokenAreasOf} with its read-aloud for the island, with its
+ * `match-group` and its `match-max`, 0 being no limit.
  *
- * @param node The Graphic Gap Match's payload: its hotspots.
- * @param locale The locale of plate's own text.
+ * @param hotspots The hotspots, each named.
  * @returns The hotspots.
  */
 const hotspotsOf = (
-  node: PayloadOf<"graphic-gap-match">,
-  locale: Locale,
+  hotspots: readonly (Omit<GraphicGapHotspot, "matchMax"> & { readonly matchMax: bigint })[],
 ): readonly GraphicGapHotspot[] =>
-  namedAreasOf(node.hotspots, locale).map((hotspot) => ({
+  hotspots.map((hotspot) => ({
     ...hotspot,
     matchMax: limitOf(hotspot.matchMax),
   }));
@@ -113,7 +112,7 @@ export const island = (
         ...associableOf(choice, { count: node.choices.length, n: index + 1 }, "phrasing", context),
         measure: measureOf(choice, context.locale),
       }))}
-      hotspots={hotspotsOf(node, context.locale)}
+      hotspots={hotspotsOf(spokenAreasOf(node.hotspots, context))}
       image={contentOf(node.image, "flow", context)}
       labels={labelsOf(graphicGapMatchKeys, context.locale, { totalReached: model.messages.max })}
       maxAssociations={limitOf(node.maxAssociations)}
@@ -150,7 +149,7 @@ export const review = (
   const byHotspot = pairsByTarget(node.pairs, markingOf(node.response, context));
   const unplaced = missedOf(byHotspot);
   const uses = countsOf(node.pairs.map((pair) => pair.chip));
-  const hotspots = hotspotsOf(node, locale);
+  const hotspots = hotspotsOf(namedAreasOf(node.hotspots, locale));
   const names = groupNameOf(prompt, node, context);
   const contents = new Map(
     node.choices.map((choice) => [

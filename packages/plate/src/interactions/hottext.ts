@@ -53,6 +53,7 @@ import type {
   ModelLevel,
   Nodes,
   RedactedLevel,
+  ReferencingChoice,
   TemplateContent,
   TemplateVisibility,
 } from "#plate/model/item.ts";
@@ -192,18 +193,18 @@ interface HottextPayload {
 
 /**
  * One hottext of a Hot Text's passage, as the page shows it: a `choice` the child may pick, its
- * `identifier` the value its pick posts, or `plain` text, "simply part of the surrounding
+ * `identifier` the value its pick posts and its `catalog` the one its `qti-hottext` references
+ * (the body walk's `BodyElement.catalog`), or `plain` text, "simply part of the surrounding
  * material" (QTI 3.0 information model 5.65), for a hottext its template hides. `passage` is the
  * nodes it stands as in either case: its own content, inside a `span` that carries its authored
  * attributes but `identifier` when it has any, so a `class`, a `lang` or an `id` stays where the
  * author wrote it.
  */
 export type HottextPart =
-  | {
-      readonly identifier: string;
+  | (ReferencingChoice & {
       readonly kind: "choice";
       readonly passage: Nodes<RedactedLevel>;
-    }
+    })
   | { readonly kind: "plain"; readonly passage: Nodes<RedactedLevel> };
 
 /**
@@ -400,7 +401,12 @@ const partOf = (hottext: BodyElement<RedactedLevel>): HottextPart => {
     ),
     {
       onNone: (): HottextPart => ({ kind: "plain", passage }),
-      onSome: (identifier): HottextPart => ({ identifier, kind: "choice", passage }),
+      onSome: (identifier): HottextPart => ({
+        catalog: Option.fromUndefinedOr(hottext.catalog),
+        identifier,
+        kind: "choice",
+        passage,
+      }),
     },
   );
 };

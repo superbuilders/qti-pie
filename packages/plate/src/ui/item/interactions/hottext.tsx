@@ -20,6 +20,7 @@ import type { Paired } from "#plate/payload.ts";
 import { Hottext } from "#plate/ui/hottext/hottext.tsx";
 import { elementsIn } from "#plate/ui/item/content.tsx";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
+import { spokenOf } from "#plate/ui/item/interactions/answering.tsx";
 import {
   controlNameOf,
   labelsOf,
@@ -35,6 +36,7 @@ import { PickOption } from "#plate/ui/picks/picks-group.tsx";
 import { groupSlotOf, picksOf } from "#plate/ui/picks/picks.ts";
 import { ReviewedPick } from "#plate/ui/picks/review.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
+import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * One hottext the passage shows: its `qti-hottext` element's path and its part.
@@ -100,7 +102,8 @@ const passageWith = (
 
 /**
  * Render a Hot Text's island: the passage through the shell's walk, a `PickOption` wherever a
- * hottext the child may pick stands, and the passage alone of each other.
+ * hottext the child may pick stands, beside read-aloud's control for the catalog it references in
+ * `plate-hottext-spoken` where the candidate hears it, and the passage alone of each other.
  *
  * @param paired The Hottext and its payload node.
  * @param paired.model The redacted model node the payload node was given for: the bound response's
@@ -129,14 +132,18 @@ export const island = (
             index + 1,
             [
               path,
-              <PickOption
-                identifier={part.identifier}
-                key={path}
-                label={optionName(part.passage, { count, n: index + 1 }, locale)}
-                slot="plate-hottext-choice"
-              >
-                <span data-slot="plate-hottext-content">{content}</span>
-              </PickOption>,
+              spokenBeside(
+                <PickOption
+                  identifier={part.identifier}
+                  key={path}
+                  label={optionName(part.passage, { count, n: index + 1 }, locale)}
+                  slot="plate-hottext-choice"
+                >
+                  <span data-slot="plate-hottext-content">{content}</span>
+                </PickOption>,
+                spokenOf(part, index + 1, "readAloudChoice", context),
+                { key: path, slot: "plate-hottext-spoken" },
+              ),
             ],
           ];
     },

@@ -57,6 +57,7 @@ import type {
   ModelLevel,
   Nodes,
   RedactedLevel,
+  ReferencingChoice,
   TemplateVisibility,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
@@ -81,17 +82,16 @@ const element = "qti-hotspot-interaction";
 const binding = { baseTypes: ["identifier"], cardinalities: ["single", "multiple"] } as const;
 
 /**
- * One `qti-hotspot-choice` of a Hotspot (Q-10): its identifier, its shape and coordinates as
- * written, its name, and its template visibility, none when it has no
+ * One `qti-hotspot-choice` of a Hotspot (Q-10): its identifier and the catalog it references, its
+ * shape and coordinates as written, its name, and its template visibility, none when it has no
  * `template-identifier`.
  */
-interface HotspotChoice {
+interface HotspotChoice extends ReferencingChoice {
   readonly coords: readonly AreaCoordinate[];
   /**
    * The area's geometry, its `shape`.
    */
   readonly geometry: AreaGeometry;
-  readonly identifier: string;
   /**
    * The area's name, its `hotspot-label`, else its `aria-label`; none when the author wrote
    * neither ({@link areaLabel}).
@@ -150,8 +150,8 @@ interface HotspotByLevel extends ByLevel {
 }
 
 /**
- * One hotspot as the page may know it: its identifier, label, shape and coordinates; no template
- * visibility, which `redact` settles.
+ * One hotspot as the page may know it: its identifier, the catalog it references, label, shape and
+ * coordinates; no template visibility, which `redact` settles.
  */
 type HotspotChoicePayload = Omit<HotspotChoice, "templateVisibility">;
 
@@ -228,10 +228,12 @@ const choiceOf = (read: ReaderKit, choice: SourceElement): HotspotChoice => {
   const geometry = read.listed(choice, "shape", geometryAttribute, areaGeometries);
   const coords = coordinatesOf(read, choice);
   const label = areaLabel(read, choice);
+  const catalog = read.catalog(choice);
 
   const templateVisibility = read.templateVisibility(choice);
 
   return {
+    catalog,
     coords,
     geometry,
     identifier,

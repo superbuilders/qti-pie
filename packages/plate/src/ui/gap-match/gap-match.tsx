@@ -41,6 +41,7 @@ import {
 } from "#plate/ui/placement/parts.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
 import { useResponse } from "#plate/ui/responses.tsx";
 
 /**
@@ -150,6 +151,7 @@ const boardOf = (
  * - `plate-placement`, the primitive's root, holding the rest;
  * - `plate-placement-bank`, the bank, a chip per gap text in display order. A gap text with copies
  *   left stays in the bank; one with none left stays as a placeholder, so nothing around it moves.
+ *   A gap text the candidate hears read aloud stands with its control in `plate-gap-match-choice`.
  *   Its `plate-placement-slot`, last, named by the `bankSlot` label, puts a placed gap text back;
  *   it keeps its place but shows only while a placed gap text is held;
  * - `children`, the author's sentence, with a `plate-gap` per gap ({@link Gap});
@@ -193,15 +195,19 @@ export const GapMatch = (props: GapMatchProps) => {
           }}
         >
           <PlacementBank>
-            {gapTexts.map((gapText) => (
-              <PlacementChip
-                key={gapText.identifier}
-                aria-label={gapText.label}
-                value={gapText.identifier}
-              >
-                {gapText.content}
-              </PlacementChip>
-            ))}
+            {gapTexts.map((gapText) =>
+              spokenBeside(
+                <PlacementChip
+                  key={gapText.identifier}
+                  aria-label={gapText.label}
+                  value={gapText.identifier}
+                >
+                  {gapText.content}
+                </PlacementChip>,
+                gapText,
+                { key: gapText.identifier, slot: "plate-gap-match-choice" },
+              ),
+            )}
             <PlacementSlot />
           </PlacementBank>
           {children}
