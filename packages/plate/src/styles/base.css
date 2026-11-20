@@ -98,11 +98,12 @@
     --plate-inline-target-size: 2.75rem;
 
     /*
-     * A Slider's thumb, half of which overhangs each end of its track, and a vertical track's
-     * length.
+     * A Slider's thumb, half of which overhangs each end of its track, a vertical track's length,
+     * and its width: a column, which its value fills from the lower bound.
      */
     --plate-slider-thumb: 2.75rem;
     --plate-slider-length: 16rem;
+    --plate-slider-column: 2.5rem;
 
     /* The space between two chips, half of which each bank chip's hit area takes. */
     --plate-gap: 0.75rem;
@@ -480,15 +481,49 @@
     gap: 0.25rem 1rem;
   }
 
+  /*
+   * A vertical one is as wide as its parts, its labels' column no wider than they need, and stands
+   * as a picture does in its line: at the start, or where the shared vocabulary's alignment
+   * (1.1.4.1) of the element that holds it, or of its own root, puts it. So a row of them, each
+   * over its label in a centred column, lines up as a chart's bars do over their names.
+   */
   [data-slot="plate-slider"][data-orientation="vertical"] [data-slot="plate-slider-scale"] {
     grid-template-areas:
       "upper ."
       "slider steps"
       "lower .";
     grid-template-columns: auto auto;
-    justify-content: start;
     justify-items: center;
     align-items: end;
+    column-gap: 0;
+    inline-size: fit-content;
+    margin-inline: 0 auto;
+  }
+
+  :is(
+      .qti-align-center > [data-slot="plate-slider"],
+      [data-slot="plate-slider"].qti-align-center
+    )[data-orientation="vertical"]
+    > [data-slot="plate-slider-scale"] {
+    margin-inline: auto;
+  }
+
+  :is(
+      .qti-align-left > [data-slot="plate-slider"],
+      [data-slot="plate-slider"].qti-align-left
+    )[data-orientation="vertical"]
+    > [data-slot="plate-slider-scale"] {
+    margin-right: auto;
+    margin-left: 0;
+  }
+
+  :is(
+      .qti-align-right > [data-slot="plate-slider"],
+      [data-slot="plate-slider"].qti-align-right
+    )[data-orientation="vertical"]
+    > [data-slot="plate-slider-scale"] {
+    margin-right: 0;
+    margin-left: auto;
   }
 
   [data-slot="plate-slider"][data-orientation="vertical"][data-reverse]
@@ -586,6 +621,10 @@
    * is an inset shadow, not a border: UI SDK places the thumb and the indicator in the track's
    * padding box and maps a press against its border box, which a border would set 2 px apart. It
    * places the indicator, so no rule here sets its inset or its size.
+   *
+   * A vertical track is a column (`--plate-slider-column`): a vertical slider states "the value of a
+   * quantity with an inherent vertical ... interpretation", a height (QTI 3.0 information model
+   * 5.134.5), so its value stands as a bar of that height, and a row of them is a bar chart.
    */
   :where([data-slot="plate-slider"]) [data-slot="slider-track"] {
     inline-size: 100%;
@@ -594,8 +633,17 @@
   }
 
   :where([data-slot="plate-slider"]) [data-slot="slider-track"][data-orientation="vertical"] {
-    inline-size: 0.5rem;
+    inline-size: var(--plate-slider-column);
     block-size: 100%;
+  }
+
+  /*
+   * The indicator: the track from the lower bound to the value, filled in the primary colour, the
+   * bar a vertical slider's value stands as. UI SDK places and sizes it; a host loads none of UI
+   * SDK's own sheet, so without this rule the value had no extent on the track.
+   */
+  :where([data-slot="plate-slider"]) [data-slot="slider-indicator"] {
+    background: var(--ui-primary);
   }
 
   /*
@@ -651,7 +699,8 @@
    * The step labels: under the track, each centred on its value, the first and the last at the
    * track's ends; beside a vertical track, the lower at the bottom, or at the top when reversed.
    * Each label is a box of no width, or no height, its number overflowing it evenly on both sides,
-   * so the labels stand where their values are whatever their lengths.
+   * so the labels stand where their values are whatever their lengths. Beside a vertical track they
+   * stand 1rem off it, a margin of their own, since the scale's empty column of labels takes no gap.
    */
   [data-slot="plate-slider-steps"] {
     display: flex;
@@ -672,6 +721,7 @@
     flex-direction: column-reverse;
     align-self: end;
     block-size: var(--plate-slider-length);
+    margin-inline-start: 1rem;
     padding: calc(var(--plate-slider-thumb) / 2) 0;
   }
 
