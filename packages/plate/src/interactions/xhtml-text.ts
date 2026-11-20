@@ -22,24 +22,10 @@
  */
 
 /**
- * Tell whether a code point is a character XML 1.0 holds (§2.2, `Char`: "#x9 | #xA | #xD |
- * [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]"): a value holds these and no other.
- *
- * @param character One code point, as a string's iterator splits it.
- * @returns Whether XML holds it.
+ * Every code point XML 1.0 cannot hold (§2.2, `Char`: "#x9 | #xA | #xD | [#x20-#xD7FF] |
+ * [#xE000-#xFFFD] | [#x10000-#x10FFFF]"), a lone surrogate among them: a value holds none.
  */
-const xmlCharacter = (character: string): boolean => {
-  const code = character.codePointAt(0) ?? 0;
-
-  return (
-    code === 0x9 ||
-    code === 0xa ||
-    code === 0xd ||
-    (code >= 0x20 && code <= 0xd7_ff) ||
-    (code >= 0xe0_00 && code <= 0xff_fd) ||
-    code >= 0x1_00_00
-  );
-};
+const notXmlCharacters = /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
 
 /**
  * Escape a text for XML character data: `&` and `<` always, `>` since `]]>` may not stand in
@@ -62,9 +48,8 @@ const escaped = (text: string): string =>
  * @returns The value, a sequence of `p` elements.
  */
 export const xhtmlOfText = (text: string): string =>
-  [...text]
-    .filter(xmlCharacter)
-    .join("")
+  text
+    .replaceAll(notXmlCharacters, "")
     .split("\n\n")
     .map((paragraph) => `<p>${paragraph.split("\n").map(escaped).join("<br/>")}</p>`)
     .join("");
