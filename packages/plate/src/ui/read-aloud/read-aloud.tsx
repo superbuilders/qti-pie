@@ -76,6 +76,17 @@ const stop = (element: HTMLAudioElement): void => {
 };
 
 /**
+ * Play a recording from its start. A module function, not the press handler's own lines: the React
+ * Compiler refuses a component that writes to the recording after its effect has read it.
+ *
+ * @param element The recording.
+ */
+const play = (element: HTMLAudioElement): void => {
+  element.currentTime = 0;
+  element.play().catch(playRefused);
+};
+
+/**
  * Render the control that reads one part of the item aloud from its recording.
  *
  * @param props The control's name and the recording's files ({@link ReadAloudProps}).
@@ -146,8 +157,7 @@ export const ReadAloud = ({ label, sources }: ReadAloudProps) => {
       return;
     }
 
-    element.currentTime = 0;
-    element.play().catch(playRefused);
+    play(element);
   };
 
   return (
