@@ -23,7 +23,7 @@ the specifications.
 ## Toolchain
 
 - Effect is pinned to `4.1.4`, one copy in the workspace. plate's UI SDK (`@ui-sdk/core`, `@ui-sdk/react`) is pinned
-  exactly to `0.1.0-beta.2`. Versions live in edullm's catalog.
+  exactly to `0.1.0-beta.10`. Versions live in edullm's catalog.
 - grizzle is this repository's submodule `vendor/grizzle`, which edullm reaches through recursion (its
   `submodule.recurse`), at its pinned commit. Move it one exact commit at a time, never
   floating, with the full checks.
