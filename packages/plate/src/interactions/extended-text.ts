@@ -6,8 +6,9 @@
  * An Extended Text shows one Control for a `single` binding and for a record one, a string control
  * whose text gives the record's fields, whatever its `max-strings` and a `min-strings` of 100 or
  * less; a `multiple` or `ordered` one shows as many as its payload counts ({@link controlsOf}),
- * every one posting under the response's one name. An `xhtml` Extended Text's response is the text
- * typed, a `string`, which plate never renders as markup. Any other binding is the notice naming
+ * every one posting under the response's one name. An `xhtml` Extended Text's response is the XHTML
+ * its island writes from the text typed (`#plate/interactions/xhtml-text.ts`), a `string` plate
+ * never renders as markup. Any other binding is the notice naming
  * the one it breaks, and a `format` outside `plain`, `preformatted` and `xhtml` is the notice
  * `format="…"`.
  *

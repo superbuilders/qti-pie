@@ -16,7 +16,7 @@ import { Input } from "@ui-sdk/react/input";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import type { textEntryKeys } from "#plate/ui/text-entry/labels.ts";
-import { inputModeOf, useBoxes } from "#plate/ui/typed.ts";
+import { asTyped, inputModeOf, useBoxes } from "#plate/ui/typed.ts";
 import type { BoxCounts } from "#plate/ui/typed.ts";
 
 /**
@@ -97,7 +97,13 @@ export const TextEntry = (props: TextEntryProps) => {
   const { base, baseType, expectedLength, labels, name, naming, patternMask, placeholder, root } =
     props;
   const reading = { base, baseType, blankIsEmpty: false };
-  const [[box], write, leave] = useBoxes({ counts: oneBox, name, patternMask, reading });
+  const [[box], write, leave] = useBoxes({
+    counts: oneBox,
+    name,
+    patternMask,
+    reading,
+    written: asTyped,
+  });
 
   return (
     <span {...root} data-slot="plate-text-entry">

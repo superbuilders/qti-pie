@@ -7,13 +7,15 @@
  *
  * It follows the Choice island's pattern (`#plate/ui/choice/choice.tsx`).
  *
- * A `format` of `xhtml` asks for structured text, "a set of simple text markup conventions … or a
- * complete WYSIWYG editor" (QTI 3.0 information model 8.37). This island gives it the plain
- * textarea, and its response is the text typed, a string plate never reads as markup. An editor
- * would need: a document model holding only the XHTML QTI's content model admits, its keyboard
- * and toolbar commands, paste and drop that keep only that subset, a response written as a
- * well-formed XHTML fragment, a server check that the posted string parses as one before it is
- * stored or scored, and a review that shows the fragment as markup only after that check.
+ * A `format` of `xhtml` asks for structured text whose "value of the response variable is text
+ * marked up in XHTML", typed as "plain typed text interpreted with a set of simple text markup
+ * conventions such as those used in wiki page editors or a complete WYSIWYG editor" (QTI 3.0.1
+ * information model 8.42). This island gives it the plain textarea and a wiki editor's
+ * conventions, and posts the XHTML they make: a blank line parts paragraphs, each a `p`, and
+ * another line break is a `br` (`#plate/interactions/xhtml-text.ts`), read back to the very text
+ * typed when the response is restored. A WYSIWYG editor would need: a document model holding only
+ * the XHTML QTI's content model admits, its keyboard and toolbar commands, paste and drop that keep
+ * only that subset, and a review that shows the fragment as markup.
  *
  * @module
  */
@@ -25,8 +27,9 @@ import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
-import { inputModeOf, useBoxes } from "#plate/ui/typed.ts";
-import type { BoxCounts } from "#plate/ui/typed.ts";
+import { asTyped, inputModeOf, useBoxes } from "#plate/ui/typed.ts";
+import type { BoxCounts, Written } from "#plate/ui/typed.ts";
+import { textOfXhtml, xhtmlOfText } from "#plate/interactions/xhtml-text.ts";
 
 /**
  * The size of each of an Extended Text's boxes, in a textarea's `cols` and `rows`, each undefined
@@ -77,7 +80,8 @@ export interface ExtendedTextProps extends Authored<Named> {
   /**
    * `format`: `plain` when the author wrote none, the XSD's default (5.48.9). The root's
    * `data-format` carries it, for the stylesheet to write `preformatted` text as `pre` does: white
-   * space kept and lines unwrapped. `xhtml` gets the plain textarea (see the module comment).
+   * space kept and lines unwrapped. `xhtml` gets the plain textarea, its text posted as XHTML (see
+   * the module comment).
    */
   readonly format: "plain" | "preformatted" | "xhtml";
   readonly labels: Labels<typeof extendedTextKeys>;
@@ -105,6 +109,11 @@ export interface ExtendedTextProps extends Authored<Named> {
    */
   readonly size: BoxSize;
 }
+
+/**
+ * An `xhtml` Extended Text's text as it is posted: the XHTML its conventions make of it.
+ */
+const asXhtml: Written = { read: textOfXhtml, write: xhtmlOfText };
 
 /**
  * Render an Extended Text for the child to answer, holding its response in the item's
@@ -153,7 +162,14 @@ export const ExtendedText = (props: ExtendedTextProps) => {
     size,
   } = props;
   const reading = { base, baseType, blankIsEmpty: format !== "xhtml" };
-  const [boxes, write, leave] = useBoxes({ counts: props.boxes, name, patternMask, reading });
+  const written = format === "xhtml" ? asXhtml : asTyped;
+  const [boxes, write, leave] = useBoxes({
+    counts: props.boxes,
+    name,
+    patternMask,
+    reading,
+    written,
+  });
   const grouped = boxes.length > 1;
   const boxName = (index: number): Named =>
     grouped

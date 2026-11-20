@@ -16,6 +16,7 @@ import { Option } from "effect";
 import type { ReactNode } from "react";
 import { controlCap } from "#plate/control-cap.ts";
 import { writeIn } from "#plate/interactions/text-entry.ts";
+import { textOfXhtml } from "#plate/interactions/xhtml-text.ts";
 import { message, messageText } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import { format, isNullResponse, isRecordValue } from "#plate/model/values.ts";
@@ -208,10 +209,10 @@ const answerPart = (single: Single, base: number, locale: Locale, key: string): 
 
 /**
  * Render an Extended Text's review: each string in a read-only textarea in its
- * `plate-extended-text-box`, named as the island names its boxes, marked against the host's
- * solution with the mark's words, each right answer it misses after its box or after the last
- * ({@link marksOf}); or the cap's notice where its `min-strings` asks for more boxes than plate
- * shows.
+ * `plate-extended-text-box`, an `xhtml` one as the text its XHTML was typed from, named as the
+ * island names its boxes, marked against the host's solution with the mark's words, each right
+ * answer it misses after its box or after the last ({@link marksOf}); or the cap's notice where its
+ * `min-strings` asks for more boxes than plate shows.
  *
  * @param paired The Extended Text.
  * @param paired.model Its model node: the author's `data-*`, `expected-length`, and the control
@@ -262,7 +263,7 @@ export const review = (
               data-slot="textarea"
               readOnly
               rows={size.rows}
-              value={text}
+              value={node.format === "xhtml" ? textOfXhtml(text) : text}
             />
             {markPart(wordsOfMark(mark), locale)}
           </div>,

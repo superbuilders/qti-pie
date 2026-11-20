@@ -171,6 +171,20 @@ const withBox = (boxes: Boxes, index: number, change: (box: Box) => Box): Boxes 
 };
 
 /**
+ * How a box's text stands in its response: `write` makes the posted text from the text a box shows,
+ * `read` the text a box shows from a posted one, each the other's inverse on what `write` makes.
+ */
+export interface Written {
+  readonly write: (text: string) => string;
+  readonly read: (posted: string) => string;
+}
+
+/**
+ * Typed text as it is posted: the text itself.
+ */
+export const asTyped: Written = { read: (posted) => posted, write: (text) => text };
+
+/**
  * Hold the text of an interaction's boxes beside its response, write the response on every
  * change, and say which boxes show their hint.
  *
@@ -194,6 +208,9 @@ const withBox = (boxes: Boxes, index: number, change: (box: Box) => Box): Boxes 
  *   pattern plate's reader refuses checks nothing; the server shows its notice in place of the
  *   interaction, so no island receives one.
  * @param options.reading How each box's text is read.
+ * @param options.written How a box's text is written into the response and read back from it: the
+ *   text itself for typed text, the XHTML an `xhtml` Extended Text posts ({@link Written}). The
+ *   hint judges the text the box shows.
  * @returns The boxes, in order; the setter of one box's text by its index, for its value changes;
  *   and the handler of one box losing focus by its index, for its `blur`.
  * @see https://react.dev/reference/react/useState#storing-information-from-previous-renders
@@ -203,14 +220,18 @@ export const useBoxes = (options: {
   readonly name: string;
   readonly patternMask: string | undefined;
   readonly reading: TypedReading;
+  readonly written: Written;
 }): readonly [
   boxes: Boxes,
   write: (index: number, text: string) => void,
   leave: (index: number) => void,
 ] => {
-  const { counts, name, patternMask, reading } = options;
+  const { counts, name, patternMask, reading, written } = options;
   const [texts, set] = useResponse(name);
-  const [layout, setLayout] = useState<Laid>(() => ({ boxes: laid(texts, counts), seen: texts }));
+  const [layout, setLayout] = useState<Laid>(() => ({
+    boxes: laid(texts.map(written.read), counts),
+    seen: texts,
+  }));
   const matcher = useMemo(
     () =>
       Option.fromUndefinedOr(patternMask).pipe(
@@ -222,7 +243,7 @@ export const useBoxes = (options: {
     Option.exists(matcher, (compiled) => fails(compiled, text, reading));
   let current = layout;
   if (layout.seen !== texts) {
-    current = { boxes: laid(texts, counts), seen: texts };
+    current = { boxes: laid(texts.map(written.read), counts), seen: texts };
     setLayout(current);
   }
 
@@ -231,7 +252,10 @@ export const useBoxes = (options: {
       flagged: box.flagged && failing(text),
       text,
     }));
-    const next = boxes.map((box) => box.text).filter((each) => posts(each, reading));
+    const next = boxes
+      .map((box) => box.text)
+      .filter((each) => posts(each, reading))
+      .map(written.write);
 
     setLayout({ boxes, seen: next });
     set(next);
