@@ -44,7 +44,6 @@ import { scopedId } from "#plate/form/encoding.ts";
 import { message } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
-import type { PackagePath } from "#plate/model/url.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
 import { redactStimulus } from "#plate/redact/walk.ts";
 import type { RedactedStimulus, RedactOptions } from "#plate/redact/walk.ts";
@@ -160,7 +159,7 @@ const nodesWritten = (shown: ShownStimulus): readonly RedactedNode[] => [
  */
 export const missingInStimulus = (
   shown: ShownStimulus,
-  assets: ReadonlyMap<PackagePath, string>,
+  assets: Addressing["assets"],
 ): string | undefined => {
   const addressing = { assets, document: shown.redacted.document };
 
@@ -215,7 +214,7 @@ const noItemPart = (detail: string): never => {
  * the configured heading level and the mode, which decides whether read-aloud's controls stand.
  */
 export interface StimulusSetting {
-  readonly assets: ReadonlyMap<PackagePath, string>;
+  readonly assets: Addressing["assets"];
   readonly headingLevel: number;
   readonly locale: Locale;
   readonly mode: RenderMode;
