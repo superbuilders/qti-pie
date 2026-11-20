@@ -40,6 +40,16 @@ const sharedImportPatterns = [
 const nodeBuiltins = `(?:node:|(?:${builtinModules.join("|")})(?:/|$))`;
 
 /**
+ * Every Node built-in but node:crypto, the one the engine's draws load, as a specifier pattern
+ * without its anchor: the others with or without `node:`, and `crypto` without it. oxlint reads
+ * the pattern with Rust's regex, which has no look-around to refuse node:crypto alone by.
+ */
+const nodeBuiltinsButCrypto = `(?:node:(?:${builtinModules
+  .map((name) => name.replace(/^node:/u, ""))
+  .filter((name) => name !== "crypto")
+  .join("|")})|${builtinModules.join("|")})(?:/|$)`;
+
+/**
  * The pattern by which plate's modules load no Node built-in, one of {@link plateCorePatterns}.
  */
 const plateNodePattern = {
@@ -277,7 +287,7 @@ export default defineConfig({
               {
                 allowTypeImports: true,
                 message: "The engine's draws load no Node built-in but node:crypto.",
-                regex: `^(?!node:crypto$)${nodeBuiltins}`,
+                regex: `^${nodeBuiltinsButCrypto}`,
               },
             ],
           },
