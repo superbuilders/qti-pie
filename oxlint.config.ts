@@ -97,6 +97,8 @@ export default defineConfig({
   // A fixture package's JS modules (a PCI's AMD module, its JSON module resolution file) are data a
   // test reads, not source.
   ignorePatterns: [
+    // grizzle, this repository's submodule, is linted by its own gate and config.
+    "vendor/**",
     "dist/**",
     ".agents/**",
     ".claude/**",
