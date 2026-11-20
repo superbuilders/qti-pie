@@ -107,9 +107,11 @@ interface OrderByLevel extends ByLevel {
 }
 
 /**
- * One choice of an Order as the page may know it: its identifier and its content.
+ * One choice of an Order as the page may know it: the catalog it references, none where it
+ * references none, its identifier and its content.
  */
 interface OrderChoicePayload {
+  readonly catalog: Option.Option<string>;
   readonly content: Nodes<RedactedLevel>;
   readonly identifier: string;
 }
@@ -323,6 +325,7 @@ const redactOrder = (
     ariaLabel: interaction.ariaLabel,
     ariaLabelledby: interaction.ariaLabelledby,
     choices: presented(interaction, kit.seed).map((choice) => ({
+      catalog: choice.catalog,
       content: choice.content,
       identifier: choice.identifier,
     })),

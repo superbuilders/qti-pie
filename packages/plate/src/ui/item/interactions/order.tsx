@@ -3,8 +3,10 @@
  * island in `answering` (`#plate/ui/order/order.tsx`) and its server markup in `review` and
  * `solution`.
  *
- * The island takes its choices as presented, its orientation, and its positions and how many of
- * them its response requires, the payload's bounds (reading 18), which `redact` counts once. The
+ * The island takes its choices as presented, each with read-aloud's control for the catalog it
+ * references where the candidate hears it read aloud, named by the choice's place as presented, its
+ * orientation, and its positions and how many of them its response requires, the payload's bounds
+ * (reading 18), which `redact` counts once. The
  * review shows each answer once: the numbered positions holding the choices the response places,
  * each position marked against the host's solution, the right choice standing in a position whose
  * answer is not it, and a bank of only the choices the response leaves out, none when it leaves
@@ -14,7 +16,7 @@
  */
 import { Option } from "effect";
 import type { ReactNode } from "react";
-import { numeral } from "#plate/messages.ts";
+import { message, numeral } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { Paired } from "#plate/payload.ts";
 import { flag } from "#plate/ui/attributes.ts";
@@ -130,17 +132,33 @@ export const island = (
 
   return (
     <Order
-      choices={node.choices.map((choice, index) => ({
-        content: contentOf(choice.content, "phrasing", context),
-        copy: context.content(choice.content, { position: "phrasing", writing: "copy" }),
-        identifier: choice.identifier,
-        label: chipName(
-          choice.content,
-          Option.none(),
-          { count: node.choices.length, n: index + 1 },
-          context.locale,
-        ),
-      }))}
+      choices={node.choices.map((choice, index) => {
+        const shown = {
+          content: contentOf(choice.content, "phrasing", context),
+          copy: context.content(choice.content, { position: "phrasing", writing: "copy" }),
+          identifier: choice.identifier,
+          label: chipName(
+            choice.content,
+            Option.none(),
+            { count: node.choices.length, n: index + 1 },
+            context.locale,
+          ),
+        };
+        const readAloud = choice.catalog.pipe(
+          Option.flatMap((catalog) =>
+            context.readAloud(
+              catalog,
+              message(context.locale, "readAloudChoice", { n: numeral(context.locale, index + 1) }),
+              choice.identifier,
+            ),
+          ),
+        );
+
+        return Option.match(readAloud, {
+          onNone: () => shown,
+          onSome: (control) => ({ ...shown, readAloud: control }),
+        });
+      })}
       labels={labelsOf(orderKeys, context.locale, {})}
       name={node.formName}
       naming={groupNameOf(prompt, node, context)}

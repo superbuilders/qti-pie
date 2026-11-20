@@ -4577,10 +4577,10 @@ C2: the oracle's own reader.)
      plays, over an `audio` element with one `source` per audio file in document order, among which the browser plays
      the first format it can (HTML's source selection; the guide's example stores one recording as `audio/mpeg` and
      `audio/ogg`), so plate picks none (step 7). The control follows an element of the body at a flow position, an
-     interaction's prompt, and stands beside a Choice's choice; at any other referencing part (an element at a phrasing
-     position or inside an interaction's own content, an Order's or an Inline Choice's choice) it is not presented,
-     and the card is never listed, since a recording heard apart from its text, or a link to it, presents nothing the
-     candidate can follow. The entry's other files (the guide's `application/xml`) are not presented, and a `spoken`
+     interaction's prompt, and stands beside a Choice's choice and beside an Order's choice in its bank, the two kinds
+     whose choices AlphaTest's player read aloud; at any other referencing part (an element at a phrasing position or
+     inside an interaction's own content, an Inline Choice's choice) it is not presented, and the card is never listed,
+     since a recording heard apart from its text, or a link to it, presents nothing the candidate can follow. The entry's other files (the guide's `application/xml`) are not presented, and a `spoken`
      card with no audio file is listed as before. A review and a solution present no control: their page ships no
      island but a Media's replay (plate's UI suite's J1). This changes no verdict. This is not a case of documents in
      conflict. (Stated 2026-11-20 by lane IMPL-READALOUD; to be confirmed by the owner, Bjorn.)

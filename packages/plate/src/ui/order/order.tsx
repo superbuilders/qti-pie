@@ -55,13 +55,18 @@ export interface OrderProps extends Authored<NameAttributes> {
    * stands twice on the page while the placeholder keeps the original. `label`, absent when the
    * content shows text, is the accessible name the server gives a choice whose content has none,
    * such as an image: its chip carries it, and announcements read it, since the primitive reads a
-   * part's text, then its `aria-label`, and never an image's `alt`.
+   * part's text, then its `aria-label`, and never an image's `alt`. `readAloud` is read-aloud's
+   * control for the catalog the choice references, absent where the candidate hears none
+   * (`#plate/ui/read-aloud/read-aloud.tsx`): it stands beside the choice's chip in the bank, in
+   * `plate-order-choice`, never in the chip, a button, and the bank lists every choice once,
+   * placed or not, so each choice is heard from one place.
    */
   readonly choices: readonly {
     readonly content: ReactNode;
     readonly copy: ReactNode;
     readonly identifier: string;
     readonly label: string | undefined;
+    readonly readAloud?: ReactNode;
   }[];
   /**
    * The texts the island writes for the child, from plate's message catalog (`orderKeys` in
@@ -167,11 +172,22 @@ export const Order = (props: OrderProps) => {
       <PromptPart prompt={prompt} />
       <PlacementRoot {...root} labels={labels}>
         <PlacementBank>
-          {choices.map(({ content, identifier, label }) => (
-            <PlacementChip key={identifier} aria-label={label} value={identifier}>
-              {content}
-            </PlacementChip>
-          ))}
+          {choices.map(({ content, identifier, label, readAloud }) => {
+            const chip = (
+              <PlacementChip key={identifier} aria-label={label} value={identifier}>
+                {content}
+              </PlacementChip>
+            );
+
+            return readAloud === undefined ? (
+              chip
+            ) : (
+              <span data-slot="plate-order-choice" key={identifier}>
+                {chip}
+                {readAloud}
+              </span>
+            );
+          })}
           <PlacementSlot />
         </PlacementBank>
         <ol data-slot="plate-order-positions" role="list">
