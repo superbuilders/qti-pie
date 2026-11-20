@@ -377,9 +377,10 @@ export interface Addressing {
   /**
    * Which writing of the content the walk makes: `original`, which writes each of the author's
    * `id`s, scoped; or `copy`, a second writing of content the page shows elsewhere too, such as
-   * an Order's placeholder chip or the chip a review shows left in the bank, which writes no `id`,
-   * so each of the author's ids stands once on the page while its references still name the
-   * original's elements.
+   * an Order's placeholder chip or the chip a review shows left in the bank, which writes no `id`
+   * and no notice, so each of the author's ids stands once on the page while its references still
+   * name the original's elements, and each feature the item renders without is told once, by the
+   * original.
    */
   readonly writing: Writing;
 }

@@ -1027,9 +1027,10 @@ const contentNodeOf = (node: ContentNode<RedactedLevel>, key: Key, walk: Walk): 
  * @param node The body node, as the redacted body holds it.
  * @param key Its key among its siblings.
  * @param walk What the walk carries.
- * @returns Text as itself, an element ({@link elementOf}), a notice as the Notice part, an
- *   interaction or a module's container through the seam ({@link interactionOf},
- *   {@link containerOf}), a content module's node through its view ({@link contentNodeOf}).
+ * @returns Text as itself, an element ({@link elementOf}), a notice as the Notice part (none in a
+ *   copy, whose original tells it: `Addressing.writing`), an interaction or a module's container
+ *   through the seam ({@link interactionOf}, {@link containerOf}), a content module's node through
+ *   its view ({@link contentNodeOf}).
  */
 const nodeOf = (node: RedactedNode, key: Key, walk: Walk): ReactNode => {
   if (isInteraction(node)) {
@@ -1044,7 +1045,9 @@ const nodeOf = (node: RedactedNode, key: Key, walk: Walk): ReactNode => {
       return node.text;
     }
     case "unsupported": {
-      return noticeOf(node.feature, walk.locale, positionOf(walk.standing), key);
+      return walk.addressing.writing === "copy"
+        ? null
+        : noticeOf(node.feature, walk.locale, positionOf(walk.standing), key);
     }
     case "container": {
       return containerOf(node, key, walk);
