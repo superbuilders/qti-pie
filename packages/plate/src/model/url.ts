@@ -8,7 +8,9 @@
  * the browser reads exactly what was checked. `checkAdmitted` applies {@link classifyUrl} to every
  * attribute {@link urlAttributes} lists ({@link classifyUrlAt}), and the server shell writes kept
  * values with {@link addressUrl}, each package path as the address the configuration's `assets`
- * gives its file; neither lists URL attributes of its own.
+ * gives its file; neither lists URL attributes of its own. Each value is first read as its type's
+ * whiteSpace facet reads it ({@link urlValueOf}), so the parser reads QTI's value, never the
+ * lexical form.
  *
  * A package path is resolved against the item's own location, the path from the package root the
  * host named the item by, as RFC 3986 section 5.2 resolves a relative reference: `media/a.png` in
@@ -27,6 +29,7 @@ import type { Brand } from "effect";
 import { elementAttributes } from "#plate/content/mathml-attributes.ts";
 import { resolveIn, withoutQuery } from "#plate/document/href.ts";
 import { mathmlNamespace, qtiNamespace } from "#plate/document/source.ts";
+import { collapseXmlSpace, replaceXmlSpace } from "#plate/model/attributes.ts";
 import type { SourceAttribute, SourceElement } from "#plate/document/source.ts";
 
 /**
@@ -54,13 +57,23 @@ export type UrlContext = "embed" | "link" | "package" | "resource" | "srcset";
 type ExpandedName = Pick<SourceAttribute | SourceElement, "local" | "namespace">;
 
 /**
- * One URL-bearing attribute of an element plate renders: the element's expanded name and the
- * attribute's local name, every one of them in no namespace.
+ * How an attribute's lexical form is read into its value: the `whiteSpace` facet of its type (XML
+ * Schema 1.0 Part 2, §4.3.6): `collapse` for an `xs:anyURI` ("whiteSpace = collapse", §3.2.17),
+ * `replace` for an `xs:normalizedString` and `URLDType`, the ASI XSD's restriction of it, and
+ * `preserve` for an `xs:string`.
+ */
+type WhiteSpace = "collapse" | "preserve" | "replace";
+
+/**
+ * One URL-bearing attribute of an element plate renders: the element's expanded name, the
+ * attribute's local name, every one of them in no namespace, how it is used, and the whiteSpace
+ * facet of its type, which its value is read under before it is classified.
  */
 interface UrlAttribute {
   readonly attribute: string;
   readonly context: UrlContext;
   readonly element: ExpandedName;
+  readonly whiteSpace: WhiteSpace;
 }
 
 /**
@@ -69,16 +82,25 @@ interface UrlAttribute {
  * @param local The element's local name.
  * @param attribute The attribute's local name.
  * @param context How it is used.
+ * @param whiteSpace The whiteSpace facet of the type the ASI XSD gives it.
  * @returns The row.
  */
-const body = (local: string, attribute: string, context: UrlContext): UrlAttribute => ({
+const body = (
+  local: string,
+  attribute: string,
+  context: UrlContext,
+  whiteSpace: WhiteSpace,
+): UrlAttribute => ({
   attribute,
   context,
   element: { local, namespace: qtiNamespace },
+  whiteSpace,
 });
 
 /**
- * Name a URL attribute of a MathML element.
+ * Name a URL attribute of a MathML element, which MathML 3's schema types `xs:anyURI`
+ * (`mathml3-common.xsd`'s `href` and `src`, `mathml3-presentation.xsd`'s `altimg` and `mglyph`'s
+ * `src`), so it collapses.
  *
  * @param local The element's local name.
  * @param attribute The attribute's local name.
@@ -89,6 +111,7 @@ const math = (local: string, attribute: string, context: UrlContext): UrlAttribu
   attribute,
   context,
   element: { local, namespace: mathmlNamespace },
+  whiteSpace: "collapse",
 });
 
 /**
@@ -123,23 +146,23 @@ const math = (local: string, attribute: string, context: UrlContext): UrlAttribu
  * @see https://www.w3.org/TR/MathML3/chapter2.html#fund.globatt
  */
 const urlAttributes: readonly UrlAttribute[] = [
-  body("a", "href", "link"),
-  body("audio", "src", "resource"),
-  body("blockquote", "cite", "link"),
-  body("img", "longdesc", "link"),
-  body("img", "src", "resource"),
-  body("object", "data", "embed"),
-  body("q", "cite", "link"),
-  body("qti-assessment-stimulus-ref", "href", "embed"),
-  body("qti-interaction-module", "fallback-path", "package"),
-  body("qti-interaction-module", "primary-path", "package"),
-  body("qti-interaction-modules", "primary-configuration", "package"),
-  body("qti-interaction-modules", "secondary-configuration", "package"),
-  body("source", "src", "resource"),
-  body("source", "srcset", "srcset"),
-  body("track", "src", "resource"),
-  body("video", "poster", "resource"),
-  body("video", "src", "resource"),
+  body("a", "href", "link", "collapse"),
+  body("audio", "src", "resource", "replace"),
+  body("blockquote", "cite", "link", "collapse"),
+  body("img", "longdesc", "link", "collapse"),
+  body("img", "src", "resource", "collapse"),
+  body("object", "data", "embed", "preserve"),
+  body("q", "cite", "link", "collapse"),
+  body("qti-assessment-stimulus-ref", "href", "embed", "collapse"),
+  body("qti-interaction-module", "fallback-path", "package", "collapse"),
+  body("qti-interaction-module", "primary-path", "package", "collapse"),
+  body("qti-interaction-modules", "primary-configuration", "package", "collapse"),
+  body("qti-interaction-modules", "secondary-configuration", "package", "collapse"),
+  body("source", "src", "resource", "replace"),
+  body("source", "srcset", "srcset", "replace"),
+  body("track", "src", "resource", "replace"),
+  body("video", "poster", "resource", "replace"),
+  body("video", "src", "resource", "replace"),
   ...Array.from(elementAttributes, ([local, names]) =>
     names.has("href") ? [math(local, "href", "link")] : [],
   ).flat(),
@@ -163,11 +186,8 @@ const keyOf = (element: ExpandedName, attribute: ExpandedName): string =>
 /**
  * {@link urlAttributes} by {@link keyOf}, each attribute in no namespace.
  */
-const contextIndex: ReadonlyMap<string, UrlContext> = new Map(
-  urlAttributes.map(({ attribute, context, element }) => [
-    keyOf(element, { local: attribute, namespace: "" }),
-    context,
-  ]),
+const attributeIndex: ReadonlyMap<string, UrlAttribute> = new Map(
+  urlAttributes.map((row) => [keyOf(row.element, { local: row.attribute, namespace: "" }), row]),
 );
 
 /**
@@ -180,7 +200,51 @@ const contextIndex: ReadonlyMap<string, UrlContext> = new Map(
 export const urlContextOf = (
   element: ExpandedName,
   attribute: ExpandedName,
-): Option.Option<UrlContext> => Option.fromUndefinedOr(contextIndex.get(keyOf(element, attribute)));
+): Option.Option<UrlContext> =>
+  Option.map(
+    Option.fromUndefinedOr(attributeIndex.get(keyOf(element, attribute))),
+    (row) => row.context,
+  );
+
+/**
+ * Read a URL attribute's lexical form into its value, as its type's whiteSpace facet reads it
+ * ({@link WhiteSpace}): an `xs:anyURI` collapsed, its outer whitespace gone and each inner run one
+ * space, a `URLDType` each tab, line feed and carriage return a space, an `xs:string` as written.
+ * The URL parser reads the value, never the lexical form, so `href="a b.xml"` names the file `a
+ * b.xml`, as the database's importer resolves it (pantry's spec reading 102), where the parser
+ * alone would keep both spaces, and a tab written `&#9;` in a `URLDType` is the space it reads as,
+ * where the parser alone would remove it. An attribute that is no URL attribute of its element is
+ * read as written, as an `xs:string` is: the database refuses one that holds a tab, a line feed or
+ * a carriage return inside it under its stated limit "Href form" (pantry's spec reading 102, a
+ * control character names no file), so the parser never meets one there.
+ *
+ * @param element The element's expanded name.
+ * @param attribute The attribute's expanded name.
+ * @param lexical The attribute's lexical form, as the reader gave it.
+ * @returns Its value.
+ */
+export const urlValueOf = (
+  element: ExpandedName,
+  attribute: ExpandedName,
+  lexical: string,
+): string => {
+  const whiteSpace = attributeIndex.get(keyOf(element, attribute))?.whiteSpace ?? "preserve";
+
+  switch (whiteSpace) {
+    case "collapse": {
+      return collapseXmlSpace(lexical);
+    }
+    case "replace": {
+      return replaceXmlSpace(lexical);
+    }
+    case "preserve": {
+      return lexical;
+    }
+    default: {
+      return whiteSpace satisfies never;
+    }
+  }
+};
 
 /**
  * The feature key of a URL that resolves outside the package: a host-absolute path (`/x`), a path
@@ -1060,7 +1124,17 @@ export const assetPaths = (
     {
       onNone: () => [],
       onSome: (context) =>
-        packageUrlsOf(classifyUrlAt(location, context, value)).flatMap((url) =>
+        packageUrlsOf(
+          classifyUrlAt(
+            location,
+            context,
+            urlValueOf(
+              { local: element, namespace: qtiNamespace },
+              { local: attribute, namespace: "" },
+              value,
+            ),
+          ),
+        ).flatMap((url) =>
           Option.toArray(
             Option.map(
               assetReferenceOf(baseLocationOf(location, context), url),

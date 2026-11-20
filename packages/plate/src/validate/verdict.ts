@@ -46,7 +46,7 @@ import type {
   Unsupported,
   UnsupportedFeature,
 } from "#plate/model/item.ts";
-import { classifyUrlAt, formatUrl, urlContextOf } from "#plate/model/url.ts";
+import { classifyUrlAt, formatUrl, urlContextOf, urlValueOf } from "#plate/model/url.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
 import {
   attributeName,
@@ -372,7 +372,8 @@ const isKept = (
 
 /**
  * Secure one element's attributes: remove each one only a wildcard admits and pass each URL
- * attribute through `url.ts`, which resolves a package path against the document's location.
+ * attribute through `url.ts`, its value read under its type's whiteSpace facet (`urlValueOf`),
+ * which resolves a package path against the document's location.
  *
  * An element is read by the table that governs it ({@link governingTables}): a valid `xsi:type`'s
  * type, or the declaration that admitted it, a local one included, so an attribute that type or
@@ -409,7 +410,11 @@ const secureAttributes = (
       continue;
     }
 
-    const url = classifyUrlAt(location, context.value, attribute.value);
+    const url = classifyUrlAt(
+      location,
+      context.value,
+      urlValueOf(element, attribute, attribute.value),
+    );
     if (url.kind === "dropped") {
       const features = drops.get(path) ?? [];
       if (!features.includes(url.feature)) {

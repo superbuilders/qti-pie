@@ -1056,3 +1056,82 @@ describe("resolution against the item's location, by RFC 3986", () => {
     assert.isAbove(references.length, 9000);
   });
 });
+
+/**
+ * Replace each tab, line feed and carriage return of a value with a space, XML Schema's `replace`.
+ *
+ * @param value The value.
+ * @returns It replaced.
+ */
+const replacedSpace = (value: string): string => value.replaceAll(/[\t\n\r]/gu, " ");
+
+describe("a URL attribute's value, read by its type's whiteSpace facet", () => {
+  it("names, for every URL attribute of the ASI XSD and every run of whitespace around and inside a name, the file the attribute's value names", () => {
+    // Oracle: XML Schema 1.0 Part 2 §4.3.6 by hand. `replace`: "All occurrences of #x9 (tab), #xA
+    // (line feed) and #xD (carriage return) are replaced with #x20 (space)"; `collapse`: "After the
+    // processing implied by replace, contiguous sequences of #x20's are collapsed to a single #x20,
+    // and initial and/or final #x20's are deleted"; `preserve`: "No normalization is done". Each
+    // type is the ASI XSD's: `xs:anyURI` collapses (§3.2.17), `URLDType` is an
+    // `xs:normalizedString`, which replaces, and `object@data` is an `xs:string`. The whitespace
+    // around the value is then set aside, as an HTML URL is "potentially surrounded by spaces".
+    const facets = {
+      collapse: (value: string) => replacedSpace(value).replaceAll(/ +/gu, " ").trim(),
+      preserve: (value: string) => value,
+      replace: replacedSpace,
+    } as const;
+    const rows = [
+      ["a", "href", "collapse", "items/"],
+      ["audio", "src", "replace", "items/"],
+      ["blockquote", "cite", "collapse", "items/"],
+      ["img", "longdesc", "collapse", "items/"],
+      ["img", "src", "collapse", "items/"],
+      ["object", "data", "preserve", "items/"],
+      ["q", "cite", "collapse", "items/"],
+      ["qti-assessment-stimulus-ref", "href", "collapse", "items/"],
+      ["qti-interaction-module", "fallback-path", "collapse", ""],
+      ["qti-interaction-module", "primary-path", "collapse", ""],
+      ["qti-interaction-modules", "primary-configuration", "collapse", ""],
+      ["qti-interaction-modules", "secondary-configuration", "collapse", ""],
+      ["source", "src", "replace", "items/"],
+      ["track", "src", "replace", "items/"],
+      ["video", "poster", "replace", "items/"],
+      ["video", "src", "replace", "items/"],
+    ] as const;
+    const around = ["", " ", "\t", "\n", "\r"];
+    const inside = ["", " ", "  ", "\t", " \t", "\n\r"];
+    const lexicals = around.flatMap((before) =>
+      inside.flatMap((within) =>
+        ["", " ", "\t"].map((after) => `${before}a${within}b.png${after}`),
+      ),
+    );
+    // An `xs:string` that holds a tab, a line feed or a carriage return inside names no file: the
+    // database refuses it under "Href form" (pantry's spec reading 102), so plate never meets one.
+    const held = (facet: keyof typeof facets, lexical: string): boolean =>
+      facet !== "preserve" ||
+      !/[\t\n\r]/u.test(lexical.replaceAll(/^[\t\n\r ]+|[\t\n\r ]+$/gu, ""));
+    const disagreements = rows.flatMap(([element, attribute, facet, directory]) =>
+      lexicals
+        .filter((lexical) => held(facet, lexical))
+        .flatMap((lexical) => {
+          const value = facets[facet](lexical)
+            .replace(/^[\t\n\r ]+/u, "")
+            .replace(/[\t\n\r ]+$/u, "");
+          const expected = [`${directory}${value}`];
+          const plate = assetPaths("items/q1.xml", element, attribute, lexical);
+
+          return plate.length === 1 && plate[0] === expected[0]
+            ? []
+            : [
+                `${element}@${attribute}=${JSON.stringify(lexical)}: plate ${JSON.stringify(plate)}, the ${facet}d value ${JSON.stringify(expected)}`,
+              ];
+        }),
+    );
+
+    assert.deepStrictEqual(disagreements, []);
+    assert.strictEqual(rows.length * lexicals.length, 1440);
+  });
+
+  it("reads no attribute outside the table, which names no file", () => {
+    assert.deepStrictEqual(assetPaths("items/q1.xml", "param", "value", " a  b.png "), []);
+  });
+});
