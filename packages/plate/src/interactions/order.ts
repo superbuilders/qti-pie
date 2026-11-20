@@ -247,8 +247,10 @@ const parseOrder = (
 
     const identifier = read.identifierAttribute(choice, "identifier");
     const fixed = read.xsBoolean(choice, "fixed", false);
+    const catalog = read.catalog(choice);
 
     choices.push({
+      catalog,
       content: read.nodes(choice),
       fixed,
       identifier,

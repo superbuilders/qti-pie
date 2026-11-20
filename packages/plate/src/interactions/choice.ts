@@ -125,9 +125,10 @@ export interface ChoicePayload {
   /**
    * The choices in presented order: for a Choice with `shuffle` true, the order the view's seed,
    * the instance and the response key, each fixed choice at its document position; else document
-   * order.
+   * order. Each carries the catalog it references, none where it references none.
    */
   readonly choices: readonly {
+    readonly catalog: Option.Option<string>;
     readonly content: Nodes<RedactedLevel>;
     readonly identifier: string;
   }[];
@@ -161,9 +162,10 @@ const orientations = ["horizontal", "vertical"] as const;
 /**
  * Read a choice of a Choice or an Inline Choice, a `qti-simple-choice` or a `qti-inline-choice`,
  * with the marks it carries as a body element: its identifier, its `fixed`, an `xs:boolean` false
- * when absent, its content, and its `template-identifier` with its `show-hide`, `show` when
- * absent. A choice with no `template-identifier` has no template visibility, whatever its
- * `show-hide`.
+ * when absent, the catalog it references (its `data-catalog-idref`, recorded before its content's
+ * so the references stay in document order), its content, and its `template-identifier` with its
+ * `show-hide`, `show` when absent. A choice with no `template-identifier` has no template
+ * visibility, whatever its `show-hide`.
  *
  * @param read The kit the interaction is read with.
  * @param choice The choice.
@@ -175,8 +177,10 @@ export const simpleChoiceOf = (read: ReaderKit, choice: SourceElement): SimpleCh
   const identifier = read.identifierAttribute(choice, "identifier");
   const fixed = read.xsBoolean(choice, "fixed", false);
   const templateVisibility = read.templateVisibility(choice);
+  const catalog = read.catalog(choice);
 
   return {
+    catalog,
     content: read.nodes(choice),
     fixed,
     identifier,
@@ -363,6 +367,7 @@ export const choiceModule: InteractionModule<"choice", ChoiceByLevel, ChoicePayl
     ariaLabelledby: interaction.ariaLabelledby,
     cardinality: interaction.cardinality,
     choices: presented(interaction, kit.seed).map((choice) => ({
+      catalog: choice.catalog,
       content: choice.content,
       identifier: choice.identifier,
     })),

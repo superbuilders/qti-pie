@@ -12,6 +12,16 @@
  *   is flow content, which a `p` cannot hold, so it follows the term's enclosing block, the nearest
  *   element at a flow position at or above the term, in focus order (2.4.3); the term names it with
  *   `aria-details`. Plate writes no `open` and moves no focus (3.2.1).
+ * - **Read aloud**: a `spoken` card that gives audio (`spokenAudioOf` in
+ *   `#plate/content/catalog-info.ts`) is the recording of the part of the item that references its
+ *   catalog, "the audio as an alternative to the written text provided in the default content"
+ *   (implementation guide §5.2.8.3). While the candidate answers, it is presented as read-aloud's
+ *   control (`ReadAloud` in `#plate/ui/read-aloud/read-aloud.tsx`) beside each part that references
+ *   its catalog where a control can stand ({@link readAloudOf}): after an element of the body at a
+ *   flow position, after an interaction's prompt, and beside a Choice's choice. It is never listed:
+ *   a recording is heard beside what it reads, and a list of recordings apart from their text, or
+ *   of links to them, presents nothing a candidate can follow. A review and a solution present it
+ *   nowhere, since their page ships no island but a Media's replay.
  * - **The listing**: every other kept card, and the glossary cards of a catalog no element of the
  *   body references (one referenced only from an interaction's own content, where a disclosure
  *   would sit inside a control), are listed after the body in `plate-catalog`, each card a
@@ -27,10 +37,10 @@
  *
  * @module
  */
-import { Option, Result } from "effect";
+import { Array as Arr, Option, Result } from "effect";
 import { createElement } from "react";
 import type { Key, ReactNode } from "react";
-import { catalogKey } from "#plate/content/catalog-info.ts";
+import { catalogKey, spokenAudioOf } from "#plate/content/catalog-info.ts";
 import type {
   CatalogCard,
   CatalogFile,
@@ -48,6 +58,8 @@ import { writtenTag } from "#plate/ui/item/html.ts";
 import { authoredId } from "#plate/ui/item/ids.ts";
 import { bodyAttributeOf } from "#plate/model/attributes.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
+import { ReadAloud } from "#plate/ui/read-aloud/read-aloud.tsx";
+import type { ReadAloudSource } from "#plate/ui/read-aloud/read-aloud.tsx";
 
 /**
  * The support whose cards are presented beside the terms that reference their catalog.
@@ -145,23 +157,93 @@ export const termsIn = (nodes: readonly RedactedNode[]): readonly BodyElement<Re
   });
 
 /**
+ * Give the address of one of a card's files: its href resolved against the item's location and
+ * written as the file's address in the configuration's `assets`.
+ *
+ * @param file The file.
+ * @param addressing The item's location and the assets.
+ * @returns The address; none when the URL is one `checkAdmitted` drops, which it never keeps, or
+ *   one `assets` holds no address for, which {@link missingInCatalog} refuses first.
+ */
+const fileAddress = (
+  file: CatalogFile,
+  addressing: Pick<Addressing, "assets" | "document">,
+): Option.Option<string> => {
+  const url = classifyUrl("link", file.href);
+
+  return url.kind === "dropped"
+    ? Option.none()
+    : Result.getSuccess(addressUrl(url, addressing.document, addressing.assets));
+};
+
+/**
  * Write one of a card's files as a link: its text the href as written, its `href` the file's
  * address, its `type` the `mime-type`.
  *
  * @param file The file.
  * @param addressing The item's location and the assets.
  * @param key The link's key.
- * @returns The link; one with no `href` when the URL is one `checkAdmitted` drops, which it never
- *   keeps.
+ * @returns The link; one with no `href` when the file has no address ({@link fileAddress}).
  */
-const fileLink = (file: CatalogFile, addressing: Addressing, key: Key): ReactNode => {
-  const url = classifyUrl("link", file.href);
-  const href =
-    url.kind === "dropped"
-      ? undefined
-      : Result.getOrUndefined(addressUrl(url, addressing.document, addressing.assets));
+const fileLink = (file: CatalogFile, addressing: Addressing, key: Key): ReactNode =>
+  createElement(
+    "a",
+    { href: Option.getOrUndefined(fileAddress(file, addressing)), key, type: file.mimeType },
+    file.href,
+  );
 
-  return createElement("a", { href, key, type: file.mimeType }, file.href);
+/**
+ * What read-aloud gives one page: for a catalog a part of the item references, by its `id` as the
+ * reference writes it, read-aloud's control for that catalog's spoken audio, named by the label
+ * that says which part it reads and keyed among its siblings; none where the catalog keeps no
+ * spoken card that gives audio, and none on a page that presents no read-aloud.
+ */
+export type ReadsAloud = (catalog: string, label: string, key: Key) => Option.Option<ReactNode>;
+
+/**
+ * The read-aloud of a page that presents none: a review's and a solution's, whose page ships no
+ * island but a Media's replay.
+ */
+export const noReadAloud: ReadsAloud = () => Option.none();
+
+/**
+ * Build the read-aloud of a page the candidate answers: each kept catalog whose active `spoken`
+ * card gives audio ({@link spokenAudioOf}), by its key, with that audio's files as their
+ * addresses in `assets` and their `mime-type`s, in document order. A catalog holds one card of a
+ * support at most (information model §5.26.1, "Use only one card for any particular named support
+ * in a catalog", which the database holds), so it has one recording at most.
+ *
+ * @param payloads The payload's `qti-catalog-info` nodes.
+ * @param addressing The item's location and the assets.
+ * @returns The page's read-aloud.
+ */
+export const readAloudOf = (
+  payloads: readonly CatalogInfoPayload[],
+  addressing: Pick<Addressing, "assets" | "document">,
+): ReadsAloud => {
+  const recordings = new Map(
+    catalogsOf(payloads).flatMap((catalog) =>
+      catalog.cards.flatMap((card) => {
+        const sources = spokenAudioOf(card).flatMap((file) =>
+          Option.toArray(
+            Option.map(fileAddress(file, addressing), (src): ReadAloudSource => ({
+              src,
+              type: file.mimeType,
+            })),
+          ),
+        );
+
+        return Arr.isReadonlyArrayNonEmpty(sources)
+          ? [[catalogKey(catalog.id), sources] as const]
+          : [];
+      }),
+    ),
+  );
+
+  return (catalog, label, key) =>
+    Option.map(Option.fromUndefinedOr(recordings.get(catalogKey(catalog))), (sources) =>
+      createElement(ReadAloud, { key, label, sources }),
+    );
 };
 
 /**
@@ -263,7 +345,8 @@ export const glossaryOf = (
 };
 
 /**
- * Write the listing after the body: each kept card but a glossary card presented beside a term,
+ * Write the listing after the body: each kept card but a glossary card presented beside a term and
+ * a spoken card that gives audio, which read-aloud presents or nothing does ({@link readAloudOf}),
  * in document order, as a `plate-catalog-card` in `plate-catalog`; nothing when no card is listed.
  *
  * @param payloads The payload's `qti-catalog-info` nodes.
@@ -282,7 +365,11 @@ export const listing = (
     termsIn(body).flatMap((term) => (term.catalog === undefined ? [] : [catalogKey(term.catalog)])),
   );
   const listed = catalogsOf(payloads).flatMap((catalog) =>
-    catalog.cards.filter((card) => !isGlossary(card) || !presented.has(catalogKey(catalog.id))),
+    catalog.cards.filter(
+      (card) =>
+        (!isGlossary(card) || !presented.has(catalogKey(catalog.id))) &&
+        spokenAudioOf(card).length === 0,
+    ),
   );
 
   return listed.length === 0

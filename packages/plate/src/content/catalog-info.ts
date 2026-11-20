@@ -28,8 +28,11 @@
  *    since no reading says which.
  * 8. Presentation: the sources stop at each support's own row. The payload gives the server shell each
  *    kept catalog's active cards and how many body elements reference it, and the shell presents
- *    them: a `glossary-on-screen` card beside each body element that references its catalog, and
- *    every other card in a listing after the body.
+ *    them: a `glossary-on-screen` card beside each body element that references its catalog, a
+ *    `spoken` card that gives audio ({@link spokenAudioOf}) as read-aloud's control beside each
+ *    part that references its catalog while the candidate answers (spec reading 237), and every
+ *    other card in a listing after the body. A body element's, a prompt's and a choice's references
+ *    are the body's alike (spec reading 236).
  * 9. Dormant otherwise: a card of a support the host did not enable, an entry not chosen and a catalog
  *    no reference names are in neither the page nor the redacted copy, withheld through the
  *    redaction kit.
@@ -185,6 +188,37 @@ export interface CatalogInfoPayload {
  * @returns The key.
  */
 export const catalogKey = (value: string): string => collapseXmlSpace(value);
+
+/**
+ * The support whose cards hold what a candidate hears read aloud: "the alternative content is to be
+ * supplied for spoken content" (information model §8.38, SupportEnum).
+ */
+const spokenSupport = "spoken";
+
+/**
+ * Tell whether a card's file is audio: its `mime-type`'s top-level type is `audio`, compared
+ * without regard to case, as RFC 2045 §5.1 compares a media type ("The type, subtype, and
+ * parameter names are not case sensitive").
+ *
+ * @param file The file.
+ * @returns Whether it is audio.
+ */
+const isAudio = (file: CatalogFile): boolean => /^audio\//iu.test(file.mimeType);
+
+/**
+ * Give the audio an active card gives a candidate who hears content read aloud: a `spoken` card's
+ * audio files, in document order, the pre-recorded "alternative to the written text provided in
+ * the default content" (implementation guide §5.2.8.3, whose example stores each recording in more
+ * than one audio format beside a file of another type). Several are one recording in several
+ * formats, among which a browser plays the first it can (HTML's `source` selection), so plate
+ * picks none (step 7). Empty for a card of any other support, and for a spoken card with no audio
+ * file, whose content is text for a speech engine plate does not have.
+ *
+ * @param card The active card.
+ * @returns Its audio files, in document order.
+ */
+export const spokenAudioOf = (card: CatalogCard): readonly CatalogFile[] =>
+  catalogKey(card.support) === spokenSupport ? card.files.filter(isAudio) : [];
 
 /**
  * Read an element's `xml:lang` as written.

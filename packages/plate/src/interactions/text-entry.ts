@@ -122,9 +122,12 @@ export interface TextEntryInteraction extends ModuleInteraction<"text-entry"> {
 
 /**
  * The fields of a text control's model node that Text Entry and Extended Text share: all of a Text
- * Entry's but its kind and its cardinality.
+ * Entry's but its kind, its cardinality, and the fields the body walk sets.
  */
-export type TextFields = Omit<TextEntryInteraction, "cardinality" | "data" | "kind">;
+export type TextFields = Omit<
+  TextEntryInteraction,
+  "cardinality" | "data" | "kind" | "promptCatalog"
+>;
 
 /**
  * What a Text Entry and an Extended Text share as the page may know them: the author's names, the

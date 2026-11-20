@@ -147,6 +147,6 @@ export { solution } from "#plate/solution.ts";
 
 export { openAdmitted } from "#plate/validate/admitted.ts";
 
-export type { Accepted, Verdict } from "#plate/validate/verdict.ts";
+export type { Accepted, AcceptedStimulus, Verdict } from "#plate/validate/verdict.ts";
 
-export { acceptedItem, unsupportedFeatures } from "#plate/validate/verdict.ts";
+export { acceptedItem, acceptedStimulus, unsupportedFeatures } from "#plate/validate/verdict.ts";

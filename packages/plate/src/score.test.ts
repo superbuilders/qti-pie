@@ -49,6 +49,7 @@ const choiceOf = (
   ariaLabelledby: Option.none(),
   cardinality,
   choices: choices.map((identifier) => ({
+    catalog: Option.none(),
     content: [{ kind: "text", text: identifier }],
     fixed: false,
     identifier,
@@ -61,6 +62,7 @@ const choiceOf = (
   orientation: "vertical",
   path: `qti-assessment-item/qti-item-body/qti-choice-interaction[${response}]`,
   prompt: Option.none(),
+  promptCatalog: Option.none(),
   response,
   shuffle: false,
   ...counts,
@@ -83,6 +85,7 @@ const number: TextEntryInteraction = {
   patternMask: Option.none(),
   patternMaskMessage: Option.none(),
   placeholder: Option.none(),
+  promptCatalog: Option.none(),
   response: "NUMBER",
 };
 
@@ -105,7 +108,11 @@ const item: Item = {
       tag: "p",
     },
   ],
-  content: { "qti-catalog-info": [], "qti-companion-materials-info": [] },
+  content: {
+    "qti-assessment-stimulus-ref": [],
+    "qti-catalog-info": [],
+    "qti-companion-materials-info": [],
+  },
   contexts: new Map(),
   document: "items/scored.xml",
   identifier: "scored",

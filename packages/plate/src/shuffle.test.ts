@@ -12,6 +12,7 @@ import { presentedOrder } from "#plate/shuffle.ts";
  */
 const choicesOf = (fixed: readonly boolean[]): readonly SimpleChoice[] =>
   fixed.map((each, index) => ({
+    catalog: Option.none(),
     content: [],
     fixed: each,
     identifier: `C${index}`,

@@ -59,6 +59,7 @@ const essay: ExtendedTextInteraction = {
   patternMaskMessage: Option.none(),
   placeholder: Option.none(),
   prompt: Option.some([words("Describe your day.")]),
+  promptCatalog: Option.none(),
   response,
 };
 

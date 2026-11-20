@@ -22,6 +22,7 @@ import { UnknownIdentifierError, UnmappedResponseError } from "#plate/engine/fai
 import type { RecordOperandError } from "#plate/engine/failures.ts";
 import {
   bitLengthOf,
+  ComputationBoundDefect,
   floatNull,
   floatValue,
   integerBitBound,
@@ -374,9 +375,11 @@ const evaluateNull: Evaluator<"null"> = () => Result.succeed(nullOf("string", "s
  *
  * - `max` below `min`, or a `step` of 0 or below: "the range holds no value and the result is NULL"
  *   (reading 216).
- * - `min` or `max` of more than {@link integerBitBound} bits (1,000,000): the drawn integer is a
- *   computed result, held to that bound by reading 211, and within the bound every value the range
- *   holds is too, so the draw is never past it (reading 216).
+ *
+ * A `min` or `max` of more than {@link integerBitBound} bits (1,000,000) aborts the run
+ * ({@link ComputationBoundDefect}), after those NULLs and before any draw: the drawn integer is a
+ * computed result, held to that bound by reading 211, and within the bound every value the range
+ * holds is too, so a draw is never past it.
  *
  * A range of one value, `step` beyond `max − min` among them, draws nothing and gives `min`.
  *
@@ -385,15 +388,15 @@ const evaluateNull: Evaluator<"null"> = () => Result.succeed(nullOf("string", "s
  * @param max The greatest value.
  * @param step The step between values.
  * @returns The single integer, or NULL of a single integer.
+ * @throws {ComputationBoundDefect} When `min` or `max` has more than 1,000,000 bits.
  */
 const integerDraw = (draw: Draw, min: bigint, max: bigint, step: bigint): Value => {
-  if (
-    max < min ||
-    step <= 0n ||
-    bitLengthOf(min) > integerBitBound ||
-    bitLengthOf(max) > integerBitBound
-  ) {
+  if (max < min || step <= 0n) {
     return integerNull;
+  }
+
+  if (bitLengthOf(min) > integerBitBound || bitLengthOf(max) > integerBitBound) {
+    throw new ComputationBoundDefect({ kind: "integer" });
   }
 
   return integerValue(min + step * drawBelow(draw, (max - min) / step + 1n));

@@ -137,6 +137,7 @@ const answerEntry: TextEntryInteraction = {
   patternMask: Option.some("[0-9]+"),
   patternMaskMessage: Option.none(),
   placeholder: Option.none(),
+  promptCatalog: Option.none(),
   response: "ANSWER",
 };
 
@@ -146,7 +147,11 @@ const answerEntry: TextEntryInteraction = {
 const answerItem: Item = {
   adaptive: false,
   body: [answerEntry],
-  content: { "qti-catalog-info": [], "qti-companion-materials-info": [] },
+  content: {
+    "qti-assessment-stimulus-ref": [],
+    "qti-catalog-info": [],
+    "qti-companion-materials-info": [],
+  },
   contexts: new Map(),
   document: "items/answer.xml",
   identifier: "answer",
@@ -337,6 +342,7 @@ const visibleAs = (identifier: string): RedactRecord => ({
  */
 const choicesOf = (templated: boolean): readonly SimpleChoice[] =>
   ["A", "B", "C"].map((identifier) => ({
+    catalog: Option.none(),
     content: [{ kind: "text", text: identifier }],
     fixed: false,
     identifier,
@@ -405,6 +411,7 @@ const templatedKinds: readonly (readonly [string, TemplatedKind])[] = [
         orientation: "vertical",
         path,
         prompt: Option.none(),
+        promptCatalog: Option.none(),
         response: templatedResponse,
         shuffle: false,
       }),
@@ -433,6 +440,7 @@ const templatedKinds: readonly (readonly [string, TemplatedKind])[] = [
         minChoices: 0n,
         path,
         placeholder: Option.none(),
+        promptCatalog: Option.none(),
         required: true,
         response: templatedResponse,
         shuffle: false,
@@ -479,7 +487,11 @@ const pathIn = (kind: TemplatedKind, local: string): string =>
 const templatedItem = (kind: TemplatedKind, nodes: readonly BodyNode[], runs: boolean): Item => ({
   adaptive: false,
   body: kind.placed(nodes),
-  content: { "qti-catalog-info": [], "qti-companion-materials-info": [] },
+  content: {
+    "qti-assessment-stimulus-ref": [],
+    "qti-catalog-info": [],
+    "qti-companion-materials-info": [],
+  },
   contexts: new Map(),
   document: "items/templated.xml",
   identifier: "templated",

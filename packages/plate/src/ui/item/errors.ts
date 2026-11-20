@@ -84,6 +84,36 @@ export class AssetMissing extends Data.TaggedError("AssetMissing")<{
 }
 
 /**
+ * An item one of whose stimulus refs names a stimulus document of its package that the host handed
+ * `<Item>` no accepted stimulus for. The stimulus is what the candidate reads to answer the item
+ * ("the Item uses the 'qti-assessment-stimulus-ref' structure to provide the link between the Item
+ * and the Stimulus", information model §7.6), and plate reads no file itself, so the page shows
+ * none of the item rather than the item without its passage.
+ */
+export class StimulusMissing extends Data.TaggedError("StimulusMissing")<{
+  /**
+   * The item's location, its path from the package root as the host named it.
+   */
+  readonly document: string;
+  /**
+   * The item's identifier.
+   */
+  readonly item: string;
+  /**
+   * The stimulus document's path from the package root: the ref's `href` resolved against the
+   * item's location.
+   */
+  readonly path: string;
+}> {
+  /**
+   * The item, the stimulus it names, and the repair.
+   */
+  override get message(): string {
+    return `Item ${JSON.stringify(this.item)} at ${JSON.stringify(this.document)} references the stimulus ${JSON.stringify(this.path)}, which the stimuli handed to <Item> do not hold, so <Item> rendered none of the item. Open that stimulus document with openAdmitted and pass its acceptedStimulus in stimuli, with its files' addresses in the configuration's assets.`;
+  }
+}
+
+/**
  * An item a printed variable of which, or a `param-variable` parameter, on content the page
  * shows, printed nothing because its text passed a bound: the redacted item's `unprinted`. The
  * page would show the slot blank, so it shows none of the item.

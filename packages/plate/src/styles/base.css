@@ -711,6 +711,29 @@
     cursor: progress;
   }
 
+  /* == read aloud == */
+
+  /*
+   * Read-aloud's control, UI SDK's toggle that plays a spoken card's recording: a 64 px target, as
+   * every target a child presses on its own, which keeps its place beside what it reads. Its
+   * recording, an `audio` with no controls, draws nothing.
+   */
+  [data-slot="plate-read-aloud"] {
+    display: inline-flex;
+    flex: none;
+    vertical-align: middle;
+  }
+
+  :where([data-slot="plate-read-aloud"]) [data-slot="toggle"] {
+    min-block-size: var(--plate-target-size);
+    min-inline-size: var(--plate-target-size);
+    border: 2px solid var(--ui-input);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* == portable custom == */
 
   /*

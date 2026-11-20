@@ -1933,18 +1933,21 @@ describe("buildItem", () => {
           ariaLabelledby: Option.none(),
           choices: [
             {
+              catalog: Option.none(),
               content: [{ kind: "text", text: "red" }],
               fixed: false,
               identifier: "R",
               templateVisibility: Option.none(),
             },
             {
+              catalog: Option.none(),
               content: [{ kind: "text", text: "blue" }],
               fixed: true,
               identifier: "B",
               templateVisibility: Option.none(),
             },
             {
+              catalog: Option.none(),
               content: [
                 {
                   attributes: [],
@@ -1981,6 +1984,7 @@ describe("buildItem", () => {
           minChoices: 1n,
           path: inlinePath,
           placeholder: Option.some("Choose"),
+          promptCatalog: Option.none(),
           required: true,
           response: "RESPONSE",
           shuffle: true,
@@ -2013,6 +2017,7 @@ describe("buildItem", () => {
         ariaLabelledby: Option.none(),
         choices: [
           {
+            catalog: Option.none(),
             content: [{ kind: "text", text: "red" }],
             fixed: false,
             identifier: "R",
@@ -2027,6 +2032,7 @@ describe("buildItem", () => {
         minChoices: 0n,
         path: inlinePath,
         placeholder: Option.none(),
+        promptCatalog: Option.none(),
         required: false,
         response: "RESPONSE",
         shuffle: false,
@@ -2071,6 +2077,7 @@ describe("buildItem", () => {
       patternMask: Option.none(),
       patternMaskMessage: Option.none(),
       placeholder: Option.some("a city"),
+      promptCatalog: Option.none(),
       response: "RESPONSE",
     };
 
@@ -2628,6 +2635,7 @@ describe("buildItem", () => {
       patternMask: Option.some("[0-9]+"),
       patternMaskMessage: Option.none(),
       placeholder: Option.some("a number"),
+      promptCatalog: Option.none(),
       response: "NUMBER",
     };
     const working: ExtendedTextInteraction = {
@@ -2649,6 +2657,7 @@ describe("buildItem", () => {
       patternMaskMessage: Option.none(),
       placeholder: Option.none(),
       prompt: Option.some([{ kind: "text", text: "Show your working." }]),
+      promptCatalog: Option.none(),
       response: "WORKING",
     };
 

@@ -15,7 +15,7 @@
  *
  * @module
  */
-import { Option } from "effect";
+import { Data, Option } from "effect";
 import type { ModelledBaseType, Single, Value } from "#plate/model/values.ts";
 
 /**
@@ -201,20 +201,51 @@ export const sameNumber = (left: NumberSingle, right: NumberSingle): boolean => 
 
 /**
  * The most bits an integer the engine computes may have: 1,000,000, the computation bound reading
- * 211 states. An integer is unbounded (reading 45), so an item whose rules square an
- * outcome rule after rule would double its size each time and hang scoring; a computed integer
- * past this bound is NULL instead, as other impossible results are. An integer as written (a
- * literal, a declared default, a stored value) is never held to it.
+ * 211 states. An integer is unbounded (reading 45; information model Table A1.3, "Integer - the
+ * integer data-type (this is derived from the "decimal" data-type i.e. no decimal places)"), so
+ * an item whose rules square an outcome rule after rule would double its size each time and hang
+ * scoring; a run that computes an integer past this bound aborts ({@link ComputationBoundDefect}).
+ * An integer as written (a literal, a declared default, a stored value) is never held to it.
  */
 export const integerBitBound = 1_000_000;
 
 /**
  * The most values a container the engine computes may hold: 1,000,000, the computation bound
- * reading 211 states for containers. A computed container past it is NULL instead,
- * so `qti-repeat` with a `number-repeats` of 2147483647 cannot hang scoring. A container as written
- * or stored is never held to it.
+ * reading 211 states for containers. A run that computes a container past it aborts
+ * ({@link ComputationBoundDefect}), so `qti-repeat` with a `number-repeats` of 2147483647 cannot
+ * hang scoring. A container as written or stored is never held to it.
  */
 export const containerSizeBound = 1_000_000;
+
+/**
+ * The defect of a run that asks for more than the computation bound (reading 211): an integer of
+ * more than {@link integerBitBound} bits, or a container of more than {@link containerSizeBound}
+ * values. The information model bounds neither, and no QTI value stands for "too large to
+ * compute": NULL is a value, which a condition reads as false and a sum as nothing, so a run that
+ * gave it would score the attempt as if the candidate had answered so. The engine never gives
+ * one here. It throws this instead, aborting the run, so the attempt it would score stays
+ * ungraded and its host reports the item.
+ */
+export class ComputationBoundDefect extends Data.TaggedError("ComputationBoundDefect")<{
+  /**
+   * What the run asks for past the bound: an integer, a container, or a drawing `qti-repeat`'s
+   * passes.
+   */
+  readonly kind: "container" | "integer" | "passes";
+}> {
+  /**
+   * The bound the run passed, and what follows from it.
+   */
+  override get message(): string {
+    const asked = {
+      container: `a container of more than ${String(containerSizeBound)} values`,
+      integer: `an integer of more than ${String(integerBitBound)} bits`,
+      passes: `a qti-repeat of more than ${String(containerSizeBound)} passes`,
+    }[this.kind];
+
+    return `The item's processing computes ${asked}, past plate's computation bound (reading 211), so the run aborts and the attempt it scores stays ungraded: no QTI value stands for a result past the bound. Report the item.`;
+  }
+}
 
 /**
  * Give the number of bits an integer has: the binary digits of its magnitude, so 0 has none, 1 has
@@ -237,13 +268,19 @@ export const bitLengthOf = (integer: bigint): number => {
 };
 
 /**
- * Give an integer the engine computed when it is within {@link integerBitBound}.
+ * Give an integer the engine computed, held to {@link integerBitBound}.
  *
  * @param integer The computed integer.
- * @returns The integer, or none when it has more than 1,000,000 bits, for the kind's NULL.
+ * @returns The integer.
+ * @throws {ComputationBoundDefect} When it has more than 1,000,000 bits, which aborts the run.
  */
-export const boundedInteger = (integer: bigint): Option.Option<bigint> =>
-  bitLengthOf(integer) <= integerBitBound ? Option.some(integer) : Option.none();
+export const boundedInteger = (integer: bigint): bigint => {
+  if (bitLengthOf(integer) > integerBitBound) {
+    throw new ComputationBoundDefect({ kind: "integer" });
+  }
+
+  return integer;
+};
 
 /**
  * A product the engine is building factor by factor, with the range its bit length lies in:
@@ -279,40 +316,59 @@ const zeroProduct: PartialProduct = { integer: 0n, leastBits: 0, mostBits: 0 };
  *
  * @param held The product so far, within the bound.
  * @param factor The next integer.
- * @returns The product with the range of its bit length, exact once measured, or none when it has
- *   more than 1,000,000 bits.
+ * @returns The product with the range of its bit length, exact once measured.
+ * @throws {ComputationBoundDefect} When the product has more than 1,000,000 bits, which aborts the
+ *   run.
  */
-export const boundedTimes = (
-  held: PartialProduct,
-  factor: bigint,
-): Option.Option<PartialProduct> => {
+export const boundedTimes = (held: PartialProduct, factor: bigint): PartialProduct => {
   if (held.integer === 0n || factor === 0n) {
-    return Option.some(zeroProduct);
+    return zeroProduct;
   }
 
   const bits = bitLengthOf(factor);
   const leastBits = held.leastBits + bits - 1;
   if (leastBits > integerBitBound) {
-    return Option.none();
+    throw new ComputationBoundDefect({ kind: "integer" });
   }
 
   const integer = held.integer * factor;
   const mostBits = held.mostBits + bits - (held.mostBits === 1 || bits === 1 ? 1 : 0);
   if (mostBits <= integerBitBound) {
-    return Option.some({ integer, leastBits, mostBits });
+    return { integer, leastBits, mostBits };
   }
 
   const exact = bitLengthOf(integer);
+  if (exact > integerBitBound) {
+    throw new ComputationBoundDefect({ kind: "integer" });
+  }
 
-  return exact <= integerBitBound
-    ? Option.some({ integer, leastBits: exact, mostBits: exact })
-    : Option.none();
+  return { integer, leastBits: exact, mostBits: exact };
 };
 
 /**
- * Report whether a container the engine computes, of a size, is within {@link containerSizeBound}.
+ * Hold a container the engine computes, of a size, to {@link containerSizeBound}, before it is
+ * built.
  *
- * @param size How many values it holds, or would hold if it were built.
- * @returns Whether it holds at most 1,000,000 values.
+ * @param size How many values it would hold.
+ * @throws {ComputationBoundDefect} When it would hold more than 1,000,000 values, which aborts the
+ *   run.
  */
-export const withinContainerBound = (size: bigint): boolean => size <= BigInt(containerSizeBound);
+export const heldToContainerBound = (size: bigint): void => {
+  if (size > BigInt(containerSizeBound)) {
+    throw new ComputationBoundDefect({ kind: "container" });
+  }
+};
+
+/**
+ * Hold the passes a drawing `qti-repeat` asks for to {@link containerSizeBound}, before the first:
+ * a pass that gives a value adds at least one, so more passes than the bound would build a
+ * container past it, and one that gives none ends the repeat at once.
+ *
+ * @param passes How many passes its `number-repeats` asks for.
+ * @throws {ComputationBoundDefect} When it asks for more than 1,000,000, which aborts the run.
+ */
+export const heldToPassBudget = (passes: bigint): void => {
+  if (passes > BigInt(containerSizeBound)) {
+    throw new ComputationBoundDefect({ kind: "passes" });
+  }
+};

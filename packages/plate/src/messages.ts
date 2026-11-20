@@ -16,6 +16,7 @@ import { mediaMessages } from "#plate/messages/media.ts";
 import { pairsMessages } from "#plate/messages/pairs.ts";
 import { portableCustomMessages } from "#plate/messages/portable-custom.ts";
 import { positionObjectMessages } from "#plate/messages/position-object.ts";
+import { readAloudMessages } from "#plate/messages/read-aloud.ts";
 import { selectPointMessages } from "#plate/messages/select-point.ts";
 import { sliderMessages } from "#plate/messages/slider.ts";
 
@@ -64,6 +65,7 @@ type Areas = [
   typeof pairsMessages,
   typeof portableCustomMessages,
   typeof positionObjectMessages,
+  typeof readAloudMessages,
   typeof selectPointMessages,
   typeof sliderMessages,
 ];
@@ -95,6 +97,7 @@ const en = {
   ...pairsMessages,
   ...portableCustomMessages,
   ...positionObjectMessages,
+  ...readAloudMessages,
   ...selectPointMessages,
   ...sliderMessages,
 } satisfies Readonly<Record<SharedKeys<Areas>, never>>;

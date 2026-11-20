@@ -63,11 +63,14 @@ export interface ChoiceProps extends Authored<Named> {
    * holds no `label` of its own and no interactive element. `label` names the choice's control
    * where its content names nothing, an image with no alternative text alone: "Choice n of
    * count" (`optionName` in `#plate/ui/picks/names.ts`); none where the content names it.
+   * `readAloud` is read-aloud's control for the catalog the choice references, absent where the
+   * candidate hears none (`#plate/ui/read-aloud/read-aloud.tsx`).
    */
   readonly choices: readonly {
     readonly content: ReactNode;
     readonly identifier: string;
     readonly label: string | undefined;
+    readonly readAloud?: ReactNode;
   }[];
   readonly labels: Labels<typeof picksKeys>;
   /**
@@ -109,6 +112,9 @@ export interface ChoiceProps extends Authored<Named> {
  *   presses the control: the whole option is the hit target, and the stylesheet gives it the K–3
  *   minimum height of 64 px whatever the content, an image or MathML included;
  * - `plate-choice-content`, the choice's content;
+ * - `plate-choice-row`, for a choice with a read-aloud control, holding its `plate-choice-option` and
+ *   then the control: a `label` may hold no labelable element but its own control (HTML, the
+ *   `label` element), so the control's button stands beside the option, never in it;
  * - `plate-choice-limit`, the `limit` label, shown from a refused pick until the next accepted one.
  *
  * @param props The interaction, its response's entry name and its labels ({@link ChoiceProps}).
@@ -126,11 +132,22 @@ export const Choice = (props: ChoiceProps) => {
       response={name}
       root={{ ...root, "data-orientation": orientation, "data-slot": "plate-choice" }}
     >
-      {choices.map(({ content, ...option }) => (
-        <PickOption key={option.identifier} {...option} slot="plate-choice-option">
-          <span data-slot="plate-choice-content">{content}</span>
-        </PickOption>
-      ))}
+      {choices.map(({ content, readAloud, ...option }) => {
+        const pick = (
+          <PickOption key={option.identifier} {...option} slot="plate-choice-option">
+            <span data-slot="plate-choice-content">{content}</span>
+          </PickOption>
+        );
+
+        return readAloud === undefined ? (
+          pick
+        ) : (
+          <div data-slot="plate-choice-row" key={option.identifier}>
+            {pick}
+            {readAloud}
+          </div>
+        );
+      })}
     </PicksGroup>
   );
 };

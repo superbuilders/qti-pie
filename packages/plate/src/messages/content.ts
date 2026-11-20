@@ -11,7 +11,9 @@
  * `materialsHeading` names the companion materials' list, a calculator reads its type's
  * `materialCalculator…` name, and a rule or a
  * protractor its scale's `materialMinimumLength`, `materialMinorIncrement` and
- * `materialMajorIncrement`, each with the value as written.
+ * `materialMajorIncrement`, each with the value as written. `stimuli` names the region of the
+ * stimuli an item references, which the candidate reads beside the item, and `question` the region
+ * of the item itself beside it, so a screen reader moves between the two by its landmarks.
  */
 export const contentMessages = {
   glossarySummary: "Definition",
@@ -23,4 +25,6 @@ export const contentMessages = {
   materialMinimumLength: "minimum length {length}",
   materialMinorIncrement: "minor increment {increment}",
   materialsHeading: "Materials you may use",
+  question: "Question",
+  stimuli: "Passage",
 } as const;

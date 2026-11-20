@@ -124,6 +124,7 @@ const textEntry = (response: string): TextEntryInteraction => ({
   patternMask: Option.none(),
   patternMaskMessage: Option.none(),
   placeholder: Option.none(),
+  promptCatalog: Option.none(),
   response,
 });
 
@@ -135,8 +136,20 @@ const choice: ChoiceInteraction = {
   ariaLabelledby: Option.none(),
   cardinality: "single",
   choices: [
-    { content: [text("Paris")], fixed: false, identifier: "A", templateVisibility: Option.none() },
-    { content: [text("Lyon")], fixed: false, identifier: "B", templateVisibility: Option.none() },
+    {
+      catalog: Option.none(),
+      content: [text("Paris")],
+      fixed: false,
+      identifier: "A",
+      templateVisibility: Option.none(),
+    },
+    {
+      catalog: Option.none(),
+      content: [text("Lyon")],
+      fixed: false,
+      identifier: "B",
+      templateVisibility: Option.none(),
+    },
   ],
   class: Option.some("stacked"),
   data: [],
@@ -147,6 +160,7 @@ const choice: ChoiceInteraction = {
   orientation: "vertical",
   path: "qti-assessment-item/qti-item-body/qti-choice-interaction",
   prompt: Option.some([text("Which city is the capital of France?")]),
+  promptCatalog: Option.none(),
   response: "CAPITAL",
   shuffle: false,
 };
@@ -157,6 +171,7 @@ const choice: ChoiceInteraction = {
 const planets: ChoiceInteraction = {
   ...choice,
   choices: ["Mercury", "Venus", "Earth", "Mars", "Jupiter"].map((planet, index) => ({
+    catalog: Option.none(),
     content: [text(planet)],
     fixed: index === 2,
     identifier: `P${String(index)}`,
@@ -220,7 +235,11 @@ const item: Item = {
       path: "qti-assessment-item/qti-item-body/qti-feedback-block",
     },
   ],
-  content: { "qti-catalog-info": [], "qti-companion-materials-info": [] },
+  content: {
+    "qti-assessment-stimulus-ref": [],
+    "qti-catalog-info": [],
+    "qti-companion-materials-info": [],
+  },
   contexts: new Map(),
   document: "items/capitals.xml",
   identifier: "capitals",
@@ -572,8 +591,20 @@ const river: InlineChoiceInteraction = {
   ariaLabel: Option.none(),
   ariaLabelledby: Option.none(),
   choices: [
-    { content: [text("Seine")], fixed: false, identifier: "S", templateVisibility: Option.none() },
-    { content: [text("Loire")], fixed: false, identifier: "L", templateVisibility: Option.none() },
+    {
+      catalog: Option.none(),
+      content: [text("Seine")],
+      fixed: false,
+      identifier: "S",
+      templateVisibility: Option.none(),
+    },
+    {
+      catalog: Option.none(),
+      content: [text("Loire")],
+      fixed: false,
+      identifier: "L",
+      templateVisibility: Option.none(),
+    },
   ],
   class: Option.some("pick"),
   data: [],
@@ -583,6 +614,7 @@ const river: InlineChoiceInteraction = {
   minChoices: 1n,
   path: "qti-assessment-item/qti-item-body/p/qti-inline-choice-interaction",
   placeholder: Option.some("Choose one"),
+  promptCatalog: Option.none(),
   required: true,
   response: "RIVER",
   shuffle: false,
@@ -862,12 +894,14 @@ const printingBody = (
     ...choice,
     choices: [
       {
+        catalog: Option.none(),
         content: [text("Paris")],
         fixed: false,
         identifier: "A",
         templateVisibility: Option.none(),
       },
       {
+        catalog: Option.none(),
         content: [text("Lyon, "), place("ROUND", printedPaths[2])],
         fixed: false,
         identifier: "B",
@@ -1345,6 +1379,7 @@ const choiceShownBy = (
   identifier: string,
   visibility: Option.Option<TemplateVisibility>,
 ): SimpleChoice => ({
+  catalog: Option.none(),
   content: [text(identifier)],
   fixed: false,
   identifier,
@@ -1523,12 +1558,14 @@ describe("redactItem on template blocks, inlines and choices", () => {
           interaction?.kind === "choice" ? interaction.choices : [],
           [
             {
+              catalog: Option.none(),
               content: [text("Ant")],
               fixed: false,
               identifier: "A",
               templateVisibility: Option.none(),
             },
             {
+              catalog: Option.none(),
               content: [text("Bee")],
               fixed: false,
               identifier: "B",
@@ -1965,8 +2002,8 @@ describe("payload", () => {
     const capital = choiceFor(pageFor(redacted, answering), "CAPITAL");
 
     assert.deepStrictEqual(capital.choices, [
-      { content: [{ kind: "text", text: "Paris" }], identifier: "A" },
-      { content: [{ kind: "text", text: "Lyon" }], identifier: "B" },
+      { catalog: Option.none(), content: [{ kind: "text", text: "Paris" }], identifier: "A" },
+      { catalog: Option.none(), content: [{ kind: "text", text: "Lyon" }], identifier: "B" },
     ]);
     assert.deepStrictEqual(
       capital.prompt,

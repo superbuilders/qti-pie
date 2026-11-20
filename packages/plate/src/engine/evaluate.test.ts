@@ -100,7 +100,11 @@ const empty: OutcomeDeclaration = { ...score, baseType: "boolean", identifier: "
 const item: Item = {
   adaptive: false,
   body: [],
-  content: { "qti-catalog-info": [], "qti-companion-materials-info": [] },
+  content: {
+    "qti-assessment-stimulus-ref": [],
+    "qti-catalog-info": [],
+    "qti-companion-materials-info": [],
+  },
   contexts: new Map(),
   document: "evaluate.xml",
   identifier: "evaluate",

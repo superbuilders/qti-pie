@@ -34,7 +34,7 @@ import type {
   RedactedNode,
 } from "#plate/model/item.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
-import type { Glossary, Glossed } from "#plate/ui/item/contents/catalog.tsx";
+import type { Glossary, Glossed, ReadsAloud } from "#plate/ui/item/contents/catalog.tsx";
 import { content as mathmlContent } from "#plate/ui/item/contents/mathml.tsx";
 import { content as rubricContent } from "#plate/ui/item/contents/rubric.tsx";
 import type { Position } from "#plate/ui/item/context.ts";
@@ -140,9 +140,12 @@ export interface Walk {
  *   seam, the right answer a review writes for an interaction apart from it after the block that
  *   holds it ({@link answersAfter}), nothing where the interaction writes none, the glossary of the
  *   page (`glossaryOf` in `#plate/ui/item/contents/catalog.tsx`), the disclosure it presents after
- *   the block of each term that references a catalog keeping a glossary card, and the verdict the
- *   review's feedback opens with, where the host handed a credit, with the feedback block whose run
- *   it heads, the first the body shows at a flow position ({@link firstFeedbackIn});
+ *   the block of each term that references a catalog keeping a glossary card, the read-aloud of the
+ *   page (`readAloudOf` there), whose control follows each element at a flow position that
+ *   references a catalog keeping a spoken card that gives audio ({@link readAloudAfter}), and the
+ *   verdict the review's feedback opens with, where the host handed a credit, with the feedback
+ *   block whose run it heads, the first the body shows at a flow position
+ *   ({@link firstFeedbackIn});
  * - `owned`, the content of an interaction that owns elements outside the subset
  *   (`ContentOptions.own` in `#plate/ui/item/context.ts`), which it renders;
  * - `plain`, any other content: an interaction's that owns none, a modal feedback's, a disclosure's
@@ -156,6 +159,7 @@ export type Scope =
       readonly glossary: Glossary;
       readonly interaction: InteractionAt;
       readonly kind: "body";
+      readonly readAloud: ReadsAloud;
       readonly verdict: Option.Option<VerdictAt>;
     }
   | {
@@ -772,6 +776,26 @@ const disclosuresAfter = (
 };
 
 /**
+ * Give read-aloud's control for an element of the body at a flow position that references a
+ * catalog keeping a spoken card that gives audio, which follows the element as its next sibling:
+ * where flow content may stand, a `span` may, so the page stays valid whatever the element is.
+ * None in a walk with no read-aloud, a walk of an interaction's own content among them, whose
+ * Choice writes its choices' controls itself and whose other parts stand where a control would
+ * sit inside another control; and none for an element at a phrasing position, whose parent may
+ * admit no control after it (a list item's, a table cell's).
+ *
+ * @param element The element.
+ * @param walk The walk where it stands.
+ * @returns The control, or nothing.
+ */
+const readAloudAfter = (element: BodyElement<RedactedLevel>, walk: Walk): readonly ReactNode[] =>
+  walk.scope.kind === "body" && element.catalog !== undefined
+    ? Option.toArray(
+        walk.scope.readAloud(element.catalog, message(walk.locale, "readAloudText"), "read-aloud"),
+      )
+    : [];
+
+/**
  * Write the props a term takes from the glossary: the id its disclosure's `summary` is named by,
  * where the author wrote none, and `aria-details` naming the disclosure after any the author named.
  *
@@ -797,9 +821,10 @@ const termProps = (props: ReturnType<typeof propsOf>, glossed: Glossed) => {
  * place, else nothing; a feedback block the page shows ({@link feedbackBlockTag}) is plate's
  * Feedback part ({@link feedbackOf}), its content walked where the block stands: here only at a
  * phrasing position, since at a flow position a block stands in its run ({@link renderedOf}). In a
- * walk of the body, an element at a flow position is followed by the right answers the seam writes
- * apart from the interactions it holds ({@link answersAfter}), then the glossary's disclosure of
- * each term it owns ({@link ownedTerms}), and a term names its disclosure.
+ * walk of the body, an element at a flow position is followed by its read-aloud control
+ * ({@link readAloudAfter}), the right answers the seam writes apart from the interactions it holds
+ * ({@link answersAfter}), then the glossary's disclosure of each term it owns ({@link ownedTerms}),
+ * and a term names its disclosure.
  *
  * @param element The element, as the redacted body holds it.
  * @param key Its key among its siblings.
@@ -856,6 +881,7 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
   }
 
   const following = [
+    ...readAloudAfter(element, walk),
     ...answersAfter(element, inner, walk),
     ...disclosuresAfter(element, inner, walk),
   ];

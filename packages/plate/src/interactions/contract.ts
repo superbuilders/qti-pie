@@ -205,6 +205,18 @@ export interface ModuleInteraction<K extends ModuleKind> {
   readonly kind: K;
   readonly path: string;
   /**
+   * The catalog its `qti-prompt` references: the prompt's `data-catalog-idref` as written, which
+   * "is used to provide the 'identifier' of an alternative content catalog" (information model
+   * §5.15.9, on BasePromptInteraction), and which the body walk records for the catalog module as
+   * it records an HTML element's (`BodyElement.catalog` in `#plate/model/item.ts`). None where the
+   * interaction holds no `qti-prompt`, as no inline interaction does, or its prompt references no
+   * catalog. The body walk sets it after the module's `parse` ({@link Parsed}), from the
+   * interaction's first `qti-prompt` child, the one the XSD admits; a module never reads or writes
+   * it, and the server shell presents the catalog's spoken audio beside the prompt
+   * (`spokenPrompt` in `#plate/ui/item/context.ts`).
+   */
+  readonly promptCatalog: Option.Option<string>;
+  /**
    * The identifier of the response it binds, `response-identifier`, read as `identifierOf` reads
    * it.
    */
@@ -213,11 +225,12 @@ export interface ModuleInteraction<K extends ModuleKind> {
 
 /**
  * A module's node as its `parse` gives it: every field but the author's `data-*`
- * ({@link ModuleInteraction.data}), which the body walk sets on it.
+ * ({@link ModuleInteraction.data}) and its prompt's catalog
+ * ({@link ModuleInteraction.promptCatalog}), which the body walk sets on it.
  *
  * @template N The node, or a union of nodes, each read as itself.
  */
-export type Parsed<N> = N extends unknown ? Omit<N, "data"> : never;
+export type Parsed<N> = N extends unknown ? Omit<N, "data" | "promptCatalog"> : never;
 
 /**
  * The response declaration an interaction's `response-identifier` names, as the body walk hands it
@@ -349,6 +362,19 @@ export const boundIn = <const B extends BaseType, const C extends Cardinality>(
  * reads the item body, and never re-implements the walk or imports its readers.
  */
 export interface ReaderKit extends AttributeReaders {
+  /**
+   * Read the catalog an element of the module's own content references, its `data-catalog-idref`
+   * as written, and record the reference for the catalog module (`catalogReferences` in
+   * `#plate/content/contract.ts`), as the body walk records an HTML element's, so the catalog it
+   * names is kept: a catalog "is referenced from a specific portion of the content body by a
+   * specific, unique identifier, which matches the catalog's identifier" (information model
+   * §5.28), and "any element within the qti-item-body node" may reference one (implementation
+   * guide §3.7.10.2), a `qti-simple-choice` among them.
+   *
+   * @param element The element, such as a choice.
+   * @returns Its `data-catalog-idref` as written, none when it carries none.
+   */
+  readonly catalog: (element: SourceElement) => Option.Option<string>;
   /**
    * Record each feature of the vocabulary's `modelled.controlNotices` the element carries, such
    * as `min-strings>100`, as shown by a notice in place of the interaction's Controls: the

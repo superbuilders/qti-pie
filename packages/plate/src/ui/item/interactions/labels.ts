@@ -354,31 +354,38 @@ const isShown = (written: ReactNode): written is PromptContent =>
 
 /**
  * Give an interaction's prompt as an island and a review write it: the `qti-prompt` written
- * through the shell where flow content stands. A prompt whose content names something
+ * through the shell where flow content stands, with read-aloud's control for it where the context
+ * gives one (`spokenPrompt` of `IslandContext`). A prompt whose content names something
  * ({@link namesSomething}) takes one id in every mode, scoped by the instance and the response,
  * which names its group or control; one that names nothing is `silent` (`Prompt` in
  * `#plate/ui/prompt.tsx`).
  *
  * @param prompt The prompt's body nodes, none when the interaction has none.
  * @param response The response the interaction binds, which scopes the id.
- * @param context What the shell knows: its content walk, the instance and the locale.
+ * @param context What the shell knows: its content walk, the instance, the locale and the prompt's
+ *   read-aloud.
  * @returns The prompt; undefined where the interaction has none, or one the shell writes as
  *   nothing.
  */
 export const promptAt = (
   prompt: Option.Option<readonly RedactedNode[]>,
   response: string,
-  context: Pick<IslandContext, "content" | "instance" | "locale">,
+  context: Pick<IslandContext, "content" | "instance" | "locale" | "spokenPrompt">,
 ): Prompt | undefined =>
   Option.getOrUndefined(
     prompt.pipe(
       Option.flatMap((nodes) =>
         Option.liftPredicate(context.content(nodes, { position: "flow" }), isShown).pipe(
-          Option.map((content): Prompt =>
-            namesSomething(nodes, context.locale)
+          Option.map((content): Prompt => {
+            const shown: Prompt = namesSomething(nodes, context.locale)
               ? { content, id: scopedId(context.instance, response, "prompt"), kind: "naming" }
-              : { content, kind: "silent" },
-          ),
+              : { content, kind: "silent" };
+
+            return Option.match(context.spokenPrompt.pipe(Option.filter(isShown)), {
+              onNone: () => shown,
+              onSome: (readAloud) => ({ ...shown, readAloud }),
+            });
+          }),
         ),
       ),
     ),

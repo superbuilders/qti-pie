@@ -29,7 +29,7 @@ cd "$(dirname "$0")/.."
 # the vendor/grizzle submodule, which grizzle's pnpm pg:build makes. The pin assigns without checking, so a caller's
 # GRIZZLE_PG_BIN is kept before it is read, and wins.
 caller_bin="${GRIZZLE_PG_BIN:-}"
-source ../../../../vendor/grizzle/scripts/pg/pin.env
+source ../../../vendor/grizzle/scripts/pg/pin.env
 GRIZZLE_PG_BIN="${caller_bin:-$GRIZZLE_PG_PREFIX/bin}"
 : "${QTI_PIE_PG_HOST:=localhost}"
 : "${QTI_PIE_PG_DATABASE:=qti_pie}"

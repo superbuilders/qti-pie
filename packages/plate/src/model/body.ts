@@ -469,6 +469,7 @@ const boundOf = (build: Build, element: SourceElement): Option.Option<BoundDecla
  */
 const readerKitOf = (build: Build): ReaderKit => ({
   ...readersOf(build),
+  catalog: (element) => catalogReference(build, element),
   content: (parent, local) => firstContent(build, parent, local),
   controlNotices: (interaction) => {
     for (const feature of controlNotices) {
@@ -569,8 +570,10 @@ const moduleRead = (
 };
 
 /**
- * Read a QTI interaction element by its module ({@link moduleRead}). The context is built only
- * for an element a module reads.
+ * Read a QTI interaction element by its module ({@link moduleRead}), with the fields the walk sets
+ * on what the module read ({@link withWalkFields}). The context is built only for an element a
+ * module reads. Its prompt's catalog reference is recorded before the module reads the prompt's
+ * content, so the references stay in document order.
  *
  * @param build The build.
  * @param element The element.
@@ -581,29 +584,44 @@ const moduleNode = (
   build: Build,
   element: SourceElement,
   parent: SourceElement,
-): Option.Option<Parsed<Interaction> | Unsupported> =>
+): Option.Option<BodyNode> =>
   isQti(element)
-    ? Option.map(readerFor(element.local), (reader) => moduleRead(build, element, parent, reader))
+    ? Option.map(readerFor(element.local), (reader) => {
+        const promptCatalog = Option.flatMap(
+          Arr.head(childrenNamed(element, "qti-prompt")),
+          (prompt) => catalogReference(build, prompt),
+        );
+
+        return withWalkFields(moduleRead(build, element, parent, reader), element, promptCatalog);
+      })
     : Option.none();
 
 /**
- * Set the author's `data-*` of an interaction root on the node its module read:
- * each attribute securing kept that plate does not reserve (`isAuthorData`), in document order.
- * Securing already removed and marked each reserved name, so none is marked here. The module never
- * sees them, a notice carries none, and a Portable Custom Interaction keeps its own route: its
- * `data-*` are its properties, which its module reads.
+ * Set the fields the body walk gives an interaction on the node its module read: the author's
+ * `data-*` of its root, each attribute securing kept that plate does not reserve
+ * (`isAuthorData`), in document order, and the catalog its prompt references. Securing already
+ * removed and marked each reserved name, so none is marked here. The module never sees them, a
+ * notice carries none, and a Portable Custom Interaction keeps its own route for its `data-*`: they
+ * are its properties, which its module reads, so it takes its prompt's catalog alone.
  *
  * @param node The node the module read, or its notice.
  * @param element The interaction root.
- * @returns The node with its `data`, none listed where the root carries no author `data-*`; a PCI,
- *   which holds none, and the notice as they are.
+ * @param promptCatalog The `data-catalog-idref` of its `qti-prompt`, none where it has no prompt
+ *   or its prompt references no catalog.
+ * @returns The node with its fields, no `data-*` listed where the root carries none; the notice as
+ *   it is.
  */
-const withAuthorData = (
+const withWalkFields = (
   node: Parsed<Interaction> | Unsupported,
   element: SourceElement,
+  promptCatalog: Option.Option<string>,
 ): BodyNode => {
-  if (node.kind === "unsupported" || node.kind === "portable-custom") {
+  if (node.kind === "unsupported") {
     return node;
+  }
+
+  if (node.kind === "portable-custom") {
+    return { ...node, promptCatalog };
   }
 
   return {
@@ -613,6 +631,7 @@ const withAuthorData = (
         ? [{ name: attribute.local, value: attribute.value }]
         : [],
     ),
+    promptCatalog,
   };
 };
 
@@ -766,18 +785,29 @@ export const collectItemPart = <K extends ItemContentElement>(
  *   references no catalog, so an element without one carries no `catalog` key.
  */
 const catalogOf = (build: Build, element: SourceElement): Pick<BodyElement, "catalog"> =>
-  Option.match(
+  Option.match(catalogReference(build, element), {
+    onNone: () => ({}),
+    onSome: (catalog) => ({ catalog }),
+  });
+
+/**
+ * Read an element's catalog reference, its `data-catalog-idref`, and record it for the catalog
+ * module (`Build.references`): a body element's, a prompt's and a choice's alike.
+ *
+ * @param build The build.
+ * @param element The element.
+ * @returns The idref as written, none when the element references no catalog.
+ */
+const catalogReference = (build: Build, element: SourceElement): Option.Option<string> =>
+  Option.map(
     Arr.findFirst(
       element.attributes,
       (attribute) => attribute.namespace === "" && attribute.local === "data-catalog-idref",
     ),
-    {
-      onNone: () => ({}),
-      onSome: (attribute) => {
-        build.references.push({ idref: attribute.value, path: pathOf(build, element) });
+    (attribute) => {
+      build.references.push({ idref: attribute.value, path: pathOf(build, element) });
 
-        return { catalog: attribute.value };
-      },
+      return attribute.value;
     },
   );
 
@@ -856,7 +886,7 @@ const bodyNode = (
 
   const interaction = moduleNode(build, child, parent);
   if (Option.isSome(interaction)) {
-    return withAuthorData(interaction.value, child);
+    return interaction.value;
   }
 
   // The model reads feedback blocks and inlines itself, so they are read before the content

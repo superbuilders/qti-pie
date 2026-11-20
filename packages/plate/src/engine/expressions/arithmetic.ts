@@ -5,8 +5,9 @@
  * Integers are exact `bigint`s (reading 45), so when every operand is an integer, `qti-sum`,
  * `qti-product`, `qti-subtract`, `qti-min` and `qti-max` compute exactly and give a single integer.
  * The integer `qti-sum`, `qti-product` and `qti-subtract` compute is held to `integerBitBound`
- * (`#plate/engine/numbers.ts`, reading 211): one of more than 1,000,000 bits is the integer NULL,
- * so rules that square an outcome again and again cannot hang scoring. `qti-min` and `qti-max`
+ * (`#plate/engine/numbers.ts`, reading 211): one of more than 1,000,000 bits aborts the run
+ * (`ComputationBoundDefect`), never NULL, so rules that square an outcome again and again cannot
+ * hang scoring. `qti-min` and `qti-max`
  * compute no new integer, they give one of their operands, so they are not held to it, and no
  * operand, as written or stored, is. Otherwise each integer meets the floats through `toFloat`, the
  * one integer-to-float conversion, and the kind gives a single float of 64-bit double arithmetic,
@@ -34,7 +35,6 @@ import {
   floatNull,
   floatOf,
   floatValue,
-  integerNull,
   integerValue,
   numberOf,
 } from "#plate/engine/numbers.ts";
@@ -70,10 +70,10 @@ interface Step {
    * Combine every integer, left to right.
    *
    * @param values The integers, one or more.
-   * @returns The integer, or none when the kind's result is past `integerBitBound`, for the
-   *   integer NULL.
+   * @returns The integer.
+   * @throws {ComputationBoundDefect} When the kind's result is past `integerBitBound`.
    */
-  readonly integer: (values: Array.NonEmptyReadonlyArray<bigint>) => Option.Option<bigint>;
+  readonly integer: (values: Array.NonEmptyReadonlyArray<bigint>) => bigint;
 }
 
 /**
@@ -118,7 +118,7 @@ const fold = <A>(values: Array.NonEmptyReadonlyArray<A>, step: (held: A, next: A
 /**
  * Give the value an arithmetic kind combines its operands' values to: a single integer of the
  * integers when every number is one, else a single float of the floats; NULL when
- * {@link membersOf} gives none, and the integer NULL when the integer is past the bound.
+ * {@link membersOf} gives none.
  *
  * @param values The operands' values.
  * @param step How the kind combines its numbers.
@@ -129,42 +129,35 @@ const combined = (values: readonly Value[], step: Step): Value =>
     onNone: () => floatNull,
     onSome: (members) =>
       members._tag === "integer"
-        ? Option.match(step.integer(members.values), {
-            onNone: () => integerNull,
-            onSome: integerValue,
-          })
+        ? integerValue(step.integer(members.values))
         : floatValue(fold(members.values, step.float)),
   });
 
 /**
  * Give the product of integers, held to the bound without building a product far past it: 0 when
  * any is 0, whatever the others' size; else the product `boundedTimes` builds from the empty
- * product, one integer at a time, none at the first partial product past the bound. Each integer
- * is measured once and the range of each partial product's bit length is carried, so no partial
- * product is measured unless its factors' bit lengths cannot decide it. With no 0, each partial
- * product's magnitude is at least the one before it, so the first past the bound means the whole
- * product is past it. The first integer alone is held to the bound too, for a product of one
+ * product, one integer at a time, aborting at the first partial product past the bound. Each
+ * integer is measured once and the range of each partial product's bit length is carried, so no
+ * partial product is measured unless its factors' bit lengths cannot decide it. With no 0, each
+ * partial product's magnitude is at least the one before it, so the first past the bound means the
+ * whole product is past it. The first integer alone is held to the bound too, for a product of one
  * operand is computed, not written.
  *
  * @param values The integers.
- * @returns The product, or none when it has more than 1,000,000 bits.
+ * @returns The product.
+ * @throws {ComputationBoundDefect} When it has more than 1,000,000 bits.
  */
-const productOf = (values: Array.NonEmptyReadonlyArray<bigint>): Option.Option<bigint> => {
+const productOf = (values: Array.NonEmptyReadonlyArray<bigint>): bigint => {
   if (values.includes(0n)) {
-    return Option.some(0n);
+    return 0n;
   }
 
   let held: PartialProduct = emptyProduct;
   for (const next of values) {
-    const product = boundedTimes(held, next);
-    if (Option.isNone(product)) {
-      return Option.none();
-    }
-
-    held = product.value;
+    held = boundedTimes(held, next);
   }
 
-  return Option.some(held.integer);
+  return held.integer;
 };
 
 /**
@@ -203,7 +196,7 @@ const takeAway: Step = {
  */
 const least: Step = {
   float: (held, next) => Math.min(held, next),
-  integer: (values) => Option.some(fold(values, (held, next) => (next < held ? next : held))),
+  integer: (values) => fold(values, (held, next) => (next < held ? next : held)),
 };
 
 /**
@@ -213,13 +206,13 @@ const least: Step = {
  */
 const greatest: Step = {
   float: (held, next) => Math.max(held, next),
-  integer: (values) => Option.some(fold(values, (held, next) => (next > held ? next : held))),
+  integer: (values) => fold(values, (held, next) => (next > held ? next : held)),
 };
 
 /**
  * Give the value of a `qti-sum`: the sum of every number its operands hold, a container's members
  * each in its place; a single integer when every operand is an integer, else a single float. NULL
- * when any operand is NULL, and the integer NULL for an integer of more than 1,000,000 bits.
+ * when any operand is NULL; an integer of more than 1,000,000 bits aborts the run.
  *
  * @param expression The `qti-sum`.
  * @param scope The item and the variables of the attempt.
@@ -235,8 +228,7 @@ const evaluateSum: Evaluator<"sum"> = (expression, scope, evaluate) =>
 /**
  * Give the value of a `qti-product`: the product of every number its operands hold, a container's
  * members each in its place; a single integer when every operand is an integer, else a single
- * float. NULL when any operand is NULL, and the integer NULL for an integer of more than 1,000,000
- * bits.
+ * float. NULL when any operand is NULL; an integer of more than 1,000,000 bits aborts the run.
  *
  * @param expression The `qti-product`.
  * @param scope The item and the variables of the attempt.
@@ -251,8 +243,8 @@ const evaluateProduct: Evaluator<"product"> = (expression, scope, evaluate) =>
 
 /**
  * Give the value of a `qti-subtract`: its first operand less its second; a single integer when
- * both are integers, else a single float. NULL when either is NULL or not a single number, and the
- * integer NULL for an integer of more than 1,000,000 bits.
+ * both are integers, else a single float. NULL when either is NULL or not a single number; an
+ * integer of more than 1,000,000 bits aborts the run.
  *
  * @param expression The `qti-subtract`.
  * @param scope The item and the variables of the attempt.

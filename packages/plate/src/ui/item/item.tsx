@@ -20,6 +20,7 @@ import { defaultView } from "#plate/content/contract.ts";
 import { copyItemContent, itemContentNodes } from "#plate/content/modules.ts";
 import type { ItemPayloadsHeld } from "#plate/content/modules.ts";
 import { checkInstance, scopedId } from "#plate/form/encoding.ts";
+import { message } from "#plate/messages.ts";
 import type { Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import type { RedactRecord } from "#plate/model/record.ts";
 import type { ResponseValue } from "#plate/model/values.ts";
@@ -39,7 +40,13 @@ import {
   nodesOf,
 } from "#plate/ui/item/content.tsx";
 import type { InteractionAt, VerdictAt, Walk } from "#plate/ui/item/content.tsx";
-import { glossaryOf, listing, missingInCatalog } from "#plate/ui/item/contents/catalog.tsx";
+import {
+  glossaryOf,
+  listing,
+  missingInCatalog,
+  noReadAloud,
+  readAloudOf,
+} from "#plate/ui/item/contents/catalog.tsx";
 import {
   companionMaterials,
   missingInMaterials,
@@ -251,9 +258,11 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  *   the configuration's `headingLevel`, each run of a table's rows in a `tbody`;
  * - `plate-notice`, a note in place of each part plate does not render;
  * - `plate-glossary`, the disclosure of a catalog's `glossary-on-screen` card after the block of each
- *   term of the body that references the catalog, and `plate-catalog`, after the body, the listing
- *   of every other card the supports the host enabled keep
- *   (`#plate/ui/item/contents/catalog.tsx`);
+ *   term of the body that references the catalog, `plate-read-aloud`, in `answering`, read-aloud's
+ *   control for a catalog's `spoken` card that gives audio, after each element of the body at a
+ *   flow position, each prompt and beside each Choice's choice that references the catalog, and
+ *   `plate-catalog`, after the body, the listing of every other card the supports the host enabled
+ *   keep (`#plate/ui/item/contents/catalog.tsx`);
  * - Each interaction, through the interactions' seam: in `answering` its island inside its own
  *   `<Suspense fallback={null}>`, a hydration unit that suspends on nothing; in `review` and
  *   `solution` its server markup, with no boundary;
@@ -333,9 +342,19 @@ export const Item = (props: ItemProps): ReactNode => {
     shows: showsOf(props),
     values: mapOf(props.values),
   };
+  const catalogs = itemContent["qti-catalog-info"];
+  // Read-aloud presents a spoken card's recording while the candidate answers alone: a review's and
+  // a solution's page ships no island but a Media's replay.
+  const readAloud = mode === "answering" ? readAloudOf(catalogs, addressing) : noReadAloud;
   const contextOf = (paired: PairedInteraction): ReviewContext => ({
     ...shared,
     className: carriedClass(paired.kind, classOf(paired), supports),
+    readAloud,
+    spokenPrompt: paired.model.promptCatalog.pipe(
+      Option.flatMap((catalog) =>
+        readAloud(catalog, message(configuration.locale, "readAloudPrompt"), "read-aloud"),
+      ),
+    ),
   });
   const interaction: InteractionAt = (model: Interaction<RedactedLevel>, key: Key) => {
     const paired = interactionPayload(model, view);
@@ -347,7 +366,6 @@ export const Item = (props: ItemProps): ReactNode => {
 
     return renderAnswer(paired, contextOf(paired), mode, key);
   };
-  const catalogs = itemContent["qti-catalog-info"];
   const outside: Walk = {
     addressing,
     credit,
@@ -401,6 +419,7 @@ export const Item = (props: ItemProps): ReactNode => {
           glossary: glossaryOf(catalogs, redacted.body, addressing, configuration.locale),
           interaction,
           kind: "body",
+          readAloud,
           verdict: verdictAt,
         },
       })}

@@ -4,6 +4,7 @@ import { begin } from "#plate/begin.ts";
 import type { SourceElement } from "#plate/document/source.ts";
 import { evaluateExpression, runRules } from "#plate/engine/evaluate.ts";
 import type { Declarations, Variables } from "#plate/engine/evaluate.ts";
+import { ComputationBoundDefect } from "#plate/engine/numbers.ts";
 import { drawStream } from "#plate/engine/random.ts";
 import type { Draw } from "#plate/engine/random.ts";
 import { unknownAttributes } from "#plate/model/expression.ts";
@@ -603,15 +604,12 @@ describe("the references family's evaluators of qti-random-integer and qti-rando
     assert.deepStrictEqual(value, integer(8n));
   });
 
-  it("qti-random-integer gives NULL and draws nothing when max is below min, step is 0 or below, a bound passes 1,000,000 bits, or an attribute names a variable holding NULL (readings 211 and 216)", () => {
+  it("qti-random-integer gives NULL and draws nothing when max is below min, step is 0 or below, or an attribute names a variable holding NULL (reading 216)", () => {
     const item = declared();
-    const huge = 2n ** 1_000_000n;
     const cases: readonly (readonly [string, Expression, Variables])[] = [
       ["max below min", randomInteger(5n, 4n), changed],
       ["step 0", randomInteger(0n, 10n, 0n), changed],
       ["step -1", randomInteger(0n, 10n, -1n), changed],
-      ["min of 2^1,000,000", randomInteger(huge, huge + 3n), changed],
-      ["max of 2^1,000,000", randomInteger(0n, huge), changed],
       [
         "min naming NULL",
         {
@@ -654,6 +652,35 @@ describe("the references family's evaluators of qti-random-integer and qti-rando
       assert.deepStrictEqual(value, nullOf("integer", "single"), name);
       assert.strictEqual(stream.count(), 0, `${name} drew`);
     }
+  });
+
+  it("qti-random-integer aborts the run, never NULL, and draws nothing when a bound passes 1,000,000 bits, after the NULLs of an empty range (reading 211)", () => {
+    const item = declared();
+    const huge = 2n ** 1_000_000n;
+    for (const [name, expression] of [
+      ["min of 2^1,000,000", randomInteger(huge, huge + 3n)],
+      ["max of 2^1,000,000", randomInteger(0n, huge)],
+    ] as const) {
+      const stream = counted("bound");
+
+      assert.throws(
+        () => {
+          drawn(expression, item, changed, stream.draw);
+        },
+        ComputationBoundDefect,
+        undefined,
+        name,
+      );
+      assert.strictEqual(stream.count(), 0, `${name} drew`);
+    }
+
+    const empty = counted("bound, empty");
+    assert.deepStrictEqual(
+      drawn(randomInteger(huge, 0n), item, changed, empty.draw),
+      nullOf("integer", "single"),
+      "a range that holds no value is NULL whatever its bounds' sizes",
+    );
+    assert.strictEqual(empty.count(), 0);
   });
 
   it("qti-random-integer draws below the bit bound: a range of 2^999,999 to 2^999,999 + 3 gives a value in it", () => {

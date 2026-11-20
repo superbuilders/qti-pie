@@ -4,14 +4,17 @@
  * `solution`.
  *
  * The island takes its choices as presented, shuffled already by the core with the host-named
- * instance, and how many the child picks, read from its binding and `max-choices` by the one rule
- * every picks group follows (`picksOf` in `#plate/ui/picks/picks.ts`). The review shows the options
- * with each picked one `data-selected`, and, against the host's solution, each marked one
- * `data-mark` (`#plate/ui/picks/marks.ts`).
+ * instance, each with read-aloud's control for the catalog it references where the candidate hears
+ * it read aloud, named by the choice's place as presented, and how many the child picks, read from
+ * its binding and `max-choices` by the one rule every picks group follows (`picksOf` in
+ * `#plate/ui/picks/picks.ts`). The review shows the options with each picked one `data-selected`,
+ * and, against the host's solution, each marked one `data-mark` (`#plate/ui/picks/marks.ts`).
  *
  * @module
  */
+import { Option } from "effect";
 import type { ReactNode } from "react";
+import { message, numeral } from "#plate/messages.ts";
 import type { Paired } from "#plate/payload.ts";
 import { Choice } from "#plate/ui/choice/choice.tsx";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
@@ -49,15 +52,31 @@ export const island = (
 
   return (
     <Choice
-      choices={node.choices.map((choice, index) => ({
-        content: contentOf(choice.content, "phrasing", context),
-        identifier: choice.identifier,
-        label: optionName(
-          choice.content,
-          { count: node.choices.length, n: index + 1 },
-          context.locale,
-        ),
-      }))}
+      choices={node.choices.map((choice, index) => {
+        const shown = {
+          content: contentOf(choice.content, "phrasing", context),
+          identifier: choice.identifier,
+          label: optionName(
+            choice.content,
+            { count: node.choices.length, n: index + 1 },
+            context.locale,
+          ),
+        };
+        const readAloud = choice.catalog.pipe(
+          Option.flatMap((catalog) =>
+            context.readAloud(
+              catalog,
+              message(context.locale, "readAloudChoice", { n: numeral(context.locale, index + 1) }),
+              choice.identifier,
+            ),
+          ),
+        );
+
+        return Option.match(readAloud, {
+          onNone: () => shown,
+          onSome: (control) => ({ ...shown, readAloud: control }),
+        });
+      })}
       labels={labelsOf(picksKeys, context.locale, { limit: model.messages.max })}
       name={node.formName}
       naming={controlNameOf(prompt, node, ownName(model, context), context)}

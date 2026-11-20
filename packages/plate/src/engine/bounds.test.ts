@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Option } from "effect";
+import { Cause, Effect, Exit, Option, Result } from "effect";
 import type { SourceDocument, SourceElement } from "#plate/document/source.ts";
+import { ComputationBoundDefect } from "#plate/engine/numbers.ts";
 import type { ExpressionType } from "#plate/model/expression.ts";
 import { nullOf } from "#plate/model/values.ts";
 import type { Value } from "#plate/model/values.ts";
@@ -82,14 +83,32 @@ const runFor = (document: SourceDocument, identifier: string) =>
   });
 
 /**
- * Make one run of an item's response processing a computation to time, its result discarded: each
- * case checks the result apart, with {@link runFor}.
+ * Run an item's response processing over no response, and give whether it aborted, as a run that
+ * asks for more than the computation bound does: the defect it died with is a
+ * {@link ComputationBoundDefect}, and no value stands for its result.
+ *
+ * @param document The item document.
+ * @returns Whether the run aborted at the computation bound.
+ */
+const abortsFor = (document: SourceDocument) =>
+  Effect.map(Effect.exit(processed(document, {})), (exit) =>
+    Exit.isFailure(exit)
+      ? Result.match(Cause.findDefect(exit.cause), {
+          onFailure: () => false,
+          onSuccess: (defect) => defect instanceof ComputationBoundDefect,
+        })
+      : false,
+  );
+
+/**
+ * Make one run of an item's response processing a computation to time, its result discarded, an
+ * aborted run's too: each case checks the result apart, with {@link runFor} or {@link abortsFor}.
  *
  * @param document The item document.
  * @returns The computation.
  */
 const runOf = (document: SourceDocument) => (): void => {
-  Effect.runSync(Effect.ignore(processed(document, {})));
+  Effect.runSync(Effect.ignore(Effect.exit(processed(document, {}))));
 };
 
 /**
@@ -126,7 +145,7 @@ const repeatItem = (expression: SourceElement, n = "1"): SourceDocument =>
 
 describe("the evaluator's bounds on a crafted item's processing", () => {
   it.effect(
-    'qti-repeat with number-repeats="2147483647", or naming a variable of 10^30, gives the ordered NULL at no more cost than one pass',
+    'qti-repeat with number-repeats="2147483647", or naming a variable of 10^30, aborts the run, never NULL, at no more cost than one pass',
     () =>
       Effect.gen(function* repeatsLong() {
         const onePass = repeatItem(repeatElement("1", letter()));
@@ -135,10 +154,8 @@ describe("the evaluator's bounds on a crafted item's processing", () => {
           ["n", "1000000000000000000000000000000"],
         ] as const) {
           const crafted = repeatItem(repeatElement(numberRepeats, letter()), n);
-          const repeated = yield* runFor(crafted, "OUT");
 
-          assert.deepStrictEqual(repeated, nullOf("identifier", "ordered"), numberRepeats);
-          assertKindType(repeated, "repeat", [singleIdentifier]);
+          assert.isTrue(yield* abortsFor(crafted), numberRepeats);
           assert.isBelow(yield* costRatio(onePass, crafted), growthLimit, numberRepeats);
         }
       }),
@@ -212,7 +229,7 @@ describe("the evaluator's bounds on a crafted item's processing", () => {
   );
 
   it.effect(
-    "a nested qti-repeat keeps exactly 1,000,000 values and gives the ordered NULL past them",
+    "a nested qti-repeat keeps exactly 1,000,000 values and aborts the run, never NULL, past them",
     () =>
       Effect.gen(function* repeatsNested() {
         const kept = yield* runFor(
@@ -222,13 +239,10 @@ describe("the evaluator's bounds on a crafted item's processing", () => {
         assert.strictEqual(kept.values.length, 1_000_000);
         assertKindType(kept, "repeat", [orderedIdentifiers]);
 
-        const past = yield* runFor(
-          repeatItem(repeatElement("1001", repeatElement("1000", letter()))),
-          "OUT",
+        assert.isTrue(
+          yield* abortsFor(repeatItem(repeatElement("1001", repeatElement("1000", letter())))),
+          "1,001,000 values are past the bound",
         );
-        assert.strictEqual(past.values.length, 0, "1,001,000 values are past the bound");
-        assert.deepStrictEqual(past, nullOf("identifier", "ordered"));
-        assertKindType(past, "repeat", [orderedIdentifiers]);
       }),
   );
 });

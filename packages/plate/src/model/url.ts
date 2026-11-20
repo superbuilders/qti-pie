@@ -35,7 +35,7 @@ import type { SourceAttribute, SourceElement } from "#plate/document/source.ts";
  * - `link`: navigated to or cited (`a@href`, `img@longdesc`, `cite`). Package paths, `http`, `https`
  *   and same-document fragments.
  * - `resource`: fetched as passive media (`src`, `poster`). Package paths, `http` and `https`.
- * - `embed`: a nested document (`object@data`). Package paths only.
+ * - `embed`: a nested document (`object@data`, and a stimulus ref's `href`). Package paths only.
  * - `srcset`: a list of image candidates, each a `resource`.
  * - `package`: a location the host loads as a script or a configuration, which the page never fetches
  *   itself (a PCI's module locations). A package path, resolved against the package root rather
@@ -104,6 +104,12 @@ const math = (local: string, attribute: string, context: UrlContext): UrlAttribu
  *   ({@link baseLocationOf}). The server shell writes no element of theirs, so it meets none of
  *   them; `checkAdmitted` classifies them, so the host that serves a module reads a location
  *   already kept or dropped.
+ * - **The item root's:** `qti-assessment-stimulus-ref@href`, "The uri used to refer to the stimulus
+ *   file (e.g. elsewhere in the same content package)" (information model §7.6.2), an `embed`: a
+ *   nested document the host reads from the package and the server shell writes inside the item
+ *   (`#plate/content/stimulus-ref.ts`), so it is a package path or nothing plate delivers. The
+ *   shell writes no element of its own either, and `checkAdmitted` classifies it as it does a
+ *   module's location.
  * - **MathML 3's:** `href` on every element (§2.1.6, "Attributes Shared by all MathML Elements"), a
  *   link; `math`'s `altimg` (§2.2.1) and `mglyph`'s and `annotation`'s `src` (§3.2.1.2, §5.2.2),
  *   each a resource; and `share`'s `src`, which names an element of the formula by its `#id`
@@ -124,6 +130,7 @@ const urlAttributes: readonly UrlAttribute[] = [
   body("img", "src", "resource"),
   body("object", "data", "embed"),
   body("q", "cite", "link"),
+  body("qti-assessment-stimulus-ref", "href", "embed"),
   body("qti-interaction-module", "fallback-path", "package"),
   body("qti-interaction-module", "primary-path", "package"),
   body("qti-interaction-modules", "primary-configuration", "package"),

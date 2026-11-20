@@ -17,6 +17,7 @@ import type { Credit } from "#plate/credit.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import type { ResponseValue } from "#plate/model/values.ts";
+import type { ReadsAloud } from "#plate/ui/item/contents/catalog.tsx";
 import type { Writing } from "#plate/ui/item/html.ts";
 
 /**
@@ -103,6 +104,20 @@ export interface IslandContext {
    * The locale of plate's own text, which `message` in `#plate/messages.ts` writes the catalog in.
    */
   readonly locale: Locale;
+  /**
+   * Give read-aloud's control for a catalog a part of the interaction's own content references,
+   * such as a Choice's choice, which the island writes beside that part (`readAloudOf` in
+   * `#plate/ui/item/contents/catalog.tsx`): none while the candidate does not answer, and none for
+   * a catalog that keeps no spoken card that gives audio.
+   */
+  readonly readAloud: ReadsAloud;
+  /**
+   * Read-aloud's control for the interaction's prompt, where its `qti-prompt` references a catalog
+   * whose spoken card gives audio (`ModuleInteraction.promptCatalog` in
+   * `#plate/interactions/contract.ts`) and the candidate answers, which `promptAt` writes after the
+   * prompt (`#plate/ui/item/interactions/labels.ts`); none otherwise.
+   */
+  readonly spokenPrompt: Option.Option<ReactNode>;
 }
 
 /**

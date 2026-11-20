@@ -11,11 +11,11 @@
  * counts as NULL, as the information model counts a value that is not numerical.
  *
  * `qti-lcm` is the one kind here that can grow past its operands, so its integer is held to
- * `integerBitBound` (`#plate/engine/numbers.ts`, reading 211): one of more
- * than 1,000,000 bits is the integer NULL. `qti-integer-divide`, `qti-integer-modulus` and
- * `qti-gcd` cannot grow past their operands, a quotient, a remainder and a common divisor being no
- * larger in magnitude than the dividend, the divisor and each operand that is not 0, so they are
- * not held to it and stay exact at any size their operands have.
+ * `integerBitBound` (`#plate/engine/numbers.ts`, reading 211): one of more than 1,000,000 bits
+ * aborts the run (`ComputationBoundDefect`), never NULL. `qti-integer-divide`,
+ * `qti-integer-modulus` and `qti-gcd` cannot grow past their operands, a quotient, a remainder and
+ * a common divisor being no larger in magnitude than the dividend, the divisor and each operand
+ * that is not 0, so they are not held to it and stay exact at any size their operands have.
  *
  * It reads the evaluator's types from `#plate/engine/evaluate.ts` as types only, so the
  * dispatcher's table may import it without a cycle.
@@ -237,32 +237,27 @@ const evaluateGcd: Evaluator<"gcd"> = (expression, scope, evaluate) =>
   );
 
 /**
- * Give the least common multiple of integers that are not 0, by their magnitudes, held to the
- * bound without building a multiple far past it: each partial multiple is the one before times
- * the next integer divided by their common divisor, lcm(m, n) = m × (n / gcd(m, n)), through
- * `boundedTimes`, so the first past the bound gives none. Only that quotient, no larger than the
- * integer, is measured; the range of each partial multiple's bit length is carried, so no partial
- * multiple is measured unless the bit lengths cannot decide it. Each partial multiple divides the
- * whole one, so the first past the bound means the whole is past it. The first integer's
- * magnitude alone is held to the bound too, for the multiple of one operand is computed, not
- * written.
+ * Give the least common multiple of integers that are not 0, by their magnitudes, held to the bound
+ * without building a multiple far past it: each partial multiple is the one before times the next
+ * integer divided by their common divisor, lcm(m, n) = m × (n / gcd(m, n)), through `boundedTimes`,
+ * so the first past the bound aborts the run. Only that quotient, no larger than the integer, is
+ * measured; the range of each partial multiple's bit length is carried, so no partial multiple is
+ * measured unless the bit lengths cannot decide it. Each partial multiple divides the whole one, so
+ * the first past the bound means the whole is past it. The first integer's magnitude alone is held
+ * to the bound too, for the multiple of one operand is computed, not written.
  *
  * @param integers The integers, none of them 0.
- * @returns The least common multiple, or none when it has more than 1,000,000 bits.
+ * @returns The least common multiple.
+ * @throws {ComputationBoundDefect} When it has more than 1,000,000 bits.
  */
-const leastCommonMultiple = (integers: readonly bigint[]): Option.Option<bigint> => {
+const leastCommonMultiple = (integers: readonly bigint[]): bigint => {
   let multiple: PartialProduct = emptyProduct;
   for (const integer of integers) {
     const factor = magnitudeOf(integer);
-    const next = boundedTimes(multiple, factor / greatestCommonDivisor(multiple.integer, factor));
-    if (Option.isNone(next)) {
-      return Option.none();
-    }
-
-    multiple = next.value;
+    multiple = boundedTimes(multiple, factor / greatestCommonDivisor(multiple.integer, factor));
   }
 
-  return Option.some(multiple.integer);
+  return multiple.integer;
 };
 
 /**
@@ -270,7 +265,7 @@ const leastCommonMultiple = (integers: readonly bigint[]): Option.Option<bigint>
  * operands hold, a container's members each counted, by their magnitudes (section 2.11.3.12). It
  * is 0 when any
  * integer is 0, lcm(0, n) = 0, whatever the others' size. NULL when any operand is NULL, a zero
- * beside it included, and for a multiple of more than 1,000,000 bits.
+ * beside it included; a multiple of more than 1,000,000 bits aborts the run.
  *
  * @param expression The `qti-lcm`.
  * @param scope The item and the variables of the attempt.
@@ -283,12 +278,7 @@ const evaluateLcm: Evaluator<"lcm"> = (expression, scope, evaluate) =>
     Option.match(held, {
       onNone: () => integerNull,
       onSome: (integers) =>
-        integers.includes(0n)
-          ? integerValue(0n)
-          : Option.match(leastCommonMultiple(integers), {
-              onNone: () => integerNull,
-              onSome: integerValue,
-            }),
+        integers.includes(0n) ? integerValue(0n) : integerValue(leastCommonMultiple(integers)),
     }),
   );
 

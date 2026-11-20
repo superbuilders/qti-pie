@@ -18,11 +18,11 @@
  * values differ in base type is NULL ({@link sameBase}, reading 212).
  *
  * A container `qti-multiple`, `qti-ordered` or `qti-repeat` builds is held to `containerSizeBound`
- * (`#plate/engine/numbers.ts`, the principle of reading 211): one of more than
- * 1,000,000 values is the NULL of its base type and cardinality, found before it is built, or, for
- * a `qti-repeat` that draws, before each pass's values are added, so a `number-repeats` of
- * 2147483647 cannot hang scoring. The other kinds build no container larger than an operand, and no
- * container as written or stored is held to the bound.
+ * (`#plate/engine/numbers.ts`, the principle of reading 211): one of more than 1,000,000 values
+ * aborts the run (`ComputationBoundDefect`), never NULL, found before it is built, or, for a
+ * `qti-repeat` that draws, before each pass's values are added, so a `number-repeats` of 2147483647
+ * cannot hang scoring. The other kinds build no container larger than an operand, and no container
+ * as written or stored is held to the bound.
  *
  * `qti-random` draws from the scope's stream (`drawBelow`, `#plate/engine/random.ts`), once its
  * operand is evaluated and found not NULL, so a NULL operand draws nothing. A `qti-repeat` whose
@@ -41,7 +41,8 @@ import {
   booleanOf,
   integerValue,
   singleValue,
-  withinContainerBound,
+  heldToContainerBound,
+  heldToPassBudget,
 } from "#plate/engine/numbers.ts";
 import { operandValues } from "#plate/engine/operands.ts";
 import { drawBelow } from "#plate/engine/random.ts";
@@ -188,17 +189,20 @@ const appendTo = (held: Single[], values: readonly Value[]): void => {
  * Give the container of a cardinality that holds the operands' values in order: a single value
  * adds itself, a container adds each of its values, and a NULL adds nothing, whatever its base
  * type, so the container is NULL when every value is or there is none. It is NULL too when the
- * values differ in base type ({@link sameBase}), and when it would hold more than 1,000,000
- * values, found from the values' sizes before it is built.
+ * values differ in base type ({@link sameBase}). One that would hold more than 1,000,000 values,
+ * found from the values' sizes before it is built, aborts the run.
  *
  * @param cardinality The container's cardinality.
  * @param values The operands' values, in order.
  * @returns The container, of the values' base type ({@link baseOf}).
+ * @throws {ComputationBoundDefect} When it would hold more than 1,000,000 values.
  */
 const containerOf = (cardinality: "multiple" | "ordered", values: readonly Value[]): Value => {
-  if (!sameBase(values) || !withinContainerBound(BigInt(sizeOf(values)))) {
+  if (!sameBase(values)) {
     return nullOf(baseOf(values), cardinality);
   }
+
+  heldToContainerBound(BigInt(sizeOf(values)));
 
   const held: Single[] = [];
   appendTo(held, values);
@@ -209,8 +213,8 @@ const containerOf = (cardinality: "multiple" | "ordered", values: readonly Value
 /**
  * Give the value of a `qti-multiple`: a multiple container of its operands' values, a multiple
  * operand's added one by one and a NULL one ignored; NULL when there is no operand or every one is
- * NULL, when the values differ in base type, and when it would hold more than 1,000,000 values.
- * Applied to A, B and {C,D} it gives {A,B,C,D}.
+ * NULL, and when the values differ in base type; one that would hold more than 1,000,000 values
+ * aborts the run. Applied to A, B and {C,D} it gives {A,B,C,D}.
  *
  * @param expression The `qti-multiple`.
  * @param scope The item and the variables of the attempt.
@@ -226,8 +230,8 @@ const evaluateMultiple: Evaluator<"multiple"> = (expression, scope, evaluate) =>
 /**
  * Give the value of a `qti-ordered`: an ordered container of its operands' values, an ordered
  * operand's added in order and a NULL one ignored; NULL when there is no operand or every one is
- * NULL, so it never gives an empty container, when the values differ in base type, and when it
- * would hold more than 1,000,000 values.
+ * NULL, so it never gives an empty container, and when the values differ in base type; one that
+ * would hold more than 1,000,000 values aborts the run.
  *
  * @param expression The `qti-ordered`.
  * @param scope The item and the variables of the attempt.
@@ -275,11 +279,10 @@ const drawsFrom = (expression: Expression): boolean => {
  * first failure is the result, even when `number-repeats` is below 1. The pass's values are then
  * added `number-repeats` times, one at a time.
  *
- * The bound is checked before any value is added: the pass's size times `number-repeats` past the
- * bound gives NULL, and a pass that gives no value gives NULL at once, however many passes
- * `number-repeats` asks for, which keeps a nested `qti-repeat` of nothing from running a million
- * passes a million times. The running size is checked again before each pass is added, which
- * cannot fail while one pass's values are repeated.
+ * The bound is checked before any value is added: a pass that gives no value gives NULL at once,
+ * however many passes `number-repeats` asks for, which keeps a nested `qti-repeat` of nothing from
+ * running a million passes a million times, and the pass's size times `number-repeats` past the
+ * bound aborts the run.
  *
  * @param expression The `qti-repeat`.
  * @param scope The item and the variables of the attempt.
@@ -293,21 +296,14 @@ const repeatOnce: Evaluator<"repeat"> = (expression, scope, evaluate) =>
     const count = Option.getOrElse(repeats, () => 0n);
     const unset = nullOf(baseOf(pass), "ordered");
     const passSize = sizeOf(pass);
-    if (
-      count < 1n ||
-      passSize === 0 ||
-      !sameBase(pass) ||
-      !withinContainerBound(BigInt(passSize) * count)
-    ) {
+    if (count < 1n || passSize === 0 || !sameBase(pass)) {
       return unset;
     }
 
+    heldToContainerBound(BigInt(passSize) * count);
+
     const held: Single[] = [];
     for (let added = 0n; added < count; added += 1n) {
-      if (!withinContainerBound(BigInt(held.length + passSize))) {
-        return unset;
-      }
-
       appendTo(held, pass);
     }
 
@@ -322,9 +318,10 @@ const repeatOnce: Evaluator<"repeat"> = (expression, scope, evaluate) =>
  * `number-repeats` is resolved first; then the first failure of a pass is the result. Three rules
  * bound what a seed's draws give and how many passes run:
  *
- * - The pass budget: a `number-repeats` above 1,000,000 (`containerSizeBound`) gives NULL before any
- *   pass, and the running size is checked before each pass's values are added, so a pass whose size
- *   is known only once it has run never grows the container past 1,000,000 values.
+ * - The pass budget: a `number-repeats` above 1,000,000 (`containerSizeBound`) asks for more passes
+ *   than the bound lets one run take, and aborts the run before any pass. The running size is
+ *   checked before each pass's values are added, so a pass whose size is known only once it has run
+ *   never grows the container past 1,000,000 values: the pass that would aborts the run.
  * - A pass that gives no value gives NULL at once and runs no later pass, so it draws nothing more.
  * - A `number-repeats` below 1, or naming a variable that holds NULL, gives NULL with no pass at all,
  *   so it draws nothing.
@@ -332,7 +329,7 @@ const repeatOnce: Evaluator<"repeat"> = (expression, scope, evaluate) =>
  *   once ({@link sameBase}).
  *
  * The container is of the first pass's base type ({@link baseOf}), and the NULL of a pass that
- * gives no value or would pass the bound is of that pass's.
+ * gives no value is of that pass's.
  *
  * The size of the container is bounded and the number of passes with it; the time the passes take,
  * a nested drawing `qti-repeat`'s included, is the host's (reading 211).
@@ -346,24 +343,22 @@ const repeatPerPass: Evaluator<"repeat"> = (expression, scope, evaluate) =>
   Result.gen(function* repeatPasses() {
     const repeats = yield* referenceInteger(scope.variables, expression.numberRepeats);
     const count = Option.getOrElse(repeats, () => 0n);
-    if (count < 1n || !withinContainerBound(count)) {
+    if (count < 1n) {
       return nullOf(baseOf([]), "ordered");
     }
+
+    heldToPassBudget(count);
 
     const held: Single[] = [];
     let baseType = baseOf([]);
     for (let passed = 0n; passed < count; passed += 1n) {
       const pass = yield* operandValues(expression.operands, scope, evaluate);
       const passSize = sizeOf(pass);
-      if (
-        passSize === 0 ||
-        !sameBase(pass) ||
-        (passed > 0n && baseOf(pass) !== baseType) ||
-        !withinContainerBound(BigInt(held.length + passSize))
-      ) {
+      if (passSize === 0 || !sameBase(pass) || (passed > 0n && baseOf(pass) !== baseType)) {
         return nullOf(baseOf(pass), "ordered");
       }
 
+      heldToContainerBound(BigInt(held.length + passSize));
       if (passed === 0n) {
         baseType = baseOf(pass);
       }
@@ -378,12 +373,12 @@ const repeatPerPass: Evaluator<"repeat"> = (expression, scope, evaluate) =>
  * Give the value of a `qti-repeat`: an ordered container filled by evaluating each operand in turn
  * and adding its values, a NULL one ignored, `number-repeats` times in all; NULL when every operand
  * is NULL, when the values differ in base type, when `number-repeats` is below 1 or names a
- * variable that holds NULL, and when the container would hold more than 1,000,000 values.
+ * variable that holds NULL; one that would hold more than 1,000,000 values aborts the run.
  *
  * The information model fills the container pass by pass. When no operand's subtree holds a random
  * kind ({@link drawsFrom}), the operands are evaluated once, as every pass would give the first
  * pass's values ({@link repeatOnce}). When one does, they are evaluated once per pass, left to
- * right, so each pass draws anew, under a budget on the passes ({@link repeatPerPass}).
+ * right, so each pass draws anew, held to the bound pass by pass ({@link repeatPerPass}).
  *
  * @param expression The `qti-repeat`.
  * @param scope The item, the variables of the attempt and the stream its operands draw from.

@@ -384,10 +384,14 @@ export default defineConfig({
       files: ["packages/plate/src/ui/portable-custom/host.ts"],
       rules: { "anti-slop/no-unsafe-dictionary-type": "off" },
     },
-    // A Media's autostart handles `play()`'s refusal with its promise's own `catch`: the workspace
-    // forbids try/catch, and the effect that starts it cannot await.
+    // A Media's autostart, and read-aloud's press, handle `play()`'s refusal with its promise's own
+    // `catch`: the workspace forbids try/catch, and neither the effect that starts a Media nor the
+    // toggle's change handler that starts a recording can await.
     {
-      files: ["packages/plate/src/ui/media/media.tsx"],
+      files: [
+        "packages/plate/src/ui/media/media.tsx",
+        "packages/plate/src/ui/read-aloud/read-aloud.tsx",
+      ],
       rules: { "promise/prefer-await-to-then": "off" },
     },
     // Tests may chain a promise, as ultracite 7, which turned prefer-await-to-then on, let them.

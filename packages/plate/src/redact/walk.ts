@@ -43,6 +43,7 @@ import type {
   Nodes,
   RedactedLevel,
   RedactedNode,
+  Stimulus,
   TemplateContent,
 } from "#plate/model/item.ts";
 import type { RedactRecord } from "#plate/model/record.ts";
@@ -241,6 +242,22 @@ const modalNotice = "qti-modal-feedback";
 const itemPath = "qti-assessment-item";
 
 /**
+ * The path of a stimulus's root, which its catalog's kit names as {@link itemPath} names an item's.
+ */
+const stimulusPath = "qti-assessment-stimulus";
+
+/**
+ * What {@link printBody} reads of the document it shows: its body, its modal feedback and its
+ * item-placed content, and the declarations of the variables these print and are shown by. An
+ * item gives its own; a stimulus declares no variable and holds no modal feedback
+ * ({@link redactStimulus}).
+ */
+type Printed = Pick<
+  Item,
+  "body" | "content" | "modalFeedback" | "outcomes" | "responses" | "templates"
+>;
+
+/**
  * The feature a withheld `param`'s notice names: its element's name, as for a printed variable.
  */
 const parameterNotice = "param";
@@ -368,7 +385,9 @@ interface RedactedBody {
  * other decision, the hidden-only responses and every interaction and choice shown, is the same as
  * under `"text"`, since none of them reads a printed text.
  *
- * @param item The item.
+ * @param item The item, or what a stimulus gives in its place ({@link Printed}).
+ * @param root The path of the document's root, where the item-placed content modules' kit records
+ *   a text past its bound.
  * @param printing The values the body is shown by, none to withhold every printed variable, every
  *   template block and inline, every choice with a template visibility and every `param-variable`
  *   parameter.
@@ -384,7 +403,8 @@ interface RedactedBody {
  *   that passed its bound, none under `"structure"`.
  */
 const printBody = (
-  item: Item,
+  item: Printed,
+  root: string,
   printing: Option.Option<RedactRecord>,
   writing: Writing,
   supports: Supports,
@@ -704,7 +724,7 @@ const printBody = (
     });
   });
 
-  const content = redactItemContent(item.content, walk.contentKit(true, itemPath));
+  const content = redactItemContent(item.content, walk.contentKit(true, root));
 
   const hiddenOnly = new Set([...unseenBound].filter((response) => !shownBound.has(response)));
 
@@ -931,6 +951,7 @@ export const redactItem = (item: Item, options: RedactOptions, record?: RedactRe
   const printing = printingOf(item, record);
   const { body, content, hiddenOnly, modalFeedback, unprinted } = printBody(
     item,
+    itemPath,
     printing,
     textWithin(options.configuration),
     options.supports,
@@ -995,7 +1016,14 @@ export interface RedactedStructure {
  */
 export const redactStructure = (item: Item, record?: RedactRecord): RedactedStructure => {
   const printing = printingOf(item, record);
-  const { body, hiddenOnly } = printBody(item, printing, structureOnly, noSupports, defaultView);
+  const { body, hiddenOnly } = printBody(
+    item,
+    itemPath,
+    printing,
+    structureOnly,
+    noSupports,
+    defaultView,
+  );
 
   return { body, hiddenOnly, responses: bindingsShown(item, hiddenOnly, body, printing) };
 };
@@ -1023,4 +1051,100 @@ export const redactStructure = (item: Item, record?: RedactRecord): RedactedStru
  * @returns The responses, in the order the walk first meets them.
  */
 export const hiddenOnlyResponses = (item: Item, record?: RedactRecord): ReadonlySet<string> =>
-  printBody(item, printingOf(item, record), structureOnly, noSupports, defaultView).hiddenOnly;
+  printBody(item, itemPath, printingOf(item, record), structureOnly, noSupports, defaultView)
+    .hiddenOnly;
+
+/**
+ * The fields of a stimulus the page may know, which {@link redactStimulus} copies by name.
+ */
+export interface RedactedStimulusFields {
+  /**
+   * The stimulus body, at the redacted level, as {@link RedactedFields.body} is the item's.
+   */
+  readonly body: readonly RedactedNode[];
+  /**
+   * The catalogs of the stimulus the redaction kept, as `qti-catalog-info`'s module keeps an
+   * item's under the supports the host enabled.
+   */
+  readonly content: Pick<ItemNodesKept, "qti-catalog-info">;
+  /**
+   * The stimulus document's location as the host named it, its path from the package root.
+   */
+  readonly document: string;
+  /**
+   * The stimulus root's `xml:lang`.
+   */
+  readonly lang: Option.Option<string>;
+  /**
+   * The stimulus root's `title`.
+   */
+  readonly title: string;
+}
+
+/**
+ * A stimulus with every part the page may not know removed: the body and catalog the server shell
+ * renders beside or inside the item that references it. Branded as {@link Redacted} is, so only
+ * {@link redactStimulus} makes one.
+ */
+export type RedactedStimulus = Brand.Branded<RedactedStimulusFields, "RedactedStimulus">;
+
+/**
+ * Brand redacted stimulus fields, with no run-time check. Only {@link redactStimulus} calls it.
+ */
+const brandStimulus = Brand.nominal<RedactedStimulus>();
+
+/**
+ * The variables a stimulus declares: none. "The key feature is that this shared stimulus content
+ * must be supplied in the same context for each of the Assessment Items that make use of it"
+ * (information model §4.3), so nothing in it reads an item's variables, and the XSD gives a
+ * stimulus no declaration of its own.
+ */
+const undeclared: Pick<Item, "outcomes" | "responses" | "templates"> = {
+  outcomes: new Map(),
+  responses: new Map(),
+  templates: new Map(),
+};
+
+/**
+ * Copy the parts of a stimulus the page may know: the allowlist, and the only way to make a
+ * {@link RedactedStimulus}.
+ *
+ * Its body is walked as {@link redactItem} walks an item's with no values: the stimulus declares
+ * no variable ({@link undeclared}), so a printed variable, a template block or inline, a feedback
+ * block or inline and a `param-variable` parameter in it stays its notice, and nothing is printed,
+ * so no text passes a bound. Its catalogs are resolved under the supports the host enabled for the
+ * candidate, as the item's are: a card of a support the host did not enable, its spoken card among
+ * them, never reaches the page. It copies, each by name, the document location, `lang`, `title`,
+ * the body and the kept catalogs.
+ *
+ * @param stimulus The stimulus, as an accepted stimulus holds it.
+ * @param options The output budget, the supports and the view ({@link RedactOptions}).
+ * @returns The redacted stimulus.
+ */
+export const redactStimulus = (stimulus: Stimulus, options: RedactOptions): RedactedStimulus => {
+  const { body, content } = printBody(
+    {
+      ...undeclared,
+      body: stimulus.body,
+      content: {
+        "qti-assessment-stimulus-ref": [],
+        "qti-catalog-info": stimulus.content["qti-catalog-info"],
+        "qti-companion-materials-info": [],
+      },
+      modalFeedback: [],
+    },
+    stimulusPath,
+    Option.none(),
+    textWithin(options.configuration),
+    options.supports,
+    options.view,
+  );
+
+  return brandStimulus({
+    body,
+    content: { "qti-catalog-info": content["qti-catalog-info"] },
+    document: stimulus.document,
+    lang: stimulus.lang,
+    title: stimulus.title,
+  });
+};

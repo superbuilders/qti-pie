@@ -46,6 +46,7 @@ const city: TextEntryInteraction = {
   patternMask: Option.none(),
   patternMaskMessage: Option.none(),
   placeholder: Option.some("A city"),
+  promptCatalog: Option.none(),
   response,
 };
 

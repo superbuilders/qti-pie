@@ -3,6 +3,10 @@
 qti-pie is edullm's IMS QTI 3.0.1 stack: three packages under `packages/qti-pie/packages/`. Follow edullm's root
 `AGENTS.md` for everything this file does not say.
 
+This repository is `superbuilders/qti-pie`, a git submodule of edullm at `packages/qti-pie` (and of
+alphatest-novus). Every qti-pie change is committed here and pushed to `main`; edullm then commits its
+`packages/qti-pie` pointer. No qti-pie change is committed in edullm's own tree.
+
 - `crust` (`@qti-pie/crust`) reads and writes XML, bytes to a tree and back. It depends only on `effect`, `saxes` and
   `@bjornpagen/grizzle-text`, grizzle's dependency-free, browser-safe text package, whose RFC 3986 resolution it
   re-exports for plate (`@qti-pie/crust/uri.ts` `resolveWithin`), so the rest of grizzle stays out of anything that
@@ -20,7 +24,8 @@ the specifications.
 
 - Effect is pinned to `4.1.4`, one copy in the workspace. plate's UI SDK (`@ui-sdk/core`, `@ui-sdk/react`) is pinned
   exactly to `0.1.0-beta.2`. Versions live in edullm's catalog.
-- grizzle is edullm's submodule `vendor/grizzle`, at its pinned tag. Move it one exact commit at a time, never
+- grizzle is this repository's submodule `vendor/grizzle`, which edullm reaches through recursion (its
+  `submodule.recurse`), at its pinned commit. Move it one exact commit at a time, never
   floating, with the full checks.
 - After an edit, run edullm's `pnpm types`, the incremental typecheck (`pnpm types --filter './packages/qti-pie/**'`
   for qti-pie alone): each package checks its own tsconfig, as every edullm package does (crust, plate with its UI

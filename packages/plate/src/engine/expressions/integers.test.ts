@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Result } from "effect";
+import { ComputationBoundDefect } from "#plate/engine/numbers.ts";
 import type { Expression } from "#plate/model/expression.ts";
 import { nullOf } from "#plate/model/values.ts";
 import type { Value } from "#plate/model/values.ts";
@@ -216,24 +217,30 @@ describe("the integers family's evaluators", () => {
 });
 
 describe("the integers family's bound on a computed integer", () => {
-  it("qti-lcm keeps a computed integer of exactly 1,000,000 bits and gives the integer NULL for one of 1,000,001, a zero still giving 0", () => {
+  it("qti-lcm keeps a computed integer of exactly 1,000,000 bits and aborts the run, never NULL, for one of 1,000,001, a zero still giving 0", () => {
     assert.deepStrictEqual(
       evaluated(lcmOf(integer(2n ** 999_998n), integer(3n))),
       integer(3n * 2n ** 999_998n),
       "3 × 2^999998 has 1,000,000 bits",
     );
-    assert.deepStrictEqual(
-      evaluated(lcmOf(integer(2n ** 999_999n), integer(-3n))),
-      unsetInteger,
+    assert.throws(
+      () => {
+        evaluated(lcmOf(integer(2n ** 999_999n), integer(-3n)));
+      },
+      ComputationBoundDefect,
+      undefined,
       "3 × 2^999999 has 1,000,001 bits",
     );
     assert.deepStrictEqual(
       evaluated(lcmOf(integer(2n ** 999_999n), integer(3n), integer(0n))),
       integer(0n),
     );
-    assert.deepStrictEqual(
-      evaluated(lcmOf(integer(-(2n ** 1_000_000n)))),
-      unsetInteger,
+    assert.throws(
+      () => {
+        evaluated(lcmOf(integer(-(2n ** 1_000_000n))));
+      },
+      ComputationBoundDefect,
+      undefined,
       "one operand's magnitude is computed, not written",
     );
   });

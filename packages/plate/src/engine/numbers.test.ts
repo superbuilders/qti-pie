@@ -1,12 +1,12 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Option } from "effect";
 import {
   bitLengthOf,
   boundedInteger,
   boundedTimes,
+  ComputationBoundDefect,
   emptyProduct,
+  heldToContainerBound,
   toFloat,
-  withinContainerBound,
 } from "#plate/engine/numbers.ts";
 
 /**
@@ -53,19 +53,20 @@ describe("the engine's bounds on what it computes", () => {
     assert.strictEqual(bitLengthOf(-(2n ** 1_000_000n)), 1_000_001);
   });
 
-  it("boundedInteger keeps an integer of exactly 1,000,000 bits and gives none for one of 1,000,001", () => {
-    assert.deepStrictEqual(
-      boundedInteger(2n ** 1_000_000n - 1n),
-      Option.some(2n ** 1_000_000n - 1n),
-    );
-    assert.deepStrictEqual(boundedInteger(-(2n ** 999_999n)), Option.some(-(2n ** 999_999n)));
-    assert.deepStrictEqual(boundedInteger(2n ** 1_000_000n), Option.none());
-    assert.deepStrictEqual(boundedInteger(-(2n ** 1_000_000n)), Option.none());
+  it("boundedInteger keeps an integer of exactly 1,000,000 bits and aborts the run, never NULL, for one of 1,000,001", () => {
+    assert.strictEqual(boundedInteger(2n ** 1_000_000n - 1n), 2n ** 1_000_000n - 1n);
+    assert.strictEqual(boundedInteger(-(2n ** 999_999n)), -(2n ** 999_999n));
+    assert.throws(() => {
+      boundedInteger(2n ** 1_000_000n);
+    }, ComputationBoundDefect);
+    assert.throws(() => {
+      boundedInteger(-(2n ** 1_000_000n));
+    }, ComputationBoundDefect);
   });
 
-  it("boundedTimes decides from its factors' bit lengths: kept unmeasured when they sum to at most 1,000,000, none when the sum less one is past it, and measured only in between", () => {
-    const half = Option.getOrThrow(boundedTimes(emptyProduct, 2n ** 499_999n));
-    const over = Option.getOrThrow(boundedTimes(emptyProduct, 2n ** 500_000n));
+  it("boundedTimes decides from its factors' bit lengths: kept unmeasured when they sum to at most 1,000,000, aborted when the sum less one is past it, and measured only in between", () => {
+    const half = boundedTimes(emptyProduct, 2n ** 499_999n);
+    const over = boundedTimes(emptyProduct, 2n ** 500_000n);
     assert.deepStrictEqual(
       half,
       { integer: 2n ** 499_999n, leastBits: 500_000, mostBits: 500_000 },
@@ -79,58 +80,68 @@ describe("the engine's bounds on what it computes", () => {
 
     assert.deepStrictEqual(
       boundedTimes(half, 2n ** 499_999n),
-      Option.some({ integer: 2n ** 999_998n, leastBits: 999_999, mostBits: 1_000_000 }),
+      { integer: 2n ** 999_998n, leastBits: 999_999, mostBits: 1_000_000 },
       "500,000 and 500,000 bits sum to the bound: kept, and its range is not narrowed by a measure",
     );
-    assert.deepStrictEqual(
-      boundedTimes(over, 2n ** 500_000n),
-      Option.none(),
+    assert.throws(
+      () => {
+        boundedTimes(over, 2n ** 500_000n);
+      },
+      ComputationBoundDefect,
+      undefined,
       "500,001 and 500,001 bits: the sum less one, 1,000,001, is past the bound",
     );
     assert.deepStrictEqual(
       boundedTimes(half, 2n ** 500_000n),
-      Option.some({ integer: 2n ** 999_999n, leastBits: 1_000_000, mostBits: 1_000_000 }),
+      { integer: 2n ** 999_999n, leastBits: 1_000_000, mostBits: 1_000_000 },
       "500,000 and 500,001 bits: in between, measured exactly at 1,000,000",
     );
-    assert.deepStrictEqual(
-      boundedTimes(
-        Option.getOrThrow(boundedTimes(emptyProduct, 3n * 2n ** 499_998n)),
-        3n * 2n ** 499_999n,
-      ),
-      Option.none(),
+    assert.throws(
+      () => {
+        boundedTimes(boundedTimes(emptyProduct, 3n * 2n ** 499_998n), 3n * 2n ** 499_999n);
+      },
+      ComputationBoundDefect,
+      undefined,
       "500,000 and 500,001 bits: in between, measured exactly at 1,000,001",
     );
   });
 
   it("boundedTimes carries a partial product's range: a factor of ±1 keeps it, a range across the bound is measured, and 0 gives 0", () => {
-    const kept = Option.getOrThrow(
-      boundedTimes(Option.getOrThrow(boundedTimes(emptyProduct, 2n ** 499_999n)), 2n ** 499_999n),
-    );
+    const kept = boundedTimes(boundedTimes(emptyProduct, 2n ** 499_999n), 2n ** 499_999n);
 
-    assert.deepStrictEqual(
-      boundedTimes(kept, -1n),
-      Option.some({ integer: -(2n ** 999_998n), leastBits: 999_999, mostBits: 1_000_000 }),
-    );
+    assert.deepStrictEqual(boundedTimes(kept, -1n), {
+      integer: -(2n ** 999_998n),
+      leastBits: 999_999,
+      mostBits: 1_000_000,
+    });
     assert.deepStrictEqual(
       boundedTimes(kept, 2n),
-      Option.some({ integer: 2n ** 999_999n, leastBits: 1_000_000, mostBits: 1_000_000 }),
+      { integer: 2n ** 999_999n, leastBits: 1_000_000, mostBits: 1_000_000 },
       "999,999 to 1,000,000 bits times 2 bits is 1,000,000 to 1,000,002: measured, 1,000,000",
     );
-    assert.deepStrictEqual(
-      boundedTimes(kept, 4n),
-      Option.none(),
+    assert.throws(
+      () => {
+        boundedTimes(kept, 4n);
+      },
+      ComputationBoundDefect,
+      undefined,
       "999,999 to 1,000,000 bits times 3 bits is at least 1,000,001",
     );
-    assert.deepStrictEqual(
-      boundedTimes(kept, 0n),
-      Option.some({ integer: 0n, leastBits: 0, mostBits: 0 }),
-    );
+    assert.deepStrictEqual(boundedTimes(kept, 0n), { integer: 0n, leastBits: 0, mostBits: 0 });
   });
 
-  it("withinContainerBound holds a container of 1,000,000 values and not one of 1,000,001", () => {
-    assert.isTrue(withinContainerBound(0n));
-    assert.isTrue(withinContainerBound(1_000_000n));
-    assert.isFalse(withinContainerBound(1_000_001n));
-    assert.isFalse(withinContainerBound(2_147_483_647n * 2_147_483_647n));
+  it("heldToContainerBound holds a container of 1,000,000 values and aborts the run, never NULL, for one of 1,000,001", () => {
+    assert.doesNotThrow(() => {
+      heldToContainerBound(0n);
+    });
+    assert.doesNotThrow(() => {
+      heldToContainerBound(1_000_000n);
+    });
+    assert.throws(() => {
+      heldToContainerBound(1_000_001n);
+    }, ComputationBoundDefect);
+    assert.throws(() => {
+      heldToContainerBound(2_147_483_647n * 2_147_483_647n);
+    }, ComputationBoundDefect);
   });
 });

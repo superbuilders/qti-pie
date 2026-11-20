@@ -30,6 +30,7 @@ import type {
 } from "#plate/content/contract.ts";
 import { mathmlModule } from "#plate/content/mathml.ts";
 import { rubricModule } from "#plate/content/rubric.ts";
+import { stimulusRefModule } from "#plate/content/stimulus-ref.ts";
 import { ssmlNamespace } from "#plate/document/source.ts";
 import type { SourceElement } from "#plate/document/source.ts";
 import type { ParseContext } from "#plate/interactions/contract.ts";
@@ -48,6 +49,7 @@ const bodyModules = {
  * The item-placed content modules, by element: those the item root's walk reads.
  */
 const itemModules = {
+  "qti-assessment-stimulus-ref": stimulusRefModule,
   "qti-catalog-info": catalogInfoModule,
   "qti-companion-materials-info": companionMaterialsModule,
 } as const;
@@ -388,6 +390,7 @@ export const redactItemContent = (
   content: ItemNodesHeld,
   kit: ContentRedactKit,
 ): ItemNodesKept => ({
+  "qti-assessment-stimulus-ref": keptOf("qti-assessment-stimulus-ref", content, kit),
   "qti-catalog-info": keptOf("qti-catalog-info", content, kit),
   "qti-companion-materials-info": keptOf("qti-companion-materials-info", content, kit),
 });
@@ -419,6 +422,7 @@ const copiedOf = <E extends ItemContentElement>(
  *   holds none of it.
  */
 export const copyItemContent = (content: ItemNodesKept): ItemPayloadsHeld => ({
+  "qti-assessment-stimulus-ref": copiedOf("qti-assessment-stimulus-ref", content),
   "qti-catalog-info": copiedOf("qti-catalog-info", content),
   "qti-companion-materials-info": copiedOf("qti-companion-materials-info", content),
 });

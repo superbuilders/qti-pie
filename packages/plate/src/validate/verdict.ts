@@ -11,8 +11,10 @@
  * builds the item. Securing removes every attribute only a wildcard admits, except an author
  * `data-*` that plate does not reserve ({@link isAuthorData}), and passes every URL attribute
  * through `url.ts`, keeping each value in its parsed form or dropping it with a notice beside its
- * element. Its {@link Accepted} is the only input `redact` and `score` take. A section or a
- * stimulus is accepted and marked, since plate delivers neither alone. {@link checkAdmitted} is a
+ * element. Its {@link Accepted} is the only input `redact` and `score` take. A stimulus is secured
+ * and built the same way, since plate delivers it with each item that references it
+ * ({@link AcceptedStimulus}), and is marked, as a section is, since plate delivers neither alone.
+ * {@link checkAdmitted} is a
  * plain function, with no Effect runtime: a document outside admission's contract is a defect,
  * thrown by the builders, never a verdict.
  *
@@ -34,10 +36,16 @@ import type {
   SourceElement,
   Visit,
 } from "#plate/document/source.ts";
-import { inadmissible, valueOf } from "#plate/model/attributes.ts";
+import { inadmissible } from "#plate/model/attributes.ts";
 import { mapChildNodes } from "#plate/model/interactions.ts";
-import { buildItem, stimulusBody } from "#plate/model/item.ts";
-import type { BodyNode, Item, Unsupported, UnsupportedFeature } from "#plate/model/item.ts";
+import { buildItem, buildStimulus } from "#plate/model/item.ts";
+import type {
+  BodyNode,
+  Item,
+  Stimulus,
+  Unsupported,
+  UnsupportedFeature,
+} from "#plate/model/item.ts";
 import { classifyUrlAt, formatUrl, urlContextOf } from "#plate/model/url.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
 import {
@@ -93,10 +101,9 @@ export type Accepted = Brand.Branded<AcceptedFields, "Accepted">;
 const accept = Brand.nominal<Accepted>();
 
 /**
- * What plate holds of a section or a stimulus document it accepts: valid, and never delivered
- * alone.
+ * What plate holds of a section document it accepts: valid, and never delivered.
  */
-interface RootSummary {
+interface SectionSummary {
   /**
    * The document's location as the host named it.
    */
@@ -110,35 +117,16 @@ interface RootSummary {
    */
   readonly title: string;
   /**
-   * Every feature not delivered: the root's own mark, `root:qti-assessment-section` or
-   * `root:qti-assessment-stimulus`, at the root's path, first; then, for a stimulus, the marks and
-   * notices the body walk recorded in its body ({@link StimulusSummary}). A section's holds its
-   * mark alone.
+   * Every feature not delivered: the root's mark, `root:qti-assessment-section`, at the root's
+   * path, alone.
    */
   readonly unsupported: readonly UnsupportedFeature[];
 }
 
 /**
- * What plate holds of a stimulus document it accepts: its summary, its body read through the body
- * walk (`stimulusBody` in `#plate/model/item.ts`) and its language.
- */
-interface StimulusSummary extends RootSummary {
-  /**
-   * The children of the document's `qti-stimulus-body`, read as an item body is read, each
-   * interaction among them a notice: what `#plate/content/stimulus-ref.ts` renders inside the
-   * element that names the stimulus.
-   */
-  readonly body: readonly BodyNode[];
-  /**
-   * The root's `xml:lang`, as written; none when the root carries none.
-   */
-  readonly lang: Option.Option<string>;
-}
-
-/**
  * A section document {@link checkAdmitted} accepted, which only it constructs.
  */
-type AcceptedSection = Brand.Branded<RootSummary, "AcceptedSection">;
+type AcceptedSection = Brand.Branded<SectionSummary, "AcceptedSection">;
 
 /**
  * The brand's constructor, kept to this module.
@@ -146,10 +134,29 @@ type AcceptedSection = Brand.Branded<RootSummary, "AcceptedSection">;
 const acceptSection = Brand.nominal<AcceptedSection>();
 
 /**
- * A stimulus document {@link checkAdmitted} accepted: its summary with its body and its language
- * ({@link StimulusSummary}), which only it constructs.
+ * The fields of an accepted stimulus document, which only {@link checkAdmitted} brands.
  */
-export type AcceptedStimulus = Brand.Branded<StimulusSummary, "AcceptedStimulus">;
+interface StimulusFields {
+  /**
+   * The document's location as the host named it.
+   */
+  readonly document: string;
+  /**
+   * The stimulus built from the secured source (`buildStimulus` in `#plate/model/item.ts`), with
+   * each URL notice placed in its body, and as its `unsupported` every feature not delivered, in
+   * document order: the root's mark, `root:qti-assessment-stimulus`, first, since plate delivers a
+   * stimulus only with an item that references it, never alone; then the stimulus's own marks and
+   * notices, each attribute securing removed, and each URL dropped.
+   */
+  readonly stimulus: Stimulus;
+}
+
+/**
+ * A stimulus document {@link checkAdmitted} accepted: secured as an item is and built, the only
+ * stimulus `<Item>` delivers beside an item that references it. The brand exists only in the type,
+ * so a hand-built {@link Stimulus} does not type-check where one is expected.
+ */
+export type AcceptedStimulus = Brand.Branded<StimulusFields, "AcceptedStimulus">;
 
 /**
  * The brand's constructor, kept to this module.
@@ -616,6 +623,26 @@ const inDocumentOrder = (
 };
 
 /**
+ * Give the features of the URLs securing dropped, each a notice where its element's notice was
+ * placed in what the page shows, and a mark otherwise.
+ *
+ * @param secured The secured source and what securing it removed.
+ * @param placed The paths whose notices were placed.
+ * @returns The features, by element in the order securing met them.
+ */
+const droppedFeatures = (
+  secured: Secured,
+  placed: ReadonlySet<string>,
+): readonly UnsupportedFeature[] =>
+  Array.from(secured.drops, ([path, features]) =>
+    features.map((feature): UnsupportedFeature => ({
+      feature,
+      path,
+      shown: placed.has(path) ? "notice" : "mark",
+    })),
+  ).flat();
+
+/**
  * Give the item its URL notices and the accepted document's unsupported features.
  *
  * A dropped URL whose element the body or a modal feedback's content holds is a notice beside it.
@@ -635,19 +662,15 @@ const complete = (built: Item, secured: Secured, visits: readonly Visit[]): Item
 
     return { ...feedback, content: [...content.nodes, ...content.lifted] };
   });
-  const dropped = Array.from(secured.drops, ([path, features]) =>
-    features.map((feature): UnsupportedFeature => ({
-      feature,
-      path,
-      shown: placed.has(path) ? "notice" : "mark",
-    })),
-  ).flat();
 
   return {
     ...built,
     body: [...result.nodes, ...result.lifted],
     modalFeedback,
-    unsupported: inDocumentOrder([...built.unsupported, ...secured.marks, ...dropped], visits),
+    unsupported: inDocumentOrder(
+      [...built.unsupported, ...secured.marks, ...droppedFeatures(secured, placed)],
+      visits,
+    ),
   };
 };
 
@@ -759,25 +782,36 @@ const rootAttribute = (source: SourceDocument, name: string): string =>
   );
 
 /**
- * Read what plate holds of a section or a stimulus document: its identifier, its title and its
- * root mark.
+ * Give the mark of a root plate accepts and never delivers alone, at the root's path.
  *
- * @param source A section or stimulus document the database admitted.
+ * @param source The section or stimulus document.
  * @param mark The root's mark.
+ * @returns The mark.
+ */
+const rootMarkOf = (source: SourceDocument, mark: RootMark): UnsupportedFeature => ({
+  feature: mark,
+  path: source.root.local,
+  shown: "mark",
+});
+
+/**
+ * Read what plate holds of a section document: its identifier, its title and its root mark.
+ *
+ * @param source A section document the database admitted.
  * @returns The summary.
  */
-const summarise = (source: SourceDocument, mark: RootMark): RootSummary => ({
+const summariseSection = (source: SourceDocument): SectionSummary => ({
   document: source.location,
   identifier: trimXmlSpace(rootAttribute(source, "identifier")),
   title: rootAttribute(source, "title"),
-  unsupported: [{ feature: mark, path: source.root.local, shown: "mark" }],
+  unsupported: [rootMarkOf(source, "root:qti-assessment-section")],
 });
 
 /**
  * A document the database admitted, as the item model reads it. The database is the only judge of
  * a document's validity (pantry's laws), so a document reaches plate only once admission accepted
  * it; this brand is minted here alone, on the path {@link checkAdmitted} takes, so `buildItem` and
- * `stimulusBody` read only admitted documents, whose structure the XSD holds.
+ * `buildStimulus` read only admitted documents, whose structure the XSD holds.
  */
 export type AdmittedDocument = SourceDocument & Brand.Brand<"AdmittedDocument">;
 
@@ -807,42 +841,45 @@ const checkItem = (source: SourceDocument, visits: readonly Visit[], tables: Tab
 };
 
 /**
- * Read what plate holds of a stimulus document: its summary with its root mark, then its body
- * through the body walk (`stimulusBody`), the body's marks and notices after the root mark, and its
- * `xml:lang`.
+ * Give the verdict on a stimulus the database admitted and plate can judge: secure it as an item
+ * is, build it, place the notices of its dropped URLs in its body, and accept it, always
+ * `accepted-with-unsupported`, its root's mark first ({@link StimulusFields}).
  *
- * @param source A stimulus document the database admitted.
- * @returns The summary.
+ * @param source The stimulus.
+ * @param visits The stimulus's walk ({@link walk}).
+ * @param tables The ASI XSD's tables securing reads.
+ * @returns `accepted-with-unsupported`.
  */
-const summariseStimulus = (source: SourceDocument): StimulusSummary => {
-  const summary = summarise(source, "root:qti-assessment-stimulus");
-  const read = stimulusBody(admittedDocument(source));
+const checkStimulus = (
+  source: SourceDocument,
+  visits: readonly Visit[],
+  tables: Tables,
+): Verdict => {
+  const document = source.location;
+  const secured = secure(source, visits, tables);
+  const built = buildStimulus(admittedDocument(secured.source));
+  const placed = new Set<string>();
+  const result = placeNodes(built.body, secured.drops, placed, false);
+  const stimulus: Stimulus = {
+    ...built,
+    body: [...result.nodes, ...result.lifted],
+    unsupported: inDocumentOrder(
+      [
+        rootMarkOf(source, "root:qti-assessment-stimulus"),
+        ...built.unsupported,
+        ...secured.marks,
+        ...droppedFeatures(secured, placed),
+      ],
+      visits,
+    ),
+  };
 
   return {
-    ...summary,
-    body: read.body,
-    lang: valueOf(source.root, "xml:lang"),
-    unsupported: [...summary.unsupported, ...read.unsupported],
+    accepted: acceptStimulus({ document, stimulus }),
+    document,
+    kind: "stimulus",
+    verdict: "accepted-with-unsupported",
   };
-};
-
-/**
- * Give the verdict on a section or a stimulus document the database admitted and plate can render:
- * always `accepted-with-unsupported`, with its root's mark, as plate delivers neither alone.
- * A stimulus is accepted with its body and its language ({@link summariseStimulus}).
- *
- * @param source The section or stimulus.
- * @param kind Which of the two it is.
- * @returns The verdict.
- */
-const checkUndelivered = (source: SourceDocument, kind: "section" | "stimulus"): Verdict => {
-  const document = source.location;
-  const judged: AcceptedByKind =
-    kind === "section"
-      ? { accepted: acceptSection(summarise(source, "root:qti-assessment-section")), kind }
-      : { accepted: acceptStimulus(summariseStimulus(source)), kind };
-
-  return { ...judged, document, verdict: "accepted-with-unsupported" };
 };
 
 /**
@@ -868,9 +905,16 @@ const judge = (source: SourceDocument, kind: AcceptedKind, tables: Tables): Verd
     case "item": {
       return checkItem(source, visits, tables);
     }
-    case "section":
+    case "section": {
+      return {
+        accepted: acceptSection(summariseSection(source)),
+        document,
+        kind,
+        verdict: "accepted-with-unsupported",
+      };
+    }
     case "stimulus": {
-      return checkUndelivered(source, kind);
+      return checkStimulus(source, visits, tables);
     }
     default: {
       return kind satisfies never;
@@ -886,7 +930,7 @@ const judge = (source: SourceDocument, kind: AcceptedKind, tables: Tables): Verd
  *    never renders such a document.
  * 2. What plate cannot render (SSML, an XInclude `include`, an unexpanded entity reference) leaves the
  *    document `unchecked`.
- * 3. An item is secured through the tables and built; a section or a stimulus is summarised.
+ * 3. An item and a stimulus are secured through the tables and built; a section is summarised.
  *
  * It runs no rule of QTI's: the database judged the document before any host serves it, so never
  * give it a document from anywhere else.
@@ -929,7 +973,7 @@ export const acceptedItem = (verdict: Verdict): Option.Option<Accepted> =>
 
 /**
  * Give the features an accepting verdict names as not rendered or not delivered, for a document of
- * any kind: an item's, or a section's or stimulus's root mark.
+ * any kind: an item's, a section's root mark, or a stimulus's root mark and its own.
  *
  * @param verdict The verdict, as {@link checkAdmitted} gave it.
  * @returns The accepted document's unsupported features, in its order; none for `unchecked`.
@@ -939,5 +983,35 @@ export const unsupportedFeatures = (verdict: Verdict): readonly UnsupportedFeatu
     return [];
   }
 
-  return verdict.kind === "item" ? verdict.accepted.item.unsupported : verdict.accepted.unsupported;
+  switch (verdict.kind) {
+    case "item": {
+      return verdict.accepted.item.unsupported;
+    }
+    case "section": {
+      return verdict.accepted.unsupported;
+    }
+    case "stimulus": {
+      return verdict.accepted.stimulus.unsupported;
+    }
+    default: {
+      return verdict satisfies never;
+    }
+  }
 };
+
+/**
+ * Read the accepted stimulus out of a verdict: the one way a host reads one, to hand `<Item>` with
+ * each item that references it.
+ *
+ * An accepting verdict of kind `stimulus`, always `accepted-with-unsupported` for its root's mark,
+ * gives its {@link AcceptedStimulus}; `unchecked` gives none, and so does an accepting verdict on
+ * an item or a section.
+ *
+ * @param verdict The verdict, as {@link checkAdmitted} gave it.
+ * @returns The accepted stimulus, or none when the verdict accepts no stimulus.
+ */
+export const acceptedStimulus = (verdict: Verdict): Option.Option<AcceptedStimulus> =>
+  (verdict.verdict === "accepted" || verdict.verdict === "accepted-with-unsupported") &&
+  verdict.kind === "stimulus"
+    ? Option.some(verdict.accepted)
+    : Option.none();

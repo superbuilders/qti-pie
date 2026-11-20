@@ -190,11 +190,12 @@ operator ruling. A new reading lands here by pull request, and a package that ne
      that names one rule whatever the order (decision 463, stated here).
 
    Limits on what the engine computes:
-   - **Computation bound** (`computation-bound`): a computed integer of more than 1,000,000 bits and a computed
-     container of more than 1,000,000 values are the NULL of their type (`integerBitBound` and `containerSizeBound`,
-     `#plate/engine/numbers.ts`), so one processing run's memory and time stay bounded; no integer or container as
-     written is held to it (reading 211). No corpus item computes near either bound; lifted by a processing budget in
-     time and memory that the host gives per run.
+   - **Computation bound** (`computation-bound`): a run that computes an integer of more than 1,000,000 bits or a
+     container of more than 1,000,000 values aborts as a defect (`ComputationBoundDefect`; `integerBitBound` and
+     `containerSizeBound`, `#plate/engine/numbers.ts`), so one processing run's memory and time stay bounded and the
+     attempt stays ungraded; no value, NULL included, stands for its result. No integer or container as written is
+     held to it (reading 211). No corpus item computes near either bound; lifted by a processing budget in time and
+     memory that the host gives per run.
 
    (2026-10-30, restated without exceptions 2026-11-03. Amended under the operator's ruling of 2026-11-07, register D1,
    to defer to this list; the element-depth limit added by decision 445; the three limits that change no verdict after
@@ -4132,21 +4133,27 @@ C2: the oracle's own reader.)
      information model: the formula for a negative `x` against the sentence that gives `t0` the lower bound and `t1` the
      upper, and the sentence decides. (Decided 2026-11-15 by lane R3-ENGINE, survey rows RQ-g and EX#21.)
 
-211. **A stated limit of the engine: a computed integer of more than 1,000,000 bits, and a computed container of more
-     than 1,000,000 values, are the NULL of their type.** Reading 45 says "An integer has no largest or smallest value"
-     and that a package "compares and computes integer results exactly", and reading 1 admits only stated limits. The
+211. **A stated limit of the engine: a run that computes an integer of more than 1,000,000 bits, or a container of
+     more than 1,000,000 values, aborts as a defect, and the attempt it scores stays ungraded.** Reading 45 says "An
+     integer has no largest or smallest value" and that a package "compares and computes integer results exactly",
+     and reading 1 admits only stated limits. The
      information model bounds neither an integer nor a container. An item's processing can still ask for an integer or a
      container no host can hold: a rule that squares an outcome, run rule after rule, doubles its size each time, and a
      `qti-repeat` whose `number-repeats` is 2147483647 asks for 2^31 passes. So plate states this limit, which reading 1
-     lists: the **computation bound** (`computation-bound`). A computed integer past 1,000,000 bits (`integerBitBound`)
-     and a container past 1,000,000 values (`containerSizeBound`, both in `#plate/engine/numbers.ts`) are the NULL of
-     their base type and cardinality, as other results no value holds are. Its cause is the cost of scoring: an integer
+     lists: the **computation bound** (`computation-bound`). A run that computes an integer past 1,000,000 bits
+     (`integerBitBound`) or a container past 1,000,000 values (`containerSizeBound`, both in
+     `#plate/engine/numbers.ts`), or a drawing `qti-repeat` of more than 1,000,000 passes, aborts: the engine throws
+     `ComputationBoundDefect`, so the attempt it scores stays ungraded. It never gives NULL there. NULL is a QTI value,
+     which a condition reads as false and a sum as nothing, so it would score the attempt as if the candidate had
+     answered so, where QTI's integer is unbounded (Table A1.3, "Integer - the integer data-type (this is derived from
+     the "decimal" data-type i.e. no decimal places)"). Its cause is the cost of scoring: an integer
      of 1,000,000 bits is 125 KB and a product of two takes milliseconds, so each bound keeps one processing run's
      memory and time bounded. No integer or container as written, as a literal, a declared default or a stored value, is
      held to it: it bounds only what processing computes, which reading 45's "computes integer results exactly" keeps
      below the bound. What would lift it is a processing budget in time and memory, given per run by the host, in place
-     of the two sizes. No corpus item computes near either bound. It moves no verdict and no score: plate already
-     computes so. This binds plate, which scores; pantry runs no processing. This is not a case of documents in
+     of the two sizes. No corpus item computes near either bound. It moves no verdict and no score. (Restated
+     2026-11-20 under Bjorn's ruling "we follow the spec. mandate the spec compliant fix", SV-BOUND-01: the run aborts
+     where it gave NULL.) This binds plate, which scores; pantry runs no processing. This is not a case of documents in
      conflict: the information model sets no bound, and this states one the engine needs. (Decided 2026-11-15 by lane
      R3-ENGINE, survey rows RQ-h and EX#22.)
 
@@ -4247,8 +4254,9 @@ C2: the oracle's own reader.)
         integer kind "Selects a random integer from the specified range [min,max] satisfying min + step * n for some
         integer n" (section 6.9.38): with `max` below `min`, or a `step` of 0 or below, no integer satisfies it. The
         float kind's range holds no float when `max` is below `min` or a bound is NaN or infinite. An attribute that
-        names a variable holding NULL gives NULL too, and a bound past reading 211's computation bound does
-        (`integerDraw` and `floatDraw` in `#plate/engine/expressions/references.ts`). Each NULL is settled before the
+        names a variable holding NULL gives NULL too, and an integer bound past reading 211's computation bound
+        aborts the run, after those NULLs (`integerDraw` and `floatDraw` in
+        `#plate/engine/expressions/references.ts`). Each NULL is settled before the
         first draw, so the stream is left where it was.
      9. **A duration comparison compares the seconds as the doubles they are.** The information model says "Given that
         duration values are obtained by truncation rather than rounding it makes sense to test only less-than or
@@ -4541,6 +4549,60 @@ C2: the oracle's own reader.)
      space and computed as a binary64 double (readings 56 and 144). A map entry's `mapped-value` and the float SCORE it
      sums into are then one type, which a 32-bit reading would split. This changes no verdict and no value: both
      packages and the SQL grader, which computes in `float8`, already read every float so. This binds pantry and plate
-     alike. This is a case of documents in conflict: it follows the binding, the XSD and section 8.14's duration, and
-     sets aside Appendix A1.3's "32bit" for the runtime base type. (Stated 2026-11-20 by lane SPEC-AUDIT, register
-     SV-FLOAT-01, on the lead's routing; to be confirmed by the owner, Bjorn.)
+     alike. This is not a case of documents in conflict: Appendix A, which holds A1.3's "32bit", is one the information
+     model marks "This Appendix is NOT NORMATIVE", so the binding, the XSD and section 8.14's duration
+     decide. (Stated 2026-11-20 by lane SPEC-AUDIT, register SV-FLOAT-01, on the lead's routing; restated the same day
+     on Appendix A's status; to be confirmed by the owner, Bjorn.)
+
+236. **A `qti-prompt`'s and a choice's `data-catalog-idref` reference a catalog as a body element's does.** The
+     information model gives an interaction's prompt and choices the characteristic: "This is used to provide the
+     'identifier' of an alternative content catalog. The associated 'catalog' MUST be supplied in the same
+     'assessmentItem' definition" (section 5.15.9, BasePromptInteraction, and the same text on the BaseSequence classes,
+     sections 5.16.7 to 5.21.8), and the implementation guide says "Catalogs can be referenced from the qti-item-body
+     element, from any element within the qti-item-body node" (section 3.7.10.2). So plate records the reference of an
+     interaction's `qti-prompt` and of a `qti-simple-choice` (of a Choice or an Order) and a `qti-inline-choice` beside
+     every HTML element's, and keeps the catalog it names, which it dropped as named by no element before. This binds
+     plate; pantry already holds every such reference to its catalog ("Catalog reference"). This changes no verdict. This
+     is not a case of documents in conflict. (Stated 2026-11-20 by lane IMPL-READALOUD.)
+
+237. **Read-aloud presents a `spoken` card's audio as a play control beside the part that references it, while the
+     candidate answers.** A catalog holds "dormant content that can be made active (a part of the perceivable content
+     presented to the candidate) based on the candidate's PNP information (or an assessment program's settings)"
+     (section 5.28), and how an active card is presented is left to the delivery (catalog resolution, step 8). For a
+     pre-recorded reading the implementation guide stores the sound files in a `spoken` card's entry for the
+     `computer-read-aloud` reading type: "The intent of the storage of the audio files is to present the audio as an
+     alternative to the written text provided in the default content" (section 5.2.8.3). So plate presents an active
+     `spoken` card that gives a file whose `mime-type` is `audio/*` (RFC 2045 section 5.1: compared without case) as
+     one play control: a native toggle button whose name says what it reads and whose pressed state says whether it
+     plays, over an `audio` element with one `source` per audio file in document order, among which the browser plays
+     the first format it can (HTML's source selection; the guide's example stores one recording as `audio/mpeg` and
+     `audio/ogg`), so plate picks none (step 7). The control follows an element of the body at a flow position, an
+     interaction's prompt, and stands beside a Choice's choice; at any other referencing part (an element at a phrasing
+     position or inside an interaction's own content, an Order's or an Inline Choice's choice) it is not presented,
+     and the card is never listed, since a recording heard apart from its text, or a link to it, presents nothing the
+     candidate can follow. The entry's other files (the guide's `application/xml`) are not presented, and a `spoken`
+     card with no audio file is listed as before. A review and a solution present no control: their page ships no
+     island but a Media's replay (plate's UI suite's J1). This changes no verdict. This is not a case of documents in
+     conflict. (Stated 2026-11-20 by lane IMPL-READALOUD; to be confirmed by the owner, Bjorn.)
+
+238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the shortest decimals of its values, so a
+     value written at an end of the range is inside it when that end is included.** The information model gives the
+     range, "In absolute mode the result of the comparison is true if the value of the second expression, y is within
+     the following range defined by the first value, x: x-t0,x+t1. In relative mode, t0 and t1 are treated as
+     percentages" (section 5.46.2), and the tolerance's purpose: "When comparing two floating point numbers for equality
+     it is often desirable to have a tolerance to ensure that spurious errors in scoring are not introduced by rounding
+     errors" (section 5.46.1). It names no arithmetic for the range's ends. Computed exactly over the doubles, the ends
+     carry the binary error of each literal: the exact sum of the doubles of 1.0 and 0.1 lies below the double of 1.1,
+     so `x = 1.0`, `t = 0.1` and `y = 1.1` compare false, and so do `2.5`, `0.1`, `2.6` and `0.5`, `0.05`, `0.55`: over
+     19,914 two-decimal answers written at an end of their range, the binary reading refused 27 % (register
+     J-EQUAL-01). That is the spurious error the tolerance exists to remove. So each float of the comparison, `x`, `y`,
+     `t0` and `t1`, is read as its shortest decimal, the shortest decimal that reads back to the same double (an integer
+     as itself), the basis `qti-round-to` and `qti-equal-rounded` already take (reading 209), and the ends `x - t0` and
+     `x + t1`, or `x - |x|·t0/100` and `x + |x|·t1/100` (reading 210), and the comparison with `y`, are computed in
+     exact decimal arithmetic. `include-lower-bound` and `include-upper-bound` close the ends as before (reading 210),
+     and `tolerance-mode` exact still compares the values themselves. An infinity or a NaN has no shortest decimal and
+     is compared as a double, as before. This changes scores: an answer written at an included end of its range is now
+     right. This binds plate and the SQL grader, which scores (GRADING-SQL mirrors it in p3's `bound_order`); pantry
+     stores the tolerance as written. This is not a case of documents in conflict: section 5.46.1 states the purpose and
+     section 5.46.2 leaves the arithmetic open. (Stated 2026-11-20 by lane SPEC-AUDIT, register J-EQUAL-01, on the
+     lead's ruling; to be confirmed by the owner, Bjorn.)

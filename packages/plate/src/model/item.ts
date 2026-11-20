@@ -24,7 +24,7 @@
  *
  * @module
  */
-import { Option, pipe } from "effect";
+import { Option } from "effect";
 import type { ContentNode, ItemNodesHeld } from "#plate/content/modules.ts";
 import type { SourceDocument, SourceElement } from "#plate/document/source.ts";
 import type { ContainerKind, ModuleKind } from "#plate/interactions/contract.ts";
@@ -428,6 +428,11 @@ export interface TemplateVisibility {
  * @template L The level of its content.
  */
 export interface SimpleChoice<L extends Level = ModelLevel> {
+  /**
+   * The catalog the choice references, its `data-catalog-idref` as written (`ReaderKit.catalog` in
+   * `#plate/interactions/contract.ts`), none where it references none.
+   */
+  readonly catalog: Option.Option<string>;
   readonly content: Nodes<L>;
   /**
    * `fixed`, an `xs:boolean`, false when absent: a fixed choice keeps its document position when
@@ -832,7 +837,7 @@ export interface Item {
  *
  * @param source The document.
  * @param options What the build reads.
- * @param options.stimulus Whether it reads a stimulus body ({@link Build.stimulus}).
+ * @param options.stimulus Whether it reads a stimulus document ({@link Build.stimulus}).
  * @returns The build.
  */
 const freshBuild = (
@@ -851,49 +856,98 @@ const freshBuild = (
 });
 
 /**
- * What {@link stimulusBody} reads of a stimulus document: its body, and the features the walk
- * recorded reading it.
+ * A `qti-assessment-stimulus` as plate delivers it with each item that references it: "An
+ * assessment stimulus object is the used to enable content to be shared by several Assessment
+ * Items. The key feature is that this shared stimulus content must be supplied in the same context
+ * for each of the Assessment Items that make use of it" (information model §4.3). So it is read
+ * once, whole and alone, from its own document, never from an item: its body, its catalog and its
+ * own location, which its URLs resolve against.
  */
-interface StimulusBody {
+export interface Stimulus {
   /**
-   * The children of the document's `qti-stimulus-body`, read as the item body is read; empty when
-   * the document holds none.
+   * The children of the document's one `qti-stimulus-body`, read as the item body is read, each
+   * interaction among them the notice keyed by its element, since a stimulus declares no response
+   * ({@link Build.stimulus}).
    */
   readonly body: readonly BodyNode[];
   /**
-   * The marks and notices the walk recorded in the body, in document order: the body's own marks,
-   * each `qti-*` element the walk does not read as a notice, and each interaction as a notice,
-   * since a stimulus binds no response.
+   * The stimulus's `qti-catalog-info`, read by the catalog module as an item's is: "The alternative
+   * accessibility information that is to be associated with the content in the stimulus body"
+   * (§4.3.10), whose catalogs only the stimulus body's `data-catalog-idref` names. The XSD places
+   * no other item-placed element in a stimulus.
+   */
+  readonly content: Pick<ItemNodesHeld, "qti-catalog-info">;
+  /**
+   * The document's location as the host named it, its path from the package root, which a URL of
+   * the stimulus resolves against.
+   */
+  readonly document: string;
+  /**
+   * The root's `identifier`, its outer XML whitespace removed.
+   */
+  readonly identifier: string;
+  /**
+   * The root's `xml:lang`, "The default language for the Stimulus" (§4.3.4), as written; none
+   * when the root carries none.
+   */
+  readonly lang: Option.Option<string>;
+  /**
+   * The root's `title`, each tab and line break a space as an `xs:normalizedString` reads.
+   */
+  readonly title: string;
+  /**
+   * The marks and notices the walk recorded, in document order: the body's own marks, each `qti-*`
+   * element the walk does not read, a `qti-stylesheet` among them, and each interaction as a
+   * notice.
    */
   readonly unsupported: readonly UnsupportedFeature[];
 }
 
 /**
- * Read a stimulus document's body through the body walk, over a fresh build of the document: its
- * one `qti-stimulus-body`'s children, read as
- * {@link buildItem} reads the item body, with the body's marks and notices. The root's own mark and
- * its attributes are the verdict's to record (`summarise` in `#plate/validate/verdict.ts`), so this
- * reads nothing of the root but the body. An interaction in the body is the notice keyed by its
- * element: a stimulus declares no response, so none can be bound ({@link Build.stimulus}).
+ * Build the model of a valid `qti-assessment-stimulus`, over a fresh build of the document that
+ * reads it as {@link buildItem} reads an item: its `qti-stimulus-body`'s children through the body
+ * walk, an interaction there the notice keyed by its element ({@link Build.stimulus}); and each
+ * other child of the root by its item-placed content module, the `qti-catalog-info`'s catalogs
+ * resolved against the body's `data-catalog-idref` references, which the XSD's order has the walk
+ * read first, or as the mark keyed by its name, a `qti-stylesheet`'s. The root's own mark, that
+ * plate delivers no stimulus alone, is the verdict's (`#plate/validate/verdict.ts`).
  *
- * @param source A stimulus document the database admitted.
- * @returns The body and what the walk recorded.
+ * @param source A stimulus document the database admitted, secured as an item is.
+ * @returns The stimulus.
  */
-export const stimulusBody = (source: AdmittedDocument): StimulusBody => {
+export const buildStimulus = (source: AdmittedDocument): Stimulus => {
   const build = freshBuild(source, { stimulus: true });
-  const part = elementsOf(source.root).find((child) => isQti(child, "qti-stimulus-body"));
+  const { root } = source;
+  markElement(build, root, false);
 
-  return pipe(
-    Option.match(Option.fromUndefinedOr(part), {
-      onNone: (): readonly BodyNode[] => [],
-      onSome: (body) => {
-        markElement(build, body, true);
+  const identifier = identifierAttribute(build, root, "identifier");
+  const title = replaceXmlSpace(requiredValue(build, root, "title"));
+  const body: BodyNode[] = [];
+  const content: ItemContentBuild = {
+    "qti-assessment-stimulus-ref": [],
+    "qti-catalog-info": [],
+    "qti-companion-materials-info": [],
+  };
 
-        return bodyNodes(build, body);
-      },
-    }),
-    (body) => ({ body, unsupported: build.unsupported }),
-  );
+  for (const part of elementsOf(root).filter((child) => isQti(child))) {
+    if (part.local === "qti-stimulus-body") {
+      markElement(build, part, true);
+      body.push(...bodyNodes(build, part));
+    } else {
+      markElement(build, part, false);
+      collectItemPart(content, itemPart(build, part));
+    }
+  }
+
+  return {
+    body,
+    content: { "qti-catalog-info": content["qti-catalog-info"] },
+    document: source.location,
+    identifier,
+    lang: valueOf(root, "xml:lang"),
+    title,
+    unsupported: build.unsupported,
+  };
 };
 
 /**
@@ -965,6 +1019,7 @@ export const buildItem = (source: AdmittedDocument): Item => {
   const body: BodyNode[] = [];
   const modalFeedback: ModalFeedback[] = [];
   const content: ItemContentBuild = {
+    "qti-assessment-stimulus-ref": [],
     "qti-catalog-info": [],
     "qti-companion-materials-info": [],
   };

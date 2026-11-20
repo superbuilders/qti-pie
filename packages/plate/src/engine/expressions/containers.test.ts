@@ -6,6 +6,7 @@ import type { Evaluate, Variables } from "#plate/engine/evaluate.ts";
 import { containersEvaluators } from "#plate/engine/expressions/containers.ts";
 import { drawBelow, drawFloat, drawStream } from "#plate/engine/random.ts";
 import type { Draw } from "#plate/engine/random.ts";
+import { ComputationBoundDefect } from "#plate/engine/numbers.ts";
 import type { Expression, ExpressionType, IntegerOrRef } from "#plate/model/expression.ts";
 import { admittedItem } from "#plate/test/admitted.ts";
 import { outcomeDefaults } from "#plate/model/record.ts";
@@ -557,7 +558,7 @@ const assertUnset = (value: Value, expected: Value): void => {
 
 describe("the containers family's bound on a computed container", () => {
   it(
-    "qti-multiple and qti-ordered keep a container of exactly 1,000,000 values and give the NULL of their base type and cardinality for one of 1,000,001",
+    "qti-multiple and qti-ordered keep a container of exactly 1,000,000 values and abort the run, never NULL, for one of 1,000,001",
     () => {
       const bagged = evaluated(multipleOf(sized("multiple", 999_999), one("B")));
       const listed = evaluated(orderedOf(one("B"), sized("ordered", 999_999)));
@@ -566,18 +567,21 @@ describe("the containers family's bound on a computed container", () => {
       assert.deepStrictEqual(bagged.values.at(-1), { baseType: "identifier", value: "B" });
       assert.strictEqual(listed.values.length, 1_000_000);
       assert.deepStrictEqual(listed.values[0], { baseType: "identifier", value: "B" });
-      assertUnset(evaluated(multipleOf(sized("multiple", 1_000_000), one("B"))), bag());
-      assertUnset(evaluated(orderedOf(one("B"), sized("ordered", 1_000_000))), list());
-      assertUnset(
-        evaluated(multipleOf(sized("multiple", 600_000), sized("multiple", 400_001))),
-        bag(),
-      );
+      assert.throws(() => {
+        evaluated(multipleOf(sized("multiple", 1_000_000), one("B")));
+      }, ComputationBoundDefect);
+      assert.throws(() => {
+        evaluated(orderedOf(one("B"), sized("ordered", 1_000_000)));
+      }, ComputationBoundDefect);
+      assert.throws(() => {
+        evaluated(multipleOf(sized("multiple", 600_000), sized("multiple", 400_001)));
+      }, ComputationBoundDefect);
     },
     cpuTimeoutMs,
   );
 
   it(
-    "qti-repeat keeps exactly 1,000,000 values and gives the ordered NULL past them",
+    "qti-repeat keeps exactly 1,000,000 values and aborts the run, never NULL, past them",
     () => {
       const kept = evaluated(repeatOf(literal(1_000_000n), one("A")));
 
@@ -586,8 +590,12 @@ describe("the containers family's bound on a computed container", () => {
         kept.values.every((single) => single.baseType === "identifier" && single.value === "A"),
         "every value is A",
       );
-      assertUnset(evaluated(repeatOf(literal(1_000_001n), one("A"))), list());
-      assertUnset(evaluated(repeatOf(literal(500_001n), one("A"), list("B"))), list());
+      assert.throws(() => {
+        evaluated(repeatOf(literal(1_000_001n), one("A")));
+      }, ComputationBoundDefect);
+      assert.throws(() => {
+        evaluated(repeatOf(literal(500_001n), one("A"), list("B")));
+      }, ComputationBoundDefect);
     },
     cpuTimeoutMs,
   );
@@ -751,18 +759,17 @@ describe("the containers family's drawing qti-repeat (an operand holds a random 
     );
   });
 
-  it("gives NULL before any pass for number-repeats above 1,000,000, the pass budget, and draws nothing", () => {
+  it("aborts the run before any pass for number-repeats above 1,000,000, the pass budget, never NULL, and draws nothing", () => {
     const stream = counted("repeat budget");
 
-    assertUnset(
-      evaluated(repeating(literal(1_000_001n), wide), noVariables, stream.draw),
-      nullOf("integer", "ordered"),
-    );
+    assert.throws(() => {
+      evaluated(repeating(literal(1_000_001n), wide), noVariables, stream.draw);
+    }, ComputationBoundDefect);
     assert.strictEqual(stream.count(), 0, "no pass ran, so nothing was drawn");
   });
 
   it(
-    "checks the running size before each pass's values are added, so a pass that would grow the container past 1,000,000 values gives NULL",
+    "checks the running size before each pass's values are added, so a pass that would grow the container past 1,000,000 values aborts the run, never NULL",
     () => {
       const { repeat } = containersEvaluators;
 
@@ -772,13 +779,13 @@ describe("the containers family's drawing qti-repeat (an operand holds a random 
 
         return Result.succeed(sized("ordered", 600_000));
       };
-      const repeated = repeat(
-        { kind: "repeat", numberRepeats: literal(3n), operands: [wide] },
-        scopeOf(bg007Item, noVariables),
-        growing,
-      );
-      assert.isTrue(Result.isSuccess(repeated), "qti-repeat failed");
-      assertUnset(Result.getOrThrow(repeated), list());
+      assert.throws(() => {
+        repeat(
+          { kind: "repeat", numberRepeats: literal(3n), operands: [wide] },
+          scopeOf(bg007Item, noVariables),
+          growing,
+        );
+      }, ComputationBoundDefect);
       assert.strictEqual(passes, 2, "the second pass ran and its values were not added");
     },
     cpuTimeoutMs,

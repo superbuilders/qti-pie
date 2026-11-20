@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Result } from "effect";
+import { ComputationBoundDefect } from "#plate/engine/numbers.ts";
 import type { Expression, ExpressionType } from "#plate/model/expression.ts";
 import { isNull, nullOf } from "#plate/model/values.ts";
 import type { Single, Value } from "#plate/model/values.ts";
@@ -256,41 +257,43 @@ describe("the arithmetic family's evaluators", () => {
 });
 
 describe("the arithmetic family's bound on a computed integer", () => {
-  const integerNull = nullOf("integer", "single");
-
-  it("qti-product keeps a computed integer of exactly 1,000,000 bits and gives the integer NULL for one of 1,000,001", () => {
+  it("qti-product keeps a computed integer of exactly 1,000,000 bits and aborts the run, never NULL, for one of 1,000,001", () => {
     assert.deepStrictEqual(
       evaluated(aggregateOf("product", integer(2n ** 500_000n), integer(2n ** 499_999n))),
       integer(2n ** 999_999n),
       "2^999999 has 1,000,000 bits",
     );
-    assert.deepStrictEqual(
-      evaluated(aggregateOf("product", integer(2n ** 500_000n), integer(2n ** 500_000n))),
-      integerNull,
+    assert.throws(
+      () => {
+        evaluated(aggregateOf("product", integer(2n ** 500_000n), integer(2n ** 500_000n)));
+      },
+      ComputationBoundDefect,
+      undefined,
       "2^1000000 has 1,000,001 bits",
     );
-    assert.deepStrictEqual(
-      evaluated(
-        aggregateOf("product", integer(3n * 2n ** 499_998n), integer(-3n * 2n ** 499_999n)),
-      ),
-      integerNull,
+    assert.throws(
+      () => {
+        evaluated(
+          aggregateOf("product", integer(3n * 2n ** 499_998n), integer(-3n * 2n ** 499_999n)),
+        );
+      },
+      ComputationBoundDefect,
+      undefined,
       "-9 × 2^999997 has 1,000,001 bits, its magnitude's",
     );
   });
 
-  it("qti-sum and qti-subtract keep a computed integer of exactly 1,000,000 bits and give the integer NULL for one of 1,000,001", () => {
+  it("qti-sum and qti-subtract keep a computed integer of exactly 1,000,000 bits and abort the run, never NULL, for one of 1,000,001", () => {
     assert.deepStrictEqual(
       evaluated(aggregateOf("sum", integer(2n ** 999_998n), integer(2n ** 999_998n))),
       integer(2n ** 999_999n),
     );
-    assert.deepStrictEqual(
-      evaluated(aggregateOf("sum", integer(2n ** 999_999n), integer(2n ** 999_999n))),
-      integerNull,
-    );
-    assert.deepStrictEqual(
-      evaluated(pairOf("subtract", integer(-(2n ** 999_999n)), integer(2n ** 999_999n))),
-      integerNull,
-    );
+    assert.throws(() => {
+      evaluated(aggregateOf("sum", integer(2n ** 999_999n), integer(2n ** 999_999n)));
+    }, ComputationBoundDefect);
+    assert.throws(() => {
+      evaluated(pairOf("subtract", integer(-(2n ** 999_999n)), integer(2n ** 999_999n)));
+    }, ComputationBoundDefect);
     assert.deepStrictEqual(
       evaluated(pairOf("subtract", integer(2n ** 1_000_000n), integer(2n ** 999_999n))),
       integer(2n ** 999_999n),
@@ -319,11 +322,12 @@ describe("the arithmetic family's bound on a computed integer", () => {
     );
   });
 
-  it("qti-sum and qti-product of one operand past the bound give the integer NULL: the result is computed, not written", () => {
-    assert.deepStrictEqual(evaluated(aggregateOf("sum", integer(2n ** 1_000_000n))), integerNull);
-    assert.deepStrictEqual(
-      evaluated(aggregateOf("product", integer(2n ** 1_000_000n))),
-      integerNull,
-    );
+  it("qti-sum and qti-product of one operand past the bound abort the run, never NULL: the result is computed, not written", () => {
+    assert.throws(() => {
+      evaluated(aggregateOf("sum", integer(2n ** 1_000_000n)));
+    }, ComputationBoundDefect);
+    assert.throws(() => {
+      evaluated(aggregateOf("product", integer(2n ** 1_000_000n)));
+    }, ComputationBoundDefect);
   });
 });

@@ -101,7 +101,11 @@ export const identifiers = (...members: readonly string[]): Value => ({
 export const bg007Item: Item = {
   adaptive: false,
   body: [],
-  content: { "qti-catalog-info": [], "qti-companion-materials-info": [] },
+  content: {
+    "qti-assessment-stimulus-ref": [],
+    "qti-catalog-info": [],
+    "qti-companion-materials-info": [],
+  },
   contexts: new Map(),
   document: "items/BG007.xml",
   identifier: "beginnersguide007",
