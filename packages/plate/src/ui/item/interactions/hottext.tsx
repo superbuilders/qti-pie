@@ -131,6 +131,7 @@ export const island = (
               path,
               <PickOption
                 identifier={part.identifier}
+                key={path}
                 label={optionName(part.passage, { count, n: index + 1 }, locale)}
                 slot="plate-hottext-choice"
               >
@@ -190,6 +191,7 @@ export const review = (
         ) : (
           <ReviewedPick
             element="span"
+            key={path}
             locale={context.locale}
             review={reviewed(part.identifier)}
             slot="plate-hottext-choice"

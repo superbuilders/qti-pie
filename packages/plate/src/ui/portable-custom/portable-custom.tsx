@@ -202,7 +202,6 @@ export const PortableCustom = (props: PortableCustomProps) => {
   const stage = useRef<HTMLDivElement>(null);
   const source = useRef<HTMLDivElement>(null);
   const status = useRef<HTMLParagraphElement>(null);
-  const hosted = JSON.stringify([frame, posted, properties, responseIdentifier, typeIdentifier]);
   const said = { failed: labels.failed, loading: labels.loading, ready: "" } satisfies Record<
     Phase,
     string
@@ -303,14 +302,15 @@ export const PortableCustom = (props: PortableCustomProps) => {
     );
   });
 
-  // The frame is made again only when what it runs changes, `hosted` the JSON text of that: a
-  // render that changes nothing of it, the response's texts among them, keeps the running PCI.
+  // The island makes its frame once: the server shell keys it by what the frame runs, so a change of
+  // that mounts a new island and frame, and a render that changes nothing of it, the response's
+  // texts among them, keeps the running PCI.
   useEffect((): (() => void) | undefined => {
     const at = stage.current;
     const held = source.current;
 
     return at === null || held === null ? undefined : host(at, held);
-  }, [hosted]);
+  }, []);
 
   return (
     <div

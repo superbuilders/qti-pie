@@ -148,18 +148,23 @@ export const island = (
     onNone: () => noticeOf(portableCustomModule.element, context.locale, "flow"),
     onSome: ({ host, posted }) => {
       const prompt = promptAt(node.prompt, node.response, context);
+      const frame = frameOf(host);
+      const { properties, responseIdentifier } = node.configuration;
 
+      // The island makes its frame once, so its key is what the frame runs: a change of that mounts
+      // a new island and frame, and a render that changes nothing of it keeps the running PCI.
       return (
         <PortableCustom
-          frame={frameOf(host)}
+          frame={frame}
+          key={JSON.stringify([frame, posted, properties, responseIdentifier, node.typeIdentifier])}
           labels={labelsOf(portableCustomKeys, context.locale, {})}
           markup={context.content(node.markup, { position: "flow" })}
           name={node.formName}
           naming={groupOf(prompt, node, context)}
           posted={posted}
           prompt={prompt}
-          properties={node.configuration.properties}
-          responseIdentifier={node.configuration.responseIdentifier}
+          properties={properties}
+          responseIdentifier={responseIdentifier}
           root={classRootOf(context)}
           templates={node.inertTemplates.map((nodes) =>
             context.content(nodes, { position: "flow" }),
