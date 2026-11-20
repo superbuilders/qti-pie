@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
+  identifier="ei-limits-order" title="Steps to put in order" adaptive="false" time-dependent="false"
+  xml:lang="en">
+  <qti-response-declaration identifier="ONE" cardinality="ordered" base-type="identifier"/>
+  <qti-response-declaration identifier="FIRST" cardinality="ordered" base-type="identifier"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <qti-order-interaction response-identifier="ONE">
+      <qti-prompt>Put the one step in place.</qti-prompt>
+      <qti-simple-choice identifier="Z">Wash your hands</qti-simple-choice>
+    </qti-order-interaction>
+    <qti-order-interaction response-identifier="FIRST" min-choices="1" max-choices="1">
+      <qti-prompt>Choose the step that comes first.</qti-prompt>
+      <qti-simple-choice identifier="A">Mix the batter</qti-simple-choice>
+      <qti-simple-choice identifier="B">Heat the oven</qti-simple-choice>
+      <qti-simple-choice identifier="C">Bake the cake</qti-simple-choice>
+    </qti-order-interaction>
+  </qti-item-body>
+</qti-assessment-item>

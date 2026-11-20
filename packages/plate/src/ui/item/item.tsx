@@ -1,0 +1,411 @@
+/**
+ * Plate's server shell: `<Item>`, a React Server Component that writes an opened item's whole
+ * body as server React elements and hands each interaction to its island, or, in review and
+ * solution, to its plain server markup, a Media to its replay island, which posts nothing.
+ *
+ * The host renders it on the server and passes it as `children` to its own client form, which
+ * wraps it in `<Responses value onChange>` (`@qti-pie/plate/ui/client`). It holds no state, renders
+ * no `Responses`, fetches nothing and suspends on nothing. It builds the page from plate's own
+ * redaction, so nothing an item withholds (a correct response, a mapping, hidden feedback, a
+ * template value it does not print) reaches the page, and everything QTI decides (the seeded
+ * shuffle, each response's entry name, the feedback and template content the record shows, the
+ * printed variables) is the core's.
+ *
+ * @module
+ */
+import { Option } from "effect";
+import type { Key, ReactNode } from "react";
+import type { Configuration } from "#plate/configuration.ts";
+import { defaultView } from "#plate/content/contract.ts";
+import { copyItemContent, itemContentNodes } from "#plate/content/modules.ts";
+import type { ItemPayloadsHeld } from "#plate/content/modules.ts";
+import { checkInstance, scopedId } from "#plate/form/encoding.ts";
+import type { Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
+import type { RedactRecord } from "#plate/model/record.ts";
+import type { ResponseValue } from "#plate/model/values.ts";
+import { interactionPayload } from "#plate/payload.ts";
+import type { PairedInteraction, RenderMode, View } from "#plate/payload.ts";
+import type { HostFacts } from "#plate/pci/host.ts";
+import { redact } from "#plate/redact.ts";
+import type { Redacted } from "#plate/redact/walk.ts";
+import { noSupports } from "#plate/supports.ts";
+import type { Supports } from "#plate/supports.ts";
+import {
+  contentsIn,
+  elementsIn,
+  feedbackOf,
+  firstFeedbackIn,
+  headingOffsetOf,
+  nodesOf,
+} from "#plate/ui/item/content.tsx";
+import type { InteractionAt, VerdictAt, Walk } from "#plate/ui/item/content.tsx";
+import { glossaryOf, listing, missingInCatalog } from "#plate/ui/item/contents/catalog.tsx";
+import {
+  companionMaterials,
+  missingInMaterials,
+} from "#plate/ui/item/contents/companion-materials.tsx";
+import { missingInMath } from "#plate/ui/item/contents/mathml.tsx";
+import type { ContentOptions, Graded, ReviewContext, Shows } from "#plate/ui/item/context.ts";
+import { AssetMissing, InvalidInstance, OutputTooLarge } from "#plate/ui/item/errors.ts";
+import { feedbackBlockOf, verdictOf } from "#plate/ui/item/feedback.tsx";
+import { missingIn } from "#plate/ui/item/html.ts";
+import type { Addressing } from "#plate/ui/item/html.ts";
+import {
+  renderAnswer,
+  renderContainer,
+  renderInteraction,
+} from "#plate/ui/item/interactions/index.tsx";
+import type { Accepted } from "#plate/validate/verdict.ts";
+import { carriedClass } from "#plate/vocabulary.ts";
+import type { OutcomeView } from "#plate/vocabulary.ts";
+
+/**
+ * What `<Item>` takes: the opened item, the configuration, the instance the host names, the mode,
+ * the engine's results the page shows, and what the host knows of where the item's scripts run.
+ */
+export interface ItemProps {
+  /**
+   * The configuration `configure` gives: the address of each file in `assets`, the `locale` of
+   * plate's own text, the `seed` a shuffle is keyed by with the response, the
+   * `headingLevel` the item's shallowest heading lands at, and the `outputBudget` its printed
+   * text is held to.
+   */
+  readonly configuration: Configuration;
+  /**
+   * What the host knows and plate does not, which the interaction modules that need it read: a
+   * Portable Custom Interaction's frame page and module routes (`pci`, `PciHostFacts`), without
+   * which a PCI is plate's Notice part. A render input, never item data: none reaches the page but
+   * what a module bakes into its own payload node. None when absent.
+   */
+  readonly host?: HostFacts;
+  /**
+   * The host's name for this use of the item, one per item session: it scopes every id and entry
+   * name the item writes. A token `checkInstance` passes.
+   */
+  readonly instance: string;
+  /**
+   * The item `openAdmitted` accepted, as `acceptedItem` gives it.
+   */
+  readonly item: Accepted;
+  /**
+   * The state the item is shown in: `answering`, where each interaction is its island; `review`,
+   * a recorded attempt; `solution`, the correct responses. In `review` and `solution` each
+   * interaction is plain server markup and ships no JavaScript, but a Media, whose replay island
+   * plays its media and posts nothing.
+   */
+  readonly mode: RenderMode;
+  /**
+   * The record of the attempt shown, such as `restore`'s `record` after `score`: its outcomes
+   * decide the feedback shown and the printed variables' text, its template values the template
+   * content and the choices shown. None shows the item as it reads with no record.
+   */
+  readonly record?: RedactRecord;
+  /**
+   * How the attempt a review shows did, read in `review` alone: the credit its feedback carries,
+   * plate's `credit` of the record where the host shows the review's feedback, and the correct
+   * responses it marks the candidate's answers against, `solution`'s, with what it reveals of them:
+   * the solution where the host may show it (`show-solution`), else the candidate's own answers
+   * alone. None marks nothing and carries no credit.
+   */
+  readonly graded?: Graded;
+  /**
+   * The accessibility supports the host enabled for the candidate, none enabled when absent.
+   */
+  readonly supports?: Supports;
+  /**
+   * The responses shown, by response identifier: in `review` the candidate's (`restore`'s
+   * `values`), in `solution` the correct ones (`solution`'s). None in `answering`, where the host's
+   * `<Responses>` holds them.
+   */
+  readonly values?: Readonly<Record<string, ResponseValue>>;
+  /**
+   * The view the item is shown to, one of QTI's six, the candidate's when absent.
+   */
+  readonly view?: OutcomeView;
+}
+
+/**
+ * Give a record keyed by identifier as the map a view holds.
+ *
+ * @param record The record, none when absent.
+ * @returns Its entries as a map, empty when absent.
+ */
+const mapOf = <A,>(record: Readonly<Record<string, A>> = {}): ReadonlyMap<string, A> =>
+  new Map(Object.entries(record));
+
+/**
+ * Build the view each interaction's payload node is given by from the props: the configuration's
+ * seed, and the host's facts, the empty record when it gave none.
+ *
+ * @param props The props.
+ * @returns The view.
+ */
+const viewOf = (props: ItemProps): View => ({
+  host: props.host ?? {},
+  instance: props.instance,
+  seed: props.configuration.seed,
+  values: mapOf(props.values),
+});
+
+/**
+ * Give what a render shows of each response: in `solution` the correct responses; in `review`, and
+ * in `answering`, whose islands read none of it, the candidate's answers against the correct
+ * responses the host graded them by, revealing what it says, none where it handed none.
+ *
+ * @param props The props: the mode and what the host graded.
+ * @returns What the render shows.
+ */
+const showsOf = (props: Pick<ItemProps, "graded" | "mode">): Shows =>
+  props.mode === "solution"
+    ? { kind: "solution" }
+    : {
+        against: mapOf(props.graded?.marks?.against),
+        kind: "answers",
+        reveals: props.graded?.marks?.reveals ?? "own",
+      };
+
+/**
+ * Check everything `<Item>` refuses, before it renders any of the item.
+ *
+ * @param props The props.
+ * @param redacted The redacted item.
+ * @param content The payload nodes of its item-placed content, each module's `copy` of a node
+ *   the redaction kept.
+ * @throws {InvalidInstance} When the instance breaks a requirement of `checkInstance`.
+ * @throws {OutputTooLarge} When a printed variable on content the page shows printed nothing.
+ * @throws {AssetMissing} When a package URL in what the page shows names a file `assets` gives no
+ *   address: in the body, an interaction's content, a modal feedback, a content module's node, a
+ *   MathML formula's own URLs among them, a catalog card's content or files, or a companion
+ *   material's file or icon.
+ */
+const refuse = (props: ItemProps, redacted: Redacted, content: ItemPayloadsHeld): void => {
+  const breach = checkInstance(props.instance);
+
+  if (Option.isSome(breach)) {
+    throw new InvalidInstance({ breach: breach.value, token: props.instance });
+  }
+
+  if (Option.isSome(redacted.unprinted)) {
+    const { bound, identifier, limit } = redacted.unprinted.value;
+
+    throw new OutputTooLarge({ bound, identifier, item: redacted.identifier, limit });
+  }
+
+  const { document } = redacted;
+  const addressing = { assets: props.configuration.assets, document };
+  const shown = [
+    ...redacted.body,
+    ...redacted.modalFeedback.flatMap((feedback) => feedback.content),
+    ...itemContentNodes(content),
+  ];
+
+  for (const element of elementsIn(shown, true)) {
+    const path = missingIn(element, addressing);
+
+    if (path !== undefined) {
+      throw new AssetMissing({ document, item: redacted.identifier, path });
+    }
+  }
+
+  for (const node of contentsIn(shown)) {
+    const path = node.element === "math" ? missingInMath(node.node, addressing) : undefined;
+
+    if (path !== undefined) {
+      throw new AssetMissing({ document, item: redacted.identifier, path });
+    }
+  }
+
+  const path =
+    missingInCatalog(content["qti-catalog-info"], addressing) ??
+    missingInMaterials(content["qti-companion-materials-info"], addressing);
+
+  if (path !== undefined) {
+    throw new AssetMissing({ document, item: redacted.identifier, path });
+  }
+};
+
+/**
+ * Give the author's `class` on an interaction, as written.
+ *
+ * @param paired The interaction and its payload node.
+ * @returns Its class, none when absent.
+ */
+const classOf = (paired: PairedInteraction): Option.Option<string> => paired.payload.class;
+
+/**
+ * Render an opened item: its body, as server React elements, then each modal feedback the record
+ * shows, inside the item's root.
+ *
+ * The parts it writes:
+ *
+ * - `plate-item`, the root, a `div` with the scoped id `<instance>-item`, the item's `lang`,
+ *   `data-mode` naming the mode, and `data-keyword-emphasis` when the host enabled the candidate's
+ *   keyword emphasis (A-23), under which the stylesheet emphasises the body's
+ *   `qti-keyword-emphasis` text;
+ * - `plate-companion-materials`, before the body, an `aside` listing the materials the item says the
+ *   candidate may use, each with the data attributes a host reads to supply it
+ *   (`#plate/ui/item/contents/companion-materials.tsx`);
+ * - The body, element for element as the author wrote it, within the XSD's HTML subset: `class`,
+ *   `lang` (`xml:lang`), `dir`, ARIA and an author's `data-*` kept, every id and IDREF scoped
+ *   `<instance>--<id>`, each package URL written as its address in `assets`, headings shifted to
+ *   the configuration's `headingLevel`, each run of a table's rows in a `tbody`;
+ * - `plate-notice`, a note in place of each part plate does not render;
+ * - `plate-glossary`, the disclosure of a catalog's `glossary-on-screen` card after the block of each
+ *   term of the body that references the catalog, and `plate-catalog`, after the body, the listing
+ *   of every other card the supports the host enabled keep
+ *   (`#plate/ui/item/contents/catalog.tsx`);
+ * - Each interaction, through the interactions' seam: in `answering` its island inside its own
+ *   `<Suspense fallback={null}>`, a hydration unit that suspends on nothing; in `review` and
+ *   `solution` its server markup, with no boundary;
+ * - `plate-feedback`, feedback the record shows (`feedbackOf` in `#plate/ui/item/content.tsx`): one
+ *   `div` in place of each run of adjacent feedback blocks, each block a `plate-feedback-block`,
+ *   the item's explanation after its title (`plate-feedback-why`), and one after the body for the
+ *   modal feedback, each a `plate-feedback-block` `section` named by its `title` through
+ *   `aria-label` when it has one. Where the host graded the attempt a credit, the review's verdict
+ *   (`plate-verdict`) heads the first of them, the one holding the body's first feedback block at a
+ *   flow position, else the one after the body, which then stands even where the page shows no
+ *   feedback; and each carries the credit as `data-credit` (`full`, `partial` or `none`). Its words
+ *   are the item's own, but for the verdict and the explanation's title
+ *   (`#plate/ui/item/feedback.tsx`).
+ *
+ * Feedback blocks and inlines, template blocks and inlines, and printed variables are the
+ * redaction's: what the record shows stands in place, a feedback block in its part, and what it
+ * hides is not there.
+ *
+ * @example
+ *   <Item item={accepted} configuration={configuration} instance="sitting-42.1" mode="answering" />
+ *
+ * @param props The item, the configuration, the instance, the mode and the engine's results.
+ * @returns The item's root.
+ * @throws {InvalidInstance} When the instance breaks a requirement of `checkInstance`.
+ * @throws {OutputTooLarge} When a printed variable on content the page shows printed nothing,
+ *   since its text passed its bound.
+ * @throws {AssetMissing} When a package URL in what the page shows names a file the
+ *   configuration's `assets` gives no address.
+ */
+export const Item = (props: ItemProps): ReactNode => {
+  const { configuration, instance, item, mode } = props;
+  const supports = props.supports ?? noSupports;
+  const { keywordEmphasis } = supports.display;
+  const redacted = redact(
+    item,
+    { configuration, supports, view: props.view ?? defaultView },
+    props.record,
+  );
+  const credit = Option.fromUndefinedOr(props.graded?.credit);
+  const itemContent = copyItemContent(redacted.content);
+
+  refuse(props, redacted, itemContent);
+
+  const view = viewOf(props);
+  const addressing: Addressing = {
+    assets: configuration.assets,
+    document: redacted.document,
+    instance,
+    writing: "original",
+  };
+  const headingOffset = headingOffsetOf(
+    [
+      ...redacted.body,
+      ...redacted.modalFeedback.flatMap((feedback) => feedback.content),
+      ...itemContentNodes(itemContent),
+    ],
+    configuration.headingLevel,
+  );
+  const content = (nodes: readonly RedactedNode[], options: ContentOptions = {}): ReactNode => {
+    const position = options.position ?? "phrasing";
+    const walk: Walk = {
+      addressing: { ...addressing, writing: options.writing ?? "original" },
+      credit,
+      headingOffset,
+      locale: configuration.locale,
+      scope: options.own === undefined ? { kind: "plain" } : { kind: "owned", own: options.own },
+      standing: position === "flow" ? "flow" : "phrasing-only",
+    };
+
+    return nodesOf(nodes, walk);
+  };
+  const shared = {
+    body: redacted.body,
+    content,
+    instance,
+    locale: configuration.locale,
+    shows: showsOf(props),
+    values: mapOf(props.values),
+  };
+  const contextOf = (paired: PairedInteraction): ReviewContext => ({
+    ...shared,
+    className: carriedClass(paired.kind, classOf(paired), supports),
+  });
+  const interaction: InteractionAt = (model: Interaction<RedactedLevel>, key: Key) => {
+    const paired = interactionPayload(model, view);
+
+    return renderInteraction(paired, contextOf(paired), mode, key);
+  };
+  const answer: InteractionAt = (model: Interaction<RedactedLevel>, key: Key) => {
+    const paired = interactionPayload(model, view);
+
+    return renderAnswer(paired, contextOf(paired), mode, key);
+  };
+  const catalogs = itemContent["qti-catalog-info"];
+  const outside: Walk = {
+    addressing,
+    credit,
+    headingOffset,
+    locale: configuration.locale,
+    scope: { kind: "plain" },
+    standing: "flow",
+  };
+  const verdict = credit.pipe(Option.map((earned) => verdictOf(earned, configuration.locale)));
+  const verdictAt = verdict.pipe(
+    Option.flatMap((part) =>
+      firstFeedbackIn(redacted.body).pipe(Option.map((at): VerdictAt => ({ at, part }))),
+    ),
+  );
+  // The verdict after the body, where no feedback block of the body holds it: at the head of the
+  // modal feedback, else alone.
+  const verdictAfter = Option.isSome(verdictAt) ? [] : Option.toArray(verdict);
+  const after = [
+    ...verdictAfter,
+    ...redacted.modalFeedback.flatMap((feedback, index) =>
+      feedbackBlockOf(
+        "section",
+        index,
+        false,
+        feedback.title,
+        configuration.locale,
+        nodesOf(feedback.content, outside),
+      ),
+    ),
+  ];
+
+  return (
+    <div
+      data-keyword-emphasis={keywordEmphasis ? "" : undefined}
+      data-mode={mode}
+      data-slot="plate-item"
+      id={scopedId(instance, "item")}
+      lang={Option.getOrUndefined(redacted.lang)}
+    >
+      {companionMaterials(
+        itemContent["qti-companion-materials-info"],
+        addressing,
+        configuration.locale,
+        configuration.headingLevel,
+      )}
+      {nodesOf(redacted.body, {
+        ...outside,
+        scope: {
+          answer,
+          container: renderContainer(mode, view),
+          glossary: glossaryOf(catalogs, redacted.body, addressing, configuration.locale),
+          interaction,
+          kind: "body",
+          verdict: verdictAt,
+        },
+      })}
+      {listing(catalogs, redacted.body, (nodes) => nodesOf(nodes, outside), addressing)}
+      {after.length === 0 ? null : feedbackOf("div", "feedback", outside, after)}
+    </div>
+  );
+};

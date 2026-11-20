@@ -1,0 +1,43 @@
+{
+  "name": "@qti-pie/plate",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "imports": {
+    "#plate/*": "./src/*",
+    "#scripts/*": "./scripts/*"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui": "./src/ui/index.ts",
+    "./ui/client": "./src/ui/client.ts",
+    "./ui/pci-frame": "./src/ui/portable-custom/frame-page.ts",
+    "./styles/base.css": "./src/styles/base.css",
+    "./styles/theme.css": "./src/styles/theme.css",
+    "./test/admitted": "./src/test/admitted.ts"
+  },
+  "scripts": {
+    "typecheck": "sh -c 'toolchain-typecheck -p src/tsconfig.json \"$@\" & toolchain-typecheck -p tsconfig.json \"$@\"; plate=$?; wait $! && exit $plate' typecheck",
+    "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run"
+  },
+  "dependencies": {
+    "@qti-pie/crust": "workspace:*",
+    "@ui-sdk/core": "catalog:",
+    "@ui-sdk/react": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@bjornpagen/devtools": "workspace:*",
+    "@effect/vitest": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  }
+}

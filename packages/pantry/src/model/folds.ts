@@ -1,0 +1,793 @@
+/**
+ * The law oracle's folds: every field of the document layer the host writes, computed from a
+ * document and the grammar's closed relations (plan §1.3 and §1.5, fin.md §4.3, §4.5a and §16), a
+ * second implementation beside the importer's one fold (`#pantry/import/fold.ts`), which the
+ * oracle's tests compare it with. Production calls only {@link endsOf} here.
+ *
+ * A node's fields come from three places, each a containment of `Node` into itself:
+ *
+ * - **Its parent** (N3, the merged parent copy): copies of the parent's `document`, `kind`, `start`,
+ *   `ancestry`, `nearest` and `nearestKind` as `document`, `parentKind`, `parentStart`,
+ *   `parentAncestry`, `parentNearest` and `parentNearestKind`. A first child starts one past its
+ *   parent, `parentStart + 1` (T3). Its own `nearest` is the parent when the parent is an
+ *   interaction, else the parent's `nearest` (N8), so it is the nearest interaction above the node,
+ *   or the document node when there is none.
+ * - **Its predecessor among its parent's children** (N5): `was` and `elementsWas` copy the
+ *   predecessor's `state` and `elements`, and the first child reads the empty fold: the content
+ *   automaton's start, and no element. The same containment carries the predecessor's `end` into
+ *   the node's `start` (T4), so no field of its own holds it.
+ * - **Its last child** (N7): `childState` and `elementChildren` copy the last child's fold, the end
+ *   values of the family, and an empty family reads the empty fold. The same containment carries
+ *   the last child's `end` into the node's `end` (T5).
+ *
+ * The node's pre-order interval, `start` and `end` (trees.md §1), is drawn by `flatten`'s walk,
+ * which numbers the nodes in the order this one folds them, so every copy above reads the interval
+ * it writes.
+ *
+ * Beside those, a node carries its family counts (`children`, `attributes`, `namespaces`), the
+ * first and last code points of its own characters (`first`, `last`, {@link endsOf}), and
+ * `attrs`, the end value of the `or` fold over its closed attributes' slots (AL2,
+ * `#pantry/qti/attributes.ts`). The attributes are a counted set, so no attribute reads another's
+ * fold: each copies only its owner's `kind` and `governor` (AL1 owner). An open class is one
+ * position for many names, so its attributes are `OpenAttribute`'s, outside the fold, and add
+ * nothing to `attrs`.
+ *
+ * A node's `state`, `ancestry` and `elements`, and an attribute's `attrs`, are fields closed
+ * relations determine from the row's own fields, so PostgreSQL derives them (fin.md
+ * §17, E1). The host computes the same values from the same relations, because the copies above
+ * need them before the write (§4.5a), and keeps them apart in `derived`: a write leaves them out.
+ *
+ * The document node is the sentinel at the head of every fold (fin.md §12, entry 8): it is its own
+ * parent at start 0, its own `document` and `nearest`, its copies of its parent are its own fields,
+ * and its `parentAncestry` is empty, so its children's copies come from it as every other child's
+ * come from its parent, and no node's copy is a special case.
+ *
+ * A family's state is its parent's content automaton's, by Glushkov positions
+ * (`#pantry/grammar/content.ts`): each child's state is the position its `Admission` cell names,
+ * its predecessor's state for character data, and for a kind several positions name the one
+ * `Symbol` gives it that follows its predecessor's. A fold reads that cell for each child and one
+ * for each attribute, its row of `AttributeAdmission` under its element's kind. A child or an
+ * attribute with no cell has nothing to derive, so the fold refuses it ({@link FoldRefusal}): a
+ * missing cell is a refusal, never a skip. Every other law the folds leave to the database: a child
+ * out of its content model's order still folds to its position, and the database refuses it by
+ * `Follow(parent, was, state)`, and a family that cannot end where it does by `Last`,
+ * each with that law's name.
+ *
+ * A foreign element is a node like any other, of the foreign kind of its namespace class whatever
+ * its name: it folds by the rows the closed relations hold at that kind, and its subtree folds
+ * below it. Its name is a row of its own beside it, which the folds pass through as `flatten`
+ * writes it.
+ *
+ * The folds read each family from the tree, where it is nested under its owner as a family write
+ * nests it (fin.md §4.5a), and never regroup flat rows by their owner.
+ */
+import { Option, Result, Schema } from "effect";
+import { step as enter } from "#pantry/grammar/ancestry.ts";
+import type { Ancestry, AncestrySets } from "#pantry/grammar/ancestry.ts";
+import { documentFamily, flatten } from "#pantry/model/xdm.ts";
+import type {
+  AttributeRow,
+  FlatRows,
+  NodeRow,
+  OpenAttributeRow,
+  XdmChild,
+  XdmDocument,
+  XdmDocumentChild,
+  XdmKind,
+  XdmVocabulary,
+} from "#pantry/model/xdm.ts";
+
+/**
+ * A closed relation as the folds read it: the row at a key, none where the relation holds none.
+ * Every `Closed` the grammar's generators return is one (`#pantry/grammar/closed.ts`).
+ */
+export interface Lookup<Key, Row> {
+  /**
+   * Find the row at a key.
+   *
+   * @param key - A value for each key field.
+   * @returns The row, or none where the relation holds none.
+   */
+  readonly lookup: (key: Key) => Option.Option<Row>;
+}
+
+/**
+ * A child's kind under its parent's kind: the key of `Admission`.
+ */
+export interface ChildKey<V extends XdmVocabulary> {
+  readonly child: XdmKind<V>;
+  readonly parent: XdmKind<V>;
+}
+
+/**
+ * An attribute's name under its element's kind and governing type: the key an attribute's
+ * position is read under, `GovernedAttribute`'s where the element's governing type
+ * is a governor of its kind, else `AttributeAdmission`'s (spec reading 84).
+ */
+export interface AttributeKey<V extends XdmVocabulary> {
+  readonly governs: Option.Option<string>;
+  readonly kind: XdmKind<V>;
+  readonly name: NameHandle<V>;
+}
+
+/**
+ * Why a child has no state: its parent does not admit its kind, or its kind is one several of the
+ * content model's positions name and none of them follows its predecessor's.
+ */
+type Unplaced = "unadmitted" | "unfollowed";
+
+/**
+ * The closed relations the folds read, each a cell lookup the grammar's relations answer.
+ */
+export interface FoldGrammar<V extends XdmVocabulary> {
+  /**
+   * The child's state in its parent's content automaton (`#pantry/grammar/content.ts`): its
+   * `Admission` position; its predecessor's state for character data, which no position names;
+   * and for a kind several positions name, the one `Symbol` gives it that follows its
+   * predecessor's.
+   *
+   * @param key - The parent's kind and the child's.
+   * @param was - The predecessor's state, 0 (the start) for the first child.
+   * @returns The state, or why the child has none.
+   */
+  readonly state: (key: ChildKey<V>, was: number) => Result.Result<number, Unplaced>;
+  /**
+   * The ancestry grammar of `#pantry/grammar/ancestry.ts`. The folds read `Enters`: a node's
+   * `ancestry` is `parentAncestry | Enters[kind]`.
+   */
+  readonly ancestry: AncestrySets;
+  /**
+   * The position of an attribute's name in its element's `attrs` (D8), from
+   * `#pantry/grammar/attributes.ts`: its governor's `GovernedAttribute` position where one governs
+   * the element, else its kind's `AttributeAdmission` position (`admissionOf`).
+   *
+   * @param key - The element's kind and governing type, and the attribute's name handle.
+   * @returns The position, or none when the element does not admit the name.
+   */
+  readonly attributePosition: (key: AttributeKey<V>) => Option.Option<number>;
+  /**
+   * `Interaction`, from `#pantry/grammar/rosters.ts`: a node whose parent is one takes the parent
+   * as its `nearest`.
+   */
+  readonly interaction: Lookup<{ readonly kind: XdmKind<V> }, unknown>;
+  /**
+   * `IsElement`, from `#pantry/grammar/rosters.ts`: each element child adds one to `elements`.
+   */
+  readonly isElement: Lookup<{ readonly kind: XdmKind<V> }, unknown>;
+}
+
+/**
+ * A child with no state: its parent does not admit it, so `Admission` holds no cell for it, or its
+ * kind is one several positions name and none follows its predecessor's, so `Symbol` and
+ * `Follow` hold no cell for it. No fold of it exists.
+ */
+export class ChildUnadmitted extends Schema.TaggedError<ChildUnadmitted>()("ChildUnadmitted", {
+  kind: Schema.String,
+  parent: Schema.String,
+  reason: Schema.Literals(["unadmitted", "unfollowed"]),
+  start: Schema.BigInt,
+}) {
+  /**
+   * The child, its parent, why it has no state, and the repair.
+   */
+  override get message(): string {
+    return this.reason === "unadmitted"
+      ? `The node at ${String(this.start)}, of kind ${this.kind}, sits under a ${this.parent}, which admits no ${this.kind}, so it has no fold. Move it under a kind that admits it, or remove it.`
+      : `The node at ${String(this.start)}, of kind ${this.kind}, sits under a ${this.parent} where no position of its content model that names ${this.kind} follows its predecessor, so it has no fold. Reorder the ${this.parent}'s children to its content model.`;
+  }
+}
+
+/**
+ * An attribute its element's kind does not admit: `AttributeAdmission` holds no cell for it, so it
+ * has no position in the element's `attrs`.
+ */
+export class AttributeUnadmitted extends Schema.TaggedError<AttributeUnadmitted>()(
+  "AttributeUnadmitted",
+  {
+    kind: Schema.String,
+    name: Schema.String,
+    start: Schema.BigInt,
+  },
+) {
+  /**
+   * The attribute, its element, and the repair.
+   */
+  override get message(): string {
+    return `The attribute ${this.name} of the node at ${String(this.start)} is on a ${this.kind}, which admits no ${this.name}, so it has no position. Remove it, or carry it on a kind that admits it.`;
+  }
+}
+
+/**
+ * The ways a document has no folds: a cell a fold reads is missing.
+ */
+export type FoldRefusal = AttributeUnadmitted | ChildUnadmitted;
+
+/**
+ * A set of positions among the names an element's kind admits (D8): an element's `attrs`.
+ */
+export type Positions = ReadonlySet<number>;
+
+/**
+ * An `AttributeName` handle as an attribute row carries it: a closed name, or the class of an open
+ * one.
+ */
+type NameHandle<V extends XdmVocabulary> = AttributeRow<V>["name"] | OpenAttributeRow["class"];
+
+/**
+ * A children family's fold after one slot: the content automaton's state, the last position a child
+ * took, and the element count, which arity reads (O4). A node's own fold is what it hands its
+ * successor (N5) and, as the last child, its parent (N7).
+ */
+export interface Slot {
+  readonly elements: bigint;
+  readonly state: number;
+}
+
+/**
+ * The fields of a node PostgreSQL derives from the row's own fields and the closed relations
+ * (E1): its fold after its slot, and the ancestry it hands its children.
+ */
+export interface NodeDerived extends Slot {
+  /**
+   * `parentAncestry | Enters[kind]`.
+   */
+  readonly ancestry: Ancestry;
+}
+
+/**
+ * A node's `Node` row with every field the host writes, and the fields PostgreSQL derives, which
+ * the host computes to fill the copies.
+ *
+ * `at` is the node's slot and `children`, `attributes` and `namespaces` its families' sizes,
+ * which grizzle's family write may draw itself (plan A5); the rest are copies, the order state the
+ * node was folded in, and its families' end values.
+ */
+export interface FoldedNode<V extends XdmVocabulary> extends NodeRow<V> {
+  /**
+   * The number of the node's closed attributes.
+   */
+  readonly attributes: bigint;
+  /**
+   * The positions of the node's closed attributes' names among those its kind admits (D8): their
+   * family's end value, empty when it has none.
+   */
+  readonly attrs: Positions;
+  /**
+   * The last child's state, `Last`'s cell with the node's kind, 0 for an empty family.
+   */
+  readonly childState: number;
+  /**
+   * The number of the node's children.
+   */
+  readonly children: bigint;
+  /**
+   * The fields PostgreSQL derives; a write leaves them out.
+   */
+  readonly derived: NodeDerived;
+  readonly elementChildren: bigint;
+  readonly elementsWas: bigint;
+  /**
+   * The first code point of the node's own characters ({@link charactersOf}), empty when it holds
+   * none: `Node.first`, which `E1_derived` proves and the `q` quotation law reads (spec reading
+   * 127).
+   */
+  readonly first: string;
+  /**
+   * The last code point of the node's own characters, empty when it holds none: `Node.last`.
+   */
+  readonly last: string;
+  /**
+   * The number of the node's namespace declarations.
+   */
+  readonly namespaces: bigint;
+  /**
+   * The position of the nearest interaction above the node, or the document node's, 0, when there
+   * is none.
+   */
+  readonly nearest: bigint;
+  readonly nearestKind: XdmKind<V>;
+  /**
+   * The number of the node's open-class attributes.
+   */
+  readonly openAttributes: bigint;
+  readonly parentAncestry: Ancestry;
+  readonly parentKind: XdmKind<V>;
+  readonly parentNearest: bigint;
+  readonly parentNearestKind: XdmKind<V>;
+  /**
+   * The node's string value as its children write it: its text, whitespace and entity-reference
+   * children's characters in order, each reference as `&name;`, as an attribute's lexical form
+   * keeps one, and the empty string when it holds none. For an element of simple content it is the
+   * element's value, total, so `TextDomain` judges it under its kind's domain, whose pattern
+   * absorbs the domain's `whiteSpace` class (`#pantry/grammar/domains.ts`), and an empty element is
+   * judged on `''`.
+   */
+  readonly stringValue: string;
+  /**
+   * The predecessor's state, 0 (the content automaton's start) for the first child; `Follow`'s
+   * cell is (parentKind, was, state).
+   */
+  readonly was: number;
+}
+
+/**
+ * What an attribute row carries of its element beside its own fields: its owner's `kind` and
+ * `governs`, the copies its family's owner axis holds.
+ */
+interface OwnerCopies<V extends XdmVocabulary> {
+  /**
+   * The owner's governing type, which with its kind decides the attribute's position and domain
+   * (spec reading 84), none where no named type governs it.
+   */
+  readonly governs: Option.Option<string>;
+  readonly kind: XdmKind<V>;
+}
+
+/**
+ * A closed attribute's `Attribute` row with every field the host writes: its owner's copies.
+ */
+export interface FoldedAttribute<V extends XdmVocabulary> extends AttributeRow<V>, OwnerCopies<V> {}
+
+/**
+ * An open attribute's `OpenAttribute` row with every field the host writes: its owner's copies.
+ */
+export interface FoldedOpenAttribute<V extends XdmVocabulary>
+  extends OpenAttributeRow, OwnerCopies<V> {}
+
+/**
+ * A document's rows with every field the host writes: {@link flatten}'s rows, with its node and
+ * attribute rows folded. Every list is in `flatten`'s order, so the rows are a document's
+ * `FlatRows` as they are.
+ */
+export interface FoldedRows<V extends XdmVocabulary> extends FlatRows<V> {
+  readonly attributes: readonly FoldedAttribute<V>[];
+  readonly nodes: readonly FoldedNode<V>[];
+  readonly openAttributes: readonly FoldedOpenAttribute<V>[];
+}
+
+/**
+ * A node with its copies and its own fold, before its families are folded: every field of
+ * {@link FoldedNode} but the counts, the end values and the string value its children write, and
+ * its own characters' first and last, which the walk reads off the node in the tree.
+ */
+type Head<V extends XdmVocabulary> = Omit<
+  FoldedNode<V>,
+  | "attributes"
+  | "attrs"
+  | "childState"
+  | "children"
+  | "elementChildren"
+  | "first"
+  | "last"
+  | "namespaces"
+  | "openAttributes"
+  | "stringValue"
+>;
+
+/**
+ * The fold before a family's first slot, the identity of each of its folds: the content automaton's
+ * start, state 0, and no element. The first child copies it, and an empty family's end values are
+ * it.
+ */
+const emptyFold: Slot = { elements: 0n, state: 0 };
+
+/**
+ * The ancestry the document node sits in: no flag (N1).
+ */
+const noFlags: Ancestry = new Set();
+
+/**
+ * Add a member to a set, keeping the set itself when it already holds the member, so an
+ * unchanged fold shares its predecessor's set.
+ *
+ * @param set - The set.
+ * @param member - The member.
+ * @returns The set with the member.
+ */
+const adding = <T>(set: ReadonlySet<T>, member: T): ReadonlySet<T> =>
+  set.has(member) ? set : new Set(set).add(member);
+
+/**
+ * Decide whether a set over `NodeKind` holds a kind.
+ *
+ * @param set - The set.
+ * @param kind - The kind.
+ * @returns Whether the set has a row at the kind.
+ */
+const holds = <Kind>(set: Lookup<{ readonly kind: Kind }, unknown>, kind: Kind): boolean =>
+  Option.isSome(set.lookup({ kind }));
+
+/**
+ * Fold one child into its family, as PostgreSQL derives its fields (E1): its state in its
+ * parent's content automaton, its element count, and its ancestry (`step` of
+ * `#pantry/grammar/ancestry.ts`).
+ *
+ * The state is its position, never judged against its predecessor's: `Follow(parent, was,
+ * state)` is N5's law, which the database checks.
+ *
+ * @param grammar - The closed relations.
+ * @param row - The child's row.
+ * @param parentKind - Its parent's kind.
+ * @param parentAncestry - The ancestry it sits in, its parent's own.
+ * @param was - Its predecessor's fold, {@link emptyFold} for the first child.
+ * @returns The child's derived fields, or its refusal when it has no state.
+ */
+const derive = <V extends XdmVocabulary>(
+  grammar: FoldGrammar<V>,
+  row: NodeRow<V>,
+  parentKind: XdmKind<V>,
+  parentAncestry: Ancestry,
+  was: Slot,
+): Result.Result<NodeDerived, ChildUnadmitted> =>
+  Result.mapBoth(grammar.state({ child: row.kind, parent: parentKind }, was.state), {
+    onFailure: (reason) =>
+      new ChildUnadmitted({
+        kind: row.kind,
+        parent: parentKind,
+        reason,
+        start: row.start,
+      }),
+    onSuccess: (state) => ({
+      ancestry: enter(grammar.ancestry, parentAncestry, row.kind),
+      elements: was.elements + (holds(grammar.isElement, row.kind) ? 1n : 0n),
+      state,
+    }),
+  });
+
+/**
+ * Copy a predecessor's fold onto its successor, as N5's fold does.
+ *
+ * @param was - The predecessor's fold, {@link emptyFold} for the first child.
+ * @returns The successor's `was` and `elementsWas`.
+ */
+const wasOf = (was: Slot) => ({ elementsWas: was.elements, was: was.state });
+
+/**
+ * Copy a family's last fold onto its owner, as N7's last slot does.
+ *
+ * @param end - The last child's fold, {@link emptyFold} for an empty family.
+ * @returns The owner's `childState` and `elementChildren`.
+ */
+const endOf = (end: Slot) => ({ childState: end.state, elementChildren: end.elements });
+
+/**
+ * Construct the document node's head: the sentinel whose copies of its parent are its own fields
+ * (N1), at start 0, folded from the empty fold.
+ *
+ * @param grammar - The closed relations.
+ * @param row - The document node's row, its own parent at slot 0 over `[0, N)`.
+ * @returns The head.
+ */
+const sentinelOf = <V extends XdmVocabulary>(
+  grammar: FoldGrammar<V>,
+  row: NodeRow<V>,
+): Head<V> => ({
+  ...row,
+  ...wasOf(emptyFold),
+  derived: { ...emptyFold, ancestry: enter(grammar.ancestry, noFlags, row.kind) },
+  nearest: row.start,
+  nearestKind: row.kind,
+  parentAncestry: noFlags,
+  parentKind: row.kind,
+  parentNearest: row.start,
+  parentNearestKind: row.kind,
+});
+
+/**
+ * Construct a child's head from its parent's and its predecessor's fold: the merged parent copy
+ * (N3), the owner copy (N8) and the predecessor copy (N5).
+ *
+ * @param grammar - The closed relations.
+ * @param parent - The parent's head.
+ * @param was - The predecessor's fold, {@link emptyFold} for the first child.
+ * @param row - The child's row.
+ * @returns The head, or the refusal of a child its parent does not admit.
+ */
+const headOf = <V extends XdmVocabulary>(
+  grammar: FoldGrammar<V>,
+  parent: Head<V>,
+  was: Slot,
+  row: NodeRow<V>,
+): Result.Result<Head<V>, ChildUnadmitted> =>
+  Result.map(derive(grammar, row, parent.kind, parent.derived.ancestry, was), (derived) => ({
+    ...row,
+    ...(holds(grammar.interaction, parent.kind)
+      ? { nearest: parent.start, nearestKind: parent.kind }
+      : { nearest: parent.nearest, nearestKind: parent.nearestKind }),
+    ...wasOf(was),
+    derived,
+    parentAncestry: parent.derived.ancestry,
+    parentKind: parent.kind,
+    parentNearest: parent.nearest,
+    parentNearestKind: parent.nearestKind,
+  }));
+
+/**
+ * A node of the tree as the walk meets it: the document node, or a node below it.
+ */
+type Walked<V extends XdmVocabulary> = XdmDocument<V> | XdmChild<V> | XdmDocumentChild<V>;
+
+/**
+ * A node's families as the tree nests them: its children, and how many closed and open attributes
+ * and namespace declarations it holds.
+ */
+interface Families<V extends XdmVocabulary> {
+  readonly attributes: number;
+  readonly children: readonly (XdmChild<V> | XdmDocumentChild<V>)[];
+  readonly namespaces: number;
+  readonly openAttributes: number;
+}
+
+/**
+ * Write the characters a child adds to its parent's string value: a text or whitespace node's
+ * own, an entity reference as `&name;`, and nothing for any other node.
+ *
+ * @param child - The child.
+ * @returns Its characters in the string value.
+ */
+const charactersOf = <V extends XdmVocabulary>(
+  child: XdmChild<V> | XdmDocumentChild<V>,
+): string => {
+  switch (child._tag) {
+    case "text":
+    case "ws": {
+      return child.value;
+    }
+    case "entityRef": {
+      return `&${child.name};`;
+    }
+    case "element":
+    case "foreign-element":
+    case "no-namespace-element":
+    case "own-namespace-element":
+    case "comment":
+    case "pi":
+    case "doctype": {
+      return "";
+    }
+    default: {
+      return child satisfies never;
+    }
+  }
+};
+
+/**
+ * The first and last characters of a node's own characters, as `Node` holds them in `first` and
+ * `last`.
+ */
+export interface Ends {
+  readonly first: string;
+  readonly last: string;
+}
+
+/**
+ * Read the first and last code points of a node's characters, `Node.chars`, each empty when the
+ * characters are, which `E1_derived` proves with `startsWith` and `endsWith`
+ * (`#pantry/qti/node.ts`).
+ *
+ * A code point past U+FFFF is two UTF-16 code units, a surrogate pair, and XML's `Char` holds no
+ * lone surrogate, so the last code point is the pair that starts two units from the end where one
+ * does, and the last unit otherwise: where the characters are shorter than two units, no code point
+ * starts two units from the end.
+ *
+ * @param chars - The node's characters.
+ * @returns Its first and last code points.
+ */
+export const endsOf = (chars: string): Ends => {
+  const head = chars.codePointAt(0);
+  const pair = Option.filter(
+    Option.fromUndefinedOr(chars.codePointAt(chars.length - 2)),
+    (point) => point > 0xff_ff,
+  );
+
+  return {
+    first: head === undefined ? "" : String.fromCodePoint(head),
+    last: Option.match(pair, {
+      onNone: () => chars.slice(-1),
+      onSome: (point) => String.fromCodePoint(point),
+    }),
+  };
+};
+
+/**
+ * Write a node's own characters as `Node.chars` holds them: a child's {@link charactersOf}, and
+ * nothing for the document node.
+ *
+ * @param node - The node.
+ * @returns Its characters.
+ */
+const ownCharactersOf = <V extends XdmVocabulary>(node: Walked<V>): string =>
+  node._tag === "document" ? "" : charactersOf(node);
+
+/**
+ * List a node's families in the tree: its children, its attributes and its namespace declarations.
+ *
+ * @param node - The node.
+ * @returns Its children family, the document node's by its place in the `document` production,
+ *   and its attributes and declarations; empty for character data and the doctype.
+ */
+const familiesOf = <V extends XdmVocabulary>(node: Walked<V>): Families<V> => {
+  switch (node._tag) {
+    case "document": {
+      return { attributes: 0, children: documentFamily(node), namespaces: 0, openAttributes: 0 };
+    }
+    case "element":
+    case "foreign-element":
+    case "no-namespace-element":
+    case "own-namespace-element": {
+      const closed = node.attributes.filter(({ name }) => name._tag === "closed").length;
+
+      return {
+        attributes: closed,
+        children: node.children,
+        namespaces: node.namespaces.length,
+        openAttributes: node.attributes.length - closed,
+      };
+    }
+    case "doctype":
+    case "text":
+    case "ws":
+    case "comment":
+    case "pi":
+    case "entityRef": {
+      return { attributes: 0, children: [], namespaces: 0, openAttributes: 0 };
+    }
+    default: {
+      return node satisfies never;
+    }
+  }
+};
+
+/**
+ * A family the walk is folding: its owner's head, and the fold after its last child folded so
+ * far, {@link emptyFold} before the first. Once the walk has folded every child, it is the family's
+ * end values.
+ */
+interface Folding<V extends XdmVocabulary> {
+  readonly owner: Head<V>;
+  was: Slot;
+}
+
+/**
+ * A node waiting to be folded: the node in the tree, and the family it is a child of.
+ */
+interface Pending<V extends XdmVocabulary> {
+  readonly family: Folding<V>;
+  readonly node: XdmChild<V> | XdmDocumentChild<V>;
+}
+
+/**
+ * A node the walk has met: the family it owns, its families' counts, its attributes' names, its
+ * string value and its own characters' ends.
+ */
+interface Met<V extends XdmVocabulary> {
+  readonly counts: Pick<
+    FoldedNode<V>,
+    | "attributes"
+    | "attrs"
+    | "children"
+    | "first"
+    | "last"
+    | "namespaces"
+    | "openAttributes"
+    | "stringValue"
+  >;
+  readonly family: Folding<V>;
+}
+
+/**
+ * Fold a document: its rows as {@link flatten} writes them, each node and attribute row with every
+ * field the host writes and the fields PostgreSQL derives from them.
+ *
+ * The walk reads each node's children from the tree, where they are nested, and its row and its
+ * attributes' rows from `flatten`'s, which number the nodes in the same document order and list
+ * each element's closed and open attributes together, in the document order of their elements. It
+ * visits the nodes in that order with its own stack, so each child is folded from its parent's head
+ * and its predecessor's fold in hand, a family's end values are its last child's fold, and a tree
+ * of any depth folds without recursion, in time linear in its rows.
+ *
+ * @param document - The tree to fold.
+ * @param grammar - The closed relations the folds read.
+ * @returns The document's rows, nodes and attributes folded, every list in `flatten`'s order; or the
+ *   refusal of the first child, in document order, its parent does not admit, or the first
+ *   attribute its kind does not admit.
+ */
+export const fold = <V extends XdmVocabulary>(
+  document: XdmDocument<V>,
+  grammar: FoldGrammar<V>,
+): Result.Result<FoldedRows<V>, FoldRefusal> =>
+  Result.gen(function* foldDocument() {
+    const rows = flatten(document);
+    const met: Met<V>[] = [];
+    const attributes: FoldedAttribute<V>[] = [];
+    const openAttributes: FoldedOpenAttribute<V>[] = [];
+    const stack: Pending<V>[] = [];
+    const positionOf = (head: Head<V>, name: NameHandle<V>) =>
+      Result.fromOption(
+        grammar.attributePosition({
+          governs: head.governs,
+          kind: head.kind,
+          name,
+        }),
+        () =>
+          new AttributeUnadmitted({
+            kind: head.kind,
+            name,
+            start: head.start,
+          }),
+      );
+    const visit = (node: Walked<V>, head: Head<V>): Result.Result<void, AttributeUnadmitted> =>
+      Result.gen(function* visitNode() {
+        const families = familiesOf(node);
+        const copies = { governs: head.governs, kind: head.kind };
+        let attrs: Positions = new Set();
+        for (
+          let row = rows.attributes[attributes.length];
+          row !== undefined && row.start === head.start;
+          row = rows.attributes[attributes.length]
+        ) {
+          attrs = adding(attrs, yield* positionOf(head, row.name));
+          attributes.push({ ...row, ...copies });
+        }
+
+        for (
+          let row = rows.openAttributes[openAttributes.length];
+          row !== undefined && row.start === head.start;
+          row = rows.openAttributes[openAttributes.length]
+        ) {
+          yield* positionOf(head, row.class);
+          openAttributes.push({ ...row, ...copies });
+        }
+
+        const family: Folding<V> = { owner: head, was: emptyFold };
+        met.push({
+          counts: {
+            attributes: BigInt(families.attributes),
+            attrs,
+            children: BigInt(families.children.length),
+            ...endsOf(ownCharactersOf(node)),
+            namespaces: BigInt(families.namespaces),
+            openAttributes: BigInt(families.openAttributes),
+            stringValue: families.children.map(charactersOf).join(""),
+          },
+          family,
+        });
+        for (const child of families.children.toReversed()) {
+          stack.push({ family, node: child });
+        }
+      });
+
+    yield* visit(
+      document,
+      sentinelOf(grammar, {
+        at: 0n,
+        end: BigInt(rows.nodes.length),
+        governs: Option.none(),
+        kind: document._tag,
+        parent: 0n,
+        prefix: "",
+        start: 0n,
+      }),
+    );
+    for (const row of rows.nodes.slice(1)) {
+      const next = stack.pop();
+      if (next === undefined) {
+        break;
+      }
+
+      const head = yield* headOf(grammar, next.family.owner, next.family.was, row);
+      next.family.was = head.derived;
+      yield* visit(next.node, head);
+    }
+
+    return {
+      ...rows,
+      attributes,
+      nodes: met.map(({ counts, family }) => ({
+        ...family.owner,
+        ...endOf(family.was),
+        ...counts,
+      })),
+      openAttributes,
+    };
+  });

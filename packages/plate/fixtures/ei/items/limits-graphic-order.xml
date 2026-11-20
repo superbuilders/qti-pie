@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
+  identifier="ei-limits-graphic-order" title="The first place to visit" adaptive="false"
+  time-dependent="false" xml:lang="en">
+  <qti-response-declaration identifier="RESPONSE" cardinality="ordered" base-type="identifier"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <qti-graphic-order-interaction response-identifier="RESPONSE" min-choices="1" max-choices="1">
+      <qti-prompt>Choose the one place you would visit first.</qti-prompt>
+      <img src="images/graphic-order-map.svg" width="320" height="200"
+        alt="A harbour town with a house, a sun, a hill and a boat"/>
+      <qti-hotspot-choice identifier="H1" shape="rect" coords="30,40,100,90" hotspot-label="House"/>
+      <qti-hotspot-choice identifier="H3" shape="poly" coords="220,110,260,50,300,110" hotspot-label="Hill"/>
+      <qti-hotspot-choice identifier="H4" shape="ellipse" coords="90,165,45,20" hotspot-label="Boat"/>
+    </qti-graphic-order-interaction>
+  </qti-item-body>
+</qti-assessment-item>

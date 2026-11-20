@@ -1,0 +1,36 @@
+{
+  "name": "@qti-pie/crust",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "imports": {
+    "#crust/*": "./src/*"
+  },
+  "exports": {
+    "./canonical.ts": "./src/canonical.ts",
+    "./charset.ts": "./src/charset.ts",
+    "./encode.ts": "./src/encode.ts",
+    "./errors.ts": "./src/errors.ts",
+    "./namespaces.ts": "./src/namespaces.ts",
+    "./read.ts": "./src/read.ts",
+    "./tree.ts": "./src/tree.ts",
+    "./uri.ts": "./src/uri.ts",
+    "./write.ts": "./src/write.ts"
+  },
+  "scripts": {
+    "typecheck": "toolchain-typecheck",
+    "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run"
+  },
+  "dependencies": {
+    "@bjornpagen/grizzle-text": "workspace:*",
+    "effect": "catalog:",
+    "saxes": "catalog:"
+  },
+  "devDependencies": {
+    "@bjornpagen/devtools": "workspace:*",
+    "@bjornpagen/testing": "workspace:*",
+    "@effect/platform-node": "catalog:",
+    "@effect/vitest": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
+  identifier="ei-limits-extended-text" title="Words for the morning" adaptive="false"
+  time-dependent="false" xml:lang="en">
+  <qti-response-declaration identifier="ONE" cardinality="multiple" base-type="string">
+    <qti-correct-response>
+      <qti-value>dawn</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-response-declaration identifier="TWO" cardinality="ordered" base-type="string">
+    <qti-correct-response>
+      <qti-value>dawn</qti-value>
+      <qti-value>dusk</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <qti-extended-text-interaction response-identifier="ONE" min-strings="1" max-strings="1">
+      <qti-prompt>Write one word for the start of the day.</qti-prompt>
+    </qti-extended-text-interaction>
+    <qti-extended-text-interaction response-identifier="TWO" min-strings="2" max-strings="2">
+      <qti-prompt>Write the words for the start and the end of the day, in that order.</qti-prompt>
+    </qti-extended-text-interaction>
+  </qti-item-body>
+</qti-assessment-item>

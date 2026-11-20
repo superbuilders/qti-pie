@@ -1,0 +1,340 @@
+/**
+ * The O2 overlays' free tests: the reserved names are the specification's, and each base type's
+ * pattern admits exactly the lexical forms the specification gives it.
+ *
+ * The builder's tests (`#pantry/import/overlays/declarations.test.ts`) check its rows and codes.
+ */
+import { NodeServices } from "@effect/platform-node";
+import { assert, describe, it } from "@effect/vitest";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { element } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Array as Arr, Duration, Effect } from "effect";
+import { patternFlags } from "#pantry/grammar/domains.ts";
+import {
+  BaseType,
+  BuiltIn,
+  BuiltInVariable,
+  grammar,
+  ValueDomainOf,
+} from "#pantry/grammar/install.ts";
+import { readProgram } from "#pantry/import/program.ts";
+import { readEntries } from "#pantry/package/read.ts";
+import {
+  contextVariable,
+  itemSessionVariables,
+  reservedBaseTypes,
+  sessionVariables,
+} from "#pantry/qti/declarations.ts";
+import {
+  booleanValuePattern,
+  domainValues,
+  pairValuePattern,
+  pointValuePattern,
+  unjudgedBaseTypes,
+} from "#pantry/qti/expression-types.ts";
+import { Qti } from "#pantry/qti/schema.ts";
+import { declarationQueryLawsOf } from "#pantry/test/declaration-queries.ts";
+import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
+import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
+import { previewRowsOf, judge as judgeHost, judgedLaws } from "#pantry/test/host-judge.ts";
+import { lawNamesOf } from "#pantry/test/host-law-names.ts";
+import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
+import { nameOf } from "#pantry/test/package-name.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
+
+describe("qti/declarations.ts, reserved names", () => {
+  it("reserves exactly the built-in session variables, spelled exactly with no alias (spec reading 72)", () => {
+    // Oracle: the specification as a checker. The information model's tables 4.5.1, 5.115.1 and
+    // 5.151.1 ("They are completionStatus, numAttempts and duration") and §2.2.2.1's one built-in
+    // context variable, QTI_CONTEXT, which may be declared as the record it is; reading 72 adds no
+    // alias, so `completion_status` and `completion-status` name ordinary variables.
+    assert.sameMembers([...sessionVariables], ["completionStatus", "duration", "numAttempts"]);
+    assert.sameMembers(
+      [...BuiltIn.handles],
+      [...sessionVariables, contextVariable.identifier],
+      "every built-in is a session variable or the context variable",
+    );
+    assert.deepStrictEqual(
+      BuiltInVariable.rows.find(({ variable }) => variable === contextVariable.identifier)
+        ?.declaration,
+      contextVariable.kind,
+    );
+    for (const alias of ["completion_status", "completion-status", "CompletionStatus"]) {
+      assert.notInclude(sessionVariables, alias, alias);
+      assert.notInclude(BuiltIn.handles, alias, alias);
+    }
+
+    // §2.2.2.3: "SCORE MUST be a float", "MAXSCORE MUST be a float", "PASSED MUST be a boolean"
+    // (info.txt:4663, :4664, :4665), each binding every declaration pantry stores, which holds no
+    // test (reading 228).
+    assert.sameDeepMembers(
+      reservedBaseTypes.map(({ baseType, identifier }) => [identifier, baseType]),
+      [
+        ["SCORE", "float"],
+        ["MAXSCORE", "float"],
+        ["PASSED", "boolean"],
+      ],
+    );
+  });
+});
+
+/**
+ * The base types `Typed_value` judges by a pattern: every handle but those every text is a value
+ * of, and `uri`, whose pattern is spec reading 71's (`value domain`'s, Q5.05), checked apart.
+ */
+const judgedBaseTypes = BaseType.handles.filter(
+  (handle) => !unjudgedBaseTypes.some((unjudged) => unjudged === handle) && handle !== "uri",
+);
+
+/**
+ * The pattern `Typed_value` reads a base type's text by, as a JavaScript host reads it
+ * (`patternFlags`): its domain's `ValueDomainOf` pattern, or its own.
+ *
+ * @param baseType - The base type.
+ * @returns The pattern.
+ */
+const patternOf = (baseType: string): RegExp => {
+  const domain = domainValues.find(({ baseTypes }) =>
+    baseTypes.some((handle) => handle === baseType),
+  )?.domain;
+  const pattern =
+    domain === undefined
+      ? new Map<string, string>([
+          ["boolean", booleanValuePattern],
+          ["directedPair", pairValuePattern],
+          ["pair", pairValuePattern],
+          ["point", pointValuePattern],
+        ]).get(baseType)
+      : ValueDomainOf.rows.find((row) => row.domain === domain)?.pattern;
+  assert.isDefined(pattern, `${baseType} has a pattern`);
+
+  return new RegExp(pattern ?? "", patternFlags);
+};
+
+/**
+ * The texts of the typed-value box, each with the base types it is a value of, constructed from the
+ * specification rather than read off a pattern: reading 7's outer whitespace, reading 34's
+ * booleans, reading 45's unbounded integers, `xs:double`'s forms for float and duration (XML
+ * Schema 1.0 writes no `+INF`), NCNames for identifiers (`true`, `INF` and `NaN` among them), and
+ * the pairs and points of §8.13; then texts no base type of the box admits.
+ */
+const texts: readonly { readonly text: string; readonly values: readonly string[] }[] = [
+  { text: "true", values: ["boolean", "identifier"] },
+  { text: " false\n", values: ["boolean", "identifier"] },
+  { text: "1", values: ["integer", "float", "duration"] },
+  { text: "\t-12 ", values: ["integer", "float", "duration"] },
+  { text: "+7", values: ["integer", "float", "duration"] },
+  { text: "123456789012345678901234567890", values: ["integer", "float", "duration"] },
+  { text: "1.5", values: ["float", "duration"] },
+  { text: "-.5e-3", values: ["float", "duration"] },
+  { text: "INF", values: ["float", "duration", "identifier"] },
+  { text: " NaN ", values: ["float", "duration", "identifier"] },
+  { text: "A", values: ["identifier"] },
+  { text: " _a.b-c ", values: ["identifier"] },
+  { text: "x y", values: ["pair", "directedPair"] },
+  { text: "A\tB", values: ["pair", "directedPair"] },
+  { text: "10 20", values: ["point"] },
+  { text: " -1\t+2 ", values: ["point"] },
+  { text: "", values: [] },
+  { text: "1  2", values: [] },
+  { text: "TRUE", values: ["identifier"] },
+  { text: "0x1F", values: [] },
+  { text: "1a", values: [] },
+  { text: "a b c", values: [] },
+  { text: "1.5.2", values: [] },
+  { text: "+INF", values: [] },
+];
+
+/**
+ * One case of the typed-value box: a judged base type and a text.
+ */
+interface TypedCase {
+  readonly baseType: string;
+  readonly text: string;
+  readonly values: readonly string[];
+}
+
+/**
+ * Every (base type, text) of the box.
+ */
+const typedCases = ((): readonly [TypedCase, ...TypedCase[]] => {
+  const cases = judgedBaseTypes.flatMap((baseType) =>
+    texts.map(({ text, values }): TypedCase => ({ baseType, text, values })),
+  );
+
+  return Arr.isReadonlyArrayNonEmpty(cases) ? cases : assert.fail("the typed-value box is empty");
+})();
+
+/**
+ * A situation the box must reach: an admitted and a refused text, and the texts that tell
+ * reading 34 and reading 45 apart from `xs:boolean` and a bounded integer.
+ */
+type TypedSituation = "admitted" | "refused" | "boolean 1 refused" | "long integer admitted";
+
+describe("qti/declarations.ts, typed values", () => {
+  it.effect(
+    "admits a value's text exactly when the specification gives it as a lexical form of its base type",
+    (ctx) =>
+      // Oracle: the specification as a checker: each text's base types, constructed from readings
+      // 7, 34 and 45, xs:double's lexical space and §8.13's pairs and points, against the pattern
+      // `Typed_value` reads for the base type, read by a JavaScript host.
+      // Bound: every judged base type but uri (8) against 24 texts, 192 cases.
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every judged base type but uri against 24 constructed texts",
+            caseHang: Duration.seconds(10),
+            concurrency: searchWidth,
+            coverage: requiredInSpace<TypedSituation>([
+              "admitted",
+              "refused",
+              "boolean 1 refused",
+              "long integer admitted",
+            ]),
+            generator: element<TypedCase>(typedCases),
+            literal: ({ baseType, text }: TypedCase) => `${baseType} ${JSON.stringify(text)}`,
+            oracle: {
+              kind: "specification",
+              name: "readings 7, 34 and 45, xs:double, and §8.13's base types",
+            },
+            suite: "qti/declarations-typed-value",
+          },
+          ({ baseType, text, values }: TypedCase, c) =>
+            Effect.sync(() => {
+              const expected = values.includes(baseType);
+              const admitted = patternOf(baseType).test(text);
+              c.note(admitted ? "admitted" : "refused");
+              if (baseType === "boolean" && text === "1" && !admitted) {
+                c.note("boolean 1 refused");
+              }
+
+              if (baseType === "integer" && text.length > 19 && admitted) {
+                c.note("long integer admitted");
+              }
+
+              assert.strictEqual(admitted, expected, `${baseType} ${JSON.stringify(text)}`);
+            }),
+        ),
+      ),
+  );
+
+  it("admits a uri's text by xs:anyURI's pattern, spec reading 71's", () => {
+    // Oracle: the specification as a checker, RFC 2396 by way of reading 71: an absolute URI and a
+    // relative reference are values, and a percent sign not followed by two hex digits is not.
+    const uri = patternOf("uri");
+    for (const text of ["http://example.com/a?b#c", "a/b.xml", " urn:x:y "]) {
+      assert.isTrue(uri.test(text), text);
+    }
+
+    assert.isFalse(uri.test("%zz"), "%zz");
+  });
+});
+
+/**
+ * The QTI 3.0 namespace.
+ */
+const asi = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
+
+/**
+ * Write an XML document: its declaration, then its text.
+ *
+ * @param text - The document's root element.
+ * @returns The document's bytes.
+ */
+const xml = (text: string): Uint8Array =>
+  new TextEncoder().encode(`<?xml version="1.0" encoding="UTF-8"?>\n${text}\n`);
+
+/**
+ * Write a manifest resource of one document.
+ *
+ * @param path - The document's path.
+ * @param type - Its resource type.
+ * @param at - Its position, which numbers its identifier.
+ * @returns The resource element.
+ */
+const resource = (path: string, type: string, at: number): string =>
+  `<resource identifier="R${String(at)}" type="${type}" href="${path}"><file href="${path}"/></resource>`;
+
+/**
+ * Write a package of one item that declares one outcome `identifier`, and the manifest that lists
+ * it.
+ *
+ * @param identifier - The declared name.
+ * @returns The package's entries.
+ */
+const declaringPackage = (identifier: string): PackageEntries =>
+  new Map([
+    [
+      "imsmanifest.xml",
+      xml(
+        `<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="M"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources>${resource("item.xml", "imsqti_item_xmlv3p0", 0)}</resources></manifest>`,
+      ),
+    ],
+    [
+      "item.xml",
+      xml(
+        `<qti-assessment-item xmlns="${asi}" identifier="item" title="Item" adaptive="false" time-dependent="false"><qti-outcome-declaration identifier="${identifier}" cardinality="single" base-type="integer"/><qti-item-body><p>An item.</p></qti-item-body></qti-assessment-item>`,
+      ),
+    ],
+  ]);
+
+describe("qti/declarations.ts, Declaration not reserved", () => {
+  it("reserves an item's three session variables (reading 168)", () => {
+    // Oracle: the specification as a checker, §2.2.2 by hand: an item's built-ins are numAttempts,
+    // duration and completionStatus.
+    assert.sameMembers([...itemSessionVariables], ["completionStatus", "duration", "numAttempts"]);
+  });
+
+  it.effect(
+    "refuses an item's declaration of a session variable, the oracle and the import's rows alike",
+    () =>
+      // Oracle: two implementations side by side, the law oracle and the schema's laws over the
+      // import's rows, and the specification's table by hand. Bound: an item by the three session
+      // variables, 3 packages.
+      Effect.gen(function* byParent() {
+        const hostLaws = judgedLaws(Qti);
+        const oracleLaws = lawsOf(grammar);
+        const cases = sessionVariables.map((identifier) => ({ identifier, refused: true }));
+
+        for (const drawn of cases) {
+          yield* Effect.scoped(
+            Effect.gen(function* oneCase() {
+              const dir = yield* scopedPackage(declaringPackage(drawn.identifier));
+              const judgment = yield* judgeOracle(yield* readEntries(dir), grammar, oracleLaws);
+              assert.strictEqual(judgment._tag, "Judged", JSON.stringify(drawn));
+
+              const oracle = new Set<string>(
+                judgment._tag === "Judged" ? judgment.breaches.map(({ law }) => law) : [],
+              );
+              const rows = previewRowsOf((yield* readProgram(dir, nameOf(dir))).inputs);
+              // The host judges the stored laws, and the declaration overlays' rules over a query,
+              // "Declaration not reserved" among them, are the database's alone, restated here.
+              const broken = new Set([
+                ...lawNamesOf(judgeHost(rows, hostLaws).broken),
+                ...declarationQueryLawsOf(rows),
+              ]);
+
+              assert.strictEqual(
+                oracle.has("Declaration not reserved"),
+                drawn.refused,
+                JSON.stringify(drawn),
+              );
+              assert.strictEqual(
+                broken.has("Declaration not reserved"),
+                drawn.refused,
+                JSON.stringify(drawn),
+              );
+              assert.deepStrictEqual(
+                [...broken].toSorted(),
+                [...oracle].toSorted(),
+                `${JSON.stringify(drawn)}: the import's rows and the oracle break one set`,
+              );
+            }),
+          );
+        }
+      }).pipe(Effect.provide(NodeServices.layer)),
+  );
+});

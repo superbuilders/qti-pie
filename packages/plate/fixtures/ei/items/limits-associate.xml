@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
+  identifier="ei-limits-associate" title="Homes to pair" adaptive="false" time-dependent="false"
+  xml:lang="en">
+  <qti-response-declaration identifier="ONE" cardinality="multiple" base-type="pair"/>
+  <qti-response-declaration identifier="MANY" cardinality="multiple" base-type="pair"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <qti-associate-interaction response-identifier="ONE" min-associations="1">
+      <qti-prompt>Pair one animal with its home.</qti-prompt>
+      <qti-simple-associable-choice identifier="A" match-max="1">Bee</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="B" match-max="1">Hive</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="C" match-max="1">Nest</qti-simple-associable-choice>
+    </qti-associate-interaction>
+    <qti-associate-interaction response-identifier="MANY" max-associations="0" min-associations="2">
+      <qti-prompt>Pair at least two of the animals with each other.</qti-prompt>
+      <qti-simple-associable-choice identifier="P" match-max="0" match-min="1">Fox</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="Q" match-max="0" match-min="2">Owl</qti-simple-associable-choice>
+      <qti-simple-associable-choice identifier="R" match-max="0">Mole</qti-simple-associable-choice>
+    </qti-associate-interaction>
+  </qti-item-body>
+</qti-assessment-item>

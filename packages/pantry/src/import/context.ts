@@ -1,0 +1,309 @@
+/**
+ * The context each listed document is judged in (spec readings 85 and 117): the ancestry and the
+ * nearest interaction its document node holds, which every node below it inherits.
+ *
+ * A document no site names is judged as it stands: no ancestry, its own document node as its
+ * nearest interaction. A document sites name, an included fragment, is judged where it is placed:
+ * its ancestry is the union of the ancestries of the sites that name it (`Document.context`, the
+ * database's fold over `Site`), and its nearest interaction is the one interaction a site that
+ * names it stands in, else its own document node.
+ * Where two sites disagree on the interaction, the first in listing order is written, and the
+ * database refuses the other under the stated limit "Fragment context".
+ *
+ * A site is an `xi:include` under a parent whose model holds an explicit include particle (spec
+ * reading 114), whose href resolves, as its `ReferencePath` does, to a listed document a resource
+ * names: never the manifest, which is no resource's document (reading 115:
+ * "Fragments are packaged as separate resources"; reading 146: a resource whose href names the
+ * manifest names no document), so a site whose href names it names no document. The contexts are
+ * a fixpoint over the sites: a fragment a fragment includes inherits through the includer's own
+ * context, and a chain that returns to a document on it, which the database refuses as an
+ * inclusion cycle, is cut where the walk meets the bound.
+ */
+import { Array as Arr, Equal, Option } from "effect";
+import type { Kind } from "#pantry/grammar/compose.ts";
+import { includeParentKinds } from "#pantry/grammar/install.ts";
+import type { Flag } from "#pantry/grammar/install.ts";
+import { foldAt, foldOf, ownContext } from "#pantry/import/fold.ts";
+import type { FlatDocument, Folded } from "#pantry/import/fold.ts";
+import { valueAt } from "#pantry/import/names.ts";
+import { entryPathOf, hrefResolverOf } from "#pantry/import/overlays/package.ts";
+import type { Composed } from "#pantry/model/composed.ts";
+import type { NodeRow, XdmDocument } from "#pantry/model/xdm.ts";
+import { assembledRoots, includeKind } from "#pantry/vocab/terms/tests.ts";
+
+/**
+ * An ancestry flag's handle.
+ */
+export type FlagHandle = (typeof Flag.handles)[number];
+
+/**
+ * A document's context: the flags its document node's ancestry holds, and its nearest interaction
+ * with that interaction's kind, `document` for the document node itself. The interaction is named
+ * by its position (`nearest`) in the document at `nearestPath`, the document's own (none, and the
+ * position 0, its document node) where no site places it in an interaction, so `Document`'s
+ * `contextPath` is its own path there and `contextNearest` its `nearest`.
+ */
+export interface DocumentContext {
+  readonly ancestry: ReadonlySet<FlagHandle>;
+  readonly nearest: bigint;
+  readonly nearestKind: Kind;
+  readonly nearestPath: Option.Option<string>;
+}
+
+/**
+ * A listed document a site may name, as the site's row copies it beside the path that names it:
+ * its root element's kind and its context.
+ */
+export interface ListedTarget {
+  readonly context: DocumentContext;
+  readonly rootKind: Kind;
+}
+
+/**
+ * The kinds an include is a site under (spec reading 114).
+ */
+const includeParents: ReadonlySet<string> = new Set(includeParentKinds);
+
+/**
+ * Whether a node is a site: an include under a parent that holds an explicit include particle.
+ *
+ * @param kind - The node's kind.
+ * @param parentKind - Its parent's kind.
+ * @returns Whether it is.
+ */
+export const isSiteKind = (kind: string, parentKind: string): boolean =>
+  kind === includeKind && includeParents.has(parentKind);
+
+/**
+ * One listed document as the contexts read it: its path, its tree, and the document flattened, its
+ * rows and its attributes' index.
+ */
+interface Listed extends FlatDocument {
+  /**
+   * Whether the document is a resource's, so a site may name it: every listed document but the
+   * manifest, which is no resource's (spec reading 146).
+   */
+  readonly named: boolean;
+  readonly path: string;
+  readonly tree: XdmDocument<Composed>;
+}
+
+/**
+ * One site as the fixpoint reads it: the site node's position and the path its href names.
+ */
+interface SiteOf {
+  readonly path: string;
+  readonly start: bigint;
+}
+
+/**
+ * One listed document as {@link contextsOf} judges it: the listing as given, its context, and
+ * whether it is in an assembly and whether a site names it.
+ */
+export interface Judged<L extends Listed> {
+  /**
+   * Whether the document is in an assembly: a test or a section, or a document that holds a site or
+   * that a site names, each with Q5.13's `TestDocument` row (`Document.assembled`).
+   */
+  readonly assembled: boolean;
+  readonly context: DocumentContext;
+  readonly listed: L;
+  /**
+   * Whether a site names the document, so it is an instance under every document that places it
+   * (Q5.13's `Instance`), and the root of an assembly of its own unless an include splices it in
+   * place (`splicingParents`, spec reading 117).
+   */
+  readonly targeted: boolean;
+}
+
+/**
+ * One listed document as the fixpoint reads it: its nodes, its sites and whether it holds one or is
+ * a test's or a section's.
+ */
+interface Read {
+  readonly assembledRoot: boolean;
+  readonly holdsSites: boolean;
+  readonly nodes: readonly NodeRow<Composed>[];
+  readonly sites: readonly SiteOf[];
+}
+
+/**
+ * One listed document at one step of the fixpoint: the listing as given, its reading, and its
+ * present context.
+ */
+interface Judging<L extends Listed> {
+  readonly context: DocumentContext;
+  readonly listed: L;
+  readonly read: Read;
+}
+
+/**
+ * Read one listed document's sites: each include the information model reads, written as a site
+ * even with no href, as Q5.13's builder writes it, and each resolved as its `ReferencePath` is
+ * (`hrefResolverOf`: against the `xml:base` in scope or the document's path).
+ *
+ * @param listed - The document: its path in the package, its rows and attributes, and its tree.
+ * @returns Its reading.
+ * @throws {Error} When a node's parent is no node of the document's rows, which `flatten` rules
+ *   out: it writes every node's parent, the document node as its own.
+ */
+const readOf = (listed: Listed): Read => {
+  const { path, rows, tree } = listed;
+  const kindOf = new Map(rows.nodes.map((node) => [node.start, node.kind] as const));
+  const parentKindOf = (node: NodeRow<Composed>): Kind =>
+    Option.getOrThrowWith(
+      Option.fromUndefinedOr(kindOf.get(node.parent)),
+      () =>
+        new Error(
+          `The parent at ${String(node.parent)} of the node at ${String(node.start)} is no node of its document's rows, but flatten writes every node's parent, the document node as its own. Read each document's sites in the rows flatten wrote for it.`,
+        ),
+    );
+  const resolve = hrefResolverOf(listed, path);
+  const written = rows.nodes.filter((node) => isSiteKind(node.kind, parentKindOf(node)));
+
+  return {
+    assembledRoot: assembledRoots.some((root) => root === tree.root.kind),
+    holdsSites: written.length > 0,
+    nodes: rows.nodes,
+    sites: written.flatMap((node): readonly SiteOf[] =>
+      valueAt(listed, node, "href").pipe(
+        Option.flatMap((href) => entryPathOf(resolve(node.start, href))),
+        Option.map((resolved) => ({ path: resolved, start: node.start })),
+        Option.toArray,
+      ),
+    ),
+  };
+};
+
+/**
+ * One site that names a listed document: the document's path, and the site's fold under its
+ * including document's present context, with that document's path, where the fold's own nearest
+ * lies.
+ */
+interface Reach {
+  readonly folded: Folded;
+  readonly from: string;
+  readonly target: string;
+}
+
+/**
+ * Judge a document under the sites that name it, in listing order: its ancestry the union of
+ * theirs, and its nearest interaction the first one a site stands in, else its own document node.
+ * A document no site names is judged as it stands, its own context.
+ *
+ * @param reaches - The sites that name it, in listing order.
+ * @returns Its context.
+ */
+const contextUnder = (reaches: readonly Reach[]): DocumentContext => {
+  const ancestry = new Set(reaches.flatMap(({ folded }) => [...folded.ancestry]));
+
+  return Option.match(
+    Arr.findFirst(reaches, ({ folded }) => folded.nearestKind !== "document"),
+    {
+      onNone: () => ({ ...ownContext, ancestry }),
+      onSome: ({ folded: { nearest, nearestKind, nearestPath }, from }) => ({
+        ancestry,
+        nearest,
+        nearestKind,
+        nearestPath: Option.orElseSome(nearestPath, () => from),
+      }),
+    },
+  );
+};
+
+/**
+ * Take one step of the fixpoint: each document's context under every site's, read through its
+ * including document's present context. Only a document that holds a site is folded: no other
+ * document's fold reaches a context.
+ *
+ * @param judging - The documents, each with its present context.
+ * @param named - The paths of the documents a site may name.
+ * @returns The documents, in the same order, each with its next context.
+ */
+const stepOf = <L extends Listed>(
+  judging: readonly Judging<L>[],
+  named: ReadonlySet<string>,
+): readonly Judging<L>[] => {
+  const reached = Map.groupBy(
+    judging.flatMap(({ context, listed, read: { nodes, sites } }): readonly Reach[] => {
+      if (sites.length === 0) {
+        return [];
+      }
+
+      const folds = foldOf(nodes, context);
+
+      return sites.flatMap(({ path, start }) =>
+        named.has(path) ? [{ folded: foldAt(folds, start), from: listed.path, target: path }] : [],
+      );
+    }),
+    ({ target }) => target,
+  );
+
+  return judging.map(({ listed, read }) => ({
+    context: contextUnder(reached.get(listed.path) ?? []),
+    listed,
+    read,
+  }));
+};
+
+/**
+ * Decide whether two contexts of one document, at two steps of the fixpoint, agree.
+ *
+ * An ancestry only grows from one step to the next: the walk starts from none, and each step's is
+ * the union of its sites' folds, each the including document's present ancestry with the flags
+ * its path enters (`foldOf`). So the later ancestry is the earlier one exactly where it holds no
+ * flag the earlier lacks.
+ *
+ * @param was - The earlier context.
+ * @param next - The later context.
+ * @returns Whether they agree.
+ */
+const settledOn = (was: DocumentContext, next: DocumentContext): boolean =>
+  Equal.equals(was.nearestPath, next.nearestPath) &&
+  was.nearest === next.nearest &&
+  was.nearestKind === next.nearestKind &&
+  [...next.ancestry].every((flag) => was.ancestry.has(flag));
+
+/**
+ * Judge every listed document: its context, and whether it is in an assembly and a site names it.
+ *
+ * @param documents - The package's documents, one per path, each with its rows and whether a site
+ *   may name it.
+ * @returns Each document as judged, in the order given.
+ */
+export const contextsOf = <L extends Listed>(documents: readonly L[]): readonly Judged<L>[] => {
+  let judging: readonly Judging<L>[] = documents.map((listed) => ({
+    context: ownContext,
+    listed,
+    read: readOf(listed),
+  }));
+  const named: ReadonlySet<string> = new Set(
+    documents.flatMap(({ named: nameable, path }) => (nameable ? [path] : [])),
+  );
+  const targeted: ReadonlySet<string> = new Set(
+    judging.flatMap(({ read: { sites } }) =>
+      sites.flatMap(({ path }) => (named.has(path) ? [path] : [])),
+    ),
+  );
+  for (let round = 0; round <= documents.length; round += 1) {
+    const next = stepOf(judging, named);
+    const settled = Arr.zip(judging, next).every(([was, now]) =>
+      settledOn(was.context, now.context),
+    );
+    judging = next;
+    if (settled) {
+      break;
+    }
+  }
+
+  return judging.map(({ context, listed, read: { assembledRoot, holdsSites } }) => {
+    const isTarget = targeted.has(listed.path);
+
+    return {
+      assembled: assembledRoot || holdsSites || isTarget,
+      context,
+      listed,
+      targeted: isTarget,
+    };
+  });
+};

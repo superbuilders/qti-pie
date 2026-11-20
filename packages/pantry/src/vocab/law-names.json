@@ -1,0 +1,3121 @@
+{
+  "laws": {
+    "__arity_floor_in_operand_of_yxohqbjpyp": {
+      "name": "Arity"
+    },
+    "__assembled_catalog_in_assembled_id_ivonwnq5f5": {
+      "name": "E1 derived"
+    },
+    "__assembled_catalog_in_catalog_id_pkcxplbjvp": {
+      "name": "E1 derived"
+    },
+    "__assembled_catalog_pattern_assembly_moo7ovpqom": {
+      "name": "Key text bound"
+    },
+    "__assembled_catalog_pattern_id_hbojdqdxyo": {
+      "name": "Key text bound"
+    },
+    "__assembled_catalog_pattern_package_a2aijujd3z": {
+      "name": "Package key"
+    },
+    "__assembled_catalog_pattern_path_ii3gnfxhbt": {
+      "name": "Key text bound"
+    },
+    "__assembled_catalog_pk_package_assembly_id_2c57ur565e": {
+      "name": "E1 derived"
+    },
+    "__assembled_id_key_package_assembly_id_h7yihj3jm7": {
+      "name": "DocumentId key"
+    },
+    "__attribute_counted_node_attributes_jnevnray3y": {
+      "name": "AL2 count"
+    },
+    "__attribute_entity_in_attribute_xus2kz3cnl": {
+      "name": "AttributeEntity owner"
+    },
+    "__attribute_entity_pattern_entity_7qeygpwa25": {
+      "name": "XML production"
+    },
+    "__attribute_entity_pattern_package_u3mrkmm7yd": {
+      "name": "Package key"
+    },
+    "__attribute_entity_pattern_path_7gv7esfpv7": {
+      "name": "Key text bound"
+    },
+    "__attribute_entity_pk_package_path_start_name_offset_7s2twze3wm": {
+      "name": "AttributeEntity owner"
+    },
+    "__attribute_generated_value_7qfweuvpne": {
+      "name": "E1 derived"
+    },
+    "__attribute_governor_kind_name_in_document_id_lmu54qqwpj": {
+      "name": "DocumentId key"
+    },
+    "__attribute_governor_kind_name_key_package_path_sndxvcskub": {
+      "name": "DocumentId key"
+    },
+    "__attribute_idrefs_concat_fold_d66zshsklo": {
+      "name": "E1 derived"
+    },
+    "__attribute_in_node_j2uryilw2c": {
+      "name": "AL1 owner"
+    },
+    "__attribute_kind_kind_lexical_name_kind_name_in_fuaz5xf3vy": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_lexical_name_in_attribute_xmjepaik2d": {
+      "name": "Track srclang"
+    },
+    "__attribute_kind_name_in_attribute_bl3ci5mi7j": {
+      "name": "Value cardinality"
+    },
+    "__attribute_kind_name_in_attribute_qnrmfjd43t": {
+      "name": "Value cardinality"
+    },
+    "__attribute_kind_name_in_catalog_id_d64t74uel4": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_name_in_cell_headers_pnkww5badh": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_name_in_interaction_attribute_mevnjzfo4y": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_name_in_item_ref_href_wqrekx4ivr": {
+      "name": "Item ref target"
+    },
+    "__attribute_kind_name_in_label_use_m4grwg4eac": {
+      "name": "Label tools"
+    },
+    "__attribute_kind_name_in_lookup_value_dciklip7pu": {
+      "name": "Mapping overlay"
+    },
+    "__attribute_kind_name_in_map_key_p73i4u5w54": {
+      "name": "Mapping overlay"
+    },
+    "__attribute_kind_name_in_mastery_value_e46z5g224t": {
+      "name": "Declaration overlay"
+    },
+    "__attribute_kind_name_in_math_action_jlaqkaygaj": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_name_in_normal_maximum_jcby65d6a4": {
+      "name": "Declaration overlay"
+    },
+    "__attribute_kind_name_in_normal_minimum_ecdyfqzxmh": {
+      "name": "Declaration overlay"
+    },
+    "__attribute_kind_name_in_pci_module_form_jdlktmiz5c": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_name_in_reference_j5lu55wo36": {
+      "name": "Reference overlay"
+    },
+    "__attribute_kind_name_in_rounding_figures_yuqckeee2f": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_name_in_srcset_n4ghjkos6o": {
+      "name": "Reference overlay"
+    },
+    "__attribute_kind_name_in_ssml_scope_rzd2hrimbv": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_name_in_stimulus_ref_vcus2azu2f": {
+      "name": "Test overlay"
+    },
+    "__attribute_kind_name_in_table_header_p6vdjyioud": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_name_in_tolerance_cimslfbdri": {
+      "name": "E1 derived"
+    },
+    "__attribute_kind_name_key_package_path_o5qmn2aitd": {
+      "name": "Label tools"
+    },
+    "__attribute_kind_name_key_package_path_start_xla4sou42y": {
+      "name": "DocumentId key"
+    },
+    "__attribute_kind_name_key_package_path_vmgjn7j3u4": {
+      "name": "Label tools"
+    },
+    "__attribute_kind_name_path_in_file_3ygu2v2ddg": {
+      "name": "Manifest overlay"
+    },
+    "__attribute_kind_name_path_in_resource_href_2b6mrnxnym": {
+      "name": "Manifest overlay"
+    },
+    "__attribute_lexical_kind_name_in_tolerance_7ytikn6vl4": {
+      "name": "Equal tolerance"
+    },
+    "__attribute_name_in_catalog_scope_gpvf4qf6qp": {
+      "name": "E1 derived"
+    },
+    "__attribute_name_in_data_ssml_mwwzgqeh64": {
+      "name": "Data SSML"
+    },
+    "__attribute_name_kind_in_cn_attribute_2rj7gcpmrl": {
+      "name": "E1 derived"
+    },
+    "__attribute_name_kind_in_document_5ejc4lt4vu": {
+      "name": "Bank shape"
+    },
+    "__attribute_pattern_idref_text_k7tfb3bied": {
+      "name": "Key text bound"
+    },
+    "__attribute_pattern_lexical_adp2pghvec": {
+      "name": "XML production"
+    },
+    "__attribute_pattern_package_7tqdnufphe": {
+      "name": "Package key"
+    },
+    "__attribute_pattern_path_ptnzmldo2b": {
+      "name": "Key text bound"
+    },
+    "__attribute_pattern_prefix_uvpeb3vo5l": {
+      "name": "Key text bound"
+    },
+    "__attribute_pattern_value_ef72mnofqu": {
+      "name": "XML production"
+    },
+    "__attribute_pk_package_path_start_name_5u36wumhan": {
+      "name": "AL2 distinct"
+    },
+    "__bank_member_in_object_identifier_qlfkzrp3uc": {
+      "name": "Item ref identifier"
+    },
+    "__bank_naming_in_named_z2vr7sohxl": {
+      "name": "Test overlay"
+    },
+    "__bank_section_key_package_identifier_sb6nirnm72": {
+      "name": "Bank key"
+    },
+    "__binding_base_type_node_in_binding_fit_tdnmip47re": {
+      "name": "BindingFit"
+    },
+    "__binding_cardinality_node_in_count_bound_fb62z5tftb": {
+      "name": "Max strings required"
+    },
+    "__binding_cardinality_node_in_record_binding_fit_twablefayp": {
+      "name": "RecordBindingFit"
+    },
+    "__binding_name_counted_document_bindings_sluukxk2o2": {
+      "name": "E1 derived"
+    },
+    "__binding_name_in_interaction_attribute_iypd6bpdd7": {
+      "name": "E1 derived"
+    },
+    "__binding_name_pattern_identifier_zujbuwqg2m": {
+      "name": "Key text bound"
+    },
+    "__binding_name_pattern_package_eu4a2unlkt": {
+      "name": "Package key"
+    },
+    "__binding_name_pattern_path_vdazd5yvcq": {
+      "name": "Key text bound"
+    },
+    "__binding_name_pk_package_path_start_attribute_korx27wukh": {
+      "name": "E1 derived"
+    },
+    "__bound_variable_adaptive_attribute_in_node_h2gud6flur": {
+      "name": "Adaptive feedback"
+    },
+    "__bound_variable_in_interaction_attribute_gd6y3wirfx": {
+      "name": "E1 derived"
+    },
+    "__bound_variable_in_item_mode_ypv7eokcvm": {
+      "name": "E1 derived"
+    },
+    "__bound_variable_in_named_declaration_bbqw4cvfcx": {
+      "name": "Binding declared"
+    },
+    "__bound_variable_key_package_path_identifier_yvfj26gl3g": {
+      "name": "Binding unique"
+    },
+    "__bound_variable_pattern_identifier_42t5yzmphw": {
+      "name": "Key text bound"
+    },
+    "__bound_variable_pattern_package_wwj7zuga3d": {
+      "name": "Package key"
+    },
+    "__bound_variable_pattern_path_4fpvn5qwi2": {
+      "name": "Key text bound"
+    },
+    "__bound_variable_pk_package_path_start_attribute_5mkrl2nqtg": {
+      "name": "E1 derived"
+    },
+    "__candidate_path_in_entry_w6nnnmywvh": {
+      "name": "File exists"
+    },
+    "__candidate_path_in_srcset_candidate_5uy5h4wuts": {
+      "name": "Reference overlay"
+    },
+    "__candidate_path_pattern_package_2gvdbhzq5m": {
+      "name": "Package key"
+    },
+    "__candidate_path_pattern_path_uct5q27q2h": {
+      "name": "Key text bound"
+    },
+    "__candidate_path_pattern_target_xtlcapeycx": {
+      "name": "Key text bound"
+    },
+    "__candidate_path_pk_package_path_start_at_xvpk377q3e": {
+      "name": "Reference overlay"
+    },
+    "__card_default_key_package_path_card_ic76bghst3": {
+      "name": "Card default entry"
+    },
+    "__catalog_id_in_attribute_vud4l3gpbd": {
+      "name": "E1 derived"
+    },
+    "__catalog_id_in_id_value_zpwjirwljk": {
+      "name": "E1 derived"
+    },
+    "__catalog_id_key_package_path_id_iwvbesvrpr": {
+      "name": "DocumentId key"
+    },
+    "__catalog_id_pattern_id_bsyuszc4h7": {
+      "name": "Key text bound"
+    },
+    "__catalog_id_pattern_package_w6iqvpeaiy": {
+      "name": "Package key"
+    },
+    "__catalog_id_pattern_path_eizcfuztes": {
+      "name": "Key text bound"
+    },
+    "__catalog_id_pk_package_path_start_h4wzj6l6zj": {
+      "name": "E1 derived"
+    },
+    "__catalog_scope_in_node_5hxfspvvtw": {
+      "name": "E1 derived"
+    },
+    "__catalog_scope_node_in_catalog_scope_r2v2hlsyeo": {
+      "name": "E1 derived"
+    },
+    "__catalog_scope_pattern_package_iel4rucv3i": {
+      "name": "Package key"
+    },
+    "__catalog_scope_pattern_path_d66si7mzpn": {
+      "name": "Key text bound"
+    },
+    "__catalog_scope_pk_package_path_start_rrxfqmirpx": {
+      "name": "E1 derived"
+    },
+    "__catalog_support_key_package_path_catalog_support_q3tmtt4p2l": {
+      "name": "Card support"
+    },
+    "__cell_child_in_math_align_scope_flsu3ntwr3": {
+      "name": "E1 derived"
+    },
+    "__cell_headers_in_attribute_yjp74nvmmo": {
+      "name": "E1 derived"
+    },
+    "__cell_headers_in_table_scope_twb5qchv6g": {
+      "name": "E1 derived"
+    },
+    "__cell_headers_pattern_package_r42p62rj2a": {
+      "name": "Package key"
+    },
+    "__cell_headers_pattern_path_fyaa3w47cc": {
+      "name": "Key text bound"
+    },
+    "__cell_headers_pattern_token_text_lxwrwkddjv": {
+      "name": "Key text bound"
+    },
+    "__cell_headers_pk_package_path_start_cdmjlbqitp": {
+      "name": "E1 derived"
+    },
+    "__cell_headers_tokens_concat_fold_leahp4a7ad": {
+      "name": "E1 derived"
+    },
+    "__cell_leaf_in_math_align_scope_knh3z7ifv5": {
+      "name": "E1 derived"
+    },
+    "__cell_leaf_in_scope_node_d2nhepnynr": {
+      "name": "E1 derived"
+    },
+    "__cell_leaf_key_package_path_start_vm3eeh6rpn": {
+      "name": "E1 derived"
+    },
+    "__cell_leaf_ordered_math_cell_leaves_yjcjvr4hdp": {
+      "name": "E1 derived"
+    },
+    "__cell_leaf_pattern_package_v3m3zqzg7s": {
+      "name": "Package key"
+    },
+    "__cell_leaf_pattern_path_7uw7uaatt2": {
+      "name": "Key text bound"
+    },
+    "__cell_leaf_pk_package_path_cell_at_bpqossnh7h": {
+      "name": "E1 derived"
+    },
+    "__cell_token_in_tabled_header_xvmoeeg5ep": {
+      "name": "Table headers"
+    },
+    "__choice_counted_document_choices_ozqj7qlh2h": {
+      "name": "E1 derived"
+    },
+    "__choice_in_choice_interaction_mxdrauk5ci": {
+      "name": "N8 nearest"
+    },
+    "__choice_interaction_counted_interaction_choices_4jrxvrx3jf": {
+      "name": "N8 nearest"
+    },
+    "__choice_interaction_in_choice_node_4n7pnxbqrb": {
+      "name": "N8 nearest"
+    },
+    "__choice_interaction_interaction_path_path_in_2evpggrrgw": {
+      "name": "N8 nearest"
+    },
+    "__choice_interaction_pattern_interaction_path_abucyzgxbi": {
+      "name": "Key text bound"
+    },
+    "__choice_interaction_pattern_package_lebxwewbsj": {
+      "name": "Package key"
+    },
+    "__choice_interaction_pattern_path_zygvylmpwi": {
+      "name": "Key text bound"
+    },
+    "__choice_interaction_pk_package_path_start_acqvahqkgz": {
+      "name": "E1 derived"
+    },
+    "__choice_node_in_count_bound_vkb53rtjaa": {
+      "name": "E1 derived"
+    },
+    "__choice_node_key_package_path_kind_identifier_uwrgueqcdt": {
+      "name": "Choice identifier key"
+    },
+    "__choice_or_hottext_in_unclaimed_name_sl45esjqpz": {
+      "name": "Choice not variable"
+    },
+    "__choice_or_hottext_key_package_path_identifier_wznt5hzw6m": {
+      "name": "Choice identifier key"
+    },
+    "__choice_pattern_identifier_evc7gu4emf": {
+      "name": "Key text bound"
+    },
+    "__choice_pattern_package_m4vzcxyitj": {
+      "name": "Package key"
+    },
+    "__choice_pattern_path_e4dglemel7": {
+      "name": "Key text bound"
+    },
+    "__choice_pk_package_path_start_ynonnosqlf": {
+      "name": "E1 derived"
+    },
+    "__cn_attribute_in_attribute_febwmpibnb": {
+      "name": "E1 derived"
+    },
+    "__cn_attribute_pattern_lexical_iypaa72zra": {
+      "name": "Key text bound"
+    },
+    "__cn_attribute_pattern_package_jxu4rufur2": {
+      "name": "Package key"
+    },
+    "__cn_attribute_pattern_path_5bxc3m4l6o": {
+      "name": "Key text bound"
+    },
+    "__cn_attribute_pk_package_path_start_name_h5thbtcznd": {
+      "name": "E1 derived"
+    },
+    "__cn_count_in_cn_parts_ohtpoxcpz2": {
+      "name": "MathML cn form"
+    },
+    "__cn_count_in_node_tb3xkvsh6h": {
+      "name": "E1 derived"
+    },
+    "__cn_count_pattern_package_ujz34oly5d": {
+      "name": "Package key"
+    },
+    "__cn_count_pattern_path_ljmyke37i7": {
+      "name": "Key text bound"
+    },
+    "__cn_count_pattern_type_lexical_azfuikt36v": {
+      "name": "Key text bound"
+    },
+    "__cn_count_pk_package_path_start_tjsmgcwonj": {
+      "name": "E1 derived"
+    },
+    "__cn_count_type_lexical_in_cn_attribute_hhvutff7je": {
+      "name": "E1 derived"
+    },
+    "__cn_part_text_counted_math_cn_parts_63kajnhuxj": {
+      "name": "E1 derived"
+    },
+    "__cn_part_text_in_cn_form_ykfpxq55bv": {
+      "name": "MathML cn form"
+    },
+    "__cn_part_text_in_math_cn_6l5n3a65u5": {
+      "name": "E1 derived"
+    },
+    "__cn_part_text_pattern_package_jmhzpgvpic": {
+      "name": "Package key"
+    },
+    "__cn_part_text_pattern_path_ruxfkd7kgs": {
+      "name": "Key text bound"
+    },
+    "__cn_part_text_pattern_text_depkpx6ibz": {
+      "name": "Key text bound"
+    },
+    "__cn_part_text_pk_package_path_start_part_hupfrcq2hd": {
+      "name": "E1 derived"
+    },
+    "__cn_slot_counted_cn_count_parts_rxew2rj3mb": {
+      "name": "E1 derived"
+    },
+    "__cn_slot_in_cn_count_vuradqfp7f": {
+      "name": "E1 derived"
+    },
+    "__cn_slot_in_cn_form_3ylpnwit2v": {
+      "name": "MathML cn form"
+    },
+    "__cn_slot_pattern_package_zcx7t7pku4": {
+      "name": "Package key"
+    },
+    "__cn_slot_pattern_path_qovdpl6hly": {
+      "name": "Key text bound"
+    },
+    "__cn_slot_pk_package_path_start_part_spxc3s2nac": {
+      "name": "E1 derived"
+    },
+    "__comment_in_node_darh3wj57u": {
+      "name": "comment arm"
+    },
+    "__comment_pattern_package_dskc3by34f": {
+      "name": "Package key"
+    },
+    "__comment_pattern_path_j3peenx5fs": {
+      "name": "Key text bound"
+    },
+    "__comment_pattern_value_hd5oqc2o7e": {
+      "name": "XML production"
+    },
+    "__comment_pk_package_path_start_jxpgngmfc7": {
+      "name": "comment arm"
+    },
+    "__context_ref_in_referable_name_taqjmn7bfk": {
+      "name": "Context variable reference"
+    },
+    "__context_ref_pattern_identifier_ctat6yb66h": {
+      "name": "Key text bound"
+    },
+    "__context_ref_pattern_package_3yhcjvdobj": {
+      "name": "Package key"
+    },
+    "__context_ref_pattern_path_ducpmikgnk": {
+      "name": "Key text bound"
+    },
+    "__context_ref_pk_package_path_start_attribute_7tqvz5mf3k": {
+      "name": "E1 derived"
+    },
+    "__count_bound_in_node_npvnfeiqom": {
+      "name": "E1 derived"
+    },
+    "__count_bound_max_written_in_interaction_attribute_3twfcte6xi": {
+      "name": "E1 derived"
+    },
+    "__count_bound_min_written_in_interaction_attribute_gzysuuxcst": {
+      "name": "E1 derived"
+    },
+    "__count_bound_node_in_least_count_mv6qvekmmv": {
+      "name": "E1 derived"
+    },
+    "__count_bound_node_in_most_count_6mxnbrhcq4": {
+      "name": "E1 derived"
+    },
+    "__count_bound_pattern_package_lj6b2odkzz": {
+      "name": "Package key"
+    },
+    "__count_bound_pattern_path_ddypjehq3x": {
+      "name": "Key text bound"
+    },
+    "__count_bound_pk_package_path_start_xg676dyz6d": {
+      "name": "E1 derived"
+    },
+    "__data_ssml_in_attribute_cdmsk653cw": {
+      "name": "E1 derived"
+    },
+    "__data_ssml_member_in_data_ssml_6pt3biar2a": {
+      "name": "E1 derived"
+    },
+    "__data_ssml_member_pattern_member_cscdiod4ry": {
+      "name": "Key text bound"
+    },
+    "__data_ssml_member_pattern_package_h2bmogdupq": {
+      "name": "Package key"
+    },
+    "__data_ssml_member_pattern_path_a6scy7mtjd": {
+      "name": "Key text bound"
+    },
+    "__data_ssml_member_pk_package_path_start_at_s4oqeljjjr": {
+      "name": "E1 derived"
+    },
+    "__data_ssml_pattern_package_slxqhd7f5z": {
+      "name": "Package key"
+    },
+    "__data_ssml_pattern_path_mnqind5a4m": {
+      "name": "Key text bound"
+    },
+    "__data_ssml_pk_package_path_start_373br7pwbz": {
+      "name": "E1 derived"
+    },
+    "__data_ssml_property_in_data_ssml_member_eewrukjsyc": {
+      "name": "E1 derived"
+    },
+    "__data_ssml_property_pattern_member_name_rfvxaj5ymk": {
+      "name": "Key text bound"
+    },
+    "__data_ssml_property_pattern_name_kw26cb7mlp": {
+      "name": "Key text bound"
+    },
+    "__data_ssml_property_pattern_package_u7jic65266": {
+      "name": "Package key"
+    },
+    "__data_ssml_property_pattern_path_ytsx73jtjn": {
+      "name": "Key text bound"
+    },
+    "__data_ssml_property_pattern_value_44ao2ircfx": {
+      "name": "Key text bound"
+    },
+    "__data_ssml_property_pk_package_path_start_member_at_j2aqsmbocr": {
+      "name": "E1 derived"
+    },
+    "__declaration_cardinality_in_attribute_spr5azyd4b": {
+      "name": "Declaration base type"
+    },
+    "__dependency_in_dependency_resolved_rqfjuv4mwa": {
+      "name": "Dependency target"
+    },
+    "__described_assembled_lang_in_listed_lang_dwhbhmcta6": {
+      "name": "Document lang"
+    },
+    "__described_lang_in_listed_lang_atvlgqj6pb": {
+      "name": "Document lang"
+    },
+    "__doctype_in_node_2izv7jrx44": {
+      "name": "doctype arm"
+    },
+    "__doctype_pattern_package_xkihhycng7": {
+      "name": "Package key"
+    },
+    "__doctype_pattern_path_2rs2y6zrvc": {
+      "name": "Key text bound"
+    },
+    "__doctype_pattern_value_puvi2giydd": {
+      "name": "XML production"
+    },
+    "__doctype_pk_package_path_start_nlih25yniy": {
+      "name": "doctype arm"
+    },
+    "__document_assembled_in_test_document_hy2ajq7hom": {
+      "name": "Test overlay"
+    },
+    "__document_document_type_in_resource_document_c7w6xzlkzh": {
+      "name": "E1 derived"
+    },
+    "__document_id_admitted_in_node_b76sqxy5p5": {
+      "name": "E1 derived"
+    },
+    "__document_id_admitted_in_node_wa2r2dyckz": {
+      "name": "E1 derived"
+    },
+    "__document_id_counted_document_ids_bhqgzrk6ri": {
+      "name": "E1 derived"
+    },
+    "__document_id_owner_start_in_attribute_ilukblvcoo": {
+      "name": "DocumentId key"
+    },
+    "__document_id_owner_start_in_node_gl5rh23huk": {
+      "name": "DocumentId key"
+    },
+    "__document_id_pattern_package_vqu2gjujcf": {
+      "name": "Package key"
+    },
+    "__document_id_pattern_path_xt5flpupve": {
+      "name": "Key text bound"
+    },
+    "__document_id_pk_package_path_start_djuvbaukth": {
+      "name": "DocumentId key"
+    },
+    "__document_in_entry_oltf6vd6hb": {
+      "name": "Entry kind"
+    },
+    "__document_in_node_4otftyjzta": {
+      "name": "Document"
+    },
+    "__document_in_node_wvp4a2waqj": {
+      "name": "E1 derived"
+    },
+    "__document_pattern_charset_jjk3iiiwcy": {
+      "name": "XML production"
+    },
+    "__document_pattern_context_path_7whjpxaqrb": {
+      "name": "Key text bound"
+    },
+    "__document_pattern_export_charset_2sm3pwbfjq": {
+      "name": "XML production"
+    },
+    "__document_pattern_package_z4vfi54r3j": {
+      "name": "Package key"
+    },
+    "__document_pattern_path_lxn56lvvlh": {
+      "name": "Key text bound"
+    },
+    "__document_pk_package_path_azx3ngcizk": {
+      "name": "Document"
+    },
+    "__document_root_kind_in_test_document_jixdzzqql2": {
+      "name": "Test overlay"
+    },
+    "__document_targeted_by_or_fold_q6g4eocaf6": {
+      "name": "E1 derived"
+    },
+    "__element_type_in_node_nzqulewi22": {
+      "name": "E1 derived"
+    },
+    "__element_type_in_xsi_type_yugxyrna57": {
+      "name": "XsiType derived"
+    },
+    "__element_type_pattern_package_itbtkzyice": {
+      "name": "Package key"
+    },
+    "__element_type_pattern_path_l6w4lwn3tr": {
+      "name": "Key text bound"
+    },
+    "__element_type_pk_package_path_start_fcs7rh7mao": {
+      "name": "E1 derived"
+    },
+    "__encoding_decl_in_xml_decl_ol4hkrd5rv": {
+      "name": "Document"
+    },
+    "__encoding_decl_pattern_encoding_25xjqibsih": {
+      "name": "XML production"
+    },
+    "__encoding_decl_pattern_package_62wlephvil": {
+      "name": "Package key"
+    },
+    "__encoding_decl_pattern_path_sehlsgkwei": {
+      "name": "Key text bound"
+    },
+    "__encoding_decl_pk_package_path_upc7qfr3r3": {
+      "name": "Document"
+    },
+    "__entry_in_entry_file_target_yzy63ipc2d": {
+      "name": "File listed"
+    },
+    "__entry_in_package_cu7p2dcmc3": {
+      "name": "Entry family"
+    },
+    "__entry_kind_in_document_kp5vmjbn3r": {
+      "name": "Entry kind"
+    },
+    "__entry_kind_in_media_bbq77rlhbs": {
+      "name": "Entry kind"
+    },
+    "__entry_pattern_package_flxuvnu4ed": {
+      "name": "Package key"
+    },
+    "__entry_pattern_path_pdh5gf62d6": {
+      "name": "Key text bound"
+    },
+    "__entry_pk_package_path_nhtkwax6pb": {
+      "name": "Entry family"
+    },
+    "__expression_attribute_in_expression_7hrzpduaoj": {
+      "name": "E1 derived"
+    },
+    "__expression_generated_base_type_bit_yurtb2zkm7": {
+      "name": "E1 derived"
+    },
+    "__expression_generated_cardinality_bit_t3atzvwbe4": {
+      "name": "E1 derived"
+    },
+    "__expression_in_node_szmcbylsjb": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_expression_thgllqxmly": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_literal_typed_t2jpandweg": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_operand_of_j7hw6tyrmn": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_operand_of_n2dhqovcwx": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_operand_of_o5u742js2j": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_operand_of_rqv5m6l4mw": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_operand_of_tz6dk73to3": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_processing_n5cdxrnqxj": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_result_base_36zigshxbu": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_result_cardinality_e7yej4o3ti": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_unknown_operand_base_bi445b3zea": {
+      "name": "E1 derived"
+    },
+    "__expression_node_in_unknown_tail_base_rx6auv2tpb": {
+      "name": "E1 derived"
+    },
+    "__expression_pattern_package_sj73ra6ap3": {
+      "name": "Package key"
+    },
+    "__expression_pattern_path_s5ublkypmq": {
+      "name": "Key text bound"
+    },
+    "__expression_pk_package_path_start_echelh6and": {
+      "name": "E1 derived"
+    },
+    "__feedback_ref_in_referable_name_ywbbkpbqan": {
+      "name": "Feedback reference"
+    },
+    "__feedback_ref_pattern_identifier_gxv27n6d4n": {
+      "name": "Key text bound"
+    },
+    "__feedback_ref_pattern_package_ypmiaqc4gi": {
+      "name": "Package key"
+    },
+    "__feedback_ref_pattern_path_6gtp57mng4": {
+      "name": "Key text bound"
+    },
+    "__feedback_ref_pk_package_path_start_attribute_lhyyomdwaa": {
+      "name": "E1 derived"
+    },
+    "__file_in_node_prb7f4hze4": {
+      "name": "Manifest overlay"
+    },
+    "__file_pattern_package_7n6cdz4lck": {
+      "name": "Package key"
+    },
+    "__file_pattern_path_xrkuvc4svk": {
+      "name": "Key text bound"
+    },
+    "__file_pattern_target_qdheqas6d3": {
+      "name": "Key text bound"
+    },
+    "__file_pk_package_path_start_4dtmc7i6xr": {
+      "name": "Manifest overlay"
+    },
+    "__file_scope_in_entry_gsnwdqo6bw": {
+      "name": "File exists"
+    },
+    "__forbidden_resource_type_in_other_vocabulary_type_r6ld7jzq3f": {
+      "name": "LOM learning resource type"
+    },
+    "__fragment_context_name_counted_referring_document_cmjkesk65v": {
+      "name": "E1 derived"
+    },
+    "__fragment_context_name_pattern_identifier_f7p3ewktk4": {
+      "name": "Key text bound"
+    },
+    "__fragment_context_name_pattern_package_fsha4t5wqe": {
+      "name": "Package key"
+    },
+    "__fragment_context_name_pattern_path_ro34wgnimm": {
+      "name": "Key text bound"
+    },
+    "__fragment_context_name_pk_package_path_start_jjy6az67ki": {
+      "name": "E1 derived"
+    },
+    "__fragment_context_ref_counted_fragment_scope_vno6bgypjv": {
+      "name": "E1 derived"
+    },
+    "__fragment_context_ref_in_fragment_context_name_pwl6krlx2f": {
+      "name": "Context variable reference"
+    },
+    "__fragment_context_ref_in_fragment_scope_mth4cymi6f": {
+      "name": "E1 derived"
+    },
+    "__fragment_context_ref_in_referable_name_p5h2orsnaa": {
+      "name": "Context variable reference"
+    },
+    "__fragment_context_ref_pattern_assembly_7pbx57dowa": {
+      "name": "Key text bound"
+    },
+    "__fragment_context_ref_pattern_identifier_47im5v5wwt": {
+      "name": "Key text bound"
+    },
+    "__fragment_context_ref_pattern_package_rybtoyvzbx": {
+      "name": "Package key"
+    },
+    "__fragment_context_ref_pattern_path_hncfs2kk42": {
+      "name": "Key text bound"
+    },
+    "__fragment_context_ref_pk_package_assembly_instance_4ha7zwpmcl": {
+      "name": "E1 derived"
+    },
+    "__fragment_feedback_name_counted_referring_document_qaf65rhwqn": {
+      "name": "E1 derived"
+    },
+    "__fragment_feedback_name_pattern_identifier_zx57byc6o6": {
+      "name": "Key text bound"
+    },
+    "__fragment_feedback_name_pattern_package_lvsic4sqom": {
+      "name": "Package key"
+    },
+    "__fragment_feedback_name_pattern_path_sxqjgai2ma": {
+      "name": "Key text bound"
+    },
+    "__fragment_feedback_name_pk_package_path_start_nctw2s2qy2": {
+      "name": "E1 derived"
+    },
+    "__fragment_feedback_ref_counted_fragment_scope_di7o4xtwur": {
+      "name": "E1 derived"
+    },
+    "__fragment_feedback_ref_in_fragment_feedback_name_xl3h4ncsdr": {
+      "name": "Feedback reference"
+    },
+    "__fragment_feedback_ref_in_fragment_scope_qmukjyz52t": {
+      "name": "E1 derived"
+    },
+    "__fragment_feedback_ref_in_referable_name_ckx6b6f567": {
+      "name": "Feedback reference"
+    },
+    "__fragment_feedback_ref_pattern_assembly_7ttd5jlrvq": {
+      "name": "Key text bound"
+    },
+    "__fragment_feedback_ref_pattern_identifier_feqbp7gs6b": {
+      "name": "Key text bound"
+    },
+    "__fragment_feedback_ref_pattern_package_zgx3sfm4hb": {
+      "name": "Package key"
+    },
+    "__fragment_feedback_ref_pattern_path_opi42wkp55": {
+      "name": "Key text bound"
+    },
+    "__fragment_feedback_ref_pk_package_assembly_instance_ldiflxzmbs": {
+      "name": "E1 derived"
+    },
+    "__fragment_printed_name_counted_referring_document_hwjkvn4m6y": {
+      "name": "E1 derived"
+    },
+    "__fragment_printed_name_pattern_identifier_j2jji5scuq": {
+      "name": "Key text bound"
+    },
+    "__fragment_printed_name_pattern_package_oa3tuizhhw": {
+      "name": "Package key"
+    },
+    "__fragment_printed_name_pattern_path_wth3amxo5y": {
+      "name": "Key text bound"
+    },
+    "__fragment_printed_name_pk_package_path_start_lnafbwzcaj": {
+      "name": "E1 derived"
+    },
+    "__fragment_printed_ref_counted_fragment_scope_prints_w4yt2zm5te": {
+      "name": "E1 derived"
+    },
+    "__fragment_printed_ref_in_fragment_printed_name_3fz6kx3ngy": {
+      "name": "Printed variable reference"
+    },
+    "__fragment_printed_ref_in_fragment_scope_xbdi2gzgxx": {
+      "name": "E1 derived"
+    },
+    "__fragment_printed_ref_in_referable_name_nda3a3an35": {
+      "name": "Printed variable reference"
+    },
+    "__fragment_printed_ref_pattern_assembly_ff3fhk4jxq": {
+      "name": "Key text bound"
+    },
+    "__fragment_printed_ref_pattern_identifier_dkhdws5mec": {
+      "name": "Key text bound"
+    },
+    "__fragment_printed_ref_pattern_package_fsgg2pufqn": {
+      "name": "Package key"
+    },
+    "__fragment_printed_ref_pattern_path_j5r4hv4xip": {
+      "name": "Key text bound"
+    },
+    "__fragment_printed_ref_pk_package_assembly_instance_777lj4t33a": {
+      "name": "E1 derived"
+    },
+    "__fragment_scope_in_instance_jma3gms2kd": {
+      "name": "E1 derived"
+    },
+    "__fragment_scope_in_referring_document_atns5dqjb7": {
+      "name": "E1 derived"
+    },
+    "__fragment_scope_pattern_assembly_lzc3vfzbcz": {
+      "name": "Key text bound"
+    },
+    "__fragment_scope_pattern_document_lbyedzuapg": {
+      "name": "Key text bound"
+    },
+    "__fragment_scope_pattern_package_xm3d7usevd": {
+      "name": "Package key"
+    },
+    "__fragment_scope_pk_package_assembly_instance_m7bxl3dvtn": {
+      "name": "E1 derived"
+    },
+    "__fragment_template_name_counted_referring_document_4t3njxuo7r": {
+      "name": "E1 derived"
+    },
+    "__fragment_template_name_pattern_identifier_lch7dg36wi": {
+      "name": "Key text bound"
+    },
+    "__fragment_template_name_pattern_package_q3ihzroxvl": {
+      "name": "Package key"
+    },
+    "__fragment_template_name_pattern_path_qzclksbzfr": {
+      "name": "Key text bound"
+    },
+    "__fragment_template_name_pk_package_path_start_dqrkhyktck": {
+      "name": "E1 derived"
+    },
+    "__fragment_template_ref_counted_fragment_scope_xyc5qui7o4": {
+      "name": "E1 derived"
+    },
+    "__fragment_template_ref_in_fragment_scope_slokcx2gfp": {
+      "name": "E1 derived"
+    },
+    "__fragment_template_ref_in_fragment_template_name_dkn3ewvhw2": {
+      "name": "Template reference"
+    },
+    "__fragment_template_ref_in_referable_name_4zazruj5xq": {
+      "name": "Template reference"
+    },
+    "__fragment_template_ref_pattern_assembly_2fpmfd3g7f": {
+      "name": "Key text bound"
+    },
+    "__fragment_template_ref_pattern_identifier_3g55swlv2v": {
+      "name": "Key text bound"
+    },
+    "__fragment_template_ref_pattern_package_uwlzn5bwrb": {
+      "name": "Package key"
+    },
+    "__fragment_template_ref_pattern_path_l6b2uz52pi": {
+      "name": "Key text bound"
+    },
+    "__fragment_template_ref_pk_package_assembly_instance_ek2i7xdp76": {
+      "name": "E1 derived"
+    },
+    "__head_document_in_instance_ng53u4xpcv": {
+      "name": "Inclusion cycle"
+    },
+    "__head_qualifier_pair_in_head_qualifier_76doyrjyr4": {
+      "name": "MathML head qualifier"
+    },
+    "__header_token_generated_piece_xmybyiem25": {
+      "name": "E1 derived"
+    },
+    "__header_token_key_package_path_start_token_amiigzm3os": {
+      "name": "Table headers"
+    },
+    "__header_token_ordered_cell_headers_tokens_3tzprjqxal": {
+      "name": "E1 derived"
+    },
+    "__header_token_pattern_after_5ifgjlqfth": {
+      "name": "E1 derived"
+    },
+    "__header_token_pattern_before_sbt3sat46r": {
+      "name": "E1 derived"
+    },
+    "__header_token_pattern_package_w6nojecdmh": {
+      "name": "Package key"
+    },
+    "__header_token_pattern_path_wauhwpu6pg": {
+      "name": "Key text bound"
+    },
+    "__header_token_pattern_piece_2avjvjfia4": {
+      "name": "Key text bound"
+    },
+    "__header_token_pattern_pieces_after_l5b6h4uhy5": {
+      "name": "Key text bound"
+    },
+    "__header_token_pattern_pieces_was_2czl62ietn": {
+      "name": "Key text bound"
+    },
+    "__header_token_pattern_token_grixwdtovr": {
+      "name": "Key text bound"
+    },
+    "__header_token_pk_package_path_start_at_mdb2x65phi": {
+      "name": "E1 derived"
+    },
+    "__held_type_in_variable_ref_table_tbl4s4meqp": {
+      "name": "Lookup type"
+    },
+    "__hottext_counted_document_hottexts_hb3mxicikx": {
+      "name": "E1 derived"
+    },
+    "__hottext_in_node_3gt4zxihec": {
+      "name": "E1 derived"
+    },
+    "__hottext_key_package_path_identifier_5unt3r5atg": {
+      "name": "Choice identifier key"
+    },
+    "__hottext_node_in_document_faadyp3fux": {
+      "name": "N8 nearest"
+    },
+    "__hottext_node_in_interaction_node_5dqtpwg54p": {
+      "name": "N8 nearest"
+    },
+    "__hottext_pattern_identifier_76xskr6btq": {
+      "name": "Key text bound"
+    },
+    "__hottext_pattern_package_hypw3s6hsp": {
+      "name": "Package key"
+    },
+    "__hottext_pattern_path_vzawqahea2": {
+      "name": "Key text bound"
+    },
+    "__hottext_pk_package_path_start_brhzrawhw2": {
+      "name": "E1 derived"
+    },
+    "__id_binding_key_package_path_id_nk7kqhopeb": {
+      "name": "DocumentId key"
+    },
+    "__identity_text_in_node_e3gkzxewxs": {
+      "name": "E1 derived"
+    },
+    "__identity_text_pattern_package_23zc22vueo": {
+      "name": "Package key"
+    },
+    "__identity_text_pattern_path_ajnpfgj2a5": {
+      "name": "Key text bound"
+    },
+    "__identity_text_pattern_token_text_hcg672ar3p": {
+      "name": "Key text bound"
+    },
+    "__identity_text_pk_package_path_start_ecfziqaiyh": {
+      "name": "E1 derived"
+    },
+    "__identity_text_tokens_concat_fold_wpia24dnoq": {
+      "name": "E1 derived"
+    },
+    "__idref_generated_piece_wi3csyf5ot": {
+      "name": "E1 derived"
+    },
+    "__idref_in_idref_target_hvsbmcmzso": {
+      "name": "Idref target"
+    },
+    "__idref_ordered_attribute_idrefs_xsyjq3gt23": {
+      "name": "E1 derived"
+    },
+    "__idref_pattern_after_2hc77i4kfc": {
+      "name": "E1 derived"
+    },
+    "__idref_pattern_before_vkazg44bpj": {
+      "name": "E1 derived"
+    },
+    "__idref_pattern_package_w2evb6qwxh": {
+      "name": "Package key"
+    },
+    "__idref_pattern_path_jfx7qgl4ux": {
+      "name": "Key text bound"
+    },
+    "__idref_pattern_piece_vsxmr6wkha": {
+      "name": "Key text bound"
+    },
+    "__idref_pattern_pieces_after_irdxqtzkpj": {
+      "name": "Key text bound"
+    },
+    "__idref_pattern_pieces_was_nbtpbukaew": {
+      "name": "Key text bound"
+    },
+    "__idref_pattern_token_3mwequ6dn3": {
+      "name": "Key text bound"
+    },
+    "__idref_pk_package_path_start_name_at_uthxd6iksm": {
+      "name": "E1 derived"
+    },
+    "__idref_target_counted_document_idref_targets_3snb2qztcs": {
+      "name": "E1 derived"
+    },
+    "__idref_target_in_document_f5hj2zupgf": {
+      "name": "E1 derived"
+    },
+    "__idref_target_in_id_binding_epamdooo3y": {
+      "name": "Idref target"
+    },
+    "__idref_target_pattern_id_xdlyb2ked6": {
+      "name": "Key text bound"
+    },
+    "__idref_target_pattern_package_k5rcuv2aj2": {
+      "name": "Package key"
+    },
+    "__idref_target_pattern_path_c3bamemagt": {
+      "name": "Key text bound"
+    },
+    "__idref_target_pk_package_path_id_bytn7sosua": {
+      "name": "E1 derived"
+    },
+    "__inclusion_in_site_target_ypb5rjvz7a": {
+      "name": "Test overlay"
+    },
+    "__inclusion_pattern_package_agmxd35jjq": {
+      "name": "Package key"
+    },
+    "__inclusion_pattern_path_5pztm4tx7i": {
+      "name": "Key text bound"
+    },
+    "__inclusion_pk_package_path_start_x3matqvuiu": {
+      "name": "Test overlay"
+    },
+    "__instance_assembly_kind_in_document_hs2ffyqj3a": {
+      "name": "E1 derived"
+    },
+    "__instance_counted_test_document_instances_qpi64rjomt": {
+      "name": "Inclusion cycle"
+    },
+    "__instance_in_document_3oxl5j3fol": {
+      "name": "Inclusion cycle"
+    },
+    "__instance_in_document_vfn6vj4am3": {
+      "name": "E1 derived"
+    },
+    "__instance_in_head_document_qyh2wopys2": {
+      "name": "E1 derived"
+    },
+    "__instance_in_test_document_orjdqlzfkb": {
+      "name": "Inclusion cycle"
+    },
+    "__instance_pattern_assembly_4zx2j5pdi3": {
+      "name": "Key text bound"
+    },
+    "__instance_pattern_document_l6ubxndg27": {
+      "name": "Key text bound"
+    },
+    "__instance_pattern_package_pyjfnxtt37": {
+      "name": "Package key"
+    },
+    "__instance_pattern_site_document_3vtvbe3o6h": {
+      "name": "Key text bound"
+    },
+    "__instance_pk_package_assembly_start_uajzqoyk6g": {
+      "name": "Inclusion cycle"
+    },
+    "__instance_root_kind_assembly_kind_in_fragment_scope_yj6seciqpn": {
+      "name": "E1 derived"
+    },
+    "__instance_start_in_instance_3zxwuoyhvf": {
+      "name": "Inclusion cycle"
+    },
+    "__instance_start_in_site_target_sxmrwx3a2t": {
+      "name": "Inclusion cycle"
+    },
+    "__instance_start_key_package_assembly_parent_site_y2xifvkjq5": {
+      "name": "Inclusion cycle"
+    },
+    "__instance_start_key_package_document_6jkwske75k": {
+      "name": "Inclusion cycle"
+    },
+    "__instance_tree_children_indzwze6k3": {
+      "name": "Inclusion cycle"
+    },
+    "__interaction_attribute_generated_value_7b6r3y4lil": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_in_attribute_wlev7la5om": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_in_document_ie4jjx3msx": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_in_least_count_node_mpjcf6ovaw": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_in_most_count_node_5yca5q5cwx": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_name_in_choice_dqxlmwwdgk": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_name_in_count_bound_7t7xa4aboc": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_name_in_count_bound_aejfj7yshz": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_name_in_hottext_kfqeptlbjd": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_name_in_interaction_jzi5educrc": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_name_value_in_binding_gagxizmow2": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_name_value_root_kind_in_dfnwwg26z2": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_name_value_root_kind_in_quxt6yabxe": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_root_kind_value_name_in_2msgw4vi6b": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_root_kind_value_name_in_n2z6ppl7ga": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_value_name_root_kind_in_5rudfj3d5a": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_kind_value_name_root_kind_in_awbm7gw3vs": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_pattern_lexical_7wyw3qkush": {
+      "name": "Key text bound"
+    },
+    "__interaction_attribute_pattern_package_ib7jurcm6c": {
+      "name": "Package key"
+    },
+    "__interaction_attribute_pattern_path_jnywcu4ezw": {
+      "name": "Key text bound"
+    },
+    "__interaction_attribute_pattern_value_b6zjo4p4eg": {
+      "name": "Key text bound"
+    },
+    "__interaction_attribute_pk_package_path_start_name_zmu5bqdlty": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_root_kind_kind_name_value_in_e3ejngrb2m": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_root_kind_value_kind_name_in_oz2vjuaznt": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_value_kind_name_in_item_mode_ide5eyugyd": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_value_kind_name_key_package_tuons6bsml": {
+      "name": "E1 derived"
+    },
+    "__interaction_attribute_value_kind_name_root_kind_in_bkcm3amyhu": {
+      "name": "E1 derived"
+    },
+    "__interaction_in_node_fcv3wbpywg": {
+      "name": "E1 derived"
+    },
+    "__interaction_node_in_count_bound_no6564tiw2": {
+      "name": "E1 derived"
+    },
+    "__interaction_pattern_package_hgqte2hhtb": {
+      "name": "Package key"
+    },
+    "__interaction_pattern_path_bwdpgxevua": {
+      "name": "Key text bound"
+    },
+    "__interaction_pk_package_path_start_jfrorwllk5": {
+      "name": "E1 derived"
+    },
+    "__item_mode_adaptive_in_interaction_attribute_v7luttwuvm": {
+      "name": "E1 derived"
+    },
+    "__item_mode_pattern_package_mli3yv3s2a": {
+      "name": "Package key"
+    },
+    "__item_mode_pattern_path_fpjgblk4j5": {
+      "name": "Key text bound"
+    },
+    "__item_mode_pk_package_path_7qaznzdqug": {
+      "name": "E1 derived"
+    },
+    "__item_ref_document_in_document_g756gazlzk": {
+      "name": "Item ref target"
+    },
+    "__item_ref_document_in_item_ref_target_54v22px5gw": {
+      "name": "Item ref target"
+    },
+    "__item_ref_document_pattern_package_3i6t2ya2gk": {
+      "name": "Package key"
+    },
+    "__item_ref_document_pattern_path_to2q276yjm": {
+      "name": "Key text bound"
+    },
+    "__item_ref_document_pattern_target_tbkx32hxvx": {
+      "name": "Key text bound"
+    },
+    "__item_ref_document_pk_package_path_start_iz235fms6v": {
+      "name": "Test overlay"
+    },
+    "__item_ref_href_in_node_3jqpi5lepx": {
+      "name": "Item ref target"
+    },
+    "__item_ref_href_in_reference_path_bjo2cjns5v": {
+      "name": "Item ref target"
+    },
+    "__item_ref_href_pattern_package_bxmzydehhn": {
+      "name": "Package key"
+    },
+    "__item_ref_href_pattern_path_yydbrl7pq5": {
+      "name": "Key text bound"
+    },
+    "__item_ref_href_pattern_target_iex5nbnbur": {
+      "name": "Key text bound"
+    },
+    "__item_ref_href_pk_package_path_start_hjarxdhxvb": {
+      "name": "Item ref target"
+    },
+    "__item_ref_target_in_item_ref_document_fuf4cv3od6": {
+      "name": "Item ref target"
+    },
+    "__known_operand_base_key_package_path_operator_kt7l7lgfdd": {
+      "name": "One base"
+    },
+    "__known_operand_cardinality_key_package_path_mpa6kta4nn": {
+      "name": "One base"
+    },
+    "__label_use_in_attribute_u7bktbko53": {
+      "name": "Label tools"
+    },
+    "__label_use_in_document_qmfbrrqwkn": {
+      "name": "Label tools"
+    },
+    "__label_use_pattern_package_dgw3uwkf2m": {
+      "name": "Package key"
+    },
+    "__label_use_pattern_path_kp4f7jwfj4": {
+      "name": "Key text bound"
+    },
+    "__label_use_pk_package_path_start_3czkwnhmqc": {
+      "name": "Label tools"
+    },
+    "__label_use_root_kind_in_attribute_gak655j3ev": {
+      "name": "Label tools"
+    },
+    "__label_use_root_kind_in_attribute_tj4johsgp4": {
+      "name": "Label tools"
+    },
+    "__least_count_in_count_bound_2mxffpip23": {
+      "name": "E1 derived"
+    },
+    "__least_count_node_in_interaction_attribute_e7o6cqlrhx": {
+      "name": "E1 derived"
+    },
+    "__least_count_pattern_least_dmfvituqr3": {
+      "name": "Key text bound"
+    },
+    "__least_count_pattern_package_do6dcvtahg": {
+      "name": "Package key"
+    },
+    "__least_count_pattern_path_ocupmwif3s": {
+      "name": "Key text bound"
+    },
+    "__least_count_pk_package_path_start_r6fi2elxzg": {
+      "name": "E1 derived"
+    },
+    "__least_one_apply_in_apply_argument_skkofr24ji": {
+      "name": "MathML arity"
+    },
+    "__least_two_apply_in_apply_argument_pair_jvkfjy6xrz": {
+      "name": "MathML arity"
+    },
+    "__listed_identifier_in_matched_identifier_ha5ttd4ekt": {
+      "name": "LomObjectIdentifier"
+    },
+    "__listed_title_in_matched_title_q4mtn3mzwi": {
+      "name": "LomObjectTitle"
+    },
+    "__literal_in_expression_2srfeq3bxm": {
+      "name": "E1 derived"
+    },
+    "__literal_pattern_package_qtiji2fpm7": {
+      "name": "Package key"
+    },
+    "__literal_pattern_path_d2iaow6h46": {
+      "name": "Key text bound"
+    },
+    "__literal_pattern_text_zchnuak6zy": {
+      "name": "Key text bound"
+    },
+    "__literal_pk_package_path_start_x2qbv54p7s": {
+      "name": "E1 derived"
+    },
+    "__literal_typed_generated_base_type_lcxovvdztm": {
+      "name": "E1 derived"
+    },
+    "__literal_typed_in_literal_a47cl6o37c": {
+      "name": "E1 derived"
+    },
+    "__literal_typed_pattern_package_e2z7oqlwng": {
+      "name": "Package key"
+    },
+    "__literal_typed_pattern_path_eu5avr5azq": {
+      "name": "Key text bound"
+    },
+    "__literal_typed_pattern_text_wqkxh4aek6": {
+      "name": "Key text bound"
+    },
+    "__literal_typed_pk_package_path_start_fn4sym2jze": {
+      "name": "E1 derived"
+    },
+    "__lookup_value_in_attribute_m55dat3ub4": {
+      "name": "Mapping overlay"
+    },
+    "__lookup_value_in_lookup_attribute_text_hpxkggykkm": {
+      "name": "Mapping overlay"
+    },
+    "__lookup_value_pattern_package_syha77wwzm": {
+      "name": "Package key"
+    },
+    "__lookup_value_pattern_path_t77f25enak": {
+      "name": "Key text bound"
+    },
+    "__lookup_value_pattern_value_epqdwlz3zf": {
+      "name": "Key text bound"
+    },
+    "__lookup_value_pk_package_path_start_rkesmycvon": {
+      "name": "Mapping overlay"
+    },
+    "__map_key_in_map_key_attribute_text_jg7nnmbn5q": {
+      "name": "Mapping overlay"
+    },
+    "__map_key_in_node_w4zevp426i": {
+      "name": "Mapping overlay"
+    },
+    "__map_key_pattern_key_kka655glag": {
+      "name": "Key text bound"
+    },
+    "__map_key_pattern_package_sthmxh7qur": {
+      "name": "Package key"
+    },
+    "__map_key_pattern_path_52nulpekjv": {
+      "name": "Key text bound"
+    },
+    "__map_key_pk_package_path_start_2rjdivihmq": {
+      "name": "Mapping overlay"
+    },
+    "__mapping_base_type_in_mappable_base_type_rf7guqrcb4": {
+      "name": "MappableBaseType"
+    },
+    "__mastery_value_in_attribute_azpdchq7wq": {
+      "name": "Declaration overlay"
+    },
+    "__mastery_value_pattern_lexical_6ouhvqxf7m": {
+      "name": "Key text bound"
+    },
+    "__mastery_value_pattern_package_ja5gbvo7mk": {
+      "name": "Package key"
+    },
+    "__mastery_value_pattern_path_bturqaxrtu": {
+      "name": "Key text bound"
+    },
+    "__mastery_value_pk_package_path_start_22ji6tnv2w": {
+      "name": "Declaration overlay"
+    },
+    "__math_action_generated_selection_ltjjnhmmfm": {
+      "name": "E1 derived"
+    },
+    "__math_action_in_node_emoimclrtr": {
+      "name": "E1 derived"
+    },
+    "__math_action_pattern_package_otdoa6jdzu": {
+      "name": "Package key"
+    },
+    "__math_action_pattern_path_pood7enbin": {
+      "name": "Key text bound"
+    },
+    "__math_action_pattern_selection_lexical_lgdm5ab56o": {
+      "name": "Key text bound"
+    },
+    "__math_action_pk_package_path_start_cv3tjxl55d": {
+      "name": "E1 derived"
+    },
+    "__math_action_selection_written_in_attribute_vc4kgonlen": {
+      "name": "E1 derived"
+    },
+    "__math_align_group_counted_math_cell_groups_y3y4d64qmv": {
+      "name": "E1 derived"
+    },
+    "__math_align_group_in_math_align_scope_swch5qjjac": {
+      "name": "E1 derived"
+    },
+    "__math_align_group_in_scope_node_vbyn7eudli": {
+      "name": "E1 derived"
+    },
+    "__math_align_group_pattern_package_rk62pvshch": {
+      "name": "Package key"
+    },
+    "__math_align_group_pattern_path_kicwkdu6jx": {
+      "name": "Key text bound"
+    },
+    "__math_align_group_pk_package_path_start_l4ydvztkqi": {
+      "name": "E1 derived"
+    },
+    "__math_align_scope_in_node_mpt5shwfag": {
+      "name": "E1 derived"
+    },
+    "__math_align_scope_in_scoped_dir_6ju4wqpvni": {
+      "name": "E1 derived"
+    },
+    "__math_align_scope_pattern_package_wpagc4lzsp": {
+      "name": "Package key"
+    },
+    "__math_align_scope_pattern_path_ukptwdrfcx": {
+      "name": "Key text bound"
+    },
+    "__math_align_scope_pk_package_path_start_pgbachqqj6": {
+      "name": "E1 derived"
+    },
+    "__math_cell_in_node_jnpcai3wzo": {
+      "name": "E1 derived"
+    },
+    "__math_cell_leaves_max_fold_ux7lbrjygq": {
+      "name": "E1 derived"
+    },
+    "__math_cell_pattern_package_aivyz55hyx": {
+      "name": "Package key"
+    },
+    "__math_cell_pattern_path_7rebf6bs64": {
+      "name": "Key text bound"
+    },
+    "__math_cell_pk_package_path_start_tywunozcjo": {
+      "name": "E1 derived"
+    },
+    "__math_cn_base_lexical_in_cn_attribute_kljgglfans": {
+      "name": "E1 derived"
+    },
+    "__math_cn_in_cn_count_4enjobxkgf": {
+      "name": "E1 derived"
+    },
+    "__math_cn_in_cn_parts_cjixt4ryud": {
+      "name": "MathML cn form"
+    },
+    "__math_cn_in_node_t6734znxjs": {
+      "name": "E1 derived"
+    },
+    "__math_cn_pattern_base_lexical_pjnuwwzxgg": {
+      "name": "Key text bound"
+    },
+    "__math_cn_pattern_package_ixmnxt5ora": {
+      "name": "Package key"
+    },
+    "__math_cn_pattern_path_nm4bgynu52": {
+      "name": "Key text bound"
+    },
+    "__math_cn_pattern_type_lexical_xsesemibfs": {
+      "name": "Key text bound"
+    },
+    "__math_cn_pk_package_path_start_3wqoepnwkh": {
+      "name": "E1 derived"
+    },
+    "__math_cn_type_lexical_in_cn_attribute_xutlb4353e": {
+      "name": "E1 derived"
+    },
+    "__math_rank_in_node_jsqd6yl3pc": {
+      "name": "E1 derived"
+    },
+    "__math_rank_node_in_math_rank_aslq5dh6au": {
+      "name": "E1 derived"
+    },
+    "__math_rank_pattern_package_ytcmab2ubw": {
+      "name": "Package key"
+    },
+    "__math_rank_pattern_path_wklgoxyw6v": {
+      "name": "Key text bound"
+    },
+    "__math_rank_pk_package_path_start_k7yqqudvco": {
+      "name": "E1 derived"
+    },
+    "__media_in_entry_5z3vqdctzs": {
+      "name": "Entry kind"
+    },
+    "__media_pattern_digest_zadcft4iaq": {
+      "name": "Entry kind"
+    },
+    "__media_pattern_package_xwnitiqj5u": {
+      "name": "Package key"
+    },
+    "__media_pattern_path_evczqufo7e": {
+      "name": "Key text bound"
+    },
+    "__media_pk_package_path_2zionaz4ix": {
+      "name": "Entry kind"
+    },
+    "__most_count_in_count_bound_kyj5nn57m2": {
+      "name": "E1 derived"
+    },
+    "__most_count_node_in_interaction_attribute_q6v3y23art": {
+      "name": "E1 derived"
+    },
+    "__most_count_pattern_most_dvh6wzkzyu": {
+      "name": "Key text bound"
+    },
+    "__most_count_pattern_package_h5g6cbrcpr": {
+      "name": "Package key"
+    },
+    "__most_count_pattern_path_ygfybc46oz": {
+      "name": "Key text bound"
+    },
+    "__most_count_pk_package_path_start_c4klicebgo": {
+      "name": "E1 derived"
+    },
+    "__most_one_argument_key_package_path_apply_smab77x2oh": {
+      "name": "MathML arity"
+    },
+    "__most_two_argument_pair_key_package_path_apply_4jqzdfppjj": {
+      "name": "MathML arity"
+    },
+    "__named_declaration_key_package_path_identifier_zl7lbtdnez": {
+      "name": "Declaration key"
+    },
+    "__named_in_test_document_n2meqmdsdw": {
+      "name": "Test overlay"
+    },
+    "__named_in_test_identifier_oqzux7mpek": {
+      "name": "Test overlay"
+    },
+    "__named_key_package_path_identifier_ge6k7nqx6u": {
+      "name": "Structure identifier"
+    },
+    "__named_pattern_identifier_vgsuxtmc4l": {
+      "name": "Key text bound"
+    },
+    "__named_pattern_package_b22w2a7csl": {
+      "name": "Package key"
+    },
+    "__named_pattern_path_shdey5mesp": {
+      "name": "Key text bound"
+    },
+    "__named_pk_package_path_start_h3osao25fw": {
+      "name": "Test overlay"
+    },
+    "__namespace_in_node_g3n4nu3wte": {
+      "name": "Namespace family"
+    },
+    "__namespace_pattern_package_xlzf4mvwvo": {
+      "name": "Package key"
+    },
+    "__namespace_pattern_path_bs6uc2j6eb": {
+      "name": "Key text bound"
+    },
+    "__namespace_pattern_prefix_emkep5j53o": {
+      "name": "Key text bound"
+    },
+    "__namespace_pattern_uri_z5yi5i4qgm": {
+      "name": "Namespace name"
+    },
+    "__namespace_pk_package_path_start_prefix_vw74zxl6za": {
+      "name": "Namespace family"
+    },
+    "__natural_hcnvygsglu": {
+      "name": "E1 derived"
+    },
+    "__node_attributes_or_fold_qjtccpaklg": {
+      "name": "AL2 fold"
+    },
+    "__node_attrs_governor_attrs_governor_kind_in_usage_xgo4quvpxe": {
+      "name": "E1 derived"
+    },
+    "__node_children_concat_fold_hptfg3f65l": {
+      "name": "E1 derived"
+    },
+    "__node_children_count_fold_fmibs64zod": {
+      "name": "N7 Counted"
+    },
+    "__node_children_count_fold_mue4fqjorm": {
+      "name": "N7 barred by"
+    },
+    "__node_children_count_fold_pmubrlnch5": {
+      "name": "N5 fold"
+    },
+    "__node_governor_in_document_id_7esueijvve": {
+      "name": "DocumentId key"
+    },
+    "__node_governor_in_identity_text_23z7zsrsca": {
+      "name": "E1 derived"
+    },
+    "__node_in_node_2l5hremzp4": {
+      "name": "N7 last slot"
+    },
+    "__node_kind_governor_kind_in_open_element_type_hqjpg5ztme": {
+      "name": "E1 derived"
+    },
+    "__node_kind_in_comment_jdb4g7wgm6": {
+      "name": "comment arm"
+    },
+    "__node_kind_in_doctype_kquc7qxc4m": {
+      "name": "doctype arm"
+    },
+    "__node_kind_in_document_zmmmamgsyy": {
+      "name": "Test structure"
+    },
+    "__node_kind_in_expression_5cdfpzdoke": {
+      "name": "E1 derived"
+    },
+    "__node_kind_in_literal_ikwdgktolo": {
+      "name": "E1 derived"
+    },
+    "__node_kind_in_math_action_76abbnv36o": {
+      "name": "E1 derived"
+    },
+    "__node_kind_in_math_align_scope_t35kiy4aom": {
+      "name": "E1 derived"
+    },
+    "__node_kind_in_math_cell_5u4i26tvm6": {
+      "name": "E1 derived"
+    },
+    "__node_kind_in_normal_minimum_tewmqelbis": {
+      "name": "Declaration overlay"
+    },
+    "__node_kind_in_open_element_name_v74fwrkaai": {
+      "name": "OpenElementName"
+    },
+    "__node_kind_in_pi_gxbu2tgvtv": {
+      "name": "pi arm"
+    },
+    "__node_kind_in_processing_ro2fdy7uky": {
+      "name": "E1 derived"
+    },
+    "__node_kind_in_rounding_n7wdh3nu4u": {
+      "name": "E1 derived"
+    },
+    "__node_kind_in_text_reference_nmka4yeri6": {
+      "name": "Reference overlay"
+    },
+    "__node_kind_kind_kind_in_element_type_o5itm55eof": {
+      "name": "XsiType derived"
+    },
+    "__node_kind_parent_kind_in_document_ny4jinszlm": {
+      "name": "Document"
+    },
+    "__node_kind_parent_kind_in_document_urcpbwe25q": {
+      "name": "Bank shape"
+    },
+    "__node_kind_parent_kind_in_pci_module_form_ksavxug6tw": {
+      "name": "E1 derived"
+    },
+    "__node_kind_parent_kind_key_package_path_parent_da4usw2ywh": {
+      "name": "E1 derived"
+    },
+    "__node_kind_parent_kind_state_start_key_package_path_43pp6l2ikg": {
+      "name": "N7 Counted"
+    },
+    "__node_kind_start_in_document_rz3735xryl": {
+      "name": "Document"
+    },
+    "__node_parent_kind_kind_in_site_a2auhcddbc": {
+      "name": "Test overlay"
+    },
+    "__node_pattern_chars_after_ucdvh2zfsn": {
+      "name": "Key text bound"
+    },
+    "__node_pattern_chars_gwq3zczrwy": {
+      "name": "XML production"
+    },
+    "__node_pattern_chars_was_yim5ec3o3a": {
+      "name": "Key text bound"
+    },
+    "__node_pattern_first_pumxnpxobo": {
+      "name": "E1 derived"
+    },
+    "__node_pattern_last_gbq55no64j": {
+      "name": "E1 derived"
+    },
+    "__node_pattern_nearest_path_hjvw26aaen": {
+      "name": "Key text bound"
+    },
+    "__node_pattern_package_vox5xfxp27": {
+      "name": "Package key"
+    },
+    "__node_pattern_parent_nearest_path_qqvulpce5j": {
+      "name": "Key text bound"
+    },
+    "__node_pattern_path_rj2ogt436v": {
+      "name": "Key text bound"
+    },
+    "__node_pattern_prefix_h2sftnzs7s": {
+      "name": "Key text bound"
+    },
+    "__node_pattern_string_value_s5nsopceiy": {
+      "name": "Key text bound"
+    },
+    "__node_pk_package_path_start_fubxv47gd4": {
+      "name": "Node key"
+    },
+    "__node_start_in_node_wmbzislsch": {
+      "name": "N5 fold"
+    },
+    "__node_start_in_node_ycnh7sdly4": {
+      "name": "T3 first child"
+    },
+    "__node_tree_children_ma7rpnfjsd": {
+      "name": "N2 tree"
+    },
+    "__normal_maximum_in_attribute_4pcyellucw": {
+      "name": "Declaration overlay"
+    },
+    "__normal_maximum_pattern_lexical_bn4r5s6y7k": {
+      "name": "Key text bound"
+    },
+    "__normal_maximum_pattern_package_q66pdui7as": {
+      "name": "Package key"
+    },
+    "__normal_maximum_pattern_path_mh6twqxis3": {
+      "name": "Key text bound"
+    },
+    "__normal_maximum_pk_package_path_start_n5dkurhw2b": {
+      "name": "Declaration overlay"
+    },
+    "__normal_minimum_in_node_gucw6c4fb7": {
+      "name": "Declaration overlay"
+    },
+    "__normal_minimum_pattern_lexical_7xwixxpjj3": {
+      "name": "Key text bound"
+    },
+    "__normal_minimum_pattern_package_qa7rfp4qq2": {
+      "name": "Package key"
+    },
+    "__normal_minimum_pattern_path_xijkzp674n": {
+      "name": "Key text bound"
+    },
+    "__normal_minimum_pk_package_path_start_hhqsab6h5b": {
+      "name": "Declaration overlay"
+    },
+    "__normal_minimum_written_in_attribute_6nx4f6jdyj": {
+      "name": "Declaration overlay"
+    },
+    "__object_identifier_key_package_value_ulgiatslum": {
+      "name": "Item key"
+    },
+    "__open_attribute_counted_node_open_attributes_c6eaal5tn2": {
+      "name": "AL2 count"
+    },
+    "__open_attribute_entity_in_open_attribute_o7grqaug6s": {
+      "name": "AttributeEntity owner"
+    },
+    "__open_attribute_entity_pattern_entity_2udjug5yiy": {
+      "name": "XML production"
+    },
+    "__open_attribute_entity_pattern_local_dafihg7iti": {
+      "name": "Key text bound"
+    },
+    "__open_attribute_entity_pattern_package_udvo6apqd6": {
+      "name": "Package key"
+    },
+    "__open_attribute_entity_pattern_path_7bc4rgz3ca": {
+      "name": "Key text bound"
+    },
+    "__open_attribute_entity_pattern_uri_yr45mzt7ea": {
+      "name": "Key text bound"
+    },
+    "__open_attribute_entity_pk_package_path_start_uri_2wdrevqxpx": {
+      "name": "AttributeEntity owner"
+    },
+    "__open_attribute_in_node_omcssf4glp": {
+      "name": "AL1 owner"
+    },
+    "__open_attribute_kind_in_open_element_name_xri2rpuutq": {
+      "name": "Foreign attribute class"
+    },
+    "__open_attribute_pattern_element_namespace_khdtwlc3td": {
+      "name": "Key text bound"
+    },
+    "__open_attribute_pattern_lexical_jkxmv3rxx2": {
+      "name": "XML production"
+    },
+    "__open_attribute_pattern_local_5p42ylhpjz": {
+      "name": "Key text bound"
+    },
+    "__open_attribute_pattern_package_kp7twth7gt": {
+      "name": "Package key"
+    },
+    "__open_attribute_pattern_path_y7x7p24xzt": {
+      "name": "Key text bound"
+    },
+    "__open_attribute_pattern_prefix_qthztfqch6": {
+      "name": "Key text bound"
+    },
+    "__open_attribute_pattern_uri_n5437rucq7": {
+      "name": "Key text bound"
+    },
+    "__open_attribute_pk_package_path_start_uri_local_3cl4cd4boe": {
+      "name": "AL4 open name key"
+    },
+    "__open_element_name_generated_expanded_yog4xw2yep": {
+      "name": "E1 derived"
+    },
+    "__open_element_name_in_node_fap5y4pabo": {
+      "name": "OpenElementName"
+    },
+    "__open_element_name_pattern_expanded_dqq7kljkbw": {
+      "name": "Key text bound"
+    },
+    "__open_element_name_pattern_local_6u6umkp3gn": {
+      "name": "Key text bound"
+    },
+    "__open_element_name_pattern_namespace_nr6c3wvk6u": {
+      "name": "Key text bound"
+    },
+    "__open_element_name_pattern_package_hhoojkkcpr": {
+      "name": "Package key"
+    },
+    "__open_element_name_pattern_path_fhh2y5azj6": {
+      "name": "Key text bound"
+    },
+    "__open_element_name_pk_package_path_start_joeq3npwtn": {
+      "name": "OpenElementName"
+    },
+    "__open_element_type_in_open_element_name_wcbfydnryh": {
+      "name": "E1 derived"
+    },
+    "__open_element_type_pattern_package_cwoej5m2ey": {
+      "name": "Package key"
+    },
+    "__open_element_type_pattern_path_yu7yjlhcrm": {
+      "name": "Key text bound"
+    },
+    "__open_element_type_pk_package_path_start_b3gwttlqfx": {
+      "name": "E1 derived"
+    },
+    "__open_name_node_in_open_element_type_fzbq34aczr": {
+      "name": "Strictly held"
+    },
+    "__package_pattern_name_ebho54yoyf": {
+      "name": "Package key"
+    },
+    "__package_pk_name_xxkxb7many": {
+      "name": "Package key"
+    },
+    "__pci_module_form_counted_interaction_module_forms_sijt4fwmxz": {
+      "name": "E1 derived"
+    },
+    "__pci_module_form_element_in_attribute_r6fwhzmaoj": {
+      "name": "E1 derived"
+    },
+    "__pci_module_form_element_in_node_cmmn37s4vq": {
+      "name": "E1 derived"
+    },
+    "__pci_module_form_pattern_package_53opmqi5ws": {
+      "name": "Package key"
+    },
+    "__pci_module_form_pattern_path_gynduee42y": {
+      "name": "Key text bound"
+    },
+    "__pci_module_form_pk_package_path_start_element_3hr6otufkd": {
+      "name": "E1 derived"
+    },
+    "__pi_in_node_dazdiqzbug": {
+      "name": "pi arm"
+    },
+    "__pi_pattern_data_f6ucepbojl": {
+      "name": "XML production"
+    },
+    "__pi_pattern_package_5h7nyvhoe5": {
+      "name": "Package key"
+    },
+    "__pi_pattern_path_zskhzvsdyg": {
+      "name": "Key text bound"
+    },
+    "__pi_pattern_target_qwqlgcs37u": {
+      "name": "XML production"
+    },
+    "__pi_pk_package_path_start_prlv7m4cvm": {
+      "name": "pi arm"
+    },
+    "__placed_binding_adaptive_attribute_in_node_zjnvhso7yl": {
+      "name": "Adaptive feedback"
+    },
+    "__placed_binding_base_type_node_in_binding_fit_7fagvazp2w": {
+      "name": "BindingFit"
+    },
+    "__placed_binding_cardinality_node_in_count_bound_3wgoyvwqst": {
+      "name": "Max strings required"
+    },
+    "__placed_binding_cardinality_node_in_record_binding_oent2y44el": {
+      "name": "RecordBindingFit"
+    },
+    "__placed_binding_counted_instance_bindings_pgqukgsy3q": {
+      "name": "E1 derived"
+    },
+    "__placed_binding_in_binding_name_e3y475zwdb": {
+      "name": "E1 derived"
+    },
+    "__placed_binding_in_instance_q5dkqpxb7o": {
+      "name": "E1 derived"
+    },
+    "__placed_binding_in_item_mode_fjpvyb2wgq": {
+      "name": "E1 derived"
+    },
+    "__placed_binding_in_named_declaration_vvi7io6wap": {
+      "name": "Binding declared"
+    },
+    "__placed_binding_key_package_assembly_identifier_x7vfoawcgm": {
+      "name": "Binding unique"
+    },
+    "__placed_binding_pattern_assembly_mrcmf3vqiw": {
+      "name": "Key text bound"
+    },
+    "__placed_binding_pattern_identifier_xctp2bnenz": {
+      "name": "Key text bound"
+    },
+    "__placed_binding_pattern_package_ak7sm3xnzh": {
+      "name": "Package key"
+    },
+    "__placed_binding_pattern_path_xzj344vx2x": {
+      "name": "Key text bound"
+    },
+    "__placed_binding_pk_package_assembly_instance_start_afi2ybemq7": {
+      "name": "E1 derived"
+    },
+    "__placed_choice_counted_instance_choices_2u77ak32gk": {
+      "name": "E1 derived"
+    },
+    "__placed_choice_in_choice_nsk6b6onok": {
+      "name": "E1 derived"
+    },
+    "__placed_choice_in_instance_wx2jdl7z2z": {
+      "name": "E1 derived"
+    },
+    "__placed_choice_node_key_package_assembly_kind_d5g3uh5mzp": {
+      "name": "Choice identifier key"
+    },
+    "__placed_choice_or_hottext_in_unclaimed_name_pp4uendsbv": {
+      "name": "Choice not variable"
+    },
+    "__placed_choice_or_hottext_key_package_assembly_snwnnxfr6w": {
+      "name": "Choice identifier key"
+    },
+    "__placed_choice_pattern_assembly_dzczhlzixr": {
+      "name": "Key text bound"
+    },
+    "__placed_choice_pattern_identifier_wnuro4xtwh": {
+      "name": "Key text bound"
+    },
+    "__placed_choice_pattern_package_5g6l5fsyan": {
+      "name": "Package key"
+    },
+    "__placed_choice_pattern_path_uyvipvmxmo": {
+      "name": "Key text bound"
+    },
+    "__placed_choice_pk_package_assembly_instance_start_2mthwgzcbi": {
+      "name": "E1 derived"
+    },
+    "__placed_hottext_counted_instance_hottexts_va7wuob32l": {
+      "name": "E1 derived"
+    },
+    "__placed_hottext_in_hottext_5kerxwbevg": {
+      "name": "E1 derived"
+    },
+    "__placed_hottext_in_instance_vzws3eyavf": {
+      "name": "E1 derived"
+    },
+    "__placed_hottext_key_package_assembly_identifier_mfzhmovfaq": {
+      "name": "Choice identifier key"
+    },
+    "__placed_hottext_pattern_assembly_q2rfisloje": {
+      "name": "Key text bound"
+    },
+    "__placed_hottext_pattern_identifier_nucmznjxqh": {
+      "name": "Key text bound"
+    },
+    "__placed_hottext_pattern_package_6a4ygrh57l": {
+      "name": "Package key"
+    },
+    "__placed_hottext_pattern_path_hgljocirxw": {
+      "name": "Key text bound"
+    },
+    "__placed_hottext_pk_package_assembly_instance_start_smah7lbu2d": {
+      "name": "E1 derived"
+    },
+    "__placed_id_counted_instance_ids_ugg5kiw57p": {
+      "name": "E1 derived"
+    },
+    "__placed_id_in_id_value_526t23w2tr": {
+      "name": "E1 derived"
+    },
+    "__placed_id_in_instance_xa7dza2ooc": {
+      "name": "E1 derived"
+    },
+    "__placed_id_pattern_assembly_mrsk3a4jxf": {
+      "name": "Key text bound"
+    },
+    "__placed_id_pattern_id_ecbeo2ndcv": {
+      "name": "Key text bound"
+    },
+    "__placed_id_pattern_package_vntavqx3jj": {
+      "name": "Package key"
+    },
+    "__placed_id_pattern_path_goqdd5o3cg": {
+      "name": "Key text bound"
+    },
+    "__placed_id_pk_package_assembly_instance_start_2b56pth3oj": {
+      "name": "E1 derived"
+    },
+    "__placed_idref_counted_instance_idref_targets_ezpng2kij7": {
+      "name": "E1 derived"
+    },
+    "__placed_idref_in_assembled_id_tmhtsn6wsn": {
+      "name": "Idref target"
+    },
+    "__placed_idref_in_idref_target_s4wdpu56k6": {
+      "name": "E1 derived"
+    },
+    "__placed_idref_in_instance_bqqshnmgtd": {
+      "name": "E1 derived"
+    },
+    "__placed_idref_pattern_assembly_6zoklyxhzh": {
+      "name": "Key text bound"
+    },
+    "__placed_idref_pattern_id_xmfaipbp7c": {
+      "name": "Key text bound"
+    },
+    "__placed_idref_pattern_package_b2gf64gq4l": {
+      "name": "Package key"
+    },
+    "__placed_idref_pattern_path_crzlyvqjli": {
+      "name": "Key text bound"
+    },
+    "__placed_idref_pk_package_assembly_instance_id_dr2rtqmqu6": {
+      "name": "E1 derived"
+    },
+    "__placed_math_rank_in_instance_z7dmi75q66": {
+      "name": "E1 derived"
+    },
+    "__placed_math_rank_in_node_2udb2l6szg": {
+      "name": "E1 derived"
+    },
+    "__placed_math_rank_node_in_placed_math_rank_aiubiv77nv": {
+      "name": "E1 derived"
+    },
+    "__placed_math_rank_pattern_assembly_pytn47332l": {
+      "name": "Key text bound"
+    },
+    "__placed_math_rank_pattern_package_sg32t76tmu": {
+      "name": "Package key"
+    },
+    "__placed_math_rank_pattern_path_xgw6ckngb2": {
+      "name": "Key text bound"
+    },
+    "__placed_math_rank_pk_package_assembly_instance_sp5fws4ok3": {
+      "name": "E1 derived"
+    },
+    "__placed_reference_in_assembled_catalog_3bphax74eb": {
+      "name": "Catalog reference"
+    },
+    "__placed_share_target_counted_share_fragment_sjv654pwpi": {
+      "name": "E1 derived"
+    },
+    "__placed_share_target_in_assembled_id_o4jhl5pckq": {
+      "name": "E1 derived"
+    },
+    "__placed_share_target_in_instance_oq6g7d2ct5": {
+      "name": "E1 derived"
+    },
+    "__placed_share_target_in_instance_z3az3sv73x": {
+      "name": "E1 derived"
+    },
+    "__placed_share_target_in_placed_math_rank_dbpzqf6hjd": {
+      "name": "E1 derived"
+    },
+    "__placed_share_target_in_placed_math_rank_fw5fobolsh": {
+      "name": "E1 derived"
+    },
+    "__placed_share_target_in_share_fragment_lorvgttkty": {
+      "name": "E1 derived"
+    },
+    "__placed_share_target_pattern_assembly_ihiboerozb": {
+      "name": "Key text bound"
+    },
+    "__placed_share_target_pattern_id_c2rthnbwxr": {
+      "name": "Key text bound"
+    },
+    "__placed_share_target_pattern_package_ghvwvvaf5o": {
+      "name": "Package key"
+    },
+    "__placed_share_target_pattern_path_27crvvlgul": {
+      "name": "Key text bound"
+    },
+    "__placed_share_target_pattern_target_ujpqxc27o6": {
+      "name": "Key text bound"
+    },
+    "__placed_share_target_pk_package_assembly_instance_2i4phn3tkf": {
+      "name": "E1 derived"
+    },
+    "__placed_single_response_gap_key_package_assembly_zn46zhfcmn": {
+      "name": "Binding cardinality"
+    },
+    "__placed_variable_ref_counted_instance_variables_cl6bbyseqa": {
+      "name": "E1 derived"
+    },
+    "__placed_variable_ref_declaration_in_declaration_bx355ri3r5": {
+      "name": "Mapped response"
+    },
+    "__placed_variable_ref_declaration_in_declaration_kjucbi3hsv": {
+      "name": "Mapped response"
+    },
+    "__placed_variable_ref_declaration_in_reference_kkpref54xg": {
+      "name": "Variable kind"
+    },
+    "__placed_variable_ref_in_document_scxvhoe332": {
+      "name": "E1 derived"
+    },
+    "__placed_variable_ref_in_instance_esnvazsnhi": {
+      "name": "E1 derived"
+    },
+    "__placed_variable_ref_in_named_declaration_rmvhcpsne2": {
+      "name": "Variable declared"
+    },
+    "__placed_variable_ref_in_variable_ref_mbzghzjcsb": {
+      "name": "E1 derived"
+    },
+    "__placed_variable_ref_pattern_assembly_n4pwgqu234": {
+      "name": "Key text bound"
+    },
+    "__placed_variable_ref_pattern_identifier_3ogh7joj4q": {
+      "name": "Key text bound"
+    },
+    "__placed_variable_ref_pattern_package_pkyiqor2os": {
+      "name": "Package key"
+    },
+    "__placed_variable_ref_pattern_path_qvnrlhr6om": {
+      "name": "Key text bound"
+    },
+    "__placed_variable_ref_pk_package_assembly_instance_ne3bdmwsfp": {
+      "name": "E1 derived"
+    },
+    "__printed_variable_ref_in_referable_name_ifjqg75g2x": {
+      "name": "Printed variable reference"
+    },
+    "__printed_variable_ref_pattern_identifier_gjog5s22uj": {
+      "name": "Key text bound"
+    },
+    "__printed_variable_ref_pattern_package_jhl4e4lymt": {
+      "name": "Package key"
+    },
+    "__printed_variable_ref_pattern_path_lzkzbf756c": {
+      "name": "Key text bound"
+    },
+    "__printed_variable_ref_pk_package_path_start_vy2j5s2kuc": {
+      "name": "E1 derived"
+    },
+    "__processing_in_node_zkgktdqgg3": {
+      "name": "E1 derived"
+    },
+    "__processing_node_in_processing_jtjswbh4nb": {
+      "name": "E1 derived"
+    },
+    "__processing_pattern_package_hlhqa7eebr": {
+      "name": "Package key"
+    },
+    "__processing_pattern_path_6ou6drjh7z": {
+      "name": "Key text bound"
+    },
+    "__processing_pk_package_path_start_7chlpreo36": {
+      "name": "E1 derived"
+    },
+    "__record_set_value_in_attribute_tseagas2m6": {
+      "name": "Value cardinality"
+    },
+    "__reference_in_attribute_iynstk2el3": {
+      "name": "Reference overlay"
+    },
+    "__reference_path_in_entry_i5zaqzzawl": {
+      "name": "File exists"
+    },
+    "__reference_path_in_reference_hm7xwvu2l7": {
+      "name": "Reference overlay"
+    },
+    "__reference_path_kind_in_document_vuktnum62l": {
+      "name": "Stimulus ref target"
+    },
+    "__reference_path_pattern_package_cqxb3apxai": {
+      "name": "Package key"
+    },
+    "__reference_path_pattern_path_kucqri4eyw": {
+      "name": "Key text bound"
+    },
+    "__reference_path_pattern_target_vhxvij3cvm": {
+      "name": "Key text bound"
+    },
+    "__reference_path_pk_package_path_start_name_cupeu7mfol": {
+      "name": "Reference overlay"
+    },
+    "__reference_pattern_lead_4uy34klwf4": {
+      "name": "E1 derived"
+    },
+    "__reference_pattern_package_kcw7g4izev": {
+      "name": "Package key"
+    },
+    "__reference_pattern_params_7gfatp7e5i": {
+      "name": "E1 derived"
+    },
+    "__reference_pattern_path_ondd4cunap": {
+      "name": "Key text bound"
+    },
+    "__reference_pattern_trail_i5rcgoip3g": {
+      "name": "E1 derived"
+    },
+    "__reference_pk_package_path_start_name_6omt2d6boz": {
+      "name": "Reference overlay"
+    },
+    "__reference_scope_in_reference_path_t7a72nkdar": {
+      "name": "Reference overlay"
+    },
+    "__referring_document_pattern_package_scwlrhh4nv": {
+      "name": "Package key"
+    },
+    "__referring_document_pattern_path_geiusc7oir": {
+      "name": "Key text bound"
+    },
+    "__referring_document_pk_package_path_ktohsdhog2": {
+      "name": "E1 derived"
+    },
+    "__required_ssml_property_in_data_ssml_property_hcbkx3hxgd": {
+      "name": "Data SSML"
+    },
+    "__resource_document_generated_document_type_hmq6fddtza": {
+      "name": "E1 derived"
+    },
+    "__resource_document_in_document_2g4qcuayxw": {
+      "name": "E1 derived"
+    },
+    "__resource_document_in_root_of_type_gvm22hcztb": {
+      "name": "RootOfType"
+    },
+    "__resource_document_in_typed_href_tlwlacfuf7": {
+      "name": "RootOfType"
+    },
+    "__resource_document_pattern_package_nqamgkh3bj": {
+      "name": "Package key"
+    },
+    "__resource_document_pattern_path_ksstff736d": {
+      "name": "Key text bound"
+    },
+    "__resource_document_pk_package_path_6ckrqpjcky": {
+      "name": "E1 derived"
+    },
+    "__resource_href_in_attribute_gnb2r4ulj3": {
+      "name": "Manifest overlay"
+    },
+    "__resource_href_in_node_aqmgysydcs": {
+      "name": "Manifest overlay"
+    },
+    "__resource_href_in_resource_file_target_y6m2iem2r3": {
+      "name": "Href listed"
+    },
+    "__resource_href_pattern_package_mutjh2ncsb": {
+      "name": "Package key"
+    },
+    "__resource_href_pattern_path_sb67p5zjti": {
+      "name": "Key text bound"
+    },
+    "__resource_href_pattern_target_63gica6epp": {
+      "name": "Key text bound"
+    },
+    "__resource_href_pk_package_path_start_kyhziuhnsp": {
+      "name": "Manifest overlay"
+    },
+    "__rounding_figures_generated_figures_ub6gwwcjgt": {
+      "name": "E1 derived"
+    },
+    "__rounding_figures_in_attribute_ghgmd4nrs3": {
+      "name": "E1 derived"
+    },
+    "__rounding_figures_in_rounding_icfq6ltf3a": {
+      "name": "E1 derived"
+    },
+    "__rounding_figures_pattern_figures_lexical_bteilf6bpz": {
+      "name": "Key text bound"
+    },
+    "__rounding_figures_pattern_figures_wfugg4iw6v": {
+      "name": "Key text bound"
+    },
+    "__rounding_figures_pattern_package_7tiop6o4yn": {
+      "name": "Package key"
+    },
+    "__rounding_figures_pattern_path_g3bs6tf65f": {
+      "name": "Key text bound"
+    },
+    "__rounding_figures_pk_package_path_start_hezuyw5goi": {
+      "name": "E1 derived"
+    },
+    "__rounding_holds_in_rounding_figures_c4s54k6vj5": {
+      "name": "E1 derived"
+    },
+    "__rounding_holds_in_rounding_mode_figures_lb2kw6s563": {
+      "name": "E1 derived"
+    },
+    "__rounding_in_node_7xp34trqr4": {
+      "name": "E1 derived"
+    },
+    "__rounding_in_rounding_mode_mnh6zjgi6n": {
+      "name": "E1 derived"
+    },
+    "__rounding_mode_figures_in_rounding_akzzhzibrn": {
+      "name": "E1 derived"
+    },
+    "__rounding_mode_figures_in_rounding_figures_iq6b4lyyar": {
+      "name": "E1 derived"
+    },
+    "__rounding_mode_figures_in_rounding_mode_5bdcnmtzzp": {
+      "name": "E1 derived"
+    },
+    "__rounding_mode_figures_pattern_figures_u25bv4w42e": {
+      "name": "Key text bound"
+    },
+    "__rounding_mode_figures_pattern_mode_xzgqf2voei": {
+      "name": "Key text bound"
+    },
+    "__rounding_mode_figures_pattern_package_c3gylnw2p2": {
+      "name": "Package key"
+    },
+    "__rounding_mode_figures_pattern_path_hpgohik4hv": {
+      "name": "Key text bound"
+    },
+    "__rounding_mode_figures_pk_package_path_start_22jitgkuyq": {
+      "name": "E1 derived"
+    },
+    "__rounding_mode_in_rounding_kvmkajbet7": {
+      "name": "E1 derived"
+    },
+    "__rounding_pattern_package_sxiuuuhjyn": {
+      "name": "Package key"
+    },
+    "__rounding_pattern_path_iqiogpoepv": {
+      "name": "Key text bound"
+    },
+    "__rounding_pk_package_path_start_eqjypjb7io": {
+      "name": "E1 derived"
+    },
+    "__scope_node_in_cell_leaf_64bjvuklzp": {
+      "name": "E1 derived"
+    },
+    "__scope_node_in_math_action_hm2bwrzft3": {
+      "name": "E1 derived"
+    },
+    "__scope_node_in_math_align_group_w6pm2wio47": {
+      "name": "E1 derived"
+    },
+    "__scope_node_in_math_align_scope_dwyww4flqi": {
+      "name": "E1 derived"
+    },
+    "__sd_decl_in_xml_decl_e5woozhfdp": {
+      "name": "Document"
+    },
+    "__sd_decl_pattern_package_xiwz6e3cfn": {
+      "name": "Package key"
+    },
+    "__sd_decl_pattern_path_6rgg3bvu26": {
+      "name": "Key text bound"
+    },
+    "__sd_decl_pk_package_path_dw2llwnzb2": {
+      "name": "Document"
+    },
+    "__set_field_name_key_package_path_set_identifier_upbneb53h5": {
+      "name": "Record field key"
+    },
+    "__share_fragment_assembled_in_share_target_xwg5es5cbw": {
+      "name": "Idref target"
+    },
+    "__share_fragment_assembled_in_test_document_h62vlun2eh": {
+      "name": "E1 derived"
+    },
+    "__share_fragment_in_document_wsag7vbcrf": {
+      "name": "E1 derived"
+    },
+    "__share_fragment_in_idref_target_zc2r74252e": {
+      "name": "Idref target"
+    },
+    "__share_fragment_in_share_source_xnpoyidd3m": {
+      "name": "E1 derived"
+    },
+    "__share_fragment_pattern_id_biuqfuw4vz": {
+      "name": "Key text bound"
+    },
+    "__share_fragment_pattern_package_eg4ms5i5pl": {
+      "name": "Package key"
+    },
+    "__share_fragment_pattern_path_rviwmx7oyj": {
+      "name": "Key text bound"
+    },
+    "__share_fragment_pk_package_path_start_u7dfyu2433": {
+      "name": "E1 derived"
+    },
+    "__share_source_in_share_fragment_s3zgyvhujl": {
+      "name": "E1 derived"
+    },
+    "__share_target_in_id_binding_7nubqblj4q": {
+      "name": "E1 derived"
+    },
+    "__share_target_in_math_rank_kvuuatsre5": {
+      "name": "E1 derived"
+    },
+    "__share_target_in_math_rank_tzha7a7fst": {
+      "name": "E1 derived"
+    },
+    "__share_target_in_share_fragment_n3k7oxyijc": {
+      "name": "E1 derived"
+    },
+    "__share_target_pattern_id_3welkljfmb": {
+      "name": "Key text bound"
+    },
+    "__share_target_pattern_package_23d7beep2b": {
+      "name": "Package key"
+    },
+    "__share_target_pattern_path_4tdxzo2b6e": {
+      "name": "Key text bound"
+    },
+    "__share_target_pk_package_path_start_cnujfbvvge": {
+      "name": "E1 derived"
+    },
+    "__single_response_gap_key_package_path_start_glr7weesqf": {
+      "name": "Binding cardinality"
+    },
+    "__site_external_in_reference_cfayax4bnp": {
+      "name": "Test overlay"
+    },
+    "__site_external_kind_in_site_path_cbbuxwhmwg": {
+      "name": "Include target"
+    },
+    "__site_in_node_a7cno33ccs": {
+      "name": "Test overlay"
+    },
+    "__site_in_node_xws7ukeckf": {
+      "name": "Test overlay"
+    },
+    "__site_path_entry_in_entry_xyekmpl544": {
+      "name": "File exists"
+    },
+    "__site_path_entry_kind_in_site_target_rw6isgvwgs": {
+      "name": "Include target"
+    },
+    "__site_path_in_reference_path_ipf23mp6gd": {
+      "name": "Test overlay"
+    },
+    "__site_path_in_site_55qmkcssgd": {
+      "name": "Test overlay"
+    },
+    "__site_path_pattern_package_6vegxr5lyj": {
+      "name": "Package key"
+    },
+    "__site_path_pattern_path_dnbuemb7jx": {
+      "name": "Key text bound"
+    },
+    "__site_path_pattern_target_zueyjofb4h": {
+      "name": "Key text bound"
+    },
+    "__site_path_pk_package_path_start_jnshh54pap": {
+      "name": "Test overlay"
+    },
+    "__site_pattern_nearest_path_ynq5zc7hts": {
+      "name": "Key text bound"
+    },
+    "__site_pattern_package_zehmliab6r": {
+      "name": "Package key"
+    },
+    "__site_pattern_path_3rrrgh2e2o": {
+      "name": "Key text bound"
+    },
+    "__site_pk_package_path_start_vmtogz2tds": {
+      "name": "Test overlay"
+    },
+    "__site_target_counted_document_targeted_by_bdjqtqsmxp": {
+      "name": "E1 derived"
+    },
+    "__site_target_counted_test_document_targets_kwylm3o74y": {
+      "name": "Test overlay"
+    },
+    "__site_target_in_document_rotc6xcoph": {
+      "name": "Include target"
+    },
+    "__site_target_in_inclusion_kuzg7gpura": {
+      "name": "Test overlay"
+    },
+    "__site_target_in_site_3232tvdz3x": {
+      "name": "Test overlay"
+    },
+    "__site_target_in_site_path_tjckwpmiov": {
+      "name": "Test overlay"
+    },
+    "__site_target_pattern_package_3ujvxhxav4": {
+      "name": "Package key"
+    },
+    "__site_target_pattern_path_rw3fj6ohex": {
+      "name": "Key text bound"
+    },
+    "__site_target_pattern_target_a3rja462yu": {
+      "name": "Key text bound"
+    },
+    "__site_target_pattern_target_nearest_path_fzyp5yyc7d": {
+      "name": "Key text bound"
+    },
+    "__site_target_pk_package_path_start_d5pzskwwje": {
+      "name": "Test overlay"
+    },
+    "__srcset_candidate_generated_piece_5svjevz7r3": {
+      "name": "E1 derived"
+    },
+    "__srcset_candidate_ordered_srcset_tokens_lzvjcgowo2": {
+      "name": "E1 derived"
+    },
+    "__srcset_candidate_pattern_descriptor_qo4ilf37u5": {
+      "name": "E1 derived"
+    },
+    "__srcset_candidate_pattern_lead_nsmf6czwql": {
+      "name": "E1 derived"
+    },
+    "__srcset_candidate_pattern_package_wybzkn6aaw": {
+      "name": "Package key"
+    },
+    "__srcset_candidate_pattern_path_xytrszr5qv": {
+      "name": "Key text bound"
+    },
+    "__srcset_candidate_pattern_piece_hgsa5xkjyc": {
+      "name": "Key text bound"
+    },
+    "__srcset_candidate_pattern_pieces_after_6wn775reyc": {
+      "name": "Key text bound"
+    },
+    "__srcset_candidate_pattern_pieces_was_5bmuzvmlu7": {
+      "name": "Key text bound"
+    },
+    "__srcset_candidate_pattern_url_ooz7hb4dnr": {
+      "name": "Key text bound"
+    },
+    "__srcset_candidate_pk_package_path_start_at_hv2dmen3wp": {
+      "name": "Reference overlay"
+    },
+    "__srcset_candidate_scope_in_candidate_path_l5pa6c524p": {
+      "name": "Reference overlay"
+    },
+    "__srcset_in_attribute_pib4gbrfkz": {
+      "name": "Reference overlay"
+    },
+    "__srcset_pattern_package_pzn6gomhdu": {
+      "name": "Package key"
+    },
+    "__srcset_pattern_path_ly24725cvw": {
+      "name": "Key text bound"
+    },
+    "__srcset_pattern_token_text_422qwaqwxj": {
+      "name": "Key text bound"
+    },
+    "__srcset_pattern_trail_q62zqx4trn": {
+      "name": "E1 derived"
+    },
+    "__srcset_pk_package_path_start_dbi3nplzea": {
+      "name": "Reference overlay"
+    },
+    "__srcset_tokens_concat_fold_wwizaup3um": {
+      "name": "E1 derived"
+    },
+    "__ssml_scope_in_node_qiq2surcop": {
+      "name": "E1 derived"
+    },
+    "__ssml_scope_node_in_ssml_scope_ly6js3mkc2": {
+      "name": "E1 derived"
+    },
+    "__ssml_scope_pattern_package_guy77aczso": {
+      "name": "Package key"
+    },
+    "__ssml_scope_pattern_path_kxy25pzbda": {
+      "name": "Key text bound"
+    },
+    "__ssml_scope_pk_package_path_start_vrzxu3ypae": {
+      "name": "E1 derived"
+    },
+    "__ssml_value_in_ssml_value_w3v3w4qlfx": {
+      "name": "SSML lexicon reference"
+    },
+    "__ssml_value_in_trimmed_mark_ui6xoio2pa": {
+      "name": "SSML trim mark"
+    },
+    "__stimulus_ref_in_node_6gqgqm3nye": {
+      "name": "Test overlay"
+    },
+    "__stimulus_ref_in_test_identifier_wdpwvvojde": {
+      "name": "Test overlay"
+    },
+    "__stimulus_ref_key_package_path_identifier_7djm7zntzm": {
+      "name": "Stimulus ref key"
+    },
+    "__stimulus_ref_pattern_identifier_54g2xxrbwz": {
+      "name": "Key text bound"
+    },
+    "__stimulus_ref_pattern_package_uouunirg6u": {
+      "name": "Package key"
+    },
+    "__stimulus_ref_pattern_path_hfeb473qms": {
+      "name": "Key text bound"
+    },
+    "__stimulus_ref_pk_package_path_start_cnwgdprn2t": {
+      "name": "Test overlay"
+    },
+    "__table_claim_in_declaration_table_5ohpqicbgg": {
+      "name": "E1 derived"
+    },
+    "__table_claim_in_declaration_table_7yz6q72gtu": {
+      "name": "E1 derived"
+    },
+    "__table_claim_in_declaration_table_hn7k5mcu4s": {
+      "name": "E1 derived"
+    },
+    "__table_claim_in_declaration_table_w6rqwiljzb": {
+      "name": "E1 derived"
+    },
+    "__table_claim_in_table_reader_7l6ewfnbi6": {
+      "name": "E1 derived"
+    },
+    "__table_header_in_attribute_x7nblkbeft": {
+      "name": "E1 derived"
+    },
+    "__table_header_in_id_value_qn6cr2x6jl": {
+      "name": "E1 derived"
+    },
+    "__table_header_in_table_scope_ctbztdqize": {
+      "name": "E1 derived"
+    },
+    "__table_header_pattern_id_u2ndgbjyw2": {
+      "name": "Key text bound"
+    },
+    "__table_header_pattern_package_6phr7ptxv6": {
+      "name": "Package key"
+    },
+    "__table_header_pattern_path_abkkniphdy": {
+      "name": "Key text bound"
+    },
+    "__table_header_pk_package_path_start_zbjppoisi6": {
+      "name": "E1 derived"
+    },
+    "__table_scope_in_node_ylb7hrhu4n": {
+      "name": "E1 derived"
+    },
+    "__table_scope_node_in_table_scope_d4b5isdesz": {
+      "name": "E1 derived"
+    },
+    "__table_scope_pattern_package_phlcxuwsbd": {
+      "name": "Package key"
+    },
+    "__table_scope_pattern_path_h5sunqh2mi": {
+      "name": "Key text bound"
+    },
+    "__table_scope_pk_package_path_start_7olyorm2bd": {
+      "name": "E1 derived"
+    },
+    "__tabled_header_key_package_path_table_id_q5gmtyc5dj": {
+      "name": "DocumentId key"
+    },
+    "__template_processing_in_mapped_response_declaration_s6zp76inmz": {
+      "name": "Template needs"
+    },
+    "__template_processing_in_named_declaration_6b3bgqmnu5": {
+      "name": "Template needs"
+    },
+    "__template_processing_in_named_declaration_apaa2h6grz": {
+      "name": "Template needs"
+    },
+    "__template_processing_in_named_declaration_lr7uddii6o": {
+      "name": "Template needs"
+    },
+    "__template_processing_in_named_declaration_pjrhk5aysh": {
+      "name": "Template needs"
+    },
+    "__template_processing_in_named_declaration_zsj2dtfqmr": {
+      "name": "Template needs"
+    },
+    "__template_ref_in_referable_name_cnf5ooi5ct": {
+      "name": "Template reference"
+    },
+    "__template_ref_pattern_identifier_l3lo4nyzu6": {
+      "name": "Key text bound"
+    },
+    "__template_ref_pattern_package_cvabigu37l": {
+      "name": "Package key"
+    },
+    "__template_ref_pattern_path_ovvutjfchi": {
+      "name": "Key text bound"
+    },
+    "__template_ref_pk_package_path_start_attribute_xgbqwo2lsh": {
+      "name": "E1 derived"
+    },
+    "__test_document_in_document_k64jcfhjbi": {
+      "name": "E1 derived"
+    },
+    "__test_document_in_instance_document_mnba3ewrrp": {
+      "name": "Inclusion cycle"
+    },
+    "__test_document_pattern_package_zd7bp6tfyg": {
+      "name": "Package key"
+    },
+    "__test_document_pattern_path_toddqj7r55": {
+      "name": "Key text bound"
+    },
+    "__test_document_pk_package_path_ekyevn4oym": {
+      "name": "Test overlay"
+    },
+    "__test_document_targets_count_fold_f4wxtq7w5s": {
+      "name": "Test overlay"
+    },
+    "__text_idref_generated_piece_givdyvsh3y": {
+      "name": "E1 derived"
+    },
+    "__text_idref_in_idref_target_gmhrwnzfmw": {
+      "name": "Idref target"
+    },
+    "__text_idref_ordered_identity_text_tokens_nzqwnzg6j6": {
+      "name": "E1 derived"
+    },
+    "__text_idref_pattern_after_5w5jzh7lom": {
+      "name": "E1 derived"
+    },
+    "__text_idref_pattern_before_dzo3vz4krw": {
+      "name": "E1 derived"
+    },
+    "__text_idref_pattern_package_m434p2e6a2": {
+      "name": "Package key"
+    },
+    "__text_idref_pattern_path_qfkjsspzs5": {
+      "name": "Key text bound"
+    },
+    "__text_idref_pattern_piece_cjth3a3msz": {
+      "name": "Key text bound"
+    },
+    "__text_idref_pattern_pieces_after_fxmizbycp2": {
+      "name": "Key text bound"
+    },
+    "__text_idref_pattern_pieces_was_5nopix5fz5": {
+      "name": "Key text bound"
+    },
+    "__text_idref_pattern_token_dxh3ukedii": {
+      "name": "Key text bound"
+    },
+    "__text_idref_pk_package_path_start_at_4esnz75aev": {
+      "name": "E1 derived"
+    },
+    "__text_reference_in_node_2iynrsi2b6": {
+      "name": "Reference overlay"
+    },
+    "__text_reference_path_in_entry_5ze7r5ao73": {
+      "name": "File exists"
+    },
+    "__text_reference_path_in_text_reference_gu5ndegwye": {
+      "name": "Reference overlay"
+    },
+    "__text_reference_path_pattern_package_5fwdlr4vju": {
+      "name": "Package key"
+    },
+    "__text_reference_path_pattern_path_5ocmg2hg4u": {
+      "name": "Key text bound"
+    },
+    "__text_reference_path_pattern_target_oizdq35um6": {
+      "name": "Key text bound"
+    },
+    "__text_reference_path_pk_package_path_start_3a5nxozoi4": {
+      "name": "Reference overlay"
+    },
+    "__text_reference_pattern_lead_4r2jjafwo4": {
+      "name": "E1 derived"
+    },
+    "__text_reference_pattern_package_gjc6wiiswy": {
+      "name": "Package key"
+    },
+    "__text_reference_pattern_params_6omaefhbvc": {
+      "name": "E1 derived"
+    },
+    "__text_reference_pattern_path_i7z36ygyef": {
+      "name": "Key text bound"
+    },
+    "__text_reference_pattern_target_cehuhtfwym": {
+      "name": "Key text bound"
+    },
+    "__text_reference_pattern_trail_x7np6pq5qh": {
+      "name": "E1 derived"
+    },
+    "__text_reference_pk_package_path_start_7iaif76sdc": {
+      "name": "Reference overlay"
+    },
+    "__text_reference_scope_in_text_reference_path_t5z42pwa5f": {
+      "name": "Reference overlay"
+    },
+    "__tolerance_in_attribute_4wmhvbppkq": {
+      "name": "E1 derived"
+    },
+    "__tolerance_pattern_package_vkaflpn7d6": {
+      "name": "Package key"
+    },
+    "__tolerance_pattern_path_xxvn6ljjgy": {
+      "name": "Key text bound"
+    },
+    "__tolerance_pattern_token_text_hsjuqcxs7a": {
+      "name": "Key text bound"
+    },
+    "__tolerance_pk_package_path_start_vs5xfxm3be": {
+      "name": "E1 derived"
+    },
+    "__tolerance_token_generated_piece_stwstekzyb": {
+      "name": "E1 derived"
+    },
+    "__tolerance_token_ordered_tolerance_tokens_uh6nyopdpr": {
+      "name": "E1 derived"
+    },
+    "__tolerance_token_pattern_after_fm3h7wm7ge": {
+      "name": "E1 derived"
+    },
+    "__tolerance_token_pattern_before_s6qnhxewk7": {
+      "name": "E1 derived"
+    },
+    "__tolerance_token_pattern_package_plxyl2onv6": {
+      "name": "Package key"
+    },
+    "__tolerance_token_pattern_path_ulfduxwg5j": {
+      "name": "Key text bound"
+    },
+    "__tolerance_token_pattern_piece_6kjdwd6nua": {
+      "name": "Key text bound"
+    },
+    "__tolerance_token_pattern_pieces_after_givnxvqnz4": {
+      "name": "Key text bound"
+    },
+    "__tolerance_token_pattern_pieces_was_35o3ofsw57": {
+      "name": "Key text bound"
+    },
+    "__tolerance_token_pattern_token_ktwcxglw2v": {
+      "name": "Key text bound"
+    },
+    "__tolerance_token_pk_package_path_start_at_iluebuhjpt": {
+      "name": "E1 derived"
+    },
+    "__tolerance_tokens_concat_fold_fae27hthzp": {
+      "name": "E1 derived"
+    },
+    "__trimmed_mark_key_package_path_fragment_value_uge2sqiwtl": {
+      "name": "SSML trim mark"
+    },
+    "__typed_href_in_resource_document_c5tqrzfkdq": {
+      "name": "Document entry"
+    },
+    "__unassembled_reference_in_catalog_id_tvtzgjrdtb": {
+      "name": "Catalog reference"
+    },
+    "__untargeted_item_ref_in_unread_type_href_zhyrs7wlmm": {
+      "name": "Item ref target"
+    },
+    "__usage_value_base_type_in_node_rff2qcu4cw": {
+      "name": "E1 derived"
+    },
+    "__usage_value_base_type_in_usage_value_fbd5aykbyb": {
+      "name": "E1 derived"
+    },
+    "__usage_value_base_type_lexical_in_usage_value_base_uewxo6r2dz": {
+      "name": "E1 derived"
+    },
+    "__usage_value_base_type_pattern_base_type_lexical_uqu6masq5f": {
+      "name": "Key text bound"
+    },
+    "__usage_value_base_type_pattern_package_sl54qxojrs": {
+      "name": "Package key"
+    },
+    "__usage_value_base_type_pattern_path_t6bn4oq32x": {
+      "name": "Key text bound"
+    },
+    "__usage_value_base_type_pattern_text_2dt6xwpr5f": {
+      "name": "Key text bound"
+    },
+    "__usage_value_base_type_pk_package_path_start_rtkuaxfpon": {
+      "name": "E1 derived"
+    },
+    "__usage_value_in_node_i7zrq4nbad": {
+      "name": "E1 derived"
+    },
+    "__usage_value_in_node_sokh7a33pn": {
+      "name": "E1 derived"
+    },
+    "__usage_value_in_usage_base_type_sffynregqf": {
+      "name": "E1 derived"
+    },
+    "__usage_value_pattern_base_type_lexical_uol7zzylqf": {
+      "name": "Key text bound"
+    },
+    "__usage_value_pattern_package_k6tnb3viwa": {
+      "name": "Package key"
+    },
+    "__usage_value_pattern_path_vmcabbyhnq": {
+      "name": "Key text bound"
+    },
+    "__usage_value_pattern_text_mimezbcs67": {
+      "name": "Key text bound"
+    },
+    "__usage_value_pk_package_path_start_n5sfyqi24j": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_counted_document_variables_3pbqrsinbg": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_declaration_in_reference_declaration_vv5fotfimh": {
+      "name": "Variable kind"
+    },
+    "__variable_ref_declaration_in_typed_declaration_name_v45xpqz4fp": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_declaration_in_variable_ref_table_4qmbhfappt": {
+      "name": "Mapped response"
+    },
+    "__variable_ref_declaration_in_variable_ref_table_bnmlns6lh7": {
+      "name": "Lookup type"
+    },
+    "__variable_ref_in_attribute_5sezfngupx": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_in_document_j2eqiceyjs": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_in_named_declaration_kur2zzl4zl": {
+      "name": "Variable declared"
+    },
+    "__variable_ref_node_in_expression_bl7b4i3hxi": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_node_in_processing_bgxp3vhnsr": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_pattern_after_ublui5s63l": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_pattern_before_4uyz654anj": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_pattern_identifier_4mvdyb5rls": {
+      "name": "Key text bound"
+    },
+    "__variable_ref_pattern_package_i57foegums": {
+      "name": "Package key"
+    },
+    "__variable_ref_pattern_path_okmu2kqtrw": {
+      "name": "Key text bound"
+    },
+    "__variable_ref_pk_package_path_start_attribute_efqrvmzn64": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_table_in_variable_ref_qfs6mo3f26": {
+      "name": "E1 derived"
+    },
+    "__variable_ref_table_pattern_package_5pfchb4skv": {
+      "name": "Package key"
+    },
+    "__variable_ref_table_pattern_path_biwebegj43": {
+      "name": "Key text bound"
+    },
+    "__variable_ref_table_pk_package_path_start_attribute_7fnnjuxiw3": {
+      "name": "E1 derived"
+    },
+    "__weighted_variable_in_expression_5pnx5xpywi": {
+      "name": "Outcome only"
+    },
+    "__xml_decl_in_document_iwjl53cssb": {
+      "name": "Document"
+    },
+    "__xml_decl_pattern_package_fuo3i56x5k": {
+      "name": "Package key"
+    },
+    "__xml_decl_pattern_path_w3eh2vvclc": {
+      "name": "Key text bound"
+    },
+    "__xml_decl_pattern_version_u4cfer6mrm": {
+      "name": "XML production"
+    },
+    "__xml_decl_pk_package_path_b5rrkznnte": {
+      "name": "Document"
+    }
+  }
+}

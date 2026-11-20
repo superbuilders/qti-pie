@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "command": { "type": "string" },
+    "error": { "type": "boolean", "enum": [true] },
+    "exit_code": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+    "failure": { "type": "string" },
+    "help": { "type": "string" },
+    "kind": { "type": "string" },
+    "laws": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "installed": { "type": "string" },
+          "name": { "type": "string" },
+          "rule": { "type": "string" },
+          "text": { "type": "string" }
+        },
+        "required": ["text"],
+        "additionalProperties": true
+      }
+    },
+    "message": { "type": "string" },
+    "ok": { "type": "boolean", "enum": [false] },
+    "refused_kind": {
+      "type": "string",
+      "enum": ["above every", "above none", "above unjudged", "every", "first", "some"]
+    },
+    "rules": { "type": "array", "items": { "type": "string" } },
+    "schema_version": { "type": "number", "enum": [1] },
+    "sources": { "type": "array", "items": { "type": "string" } },
+    "witness": { "type": "string", "enum": ["key", "unreported"] }
+  },
+  "required": ["command", "error", "exit_code", "help", "kind", "message", "ok", "schema_version"],
+  "additionalProperties": true,
+  "$defs": {}
+}

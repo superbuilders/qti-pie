@@ -1,0 +1,34 @@
+{
+  "name": "@qti-pie/specimen",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "imports": {
+    "#specimen/*": "./src/*"
+  },
+  "exports": {
+    "./open": "./src/open.ts",
+    "./scored": "./src/scored.ts",
+    "./specimen": "./src/specimen.ts"
+  },
+  "scripts": {
+    "typecheck": "sh -c 'toolchain-typecheck -p src/ui/tsconfig.json \"$@\" & toolchain-typecheck -p tsconfig.json \"$@\"; specimen=$?; wait $! && exit $specimen' typecheck",
+    "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run",
+    "test:ui": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" node --disable-proto=delete --disable-sigusr1 --throw-deprecation --pending-deprecation --force-context-aware --no-global-search-paths --unhandled-rejections=strict \"$(command -v vitest)\" run --config vitest.ui.config.ts"
+  },
+  "dependencies": {
+    "@bjornpagen/testing": "workspace:*",
+    "@qti-pie/plate": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@bjornpagen/devtools": "workspace:*",
+    "@effect/vitest": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "linkedom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "vitest": "catalog:"
+  }
+}

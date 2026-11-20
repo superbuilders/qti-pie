@@ -1,0 +1,2059 @@
+/*
+ * plate's base sheet: what plate's markup needs to work, and the floors a child in kindergarten to
+ * grade 3 and a screen reader need, with no look of its own. plate applies no style by default: a
+ * host imports this sheet, `@qti-pie/plate/styles/base.css`, and after it, in the same layer, a
+ * theme, plate's own `@qti-pie/plate/styles/theme.css` or the host's in its place. plate renders
+ * nothing that needs another sheet: no class of its own, no `style` attribute and no inline
+ * `<style>`, since an item page's content security policy refuses inline styles.
+ *
+ * What it holds: the native inputs UI SDK keeps hidden, `[hidden]` and every part's box sizing;
+ * what a finger and a pointer do on each part (`touch-action`, selection, callouts, cursors); the
+ * graphic stage's geometry, its overlay and the two-tone rings drawn over the author's picture; a
+ * Slider's geometry; an Inline Choice's list placed under its trigger; UI SDK's radio and checkbox,
+ * drawn; and the floors. Targets are at least 64 px (`--plate-target-size`, about 12 mm on an iPad
+ * or a school Chromebook), a bank chip's hit area reaching across half the 12 px gap; a control
+ * inside a sentence at least 48 px (`--plate-control-size`), a hot text's choice 44 px
+ * (`--plate-inline-target-size`). Text is 20 px (`--plate-text-size`), and every control takes the
+ * text's font. Focus is the two-toned ring. Every control has its edge at 3:1, and a review's mark
+ * is a glyph and words, never a colour alone (WCAG 1.4.1, 1.4.11). Everything else, colours,
+ * spacing, each state's look and the shared vocabulary's classes, is the theme's.
+ *
+ * Hooks. Every rule keys on a `data-slot`: plate's parts are `plate-<kind>-<part>`, and the UI SDK
+ * components the islands use keep their own (`radio`, `checkbox`, `select-trigger`, `input`, ...).
+ * State is a `data-*` attribute (`data-picked`, `data-dragging`, `data-over`, `data-full`,
+ * `data-empty`, `data-refuses`, `data-copies`, `data-used`, `data-selected`, `data-disabled`,
+ * `data-pending`, `data-mark`, `data-missed`) or a UI SDK one (`data-checked`, `data-open`,
+ * `data-highlighted`, `data-placeholder`, `data-invalid`). The only classes read are the author's:
+ * QTI's shared vocabulary, in the body and on an interaction's island root. A UI SDK component is
+ * styled only inside a plate part, so the host's own UI SDK components keep the host's look.
+ *
+ * Layers. Every rule sits in `@layer plate`, so any unlayered rule of the host's, or one in a
+ * later layer, wins whatever its specificity. The theme's rules sit in the same layer after these,
+ * so where a theme's rule and one here weigh the same, the theme's wins. A host that orders its
+ * layers names `plate` where it wants it, Tailwind's `utilities` after it. UI SDK writes a few
+ * rules into `@layer ui-sdk` once a component mounts. The statement below puts that layer before
+ * `plate` in a page that has named neither yet; a host that names its layers first names `ui-sdk`
+ * first, as UI SDK asks, or UI SDK's reset of a popup (no padding, border or background) lands
+ * after plate and wins.
+ *
+ * Tokens. This sheet declares the tokens it reads, on :root with no weight, so it works under any
+ * theme: the floors' sizes, the ring's colour and the background its halo is drawn in, the
+ * controls' edge, the primary colour UI SDK's checked controls fill with, and the stage's two
+ * tones. Colours are UI SDK's `--ui-*` names, the rest `--plate-*`. A host overrides any of them on
+ * :root, on the item or anywhere between, from unlayered CSS or a later layer. UI SDK's
+ * `--ui-font-size` and `--ui-line-height` are a desktop app's dense sizes, so plate reads its own
+ * and leaves those to the host's other components.
+ *
+ * One scheme: the colours are light, whatever the page's `color-scheme`, since no page sets a
+ * dark one.
+ *
+ * Browsers: `:has()`, `oklch()`, `color-mix()` and the `lh` unit need Safari and iPadOS 16.4,
+ * Chrome 111 and Firefox 121. No rule nests, so no build has to flatten the sheet.
+ */
+@layer ui-sdk, plate;
+
+@layer plate {
+  /* == tokens == */
+
+  :where(:root) {
+    /* UI SDK's names, at shadcn's neutral values; the control border darker, for 3:1. */
+    --ui-background: oklch(1 0 0);
+    --ui-muted-foreground: oklch(0.556 0 0);
+    --ui-input: oklch(0.62 0 0);
+    --ui-primary: oklch(0.205 0 0);
+    --ui-primary-foreground: oklch(0.985 0 0);
+    --ui-ring: oklch(0.556 0 0);
+
+    /*
+     * The two tones every ring on a graphic interaction's image is drawn in, a dark ink beside a
+     * light one, so that over any picture one of them holds 3:1 (WCAG 1.4.11; the stage's
+     * accessibility rules, A2): near black and white hold it against every sRGB colour, the
+     * closest, rgb(103, 111, 227), at 4.23:1 by WCAG's luminance over the whole cube. Opaque and
+     * fixed: the image is the author's, so the rings follow the picture, not the page. A wash
+     * inside an area is one of them, thinned.
+     */
+    --plate-tone-ink: oklch(0.205 0 0);
+    --plate-tone-light: oklch(1 0 0);
+
+    /*
+     * The tallest a graphic interaction's picture is drawn, its width following its proportions:
+     * the screen's height, so the whole picture stands on one screen. A host whose page puts its
+     * parts round the stage gives it what that leaves. The stage is drawn as wide as its container
+     * and this budget allow, and never so small that an area is under 44 px across, which outranks
+     * the budget.
+     */
+    --plate-stage-block-size: 100svh;
+
+    /*
+     * The shade a stage that scrolls lays on an edge past which more of its picture lies: the ink,
+     * thinned, over the picture's edge, with the light tone's chevron in it.
+     */
+    --plate-scroll-shade: color-mix(in oklab, var(--plate-tone-ink) 45%, transparent);
+
+    /* The floors: the item's text, and a target on its own, in a sentence and in a hot text. */
+    --plate-text-size: 1.25rem;
+    --plate-line-height: 1.6;
+    --plate-target-size: 4rem;
+    --plate-control-size: 3rem;
+    --plate-inline-target-size: 2.75rem;
+
+    /*
+     * A Slider's thumb, half of which overhangs each end of its track, and a vertical track's
+     * length.
+     */
+    --plate-slider-thumb: 2.75rem;
+    --plate-slider-length: 16rem;
+
+    /* The space between two chips, half of which each bank chip's hit area takes. */
+    --plate-gap: 0.75rem;
+
+    /*
+     * The focus ring, two-toned: a 2 px band of the background against the part, filled by a
+     * shadow, then a 3 px ring 2 px out in the ring colour, 4.7:1 on the background, so it reads on
+     * whatever surface the part stands on.
+     */
+    --plate-focus-ring: 3px solid var(--ui-ring);
+    --plate-focus-halo: 0 0 0 2px var(--ui-background);
+  }
+
+  /* == hidden parts == */
+
+  /*
+   * Every part's size holds its padding and border, as UI SDK sizes its own parts, so a box made
+   * the item's width stays inside it whatever reset the host has. At no weight, so any rule wins.
+   */
+  :where([data-slot^="plate-"], [data-slot^="plate-"] [data-slot]) {
+    box-sizing: border-box;
+  }
+
+  /*
+   * A part UI SDK hides carries `hidden`, which a part's own `display` would otherwise undo. UI SDK
+   * writes this rule once a component mounts; the server's HTML needs it before then.
+   * `hidden="until-found"` stays, so find in page can still open it.
+   */
+  :where([data-slot][hidden]:not([hidden="until-found"])) {
+    display: none !important;
+  }
+
+  /*
+   * The native inputs UI SDK's radio, checkbox and select keep for the form, hidden as UI SDK hides
+   * them: out of sight, out of the pointer's way, still in the page for the form. UI SDK hides them
+   * with a `style` attribute, which the item page's policy drops from the server's HTML, and
+   * hydration does not write it again, so without this rule they would show beside their buttons.
+   * Its input and textarea are the native controls themselves, and keep no hidden copy.
+   */
+  :where([data-slot^="plate-"])
+    :is(
+      [data-slot="radio-input"],
+      [data-slot="checkbox-input"],
+      [data-slot="checkbox-group-input"],
+      [data-slot="select-form-input"]
+    ) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* == the item == */
+
+  /*
+   * The item: text large enough for an early reader, at a line height that leaves room for the
+   * controls in it, and no word too long to wrap. Its font is the page's.
+   */
+  [data-slot="plate-item"] {
+    font-size: var(--plate-text-size);
+    line-height: var(--plate-line-height);
+    overflow-wrap: break-word;
+  }
+
+  /*
+   * A table's box (`plate-table`), around every table the author wrote: a table wider than the
+   * item scrolls sideways inside it, so the page never does (WCAG 1.4.10). The table keeps its own
+   * display, and so its semantics, which WebKit has dropped from a table displayed otherwise.
+   */
+  [data-slot="plate-table"] {
+    max-inline-size: 100%;
+    overflow-x: auto;
+  }
+
+  /* == prompt, feedback, rubric == */
+
+  /*
+   * A glossary term's definition (A-15), a native disclosure the browser opens and closes: its
+   * summary, "Definition", a target at least 48 px tall, as every control in a sentence's flow is,
+   * with the two-toned focus ring. No rule touches `[open]`.
+   */
+  [data-slot="plate-glossary"] > summary {
+    min-block-size: var(--plate-control-size);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  [data-slot="plate-glossary"] > summary:focus-visible {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+    box-shadow: var(--plate-focus-halo);
+  }
+
+  /* What a placement a target refused says beside its controls: nothing, while it is empty. */
+  [data-slot="plate-placement-message"]:empty {
+    display: none;
+  }
+
+  /* == choice == */
+
+  /*
+   * An option, a Choice's or a row of a Hotspot's list: the whole target, since it is the label of
+   * its radio or checkbox, at least 64 px tall whatever its content, in an edge at 3:1, and the
+   * box its control's hidden input stands in. It takes the pointer only while it holds a control,
+   * so a review's options, which hold none, do not look pressable.
+   */
+  :is([data-slot="plate-choice-option"], [data-slot="plate-hotspot-option"]) {
+    position: relative;
+    display: flex;
+    min-block-size: var(--plate-target-size);
+    border: 2px solid var(--ui-input);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :is([data-slot="plate-choice-option"], [data-slot="plate-hotspot-option"]):has(
+    [data-slot="radio"],
+    [data-slot="checkbox"]
+  ) {
+    cursor: pointer;
+  }
+
+  /*
+   * Its focus ring: on the whole option, where a child looks, rather than on the small control that
+   * holds the focus.
+   */
+  :is([data-slot="plate-choice-option"], [data-slot="plate-hotspot-option"]):has(:focus-visible) {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+    box-shadow: var(--plate-focus-halo);
+  }
+
+  /*
+   * UI SDK's radio and checkbox, buttons inside an option: 28 px, with the option's ring for their
+   * focus and the option's press for theirs.
+   */
+  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+    :is([data-slot="radio"], [data-slot="checkbox"]) {
+    position: relative;
+    display: inline-grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin: 0;
+    padding: 0;
+    border: 2px solid var(--ui-input);
+    background: var(--ui-background);
+    color: var(--ui-primary-foreground);
+    font: inherit;
+    cursor: pointer;
+    appearance: none;
+  }
+
+  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+    :is([data-slot="radio"], [data-slot="checkbox"]):focus-visible {
+    outline: none;
+  }
+
+  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+    [data-slot="radio"] {
+    border-radius: 50%;
+  }
+
+  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+    [data-slot="radio"][data-checked] {
+    border-color: var(--ui-primary);
+  }
+
+  /* The radio's dot: a border, not a background, so forced colours keep it. */
+  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+    [data-slot="radio-indicator"] {
+    width: 0;
+    height: 0;
+    border: 0.4375rem solid var(--ui-primary);
+    border-radius: 50%;
+  }
+
+  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+    [data-slot="checkbox"]:is([data-checked], [data-indeterminate]) {
+    border-color: var(--ui-primary);
+    background: var(--ui-primary);
+  }
+
+  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+    [data-slot="checkbox-indicator"] {
+    display: grid;
+    place-items: center;
+  }
+
+  /*
+   * The checkbox's tick, and a select option's, drawn with two borders: an image would need the
+   * page's policy to allow it.
+   */
+  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+    [data-slot="checkbox-indicator"]:not(:has(svg))::before,
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-item"][data-selected]::after {
+    content: "";
+    flex-shrink: 0;
+    width: 0.4375rem;
+    height: 0.8125rem;
+    margin-block-start: -0.1875rem;
+    border: solid currentColor;
+    border-width: 0 3px 3px 0;
+    rotate: 45deg;
+  }
+
+  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+    :is([data-slot="radio-indicator"], [data-slot="checkbox-indicator"])[data-unchecked] {
+    visibility: hidden;
+  }
+
+  /* == inline choice == */
+
+  /*
+   * An Inline Choice: UI SDK's select inside a sentence, after its label when it has one. Its
+   * trigger is at least 48 px tall, so its line grows around it rather than the trigger shrinking
+   * to the line.
+   */
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-trigger"] {
+    min-block-size: var(--plate-control-size);
+    border: 2px solid var(--ui-input);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * The list, in the top layer under its trigger: as wide as the trigger or wider, no taller than
+   * the room UI SDK measures, each option at least 56 px tall. Its `display` is the top layer's, so
+   * a closed list stays closed.
+   */
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-content"] {
+    min-inline-size: var(--anchor-width);
+    max-block-size: var(--available-height);
+    margin: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* An option: a target at least 56 px tall, whose words a press never selects. */
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-item"] {
+    min-block-size: 3.5rem;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-item"][data-disabled] {
+    cursor: default;
+  }
+
+  /* == text entry and extended text == */
+
+  /*
+   * A Text Entry's input, inside a sentence, and an Extended Text's boxes: at least 48 px tall, in
+   * an edge at 3:1 and the text's font.
+   */
+  :where([data-slot="plate-text-entry"], [data-slot="plate-extended-text"])
+    :is([data-slot="input"], [data-slot="textarea"]) {
+    min-block-size: var(--plate-control-size);
+    border: 2px solid var(--ui-input);
+    font: inherit;
+  }
+
+  /* == end attempt == */
+
+  /*
+   * An End Attempt: UI SDK's button where the author put it, its text the author's title ("Show
+   * hint"). At least 64 px tall, as every target a child presses on its own, the line it stands in
+   * growing around it.
+   */
+  :where([data-slot="plate-end-attempt"]) [data-slot="button"] {
+    min-block-size: var(--plate-target-size);
+    min-inline-size: var(--plate-target-size);
+    border: 2px solid var(--ui-input);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * While the host's form submits (`data-pending` on the root), the button takes no press; a
+   * pointer over it says to wait. Only then: a review shows the title as words, and nothing on the
+   * page is a button that never works.
+   */
+  :where([data-slot="plate-end-attempt"][data-pending]) [data-slot="button"] {
+    cursor: progress;
+  }
+
+  /* == hot text == */
+
+  /*
+   * A Hot Text's passage: its lines stand 2.4 times the text apart, 48 px, so a choice's hit area,
+   * which its padding takes to 44 px (ruling R5), stays inside its own line: the 64 px of a K–3
+   * target elsewhere would tear the sentence apart.
+   */
+  :where([data-slot="plate-hottext"]) :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    line-height: 2.4;
+  }
+
+  /*
+   * A choice: a run of the sentence, inline, so it wraps as the words around it do. Its padding
+   * takes its hit area to at least 44 px whatever the text's size, assuming a font's glyph box is
+   * 1.1em, as Arial's is and every common face's at least; that padding is transparent and still
+   * takes a press. A finger on it neither zooms nor selects the words.
+   */
+  [data-slot="plate-hottext-choice"] {
+    position: relative;
+    padding-block: max(0.55em, (var(--plate-inline-target-size) - 1.1em) / 2);
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  [data-slot="plate-hottext-choice"]:has([data-slot="radio"], [data-slot="checkbox"]) {
+    cursor: pointer;
+  }
+
+  /* Its focus ring: on the whole choice, its hit area, as a Choice's is on its option. */
+  [data-slot="plate-hottext-choice"]:has(:focus-visible) {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+    box-shadow: var(--plate-focus-halo);
+  }
+
+  /*
+   * The radio or checkbox in a choice: the Choice's control at the text's size, standing on the
+   * line before the words, so it changes no line's height.
+   */
+  :where([data-slot="plate-hottext"]) :is([data-slot="radio"], [data-slot="checkbox"]) {
+    width: 1.2em;
+    height: 1.2em;
+    margin-inline-end: 0.25em;
+    vertical-align: -0.2em;
+  }
+
+  /* == slider == */
+
+  /*
+   * A Slider's scale, a grid: the lower bound, the slider and the upper bound on one line, the step
+   * labels under the slider; a vertical one stands its slider between the upper bound above and the
+   * lower below, or the other way up when reversed, the labels beside it. A reversed horizontal one
+   * runs right to left by its scale's `dir`, which the grid and the labels follow.
+   */
+  [data-slot="plate-slider-scale"] {
+    display: grid;
+    grid-template-areas:
+      "lower slider upper"
+      ". steps .";
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.25rem 1rem;
+  }
+
+  [data-slot="plate-slider"][data-orientation="vertical"] [data-slot="plate-slider-scale"] {
+    grid-template-areas:
+      "upper ."
+      "slider steps"
+      "lower .";
+    grid-template-columns: auto auto;
+    justify-content: start;
+    justify-items: center;
+    align-items: end;
+  }
+
+  [data-slot="plate-slider"][data-orientation="vertical"][data-reverse]
+    [data-slot="plate-slider-scale"] {
+    grid-template-areas:
+      "lower ."
+      "slider steps"
+      "upper .";
+  }
+
+  [data-slot="plate-slider-scale"] > [data-bound="lower"] {
+    grid-area: lower;
+  }
+
+  [data-slot="plate-slider-scale"] > [data-bound="upper"] {
+    grid-area: upper;
+  }
+
+  [data-slot="plate-slider-scale"] > :is([data-slot="slider"], [data-slot="slider-value"]) {
+    grid-area: slider;
+  }
+
+  [data-slot="plate-slider-scale"] > [data-slot="plate-slider-steps"] {
+    grid-area: steps;
+  }
+
+  /*
+   * A bound's number: as tall as the control on a horizontal slider, so it stands level with the
+   * track.
+   */
+  [data-slot="plate-slider-bound"] {
+    display: flex;
+    align-items: center;
+    min-block-size: var(--plate-target-size);
+  }
+
+  [data-slot="plate-slider"][data-orientation="vertical"] [data-slot="plate-slider-bound"] {
+    min-block-size: auto;
+  }
+
+  /*
+   * UI SDK's slider: the value read out, in the text's own line, over the control, 64 px tall. The
+   * box the server and the hydrating render hold in its place, the same slot with no parts yet,
+   * takes the same size from the same rule, so nothing moves when the slider mounts.
+   */
+  :where([data-slot="plate-slider"]) [data-slot="slider"] {
+    display: grid;
+    grid-template-rows: auto var(--plate-target-size);
+    justify-items: stretch;
+    gap: 0.25rem;
+    inline-size: 100%;
+    min-block-size: calc(1lh + 0.25rem + var(--plate-target-size));
+  }
+
+  :where([data-slot="plate-slider"]) [data-slot="slider"][data-orientation="vertical"] {
+    grid-template-rows: auto var(--plate-slider-length);
+    justify-items: center;
+    inline-size: auto;
+    min-inline-size: var(--plate-target-size);
+    min-block-size: calc(1lh + 0.25rem + var(--plate-slider-length));
+  }
+
+  /* The readout: the value, over the middle of the track. */
+  :where([data-slot="plate-slider"]) [data-slot="slider"] > [data-slot="slider-value"] {
+    justify-self: center;
+  }
+
+  /*
+   * The control, where presses land: the K–3 64 px across the whole track, with room at each end
+   * for the half of the thumb that overhangs it. UI SDK maps a press against the track, so the room
+   * moves no value. A finger on it never scrolls or selects.
+   */
+  :where([data-slot="plate-slider"]) [data-slot="slider-control"] {
+    display: flex;
+    align-items: center;
+    block-size: var(--plate-target-size);
+    padding-inline: calc(var(--plate-slider-thumb) / 2);
+    cursor: pointer;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :where([data-slot="plate-slider"]) [data-slot="slider-control"][data-orientation="vertical"] {
+    justify-content: center;
+    inline-size: var(--plate-target-size);
+    block-size: var(--plate-slider-length);
+    padding-block: calc(var(--plate-slider-thumb) / 2);
+    padding-inline: 0;
+  }
+
+  /*
+   * The track, 8 px thick, its edge in the control border's grey, 3:1 on the background. The edge
+   * is an inset shadow, not a border: UI SDK places the thumb and the indicator in the track's
+   * padding box and maps a press against its border box, which a border would set 2 px apart. It
+   * places the indicator, so no rule here sets its inset or its size.
+   */
+  :where([data-slot="plate-slider"]) [data-slot="slider-track"] {
+    inline-size: 100%;
+    block-size: 0.5rem;
+    box-shadow: inset 0 0 0 2px var(--ui-input);
+  }
+
+  :where([data-slot="plate-slider"]) [data-slot="slider-track"][data-orientation="vertical"] {
+    inline-size: 0.5rem;
+    block-size: 100%;
+  }
+
+  /*
+   * The thumb: 44 px, ringed in the primary colour, whose round hit area reaches 64 px. UI SDK
+   * places it, so no rule here sets its position, inset or translation. It grabs under a pointer
+   * that hovers.
+   */
+  :where([data-slot="plate-slider"]) [data-slot="slider-thumb"] {
+    inline-size: var(--plate-slider-thumb);
+    block-size: var(--plate-slider-thumb);
+    border: 3px solid var(--ui-primary);
+    cursor: grab;
+    touch-action: none;
+  }
+
+  :where([data-slot="plate-slider"]) [data-slot="slider-thumb"]::before {
+    content: "";
+    position: absolute;
+    inset: calc((var(--plate-slider-thumb) - var(--plate-target-size)) / 2);
+    border-radius: 50%;
+  }
+
+  :where([data-slot="plate-slider"])
+    [data-slot="slider"][data-dragging]
+    [data-slot="slider-thumb"] {
+    cursor: grabbing;
+  }
+
+  /*
+   * No value yet: the thumb and the indicator are not shown, by opacity alone, so the thumb keeps
+   * its place, its press and its focus. Its focus ring then rings the whole control, since a ring
+   * on a thumb not shown would not show either.
+   */
+  :where([data-slot="plate-slider"][data-empty])
+    :is([data-slot="slider-thumb"], [data-slot="slider-indicator"]) {
+    opacity: 0;
+  }
+
+  :where([data-slot="plate-slider"]) [data-slot="slider-thumb"]:has(:focus-visible),
+  :where([data-slot="plate-slider"][data-empty]) [data-slot="slider-control"]:has(:focus-visible) {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+    box-shadow: var(--plate-focus-halo);
+  }
+
+  :where([data-slot="plate-slider"])
+    [data-slot="slider"][data-disabled]
+    [data-slot="slider-control"] {
+    cursor: not-allowed;
+  }
+
+  /*
+   * The step labels: under the track, each centred on its value, the first and the last at the
+   * track's ends; beside a vertical track, the lower at the bottom, or at the top when reversed.
+   * Each label is a box of no width, or no height, its number overflowing it evenly on both sides,
+   * so the labels stand where their values are whatever their lengths.
+   */
+  [data-slot="plate-slider-steps"] {
+    display: flex;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0 calc(var(--plate-slider-thumb) / 2);
+    list-style: none;
+  }
+
+  [data-slot="plate-slider-step"] {
+    display: flex;
+    justify-content: center;
+    inline-size: 0;
+    white-space: nowrap;
+  }
+
+  [data-slot="plate-slider"][data-orientation="vertical"] [data-slot="plate-slider-steps"] {
+    flex-direction: column-reverse;
+    align-self: end;
+    block-size: var(--plate-slider-length);
+    padding: calc(var(--plate-slider-thumb) / 2) 0;
+  }
+
+  [data-slot="plate-slider"][data-orientation="vertical"][data-reverse]
+    [data-slot="plate-slider-steps"] {
+    flex-direction: column;
+  }
+
+  [data-slot="plate-slider"][data-orientation="vertical"] [data-slot="plate-slider-step"] {
+    align-items: center;
+    justify-content: flex-start;
+    inline-size: auto;
+    block-size: 0;
+  }
+
+  /* A review's value, in place of the slider: the control's height, the box its mark stands on. */
+  [data-slot="plate-slider-scale"] > [data-slot="slider-value"] {
+    position: relative;
+    min-block-size: var(--plate-target-size);
+  }
+
+  /* == media == */
+
+  /*
+   * A Media interaction's controls, UI SDK's Play or Pause button and its Captions toggle: each a
+   * 64 px target, as every target a child presses on its own.
+   */
+  :where([data-slot="plate-media-controls"]) :is([data-slot="button"], [data-slot="toggle"]) {
+    min-block-size: var(--plate-target-size);
+    min-inline-size: var(--plate-target-size);
+    border: 2px solid var(--ui-input);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * Play once the plays are used up, or while the media loads: it takes no press, and a pointer
+   * over it says no, or to wait.
+   */
+  :where([data-slot="plate-media-controls"])
+    :is([data-slot="button"], [data-slot="toggle"])[data-disabled] {
+    cursor: not-allowed;
+  }
+
+  :where([data-slot="plate-media-controls"]) [data-slot="button"][data-pending] {
+    cursor: progress;
+  }
+
+  /* == portable custom == */
+
+  /*
+   * A Portable Custom Interaction: the box its empty status stands in, out of sight. What the PCI
+   * draws is a sandboxed page of its own, which no rule here reaches; the source, `hidden`, stays
+   * out of sight by the hidden parts' rule.
+   */
+  [data-slot="plate-portable-custom"] {
+    position: relative;
+  }
+
+  /*
+   * The stage, which the island makes the frame in and which holds nothing else. Once the frame
+   * cannot run the PCI it is removed, and the stage goes with it, so the status stands under the
+   * prompt.
+   */
+  [data-slot="plate-portable-custom"][data-failed] > [data-slot="plate-portable-custom-stage"] {
+    display: none;
+  }
+
+  /*
+   * The frame: a block across the stage, where an iframe would stand 300 px wide on the text's
+   * line, in the control's edge at 3:1, so the child sees where the activity begins and ends. Its
+   * height is its `height` attribute, the frame page's own height as the page reports it, which no
+   * rule sets. So its border stands outside
+   * that height, `content-box`, or the page would scroll by the border's width, and its width is
+   * the stage's less the two borders.
+   *
+   * Focus inside the frame rings it, in the two-toned ring, whether a key or a tap put it there:
+   * the page cannot tell which inside a frame whose origin is opaque, and while it holds the focus
+   * the child's keys go to the PCI, so the ring says where they go.
+   */
+  [data-slot="plate-portable-custom-frame"] {
+    box-sizing: content-box;
+    display: block;
+    inline-size: calc(100% - 4px);
+    margin: 0;
+    padding: 0;
+    border: 2px solid var(--ui-input);
+  }
+
+  [data-slot="plate-portable-custom-stage"]:focus-within
+    > [data-slot="plate-portable-custom-frame"] {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+    box-shadow: var(--plate-focus-halo);
+  }
+
+  /*
+   * The status, a polite live region (WCAG 4.1.3): while the PCI loads, its `loading` words; once
+   * the frame cannot run it, its `failed` words. While the PCI runs it is empty, and then out of
+   * sight and out of the flow, but never `display: none`, for two reasons. A region hidden so
+   * leaves the accessibility tree, and the words it next says might not be read. And when the frame
+   * that held the focus fails, the island focuses the status before it holds the failed words, and
+   * an element with no box takes no focus. Only script focuses it, so its ring keys on `:focus`,
+   * however the child came there.
+   */
+  [data-slot="plate-portable-custom-status"]:empty {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  [data-slot="plate-portable-custom-status"]:focus {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+    box-shadow: var(--plate-focus-halo);
+  }
+
+  /* == placement: match, gap match and order == */
+
+  /*
+   * A placement: pans and pinch-zooms, but a second tap does not zoom, since a child taps again and
+   * again until something changes.
+   */
+  [data-slot="plate-placement"] {
+    touch-action: manipulation;
+  }
+
+  /*
+   * The bank, the chips not placed: at least a chip tall when empty, with the theme's padding and
+   * edge, so a chip can always go back into it. It is the box its slot is laid over, and isolated,
+   * so the slot it lays behind its chips stays over its own fill.
+   */
+  [data-slot="plate-placement-bank"] {
+    position: relative;
+    isolation: isolate;
+    min-block-size: calc(var(--plate-target-size) + 1.5rem + 4px);
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /*
+   * A chip: a target at least 64 px tall, in an edge at 3:1, and the box its hit area and its mark
+   * stand in. A finger on it never scrolls, selects, or brings up a callout, in the server's HTML
+   * already, since `touch-action` cannot change once a press begins; the markup sets the same.
+   */
+  [data-slot="plate-placement-chip"] {
+    position: relative;
+    min-block-size: var(--plate-target-size);
+    border: 2px solid var(--ui-input);
+    font: inherit;
+    cursor: grab;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* A picture in a chip takes no press of its own, so iOS offers no picture callout or drag. */
+  [data-slot="plate-placement-chip"] img {
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+
+  /*
+   * A bank chip's hit area reaches half the gap to its neighbours, so a press between two chips
+   * lands on one of them.
+   */
+  :where([data-slot="plate-placement-bank"])
+    [data-slot="plate-placement-chip"]:not([data-used], [data-mark])::after {
+    content: "";
+    position: absolute;
+    inset: calc(var(--plate-gap) / -2);
+  }
+
+  /* The chip being dragged, and the copy that follows the finger, grab under a pointer. */
+  [data-slot="plate-placement-chip"][data-dragging] {
+    cursor: grabbing;
+  }
+
+  [data-slot="plate-placement-preview"] {
+    cursor: grabbing;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /*
+   * A chip with no uses left, or in a finished or disabled interaction, or one the review shows:
+   * no grab, since it no longer moves.
+   */
+  [data-slot="plate-placement-chip"][data-used] {
+    cursor: default;
+  }
+
+  [data-slot="plate-placement-chip"]:is([aria-disabled="true"], :disabled, [data-mark]):not(
+      [data-used]
+    ),
+  [data-slot="plate-placement-chip"]:not(button) {
+    cursor: default;
+  }
+
+  /*
+   * A target: where a chip goes, holding its label, its chips and, while it takes one more, its
+   * slot; the box its mark stands in.
+   */
+  [data-slot="plate-placement-target"] {
+    position: relative;
+  }
+
+  /*
+   * A slot: the empty place in a target a tap puts the held chip in, at least 64 px tall, a dashed
+   * frame at 3:1 that says "something goes here".
+   */
+  [data-slot="plate-placement-slot"] {
+    min-block-size: var(--plate-target-size);
+    border: 2px dashed var(--ui-muted-foreground);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* A target or slot that would refuse the held chip (`data-refuses`) says no to the pointer. */
+  :is([data-slot="plate-placement-slot"], [data-slot="plate-placement-target"])[data-refuses] {
+    cursor: not-allowed;
+  }
+
+  /*
+   * The bank's slot, "Put it back", the last thing in every island's bank: laid over the whole bank
+   * behind its chips, so it takes no room of its own, never the empty row a slot wrapped past the
+   * chips' last row cost, and nothing moves when it shows. A press on the bank between its chips
+   * lands on it, as a press on the bank's own area puts the held chip back. It is out of sight, of
+   * the keyboard and of a screen reader while no chip from a target is held, so the bank shows no
+   * empty place a child might try to fill. While a placed chip is held, by a tap, a key or a drag,
+   * it shows and takes a press, solid like every slot that takes the held chip.
+   */
+  [data-slot="plate-placement-bank"] > [data-slot="plate-placement-slot"] {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    min-inline-size: 0;
+    min-block-size: 0;
+  }
+
+  [data-slot="plate-placement"]:not(
+      :has(
+        [data-slot="plate-placement-target"]
+          [data-slot="plate-placement-chip"]:is([data-picked], [data-dragging])
+      )
+    )
+    [data-slot="plate-placement-bank"]
+    > [data-slot="plate-placement-slot"] {
+    visibility: hidden;
+  }
+
+  /* == match, gap match, order and associate: their layouts == */
+
+  /* Gap match: each gap a place in the sentence, at least 64 px tall, its line growing round it. */
+  [data-slot="plate-gap"] {
+    display: inline-flex;
+    min-block-size: var(--plate-target-size);
+  }
+
+  /* An order's position: at least 64 px tall, as the chip or slot it holds. */
+  :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"])
+    > [data-slot="plate-placement-target"] {
+    min-block-size: var(--plate-target-size);
+  }
+
+  /* == the graphic stage: an image, the marks drawn over it, and its scale == */
+
+  /*
+   * The stage every graphic interaction stands on (the stage's accessibility rules, A1): the
+   * author's image and, over it, an SVG overlay whose `viewBox` is the image's own pixels, so an
+   * area's coordinates land on the picture at any size it is drawn at, and over that the pins, an
+   * SVG with no `viewBox`, whose marks read at the page's own size wherever they stand.
+   *
+   * Its size comes from two spacers the stage writes with SVG attributes, never a `style`. The
+   * floor spacer, a zero-height `svg` whose `width` is the floor width, is rigid, so it holds the
+   * stage's one column at its floor: the width at which its smallest area is 44 px across. The fit
+   * spacer, an `svg` whose `viewBox` gives it the image's proportions, is set at the height budget
+   * (`--plate-stage-block-size`), so its width is the widest the image may be drawn under it; it
+   * sits in a box that clips, a scroll container, which a grid gives an automatic minimum of 0, so
+   * it only sets how wide the column may grow. The column, `fit-content(100%)`, is then the fit
+   * width where the item has room for it, the item's width where it has not, and never narrower
+   * than the floor: the picture as large as the item and the budget allow, above or below its
+   * author's size, its areas 44 px targets at the least. This rests on grid alone, not on how a
+   * browser counts a percentage `max-width` on a replaced element (CSS Sizing's open issue 6348).
+   *
+   * Past the floor the stage scrolls sideways inside its own region, and the page never does
+   * (1.4.10), so the region is a focus stop with a two-toned ring. Its padding leaves room for a
+   * ring at the image's edge, which the scroll box would otherwise cut. A tap on it never zooms,
+   * selects the picture or brings up its callout.
+   */
+  [data-slot="plate-graphic"] {
+    display: grid;
+    grid-template-columns: fit-content(100%);
+    justify-content: start;
+    max-inline-size: 100%;
+    padding: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  [data-slot="plate-graphic"]:focus-visible {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+    box-shadow: var(--plate-focus-halo);
+  }
+
+  /*
+   * A stage that scrolls shows it does: on each edge of its region past which more of the picture
+   * lies, a shade 2.5rem wide over the picture's edge, darkest at the region's edge, holding a
+   * chevron that points the way, the light tone on it. Each is a sticky part of the picture's cell,
+   * so it stays on the region's edge as the picture scrolls under it, and the region's scroll, read
+   * as a timeline, shows the shade at the start's edge once the picture has moved off it and the
+   * one at the end's edge until its last column has come in; a region that does not scroll has no
+   * timeline, so it shows neither. A browser that reads no scroll timeline shows neither too, as
+   * the stage did before. The shades take no pointer, and the chevron says nothing to assistive
+   * technology, where the region's scroll hint says it.
+   */
+  [data-slot="plate-graphic"]::before,
+  [data-slot="plate-graphic"]::after {
+    position: sticky;
+    z-index: 1;
+    display: flex;
+    grid-area: 1 / 1;
+    align-items: center;
+    inline-size: 2.5rem;
+    opacity: 0;
+    color: var(--plate-tone-light);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  [data-slot="plate-graphic"]::before {
+    content: "\2039" / "";
+    justify-content: flex-start;
+    justify-self: start;
+    inset-inline-start: 0;
+    padding-inline-start: 0.25rem;
+    background-image: linear-gradient(to right, var(--plate-scroll-shade), transparent);
+  }
+
+  [data-slot="plate-graphic"]::after {
+    content: "\203A" / "";
+    justify-content: flex-end;
+    justify-self: end;
+    inset-inline-end: 0;
+    padding-inline-end: 0.25rem;
+    background-image: linear-gradient(to left, var(--plate-scroll-shade), transparent);
+  }
+
+  [data-slot="plate-graphic"]:dir(rtl)::before {
+    content: "\203A" / "";
+    background-image: linear-gradient(to left, var(--plate-scroll-shade), transparent);
+  }
+
+  [data-slot="plate-graphic"]:dir(rtl)::after {
+    content: "\2039" / "";
+    background-image: linear-gradient(to right, var(--plate-scroll-shade), transparent);
+  }
+
+  @supports (animation-timeline: scroll()) {
+    [data-slot="plate-graphic"]::before {
+      animation: plate-graphic-past-start linear both;
+      animation-timeline: scroll(nearest inline);
+    }
+
+    [data-slot="plate-graphic"]::after {
+      animation: plate-graphic-past-end linear both;
+      animation-timeline: scroll(nearest inline);
+    }
+  }
+
+  @keyframes plate-graphic-past-start {
+    0% {
+      opacity: 0;
+    }
+
+    2%,
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes plate-graphic-past-end {
+    0%,
+    98% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /*
+   * The image's box, which the overlay covers, in the column's first row. While the spacers size
+   * the stage it adds nothing to the stage's width (`contain: inline-size`), so a large image never
+   * widens it, and its image is the column's whole width, drawn up or down at its proportions;
+   * without them, before the image's size is known, the image stands at its own size, never wider
+   * than the item nor taller than the budget. The image is a block, so no descender space opens
+   * under it and moves the overlay off it, and it is never dragged off as a picture.
+   */
+  [data-slot="plate-graphic-image"] {
+    position: relative;
+    display: block;
+    grid-area: 1 / 1;
+    min-inline-size: 0;
+  }
+
+  [data-slot="plate-graphic-image"] > :is(picture, img, object),
+  [data-slot="plate-graphic-image"] > picture > img {
+    display: block;
+    max-width: 100%;
+    max-height: var(--plate-stage-block-size);
+    height: auto;
+    -webkit-user-drag: none;
+  }
+
+  [data-slot="plate-graphic"]:has(> [data-slot="plate-graphic-floor"])
+    > [data-slot="plate-graphic-image"] {
+    contain: inline-size;
+  }
+
+  [data-slot="plate-graphic"]:has(> [data-slot="plate-graphic-floor"])
+    > [data-slot="plate-graphic-image"]
+    > :is(picture, img, object),
+  [data-slot="plate-graphic"]:has(> [data-slot="plate-graphic-floor"])
+    > [data-slot="plate-graphic-image"]
+    > picture
+    > img {
+    width: 100%;
+    max-width: none;
+    max-height: none;
+  }
+
+  /*
+   * The spacers: the floor rigid and of no height whatever a host sets on an `svg`; the fit one at
+   * the budget's height and the width its proportions give that, never wider than the column it
+   * sizes, in a box of no height that clips it.
+   */
+  [data-slot="plate-graphic-floor"] {
+    display: block;
+    block-size: 0;
+    max-inline-size: none;
+  }
+
+  [data-slot="plate-graphic-fit"] {
+    display: block;
+    block-size: 0;
+    overflow: hidden;
+  }
+
+  [data-slot="plate-graphic-fit"] > svg {
+    display: block;
+    inline-size: auto;
+    block-size: var(--plate-stage-block-size);
+    max-inline-size: 100%;
+  }
+
+  /*
+   * The overlay. Once it is drawn, its box is the image's: it stands in the flow at the column's
+   * width and the authored aspect, which its `viewBox` gives it, and the image is laid over the
+   * whole of it, stretched to the authored box as a browser draws an image given both its `width`
+   * and `height`. So the overlay lies exactly over the drawn image whatever the image's own aspect,
+   * and an area lands where the author's coordinates put it. The overlay is positioned, after the
+   * image, so it paints above it. It takes the pointer only through its areas' hit shapes, by their
+   * own attributes: no rule here sets `pointer-events` on the overlay, a hit shape, a mark or the
+   * marks, since any rule would beat those attributes, on which the stage's hit test rests.
+   */
+  [data-slot="plate-graphic-overlay"] {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  [data-slot="plate-graphic-image"]:has(> [data-slot="plate-graphic-overlay"])
+    > :is(picture, img, object) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    object-fit: fill;
+  }
+
+  [data-slot="plate-graphic-image"]:has(> [data-slot="plate-graphic-overlay"]) > picture > img {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    object-fit: fill;
+  }
+
+  /*
+   * The pins, laid over the overlay's box, which is the drawn image's, and painted above it: one
+   * of their units a CSS px, so what a pin holds reads at the page's size, and each pin's origin,
+   * a percentage of the box, the point of the picture it belongs to. Neither the pins nor a pin
+   * clips what it draws past its box, and they take the pointer only through a pin's own hit shape,
+   * by its attributes.
+   */
+  [data-slot="plate-graphic-pins"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  [data-slot="plate-graphic-pin"] {
+    overflow: visible;
+  }
+
+  /*
+   * An area's hit shape, its exact geometry, unpainted: it takes a press on its fill alone,
+   * transparent as it is, through `pointer-events="visibleFill"`.
+   */
+  [data-slot="plate-graphic-area"] {
+    fill: transparent;
+    stroke: none;
+    cursor: pointer;
+  }
+
+  /*
+   * An area's mark (A2): its outline twice, the light tone under the ink, so one of the two holds
+   * 3:1 over any picture, 4.23:1 at the closest. Each band shows at least 2 px whatever the image's
+   * scale (`vector-effect: non-scaling-stroke`). Every state widens the ring, so it shows by the
+   * ring's weight and not its colour alone:
+   *
+   * - at rest, a 2 px ink line in a 6 px light band;
+   * - placed (its hotspot ordered, a gap image in it), 3 in 8;
+   * - picked, as a Hotspot's pick, 4 in 10, and the check the stage draws in it;
+   * - its chip held, as a Graphic Order's area while the child places it, 4 in 10 with the ink
+   *   dashed, held in the hand;
+   * - its list row focused from the keyboard (`data-focus-visible`, A3), 8 in 16, heavier than any
+   *   other, so a keyboard user sees which area the row means.
+   *
+   * A default area, the whole image, draws no ring until it is in one of those states.
+   */
+  [data-slot="plate-graphic-mark"] > [data-tone] {
+    fill: none;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  [data-slot="plate-graphic-mark"] > [data-tone="light"] {
+    stroke: var(--plate-tone-light);
+    stroke-width: 6px;
+  }
+
+  [data-slot="plate-graphic-mark"] > [data-tone="ink"] {
+    stroke: var(--plate-tone-ink);
+    stroke-width: 2px;
+  }
+
+  [data-slot="plate-graphic-mark"][data-placed] > [data-tone="light"] {
+    stroke-width: 8px;
+  }
+
+  [data-slot="plate-graphic-mark"][data-placed] > [data-tone="ink"] {
+    stroke-width: 3px;
+  }
+
+  [data-slot="plate-graphic-mark"]:is([data-selected], [data-picked]) > [data-tone="light"] {
+    stroke-width: 10px;
+  }
+
+  [data-slot="plate-graphic-mark"]:is([data-selected], [data-picked]) > [data-tone="ink"] {
+    stroke-width: 4px;
+  }
+
+  [data-slot="plate-graphic-mark"][data-picked] > [data-tone="ink"] {
+    stroke-dasharray: 6 4;
+  }
+
+  [data-slot="plate-graphic-mark"][data-focus-visible] > [data-tone="light"] {
+    stroke-width: 16px;
+  }
+
+  [data-slot="plate-graphic-mark"][data-focus-visible] > [data-tone="ink"] {
+    stroke-width: 8px;
+  }
+
+  [data-slot="plate-graphic-mark"][data-area="default"]:not(
+      [data-selected],
+      [data-picked],
+      [data-placed],
+      [data-focus-visible],
+      :has(> [data-slot="plate-graphic-area"]:hover)
+    )
+    > [data-tone] {
+    stroke: none;
+  }
+
+  /*
+   * A review's mark on an area: its ring as heavy as a pick's, the ink solid where right, dashed
+   * where wrong, dotted where missed, so the mark shows by the ring's shape over any picture. The
+   * mark's colour is not used on the image, where it could not hold 3:1; the list row beside it
+   * carries the colour and the glyph.
+   */
+  [data-slot="plate-graphic-mark"][data-mark] > [data-tone="light"] {
+    stroke-width: 10px;
+  }
+
+  [data-slot="plate-graphic-mark"][data-mark] > [data-tone="ink"] {
+    stroke-width: 4px;
+  }
+
+  [data-slot="plate-graphic-mark"][data-mark="wrong"] > [data-tone="ink"] {
+    stroke-dasharray: 10 6;
+  }
+
+  [data-slot="plate-graphic-mark"][data-mark="missed"] > [data-tone="ink"] {
+    stroke-dasharray: 2 6;
+    stroke-linecap: round;
+  }
+
+  /*
+   * The check badge inside a picked area's corner, a Graphic Order badge's size: a 28 px disc of
+   * the ink ringed 2 px in the light tone, so it holds 3:1 over any picture as a ring does, and its
+   * check in the light tone, 3 px and round, 17.9:1 on the disc, so a pick shows by its glyph as
+   * well (1.4.1).
+   */
+  [data-slot="plate-graphic-check-disc"] {
+    fill: var(--plate-tone-ink);
+    stroke: var(--plate-tone-light);
+    stroke-width: 2px;
+  }
+
+  [data-slot="plate-graphic-check-glyph"] {
+    fill: none;
+    stroke: var(--plate-tone-light);
+    stroke-width: 3px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* == graphic order == */
+
+  /*
+   * A badge, an ordered area's position number on the stage, pinned inside the area's top-right
+   * corner as a picked area's check is, so at one size whatever the image's scale and clear of the
+   * area's label: a 28 px disc of the ink ringed 2 px in the light tone, so it
+   * holds 3:1 over any picture as a ring does, and its number in the light tone, bold, 17.9:1 on
+   * the disc (4.5:1 asked). It is drawn above every area's ring, so none paints over it.
+   */
+  [data-slot="plate-graphic-order-badge-disc"] {
+    fill: var(--plate-tone-ink);
+    stroke: var(--plate-tone-light);
+    stroke-width: 2px;
+  }
+
+  [data-slot="plate-graphic-order-badge-number"] {
+    fill: var(--plate-tone-light);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  /* == graphic gap match == */
+
+  /*
+   * A Graphic Gap Match: each hotspot on the stage is a placement target, an SVG group inside its
+   * mark, so a drag over it shows on its ring: one that takes the held choice, `data-over`, as
+   * heavy as a pick's; one that would refuse it, `data-refuses`, its ink dotted, so either shows by
+   * the ring's shape, not its colour alone.
+   */
+  [data-slot="plate-graphic-mark"]:has(> [data-slot="plate-placement-target"][data-over])
+    > [data-tone="light"] {
+    stroke-width: 10px;
+  }
+
+  [data-slot="plate-graphic-mark"]:has(> [data-slot="plate-placement-target"][data-over])
+    > [data-tone="ink"] {
+    stroke-width: 4px;
+  }
+
+  [data-slot="plate-graphic-mark"]:has(> [data-slot="plate-placement-target"][data-refuses])
+    > [data-tone="ink"] {
+    stroke-dasharray: 2 5;
+    stroke-linecap: round;
+  }
+
+  /*
+   * The choices a hotspot holds, drawn in its area at the page's own size: its `foreignObject` in
+   * the stage's pins, over the area's box by attributes alone, and inside it an HTML box of the
+   * area's box holding a gate per band of the widths it may take (`bandsOf`). A band's first gate
+   * keeps the cards clear of the area's ring, reaching 16 px past the area all round, clipped there,
+   * so a mark's badge on a card stays whole. Its first part is the spacer as wide as the box must be
+   * for the band's cards to read, and its second a part of no width, so where the spacer leaves no
+   * room beside it the second wraps to a line under the box, out of sight with the cards it holds.
+   * The second gate, where the band ends, lies over the first's sheet and wraps the same way at the
+   * next band's width, its sheet raised by a line, so its cards show only while it wraps: the box
+   * shows the band its width is in, and no band where it is narrower than every card needs, which
+   * the hotspot's row shows alone. A sheet lies over its gate's box, at its part's line, and centres
+   * what it holds, the `svg` the band's layout stands in, at its natural size, the layout's at the
+   * label size, where the box holds it, and scaled down to the box, its proportions kept, where it
+   * does not; in that the HTML box lays the cards out side by side, wrapping and centred. A placed
+   * choice is a card in the two tones, an ink edge in a light band, so it holds 3:1 over any
+   * picture, its text in the ink at the 24 px label size on the light tone and its picture fitted
+   * inside it. A review's mark adds its badge, ringed in the light tone; a missed one is dashed.
+   *
+   * The server lays the cards out and decides which fit their area by a model of this card,
+   * `cardMetrics` in `#plate/ui/graphic-gap-match/fit.ts`, so the boxes' inset and gap and the
+   * card's padding, border, band, font size and line height below must agree with it, and change
+   * only with it: a card drawn larger than the model spills past its area. They are in px, as the
+   * model is, so a reader's root font size cannot move them apart. The gates are positioned, so they
+   * clip what they hold without adding to what a page scrolls.
+   */
+  [data-slot="plate-graphic-gap-match-placed"],
+  [data-slot="plate-graphic-gap-match-placed-fit"],
+  [data-slot="plate-graphic-gap-match-placed-fit"] > foreignObject {
+    overflow: visible;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-box"] {
+    position: absolute;
+    inset: 0;
+  }
+
+  :is(
+    [data-slot="plate-graphic-gap-match-placed-from"],
+    [data-slot="plate-graphic-gap-match-placed-below"]
+  ) {
+    box-sizing: border-box;
+    position: absolute;
+    inset: -16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    row-gap: 19px;
+    padding: 19px;
+    overflow: hidden;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-below"] {
+    padding: 16px;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-least"] {
+    display: block;
+    flex: none;
+    block-size: 100%;
+    max-inline-size: none;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-held"] {
+    display: block;
+    flex: none;
+    inline-size: 0;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-sheet"] {
+    position: absolute;
+    inset-inline: 19px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    block-size: calc(100% - 38px);
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-below"]
+    > [data-slot="plate-graphic-gap-match-placed-held"]
+    > [data-slot="plate-graphic-gap-match-placed-sheet"] {
+    inset-inline: 16px;
+    block-size: calc(100% - 32px);
+    translate: 0 calc(-100% - 19px);
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-fit"] {
+    display: block;
+    flex: none;
+    inline-size: auto;
+    block-size: auto;
+    max-inline-size: 100%;
+    max-block-size: 100%;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-cards"] {
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-choice"] {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-inline-size: 100%;
+    max-block-size: 100%;
+    padding: 2px 8px;
+    border: 2px solid var(--plate-tone-ink);
+    background: var(--plate-tone-light);
+    box-shadow: 0 0 0 2px var(--plate-tone-light);
+    color: var(--plate-tone-ink);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-choice"] :is(img, picture, object, svg) {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-choice"][data-mark="missed"] {
+    border-style: dashed;
+  }
+
+  [data-slot="plate-graphic-gap-match-placed-choice"][data-mark]::after {
+    box-shadow: 0 0 0 2px var(--plate-tone-light);
+  }
+
+  /*
+   * The list of hotspots under the image, the path a keyboard and a screen reader take: each a
+   * target at least 64 px tall.
+   */
+  [data-slot="plate-graphic-gap-match-targets"] > [data-slot="plate-placement-target"] {
+    min-block-size: var(--plate-target-size);
+  }
+
+  /* == select point == */
+
+  /*
+   * A Select Point: a point's marker is a stage mark, a 64 px ring in the two tones whose disc is
+   * its hit shape, so it takes a drag and never scrolls the page under a finger. Inside the ring a
+   * light wash, 70 % of the light tone, holds the point's number, bold in the ink, at 6:1 or more
+   * over any picture; the dot at the point is the ink in a light band. The marker is pinned, so it
+   * reads at its size whatever the image's scale, and its number's size is its own attribute,
+   * which no rule here sets. A dragged marker is held
+   * as a pick is. The keyboard's cross, the two tones round-capped, shows only while the stage has
+   * the keyboard's focus, where Enter would mark.
+   */
+  :where([data-slot="plate-select-point-board"]) [data-slot="plate-graphic-area"] {
+    cursor: grab;
+    touch-action: none;
+  }
+
+  :where([data-slot="plate-select-point-board"][data-dragging]) [data-slot="plate-graphic-area"] {
+    cursor: grabbing;
+  }
+
+  :where([data-slot="plate-select-point-board"])
+    [data-slot="plate-graphic-mark"]
+    > [data-tone="light"] {
+    fill: color-mix(in oklab, var(--plate-tone-light) 70%, transparent);
+  }
+
+  [data-slot="plate-graphic-mark"][data-dragging] > [data-tone="light"] {
+    stroke-width: 10px;
+  }
+
+  [data-slot="plate-graphic-mark"][data-dragging] > [data-tone="ink"] {
+    stroke-width: 4px;
+  }
+
+  [data-slot="plate-select-point-dot"] {
+    fill: var(--plate-tone-ink);
+    stroke: var(--plate-tone-light);
+    stroke-width: 2px;
+    vector-effect: non-scaling-stroke;
+  }
+
+  [data-slot="plate-select-point-number"] {
+    fill: var(--plate-tone-ink);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  [data-slot="plate-select-point-cross"] {
+    display: none;
+  }
+
+  [data-slot="plate-graphic"]:focus-visible [data-slot="plate-select-point-cross"] {
+    display: inline;
+  }
+
+  [data-slot="plate-select-point-cross"] > [data-tone] {
+    fill: none;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  [data-slot="plate-select-point-cross"] > [data-tone="light"] {
+    stroke: var(--plate-tone-light);
+    stroke-width: 6px;
+  }
+
+  [data-slot="plate-select-point-cross"] > [data-tone="ink"] {
+    stroke: var(--plate-tone-ink);
+    stroke-width: 2px;
+  }
+
+  /* The points as a list: each a 64 px target, a button that takes its point off the image. */
+  [data-slot="plate-select-point-point"] {
+    min-block-size: var(--plate-target-size);
+    border: 2px solid var(--ui-input);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* == position object == */
+
+  /*
+   * A Position Object stage: a placed copy on the stage is its object's image or, where it has
+   * none, a marker filled with the ink, inside the stage's two-tone mark, so it shows over any
+   * picture. A copy takes the pointer on what it draws, by its own attribute; a finger on it never
+   * scrolls, selects or brings up a callout, and it grabs under a pointer that hovers.
+   */
+  [data-slot="plate-position-object-token"] {
+    cursor: grab;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  [data-slot="plate-position-object-token"][data-dragging] {
+    cursor: grabbing;
+  }
+
+  [data-slot="plate-position-object-marker"] {
+    fill: var(--plate-tone-ink);
+    stroke: none;
+  }
+
+  /*
+   * An interaction's group: its object's button, the copy a child takes and drags, and its placed
+   * copies' controls. Each is a 64 px target that never scrolls, selects or brings up a callout
+   * under a finger; an object that may be placed no more takes no grab, still focusable, so the
+   * child hears why.
+   */
+  :is([data-slot="plate-position-object-object"], [data-slot="plate-position-object-copy"]) {
+    min-block-size: var(--plate-target-size);
+    min-inline-size: var(--plate-target-size);
+    border: 2px solid var(--ui-input);
+    font: inherit;
+    cursor: grab;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  [data-slot="plate-position-object-object"] img {
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+
+  [data-slot="plate-position-object-object"][data-full]:not([data-picked]) {
+    cursor: default;
+  }
+
+  /*
+   * The copy that follows a dragged object off its button. Over the stage it is gone, since the
+   * stage draws the copy where it would land.
+   */
+  [data-slot="plate-position-object-preview"] {
+    cursor: grabbing;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  [data-slot="plate-position-object-preview"][data-over] {
+    opacity: 0;
+  }
+
+  /* == graphic associate == */
+
+  /*
+   * A Graphic Associate: a pair's line on the stage joins its two areas' interior points as a ring
+   * is drawn, an ink line in a light band, round-capped and non-scaling, so it holds 3:1 over any
+   * picture; it is `aria-hidden`, since each pair is listed as text, and takes no pointer, by the
+   * marks' own attribute. A review's line is as heavy as a pick's ring, its ink solid where the
+   * pair is right, dashed where wrong and dotted where missed, as an area's mark is.
+   */
+  [data-slot="plate-graphic-associate-line"] > [data-tone] {
+    fill: none;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  [data-slot="plate-graphic-associate-line"] > [data-tone="light"] {
+    stroke: var(--plate-tone-light);
+    stroke-width: 8px;
+  }
+
+  [data-slot="plate-graphic-associate-line"] > [data-tone="ink"] {
+    stroke: var(--plate-tone-ink);
+    stroke-width: 3px;
+  }
+
+  [data-slot="plate-graphic-associate-line"][data-mark] > [data-tone="light"] {
+    stroke-width: 10px;
+  }
+
+  [data-slot="plate-graphic-associate-line"][data-mark] > [data-tone="ink"] {
+    stroke-width: 4px;
+  }
+
+  [data-slot="plate-graphic-associate-line"][data-mark="wrong"] > [data-tone="ink"] {
+    stroke-dasharray: 10 6;
+    stroke-linecap: butt;
+  }
+
+  [data-slot="plate-graphic-associate-line"][data-mark="missed"] > [data-tone="ink"] {
+    stroke-dasharray: 2 6;
+  }
+
+  /* == QTI's shared vocabulary on a graphic interaction's root == */
+
+  /*
+   * Selections theming (1.2.5.1, 1.2.10.3): `qti-selections-light` draws the rings of a Hotspot or
+   * a Graphic Gap Match with the light tone as their ink and the dark one beside it, for a dark
+   * picture, and `qti-selections-dark` the other way, the default, for a light one. Both keep the
+   * same two tones, so both hold 3:1 over any picture. The class says it outright, over any host's
+   * own tone tokens.
+   */
+  :is([data-slot="plate-hotspot"], [data-slot="plate-graphic-gap-match"]).qti-selections-light {
+    --plate-tone-ink: oklch(1 0 0);
+    --plate-tone-light: oklch(0.205 0 0);
+  }
+
+  :is([data-slot="plate-hotspot"], [data-slot="plate-graphic-gap-match"]).qti-selections-dark {
+    --plate-tone-ink: oklch(0.205 0 0);
+    --plate-tone-light: oklch(1 0 0);
+  }
+
+  /*
+   * Unselected areas hidden (1.2.5.1, 1.2.10.3): on a Hotspot, an area neither picked nor focused
+   * from its row is drawn with no ring until a pointer is over it; on a Graphic Gap Match, every
+   * area is, unless the child holds a gap image to place. Hidden by transparent paint alone, never
+   * by `visibility` or `display`: an area's hit shape takes a press through `pointer-events=
+   * "visibleFill"`, which needs it visible and ignores its paint, so a hidden area still takes the
+   * tap that picks it. Nor by the overlay's opacity, which would hide its other marks with it, a
+   * placed gap image among them. The list of areas under the image stays as it is.
+   */
+  :where([data-slot="plate-hotspot"].qti-unselected-hidden)
+    [data-slot="plate-graphic-mark"]:not(
+      [data-selected],
+      [data-focus-visible],
+      :has(> [data-slot="plate-graphic-area"]:hover)
+    )
+    > [data-tone],
+  :where(
+      [data-slot="plate-graphic-gap-match"].qti-unselected-hidden
+        [data-slot="plate-placement"]:not([data-picked], [data-dragging])
+    )
+    [data-slot="plate-graphic-mark"]
+    > [data-tone] {
+    stroke: transparent;
+  }
+
+  /* == a review's marks == */
+
+  /*
+   * A mark against the solution, on an option, a chip, a place or a control: a badge with its
+   * glyph on the part's corner, a tick for right, a cross for wrong, and a tick for a right answer
+   * the child did not give, whose part's edge is dashed. The badge's alternative text is empty:
+   * the part's own words say right or wrong to a screen reader, and the glyph's shape repeats it
+   * for the eye, where colour does not (WCAG 1.4.1).
+   */
+  [data-slot^="plate-"][data-mark] {
+    position: relative;
+  }
+
+  [data-slot^="plate-"][data-mark="missed"]:is(
+      [data-slot="plate-choice-option"],
+      [data-slot="plate-hotspot-option"],
+      [data-slot="plate-placement-chip"],
+      [data-slot="plate-placement-slot"],
+      [data-slot="plate-placement-box"],
+      [data-slot="plate-portable-custom-value"]
+    ) {
+    border-style: dashed;
+  }
+
+  :is(
+      [data-slot^="plate-"],
+      [data-slot="plate-slider-scale"] > [data-slot="slider-value"]
+    )[data-mark]::after {
+    content: "\2713" / "";
+    position: absolute;
+    inset-block-start: -0.625rem;
+    inset-inline-end: -0.625rem;
+    display: inline-grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  :is(
+      [data-slot^="plate-"],
+      [data-slot="plate-slider-scale"] > [data-slot="slider-value"]
+    )[data-mark="wrong"]::after {
+    content: "\2717" / "";
+  }
+
+  /*
+   * A control's badge, in a sentence, stands inside the control's box instead, at its end and on
+   * its middle, and the box keeps room for it after its words: a badge after the box took a place
+   * of its own on the line, so the line could break between the answer and its mark. The control's
+   * right answer is no frame beside it either: the body walk writes it after the block that holds
+   * the sentence. Its weight, (0,3,1), passes the corner rule above, which a slider value's branch
+   * raises to (0,3,1), so this one, after it, wins.
+   */
+  [data-slot^="plate-"]:is(
+      [data-slot="plate-text-entry"],
+      [data-slot="plate-inline-choice"]
+    )[data-mark]::after {
+    inset-block: 0;
+    inset-inline-end: 0.5rem;
+    margin-block: auto;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"])[data-mark]
+    :is([data-slot="input"], [data-slot="select-trigger"]) {
+    padding-inline-end: 2.5rem;
+  }
+
+  /*
+   * A marked card keeps room at its end for its badge, 28 px of padding more, and the badge stands
+   * there on the card's middle, clear of its words, where the corner rule put it over the words'
+   * last letters. The badge is in px here, as the card is, so the fit model's room for it holds
+   * whatever the reader's root size. Its weight, (0,3,1), equals the corner rule's, which a slider
+   * value's branch raises to (0,3,1), so this one, after it, wins.
+   */
+  [data-slot="plate-graphic-gap-match-placed-choice"][data-mark] {
+    padding-inline-end: 36px;
+  }
+
+  [data-slot^="plate-"][data-slot="plate-graphic-gap-match-placed-choice"][data-mark]::after {
+    inset-block: 0;
+    inset-inline-end: 6px;
+    width: 24px;
+    height: 24px;
+    margin-block: auto;
+    font-size: 14px;
+  }
+
+  /*
+   * A mark's words, inside the part it marks: what its glyph says, for a screen reader. Hidden from
+   * the eye only, where the glyph says it, never with `display`, which would hide it from the
+   * reader too.
+   */
+  [data-slot="plate-mark"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /*
+   * A chip the child did not put here, shown where it belongs, dashed, since the chip is not there.
+   * It has no tick, or a review with a chip left out reads as all right: in the badge's corner its
+   * words ("Right answer") stand written for the eye too.
+   */
+  [data-slot^="plate-"][data-slot="plate-placement-chip"][data-mark="missed"]::after {
+    content: none;
+  }
+
+  [data-slot^="plate-"][data-slot="plate-placement-chip"][data-mark="missed"]
+    > [data-slot="plate-mark"] {
+    inset-block-start: -0.75rem;
+    inset-inline-end: -0.625rem;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /*
+   * The right answer a review writes for a Text Entry or an Inline Choice whose answer is not right
+   * ("Right answer: …"), after the block that holds it, after an Extended Text's box or after a
+   * Slider: as tall as a control, its badge after its words. The badge's rule weighs (0,3,1), as
+   * the control's does, to pass the corner rule.
+   */
+  :is(
+    [data-slot="plate-text-entry-answer"],
+    [data-slot="plate-inline-choice-answer"],
+    [data-slot="plate-extended-text-answer"],
+    [data-slot="plate-slider-answer"]
+  ) {
+    min-block-size: var(--plate-control-size);
+  }
+
+  [data-slot^="plate-"]:is(
+      [data-slot="plate-text-entry-answer"],
+      [data-slot="plate-inline-choice-answer"],
+      [data-slot="plate-extended-text-answer"],
+      [data-slot="plate-slider-answer"]
+    )[data-mark]::after {
+    position: static;
+    flex-shrink: 0;
+  }
+
+  /* == a review's verdict == */
+
+  /*
+   * The verdict a review's feedback opens with: a tick before its words at full credit and a cross
+   * at none, so the glyph's shape says right or not before a colour does (WCAG 1.4.1); part credit
+   * has its words alone. The glyph's alternative text is empty: the words say it.
+   */
+  [data-slot="plate-feedback"][data-credit="full"] > [data-slot="plate-verdict"]::before {
+    content: "\2713" / "";
+  }
+
+  [data-slot="plate-feedback"][data-credit="none"] > [data-slot="plate-verdict"]::before {
+    content: "\2717" / "";
+  }
+
+  /* == focus, and a disabled control == */
+
+  /*
+   * Focus: the two-toned ring, a band of the background then a 3 px ring 2 px clear of the
+   * control, in the ring colour, 4.7:1 on the background, so a child on a keyboard always sees
+   * where they are. A chip, a slot, an object, a copy and a point keep their
+   * own shadow and the ring alone, which holds 4.3:1 on the bank's muted surface as well. A
+   * disabled control says no to the pointer.
+   */
+  :where([data-slot^="plate-"])
+    :is(
+      [data-slot="button"],
+      [data-slot="toggle"],
+      [data-slot="select-trigger"],
+      [data-slot="input"],
+      [data-slot="textarea"]
+    ):focus-visible {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+    box-shadow: var(--plate-focus-halo);
+  }
+
+  :is([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]):focus-visible {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+  }
+
+  :is(
+    [data-slot="plate-position-object-object"],
+    [data-slot="plate-position-object-copy"],
+    [data-slot="plate-select-point-point"]
+  ):focus-visible {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+  }
+
+  :where([data-slot^="plate-"])
+    :is(
+      [data-slot="radio"],
+      [data-slot="checkbox"],
+      [data-slot="select-trigger"],
+      [data-slot="input"],
+      [data-slot="textarea"]
+    )[data-disabled] {
+    cursor: not-allowed;
+  }
+
+  :is([data-slot="plate-choice-option"], [data-slot="plate-hotspot-option"]):has([data-disabled]) {
+    cursor: default;
+  }
+
+  /* == forced colours == */
+
+  /*
+   * Forced colours drop shadows, so the edges they draw move to outlines. Borders, the ticks, the
+   * radio's dot and a mark's glyph are borders or text, which keep the system's colours already.
+   */
+  @media (forced-colors: active) {
+    /*
+     * The stage's rings, checks and badges in the system's colours (A7): the light tone Canvas and
+     * the ink CanvasText, and a picked, held or focused area's ink Highlight, its heavier ring the
+     * outline a wash would be. SVG keeps the colours it is given here.
+     */
+    :is(
+        [data-slot="plate-graphic-mark"],
+        [data-slot="plate-graphic-associate-line"],
+        [data-slot="plate-select-point-cross"]
+      )
+      > [data-tone="light"] {
+      stroke: Canvas;
+    }
+
+    [data-slot="plate-select-point-dot"],
+    [data-slot="plate-select-point-number"] {
+      fill: CanvasText;
+    }
+
+    :where([data-slot="plate-select-point-board"])
+      [data-slot="plate-graphic-mark"]
+      > [data-tone="light"] {
+      fill: Canvas;
+    }
+
+    :is(
+        [data-slot="plate-graphic-mark"],
+        [data-slot="plate-graphic-associate-line"],
+        [data-slot="plate-select-point-cross"]
+      )
+      > [data-tone="ink"] {
+      stroke: CanvasText;
+    }
+
+    [data-slot="plate-graphic-mark"]:is([data-selected], [data-picked], [data-focus-visible])
+      > [data-tone="ink"] {
+      stroke: Highlight;
+    }
+
+    :is([data-slot="plate-graphic-order-badge-disc"], [data-slot="plate-graphic-check-disc"]) {
+      fill: Canvas;
+      stroke: CanvasText;
+    }
+
+    [data-slot="plate-graphic-check-glyph"] {
+      stroke: CanvasText;
+    }
+
+    [data-slot="plate-graphic-mark"]:has(
+        > [data-slot="plate-placement-target"]:is([data-over], [data-refuses])
+      )
+      > [data-tone="ink"] {
+      stroke: Highlight;
+    }
+
+    [data-slot="plate-graphic-order-badge-number"] {
+      fill: CanvasText;
+    }
+
+    /* A Slider's track keeps its edge, which forced colours would drop with its shadow. */
+    :where([data-slot="plate-slider"]) [data-slot="slider-track"] {
+      outline: 2px solid CanvasText;
+      outline-offset: -2px;
+    }
+
+    /*
+     * A Portable Custom Interaction's frame and status keep their focus ring, which forced colours
+     * keep as an outline, in the system's highlight, apart from the frame's CanvasText edge.
+     */
+    [data-slot="plate-portable-custom-stage"]:focus-within
+      > [data-slot="plate-portable-custom-frame"],
+    [data-slot="plate-portable-custom-status"]:focus {
+      outline-color: Highlight;
+    }
+  }
+}

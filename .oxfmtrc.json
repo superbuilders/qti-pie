@@ -1,0 +1,11 @@
+{
+  "ignorePatterns": [
+    ".agents/**",
+    ".claude/**",
+    "**/migrations/**",
+    "README.md",
+    "packages/*/README.md",
+    "packages/plate/fixtures/**"
+  ],
+  "jsdoc": { "commentLineStrategy": "multiline", "lineWrappingStyle": "balance" }
+}

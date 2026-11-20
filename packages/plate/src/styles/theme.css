@@ -1,0 +1,3830 @@
+/*
+ * plate's theme: the look of an item, its interaction islands and its review, for children in
+ * kindergarten to grade 3, drawn over `@qti-pie/plate/styles/base.css`. A host imports it after the
+ * base sheet, in the same layer: `@qti-pie/plate/styles/theme.css`. A host that wants another look
+ * keeps the base sheet and imports its own theme in this one's place, or keeps this one and sets
+ * its tokens.
+ *
+ * Hooks and layers are the base sheet's: every rule keys on a part's `data-slot`, its `data-*`
+ * states, UI SDK's states and the author's classes, and sits in `@layer plate`, after the base
+ * sheet's rules, so where a rule here and one there weigh the same, this one wins.
+ *
+ * The look is the plainest one: the parts laid out and framed, and one plain cue for each state a
+ * child must see, an edge's colour, width or style, an outline, a weight or a glyph, never a
+ * shadow, tint, gradient, motion, rounded corner or a change only a hovering pointer sees.
+ *
+ * - Picked: a chip's or an object's edge twice as wide, in the foreground; an option's edge in the
+ *   foreground beside its filled radio or checkbox; a hot text choice underlined solid.
+ * - Dragging: the chip's place dashed, and the copy under the finger edged as a picked chip is.
+ * - Over: the bank's edge shows, and a target or a slot is ringed in the foreground.
+ * - Refuses: a slot's edge or a target's ring dotted, and the copy under the finger dashed.
+ * - Full: the options not picked dashed, a hot text's choices not picked plain, a Match group's
+ *   "Full", an object placed as often as it may be dashed.
+ * - Copies: a chip's double edge. Used: a chip's dashed ghost. Disabled: a control's dashed edge.
+ * - Right, wrong and missed: the part's edge in the mark's colour beside the base sheet's glyph;
+ *   a missed chip's "Right answer" on the right colour, and the chip left in the bank framed twice
+ *   in the wrong colour.
+ *
+ * Tokens. Colours are UI SDK's `--ui-*` names and plate's `--plate-*`, declared on :root with no
+ * weight, so a host overrides them on :root, on the item or anywhere between, from unlayered CSS
+ * or a later layer. A shadcn host maps them onto its own (`--ui-foreground: var(--foreground)` and
+ * so on), and plate follows its theme. The base sheet declares the tokens it reads itself (the
+ * floors, the ring, the controls' edge, the stage's tones), and this sheet the rest; this sheet
+ * reads both. What it sets on a part, `--plate-mark` and the shared vocabulary's
+ * `--plate-label-*` and `--plate-input-width`, is one of those tokens or the author's class.
+ *
+ * Every edge or glyph a state needs holds 3:1 on the background (WCAG 1.4.11): the right green
+ * 4.5:1, the wrong orange 4.2:1. Text stays in the page's colour.
+ */
+
+@layer plate {
+  /* == tokens == */
+
+  :where(:root) {
+    /* UI SDK's names, at shadcn's neutral values, beside the base sheet's. */
+    --ui-foreground: oklch(0.145 0 0);
+    --ui-muted: oklch(0.97 0 0);
+    --ui-border: oklch(0.9 0 0);
+    --ui-destructive: oklch(0.577 0.245 27.325);
+    --ui-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    /* A review's marks: green for right, orange rather than red for wrong, for young children. */
+    --plate-right: oklch(0.53 0.14 150);
+    --plate-wrong: oklch(0.58 0.17 45);
+
+    /*
+     * The longest line a block of text runs to, about 60 characters at its own size: the line
+     * qti-app's 42rem column gave the item's text, which a wider column leaves to its pictures.
+     */
+    --plate-measure: 30em;
+
+    /*
+     * The tallest an item's picture is drawn, its width following its proportions: half the
+     * screen's height, so a picture, the answers under it and the press fit a 1366 by 768
+     * Chromebook's page of about 635 px together. There a 1536 by 1024 diagram draws at about 476
+     * by 318, where it drew 832 by 555, and stays far above the 288 by 192 at which Cameron Moore
+     * found its labels unreadable (2026-11-15), over 1.6 times it each way. `svh`, the height with
+     * the browser's toolbars shown, so a picture never grows or shrinks as a tablet's toolbar hides
+     * on a scroll; on a laptop it is the window's height.
+     */
+    --plate-picture-max-height: 50svh;
+  }
+
+  /* == the item == */
+
+  /*
+   * The body's blocks, at no weight, so any plate part wins over them: one rhythm of 1em whatever
+   * margins the host's reset leaves, the first block flush with its container's top and the last
+   * with its bottom.
+   */
+  :where([data-slot="plate-item"])
+    :where(p, ul, ol, dl, [data-slot="plate-table"], figure, blockquote, pre, hr, video, audio) {
+    margin-block: 0 1em;
+  }
+
+  /*
+   * A block of text the author wrote, or a prompt, keeps to the measure, a line an early reader can
+   * follow however wide the host makes the item; plate's own lists and notes keep their layout. A
+   * block holding a picture is not held to it, so the picture takes the item's whole width. A
+   * sentence with a picture in it runs that width too: no selector sees its text.
+   */
+  :where([data-slot="plate-item"])
+    :where(
+      :is(p, ul, ol, dl, blockquote, h1, h2, h3, h4, h5, h6, figcaption):not([data-slot]),
+      [data-slot="plate-prompt"]
+    ):where(:not(:has(img, picture, object, video))) {
+    max-inline-size: var(--plate-measure);
+  }
+
+  :where([data-slot="plate-item"]) :where(h1, h2, h3, h4, h5, h6) {
+    margin-block: 1.25em 0.5em;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  :where([data-slot="plate-item"]) :where(h1) {
+    font-size: 1.6em;
+  }
+
+  :where([data-slot="plate-item"]) :where(h2) {
+    font-size: 1.4em;
+  }
+
+  :where([data-slot="plate-item"]) :where(h3) {
+    font-size: 1.2em;
+  }
+
+  :where([data-slot="plate-item"]) :where(h4, h5, h6) {
+    font-size: 1em;
+  }
+
+  :where([data-slot="plate-item"]) :where(:first-child) {
+    margin-block-start: 0;
+  }
+
+  :where([data-slot="plate-item"]) :where(:last-child) {
+    margin-block-end: 0;
+  }
+
+  :where([data-slot="plate-item"]) :where(ul, ol) {
+    padding-inline-start: 1.5em;
+  }
+
+  :where([data-slot="plate-item"]) :where(ul) {
+    list-style-type: disc;
+  }
+
+  :where([data-slot="plate-item"]) :where(ol) {
+    list-style-type: decimal;
+  }
+
+  :where([data-slot="plate-item"]) :where(li + li) {
+    margin-block-start: 0.25em;
+  }
+
+  :where([data-slot="plate-item"]) :where(strong, b) {
+    font-weight: 700;
+  }
+
+  :where([data-slot="plate-item"]) :where(a) {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  :where([data-slot="plate-item"]) :where(sub, sup) {
+    font-size: 0.75em;
+    line-height: 0;
+  }
+
+  :where([data-slot="plate-item"]) :where(code, kbd, samp, pre) {
+    font-family: var(--ui-font-mono);
+    font-size: 0.9em;
+  }
+
+  :where([data-slot="plate-item"]) :where(pre) {
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+  }
+
+  :where([data-slot="plate-item"]) :where(blockquote) {
+    padding-inline-start: 1rem;
+    border-inline-start: 4px solid var(--ui-border);
+  }
+
+  :where([data-slot="plate-item"]) :where(hr) {
+    height: 0;
+    border: 0;
+    border-block-start: 1px solid var(--ui-border);
+  }
+
+  /*
+   * A picture keeps its own proportions, on its own line or in a sentence, never wider than the item
+   * or its natural size, so it reflows with the item and never scrolls the page sideways (WCAG
+   * 1.4.10), and never taller than the picture budget, `--plate-picture-max-height`, its width
+   * following: a picture with no bound drew a 1536 by 1024 diagram 832 by 555 in qti-app's column
+   * and pushed the answers and the press under a laptop's fold. The budget is the screen's height,
+   * never a length: a cap of 12rem drew that diagram at 288 by 192, its labels too small to read,
+   * and an exception for a match's and a gap match's own pictures missed the diagrams, which authors
+   * write in the item body above the interaction (Cameron Moore, 2026-11-15). A picture that must
+   * stay small has its own cap below: in a chip, in an inline choice. A graphic interaction's image
+   * is not held to this rule: its areas are what a child presses, and the stage sizes it below. The
+   * author's `width` and `height` size no picture: `width: auto` outranks them, as any rule outranks
+   * an attribute's presentational hint, so a 1536 by 1024 diagram written `width="640"` still takes
+   * the item's whole width up to the budget, and they give only its proportions until it loads.
+   * With both `auto`, a picture held by either bound scales both ways to keep its proportions
+   * (CSS 2.2, section 10.4).
+   */
+  :where([data-slot="plate-item"])
+    :where(
+      img:not(
+        [data-slot="plate-graphic-image"] > img,
+        [data-slot="plate-graphic-image"] > picture > img
+      )
+    ) {
+    display: inline-block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: var(--plate-picture-max-height);
+    vertical-align: middle;
+  }
+
+  :where([data-slot="plate-item"]) :where(figure) {
+    margin-inline: 0;
+  }
+
+  :where([data-slot="plate-item"]) :where(figcaption) {
+    margin-block-start: 0.5rem;
+  }
+
+  /*
+   * A table: a full grid, since a child reads it cell by cell, its header cells bold and its
+   * caption above it.
+   */
+  :where([data-slot="plate-item"]) :where(table) {
+    max-width: 100%;
+    border-collapse: collapse;
+  }
+
+  :where([data-slot="plate-item"]) :where(caption) {
+    padding-block-end: 0.5rem;
+    font-weight: 600;
+    text-align: start;
+  }
+
+  :where([data-slot="plate-item"]) :where(th, td) {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--ui-input);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  :where([data-slot="plate-item"]) :where(th) {
+    font-weight: 600;
+  }
+
+  /*
+   * MathML: the browser's math font at the text's size, and a display equation on its own line,
+   * scrolling sideways rather than widening the item when it is long.
+   */
+  :where([data-slot="plate-item"]) :where(math) {
+    font-size: 1.05em;
+  }
+
+  :where([data-slot="plate-item"]) :where(math[display="block"]) {
+    margin-block: 0.75em;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  /* Media: a video no wider than the item and half a laptop screen tall; a player at its width. */
+  :where([data-slot="plate-item"]) :where(video) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    max-height: 24rem;
+  }
+
+  :where([data-slot="plate-item"]) :where(audio) {
+    display: block;
+    width: min(100%, 32rem);
+  }
+
+  /* == prompt, feedback, rubric == */
+
+  /* A prompt: the instruction an interaction opens with, set apart by weight. */
+  [data-slot="plate-prompt"] {
+    margin-block: 0 0.75rem;
+    font-weight: 600;
+  }
+
+  /*
+   * Feedback the item's outcomes show, a run of feedback blocks in its place or the modal feedback
+   * after the body: one framed card, neutral whatever the credit. One standing inside a sentence is
+   * a framed run of the sentence instead. Its blocks stand a line apart, the explanation's title a
+   * strong label over it.
+   */
+  [data-slot="plate-feedback"] {
+    display: block;
+    margin-block: 1rem 0;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--ui-border);
+  }
+
+  span[data-slot="plate-feedback"] {
+    display: inline;
+    margin: 0;
+    padding: 0.125em 0.375em;
+    box-decoration-break: clone;
+  }
+
+  [data-slot="plate-feedback-block"]
+    + :is([data-slot="plate-feedback-block"], [data-slot="plate-feedback-why"]) {
+    margin-block-start: 1rem;
+  }
+
+  [data-slot="plate-feedback-why"] {
+    margin-block: 0 0.25rem;
+    font-weight: 600;
+  }
+
+  /*
+   * The verdict's colour is the verdict's alone: a strip across the card's top and the verdict's
+   * words and glyph, green at full credit, orange at none, and half green at part, never a field.
+   * The words say it too, so the colour only repeats them (WCAG 1.4.1).
+   */
+  [data-slot="plate-feedback"]:has(> [data-slot="plate-verdict"]) {
+    padding-block-start: calc(1rem + 6px);
+    background: no-repeat top / 100% 6px linear-gradient(var(--plate-strip), var(--plate-strip));
+  }
+
+  [data-slot="plate-feedback"][data-credit="full"] {
+    --plate-strip: var(--plate-right);
+  }
+
+  [data-slot="plate-feedback"][data-credit="none"] {
+    --plate-strip: var(--plate-wrong);
+  }
+
+  [data-slot="plate-feedback"][data-credit="partial"]:has(> [data-slot="plate-verdict"]) {
+    background-image: linear-gradient(90deg, var(--plate-right) 50%, var(--ui-border) 50%);
+  }
+
+  [data-slot="plate-verdict"] {
+    margin-block: 0 0.75rem;
+    font-weight: 600;
+  }
+
+  [data-slot="plate-verdict"]::before {
+    margin-inline-end: 0.5em;
+  }
+
+  [data-slot="plate-feedback"][data-credit="full"] > [data-slot="plate-verdict"] {
+    color: var(--plate-right);
+  }
+
+  [data-slot="plate-feedback"][data-credit="none"] > [data-slot="plate-verdict"] {
+    color: var(--plate-wrong);
+  }
+
+  [data-slot="plate-verdict"]:only-child {
+    margin-block-end: 0;
+  }
+
+  /* A rubric block for the child: a note set off by a rule on its start edge. */
+  [data-slot="plate-rubric"] {
+    margin-block: 0 1rem;
+    padding: 0.75rem 1rem;
+    border-inline-start: 4px solid var(--ui-input);
+  }
+
+  /*
+   * A Notice, a note where plate shows no part ("Not supported here: …"): a card whose edge is
+   * dashed, so it reads as something left out, never as a control, feedback or an answer. Inside a
+   * sentence it is a run of the sentence, as inline feedback is.
+   */
+  [data-slot="plate-notice"] {
+    display: block;
+    margin-block: 0 1rem;
+    padding: 0.75rem 1rem;
+    border: 2px dashed var(--ui-input);
+  }
+
+  span[data-slot="plate-notice"] {
+    display: inline;
+    margin: 0;
+    padding: 0.125em 0.375em;
+    border-width: 1px;
+    box-decoration-break: clone;
+  }
+
+  /*
+   * A glossary term's definition (A-15), a native disclosure after the block that holds the term:
+   * a framed card, its summary, "Definition", keeping the browser's own triangle. The term, which
+   * names the disclosure by `aria-details`, is underlined dotted, a quiet cue that it has one.
+   */
+  [data-slot="plate-glossary"] {
+    margin-block: 0 1em;
+    border: 1px solid var(--ui-border);
+  }
+
+  [data-slot="plate-glossary"] > summary {
+    display: list-item;
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+  }
+
+  [data-slot="plate-glossary"] > :not(summary) {
+    margin-inline: 0.75rem;
+  }
+
+  [data-slot="plate-glossary"] > :last-child:not(summary) {
+    margin-block-end: 0.75rem;
+  }
+
+  :where([data-slot="plate-item"]) [aria-details] {
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2em;
+  }
+
+  /*
+   * The catalog's other cards (I-14), listed after the body: each a framed card, its content and
+   * its files' links, one under another.
+   */
+  [data-slot="plate-catalog"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 1rem 0;
+  }
+
+  [data-slot="plate-catalog-card"] {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ui-border);
+  }
+
+  [data-slot="plate-catalog-card"] > a {
+    display: inline-block;
+    margin-block-start: 0.5rem;
+    margin-inline-end: 1rem;
+  }
+
+  /*
+   * The companion materials the item allows (I-22), before the body: a framed card, as a catalog
+   * card is, its heading at the item's heading level and its materials a plain list. A digital
+   * material's link may start with an icon, kept to a line and a half, on the text's line, so the
+   * link reads as its words.
+   */
+  [data-slot="plate-companion-materials"] {
+    margin-block: 0 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ui-border);
+  }
+
+  [data-slot="plate-companion-materials"] > :is(h1, h2, h3, h4, h5, h6) {
+    margin-block: 0 0.5rem;
+    font-size: 1em;
+  }
+
+  [data-slot="plate-companion-materials"] > ul {
+    margin: 0;
+  }
+
+  :where([data-slot="plate-companion-material"]) a img {
+    display: inline-block;
+    max-height: 1.5em;
+    margin-inline-end: 0.375rem;
+    vertical-align: middle;
+  }
+
+  /*
+   * What a refused change says beside its controls, a pick past its limit in a Choice, a Hotspot
+   * or a Hot Text, a placement a target refused, or a tap on a graphic interaction's image it
+   * refused: bold, in a solid frame, so it reads as a note and not as a wrong answer.
+   */
+  :is(
+    [data-slot="plate-choice-limit"],
+    [data-slot="plate-hotspot-limit"],
+    [data-slot="plate-hottext-limit"],
+    [data-slot="plate-placement-message"],
+    [data-slot="plate-graphic-associate-message"],
+    [data-slot="plate-graphic-order-refusal"],
+    [data-slot="plate-position-object-message"],
+    [data-slot="plate-select-point-limit"]
+  ) {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--ui-input);
+    font-weight: 600;
+  }
+
+  [data-slot="plate-placement-message"] {
+    margin-block-end: 1rem;
+  }
+
+  /* == choice == */
+
+  /* A Choice: its prompt, its options, and the message a refused pick shows, 12 px apart. */
+  [data-slot="plate-choice"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-choice"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  /*
+   * The options: one column, or, when the author asks for horizontal (the `orientation` attribute
+   * here, or the vocabulary's class below), side by side as they fit, each at least 12rem wide or
+   * the item's whole width, and never more than five to a row, as the shared vocabulary asks
+   * (1.2.1.4).
+   */
+  :where([data-slot="plate-choice"]) :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    display: grid;
+    gap: var(--plate-gap);
+  }
+
+  :where([data-slot="plate-choice"][data-orientation="horizontal"])
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(min(100%, max(12rem, (100% - 4 * var(--plate-gap)) / 5)), 1fr)
+    );
+  }
+
+  /* An option, a Choice's or a row of a Hotspot's list: its control, then its content. */
+  :is([data-slot="plate-choice-option"], [data-slot="plate-hotspot-option"]) {
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  /* The picked option: its edge in the foreground, beside its filled radio or checkbox. */
+  :is([data-slot="plate-choice-option"], [data-slot="plate-hotspot-option"])[data-selected] {
+    border-color: var(--ui-foreground);
+  }
+
+  /*
+   * A Choice or a Hotspot holding as many picks as it takes: the options not picked are dashed,
+   * still pressable, so the limit shows before a pick is refused.
+   */
+  :is(
+    [data-slot="plate-choice"][data-full] [data-slot="plate-choice-option"],
+    [data-slot="plate-hotspot"][data-full] [data-slot="plate-hotspot-option"]
+  ):not([data-selected]) {
+    border-style: dashed;
+  }
+
+  :is([data-slot="plate-choice-content"], [data-slot="plate-hotspot-label"]) {
+    flex: 1;
+    min-inline-size: 0;
+  }
+
+  /*
+   * A picture option: an option whose content is a picture and then its label. The picture is the
+   * answer the child picks, so it stands on top at a size its detail can be read at, 16 lines tall
+   * at most and never wider than its column, with its label under it and the control under that.
+   * The whole option is the label of its control, so a click anywhere on the picture picks it. An
+   * author who asks which of four pictures is right, and then lists four buttons that only name
+   * them, makes the child find the picture, carry its letter down, and find the letter again
+   * (Cameron Moore, 2026-11-16). Such options stand in the author's `qti-choices-stacking-N`
+   * columns.
+   */
+  [data-slot="plate-choice-option"]:has(
+    > [data-slot="plate-choice-content"] > img:first-child + span
+  ) {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  [data-slot="plate-choice-option"]
+    > [data-slot="plate-choice-content"]:has(> img:first-child + span) {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    order: -1;
+    inline-size: 100%;
+    text-align: center;
+  }
+
+  [data-slot="plate-choice-option"]
+    > [data-slot="plate-choice-content"]:has(> img:first-child + span)
+    > img {
+    inline-size: auto;
+    max-inline-size: 100%;
+    block-size: auto;
+    max-block-size: 16rem;
+  }
+
+  /* == inline choice == */
+
+  /*
+   * An Inline Choice: UI SDK's select inside a sentence, after its label when it has one, its line
+   * growing around its trigger.
+   */
+  [data-slot="plate-inline-choice"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-block: 0.25rem;
+    vertical-align: middle;
+  }
+
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-trigger"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-inline-size: 7rem;
+    margin: 0;
+    padding: 0.25rem 0.75rem;
+    text-align: start;
+  }
+
+  /* Its chevron, drawn with two borders, turning over while the list is open. */
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-trigger"]:not(:has(> svg))::after {
+    content: "";
+    flex-shrink: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-block-start: -0.25rem;
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    rotate: 45deg;
+  }
+
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-trigger"][data-open]::after {
+    margin-block: 0.25rem 0;
+    rotate: 225deg;
+  }
+
+  /* A choice's picture, in the trigger or the list, at most a line and a half tall. */
+  :where([data-slot="plate-inline-choice"]) img {
+    max-height: 2.5em;
+  }
+
+  /*
+   * The list, in the top layer under its trigger: framed, and opaque over the sentence it covers.
+   * Its focus shows on the highlighted option.
+   */
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-content"] {
+    padding: 0.25rem;
+    border: 1px solid var(--ui-border);
+    background: var(--ui-background);
+    outline: none;
+  }
+
+  /*
+   * An option: the highlighted one, under the keys or the pointer, outlined in the foreground; the
+   * picked one ticked at its end; one that takes no pick struck through.
+   */
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-item"] {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-inline: 0.75rem;
+  }
+
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-item"][data-highlighted] {
+    outline: 2px solid var(--ui-foreground);
+    outline-offset: -2px;
+  }
+
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-item"][data-selected]::after {
+    margin-inline-start: auto;
+  }
+
+  :where([data-slot="plate-inline-choice"]) [data-slot="select-item"][data-disabled] {
+    text-decoration-line: line-through;
+  }
+
+  /* == text entry and extended text == */
+
+  /*
+   * A Text Entry: UI SDK's input inside a sentence, as wide as its `size` makes it, and the hint a
+   * text the answer's form refuses shows, under the input and no wider.
+   */
+  [data-slot="plate-text-entry"] {
+    display: inline-flex;
+    margin-block: 0.25rem;
+    vertical-align: middle;
+  }
+
+  :where([data-slot="plate-text-entry"]) [data-slot="field"] {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  :where([data-slot="plate-text-entry"]) [data-slot="field-error"] {
+    inline-size: 0;
+    min-inline-size: 100%;
+  }
+
+  /*
+   * An Extended Text: its prompt and each of its boxes, a UI SDK textarea in a field, across the
+   * item unless the author's expected length sets its columns, at least three lines tall or its
+   * expected lines, growing down. Preformatted text is typed in the monospace face.
+   */
+  [data-slot="plate-extended-text"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-extended-text"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  :where([data-slot="plate-extended-text"])
+    :is([data-slot="field"], [data-slot="plate-extended-text-box"]) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-inline-size: 0;
+  }
+
+  :where([data-slot="plate-text-entry"], [data-slot="plate-extended-text"])
+    :is([data-slot="input"], [data-slot="textarea"]) {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+  }
+
+  :where([data-slot="plate-text-entry"]) [data-slot="input"] {
+    min-inline-size: 6rem;
+    max-inline-size: 100%;
+  }
+
+  :where([data-slot="plate-extended-text"]) [data-slot="textarea"] {
+    display: block;
+    max-inline-size: 100%;
+    min-block-size: calc(3lh + 1rem + 4px);
+    resize: vertical;
+  }
+
+  :where([data-slot="plate-extended-text"]) [data-slot="textarea"]:not([cols]) {
+    inline-size: 100%;
+  }
+
+  :where([data-slot="plate-extended-text"][data-format="preformatted"]) [data-slot="textarea"] {
+    font-family: var(--ui-font-mono);
+  }
+
+  /* A text the answer's form refuses: the input's edge in the destructive colour, by its words. */
+  :where([data-slot="plate-text-entry"], [data-slot="plate-extended-text"])
+    :is([data-slot="input"], [data-slot="textarea"])[data-invalid] {
+    border-color: var(--ui-destructive);
+  }
+
+  /* UI SDK's field label, description and error, inside any plate part. */
+  :where([data-slot^="plate-"]) :is([data-slot="field-label"], [data-slot="label"]) {
+    font-weight: 600;
+  }
+
+  :where([data-slot^="plate-"]) [data-slot="field-description"] {
+    margin: 0;
+  }
+
+  :where([data-slot^="plate-"]) [data-slot="field-error"] {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  /* == end attempt == */
+
+  /*
+   * An End Attempt: UI SDK's button where the author put it, most often a line of its own, its
+   * text the author's title ("Show hint"), the line it stands in growing around it.
+   */
+  [data-slot="plate-end-attempt"] {
+    display: inline-flex;
+    margin-block: 0.25rem;
+    vertical-align: middle;
+  }
+
+  :where([data-slot="plate-end-attempt"]) [data-slot="button"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* While the host's form submits, the button takes no press: its edge is dashed. */
+  :where([data-slot="plate-end-attempt"]) [data-slot="button"][data-disabled] {
+    border-style: dashed;
+  }
+
+  /*
+   * A review's or a solution's End Attempt, its title as words where the button stood: bold as the
+   * button's, in the quiet edge of a part that takes no press, since the attempt is over.
+   */
+  [data-slot="plate-end-attempt-title"] {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--plate-target-size);
+    padding: 0.5rem 1.5rem;
+    border: 2px solid var(--ui-border);
+    color: var(--ui-muted-foreground);
+    font-weight: 600;
+  }
+
+  /* == hot text == */
+
+  /*
+   * A Hot Text: its prompt, the author's passage with its choices standing in it, and the message
+   * a refused pick shows, 12 px apart, as a Choice's.
+   */
+  [data-slot="plate-hottext"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-hottext"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  /*
+   * A choice: a run of the sentence, a dotted underline saying "you can pick this". Picking it
+   * changes only the underline, never a size, so nothing in the passage moves (ruling R5).
+   */
+  [data-slot="plate-hottext-choice"] {
+    padding-inline: 0.125em;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2em;
+  }
+
+  /*
+   * A picked choice: underlined solid and thicker. The underline says "picked" by its shape, the
+   * author's hidden choices included, where nothing else shows before a pick.
+   */
+  [data-slot="plate-hottext-choice"][data-selected] {
+    text-decoration-line: underline;
+    text-decoration-style: solid;
+    text-decoration-thickness: 3px;
+    text-underline-offset: 0.35em;
+  }
+
+  /*
+   * A Hot Text holding as many picks as it takes: the choices not picked lose their underline,
+   * still pressable, as a Choice's options are dashed; not where the author hides them (1.2.6.3),
+   * where none has one.
+   */
+  [data-slot="plate-hottext"][data-full]:not(.qti-unselected-hidden)
+    [data-slot="plate-hottext-choice"]:not([data-selected]) {
+    text-decoration-line: none;
+  }
+
+  /* == slider == */
+
+  /*
+   * A Slider: its prompt and its scale, 12 px apart.
+   */
+  [data-slot="plate-slider"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-slider"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  /* A bound's number, bold. */
+  [data-slot="plate-slider-bound"] {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  /* The readout: the value, bold, or the `empty` label until one is set. */
+  :where([data-slot="plate-slider"]) [data-slot="slider"] > [data-slot="slider-value"] {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  /* The thumb, opaque over its track; dashed while the slider takes no value. */
+  :where([data-slot="plate-slider"]) [data-slot="slider-thumb"] {
+    background: var(--ui-background);
+  }
+
+  :where([data-slot="plate-slider"])
+    [data-slot="slider"][data-disabled]
+    [data-slot="slider-thumb"] {
+    border-style: dashed;
+  }
+
+  /* The step labels' numbers. */
+  [data-slot="plate-slider-steps"] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A review's value, in place of the slider: the number in a frame, marked as a control is. */
+  [data-slot="plate-slider-scale"] > [data-slot="slider-value"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: center;
+    min-inline-size: 6rem;
+    padding: 0.25rem 1rem;
+    border: 2px solid var(--ui-input);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  /* == media == */
+
+  /*
+   * A Media interaction: its prompt, the player, its controls and the hints on how many plays are
+   * left or still needed, 12 px apart. The player is the media element as the item shows it
+   * elsewhere, never wider than the item.
+   */
+  [data-slot="plate-media"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-media"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  [data-slot="plate-media-player"] {
+    display: block;
+    min-inline-size: 0;
+  }
+
+  [data-slot="plate-media-player"] > :is(video, audio, object) {
+    max-width: 100%;
+  }
+
+  /* The controls, UI SDK's Play or Pause button and its Captions toggle, side by side. */
+  [data-slot="plate-media-controls"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--plate-gap);
+  }
+
+  :where([data-slot="plate-media-controls"]) :is([data-slot="button"], [data-slot="toggle"]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    margin: 0;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+  }
+
+  /*
+   * Play's glyph, before its word: a triangle while the media rests, two bars while it plays, so a
+   * child who does not read yet sees what a press does, and the change shows by shape. Drawn with
+   * borders, which forced colours keep, and with no alternative text: the word says it. It points
+   * right in either direction, as players do.
+   */
+  :where([data-slot="plate-media-controls"]) [data-slot="button"]::before {
+    content: "" / "";
+    flex: none;
+    inline-size: 0;
+    block-size: 0;
+    border-block: 0.55em solid transparent;
+    border-left: 0.9em solid currentColor;
+  }
+
+  :where([data-slot="plate-media"][data-playing])
+    [data-slot="plate-media-controls"]
+    [data-slot="button"]::before {
+    inline-size: 0.8em;
+    block-size: 1.1em;
+    border: 0;
+    border-inline: 0.28em solid currentColor;
+  }
+
+  /*
+   * Captions while they show: a tick before the word, whose place is kept while they are off, so
+   * the toggle never changes size.
+   */
+  :where([data-slot="plate-media-controls"]) [data-slot="toggle"]::before {
+    content: "" / "";
+    flex: none;
+    inline-size: 0.4375rem;
+    block-size: 0.8125rem;
+    margin-block-start: -0.1875rem;
+    border: solid currentColor;
+    border-width: 0 3px 3px 0;
+    visibility: hidden;
+  }
+
+  :where([data-slot="plate-media-controls"]) [data-slot="toggle"][data-pressed]::before {
+    visibility: visible;
+  }
+
+  /* Play once the plays are used up, or while the media loads: its edge is dashed. */
+  :where([data-slot="plate-media-controls"])
+    :is([data-slot="button"], [data-slot="toggle"])[data-disabled] {
+    border-style: dashed;
+  }
+
+  /* The hints beside the controls, and a review's count of plays. */
+  :is(
+    [data-slot="plate-media-plays"],
+    [data-slot="plate-media-least"],
+    [data-slot="plate-media-count"]
+  ) {
+    margin: 0;
+  }
+
+  /* == portable custom == */
+
+  /*
+   * A Portable Custom Interaction: its prompt, the stage that holds the PCI's frame, and the status
+   * under it, 12 px apart, as a Media interaction stands.
+   */
+  [data-slot="plate-portable-custom"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-portable-custom"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  /*
+   * The stage, which the island makes the frame in and which holds nothing else. Once the frame
+   * cannot run the PCI it is removed, and the stage goes with it, so the status stands under the
+   * prompt.
+   */
+  [data-slot="plate-portable-custom-stage"] {
+    min-inline-size: 0;
+  }
+
+  /*
+   * The status: its `loading` words while the PCI loads; once the frame cannot run it, its
+   * `failed` words, framed as a refusal is.
+   */
+  [data-slot="plate-portable-custom-status"] {
+    margin: 0;
+  }
+
+  [data-slot="plate-portable-custom"][data-failed] > [data-slot="plate-portable-custom-status"] {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--ui-input);
+    font-weight: 600;
+  }
+
+  /*
+   * A review or a solution, which shows the response as text with no frame: whose answer it is,
+   * then the value in a frame, as a Slider's review shows its number. A list's values stand one to
+   * a line, numbered where the response is ordered, and a record's fields as names beside their
+   * values. No value, `data-empty`, is a dashed frame, as a place left empty is.
+   */
+  [data-slot="plate-portable-custom-response"] {
+    display: grid;
+    justify-items: start;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  [data-slot="plate-portable-custom-response"] > dt {
+    font-weight: 600;
+  }
+
+  [data-slot="plate-portable-custom-value"] {
+    max-inline-size: 100%;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--ui-input);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  [data-slot="plate-portable-custom-value"][data-empty] {
+    border-style: dashed;
+  }
+
+  [data-slot="plate-portable-custom-value"] > :is(ul, ol, dl) {
+    margin: 0;
+  }
+
+  [data-slot="plate-portable-custom-value"] > dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.25rem 1rem;
+  }
+
+  [data-slot="plate-portable-custom-value"] > dl > dt {
+    font-weight: 400;
+  }
+
+  [data-slot="plate-portable-custom-value"] > dl > dd {
+    margin: 0;
+  }
+
+  /* == QTI's shared vocabulary on an interaction's root == */
+
+  /*
+   * Choice labels (1.2.1.1, 1.2.1.2): a label class numbers the options in its counter style, with
+   * a period after each unless a suffix class asks for ")" or nothing; `qti-labels-none`, or no
+   * label class, shows none. The label stands after the radio or checkbox, before the content. Its
+   * alternative text is empty, so each control's name stays the author's content, and the group's
+   * own "2 of 4" gives its place.
+   */
+  [data-slot="plate-choice"].qti-labels-decimal {
+    --plate-label-style: decimal;
+  }
+
+  [data-slot="plate-choice"].qti-labels-lower-alpha {
+    --plate-label-style: lower-alpha;
+  }
+
+  [data-slot="plate-choice"].qti-labels-upper-alpha {
+    --plate-label-style: upper-alpha;
+  }
+
+  [data-slot="plate-choice"].qti-labels-cjk-ideographic {
+    --plate-label-style: cjk-ideographic;
+  }
+
+  [data-slot="plate-choice"]:is(
+    .qti-labels-decimal,
+    .qti-labels-lower-alpha,
+    .qti-labels-upper-alpha,
+    .qti-labels-cjk-ideographic
+  ) {
+    --plate-label-suffix: ".";
+  }
+
+  [data-slot="plate-choice"].qti-labels-suffix-period {
+    --plate-label-suffix: ".";
+  }
+
+  [data-slot="plate-choice"].qti-labels-suffix-parenthesis {
+    --plate-label-suffix: ")";
+  }
+
+  [data-slot="plate-choice"].qti-labels-suffix-none {
+    --plate-label-suffix: "";
+  }
+
+  :where(
+      [data-slot="plate-choice"]:is(
+          .qti-labels-decimal,
+          .qti-labels-lower-alpha,
+          .qti-labels-upper-alpha,
+          .qti-labels-cjk-ideographic
+        ):not(.qti-labels-none)
+    )
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    counter-reset: plate-choice-label;
+  }
+
+  :where(
+      [data-slot="plate-choice"]:is(
+          .qti-labels-decimal,
+          .qti-labels-lower-alpha,
+          .qti-labels-upper-alpha,
+          .qti-labels-cjk-ideographic
+        ):not(.qti-labels-none)
+    )
+    [data-slot="plate-choice-option"] {
+    counter-increment: plate-choice-label;
+  }
+
+  :where(
+      [data-slot="plate-choice"]:is(
+          .qti-labels-decimal,
+          .qti-labels-lower-alpha,
+          .qti-labels-upper-alpha,
+          .qti-labels-cjk-ideographic
+        ):not(.qti-labels-none)
+    )
+    [data-slot="plate-choice-option"]::before {
+    content: counter(plate-choice-label, var(--plate-label-style)) var(--plate-label-suffix) / "";
+    flex: none;
+    min-inline-size: 1.5em;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  :where(
+      [data-slot="plate-choice"]:is(
+          .qti-labels-decimal,
+          .qti-labels-lower-alpha,
+          .qti-labels-upper-alpha,
+          .qti-labels-cjk-ideographic
+        ):not(.qti-labels-none)
+    )
+    [data-slot="plate-choice-option"]
+    > :is([data-slot="radio"], [data-slot="checkbox"]) {
+    order: -1;
+  }
+
+  /*
+   * Orientation (1.2.1.4): the class says it outright, over the `orientation` attribute: vertical,
+   * one column; horizontal, side by side, at most five to a row.
+   */
+  :where([data-slot="plate-choice"].qti-orientation-vertical)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    grid-template-columns: none;
+  }
+
+  :where([data-slot="plate-choice"].qti-orientation-horizontal)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(min(100%, max(12rem, (100% - 4 * var(--plate-gap)) / 5)), 1fr)
+    );
+  }
+
+  /*
+   * Stacking (1.2.1.5, 1.2.1.6): `qti-choices-stacking-N` lays the options in N columns, row by row
+   * ("Z" order), whatever the `orientation` attribute says, since stacking without an orientation
+   * class is horizontal. With `qti-orientation-vertical` they run down each column in turn
+   * ("Reverse N"), in N balanced columns, each option kept whole.
+   */
+  :where([data-slot="plate-choice"].qti-choices-stacking-1)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :where([data-slot="plate-choice"].qti-choices-stacking-2)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  :where([data-slot="plate-choice"].qti-choices-stacking-3)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  :where([data-slot="plate-choice"].qti-choices-stacking-4)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  :where([data-slot="plate-choice"].qti-choices-stacking-5)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  :where(
+      [data-slot="plate-choice"].qti-orientation-vertical:is(
+          .qti-choices-stacking-1,
+          .qti-choices-stacking-2,
+          .qti-choices-stacking-3,
+          .qti-choices-stacking-4,
+          .qti-choices-stacking-5
+        )
+    )
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    display: block;
+    column-gap: var(--plate-gap);
+  }
+
+  :where([data-slot="plate-choice"].qti-orientation-vertical.qti-choices-stacking-1)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    column-count: 1;
+  }
+
+  :where([data-slot="plate-choice"].qti-orientation-vertical.qti-choices-stacking-2)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    column-count: 2;
+  }
+
+  :where([data-slot="plate-choice"].qti-orientation-vertical.qti-choices-stacking-3)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    column-count: 3;
+  }
+
+  :where([data-slot="plate-choice"].qti-orientation-vertical.qti-choices-stacking-4)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    column-count: 4;
+  }
+
+  :where([data-slot="plate-choice"].qti-orientation-vertical.qti-choices-stacking-5)
+    :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    column-count: 5;
+  }
+
+  :where(
+      [data-slot="plate-choice"].qti-orientation-vertical:is(
+          .qti-choices-stacking-1,
+          .qti-choices-stacking-2,
+          .qti-choices-stacking-3,
+          .qti-choices-stacking-4,
+          .qti-choices-stacking-5
+        )
+    )
+    [data-slot="plate-choice-option"] {
+    margin-block-end: var(--plate-gap);
+    break-inside: avoid;
+  }
+
+  /*
+   * No input control (1.2.1.7): each option's radio or checkbox is hidden from sight only, so it
+   * keeps the focus, its name and its place in the form, available to assistive technology as the
+   * vocabulary requires. The whole option is still its press and wears its focus ring, and a
+   * picked option shows by an edge twice as wide, which forced colours keep, so colour never says
+   * it alone.
+   */
+  :where([data-slot="plate-choice"].qti-input-control-hidden)
+    :is([data-slot="radio"], [data-slot="checkbox"]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  :where([data-slot="plate-choice"].qti-input-control-hidden)
+    [data-slot="plate-choice-option"][data-selected] {
+    padding: calc(0.75rem - 2px) calc(1rem - 2px);
+    border-width: 4px;
+  }
+
+  /*
+   * Hot Text with no input control (1.2.6.1), or no visual indication of its unselected choices
+   * (1.2.6.3): each choice's radio or checkbox is hidden from sight only, as a Choice's is, so it
+   * keeps the focus, its name and its place in the form. A picked choice still shows by its solid
+   * underline, and the whole run is still its press.
+   */
+  :where([data-slot="plate-hottext"]:is(.qti-input-control-hidden, .qti-unselected-hidden))
+    :is([data-slot="radio"], [data-slot="checkbox"]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /*
+   * No visual indication (1.2.6.3): a choice not picked is the plain text around it, with no
+   * underline, until the keyboard is on it, when it shows as any choice does; a picked one is
+   * underlined solid, as ever. Its hit area stays.
+   */
+  :where([data-slot="plate-hottext"].qti-unselected-hidden)
+    [data-slot="plate-hottext-choice"]:not([data-selected], :has(:focus-visible)) {
+    text-decoration-line: none;
+  }
+
+  /*
+   * Input widths (1.2.2.1, 1.2.7.1): `qti-input-width-N` makes a Text Entry's input, or an Inline
+   * Choice's trigger, about N characters wide, N from the class's name: the input that wide, over
+   * the `size` its expected length gives it; the trigger at least that wide, since it grows to show
+   * the choice picked. Neither is narrower than a 48 px target, nor wider than its line.
+   */
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-1 {
+    --plate-input-width: 1;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-2 {
+    --plate-input-width: 2;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-3 {
+    --plate-input-width: 3;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-4 {
+    --plate-input-width: 4;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-6 {
+    --plate-input-width: 6;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-10 {
+    --plate-input-width: 10;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-15 {
+    --plate-input-width: 15;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-20 {
+    --plate-input-width: 20;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-25 {
+    --plate-input-width: 25;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-30 {
+    --plate-input-width: 30;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-35 {
+    --plate-input-width: 35;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-40 {
+    --plate-input-width: 40;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-45 {
+    --plate-input-width: 45;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-50 {
+    --plate-input-width: 50;
+  }
+
+  :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-72 {
+    --plate-input-width: 72;
+  }
+
+  :where(
+      [data-slot="plate-text-entry"]:is(
+        .qti-input-width-1,
+        .qti-input-width-2,
+        .qti-input-width-3,
+        .qti-input-width-4,
+        .qti-input-width-6,
+        .qti-input-width-10,
+        .qti-input-width-15,
+        .qti-input-width-20,
+        .qti-input-width-25,
+        .qti-input-width-30,
+        .qti-input-width-35,
+        .qti-input-width-40,
+        .qti-input-width-45,
+        .qti-input-width-50,
+        .qti-input-width-72
+      )
+    )
+    [data-slot="input"] {
+    inline-size: calc(var(--plate-input-width) * 1ch + 1.5rem + 4px);
+    min-inline-size: var(--plate-control-size);
+  }
+
+  :where(
+      [data-slot="plate-inline-choice"]:is(
+        .qti-input-width-1,
+        .qti-input-width-2,
+        .qti-input-width-3,
+        .qti-input-width-4,
+        .qti-input-width-6,
+        .qti-input-width-10,
+        .qti-input-width-15,
+        .qti-input-width-20,
+        .qti-input-width-25,
+        .qti-input-width-30,
+        .qti-input-width-35,
+        .qti-input-width-40,
+        .qti-input-width-45,
+        .qti-input-width-50,
+        .qti-input-width-72
+      )
+    )
+    [data-slot="select-trigger"] {
+    min-inline-size: max(var(--plate-control-size), var(--plate-input-width) * 1ch + 2.75rem);
+    max-inline-size: 100%;
+  }
+
+  /*
+   * Heights (1.2.3.1): `qti-height-lines-N` makes each of an Extended Text's boxes about N lines
+   * tall, in its own line height, over the rows its expected lines give it.
+   */
+  :where([data-slot="plate-extended-text"].qti-height-lines-3) [data-slot="textarea"] {
+    block-size: calc(3lh + 1rem + 4px);
+  }
+
+  :where([data-slot="plate-extended-text"].qti-height-lines-6) [data-slot="textarea"] {
+    block-size: calc(6lh + 1rem + 4px);
+  }
+
+  :where([data-slot="plate-extended-text"].qti-height-lines-15) [data-slot="textarea"] {
+    block-size: calc(15lh + 1rem + 4px);
+  }
+
+  /*
+   * Vertical writing (1.2.1.9, 1.2.2.3, 1.2.3.4, 1.2.7.3): the interaction's root, and so its
+   * controls, set in vertical lines, right to left or left to right; a Choice's labels stand
+   * upright.
+   */
+  :is(
+    [data-slot="plate-choice"],
+    [data-slot="plate-text-entry"],
+    [data-slot="plate-extended-text"],
+    [data-slot="plate-inline-choice"]
+  ).qti-writing-orientation-vertical-rl {
+    writing-mode: vertical-rl;
+  }
+
+  :is(
+    [data-slot="plate-choice"],
+    [data-slot="plate-text-entry"],
+    [data-slot="plate-extended-text"],
+    [data-slot="plate-inline-choice"]
+  ).qti-writing-orientation-vertical-lr {
+    writing-mode: vertical-lr;
+  }
+
+  :where(
+      [data-slot="plate-choice"]:is(
+        .qti-writing-orientation-vertical-rl,
+        .qti-writing-orientation-vertical-lr
+      )
+    )
+    [data-slot="plate-choice-option"]::before {
+    text-orientation: upright;
+  }
+
+  /* == placement: match, gap match and order == */
+
+  /*
+   * The bank: the chips not placed, wrapping. Its frame shows only while a chip is over it; while a
+   * placed chip is held, the slot the bank then holds says it can go back here.
+   */
+  [data-slot="plate-placement-bank"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: var(--plate-gap);
+    padding: 0.75rem;
+    border: 2px solid transparent;
+  }
+
+  /* The bank's dock, the box round it: the room under the bank. */
+  [data-slot="plate-placement-dock"] {
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-placement-bank"][data-over] {
+    border-color: var(--ui-foreground);
+  }
+
+  /*
+   * While the child answers a Match, a Gap Match or an Order, its bank stays at the top of the
+   * screen as the page scrolls past it, on the page's own background and over what scrolls under
+   * it, so the chips and the places they go stay on one screen together: a picture above and the
+   * sentences of a long Gap Match or the groups of a Match below would otherwise put the bank on one
+   * screen and its places on the next. Once the interaction's end scrolls past, the bank goes with
+   * it. What sticks is the bank's dock, plate's box round it. A review's bank, which takes no drag,
+   * stays where it stands.
+   */
+  :where([data-slot="plate-item"][data-mode="answering"])
+    :is([data-slot="plate-match"], [data-slot="plate-gap-match"], [data-slot="plate-order"])
+    > [data-slot="plate-placement"]
+    > [data-slot="plate-placement-dock"] {
+    position: sticky;
+    z-index: 1;
+    inset-block-start: 0;
+    background: var(--ui-background);
+  }
+
+  /* A chip: a card, its text wrapping at 22em. */
+  [data-slot="plate-placement-chip"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-inline-size: 22em;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    text-align: start;
+  }
+
+  /* A picture in a chip, kept to six lines of text. */
+  [data-slot="plate-placement-chip"] img {
+    max-height: 6rem;
+  }
+
+  /*
+   * A picture card: a chip whose content is a picture and then its name, the picture being the
+   * thing the child drags (one panel of a diagram, with its arrow and label). Six lines of text is
+   * too small to read a panel's label, which is why such an item used to show its panels again in
+   * one picture above the cards and name each in words; with the picture readable on the card, the
+   * item needs neither (Cameron Moore, 2026-11-16). So the picture may be 11rem tall, the name sits
+   * under it, centred, and the card is no wider than 12em with half the side padding, so four stand
+   * in a row in a 42rem column. A chip that is only a picture, or words with a small picture among
+   * them, is not one and keeps the six lines. The copy that follows the finger is laid out the same
+   * way, and a picked card gives its wider edge the same 2px of that padding as any chip.
+   */
+  :is([data-slot="plate-placement-chip"], [data-slot="plate-placement-preview"]):has(
+    > img:first-child + span
+  ) {
+    flex-direction: column;
+    max-inline-size: 12em;
+    padding-inline: 0.5rem;
+    text-align: center;
+  }
+
+  [data-slot="plate-placement-chip"][data-picked]:has(> img:first-child + span) {
+    padding-inline: calc(0.5rem - 2px);
+  }
+
+  :is([data-slot="plate-placement-chip"], [data-slot="plate-placement-preview"]):has(
+      > img:first-child + span
+    )
+    > img {
+    max-height: 11rem;
+  }
+
+  /*
+   * A bank of picture cards shares its row in equal columns. Left to flow at their own widths,
+   * four or five cards of different shapes wrap onto two or three rows, and the item is taller than
+   * the picture the cards replaced: of 233 such items, 24 kept one row, 167 took two and 42 three.
+   * In equal columns up to five stand in one row and six stand as two rows of three, so the cards
+   * line up and every picture is as wide as its column allows. A column is never wider than a card
+   * is alone, 12em, so two or three cards do not stretch across the bank.
+   */
+  [data-slot="plate-placement-bank"]:has(
+    > [data-slot="plate-placement-chip"] > img:first-child + span
+  ) {
+    display: grid;
+    grid-template-columns: repeat(var(--plate-card-columns, 3), minmax(0, 12em));
+    align-items: stretch;
+  }
+
+  [data-slot="plate-placement-bank"]:has(> :nth-child(4 of [data-slot="plate-placement-chip"])) {
+    --plate-card-columns: 4;
+  }
+
+  [data-slot="plate-placement-bank"]:has(> :nth-child(5 of [data-slot="plate-placement-chip"])) {
+    --plate-card-columns: 5;
+  }
+
+  [data-slot="plate-placement-bank"]:has(> :nth-child(6 of [data-slot="plate-placement-chip"])) {
+    --plate-card-columns: 3;
+  }
+
+  [data-slot="plate-placement-bank"]:has(> :nth-child(7 of [data-slot="plate-placement-chip"])) {
+    --plate-card-columns: 4;
+  }
+
+  [data-slot="plate-placement-bank"]
+    > [data-slot="plate-placement-chip"]:has(> img:first-child + span) {
+    min-inline-size: 0;
+    max-inline-size: none;
+  }
+
+  [data-slot="plate-placement-bank"]
+    > [data-slot="plate-placement-chip"]:has(> img:first-child + span)
+    > img {
+    max-inline-size: 100%;
+  }
+
+  /*
+   * The author's own count wins. Equal columns by the number of cards suit pictures that are tall or
+   * square; a wide picture in one of four or five columns shrinks until it cannot be read, and only
+   * the author knows the pictures' shapes. `qti-choices-stacking-N`, which QTI defines for a choice
+   * interaction's options (1.2.1.5), means the same on a match whose cards are pictures: its bank
+   * stands in N columns. Two columns are for wide pictures, so each may be half as wide again as a
+   * card alone.
+   */
+  [data-slot="plate-match"].qti-choices-stacking-2 [data-slot="plate-placement-bank"] {
+    --plate-card-columns: 2;
+  }
+
+  [data-slot="plate-match"].qti-choices-stacking-2
+    [data-slot="plate-placement-bank"]:has(
+      > [data-slot="plate-placement-chip"] > img:first-child + span
+    ) {
+    grid-template-columns: repeat(2, minmax(0, 18em));
+  }
+
+  [data-slot="plate-match"].qti-choices-stacking-3 [data-slot="plate-placement-bank"] {
+    --plate-card-columns: 3;
+  }
+
+  [data-slot="plate-match"].qti-choices-stacking-4 [data-slot="plate-placement-bank"] {
+    --plate-card-columns: 4;
+  }
+
+  [data-slot="plate-match"].qti-choices-stacking-5 [data-slot="plate-placement-bank"] {
+    --plate-card-columns: 5;
+  }
+
+  /*
+   * A picture card that has been placed is the child's answer, already read: its picture goes back
+   * to the six lines of any chip's, so a destination holding two or three cards stays a card's
+   * height, not a column of them.
+   */
+  [data-slot="plate-placement-target"]
+    [data-slot="plate-placement-chip"]:has(> img:first-child + span)
+    > img {
+    max-height: 6rem;
+  }
+
+  /*
+   * The picked chip, held for a tap on where it goes: its edge twice as wide, in the foreground,
+   * "this one is in your hand". Its padding gives up what the edge takes, so nothing moves.
+   */
+  [data-slot="plate-placement-chip"][data-picked] {
+    padding: calc(0.5rem - 2px) calc(1rem - 2px);
+    border-width: 4px;
+    border-color: var(--ui-foreground);
+  }
+
+  /*
+   * The chip being dragged, where it was: a dashed hole the size of the chip, so the child sees
+   * where it came from and where it goes back to if let go elsewhere.
+   */
+  [data-slot="plate-placement-chip"][data-dragging] {
+    border-style: dashed;
+  }
+
+  /*
+   * The copy that follows the finger, `plate-placement-preview`: UI SDK clones it from the chip
+   * into the page's top layer, outside the item, and copies the chip's colours, border and padding
+   * onto it as they were at that moment. It always looks picked, laid out as a chip, and is opaque
+   * over whatever it passes; these beat the copied ones. Its position and travel are UI SDK's, so
+   * no rule here sets `translate`. Over a place that refuses it (`data-refuses`), it is dashed, so
+   * the child sees before letting go that it will not stay there.
+   */
+  [data-slot="plate-placement-preview"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-width: 4px !important;
+    border-style: solid !important;
+    border-color: var(--ui-foreground) !important;
+    background-color: var(--ui-background) !important;
+    text-align: start;
+  }
+
+  [data-slot="plate-placement-preview"] img {
+    max-height: 6rem;
+  }
+
+  [data-slot="plate-placement-preview"][data-refuses] {
+    border-style: dashed !important;
+  }
+
+  /* A chip with no uses left: a dashed ghost in its place in the bank, so nothing moves. */
+  [data-slot="plate-placement-chip"][data-used] {
+    border-style: dashed;
+  }
+
+  /*
+   * A chip with copies, whose `match-max` is 0 or above 1, as it rests in the bank: a double edge,
+   * as of a stack, so a child sees it can go to more than one place, its padding giving up what
+   * the edge takes. It shows no count, which would read as a hint.
+   */
+  :where([data-slot="plate-placement-bank"])
+    [data-slot="plate-placement-chip"][data-copies]:not(
+      [data-used],
+      [data-picked],
+      [data-dragging]
+    ) {
+    padding: calc(0.5rem - 4px) calc(1rem - 4px);
+    border-width: 6px;
+    border-style: double;
+  }
+
+  /*
+   * A target: where a chip goes, holding its label, its chips and, while it takes one more, its
+   * slot. The whole of it is ringed in the foreground under a dragged chip.
+   */
+  [data-slot="plate-placement-target"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--plate-gap);
+  }
+
+  [data-slot="plate-placement-target"][data-over] {
+    outline: 3px solid var(--ui-foreground);
+  }
+
+  [data-slot="plate-placement-target-label"] {
+    flex-basis: 100%;
+    font-weight: 600;
+  }
+
+  /* A slot: the empty place in a target a tap puts the held chip in, at least 160 px wide. */
+  [data-slot="plate-placement-slot"] {
+    display: inline-flex;
+    flex: 1 1 10rem;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: 10rem;
+    margin: 0;
+    padding: 0.5rem 1rem;
+  }
+
+  /*
+   * While a chip is held, every slot that takes it turns solid in the foreground, so the child sees
+   * every place it can go. A target or slot that would refuse the held chip (`data-refuses`, only
+   * while one is held) is dotted: a target's ring, a slot's edge.
+   */
+  :where([data-slot="plate-placement"]:is([data-picked], [data-dragging]))
+    [data-slot="plate-placement-slot"]:not([data-refuses]) {
+    border-style: solid;
+    border-color: var(--ui-foreground);
+  }
+
+  [data-slot="plate-placement-target"][data-refuses] {
+    outline: 3px dotted var(--ui-foreground);
+  }
+
+  [data-slot="plate-placement-slot"][data-refuses] {
+    border-style: dotted;
+  }
+
+  /* The slot under a dragged chip: solid and ringed, the place it lands if let go. */
+  [data-slot="plate-placement-slot"][data-over] {
+    border-style: solid;
+    border-color: var(--ui-foreground);
+    outline: 2px solid var(--ui-foreground);
+  }
+
+  /*
+   * A target with no chip and no slot, as a review shows one the child left empty: a dashed frame
+   * the size of a slot, so the empty place still shows. An order's position draws its own.
+   */
+  [data-slot="plate-placement-target"][data-empty]:not(
+      :has([data-slot="plate-placement-slot"]),
+      :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"]) > *
+    ) {
+    min-block-size: var(--plate-target-size);
+    min-inline-size: 10rem;
+    border: 2px dashed var(--ui-muted-foreground);
+  }
+
+  /*
+   * An empty gap's number, inside its dashed blank: a "which blank" that goes with the blank once a
+   * chip fills it. Its slot's name says the same to a screen reader.
+   */
+  [data-slot="plate-gap-number"] {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  /* == match, gap match, order and associate: their layouts == */
+
+  :is(
+    [data-slot="plate-match"],
+    [data-slot="plate-gap-match"],
+    [data-slot="plate-order"],
+    [data-slot="plate-associate"]
+  ) {
+    margin-block: 0 1rem;
+  }
+
+  /*
+   * Associate: its pair boxes side by side as they fit, each at least 24rem wide or the item's
+   * whole width. A box is a card holding its two halves, a line between them that says they go
+   * together; a box holding a pair has a solid edge at 3:1, and the empty one a new pair begins in
+   * a dashed one, so its state shows by the edge's style and not its colour alone. Its halves
+   * share the box's width, their slots no wider than their half, so a box fits a phone.
+   */
+  [data-slot="plate-placement-boxes"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  [data-slot="plate-placement-box"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 2px solid var(--ui-border);
+  }
+
+  [data-slot="plate-placement-box"][data-paired] {
+    border-color: var(--ui-input);
+  }
+
+  [data-slot="plate-placement-box"][data-empty] {
+    border-style: dashed;
+    border-color: var(--ui-muted-foreground);
+  }
+
+  [data-slot="plate-placement-box"] > [data-slot="plate-placement-target"]:first-of-type {
+    order: 1;
+  }
+
+  [data-slot="plate-placement-box"]::before {
+    content: "" / "";
+    order: 2;
+    inline-size: 1.25rem;
+    border-block-start: 3px solid var(--ui-input);
+  }
+
+  [data-slot="plate-placement-box"] > [data-slot="plate-placement-target"]:last-of-type {
+    order: 3;
+  }
+
+  :where([data-slot="plate-placement-box"]) [data-slot="plate-placement-target"] {
+    min-inline-size: 0;
+  }
+
+  :where([data-slot="plate-placement-box"])
+    :is([data-slot="plate-placement-slot"], [data-slot="plate-placement-chip"]) {
+    flex-basis: 100%;
+    min-inline-size: 0;
+    max-inline-size: 100%;
+  }
+
+  /*
+   * Match: its groups side by side as they fit, each at least 12rem wide, so three or four groups
+   * stand in one row of an 832 px column and the bank's places take one row's height, not two. A
+   * group's target is its card, so the whole card lights up under a dragged chip: its name and,
+   * while it is full, its "Full" badge on the first line, then its chips and its slot, each the
+   * card's full width.
+   */
+  :where([data-slot="plate-match"]) :has(> [data-slot="plate-match-group"]) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    gap: 1rem;
+  }
+
+  [data-slot="plate-match-group"] {
+    display: grid;
+  }
+
+  [data-slot="plate-match-group"] > [data-slot="plate-placement-target"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: start;
+    align-items: center;
+    padding: 0.75rem;
+    border: 2px solid var(--ui-border);
+  }
+
+  [data-slot="plate-match-group"]
+    > [data-slot="plate-placement-target"]
+    > :not([data-slot="plate-placement-target-label"], [data-slot="plate-match-full"]) {
+    grid-column: 1 / -1;
+  }
+
+  [data-slot="plate-match-group"] > [data-slot="plate-placement-target"][data-over] {
+    border-color: var(--ui-foreground);
+  }
+
+  /* A group at its capacity: a badge reading "Full" beside its name, never only a colour. */
+  [data-slot="plate-match-full"] {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    border: 1px solid var(--ui-input);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /*
+   * Match's first-column header, the author's `data-first-column-header`: the bank's heading,
+   * which names the bank as a group's name names its group, in the same weight, standing over the
+   * bank in line with its chips, inside the bank's edge and padding.
+   */
+  [data-slot="plate-match-header"] {
+    margin-block: 0 0.5rem;
+    padding-inline: calc(0.75rem + 2px);
+    font-weight: 600;
+  }
+
+  /* Gap match: each gap a place inside the sentence, at least 160 px wide, standing on the line. */
+  [data-slot="plate-gap"] {
+    min-inline-size: 10rem;
+    margin: 0.25rem 0.125rem;
+    vertical-align: middle;
+  }
+
+  /*
+   * Order: the bank beside its numbered positions where the item is wide enough for two columns of
+   * 20rem, so a chip travels a short way, and the bank on top where it is not; the latest refusal
+   * under both. Its positions stand one under the other, or side by side as they fit when the
+   * author asks for horizontal.
+   */
+  :where([data-slot="plate-order"]:not([data-orientation="horizontal"]))
+    [data-slot="plate-placement"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    align-items: start;
+    gap: 1rem;
+  }
+
+  /*
+   * A review or a solution stacks an Order's bank, which then holds only the choices left out, over
+   * its positions, so a wrong position's given chip and the missed one beside it share the item's
+   * full width rather than half of it. No chip moves there, so nothing gains from the bank beside.
+   */
+  :where(
+      [data-slot="plate-item"]:not([data-mode="answering"])
+        [data-slot="plate-order"]:not([data-orientation="horizontal"])
+    )
+    [data-slot="plate-placement"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :where([data-slot="plate-order"]:not([data-orientation="horizontal"]))
+    [data-slot="plate-placement"]
+    > :is([data-slot="plate-placement-dock"], [data-slot="plate-placement-message"]) {
+    margin-block: 0;
+  }
+
+  :where([data-slot="plate-order"]:not([data-orientation="horizontal"]))
+    [data-slot="plate-placement"]
+    > [data-slot="plate-placement-message"] {
+    grid-column: 1 / -1;
+  }
+
+  /*
+   * The positions, an ordered list. Its items are flex boxes and draw no marker, so the list keeps
+   * its `list-style`: WebKit reads a list styled `none` as no list.
+   */
+  :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"]) {
+    display: grid;
+    gap: var(--plate-gap);
+    margin: 0;
+    padding: 0;
+  }
+
+  :where([data-slot="plate-order"][data-orientation="horizontal"])
+    :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"]) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  }
+
+  /*
+   * A position: its number, large and bold, on its start edge, or on top in a horizontal order,
+   * then the chip placed there or the slot, filling the rest.
+   */
+  :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"])
+    > [data-slot="plate-placement-target"] {
+    flex-wrap: nowrap;
+  }
+
+  :where([data-slot="plate-order"][data-orientation="horizontal"])
+    :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"])
+    > [data-slot="plate-placement-target"] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"])
+    > [data-slot="plate-placement-target"]
+    > [data-slot="plate-placement-target-label"] {
+    display: inline-grid;
+    flex: none;
+    align-self: center;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.2em;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"])
+    > [data-slot="plate-placement-target"]
+    > :is([data-slot="plate-placement-chip"], [data-slot="plate-placement-slot"]) {
+    flex: 1 1 auto;
+    max-inline-size: none;
+  }
+
+  /*
+   * An empty position with no slot, as a review shows one: a dashed place beside its number, the
+   * size of a slot, that no press goes to. An island's empty position holds its slot.
+   */
+  :is([data-slot="plate-order-positions"], [data-slot="plate-graphic-order-positions"])
+    > [data-slot="plate-placement-target"][data-empty]:not(
+      :has(> [data-slot="plate-placement-slot"]),
+      [data-mark]
+    )::after {
+    content: "";
+    flex: 1 1 auto;
+    min-block-size: var(--plate-target-size);
+    border: 2px dashed var(--ui-border);
+  }
+
+  /* == hotspot == */
+
+  /*
+   * A Hotspot: its prompt, its stage, the list of its areas and the message a refused pick shows,
+   * 12 px apart, as a Choice's. The list is the path a keyboard and a screen reader take, always
+   * shown, its rows a Choice's options.
+   */
+  [data-slot="plate-hotspot"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-hotspot"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  /*
+   * The list: its rows side by side as they fit, each at least 12rem wide or the item's whole
+   * width, since an area's name is short.
+   */
+  :where([data-slot="plate-hotspot"]) :is([data-slot="radio-group"], [data-slot="checkbox-group"]) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+    gap: var(--plate-gap);
+  }
+
+  /* == graphic order == */
+
+  /*
+   * A Graphic Order: its prompt, then its stage across the item, and below it the bank beside the
+   * numbered positions where the item is wide enough for two columns of 20rem, the latest refusal
+   * under both. Its positions are an Order's.
+   */
+  [data-slot="plate-graphic-order"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-graphic-order"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  :where([data-slot="plate-graphic-order"]) [data-slot="plate-placement"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    align-items: start;
+    gap: 1rem;
+  }
+
+  :where([data-slot="plate-graphic-order"])
+    [data-slot="plate-placement"]
+    > :is([data-slot="plate-graphic"], [data-slot="plate-placement-message"]) {
+    grid-column: 1 / -1;
+  }
+
+  :where([data-slot="plate-graphic-order"])
+    [data-slot="plate-placement"]
+    > :is([data-slot="plate-placement-dock"], [data-slot="plate-placement-message"]) {
+    margin-block: 0;
+  }
+
+  /* == graphic gap match == */
+
+  /*
+   * A Graphic Gap Match: its prompt, then its bank, its stage and the list of its hotspots, and the
+   * latest refusal. A drag over a hotspot on the stage shows on its ring, the base sheet's.
+   */
+  [data-slot="plate-graphic-gap-match"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-graphic-gap-match"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  :where([data-slot="plate-graphic-gap-match"]) [data-slot="plate-graphic"] {
+    margin-block-end: 1rem;
+  }
+
+  /*
+   * The list of hotspots under the image, the path a keyboard and a screen reader take: each a
+   * framed card, its name, then the choices placed there and its slot.
+   */
+  [data-slot="plate-graphic-gap-match-targets"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-graphic-gap-match-targets"] > [data-slot="plate-placement-target"] {
+    padding: 0.75rem;
+    border: 2px solid var(--ui-border);
+  }
+
+  [data-slot="plate-graphic-gap-match-targets"] > [data-slot="plate-placement-target"][data-over] {
+    border-color: var(--ui-foreground);
+  }
+
+  /* == select point == */
+
+  /*
+   * A Select Point: its prompt, its board around the stage, the keys that describe the stage, the
+   * list of its points and the message a refused mark shows, 12 px apart. The keys stay on show,
+   * so a child sees how the arrows, Enter and Delete work before needing them (3.3.2).
+   */
+  [data-slot="plate-select-point"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-select-point"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  [data-slot="plate-select-point-board"] {
+    display: block;
+    min-inline-size: 0;
+  }
+
+  [data-slot="plate-select-point-keys"] {
+    margin: 0;
+  }
+
+  /* The points as a list, side by side as they fit: each a button that takes its point off. */
+  [data-slot="plate-select-point-points"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--plate-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  [data-slot="plate-select-point-point"] {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    font-variant-numeric: tabular-nums;
+    text-align: start;
+  }
+
+  /* == position object == */
+
+  /*
+   * A Position Object stage: its image stage, then each interaction's group, then the latest
+   * refusal, 12 px apart.
+   */
+  [data-slot="plate-position-object"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  /*
+   * An interaction's group: its object's button, the copy a child takes and drags, then its placed
+   * copies' controls, side by side as they fit. Held, the object's button and a copy's control
+   * have an edge twice as wide, as a picked chip has; an object that may be placed no more is
+   * dashed, still focusable, so the child hears why.
+   */
+  [data-slot="plate-position-object-group"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--plate-gap);
+  }
+
+  [data-slot="plate-position-object-copies"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--plate-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  :is([data-slot="plate-position-object-object"], [data-slot="plate-position-object-copy"]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  [data-slot="plate-position-object-object"] img {
+    max-height: 3rem;
+  }
+
+  :is([data-slot="plate-position-object-object"], [data-slot="plate-position-object-copy"]):is(
+    [data-picked],
+    [aria-pressed="true"]
+  ) {
+    padding: calc(0.5rem - 2px) calc(1rem - 2px);
+    border-width: 4px;
+    border-color: var(--ui-foreground);
+  }
+
+  [data-slot="plate-position-object-object"][data-full]:not([data-picked]) {
+    border-style: dashed;
+  }
+
+  /* The copy that follows a dragged object off its button: opaque over whatever it passes. */
+  [data-slot="plate-position-object-preview"] {
+    background-color: var(--ui-background) !important;
+  }
+
+  /* == graphic associate == */
+
+  /*
+   * A Graphic Associate: its prompt, then its stage, the refusal of a tap on the image, the bank,
+   * the list's refusal and the pair boxes, an Associate's.
+   */
+  [data-slot="plate-graphic-associate"] {
+    display: grid;
+    gap: var(--plate-gap);
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-graphic-associate"] > [data-slot="plate-prompt"] {
+    margin-block: 0;
+  }
+
+  :where([data-slot="plate-graphic-associate"]) [data-slot="plate-graphic"] {
+    margin-block-end: 1rem;
+  }
+
+  /* == a review's marks == */
+
+  /*
+   * A mark against the solution, on an option, a chip, a place or a control: its edge in the
+   * mark's colour, and a badge with its glyph, a tick for right, a cross for wrong, and an outlined
+   * tick for a right answer the child did not give. The badge's alternative text is empty: the
+   * part's own words say right or wrong to a screen reader, and the glyph's shape repeats it for
+   * the eye, where colour does not (WCAG 1.4.1).
+   */
+  :is([data-slot^="plate-"], [data-slot="plate-slider-scale"] > [data-slot="slider-value"]):is(
+    [data-mark="right"],
+    [data-mark="missed"]
+  ) {
+    --plate-mark: var(--plate-right);
+  }
+
+  :is(
+    [data-slot^="plate-"],
+    [data-slot="plate-slider-scale"] > [data-slot="slider-value"]
+  )[data-mark="wrong"] {
+    --plate-mark: var(--plate-wrong);
+  }
+
+  :is(
+    [data-slot="plate-choice-option"],
+    [data-slot="plate-hotspot-option"],
+    [data-slot="plate-placement-chip"],
+    [data-slot="plate-placement-slot"],
+    [data-slot="plate-placement-box"],
+    [data-slot="plate-portable-custom-value"],
+    [data-slot="plate-slider-scale"] > [data-slot="slider-value"]
+  )[data-mark] {
+    border-color: var(--plate-mark);
+  }
+
+  [data-slot="plate-portable-custom-value"][data-mark="missed"] {
+    border-style: dashed;
+  }
+
+  [data-slot="plate-placement-target"][data-mark] {
+    outline: 2px solid var(--plate-mark);
+  }
+
+  :is(
+      [data-slot="plate-text-entry"],
+      [data-slot="plate-inline-choice"],
+      [data-slot="plate-extended-text-box"]
+    )[data-mark]
+    :is([data-slot="input"], [data-slot="select-trigger"], [data-slot="textarea"]) {
+    border-color: var(--plate-mark);
+  }
+
+  :is(
+      [data-slot^="plate-"],
+      [data-slot="plate-slider-scale"] > [data-slot="slider-value"]
+    )[data-mark]::after {
+    border: 2px solid var(--plate-mark);
+    background: var(--plate-mark);
+    color: var(--ui-background);
+  }
+
+  [data-slot^="plate-"][data-mark="missed"]::after {
+    background: var(--ui-background);
+    color: var(--plate-mark);
+  }
+
+  /*
+   * A chip the child did not put here, shown where it belongs: its edge is the right colour, since
+   * this is its right place, and dashed, since the chip is not there. It has no tick, or a review
+   * with a chip left out reads as all right: in the badge's corner its words ("Right answer") stand
+   * written for the eye too, on the right colour, the colour of the place they name.
+   */
+  [data-slot^="plate-"][data-slot="plate-placement-chip"][data-mark="missed"]
+    > [data-slot="plate-mark"] {
+    padding: 0.25rem 0.625rem;
+    border: 2px solid var(--plate-right);
+    background: var(--plate-right);
+    color: var(--ui-background);
+  }
+
+  /*
+   * The same chip where the child left it, in the bank with a use still on it: its edge in the
+   * wrong colour, and a second frame of it outside the edge, a wider frame than any other chip's,
+   * so the eye finds the chip the review says is missing. Its word is in the chip for a screen
+   * reader, and written on the chip in its right place, so it is not written twice for the eye.
+   */
+  :where([data-slot="plate-placement-bank"]) [data-slot="plate-placement-chip"][data-missed] {
+    border-color: var(--plate-wrong);
+    outline: 2px solid var(--plate-wrong);
+    outline-offset: 2px;
+  }
+
+  /*
+   * The right answer a review writes for a Text Entry, an Inline Choice or a Slider whose answer is
+   * not right, or an Extended Text's box: a frame dashed in the mark's colour, its words ("Right
+   * answer: …") in the foreground, and its badge after them. A Slider's stands after the Slider and
+   * an Extended Text's after its box; a Text Entry's and an Inline Choice's, after the paragraph
+   * that holds the control, is a line of its own under the sentence, as wide as its words.
+   */
+  :is(
+    [data-slot="plate-text-entry-answer"],
+    [data-slot="plate-inline-choice-answer"],
+    [data-slot="plate-extended-text-answer"],
+    [data-slot="plate-slider-answer"]
+  ) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-block: 0.25rem;
+    margin-inline-start: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border: 2px dashed var(--plate-mark);
+    vertical-align: middle;
+  }
+
+  :is([data-slot="plate-text-entry-answer"], [data-slot="plate-inline-choice-answer"]) {
+    display: flex;
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    margin: 0.25rem 0 1rem;
+  }
+
+  [data-slot="plate-extended-text-answer"] {
+    display: flex;
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    margin: 0;
+  }
+
+  /* == QTI's shared vocabulary in the body == */
+
+  /*
+   * The general classes (1.1). Keyword emphasis first (1.1.1.1): heavier and underlined, so it
+   * stands out even in bold text, and only in an item whose root carries `data-keyword-emphasis`,
+   * which `<Item>` writes for a child whose PNP asks for the support; for every other child the
+   * class renders plain, as the vocabulary limits it to "those candidates who have been assigned
+   * the keyword-emphasis support". Then underlined, italic, bordered, and a well.
+   */
+  :where([data-slot="plate-item"][data-keyword-emphasis]) .qti-keyword-emphasis {
+    font-weight: 700;
+    text-decoration-line: underline;
+  }
+
+  :where([data-slot="plate-item"]) .qti-underline {
+    text-decoration: underline;
+  }
+
+  :where([data-slot="plate-item"]) .qti-italic {
+    font-style: italic;
+  }
+
+  :where([data-slot="plate-item"]) .qti-bordered {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--ui-input);
+  }
+
+  :where([data-slot="plate-item"]) .qti-well {
+    padding: 0.75rem 1rem;
+    background: var(--ui-muted);
+    color: var(--ui-foreground);
+  }
+
+  /*
+   * The layout grid: a row of columns that wraps, in percentages so it stays fluid. A column is N
+   * twelfths of the row wide, border-box so its own padding stays inside it; an offset is N twelfths
+   * of margin before it. Columns and offsets that add up to 12 or less fit one row, each
+   * percentage rounded to six places so no pair adds up to more than 100%.
+   */
+  :where([data-slot="plate-item"]) .qti-layout-row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col1 {
+    flex: 0 0 8.333333%;
+    max-inline-size: 8.333333%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col2 {
+    flex: 0 0 16.666667%;
+    max-inline-size: 16.666667%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col3 {
+    flex: 0 0 25%;
+    max-inline-size: 25%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col4 {
+    flex: 0 0 33.333333%;
+    max-inline-size: 33.333333%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col5 {
+    flex: 0 0 41.666667%;
+    max-inline-size: 41.666667%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col6 {
+    flex: 0 0 50%;
+    max-inline-size: 50%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col7 {
+    flex: 0 0 58.333333%;
+    max-inline-size: 58.333333%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col8 {
+    flex: 0 0 66.666667%;
+    max-inline-size: 66.666667%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col9 {
+    flex: 0 0 75%;
+    max-inline-size: 75%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col10 {
+    flex: 0 0 83.333333%;
+    max-inline-size: 83.333333%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col11 {
+    flex: 0 0 91.666667%;
+    max-inline-size: 91.666667%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-col12 {
+    flex: 0 0 100%;
+    max-inline-size: 100%;
+    box-sizing: border-box;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset1 {
+    margin-inline-start: 8.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset2 {
+    margin-inline-start: 16.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset3 {
+    margin-inline-start: 25%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset4 {
+    margin-inline-start: 33.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset5 {
+    margin-inline-start: 41.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset6 {
+    margin-inline-start: 50%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset7 {
+    margin-inline-start: 58.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset8 {
+    margin-inline-start: 66.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset9 {
+    margin-inline-start: 75%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset10 {
+    margin-inline-start: 83.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-layout-offset11 {
+    margin-inline-start: 91.666667%;
+  }
+
+  /* Display: each class sets the display of its name. */
+  :where([data-slot="plate-item"]) .qti-display-inline {
+    display: inline;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-inline-block {
+    display: inline-block;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-block {
+    display: block;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-flex {
+    display: flex;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-inline-flex {
+    display: inline-flex;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-grid {
+    display: grid;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-inline-grid {
+    display: inline-grid;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-table {
+    display: table;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-table-cell {
+    display: table-cell;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-table-row {
+    display: table-row;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-list-item {
+    display: list-item;
+  }
+
+  :where([data-slot="plate-item"]) .qti-display-inherit {
+    display: inherit;
+  }
+
+  /*
+   * Hidden, after the display classes, as the vocabulary's display section (2.2) lists it, so it
+   * wins over every one: `qti-hidden` neither seen nor read by assistive technology,
+   * `qti-visually-hidden` hidden from the eye only.
+   */
+  :where([data-slot="plate-item"]) .qti-hidden {
+    display: none;
+  }
+
+  :where([data-slot="plate-item"]) .qti-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Flex: the direction of a flex container, and whether a flex item grows. */
+  :where([data-slot="plate-item"]) .qti-flex-direction-column {
+    flex-direction: column;
+  }
+
+  :where([data-slot="plate-item"]) .qti-flex-direction-row {
+    flex-direction: row;
+  }
+
+  :where([data-slot="plate-item"]) .qti-flex-grow-0 {
+    flex-grow: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-flex-grow-1 {
+    flex-grow: 1;
+  }
+
+  /*
+   * Margin: steps 0 to 5 are 0, 0.25rem, 0.5rem, 1rem, 1.5rem and 3rem, and auto. The sides are
+   * logical: t and b the block start and end, s and e the inline start and end, x both inline sides
+   * and y both block sides. All sides come first, then the axes, then the single sides, so a side
+   * outranks its axis and an axis all sides.
+   */
+  :where([data-slot="plate-item"]) .qti-margin-0 {
+    margin: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-1 {
+    margin: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-2 {
+    margin: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-3 {
+    margin: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-4 {
+    margin: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-5 {
+    margin: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-auto {
+    margin: auto;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-x-0 {
+    margin-inline: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-x-1 {
+    margin-inline: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-x-2 {
+    margin-inline: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-x-3 {
+    margin-inline: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-x-4 {
+    margin-inline: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-x-5 {
+    margin-inline: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-x-auto {
+    margin-inline: auto;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-y-0 {
+    margin-block: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-y-1 {
+    margin-block: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-y-2 {
+    margin-block: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-y-3 {
+    margin-block: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-y-4 {
+    margin-block: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-y-5 {
+    margin-block: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-y-auto {
+    margin-block: auto;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-t-0 {
+    margin-block-start: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-t-1 {
+    margin-block-start: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-t-2 {
+    margin-block-start: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-t-3 {
+    margin-block-start: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-t-4 {
+    margin-block-start: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-t-5 {
+    margin-block-start: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-t-auto {
+    margin-block-start: auto;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-b-0 {
+    margin-block-end: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-b-1 {
+    margin-block-end: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-b-2 {
+    margin-block-end: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-b-3 {
+    margin-block-end: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-b-4 {
+    margin-block-end: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-b-5 {
+    margin-block-end: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-b-auto {
+    margin-block-end: auto;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-s-0 {
+    margin-inline-start: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-s-1 {
+    margin-inline-start: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-s-2 {
+    margin-inline-start: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-s-3 {
+    margin-inline-start: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-s-4 {
+    margin-inline-start: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-s-5 {
+    margin-inline-start: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-s-auto {
+    margin-inline-start: auto;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-e-0 {
+    margin-inline-end: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-e-1 {
+    margin-inline-end: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-e-2 {
+    margin-inline-end: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-e-3 {
+    margin-inline-end: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-e-4 {
+    margin-inline-end: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-e-5 {
+    margin-inline-end: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-margin-e-auto {
+    margin-inline-end: auto;
+  }
+
+  /* Padding: the margin's steps without auto, on the same sides, in the same order. */
+  :where([data-slot="plate-item"]) .qti-padding-0 {
+    padding: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-1 {
+    padding: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-2 {
+    padding: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-3 {
+    padding: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-4 {
+    padding: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-5 {
+    padding: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-x-0 {
+    padding-inline: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-x-1 {
+    padding-inline: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-x-2 {
+    padding-inline: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-x-3 {
+    padding-inline: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-x-4 {
+    padding-inline: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-x-5 {
+    padding-inline: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-y-0 {
+    padding-block: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-y-1 {
+    padding-block: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-y-2 {
+    padding-block: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-y-3 {
+    padding-block: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-y-4 {
+    padding-block: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-y-5 {
+    padding-block: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-t-0 {
+    padding-block-start: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-t-1 {
+    padding-block-start: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-t-2 {
+    padding-block-start: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-t-3 {
+    padding-block-start: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-t-4 {
+    padding-block-start: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-t-5 {
+    padding-block-start: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-b-0 {
+    padding-block-end: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-b-1 {
+    padding-block-end: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-b-2 {
+    padding-block-end: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-b-3 {
+    padding-block-end: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-b-4 {
+    padding-block-end: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-b-5 {
+    padding-block-end: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-s-0 {
+    padding-inline-start: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-s-1 {
+    padding-inline-start: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-s-2 {
+    padding-inline-start: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-s-3 {
+    padding-inline-start: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-s-4 {
+    padding-inline-start: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-s-5 {
+    padding-inline-start: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-e-0 {
+    padding-inline-end: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-e-1 {
+    padding-inline-end: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-e-2 {
+    padding-inline-end: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-e-3 {
+    padding-inline-end: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-e-4 {
+    padding-inline-end: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-padding-e-5 {
+    padding-inline-end: 3rem;
+  }
+
+  /*
+   * Height: the block size. A step is that many quarter rems, with p5 adding half a step, 1px for
+   * px, a share of the container for a fraction, and auto or the whole container for auto and full.
+   */
+  :where([data-slot="plate-item"]) .qti-height-px {
+    block-size: 1px;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-0 {
+    block-size: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-0p5 {
+    block-size: 0.125rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-1 {
+    block-size: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-1p5 {
+    block-size: 0.375rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-2 {
+    block-size: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-2p5 {
+    block-size: 0.625rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-3 {
+    block-size: 0.75rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-3p5 {
+    block-size: 0.875rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-4 {
+    block-size: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-5 {
+    block-size: 1.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-6 {
+    block-size: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-7 {
+    block-size: 1.75rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-8 {
+    block-size: 2rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-9 {
+    block-size: 2.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-10 {
+    block-size: 2.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-11 {
+    block-size: 2.75rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-12 {
+    block-size: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-14 {
+    block-size: 3.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-16 {
+    block-size: 4rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-20 {
+    block-size: 5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-24 {
+    block-size: 6rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-28 {
+    block-size: 7rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-32 {
+    block-size: 8rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-36 {
+    block-size: 9rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-40 {
+    block-size: 10rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-44 {
+    block-size: 11rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-48 {
+    block-size: 12rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-52 {
+    block-size: 13rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-56 {
+    block-size: 14rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-60 {
+    block-size: 15rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-64 {
+    block-size: 16rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-72 {
+    block-size: 18rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-80 {
+    block-size: 20rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-96 {
+    block-size: 24rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-1-2 {
+    block-size: 50%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-1-3 {
+    block-size: 33.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-2-3 {
+    block-size: 66.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-1-4 {
+    block-size: 25%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-2-4 {
+    block-size: 50%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-3-4 {
+    block-size: 75%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-1-5 {
+    block-size: 20%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-2-5 {
+    block-size: 40%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-3-5 {
+    block-size: 60%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-4-5 {
+    block-size: 80%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-1-6 {
+    block-size: 16.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-2-6 {
+    block-size: 33.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-3-6 {
+    block-size: 50%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-4-6 {
+    block-size: 66.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-5-6 {
+    block-size: 83.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-auto {
+    block-size: auto;
+  }
+
+  :where([data-slot="plate-item"]) .qti-height-full {
+    block-size: 100%;
+  }
+
+  /* Width: the inline size, in the height's steps and also the twelfths. */
+  :where([data-slot="plate-item"]) .qti-width-px {
+    inline-size: 1px;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-0 {
+    inline-size: 0;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-0p5 {
+    inline-size: 0.125rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-1 {
+    inline-size: 0.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-1p5 {
+    inline-size: 0.375rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-2 {
+    inline-size: 0.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-2p5 {
+    inline-size: 0.625rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-3 {
+    inline-size: 0.75rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-3p5 {
+    inline-size: 0.875rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-4 {
+    inline-size: 1rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-5 {
+    inline-size: 1.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-6 {
+    inline-size: 1.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-7 {
+    inline-size: 1.75rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-8 {
+    inline-size: 2rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-9 {
+    inline-size: 2.25rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-10 {
+    inline-size: 2.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-11 {
+    inline-size: 2.75rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-12 {
+    inline-size: 3rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-14 {
+    inline-size: 3.5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-16 {
+    inline-size: 4rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-20 {
+    inline-size: 5rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-24 {
+    inline-size: 6rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-28 {
+    inline-size: 7rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-32 {
+    inline-size: 8rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-36 {
+    inline-size: 9rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-40 {
+    inline-size: 10rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-44 {
+    inline-size: 11rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-48 {
+    inline-size: 12rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-52 {
+    inline-size: 13rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-56 {
+    inline-size: 14rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-60 {
+    inline-size: 15rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-64 {
+    inline-size: 16rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-72 {
+    inline-size: 18rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-80 {
+    inline-size: 20rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-96 {
+    inline-size: 24rem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-1-2 {
+    inline-size: 50%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-1-3 {
+    inline-size: 33.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-2-3 {
+    inline-size: 66.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-1-4 {
+    inline-size: 25%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-2-4 {
+    inline-size: 50%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-3-4 {
+    inline-size: 75%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-1-5 {
+    inline-size: 20%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-2-5 {
+    inline-size: 40%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-3-5 {
+    inline-size: 60%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-4-5 {
+    inline-size: 80%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-1-6 {
+    inline-size: 16.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-2-6 {
+    inline-size: 33.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-3-6 {
+    inline-size: 50%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-4-6 {
+    inline-size: 66.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-5-6 {
+    inline-size: 83.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-auto {
+    inline-size: auto;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-full {
+    inline-size: 100%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-1-12 {
+    inline-size: 8.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-2-12 {
+    inline-size: 16.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-3-12 {
+    inline-size: 25%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-4-12 {
+    inline-size: 33.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-5-12 {
+    inline-size: 41.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-6-12 {
+    inline-size: 50%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-7-12 {
+    inline-size: 58.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-8-12 {
+    inline-size: 66.666667%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-9-12 {
+    inline-size: 75%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-10-12 {
+    inline-size: 83.333333%;
+  }
+
+  :where([data-slot="plate-item"]) .qti-width-11-12 {
+    inline-size: 91.666667%;
+  }
+
+  /*
+   * Alignment: the text alignment and the vertical alignment as named, and the full inline size.
+   * left and right are the physical sides the class names say.
+   */
+  :where([data-slot="plate-item"]) .qti-align-left {
+    text-align: left;
+  }
+
+  :where([data-slot="plate-item"]) .qti-align-center {
+    text-align: center;
+  }
+
+  :where([data-slot="plate-item"]) .qti-align-right {
+    text-align: right;
+  }
+
+  :where([data-slot="plate-item"]) .qti-valign-top {
+    vertical-align: top;
+  }
+
+  :where([data-slot="plate-item"]) .qti-valign-middle {
+    vertical-align: middle;
+  }
+
+  :where([data-slot="plate-item"]) .qti-valign-baseline {
+    vertical-align: baseline;
+  }
+
+  :where([data-slot="plate-item"]) .qti-valign-bottom {
+    vertical-align: bottom;
+  }
+
+  :where([data-slot="plate-item"]) .qti-fullwidth {
+    inline-size: 100%;
+  }
+
+  /*
+   * Floats and clears, as named. The clearfix clears after its own content, so it contains its
+   * floated children; it sets no float itself.
+   */
+  :where([data-slot="plate-item"]) .qti-float-left {
+    float: left;
+  }
+
+  :where([data-slot="plate-item"]) .qti-float-right {
+    float: right;
+  }
+
+  :where([data-slot="plate-item"]) .qti-float-none {
+    float: none;
+  }
+
+  :where([data-slot="plate-item"]) .qti-float-clear-left {
+    clear: left;
+  }
+
+  :where([data-slot="plate-item"]) .qti-float-clear-right {
+    clear: right;
+  }
+
+  :where([data-slot="plate-item"]) .qti-float-clear-both {
+    clear: both;
+  }
+
+  :where([data-slot="plate-item"]) .qti-float-clearfix::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+
+  /*
+   * Vertical writing and upright text: the vertical-rl and vertical-lr writing modes, characters
+   * stood upright, and a run of characters set in one em-square.
+   */
+  :where([data-slot="plate-item"]) .qti-writing-mode-vertical-rl {
+    writing-mode: vertical-rl;
+  }
+
+  :where([data-slot="plate-item"]) .qti-writing-mode-vertical-lr {
+    writing-mode: vertical-lr;
+  }
+
+  :where([data-slot="plate-item"]) .qti-text-orientation-upright {
+    text-orientation: upright;
+  }
+
+  :where([data-slot="plate-item"]) .qti-text-combine-upright-all {
+    text-combine-upright: all;
+  }
+
+  /*
+   * List styles: the 45 names both sections of the vocabulary list, each class setting the
+   * list-style-type of its own name.
+   */
+  :where([data-slot="plate-item"]) .qti-list-style-type-arabic-indic {
+    list-style-type: arabic-indic;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-armenian {
+    list-style-type: armenian;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-bengali {
+    list-style-type: bengali;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-cambodian {
+    list-style-type: cambodian;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-circle {
+    list-style-type: circle;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-cjk-earthly-branch {
+    list-style-type: cjk-earthly-branch;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-cjk-heavenly-stem {
+    list-style-type: cjk-heavenly-stem;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-cjk-ideographic {
+    list-style-type: cjk-ideographic;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-decimal {
+    list-style-type: decimal;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-decimal-leading-zero {
+    list-style-type: decimal-leading-zero;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-devanagari {
+    list-style-type: devanagari;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-disc {
+    list-style-type: disc;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-georgian {
+    list-style-type: georgian;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-gujarati {
+    list-style-type: gujarati;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-gurmukhi {
+    list-style-type: gurmukhi;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-hebrew {
+    list-style-type: hebrew;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-hiragana {
+    list-style-type: hiragana;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-hiragana-iroha {
+    list-style-type: hiragana-iroha;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-khmer {
+    list-style-type: khmer;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-korean-hangul-formal {
+    list-style-type: korean-hangul-formal;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-korean-hanja-formal {
+    list-style-type: korean-hanja-formal;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-korean-hanja-informal {
+    list-style-type: korean-hanja-informal;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-lao {
+    list-style-type: lao;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-lower-alpha {
+    list-style-type: lower-alpha;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-lower-armenian {
+    list-style-type: lower-armenian;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-lower-greek {
+    list-style-type: lower-greek;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-lower-latin {
+    list-style-type: lower-latin;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-lower-roman {
+    list-style-type: lower-roman;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-malayalam {
+    list-style-type: malayalam;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-mongolian {
+    list-style-type: mongolian;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-myanmar {
+    list-style-type: myanmar;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-oriya {
+    list-style-type: oriya;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-persian {
+    list-style-type: persian;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-simp-chinese-formal {
+    list-style-type: simp-chinese-formal;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-simp-chinese-informal {
+    list-style-type: simp-chinese-informal;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-square {
+    list-style-type: square;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-telugu {
+    list-style-type: telugu;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-thai {
+    list-style-type: thai;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-tibetan {
+    list-style-type: tibetan;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-trad-chinese-formal {
+    list-style-type: trad-chinese-formal;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-trad-chinese-informal {
+    list-style-type: trad-chinese-informal;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-upper-alpha {
+    list-style-type: upper-alpha;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-upper-armenian {
+    list-style-type: upper-armenian;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-upper-latin {
+    list-style-type: upper-latin;
+  }
+
+  :where([data-slot="plate-item"]) .qti-list-style-type-upper-roman {
+    list-style-type: upper-roman;
+  }
+
+  /* == hover, only for a pointer that hovers, so a tap on a tablet leaves nothing behind == */
+
+  /* == a disabled control == */
+
+  /* A control that takes no press, its interaction finished or its form submitting: dashed. */
+  :where([data-slot^="plate-"])
+    :is(
+      [data-slot="radio"],
+      [data-slot="checkbox"],
+      [data-slot="select-trigger"],
+      [data-slot="input"],
+      [data-slot="textarea"]
+    )[data-disabled] {
+    border-style: dashed;
+  }
+
+  /* == forced colours == */
+
+  /*
+   * Forced colours draw every edge in one system colour, so the two states shown by an edge's
+   * colour alone, a picked option and the bank under a dragged chip, move to an outline in the
+   * system's highlight. Every other state is an edge's width or style, an outline or a glyph,
+   * which forced colours keep.
+   */
+  @media (forced-colors: active) {
+    :is([data-slot="plate-choice-option"], [data-slot="plate-hotspot-option"])[data-selected],
+    [data-slot="plate-placement-bank"][data-over] {
+      outline: 3px solid Highlight;
+      outline-offset: 2px;
+    }
+  }
+}

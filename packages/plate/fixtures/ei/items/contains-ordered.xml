@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
+  identifier="ei-contains-ordered" title="Two steps in a row" adaptive="false" time-dependent="false"
+  xml:lang="en">
+  <qti-response-declaration identifier="RESPONSE" cardinality="ordered" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>A</qti-value>
+      <qti-value>B</qti-value>
+      <qti-value>C</qti-value>
+      <qti-value>D</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <qti-order-interaction response-identifier="RESPONSE">
+      <qti-prompt>Put the steps in order; heating the oven must come straight before baking.</qti-prompt>
+      <qti-simple-choice identifier="A">Mix the batter</qti-simple-choice>
+      <qti-simple-choice identifier="B">Heat the oven</qti-simple-choice>
+      <qti-simple-choice identifier="C">Bake the cake</qti-simple-choice>
+      <qti-simple-choice identifier="D">Slice and serve</qti-simple-choice>
+    </qti-order-interaction>
+  </qti-item-body>
+  <qti-response-processing>
+    <qti-response-condition>
+      <qti-response-if>
+        <qti-contains>
+          <qti-variable identifier="RESPONSE"/>
+          <qti-ordered>
+            <qti-base-value base-type="identifier">B</qti-base-value>
+            <qti-base-value base-type="identifier">C</qti-base-value>
+          </qti-ordered>
+        </qti-contains>
+        <qti-set-outcome-value identifier="SCORE">
+          <qti-base-value base-type="float">1</qti-base-value>
+        </qti-set-outcome-value>
+      </qti-response-if>
+    </qti-response-condition>
+  </qti-response-processing>
+</qti-assessment-item>

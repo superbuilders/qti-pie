@@ -1,0 +1,318 @@
+import os from "node:os";
+import { Config, Effect, FileSystem, Option, Path, Schema } from "effect";
+import { Flag } from "effect/cli";
+import { commitPoint } from "#pantry/cli/timeout.ts";
+import type { StopError } from "#pantry/cli/timeout.ts";
+
+/**
+ * The path the person named is not there, or is neither a directory nor a `.zip` file.
+ */
+export class NotADirectory extends Schema.TaggedError<NotADirectory>()("NotADirectory", {
+  path: Schema.String,
+}) {
+  /**
+   * The path and what to do about it.
+   */
+  override get message(): string {
+    return `${this.path} is not a directory or a .zip file.`;
+  }
+}
+
+/**
+ * Refuse a path that is not there, or is neither a directory nor a `.zip` file, before anything
+ * opens the database.
+ *
+ * @param source - The path the person named.
+ * @returns Nothing; fails with {@link NotADirectory} for a path that is not there or is of another
+ *   type, and with the `PlatformError` of any other failure to read it, such as one the person may
+ *   not read.
+ */
+export const requirePackage = Effect.fn("cli.requirePackage")(function* requirePackage(
+  source: string,
+) {
+  const fs = yield* FileSystem.FileSystem;
+
+  yield* fs.stat(source).pipe(
+    Effect.catchReason("PlatformError", "NotFound", () => new NotADirectory({ path: source })),
+    Effect.filterOrFail(
+      (info) => info.type === "Directory" || (info.type === "File" && source.endsWith(".zip")),
+      () => new NotADirectory({ path: source }),
+    ),
+    Effect.asVoid,
+  );
+});
+
+/**
+ * What `--zip`, `--yes` and `--dry-run`, and their variables, are when nothing sets them: off, as
+ * each one's help says.
+ */
+const switchDefault = false;
+
+/**
+ * The flag that makes an export a zip file instead of a directory.
+ */
+export const zipFlag = Flag.Boolean("zip").pipe(
+  Flag.withFallbackConfig(Config.Boolean("QTI_ZIP")),
+  Flag.withDefault(switchDefault),
+  Flag.withDescription(
+    `Write the export as a .zip file, adding .zip to the path when it lacks it [env: QTI_ZIP] [default: ${String(switchDefault)}]`,
+  ),
+);
+
+/**
+ * The flag that lets a command replace something already on disk.
+ */
+export const yesFlag = Flag.Boolean("yes").pipe(
+  Flag.withFallbackConfig(Config.Boolean("QTI_YES")),
+  Flag.withDefault(switchDefault),
+  Flag.withDescription(
+    `Replace a target that already has something in it [env: QTI_YES] [default: ${String(switchDefault)}]`,
+  ),
+);
+
+/**
+ * The flag that makes a write command show what it would write and write nothing.
+ */
+export const dryRunFlag = Flag.Boolean("dry-run").pipe(
+  Flag.withFallbackConfig(Config.Boolean("QTI_DRY_RUN")),
+  Flag.withDefault(switchDefault),
+  Flag.withDescription(
+    `Show what the command would write, and write nothing [env: QTI_DRY_RUN] [default: ${String(switchDefault)}]`,
+  ),
+);
+
+/**
+ * The target already has something in it, and `--yes` was not given.
+ */
+export class TargetNotEmpty extends Schema.TaggedError<TargetNotEmpty>()("TargetNotEmpty", {
+  target: Schema.String,
+}) {
+  /**
+   * What is in the way.
+   */
+  override get message(): string {
+    return `${this.target} already has something in it, so nothing was written.`;
+  }
+}
+
+/**
+ * The target is the folder the person is in, a folder above it, their home folder or the
+ * filesystem root, which no command replaces, `--yes` or not.
+ */
+export class TargetProtected extends Schema.TaggedError<TargetProtected>()("TargetProtected", {
+  target: Schema.String,
+}) {
+  /**
+   * The target and what the command never replaces.
+   */
+  override get message(): string {
+    return `${this.target} is the folder you are in, a folder above it, your home folder or the root. The command never replaces those, so nothing was written.`;
+  }
+}
+
+/**
+ * The name the person gave is no package's name: no package can be stored under it, so no import
+ * can store one and no export name one by it.
+ */
+export class BadName extends Schema.TaggedError<BadName>()("BadName", {
+  /**
+   * The most UTF-8 bytes a package's name holds.
+   */
+  maxBytes: Schema.Number,
+  name: Schema.String,
+}) {
+  /**
+   * The text and what a package's name is.
+   */
+  override get message(): string {
+    return `${JSON.stringify(this.name)} is not a package name. A package's name is the key \`qti import\` stores it under: an XML name with no colon and no space (an NCName) of at most ${String(this.maxBytes)} UTF-8 bytes, like simple or MANIFEST-1.`;
+  }
+}
+
+/**
+ * Parse the package name the person gave, once, before anything opens the database: an NCName of
+ * at most `identityBytes` UTF-8 bytes, `PackageName`'s language (`isPackageName`,
+ * `#pantry/qti/limits.ts`), so every text it accepts is one a package can be stored under. The
+ * limits load here, as the engine does in the handler, so the command line's static graph reaches
+ * none of them.
+ *
+ * @param name - The name the person gave.
+ * @returns The name. Fails with `BadName` when no package can be stored under the text.
+ */
+export const requireName = Effect.fn("cli.requireName")(function* requireName(name: string) {
+  const { identityBytes, isPackageName } = yield* Effect.promise(
+    () => import("#pantry/qti/limits.ts"),
+  );
+
+  if (!isPackageName(name)) {
+    return yield* new BadName({ maxBytes: identityBytes, name });
+  }
+
+  return name;
+});
+
+/**
+ * The folder `target` would be written into, with symlinks in its parents resolved, so a path that
+ * reaches the current folder by another route is still recognised. The last name is kept, so a
+ * target that is itself a symlink is judged as the link and never as what it points to.
+ */
+const resolvedTarget = Effect.fn("cli.resolvedTarget")(function* resolvedTarget(target: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const absolute = path.resolve(target);
+  const parent = yield* fs.realPath(path.dirname(absolute));
+
+  return path.join(parent, path.basename(absolute));
+});
+
+/**
+ * Whether no replacement may take `target`, which exists: it is the current folder, one of its
+ * parents, the home folder, or the filesystem root. A home folder that is not there is judged as
+ * `HOME` names it.
+ */
+const isProtected = Effect.fn("cli.isProtected")(function* isProtected(target: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const here = yield* fs.realPath(process.cwd());
+  const home = yield* Config.String("HOME").pipe(Config.withDefault(os.homedir()));
+  const homeReal = yield* fs
+    .realPath(home)
+    .pipe(
+      Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(path.resolve(home))),
+    );
+  const place = yield* resolvedTarget(target);
+
+  return (
+    place === path.parse(place).root ||
+    place === homeReal ||
+    here === place ||
+    here.startsWith(place.endsWith(path.sep) ? place : `${place}${path.sep}`)
+  );
+});
+
+/**
+ * What is at `target`: nothing, an empty directory, or something (a directory with an entry, a
+ * file, or a symlink, which counts as present whatever it points to).
+ */
+const contentOf = Effect.fn("cli.contentOf")(function* contentOf(target: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const info = yield* fs.lstat(target).pipe(
+    Effect.map(Option.some),
+    Effect.catchReason("PlatformError", "NotFound", () => Effect.succeedNone),
+  );
+
+  if (Option.isNone(info)) {
+    return "nothing";
+  }
+
+  return info.value.type === "Directory" && (yield* fs.readDirectory(target)).length === 0
+    ? "empty"
+    : "something";
+});
+
+/**
+ * What a write does to its target: `create` it where nothing is, or `replace` what is there, an
+ * empty directory, a file or a symlink included.
+ */
+type TargetAction = "create" | "replace";
+
+/**
+ * What a dry run says about the database.
+ */
+export const databaseNotChecked = "the database's own checks did not run";
+
+/**
+ * Decide what writing `target` does, refusing to write over something already on disk unless the
+ * person said `--yes`, and refusing the current folder, its parents, the home folder and the
+ * filesystem root even then. Removes nothing.
+ *
+ * Existence decides the action: a target that exists, an empty directory among them, is replaced,
+ * because the write takes its place; only where nothing is is it created. An empty directory needs
+ * no `--yes`, since nothing in it is lost. Every command that writes a target reports this action.
+ *
+ * @param target - The directory or file the command will write.
+ * @param yes - Whether the person passed `--yes`.
+ * @returns The action the write takes; a {@link TargetProtected} or {@link TargetNotEmpty} when it
+ *   may not take it.
+ */
+export const requireReplaceable = Effect.fn("cli.requireReplaceable")(function* requireReplaceable(
+  target: string,
+  yes: boolean,
+) {
+  const content = yield* contentOf(target);
+
+  if (content === "nothing") {
+    return "create" satisfies TargetAction;
+  }
+
+  if (yield* isProtected(target)) {
+    return yield* new TargetProtected({ target });
+  }
+
+  if (content === "something" && !yes) {
+    return yield* new TargetNotEmpty({ target });
+  }
+
+  return "replace" satisfies TargetAction;
+});
+
+/**
+ * Write to a private staging folder beside `target`, and only when that succeeds take the place
+ * of `target`.
+ *
+ * The target is resolved to an absolute path first. `write` runs on `<staging>/<name>`, where the
+ * staging folder is made fresh beside the target (random name, owner-only), so nothing a
+ * process left at a guessable name is ever followed, and the name keeps a trailing `.zip` last
+ * because the export decides zip or folder by the suffix. When `write` succeeds, the old target is
+ * removed (a symlink as a link, never what it points to) and the written item is renamed onto its
+ * place. The staging folder is removed on every exit, so a failure of `write`, a defect or an
+ * interruption before the swap leaves the old target as it was. The swap, the removal and the
+ * rename, is a commit point (`commitPoint` of `#pantry/cli/timeout.ts`): it runs to its end
+ * whatever a stop by `--timeout` does, so no stop leaves the old target removed and the new one
+ * unplaced, and a stop from then on ends the run with `replaced` of what `write` returned.
+ *
+ * @param target - The directory or file being replaced.
+ * @param write - Writes the new content at the path it is given.
+ * @param replaced - What a stop once the new content has taken the target's place ends the run
+ *   with: the command's report of what `write` returned.
+ * @returns What `write` returns, once its content has taken the target's place.
+ */
+export const replaceWith = Effect.fn("cli.replaceWith")(function* replaceWith<A, E, R>(
+  target: string,
+  write: (path: string) => Effect.Effect<A, E, R>,
+  replaced: (written: A) => Effect.Effect<void, StopError>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const absolute = path.resolve(target);
+  const folder = path.dirname(absolute);
+  const name = path.basename(absolute);
+
+  yield* fs.makeDirectory(folder, { recursive: true });
+
+  return yield* Effect.acquireUseRelease(
+    fs.makeTempDirectory({ directory: folder, prefix: `.${name}.qti-` }),
+    (staging) =>
+      Effect.gen(function* swap() {
+        const written = path.join(staging, name);
+        const result = yield* write(written);
+
+        yield* commitPoint(
+          Effect.andThen(
+            fs.remove(absolute, { force: true, recursive: true }),
+            fs.rename(written, absolute),
+          ),
+          () => replaced(result),
+        );
+
+        return result;
+      }),
+    (staging) =>
+      fs.remove(staging, { force: true, recursive: true }).pipe(
+        Effect.ignore({
+          log: "Warn",
+          message: `The staging folder ${staging} could not be removed, so it is left beside the target. Remove it by hand.`,
+        }),
+      ),
+  );
+});

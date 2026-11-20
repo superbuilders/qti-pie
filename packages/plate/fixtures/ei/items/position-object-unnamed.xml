@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
+  identifier="ei-position-object-unnamed" title="Park plan, unnamed pictures" adaptive="false"
+  time-dependent="false" xml:lang="en">
+  <qti-response-declaration identifier="FOUNTAIN" cardinality="single" base-type="point"/>
+  <qti-response-declaration identifier="BENCHES" cardinality="multiple" base-type="point"/>
+  <qti-response-declaration identifier="TREES" cardinality="multiple" base-type="point"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>
+  <qti-item-body>
+    <p>Place the fountain, a bench and two trees in the park.</p>
+    <qti-position-object-stage>
+      <img src="images/position-object-stage.svg" width="500" height="300" alt=""/>
+      <qti-position-object-interaction response-identifier="FOUNTAIN">
+        <object type="image/svg+xml" data="images/position-object-token.svg" width="40" height="40"/>
+      </qti-position-object-interaction>
+      <qti-position-object-interaction response-identifier="BENCHES" max-choices="2">
+        <object type="image/svg+xml" data="images/position-object-token.svg" width="40" height="40">A <b>bench</b></object>
+      </qti-position-object-interaction>
+      <qti-position-object-interaction response-identifier="TREES" max-choices="2">
+        <img src="images/position-object-token.svg" width="40" height="40" alt=" "/>
+      </qti-position-object-interaction>
+    </qti-position-object-stage>
+  </qti-item-body>
+</qti-assessment-item>

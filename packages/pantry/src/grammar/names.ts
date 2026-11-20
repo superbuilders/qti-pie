@@ -1,0 +1,320 @@
+/**
+ * The closed relations of the names a foreign element may hold, as patterns its open text is
+ * matched against (C8, C15 and C36 of `docs/research/up.md`):
+ *
+ * - `KindByNameUnder`: parent → names, the expanded names of the element kinds a parent admits, which
+ *   no foreign element under it may hold, since a name a parent admits resolves to its kind (XML
+ *   Schema 1.0 Part 1, §3.3.2 and §3.10.4; `kinds.ts`, `resolution`).
+ * - `TypeAvailable`: type → namespaces, the namespaces of the vocabularies under whose elements an
+ *   `xsi:type` may name the type, so its document's schema set holds it (spec readings 60 and 81;
+ *   `open.ts`, `typeAvailable`).
+ *
+ * A foreign element keeps its namespace and local name as open text (`OpenElementName`), and a
+ * closed relation's key is closed ids only (grizzle's README, "Closed relations"), so neither
+ * relation is keyed by a name: each key is the closed ids a law has (the parent's kind, the
+ * governing type), and the payload is a pattern of grizzle's pattern grammar, which a law
+ * reads through `Compute.matches(text, R.at(field, key…))`. Each pattern matches its finite set of
+ * texts and nothing else: its alternatives are literals, anchored at both ends.
+ */
+import { Array as Arr, Option, Order } from "effect";
+import { closed, idField, valueField } from "#pantry/grammar/closed.ts";
+import type { Closed, IdField, Roster, ValueField } from "#pantry/grammar/closed.ts";
+import { isForeignKind } from "#pantry/grammar/kinds.ts";
+import { namespaceNameOf } from "#pantry/vocab/namespaces.ts";
+import type { NamespaceName, NamespaceOfKind } from "#pantry/vocab/namespaces.ts";
+
+/**
+ * Spell a text as a literal of grizzle's pattern grammar, ECMAScript's under the `u` flag: each
+ * syntax character and `/` behind a backslash, the only identity escapes that grammar admits
+ * (ECMA-262 22.2.1, IdentityEscape[+UnicodeMode]), every other character itself.
+ *
+ * @param text - The text.
+ * @returns The literal, which matches the text and nothing else.
+ */
+export const patternLiteral = (text: string): string =>
+  text.replaceAll(/[\^$\\.*+?()[\]{}|/]/gu, String.raw`\$&`);
+
+/**
+ * The pattern of a set no text is in that a law matches here: the empty text, which no expanded
+ * name `namespace}local` and no namespace of a vocabulary is.
+ */
+const noText = "^$";
+
+/**
+ * The pattern of every text: an empty match at the start of any text, which `Compute.matches`
+ * finds, since it asks whether the text holds a match.
+ */
+const everyText = "^";
+
+/**
+ * The pattern of a finite set of texts: their literals as one alternation, anchored at both ends,
+ * or {@link noText} for the empty set.
+ *
+ * @param texts - The texts, a repeat read once.
+ * @returns The pattern, its alternatives sorted, so one set has one spelling.
+ */
+export const textsPattern = (texts: Iterable<string>): string => {
+  const held = [...new Set(texts)].toSorted();
+
+  return held.length === 0 ? noText : `^(?:${held.map(patternLiteral).join("|")})$`;
+};
+
+/**
+ * Spell an element's expanded name as one text, `namespace}local`: the subject a law matches
+ * `KindByNameUnder`'s pattern against, as `Compute.concat(Compute.concat(namespace, "}"), local)`.
+ * The separator follows the namespace, so it stands second, a plain string; a leading literal would
+ * be a typed constant, `Compute.literal` (grizzle's README, "Text"). A local name is an NCName,
+ * which holds no `}`, so the text's last `}` ends the namespace and one text spells one name: James
+ * Clark's `{namespace}local` without its opening brace.
+ *
+ * @param name - The element's namespace name, empty for none, and its local name.
+ * @param name.local - The local name.
+ * @param name.namespace - The namespace name.
+ * @returns The text.
+ */
+export const expandedText = ({
+  local,
+  namespace,
+}: {
+  readonly local: string;
+  readonly namespace: string;
+}): string => `${namespace}}${local}`;
+
+/**
+ * The pattern of a finite set of expanded names, as {@link expandedText} spells them: each
+ * namespace's local names grouped behind it, `^(?:ns\}(?:a|b)|…)$`, or {@link noText} for none.
+ *
+ * @param names - The names, a repeat read once.
+ * @returns The pattern, which matches exactly the names' texts.
+ */
+const expandedNamesPattern = (
+  names: Iterable<{ readonly local: string; readonly namespace: string }>,
+): string => {
+  const byNamespace = new Map<string, Set<string>>();
+  for (const { local, namespace } of names) {
+    byNamespace.getOrInsertComputed(namespace, () => new Set()).add(local);
+  }
+
+  if (byNamespace.size === 0) {
+    return noText;
+  }
+
+  const groups = [...byNamespace]
+    .toSorted(([left], [right]) => Order.String(left, right))
+    .map(
+      ([namespace, locals]) =>
+        `${patternLiteral(namespace)}\\}(?:${[...locals].toSorted().map(patternLiteral).join("|")})`,
+    );
+
+  return `^(?:${groups.join("|")})$`;
+};
+
+/**
+ * `KindByNameUnder` as a closed relation: parent → names, `K` the `NodeKind` handles its parents
+ * range over.
+ */
+export type NamesUnder<K extends string = string> = Closed<
+  readonly [IdField<"parent", K>],
+  readonly [ValueField<"names", string>]
+>;
+
+/**
+ * Generate `KindByNameUnder`: for each parent whose content admits a foreign element,
+ * the pattern of the expanded names of the element kinds it admits there.
+ *
+ * Only a parent that admits a foreign kind may hold a foreign element (N5), so the relation is
+ * total over the parents a foreign element's row may name and holds no other. A family's names are
+ * its admission map's, so each map's pattern is spelled once, however many families hold it.
+ *
+ * @param input - The admission maps and the kinds' names.
+ * @param input.admissionIn - `AdmissionIn`: each admission map's children.
+ * @param input.families - `ContentModelOf`: each parent family's admission map.
+ * @param input.kinds - The `NodeKind` roster.
+ * @param input.nameOf - A kind's expanded name, none for a kind that is no element of a
+ *   vocabulary.
+ * @returns The relation.
+ */
+export const namesUnder = (input: {
+  readonly admissionIn: {
+    readonly rows: readonly { readonly child: string; readonly map: string }[];
+  };
+  readonly families: {
+    readonly rows: readonly {
+      readonly admission: string;
+      readonly parent: string;
+    }[];
+  };
+  readonly kinds: Roster<string>;
+  readonly nameOf: (
+    kind: string,
+  ) => Option.Option<{ readonly local: string; readonly namespace: string }>;
+}): NamesUnder => {
+  const patterns = new Map<string, string>();
+  for (const [map, held] of Map.groupBy(input.admissionIn.rows, ({ map: of }) => of)) {
+    if (held.some(({ child }) => isForeignKind(child))) {
+      patterns.set(
+        map,
+        expandedNamesPattern(held.flatMap(({ child }) => Option.toArray(input.nameOf(child)))),
+      );
+    }
+  }
+
+  const rows = input.families.rows.flatMap(({ admission, parent }) =>
+    Option.toArray(Option.fromUndefinedOr(patterns.get(admission))).map((names) => ({
+      names,
+      parent,
+    })),
+  );
+
+  return closed({
+    key: [idField("parent", input.kinds)],
+    name: "KindByNameUnder",
+    payload: [
+      valueField(
+        "names",
+        rows.map(({ names }) => names),
+      ),
+    ],
+    rows,
+  });
+};
+
+/**
+ * `TypeAvailable` as a closed relation: type → namespaces.
+ */
+export type TypesAvailable = Closed<
+  readonly [IdField<"type", string>],
+  readonly [ValueField<"namespaces", string>]
+>;
+
+/**
+ * Generate `TypeAvailable`, total over the `TypeName` roster: for each type, the pattern of the
+ * vocabulary namespaces under whose elements an `xsi:type` may name it; {@link everyText} for a
+ * type of XML Schema's own namespace, which every schema set holds.
+ *
+ * An element of a namespace no vocabulary has stands in documents of every set, so it may name a
+ * type of every vocabulary: a law reads that half through the {@link textsPattern} of every
+ * vocabulary's namespace (`vocabularyNamespacePattern` of `#pantry/grammar/install.ts`), which no
+ * such namespace matches.
+ *
+ * @param input - The types and the rule they are available by.
+ * @param input.available - Whether an element of the first namespace may name a type of the
+ *   second (`open.ts`, `typeAvailable`).
+ * @param input.everywhere - Whether a type of a namespace is available under every namespace: a
+ *   type of XML Schema's namespace.
+ * @param input.namespaceOf - A type's namespace.
+ * @param input.types - The `TypeName` roster.
+ * @param input.vocabularies - The vocabularies' namespaces, as crust's tree spells them, the texts
+ *   a pattern holds.
+ * @returns The relation.
+ */
+export const typesAvailable = (input: {
+  readonly available: (parent: NamespaceOfKind, type: NamespaceName) => boolean;
+  readonly everywhere: (namespace: NamespaceName) => boolean;
+  readonly namespaceOf: (type: string) => NamespaceName;
+  readonly types: Roster<string>;
+  readonly vocabularies: readonly string[];
+}): TypesAvailable => {
+  const patternOf = (namespace: NamespaceName): string =>
+    textsPattern(
+      input.vocabularies.filter((parent) => input.available(namespaceNameOf(parent), namespace)),
+    );
+  // A type's pattern is its namespace's, so each named namespace's is spelled once.
+  const byNamespace = new Map<string, string>();
+  const rows = input.types.handles.map((type) => {
+    const namespace = input.namespaceOf(type);
+    if (input.everywhere(namespace)) {
+      return { namespaces: everyText, type };
+    }
+
+    return {
+      namespaces:
+        namespace._tag === "in"
+          ? byNamespace.getOrInsertComputed(namespace.uri, () => patternOf(namespace))
+          : patternOf(namespace),
+      type,
+    };
+  });
+
+  return closed({
+    key: [idField("type", input.types)],
+    name: "TypeAvailable",
+    payload: [
+      valueField(
+        "namespaces",
+        rows.map(({ namespaces }) => namespaces),
+      ),
+    ],
+    rows,
+  });
+};
+
+/**
+ * `HeldRootsUnder` as a closed relation: parent → names.
+ */
+export type HeldRootsUnder<K extends string = string> = NamesUnder<K>;
+
+/**
+ * Generate `HeldRootsUnder`: for each parent that holds a foreign element only under
+ * `strict` wildcards (`StrictlyHeld`), the pattern of the expanded names of spec reading 6's roots
+ * (`foreignRoots` of `open.ts`) such a wildcard holds there: a root whose namespace's foreign class
+ * the parent holds strictly, and whose global declaration the schema set of the parent's documents
+ * holds, so the wildcard assesses it against that declaration though no kind of the parent reads it
+ * (C13 of `docs/research/up.md`: `cp:manifest` under `drd:accessForAllResource`). Every other
+ * strictly held family's pattern is {@link noText}.
+ *
+ * @param input - The strictly held families and the roots' names.
+ * @param input.classOf - The foreign kind of an element of a namespace under a parent of another,
+ *   by namespace class (`foreignKinds`).
+ * @param input.held - Each (parent, foreign kind) only strict wildcards admit.
+ * @param input.kinds - The `NodeKind` roster.
+ * @param input.namespaceOf - A kind's namespace.
+ * @param input.reads - Whether a wildcard of the first namespace's kind finds the second
+ *   namespace's globals in its documents' schema set (`open.ts`, `wildcardReads`).
+ * @param input.roots - Each root declared globally, its name as crust's tree spells it.
+ * @returns The relation.
+ */
+export const heldRootsUnder = (input: {
+  readonly classOf: (namespace: NamespaceName, parent: NamespaceOfKind) => string;
+  readonly held: readonly {
+    readonly child: string;
+    readonly parent: string;
+  }[];
+  readonly kinds: Roster<string>;
+  readonly namespaceOf: (kind: string) => NamespaceOfKind;
+  readonly reads: (parent: NamespaceOfKind, child: NamespaceName) => boolean;
+  readonly roots: readonly {
+    readonly kind: string;
+    readonly local: string;
+    readonly namespace: string;
+  }[];
+}): HeldRootsUnder => {
+  const families = Object.values(Arr.groupBy(input.held, ({ parent }) => parent));
+  const rows = families.map(([first, ...rest]) => {
+    const own = input.namespaceOf(first.parent);
+    const classes = new Set([first, ...rest].map(({ child }) => child));
+
+    return {
+      names: expandedNamesPattern(
+        input.roots.filter(
+          ({ namespace }) =>
+            classes.has(input.classOf(namespaceNameOf(namespace), own)) &&
+            input.reads(own, namespaceNameOf(namespace)),
+        ),
+      ),
+      parent: first.parent,
+    };
+  });
+
+  return closed({
+    key: [idField("parent", input.kinds)],
+    name: "HeldRootsUnder",
+    payload: [
+      valueField(
+        "names",
+        rows.map(({ names }) => names),
+      ),
+    ],
+    rows,
+  });
+};

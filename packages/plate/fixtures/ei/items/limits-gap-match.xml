@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
+  identifier="ei-limits-gap-match" title="Garden words to place" adaptive="false"
+  time-dependent="false" xml:lang="en">
+  <qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="directedPair"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <qti-gap-match-interaction response-identifier="RESPONSE" max-associations="0">
+      <qti-prompt>Finish the sentence; the first gap must be filled.</qti-prompt>
+      <qti-gap-text identifier="W1" match-max="0" match-min="1">roses</qti-gap-text>
+      <qti-gap-text identifier="W2" match-max="0" match-min="2" match-group="G2">grow</qti-gap-text>
+      <qti-gap-text identifier="W3" match-max="1">fade</qti-gap-text>
+      <p>In the garden the <qti-gap identifier="G1" required="true"/> are planted early and they <qti-gap identifier="G2" match-group="W1"/> in spring.</p>
+    </qti-gap-match-interaction>
+  </qti-item-body>
+</qti-assessment-item>

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "command": { "type": "string", "enum": ["import"] },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": { "type": "string", "enum": ["accepted", "unchanged"] },
+            "package": { "type": "string" }
+          },
+          "required": ["outcome", "package"],
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "properties": {
+            "database_checked": { "type": "boolean", "enum": [false] },
+            "dry_run": { "type": "boolean", "enum": [true] },
+            "package_dir": { "type": "string" },
+            "relations": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "rows": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 }
+          },
+          "required": ["database_checked", "dry_run", "package_dir", "relations", "rows"],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "ok": { "type": "boolean" },
+    "schema_version": { "type": "number", "enum": [1] }
+  },
+  "required": ["command", "data", "ok", "schema_version"],
+  "additionalProperties": true,
+  "$defs": {}
+}

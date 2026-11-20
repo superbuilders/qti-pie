@@ -1,0 +1,1505 @@
+/**
+ * The expression, operator and MathML overlays' rules over their node (decision S3): each law that
+ * pairs an overlay's fact with its node's kind, parent or parent's kind, which only `Node` holds,
+ * read through a query that matches the overlay with `Node` at its key
+ * (`#pantry/qti/expressions.ts`, `#pantry/qti/operators.ts`, `#pantry/qti/mathml-*.ts`); and the
+ * operators' laws over an attribute no row copies (C18), each a rule over a query that reads it:
+ * a rounding operator's mode in force (`RoundingMode`) and a tolerance's form (`ToleranceForm`).
+ */
+import type { RelationName } from "@bjornpagen/grizzle";
+import {
+  check,
+  Compute,
+  contained,
+  derived,
+  key,
+  mirrors,
+  on,
+  query,
+  select,
+  v,
+} from "@bjornpagen/grizzle";
+import { mathHeadQualifiers, mathQualifiers } from "#pantry/grammar/expression.ts";
+import {
+  HeadQualifier,
+  MathArity,
+  MathHeadOperator,
+  MathMax,
+  NodeKind,
+  nonElementKinds,
+  OperatorArity,
+  OperatorMax,
+} from "#pantry/grammar/install.ts";
+import { Attribute } from "#pantry/qti/attributes.ts";
+import { QtiBase } from "#pantry/qti/base.ts";
+import {
+  conditionKindHandles,
+  containerKinds,
+  firstKinds,
+  LeadCardinality,
+  numericKinds,
+  oneBaseKinds,
+  oneCardinalityKinds,
+  OperandBase,
+  outcomeOnlyKinds,
+  ResultBase,
+  ResultCardinality,
+  rootKinds,
+  secondKinds,
+  TailCardinality,
+} from "#pantry/qti/expression-types.ts";
+import { Expression, LiteralTyped, Processing, silentBases } from "#pantry/qti/expressions.ts";
+import {
+  CellLeaf,
+  MathAction,
+  MathAlignGroup,
+  MathAlignScope,
+  MathCell,
+} from "#pantry/qti/mathml-align.ts";
+import {
+  MathRank,
+  PlacedMathRank,
+  PlacedShareTarget,
+  ShareTarget,
+} from "#pantry/qti/mathml-share.ts";
+import { attributeValues, listForms, spelledByTokens } from "#pantry/qti/names.ts";
+import { Node } from "#pantry/qti/node.ts";
+import { Rounding, RoundingModeFigures, Tolerance } from "#pantry/qti/operators.ts";
+import { attributeTypedKinds } from "#pantry/vocab/terms/expressions.ts";
+import { equalRoundedMode, roundingKinds } from "#pantry/vocab/terms/operators.ts";
+import {
+  expressionKinds,
+  rootLanguages,
+  ruleKindHandles,
+} from "#pantry/vocab/terms/expression-types.ts";
+
+/**
+ * Each expression beside its node's kind, parent and parent's kind, by its place: its
+ * {@link Expression} row and its type, matched with `Node` at its key.
+ */
+const ExpressionNode = derived(
+  "ExpressionNode",
+  query(QtiBase).rule((r) => {
+    const {
+      baseType,
+      cardinality,
+      language,
+      package: pkg,
+      path,
+      start,
+    } = v(Expression, "expression");
+    const { kind, parent, parentKind } = v(Node, "node");
+
+    return r
+      .match(Expression, {
+        baseType,
+        cardinality,
+        language,
+        package: pkg,
+        path,
+        start,
+      })
+      .match(Node, { kind, package: pkg, parent, parentKind, path, start })
+      .find({
+        baseType,
+        cardinality,
+        kind,
+        language,
+        package: pkg,
+        parent,
+        parentKind,
+        path,
+        start,
+      });
+  }),
+);
+
+/**
+ * Each rule or processing element beside its node's kind, parent and parent's kind, by its place:
+ * its {@link Processing} row matched with `Node` at its key.
+ */
+const ProcessingNode = derived(
+  "ProcessingNode",
+  query(QtiBase).rule((r) => {
+    const { language, package: pkg, path, start } = v(Processing, "processing");
+    const { kind, parent, parentKind } = v(Node, "node");
+
+    return r
+      .match(Processing, { language, package: pkg, path, start })
+      .match(Node, { kind, package: pkg, parent, parentKind, path, start })
+      .find({ kind, language, package: pkg, parent, parentKind, path, start });
+  }),
+);
+
+/**
+ * Each operand, by its place (C16): an expression whose node's parent is an expression, its
+ * `operator`, with its `rank`, its node's element rank among its siblings, 1 to n, and its own type
+ * (`baseType`, `cardinality`, and their one-bit sets), beside its operator's node's kind and its
+ * operator's type. Every operand law is a rule over it or over a query that matches it, so no row
+ * stores an operator's count or its operands' types (grizzle, 2026-11-18). An expression's element
+ * children are its operands, so the ranks of an operator's operands are 1 to its count.
+ */
+const operands = query(QtiBase).rule((r) => {
+  const {
+    baseType,
+    baseTypeBit,
+    cardinality,
+    cardinalityBit,
+    package: pkg,
+    path,
+    start,
+  } = v(Expression, "operand");
+  const { elements: rank, parent: operator } = v(Node, "operandNode");
+  const { baseType: operatorBase, cardinality: operatorCardinality } = v(Expression, "operator");
+  const { kind: operatorKind } = v(Node, "operatorNode");
+
+  return r
+    .match(Expression, {
+      baseType,
+      baseTypeBit,
+      cardinality,
+      cardinalityBit,
+      package: pkg,
+      path,
+      start,
+    })
+    .match(Node, { elements: rank, package: pkg, parent: operator, path, start })
+    .match(Expression, {
+      baseType: operatorBase,
+      cardinality: operatorCardinality,
+      package: pkg,
+      path,
+      start: operator,
+    })
+    .match(Node, { kind: operatorKind, package: pkg, path, start: operator })
+    .find({
+      baseType,
+      baseTypeBit,
+      cardinality,
+      cardinalityBit,
+      operator,
+      operatorBase,
+      operatorCardinality,
+      operatorKind,
+      package: pkg,
+      path,
+      rank,
+      start,
+    });
+});
+
+/**
+ * {@link operands} as a relation of the schema, which the operand laws' checks and containments
+ * read.
+ */
+const OperandOf = derived("OperandOf", operands);
+
+/**
+ * The base types that name no base an operand holds: `qti-null`'s `any` and `unknown`.
+ */
+const unknownBases = ["any", "unknown"] as const;
+
+/**
+ * Each operator's known operand bases, `(operator, base)`, of an operator that takes one base
+ * (`oneBaseKinds`): an operand's base that is neither `any` nor `unknown`. "One base" keys it by
+ * its operator.
+ */
+const KnownOperandBase = derived(
+  "KnownOperandBase",
+  query(QtiBase).rule((r) => {
+    const { baseType, operator, operatorKind, package: pkg, path } = v(operands, "operand");
+
+    return r
+      .match(operands, { baseType, operator, operatorKind, package: pkg, path })
+      .where(r.in(operatorKind, oneBaseKinds), Compute.not(r.in(baseType, unknownBases)))
+      .find({ baseType, operator, package: pkg, path });
+  }),
+);
+
+/**
+ * Each operator's known operand cardinalities, `(operator, cardinality)`, of an operator that
+ * takes one cardinality (`oneCardinalityKinds`): an operand's cardinality that is not `unknown`.
+ */
+const KnownOperandCardinality = derived(
+  "KnownOperandCardinality",
+  query(QtiBase).rule((r) => {
+    const { cardinality, operator, operatorKind, package: pkg, path } = v(operands, "operand");
+
+    return r
+      .match(operands, { cardinality, operator, operatorKind, package: pkg, path })
+      .where(r.in(operatorKind, oneCardinalityKinds), r.ne(cardinality, "unknown"))
+      .find({ cardinality, operator, package: pkg, path });
+  }),
+);
+
+/**
+ * The operators of the given kinds whose operands, of rank at least `least`, hold two different
+ * bases neither of which is `any`, or one of base `unknown`: those whose result is `unknown` under
+ * a typing by their operands' one base (a container's, an Index's, a Random's, a Delete's later
+ * operands').
+ *
+ * @param name - The derived relation's name.
+ * @param kinds - The operator kinds it reads.
+ * @param least - The least rank of the operands it reads.
+ * @returns The derived relation, by the operator's place.
+ */
+const unknownOfBases = <Name extends string>(
+  name: RelationName<Name>,
+  kinds: readonly (typeof NodeKind.handles)[number][],
+  least: bigint,
+) =>
+  derived(
+    name,
+    query(QtiBase)
+      .rule((r) => {
+        const { baseType, operator, operatorKind, package: pkg, path, rank } = v(operands, "first");
+        const { baseType: other, rank: otherRank } = v(operands, "second");
+
+        return r
+          .match(operands, { baseType, operator, operatorKind, package: pkg, path, rank })
+          .match(operands, { baseType: other, operator, package: pkg, path, rank: otherRank })
+          .where(
+            r.in(operatorKind, kinds),
+            r.ge(rank, least),
+            r.ge(otherRank, least),
+            r.ne(baseType, "any"),
+            r.ne(other, "any"),
+            r.ne(baseType, other),
+          )
+          .find({ operator, package: pkg, path });
+      })
+      .rule((r) => {
+        const { operator, operatorKind, package: pkg, path, rank } = v(operands, "operand");
+
+        return r
+          .match(operands, {
+            baseType: "unknown",
+            operator,
+            operatorKind,
+            package: pkg,
+            path,
+            rank,
+          })
+          .where(r.in(operatorKind, kinds), r.ge(rank, least))
+          .find({ operator, package: pkg, path });
+      }),
+  );
+
+/**
+ * The containers, Indexes and Randoms whose operands' bases make them `unknown`.
+ */
+const UnknownOperandBase = unknownOfBases(
+  "UnknownOperandBase",
+  [...containerKinds, ...firstKinds],
+  1n,
+);
+
+/**
+ * The Deletes whose later operands' bases make them `unknown`.
+ */
+const UnknownTailBase = unknownOfBases("UnknownTailBase", secondKinds, 2n);
+
+/**
+ * The operands of a numeric aggregate whose base is neither `integer` nor `any`, by their
+ * operator: a numeric aggregate with one of them is no integer.
+ */
+const nonIntegerOperands = query(QtiBase).rule((r) => {
+  const { baseType, operator, operatorKind, package: pkg, path } = v(operands, "operand");
+
+  return r
+    .match(operands, { baseType, operator, operatorKind, package: pkg, path })
+    .where(r.in(operatorKind, numericKinds), Compute.not(r.in(baseType, ["integer", "any"])))
+    .find({ operator, package: pkg, path });
+});
+
+/**
+ * The numeric aggregates whose operands are all `integer` or `any`, one at least `integer`, with
+ * their base type: each is an integer (§6.9, the numeric aggregates' result is integer where every
+ * operand is).
+ */
+const IntegerAggregate = derived(
+  "IntegerAggregate",
+  query(QtiBase).rule((r) => {
+    const { operator, operatorBase, operatorKind, package: pkg, path } = v(operands, "operand");
+
+    return r
+      .match(operands, {
+        baseType: "integer",
+        operator,
+        operatorBase,
+        operatorKind,
+        package: pkg,
+        path,
+      })
+      .where(r.in(operatorKind, numericKinds))
+      .where(r.not(nonIntegerOperands, { operator, package: pkg, path }))
+      .find({ operator, operatorBase, package: pkg, path });
+  }),
+);
+
+/**
+ * The later operands of a Delete whose cardinality is known, by their operator, with it.
+ */
+const tailCardinalities = query(QtiBase).rule((r) => {
+  const { cardinality, operator, operatorKind, package: pkg, path, rank } = v(operands, "operand");
+
+  return r
+    .match(operands, { cardinality, operator, operatorKind, package: pkg, path, rank })
+    .where(r.in(operatorKind, secondKinds), r.gt(rank, 1n), r.ne(cardinality, "unknown"))
+    .find({ cardinality, operator, package: pkg, path });
+});
+
+/**
+ * The Deletes whose later operands hold two different known cardinalities, by their operator.
+ */
+const tailCardinalityPairs = query(QtiBase).rule((r) => {
+  const { cardinality, operator, package: pkg, path } = v(tailCardinalities, "first");
+  const { cardinality: other } = v(tailCardinalities, "second");
+
+  return r
+    .match(tailCardinalities, { cardinality, operator, package: pkg, path })
+    .match(tailCardinalities, { cardinality: other, operator, package: pkg, path })
+    .where(r.ne(cardinality, other))
+    .find({ operator, package: pkg, path });
+});
+
+/**
+ * The Deletes whose later operands hold exactly one known cardinality, with their own: each takes
+ * it (Table 6.9.20, a Delete's result is a container derived from its second sub-expression).
+ */
+const OneTailCardinality = derived(
+  "OneTailCardinality",
+  query(QtiBase).rule((r) => {
+    const { operator, package: pkg, path } = v(tailCardinalities, "tail");
+    const { cardinality } = v(Expression, "operator");
+
+    return r
+      .match(tailCardinalities, { operator, package: pkg, path })
+      .match(Expression, { cardinality, package: pkg, path, start: operator })
+      .where(r.not(tailCardinalityPairs, { operator, package: pkg, path }))
+      .find({ cardinality, operator, package: pkg, path });
+  }),
+);
+
+/**
+ * Each expression whose kind takes at least one operand, with that least number (`OperatorArity`):
+ * "Arity" holds each to an operand of that rank, the ranks of its operands being 1 to n.
+ */
+const ArityFloor = derived(
+  "ArityFloor",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start } = v(Expression, "expression");
+    const { kind } = v(Node, "node");
+    const { min } = v(OperatorArity, "arity");
+
+    return r
+      .match(Expression, { package: pkg, path, start })
+      .match(Node, { kind, package: pkg, path, start })
+      .match(OperatorArity, { kind, min })
+      .where(r.ge(min, 1n))
+      .find({ min, package: pkg, path, start });
+  }),
+);
+
+/**
+ * The kinds typed by their operands' one base: the containers, Index and Random.
+ */
+const baseTypedKinds = [...containerKinds, ...firstKinds];
+
+/**
+ * Each rounding operator's written `rounding-mode`, by its element's place, with its value, the
+ * form as written (`RoundingModeEnum`, an `xs:string` enumeration, `whiteSpace` preserve).
+ */
+const writtenModes = attributeValues("rounding-mode", roundingKinds);
+
+/**
+ * Each rounding operator's mode in force, by its element's place, where it has one (reading 119):
+ * its `rounding-mode` where it writes one, else, on a `qti-equal-rounded` that writes none, the
+ * XSD's default, {@link equalRoundedMode}. A `qti-round-to` that writes none has none, which AL3
+ * refuses. No row copies it (C18): its {@link Rounding} row holds a mode exactly where it has one,
+ * and its {@link RoundingModeFigures} copies it.
+ */
+const RoundingMode = derived(
+  "RoundingMode",
+  query(QtiBase)
+    .rule((r) => {
+      const { package: pkg, path, start, value: mode } = v(writtenModes, "written");
+
+      return r
+        .match(writtenModes, { package: pkg, path, start, value: mode })
+        .find({ mode, package: pkg, path, start });
+    })
+    .rule((r) => {
+      const { package: pkg, path, start } = v(Node, "node");
+
+      return r
+        .match(Node, { kind: "qti-equal-rounded", package: pkg, path, start })
+        .where(r.not(Attribute, { name: "rounding-mode", package: pkg, path, start }))
+        .find({ mode: equalRoundedMode, package: pkg, path, start });
+    }),
+);
+
+/**
+ * The rounding operators that hold a mode in force.
+ */
+const modedRoundings = select(Rounding, (r) => r.in(r.holds, ["mode", "both"]));
+
+/**
+ * Each `qti-equal`'s {@link Tolerance} beside the `tolerance` it splits, written as it is
+ * ({@link listForms}).
+ */
+const ToleranceForm = listForms("ToleranceForm", Tolerance, "tolerance");
+
+/**
+ * Each ranked MathML element beside its node's kind and parent, by its place: its
+ * {@link MathRank} row matched with `Node` at its key.
+ */
+const MathRankNode = derived(
+  "MathRankNode",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, rank, start } = v(MathRank, "ranked");
+    const { kind, parent } = v(Node, "node");
+
+    return r
+      .match(MathRank, { package: pkg, path, rank, start })
+      .match(Node, { kind, package: pkg, parent, path, start })
+      .find({ kind, package: pkg, parent, path, rank, start });
+  }),
+);
+
+/**
+ * Each ranked MathML element beside its node's kind and its parent's rank, by its place: its
+ * {@link MathRank} row, `Node` at its key, and its parent's row.
+ */
+const MathRankStep = derived(
+  "MathRankStep",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, rank, start } = v(MathRank, "ranked");
+    const { kind, parent } = v(Node, "node");
+    const { rank: parentRank } = v(MathRank, "parentRanked");
+
+    return r
+      .match(MathRank, { package: pkg, path, rank, start })
+      .match(Node, { kind, package: pkg, parent, path, start })
+      .match(MathRank, { package: pkg, path, rank: parentRank, start: parent })
+      .find({ kind, package: pkg, parent, parentRank, path, rank, start });
+  }),
+);
+
+/**
+ * Each share of a document in no assembly beside its own rank and its target's, by the share's
+ * place: its {@link ShareTarget} row and the two {@link MathRank} rows.
+ */
+const ShareRanks = derived(
+  "ShareRanks",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start, targetStart } = v(ShareTarget, "share");
+    const { rank: shareRank } = v(MathRank, "shareRanked");
+    const { rank: targetRank } = v(MathRank, "targetRanked");
+
+    return r
+      .match(ShareTarget, { package: pkg, path, start, targetStart })
+      .match(MathRank, { package: pkg, path, rank: shareRank, start })
+      .match(MathRank, { package: pkg, path, rank: targetRank, start: targetStart })
+      .find({ package: pkg, path, shareRank, start, targetRank });
+  }),
+);
+
+/**
+ * Each ranked MathML element of an instance beside its node's kind and parent, by its instance and
+ * place: its {@link PlacedMathRank} row matched with `Node` at its node's key.
+ */
+const PlacedMathRankNode = derived(
+  "PlacedMathRankNode",
+  query(QtiBase).rule((r) => {
+    const { assembly, instance, package: pkg, path, start } = v(PlacedMathRank, "ranked");
+    const { kind, parent } = v(Node, "node");
+
+    return r
+      .match(PlacedMathRank, { assembly, instance, package: pkg, path, start })
+      .match(Node, { kind, package: pkg, parent, path, start })
+      .find({ assembly, instance, kind, package: pkg, parent, path, start });
+  }),
+);
+
+/**
+ * Each ranked MathML element of an instance beside its node's kind and its parent's rank under the
+ * same instance, by its instance and place.
+ */
+const PlacedMathRankStep = derived(
+  "PlacedMathRankStep",
+  query(QtiBase).rule((r) => {
+    const { assembly, instance, package: pkg, path, rank, start } = v(PlacedMathRank, "ranked");
+    const { kind, parent } = v(Node, "node");
+    const { rank: parentRank } = v(PlacedMathRank, "parentRanked");
+
+    return r
+      .match(PlacedMathRank, { assembly, instance, package: pkg, path, rank, start })
+      .match(Node, { kind, package: pkg, parent, path, start })
+      .match(PlacedMathRank, { assembly, instance, package: pkg, rank: parentRank, start: parent })
+      .find({ assembly, instance, kind, package: pkg, parent, parentRank, rank, start });
+  }),
+);
+
+/**
+ * Each placed share beside its own rank under its instance and its target's under the target's,
+ * by the share's instance and place: its {@link PlacedShareTarget} row and the two
+ * {@link PlacedMathRank} rows.
+ */
+const PlacedShareRanks = derived(
+  "PlacedShareRanks",
+  query(QtiBase).rule((r) => {
+    const {
+      assembly,
+      instance,
+      package: pkg,
+      start,
+      targetInstance,
+      targetStart,
+    } = v(PlacedShareTarget, "share");
+    const { rank: shareRank } = v(PlacedMathRank, "shareRanked");
+    const { rank: targetRank } = v(PlacedMathRank, "targetRanked");
+
+    return r
+      .match(PlacedShareTarget, {
+        assembly,
+        instance,
+        package: pkg,
+        start,
+        targetInstance,
+        targetStart,
+      })
+      .match(PlacedMathRank, { assembly, instance, package: pkg, rank: shareRank, start })
+      .match(PlacedMathRank, {
+        assembly,
+        instance: targetInstance,
+        package: pkg,
+        rank: targetRank,
+        start: targetStart,
+      })
+      .find({ assembly, instance, package: pkg, shareRank, start, targetRank });
+  }),
+);
+
+/**
+ * Each `m:maction` beside its node's element count, by its place: its {@link MathAction} row
+ * matched with `Node` at its key.
+ */
+const MathActionNode = derived(
+  "MathActionNode",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, selection, start } = v(MathAction, "action");
+    const { elementChildren } = v(Node, "node");
+
+    return r
+      .match(MathAction, { package: pkg, path, selection, start })
+      .match(Node, { elementChildren, package: pkg, path, start })
+      .find({ elementChildren, package: pkg, path, selection, start });
+  }),
+);
+
+/**
+ * Each element inside a table cell beside its node's kind, parent, parent's kind, element rank and
+ * element count, by its place: its {@link MathAlignScope} row matched with `Node` at its key.
+ */
+const ScopeNode = derived(
+  "ScopeNode",
+  query(QtiBase).rule((r) => {
+    const {
+      cell,
+      chosen,
+      inherited,
+      own,
+      package: pkg,
+      passes,
+      path,
+      received,
+      start,
+      state,
+    } = v(MathAlignScope, "scope");
+    const { elementChildren, elements, kind, parent, parentKind } = v(Node, "node");
+
+    return r
+      .match(MathAlignScope, {
+        cell,
+        chosen,
+        inherited,
+        own,
+        package: pkg,
+        passes,
+        path,
+        received,
+        start,
+        state,
+      })
+      .match(Node, {
+        elementChildren,
+        elements,
+        kind,
+        package: pkg,
+        parent,
+        parentKind,
+        path,
+        start,
+      })
+      .find({
+        cell,
+        chosen,
+        elementChildren,
+        elements,
+        inherited,
+        kind,
+        own,
+        package: pkg,
+        parent,
+        parentKind,
+        passes,
+        path,
+        received,
+        start,
+        state,
+      });
+  }),
+);
+
+/**
+ * Each complete element of a table cell beside its node's kind and its cell's group count, by its
+ * place: its {@link CellLeaf} row, `Node` at its key and its cell's {@link MathCell} row.
+ */
+const CellLeafNode = derived(
+  "CellLeafNode",
+  query(QtiBase).rule((r) => {
+    const { at, cell, package: pkg, path, start } = v(CellLeaf, "leaf");
+    const { kind } = v(Node, "node");
+    const { groups } = v(MathCell, "cell");
+
+    return r
+      .match(CellLeaf, { at, cell, package: pkg, path, start })
+      .match(Node, { kind, package: pkg, path, start })
+      .match(MathCell, { groups, package: pkg, path, start: cell })
+      .find({ at, cell, groups, kind, package: pkg, path, start });
+  }),
+);
+
+/**
+ * The kinds that let an alignment group through to its cell whatever their direction
+ * (MathML 3 §3.5.5.2): an `m:mtd` is the cell itself, and an `maction` lets its selected child
+ * through.
+ */
+const letKinds = ["m:maction", "m:mfenced", "m:mphantom", "m:semantics", "m:mtd"] as const;
+
+/**
+ * The kinds that let an alignment group through where they change no direction (MathML 3 §3.5.5.2).
+ */
+const directedKinds = ["m:mrow", "m:mstyle"] as const;
+
+/**
+ * The scope rows below a cell's root: every row but an `m:mtd`'s, each tied to its parent's row.
+ */
+const innerScopes = select(ScopeNode, (s) => s.ne(s.kind, "m:mtd"));
+
+/**
+ * The scope rows below an `m:maction`, each of which copies that action's selection.
+ */
+const actionChildren = select(ScopeNode, (s) =>
+  s.and(s.ne(s.kind, "m:mtd"), s.eq(s.parentKind, "m:maction")),
+);
+
+/**
+ * The scope rows of an `m:maligngroup` whose state is `open`, each of which holds a
+ * {@link MathAlignGroup} row.
+ */
+const openGroups = select(ScopeNode, (s) =>
+  s.and(s.eq(s.kind, "m:maligngroup"), s.eq(s.state, "open")),
+);
+
+/**
+ * The scope rows of a complete element of a cell: no element child, and no `m:mtd`. Each holds a
+ * {@link CellLeaf} row.
+ */
+const leafScopes = select(ScopeNode, (s) =>
+  s.and(s.eq(s.elementChildren, 0n), s.ne(s.kind, "m:mtd")),
+);
+
+/**
+ * The `NodeKind` handles among some names, so a query reads them as handles.
+ *
+ * @param names - Kind names.
+ * @returns The handles of the roster the names spell, in the roster's order.
+ */
+const handlesOf = (names: ReadonlySet<string>): readonly (typeof NodeKind.handles)[number][] =>
+  NodeKind.handles.filter((handle) => names.has(handle));
+
+/**
+ * The qualifiers that belong to a head, `degree`, `momentabout` and `logbase`
+ * ({@link mathHeadQualifiers}): an application owns one beside a head operator
+ * (`MathHeadOperator`), and its pair is "MathML head qualifier"'s.
+ */
+const headQualifierKinds = handlesOf(new Set(mathHeadQualifiers.map(({ qualifier }) => qualifier)));
+
+/**
+ * The qualifier kinds of Content MathML's `apply` that no head owns ({@link mathQualifiers} but the
+ * head qualifiers): an application that holds one is a binding or qualified one, whose argument
+ * count no class states.
+ */
+const unownedQualifierKinds = handlesOf(mathQualifiers).filter(
+  (kind) => !headQualifierKinds.includes(kind),
+);
+
+/**
+ * The qualifier kinds of Content MathML's `apply`, none of which is an argument.
+ */
+const qualifierKinds = handlesOf(mathQualifiers);
+
+/**
+ * The operators whose syntax table lists a head qualifier (`MathHeadOperator`).
+ */
+const headOperatorKinds = MathHeadOperator.rows.map(({ kind }) => kind);
+
+/**
+ * The operators {@link MathArity} holds that take at least one argument. MathML 3's classes take one
+ * or two (§4.3.4.5, §4.3.4.6; an n-ary operator has no greatest), and the arity law is stated by
+ * the arguments and the pairs of arguments an application holds, so a class of more is no class it
+ * can state, which the module refuses below.
+ */
+const leastOneKinds = MathArity.rows.flatMap(({ kind, min }) => (min >= 1n ? [kind] : []));
+
+/**
+ * The operators {@link MathArity} holds that take at least two arguments.
+ */
+const leastTwoKinds = MathArity.rows.flatMap(({ kind, min }) => (min >= 2n ? [kind] : []));
+
+/**
+ * The operators {@link MathMax} bounds at one argument.
+ */
+const mostOneKinds = MathMax.rows.flatMap(({ kind, max }) => (max === 1n ? [kind] : []));
+
+/**
+ * The operators {@link MathMax} bounds at two arguments.
+ */
+const mostTwoKinds = MathMax.rows.flatMap(({ kind, max }) => (max === 2n ? [kind] : []));
+
+if (
+  MathArity.rows.some(({ min }) => min > 2n) ||
+  MathMax.rows.some(({ max }) => max < 1n || max > 2n)
+) {
+  throw new Error(
+    "MathArity or MathMax holds an operator of a least above 2 or a most other than 1 or 2, and the arity law states only one or two arguments. State the class's count by a wider tuple of arguments.",
+  );
+}
+
+/**
+ * The applications that hold a qualifier no head owns, by the application's place: an element child
+ * of an `m:apply` after its operator whose kind is one of {@link unownedQualifierKinds}, or a head
+ * qualifier beside an operator that is no head operator. The arity law judges no such application
+ * (MathML 3 §4.3.3: a qualified application's argument count is its operator's to say).
+ */
+const unownedQualifiers = query(QtiBase)
+  .rule((r) => {
+    const { elements, kind, package: pkg, parent, path } = v(Node, "qualifier");
+
+    return r
+      .match(Node, { elements, kind, package: pkg, parent, parentKind: "m:apply", path })
+      .where(r.in(kind, unownedQualifierKinds), r.gt(elements, 1n))
+      .find({ package: pkg, parent, path });
+  })
+  .rule((r) => {
+    const { elements, kind, package: pkg, parent, path } = v(Node, "qualifier");
+    const { kind: head } = v(Node, "operator");
+
+    return r
+      .match(Node, { elements, kind, package: pkg, parent, parentKind: "m:apply", path })
+      .match(Node, { elements: 1n, kind: head, package: pkg, parent, path })
+      .where(
+        r.in(kind, headQualifierKinds),
+        r.gt(elements, 1n),
+        Compute.not(r.in(head, nonElementKinds)),
+        Compute.not(r.in(head, headOperatorKinds)),
+      )
+      .find({ package: pkg, parent, path });
+  });
+
+/**
+ * The applications whose operator takes at least one argument and that the arity law judges, by the
+ * application's place: its first element child, its operator, of {@link leastOneKinds}, and no
+ * qualifier no head owns ({@link unownedQualifiers}).
+ */
+const LeastOneApply = derived(
+  "LeastOneApply",
+  query(QtiBase).rule((r) => {
+    const { kind: operator, package: pkg, parent: apply, path } = v(Node, "operator");
+
+    return r
+      .match(Node, {
+        elements: 1n,
+        kind: operator,
+        package: pkg,
+        parent: apply,
+        parentKind: "m:apply",
+        path,
+      })
+      .where(r.in(operator, leastOneKinds))
+      .where(r.not(unownedQualifiers, { package: pkg, parent: apply, path }))
+      .find({ apply, package: pkg, path });
+  }),
+);
+
+/**
+ * The judged applications whose operator takes at least two arguments, as {@link LeastOneApply}
+ * reads them, of {@link leastTwoKinds}.
+ */
+const LeastTwoApply = derived(
+  "LeastTwoApply",
+  query(QtiBase).rule((r) => {
+    const { kind: operator, package: pkg, parent: apply, path } = v(Node, "operator");
+
+    return r
+      .match(Node, {
+        elements: 1n,
+        kind: operator,
+        package: pkg,
+        parent: apply,
+        parentKind: "m:apply",
+        path,
+      })
+      .where(r.in(operator, leastTwoKinds))
+      .where(r.not(unownedQualifiers, { package: pkg, parent: apply, path }))
+      .find({ apply, package: pkg, path });
+  }),
+);
+
+/**
+ * Each argument of an `m:apply`, by its place: an element child after its operator that is none of
+ * Content MathML's qualifier kinds.
+ */
+const ApplyArgument = derived(
+  "ApplyArgument",
+  query(QtiBase).rule((r) => {
+    const { elements, kind, package: pkg, parent: apply, path, start } = v(Node, "argument");
+
+    return r
+      .match(Node, {
+        elements,
+        kind,
+        package: pkg,
+        parent: apply,
+        parentKind: "m:apply",
+        path,
+        start,
+      })
+      .where(
+        r.gt(elements, 1n),
+        Compute.not(r.in(kind, nonElementKinds)),
+        Compute.not(r.in(kind, qualifierKinds)),
+      )
+      .find({ apply, package: pkg, path, start });
+  }),
+);
+
+/**
+ * Each pair of arguments of an `m:apply`, the first before the second in document order, by the
+ * application's place and the pair's two places.
+ */
+const ApplyArgumentPair = derived(
+  "ApplyArgumentPair",
+  query(QtiBase).rule((r) => {
+    const { elements, kind, package: pkg, parent: apply, path, start: first } = v(Node, "first");
+    const { elements: laterElements, kind: laterKind, start: second } = v(Node, "second");
+
+    return r
+      .match(Node, {
+        elements,
+        kind,
+        package: pkg,
+        parent: apply,
+        parentKind: "m:apply",
+        path,
+        start: first,
+      })
+      .match(Node, {
+        elements: laterElements,
+        kind: laterKind,
+        package: pkg,
+        parent: apply,
+        path,
+        start: second,
+      })
+      .where(
+        r.gt(elements, 1n),
+        Compute.not(r.in(kind, nonElementKinds)),
+        Compute.not(r.in(kind, qualifierKinds)),
+        r.gt(laterElements, elements),
+        Compute.not(r.in(laterKind, nonElementKinds)),
+        Compute.not(r.in(laterKind, qualifierKinds)),
+      )
+      .find({ apply, first, package: pkg, path, second });
+  }),
+);
+
+/**
+ * Each argument of a judged application whose operator takes at most one, by its place: its
+ * operator of {@link mostOneKinds}, its application holding no qualifier no head owns.
+ */
+const MostOneArgument = derived(
+  "MostOneArgument",
+  query(QtiBase).rule((r) => {
+    const { kind: operator, package: pkg, parent: apply, path } = v(Node, "operator");
+    const { elements, kind, start } = v(Node, "argument");
+
+    return r
+      .match(Node, {
+        elements: 1n,
+        kind: operator,
+        package: pkg,
+        parent: apply,
+        parentKind: "m:apply",
+        path,
+      })
+      .match(Node, { elements, kind, package: pkg, parent: apply, path, start })
+      .where(
+        r.in(operator, mostOneKinds),
+        r.gt(elements, 1n),
+        Compute.not(r.in(kind, nonElementKinds)),
+        Compute.not(r.in(kind, qualifierKinds)),
+      )
+      .where(r.not(unownedQualifiers, { package: pkg, parent: apply, path }))
+      .find({ apply, package: pkg, path, start });
+  }),
+);
+
+/**
+ * Each pair of arguments of a judged application whose operator takes at most two, as
+ * {@link ApplyArgumentPair} pairs them, its operator of {@link mostTwoKinds}.
+ */
+const MostTwoArgumentPair = derived(
+  "MostTwoArgumentPair",
+  query(QtiBase).rule((r) => {
+    const { kind: operator, package: pkg, parent: apply, path } = v(Node, "operator");
+    const { elements, kind, start: first } = v(Node, "first");
+    const { elements: laterElements, kind: laterKind, start: second } = v(Node, "second");
+
+    return r
+      .match(Node, {
+        elements: 1n,
+        kind: operator,
+        package: pkg,
+        parent: apply,
+        parentKind: "m:apply",
+        path,
+      })
+      .match(Node, { elements, kind, package: pkg, parent: apply, path, start: first })
+      .match(Node, {
+        elements: laterElements,
+        kind: laterKind,
+        package: pkg,
+        parent: apply,
+        path,
+        start: second,
+      })
+      .where(
+        r.in(operator, mostTwoKinds),
+        r.gt(elements, 1n),
+        Compute.not(r.in(kind, nonElementKinds)),
+        Compute.not(r.in(kind, qualifierKinds)),
+        r.gt(laterElements, elements),
+        Compute.not(r.in(laterKind, nonElementKinds)),
+        Compute.not(r.in(laterKind, qualifierKinds)),
+      )
+      .where(r.not(unownedQualifiers, { package: pkg, parent: apply, path }))
+      .find({ apply, first, package: pkg, path, second });
+  }),
+);
+
+/**
+ * Each head qualifier beside a head operator, by the qualifier's place: an element child of an
+ * `m:apply` after its operator whose kind is `degree`, `momentabout` or `logbase`, with its
+ * application's operator as its `head`, an operator `MathHeadOperator` holds.
+ */
+const HeadQualifierPair = derived(
+  "HeadQualifierPair",
+  query(QtiBase).rule((r) => {
+    const { elements, kind, package: pkg, parent, path, start } = v(Node, "qualifier");
+    const { kind: head } = v(Node, "operator");
+
+    return r
+      .match(Node, { elements, kind, package: pkg, parent, parentKind: "m:apply", path, start })
+      .match(Node, { elements: 1n, kind: head, package: pkg, parent, path })
+      .where(r.in(kind, headQualifierKinds), r.gt(elements, 1n), r.in(head, headOperatorKinds))
+      .find({ head, kind, package: pkg, path, start });
+  }),
+);
+
+/**
+ * The expressions `ResultBase` judges: every one but an attribute-typed expression of an `unknown`
+ * base type, the type the import gives one whose typing attribute spells no base, which AL1's value
+ * domain refuses alone and the query `ExpressionAttribute` types nothing by. `ResultBase` is the
+ * information model's table of each kind's result bases, and states no `unknown` for a kind whose
+ * attribute must spell one.
+ */
+const resultTyped = select(ExpressionNode, (e) =>
+  e.or(e.not(e.in(e.kind, attributeTypedKinds)), e.ne(e.baseType, "unknown")),
+);
+
+/**
+ * The base values whose `base-type` spells a base: each has its {@link LiteralTyped}. A base value
+ * of an `unknown` base has none, since its text has no type to be read in.
+ */
+const typedBaseValues = select(ExpressionNode, (e) =>
+  e.and(e.eq(e.kind, "qti-base-value"), e.ne(e.baseType, "unknown")),
+);
+
+/**
+ * The expressions whose parent is an expression: the operands, each of which has its
+ * {@link OperandOf} row and takes its operator's language.
+ */
+const operandExpressions = select(ExpressionNode, (e) => e.in(e.parentKind, expressionKinds));
+
+/**
+ * The expression, operator and MathML laws that read an overlay's node's kind, parent or parent's
+ * kind (`#pantry/qti/expressions.ts`, `#pantry/qti/operators.ts`, `#pantry/qti/mathml-share.ts`),
+ * each named by its oracle law: `Arity` (P2), `Condition_type`
+ * (P21), `One_base` and `Operand_fit` (P23) and `Outcome_only` (P25) over {@link ExpressionNode};
+ * and `E1_derived`, the result type each kind derives, each expression's language its parent's or
+ * a rule's root's, every operand's row, each operand's operator and rank its node's, a rounding
+ * operator's `holds` by its mode in force ({@link RoundingMode}), its `both` arm's mode its own, a
+ * tolerance's values spelling its form ({@link ToleranceForm}), and each ranked MathML element's
+ * rank below its parent's; `MathML_share_cycle`, a share's rank above its target's; "MathML
+ * arity" (MathML 3 §4.3.4.5 and §4.3.4.6, each operator's class from its §4.4 syntax table): a
+ * judged application, one whose every qualifier its head owns, holds at least one argument where
+ * its class takes one and a pair of them where it takes two, and at most one argument where its
+ * class takes one and one pair where it takes two, so no count is stored; and "MathML head
+ * qualifier" (spec reading R6-head-qualifiers): each head qualifier beside a head operator is a
+ * pair its syntax table lists.
+ */
+const expressionLawsByName = {
+  Arity: [
+    // At least its least number: an operand of that rank.
+    contained(
+      on(ArityFloor, "package", "path", "start", "min"),
+      on(OperandOf, "package", "path", "operator", "rank"),
+    ),
+    // At most its greatest: no operand past it.
+    check("Arity", OperandOf, (o) =>
+      o.or(
+        o.not(OperatorMax.has(o.operatorKind)),
+        o.le(o.rank, OperatorMax.at("max", o.operatorKind)),
+      ),
+    ),
+  ],
+  "Condition type": [
+    check("Condition_type", ExpressionNode, (e) =>
+      e.or(
+        e.not(e.in(e.parentKind, conditionKindHandles)),
+        e.and(
+          e.in(e.baseType, ["boolean", ...silentBases]),
+          e.in(e.cardinality, ["single", "unknown"]),
+        ),
+      ),
+    ),
+  ],
+  "E1 derived": [
+    contained(
+      on(
+        select(ExpressionNode, (e) => e.in(e.parentKind, ruleKindHandles)),
+        "package",
+        "path",
+        "parent",
+        "language",
+      ),
+      on(Processing, "package", "path", "start", "language"),
+    ),
+    contained(
+      on(operandExpressions, "package", "path", "parent", "language"),
+      on(Expression, "package", "path", "start", "language"),
+    ),
+    contained(on(resultTyped, "kind", "baseType"), on(ResultBase, "kind", "base")),
+    contained(
+      on(ExpressionNode, "kind", "cardinality"),
+      on(ResultCardinality, "kind", "cardinality"),
+    ),
+    check("E1_derived", ExpressionNode, (e) =>
+      e.or(
+        e.in(e.parentKind, ruleKindHandles),
+        e.in(e.parentKind, expressionKinds),
+        e.eq(e.language, "none"),
+      ),
+    ),
+    // The result type each dependent typing derives from its operands, operand by operand: a
+    // numeric aggregate is unknown where an operand is, integer only where every operand is
+    // integer or any; a container's, an Index's or a Random's base is each operand's that is not
+    // any, else unknown; a Delete's base and cardinality are its later operands' the same way.
+    check("E1_derived", OperandOf, (o) =>
+      o.and(
+        o.or(
+          o.not(o.in(o.operatorKind, numericKinds)),
+          o.and(
+            o.or(o.ne(o.baseType, "unknown"), o.eq(o.operatorBase, "unknown")),
+            o.or(o.ne(o.operatorBase, "integer"), o.in(o.baseType, ["integer", "any"])),
+          ),
+        ),
+        o.or(
+          o.not(o.in(o.operatorKind, baseTypedKinds)),
+          o.eq(o.baseType, "any"),
+          o.eq(o.operatorBase, o.baseType),
+          o.eq(o.operatorBase, "unknown"),
+        ),
+        o.or(
+          o.not(o.in(o.operatorKind, secondKinds)),
+          o.le(o.rank, 1n),
+          o.and(
+            o.or(
+              o.eq(o.baseType, "any"),
+              o.eq(o.operatorBase, o.baseType),
+              o.eq(o.operatorBase, "unknown"),
+            ),
+            o.or(
+              o.eq(o.cardinality, "unknown"),
+              o.eq(o.operatorCardinality, o.cardinality),
+              o.eq(o.operatorCardinality, "unknown"),
+            ),
+          ),
+        ),
+      ),
+    ),
+    // A numeric aggregate that is unknown has an unknown operand, and one that is integer an
+    // integer operand; one whose every operand is integer or any, one of them integer, is integer.
+    // Every other numeric aggregate is float because `ResultBase` admits only integer, float and
+    // unknown for the numeric kinds (`#pantry/grammar/expression.ts`), so these rules and that
+    // containment together state the numeric typing's three arms.
+    contained(
+      on(
+        select(ExpressionNode, (e) =>
+          e.and(e.in(e.kind, numericKinds), e.eq(e.baseType, "unknown")),
+        ),
+        "package",
+        "path",
+        "start",
+      ),
+      on(
+        select(OperandOf, (o) => o.eq(o.baseType, "unknown")),
+        "package",
+        "path",
+        "operator",
+      ),
+    ),
+    contained(
+      on(
+        select(ExpressionNode, (e) =>
+          e.and(e.in(e.kind, numericKinds), e.eq(e.baseType, "integer")),
+        ),
+        "package",
+        "path",
+        "start",
+      ),
+      on(
+        select(OperandOf, (o) => o.eq(o.baseType, "integer")),
+        "package",
+        "path",
+        "operator",
+      ),
+    ),
+    check("E1_derived", IntegerAggregate, (a) => a.eq(a.operatorBase, "integer")),
+    // A container, an Index or a Random of a base other than any has an operand that is not any,
+    // and one that is unknown has two operands of two bases, or an unknown one.
+    contained(
+      on(
+        select(ExpressionNode, (e) => e.and(e.in(e.kind, baseTypedKinds), e.ne(e.baseType, "any"))),
+        "package",
+        "path",
+        "start",
+      ),
+      on(
+        select(OperandOf, (o) => o.ne(o.baseType, "any")),
+        "package",
+        "path",
+        "operator",
+      ),
+    ),
+    contained(
+      on(
+        select(ExpressionNode, (e) =>
+          e.and(e.in(e.kind, baseTypedKinds), e.eq(e.baseType, "unknown")),
+        ),
+        "package",
+        "path",
+        "start",
+      ),
+      on(UnknownOperandBase, "package", "path", "operator"),
+    ),
+    // A Delete the same way over its later operands, and its cardinality known where exactly one
+    // known cardinality stands among them.
+    contained(
+      on(
+        select(ExpressionNode, (e) => e.and(e.in(e.kind, secondKinds), e.ne(e.baseType, "any"))),
+        "package",
+        "path",
+        "start",
+      ),
+      on(
+        select(OperandOf, (o) => o.and(o.gt(o.rank, 1n), o.ne(o.baseType, "any"))),
+        "package",
+        "path",
+        "operator",
+      ),
+    ),
+    contained(
+      on(
+        select(ExpressionNode, (e) =>
+          e.and(e.in(e.kind, secondKinds), e.eq(e.baseType, "unknown")),
+        ),
+        "package",
+        "path",
+        "start",
+      ),
+      on(UnknownTailBase, "package", "path", "operator"),
+    ),
+    contained(
+      on(
+        select(ExpressionNode, (e) =>
+          e.and(e.in(e.kind, secondKinds), e.ne(e.cardinality, "unknown")),
+        ),
+        "package",
+        "path",
+        "start",
+      ),
+      on(
+        select(OperandOf, (o) => o.and(o.gt(o.rank, 1n), o.ne(o.cardinality, "unknown"))),
+        "package",
+        "path",
+        "operator",
+      ),
+    ),
+    check("E1_derived", OneTailCardinality, (t) => t.ne(t.cardinality, "unknown")),
+
+    contained(
+      on(typedBaseValues, "package", "path", "start"),
+      on(LiteralTyped, "package", "path", "start"),
+    ),
+    contained(
+      on(
+        select(ProcessingNode, (p) =>
+          p.and(p.not(p.in(p.kind, rootKinds)), p.in(p.parentKind, ruleKindHandles)),
+        ),
+        "package",
+        "path",
+        "parent",
+        "language",
+      ),
+      on(Processing, "package", "path", "start", "language"),
+    ),
+    // A rounding operator holds a mode exactly where one is in force, and its `both` arm holds it.
+    mirrors(
+      on(RoundingMode, "package", "path", "start"),
+      on(modedRoundings, "package", "path", "start"),
+    ),
+    contained(
+      on(RoundingModeFigures, "package", "path", "start", "mode"),
+      on(RoundingMode, "package", "path", "start", "mode"),
+    ),
+    // A `qti-equal`'s tolerance values spell its `tolerance`.
+    spelledByTokens(ToleranceForm),
+    contained(
+      on(
+        select(MathRankNode, (m) => m.and(m.ne(m.kind, "m:math"), m.ne(m.start, m.parent))),
+        "package",
+        "path",
+        "parent",
+      ),
+      on(MathRank, "package", "path", "start"),
+    ),
+    check("E1_derived", MathRankStep, (m) =>
+      m.or(m.eq(m.kind, "m:math"), m.eq(m.start, m.parent), m.lt(m.rank, m.parentRank)),
+    ),
+    contained(
+      on(
+        select(PlacedMathRankNode, (m) => m.and(m.ne(m.kind, "m:math"), m.ne(m.start, m.parent))),
+        "package",
+        "assembly",
+        "instance",
+        "parent",
+      ),
+      on(PlacedMathRank, "package", "assembly", "instance", "start"),
+    ),
+    check("E1_derived", PlacedMathRankStep, (m) =>
+      m.or(m.eq(m.kind, "m:math"), m.eq(m.start, m.parent), m.lt(m.rank, m.parentRank)),
+    ),
+    contained(
+      on(innerScopes, "package", "path", "parent", "cell", "received", "inherited"),
+      on(MathAlignScope, "package", "path", "start", "cell", "passes", "own"),
+    ),
+    contained(
+      on(actionChildren, "package", "path", "parent", "chosen"),
+      on(MathAction, "package", "path", "start", "selection"),
+    ),
+    check("E1_derived", ScopeNode, (s) =>
+      s.and(
+        s.or(
+          s.and(s.eq(s.kind, "m:mtd"), s.eq(s.cell, s.start), s.eq(s.state, "open")),
+          s.and(
+            s.ne(s.kind, "m:mtd"),
+            s.ne(s.cell, s.start),
+            s.or(s.eq(s.parentKind, "m:maction"), s.eq(s.chosen, 0n)),
+            s.or(
+              s.and(
+                s.eq(s.parentKind, "m:maction"),
+                s.ne(s.elements, s.chosen),
+                s.eq(s.state, "unjudged"),
+              ),
+              s.and(
+                s.or(s.ne(s.parentKind, "m:maction"), s.eq(s.elements, s.chosen)),
+                s.eq(s.state, s.received),
+              ),
+            ),
+          ),
+        ),
+        s.or(
+          s.and(s.eq(s.state, "unjudged"), s.eq(s.passes, "unjudged")),
+          s.and(s.eq(s.state, "closed"), s.eq(s.passes, "closed")),
+          s.and(
+            s.eq(s.state, "open"),
+            s.eq(s.passes, "open"),
+            s.or(
+              s.in(s.kind, letKinds),
+              s.and(s.in(s.kind, directedKinds), s.eq(s.own, s.inherited)),
+            ),
+          ),
+          s.and(
+            s.eq(s.state, "open"),
+            s.eq(s.passes, "closed"),
+            s.not(s.in(s.kind, letKinds)),
+            s.or(s.not(s.in(s.kind, directedKinds)), s.ne(s.own, s.inherited)),
+          ),
+        ),
+      ),
+    ),
+    contained(
+      on(MathAlignGroup, "package", "path", "start"),
+      on(openGroups, "package", "path", "start"),
+    ),
+    contained(
+      on(openGroups, "package", "path", "start", "cell"),
+      on(MathAlignGroup, "package", "path", "start", "cell"),
+    ),
+    contained(on(CellLeaf, "package", "path", "start"), on(leafScopes, "package", "path", "start")),
+    contained(on(leafScopes, "package", "path", "start"), on(CellLeaf, "package", "path", "start")),
+    check("E1_derived", ProcessingNode, (p) =>
+      p.or(
+        ...rootLanguages.map(([kind, language]) =>
+          p.and(p.eq(p.kind, kind), p.eq(p.language, language)),
+        ),
+        p.and(p.not(p.in(p.kind, rootKinds)), p.in(p.parentKind, ruleKindHandles)),
+        p.and(
+          p.not(p.in(p.kind, rootKinds)),
+          p.not(p.in(p.parentKind, ruleKindHandles)),
+          p.eq(p.language, "none"),
+        ),
+      ),
+    ),
+  ],
+  "MathML align first": [
+    check("MathML_align_first", CellLeafNode, (l) =>
+      l.or(l.ne(l.at, 0n), l.eq(l.groups, 0n), l.eq(l.kind, "m:maligngroup")),
+    ),
+  ],
+  "MathML align placement": [
+    check("MathML_align_placement", ScopeNode, (s) =>
+      s.or(s.ne(s.kind, "m:maligngroup"), s.ne(s.state, "closed")),
+    ),
+  ],
+  "MathML arity": [
+    contained(
+      on(LeastOneApply, "package", "path", "apply"),
+      on(ApplyArgument, "package", "path", "apply"),
+    ),
+    contained(
+      on(LeastTwoApply, "package", "path", "apply"),
+      on(ApplyArgumentPair, "package", "path", "apply"),
+    ),
+    key(on(MostOneArgument, "package", "path", "apply")),
+    key(on(MostTwoArgumentPair, "package", "path", "apply")),
+  ],
+  "MathML head qualifier": [
+    contained(on(HeadQualifierPair, "head", "kind"), on(HeadQualifier, "head", "qualifier")),
+  ],
+  "MathML maction selection": [
+    check("MathML_maction_selection", MathActionNode, (m) =>
+      m.and(
+        m.gt(m.elementChildren, 0n),
+        m.ge(m.selection, 1n),
+        m.le(m.selection, m.elementChildren),
+      ),
+    ),
+  ],
+  "MathML share cycle": [
+    check("MathML_share_cycle", ShareRanks, (s) => s.gt(s.shareRank, s.targetRank)),
+    check("MathML_share_cycle", PlacedShareRanks, (s) => s.gt(s.shareRank, s.targetRank)),
+  ],
+  "One base": [
+    key(on(KnownOperandBase, "package", "path", "operator")),
+    key(on(KnownOperandCardinality, "package", "path", "operator")),
+  ],
+  "Operand fit": [
+    check("Operand_fit", OperandOf, (o) =>
+      o.and(
+        o.eq(Compute.subset(o.baseTypeBit, OperandBase.row(o.operatorKind)), true),
+        o.or(
+          o.ne(o.rank, 1n),
+          o.eq(Compute.subset(o.cardinalityBit, LeadCardinality.row(o.operatorKind)), true),
+        ),
+        o.or(
+          o.le(o.rank, 1n),
+          o.eq(Compute.subset(o.cardinalityBit, TailCardinality.row(o.operatorKind)), true),
+        ),
+      ),
+    ),
+  ],
+  "Outcome only": [
+    check("Outcome_only", ExpressionNode, (e) =>
+      e.or(e.not(e.in(e.kind, outcomeOnlyKinds)), e.eq(e.language, "outcome")),
+    ),
+  ],
+} as const;
+
+/**
+ * The rules of this module, grouped by the law each states, one record per module of the domain.
+ */
+export const expressionOverlayLawsByName = expressionLawsByName;
+
+/**
+ * The queries of this module, each carrying its own name.
+ */
+export const expressionOverlayRelations = [
+  ArityFloor,
+  IntegerAggregate,
+  KnownOperandBase,
+  KnownOperandCardinality,
+  OneTailCardinality,
+  UnknownOperandBase,
+  UnknownTailBase,
+  ApplyArgument,
+  ApplyArgumentPair,
+  CellLeafNode,
+  ExpressionNode,
+  HeadQualifierPair,
+  LeastOneApply,
+  LeastTwoApply,
+  MathActionNode,
+  MathRankNode,
+  MathRankStep,
+  MostOneArgument,
+  MostTwoArgumentPair,
+  OperandOf,
+  PlacedMathRankNode,
+  PlacedMathRankStep,
+  PlacedShareRanks,
+  ProcessingNode,
+  RoundingMode,
+  ScopeNode,
+  ShareRanks,
+  ToleranceForm,
+] as const;
+
+/**
+ * The rules of this module, {@link expressionOverlayLawsByName} flattened.
+ */
+export const expressionOverlayLaws = Object.values(expressionLawsByName).flat();

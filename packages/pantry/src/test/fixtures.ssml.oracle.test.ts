@@ -1,0 +1,191 @@
+import path from "node:path";
+import { NodeServices } from "@effect/platform-node";
+import { assert, layer } from "@effect/vitest";
+import { ConfigProvider, Effect, FileSystem, Option, Result } from "effect";
+import { assemble } from "#pantry/model/assemble.ts";
+import { shredGrammarOf } from "#pantry/model/composed.ts";
+import { names as documentNames } from "#pantry/model/names.ts";
+import { shred } from "#pantry/model/shred.ts";
+import { unshred } from "#pantry/model/unshred.ts";
+import { flatten } from "#pantry/model/xdm.ts";
+import { readEntries } from "#pantry/package/read.ts";
+import type { PackageFile } from "#pantry/package/read.ts";
+import { materialize } from "#pantry/test/fixtures.ts";
+import type { FixtureName } from "#pantry/test/fixtures.ts";
+import { judge, shownBreach, verdictOf } from "#pantry/test/oracle.ts";
+import { canonicalize } from "@qti-pie/crust/canonical.ts";
+import { readXml } from "@qti-pie/crust/read.ts";
+import { grammar } from "#pantry/grammar/install.ts";
+import { laws } from "#pantry/test/installed-laws.ts";
+
+/**
+ * The directory every test root is made under: the package's gitignored `work/`.
+ */
+const workDirectory = path.resolve(import.meta.dirname, "../../work");
+
+/**
+ * What one fixture's item must hold: the text the SSML edit leaves in it, which proves the edit was
+ * applied and which fixture it is.
+ */
+interface Expectation {
+  readonly marker: string;
+  readonly name: FixtureName;
+}
+
+/**
+ * The nine SSML positives of phase 7's stage N (spec 5.3), each with a passage of its markup that
+ * is unique to it among the nine.
+ */
+const expectations: readonly Expectation[] = [
+  { marker: '<ssml:sub alias="A-nina">Anina</ssml:sub>', name: "ssml-corpus-sub" },
+  { marker: '<speak xmlns="http://www.w3.org/2001/10/synthesis"', name: "ssml-hooks" },
+  { marker: '<ssml:lexicon uri="https://example.org/lexicon.pls"', name: "ssml-speak" },
+  { marker: 'maxage="99999999999999999999"', name: "ssml-voice" },
+  { marker: 'pitch="10 Hz"', name: "ssml-prosody" },
+  { marker: '<ssml:s xml:space="preserve">', name: "ssml-nested" },
+  { marker: 'startmark="a  b"', name: "ssml-two-speaks" },
+  { marker: "data-ssml='{}'", name: "data-ssml" },
+  { marker: 'data-ssml="anything"', name: "data-ssml-custom" },
+];
+
+/**
+ * The kinds that declare `data-ssml`, which the `data-ssml` fixture puts it on: three HTML kinds
+ * and `qti-rubric-block`, one QTI kind.
+ */
+const declaringKinds = ["div", "p", "qti-rubric-block", "span"] as const;
+
+/**
+ * The kind `data-ssml-custom` puts `data-ssml` on, which does not declare it but admits the open
+ * `data-*` class.
+ */
+const customKind = "li";
+
+/**
+ * Materialize a fixture in a root of its own and read its package.
+ *
+ * @param name - The fixture's name.
+ * @returns The package's entries, as `readEntries` reads them.
+ */
+const packageOf = Effect.fn("fixtures.ssml.packageOf")(function* packageOf(name: FixtureName) {
+  const fs = yield* FileSystem.FileSystem;
+
+  yield* fs.makeDirectory(workDirectory, { recursive: true });
+
+  const root = yield* fs.makeTempDirectoryScoped({
+    directory: workDirectory,
+    prefix: "fixtures-ssml-",
+  });
+  const config = ConfigProvider.layerAdd(
+    ConfigProvider.fromUnknown({ QTI_PIE_QTI_FIXTURES: root }),
+    { asPrimary: true },
+  );
+  const dir = yield* materialize(name).pipe(Effect.provide(config));
+
+  assert.strictEqual(yield* fs.exists(dir), true, name);
+
+  return yield* readEntries(dir);
+});
+
+/**
+ * Round-trip every item of a package through the XDM: read by crust, shredded through the composed
+ * grammar, flattened to rows, assembled back and unshredded to bytes.
+ *
+ * @param name - The fixture's name, for the messages.
+ * @param files - The package's entries.
+ * @returns The text of each item, in path order.
+ */
+const roundTripped = Effect.fn("fixtures.ssml.roundTripped")(function* roundTripped(
+  name: FixtureName,
+  files: readonly PackageFile[],
+) {
+  const shredding = shredGrammarOf(grammar);
+  const names = documentNames;
+  const items: string[] = [];
+
+  for (const file of files.filter((entry) => entry.path.endsWith(".xml"))) {
+    const doc = yield* readXml(file.bytes);
+    if (doc.root.local !== "qti-assessment-item") {
+      continue;
+    }
+
+    const tree = yield* shred(doc, shredding);
+    const assembled = assemble(flatten(tree));
+
+    assert.isTrue(Result.isSuccess(assembled), `${name}: ${file.path} assembles`);
+
+    const out = yield* unshred(Result.getOrThrow(assembled), names);
+
+    if (!Buffer.from(out).equals(Buffer.from(file.bytes))) {
+      const reread = yield* readXml(out);
+
+      assert.strictEqual(
+        new TextDecoder().decode(Result.getOrThrow(canonicalize(reread))),
+        new TextDecoder().decode(Result.getOrThrow(canonicalize(doc))),
+        `${name}: ${file.path} is canonical-equal after the round trip`,
+      );
+    }
+
+    items.push(new TextDecoder().decode(file.bytes));
+  }
+
+  assert.isAbove(items.length, 0, `${name} holds an item`);
+
+  return items;
+});
+
+layer(NodeServices.layer, { excludeTestServices: true })(
+  "the SSML and data-ssml positive fixtures",
+  (it) => {
+    for (const { marker, name } of expectations) {
+      it.effect(`${name} materializes, is accepted by the law oracle and round-trips`, () =>
+        Effect.gen(function* fixture() {
+          const files = yield* packageOf(name);
+          const judgment = yield* judge(files, grammar, laws);
+
+          if (judgment._tag === "CodecRefusal") {
+            assert.fail(`the codec refused ${name}: ${judgment.rule}, ${judgment.detail}`);
+          }
+
+          assert.deepStrictEqual(
+            judgment.breaches.map(({ law }) => law),
+            [],
+            `${name}: ${judgment.breaches.map((breach) => shownBreach(breach, grammar)).join("\n")}`,
+          );
+          assert.deepStrictEqual(verdictOf(judgment), { verdict: "accepted" });
+
+          const items = yield* roundTripped(name, files);
+
+          assert.strictEqual(
+            items.filter((item) => item.split(marker).length > 1).length,
+            1,
+            `${name}: ${marker}`,
+          );
+        }).pipe(Effect.scoped),
+      );
+    }
+
+    it.effect(
+      "data-ssml is declared by the kinds the data-ssml fixture puts it on, and by no li, which admits the open data-* class",
+      () =>
+        Effect.sync(() => {
+          const { attributes } = grammar;
+
+          for (const kind of declaringKinds) {
+            assert.isTrue(
+              Option.isSome(attributes.admission.lookup({ kind, name: "data-ssml" })),
+              `${kind} declares data-ssml`,
+            );
+          }
+
+          assert.isTrue(
+            Option.isNone(attributes.admission.lookup({ kind: customKind, name: "data-ssml" })),
+            `${customKind} does not declare data-ssml`,
+          );
+          assert.isTrue(
+            Option.isSome(attributes.admission.lookup({ kind: customKind, name: "data-*" })),
+            `${customKind} admits data-*`,
+          );
+        }),
+    );
+  },
+);

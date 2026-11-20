@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqtiasi_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_asiv3p0p1_v1p0.xsd"
+  identifier="ei-limits-position-object" title="Benches to place" adaptive="false"
+  time-dependent="false" xml:lang="en">
+  <qti-response-declaration identifier="ONE" cardinality="multiple" base-type="point">
+    <qti-correct-response>
+      <qti-value>250 150</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-response-declaration identifier="SOME" cardinality="multiple" base-type="point"/>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <p>Place the fountain in the pond, and two or three benches in the park.</p>
+    <qti-position-object-stage>
+      <img src="images/position-object-stage.svg" width="500" height="300"
+        alt="A park with a pond in the middle and a grove at each end"/>
+      <qti-position-object-interaction response-identifier="ONE" min-choices="1">
+        <img src="images/position-object-token.svg" width="40" height="40" alt="The fountain"/>
+      </qti-position-object-interaction>
+      <qti-position-object-interaction response-identifier="SOME" min-choices="2" max-choices="3">
+        <img src="images/position-object-token.svg" width="40" height="40" alt="A bench"/>
+      </qti-position-object-interaction>
+    </qti-position-object-stage>
+  </qti-item-body>
+</qti-assessment-item>

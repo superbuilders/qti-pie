@@ -1,0 +1,1623 @@
+import {
+  accumulated,
+  Bits,
+  bits,
+  check,
+  closed,
+  closedId,
+  Compute,
+  contained,
+  counted,
+  drawn,
+  fin,
+  fold,
+  generated,
+  key,
+  lawsByStatement,
+  lexical,
+  Monoid,
+  mirrors,
+  natural,
+  on,
+  ordered,
+  pg,
+  pred,
+  relation,
+  sameLaw,
+  schema,
+  select,
+  str,
+  tree,
+} from "@bjornpagen/grizzle";
+import type { Law, LawSide, RegexText } from "@bjornpagen/grizzle";
+import { assert, describe, it } from "@effect/vitest";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { array, element } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
+import { Array as Arr, Duration, Effect, Formatter, Option, pipe, Schema } from "effect";
+import { ReaderRefusal, WellFormednessError } from "@qti-pie/crust/errors.ts";
+import { checkNameOf, refusalOf } from "#pantry/import/refusal.ts";
+import type { LawName } from "#pantry/import/refusal.ts";
+import { readerOrigin } from "#pantry/package/refusal-origin.ts";
+import { Qti } from "#pantry/qti/schema.ts";
+import { lawTable, precedence } from "#pantry/vocab/laws.ts";
+import { beginsWith, mergedAxes } from "#pantry/test/merged-axes.ts";
+import type { Axis } from "#pantry/test/merged-axes.ts";
+import { UnmodeledVocabulary, unmodeledReasons, XmlVersionRefused } from "#pantry/model/shred.ts";
+import { PackageReadError } from "#pantry/package/read.ts";
+import { ZipRefusal } from "#pantry/package/zip.ts";
+import { ImportRefused, ImportRule, limitRules, ruleOfError } from "#pantry/import/rules.ts";
+import type { ReadRefusal, Rule } from "#pantry/import/rules.ts";
+import {
+  contractNames,
+  generatedNames,
+  keyNames,
+  patternNameIn,
+  patternTypeOf,
+  schemaLawNameOf,
+  schemaLawsOf,
+  schemaRuleOfLaw,
+  schemaRulesOf,
+  statedLaws,
+  textLaws,
+} from "#pantry/test/law-namer.ts";
+import { refusedOf } from "#pantry/test/law-names.ts";
+import { searchWidth } from "#pantry/test/settings.ts";
+
+/**
+ * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
+ * describe: a hang guard.
+ */
+const testTimeoutMs = 120_000;
+
+/**
+ * A scratch schema of the shapes whose axes grizzle merges, built with grizzle's own constructors:
+ * `node.ts`'s tree, with its parent copy, predecessor copy, last slot, `Follow` step and two count
+ * folds; an ordered family with its owner copy and an `or` fold whose running value each member
+ * carries as `attrsWas` and `attrsAfter`, the one shape in which a family's predecessor axis
+ * carries a fold (`attributes.ts`'s own family is a counted set, whose `or` fold no member
+ * carries); and a counted family whose owner copy rides its owner axis. Its laws as grizzle's
+ * `lawsOf` lists them, and the law of each statement an axis carries, by the statement's name.
+ *
+ * `grizzle generate` compiled this schema at 4016b69, with no database, and its foreign keys carry
+ * exactly: the tree's owner axis (parent, ‹n›, document, parentKind, parentNearest, ‹ps›);
+ * its predecessor axis (pred(at), elementsWas, start, was, the hidden count fold's before); its
+ * last axis (pred(children), elementChildren, end, lastState, countedChildren); the attribute
+ * family's owner axis (‹n›, document, kind), predecessor axis (pred(at), attrsWas) and last axis
+ * (pred(attributes), attrs); and the counted family's owner axis (‹n›, the containment into
+ * `Binding.node`).
+ */
+const scratch = (() => {
+  const Kind = closed.ordered("Kind", ["document", "e", "text"]);
+  const Pos = closed.ordered("Pos", ["0", "1", "2"]);
+  const Slot = closed.ordered("Slot", ["0", "1"]);
+  const Name = closed.ordered("Name", ["x", "data-*"]);
+  const Follow = closed.relation(
+    "Follow",
+    { from: closedId(Pos), parent: closedId(Kind), to: closedId(Pos) },
+    ["parent", "from", "to"],
+    [{ from: "0", parent: "document", to: "1" }],
+  );
+  const Path = str.regex("^[a-z]{1,8}$");
+  const Node = relation(
+    "Node",
+    {
+      at: drawn(natural),
+      attributes: drawn(natural),
+      attrs: accumulated(bits(Slot), Bits.of(Slot, [])),
+      children: drawn(natural),
+      countedChildren: accumulated(natural, 0n),
+      elementChildren: accumulated(natural, 0n),
+      elements: accumulated(natural, 0n),
+      elementsWas: accumulated(natural, 0n),
+      end: drawn(natural),
+      kind: closedId(Kind),
+      lastState: accumulated(closedId(Pos), "0"),
+      nearest: natural,
+      parent: drawn(natural),
+      parentKind: accumulated(closedId(Kind), "document"),
+      parentNearest: accumulated(natural, 0n),
+      path: Path,
+      start: drawn(natural),
+      state: closedId(Pos),
+      was: accumulated(closedId(Pos), "0"),
+    },
+    ["path", "start"],
+  );
+  const Attribute = relation(
+    "Attribute",
+    {
+      at: drawn(natural),
+      attrsAfter: accumulated(bits(Slot), Bits.of(Slot, [])),
+      attrsWas: accumulated(bits(Slot), Bits.of(Slot, [])),
+      kind: accumulated(closedId(Kind), "document"),
+      name: closedId(Name),
+      path: Path,
+      slot: bits(Slot),
+      start: natural,
+    },
+    ["path", "start", "at"],
+  );
+  const Binding = relation("Binding", { choices: drawn(natural), path: Path, start: natural }, [
+    "path",
+    "start",
+  ]);
+  const Choice = relation(
+    "Choice",
+    { identifier: str.regex("^[a-z]{1,8}$"), interaction: natural, path: Path, start: natural },
+    ["path", "start"],
+  );
+  const members = select(Node, (n) => n.gt(n.start, 0n));
+  const nodeTree = tree(on(Node, "parent", "at"), fin(Node, "children"), { root: ["path"] });
+  const attributeFamily = ordered(on(Attribute, "path", "start", "at"), fin(Node, "attributes"));
+  const choiceFamily = counted(on(Choice, "path", "interaction"), fin(Binding, "choices"));
+  const parentCopy = contained(
+    on(members, "path", "parent", "parentKind", "parentNearest"),
+    on(Node, "path", "start", "kind", "nearest"),
+  );
+  const followStep = contained(
+    on(members, "parentKind", "was", "state"),
+    on(Follow, "parent", "from", "to"),
+  );
+  const predecessorCopy = contained(
+    on(members, "path", "parent", pred("at"), "was"),
+    on(members, "path", "parent", "at", "state"),
+  );
+  const lastSlot = contained(
+    on(Node, "path", "start", pred("children"), "lastState"),
+    on(members, "path", "parent", "at", "state"),
+  );
+  const elementCount = fold(
+    nodeTree,
+    Monoid.count,
+    on(members, "path", "parent", "elementsWas", "elements"),
+    on(Node, "path", "start", "elementChildren"),
+  );
+  const countedCount = fold(
+    nodeTree,
+    Monoid.count,
+    on(
+      select(Node, (n) => n.and(n.gt(n.start, 0n), n.eq(n.state, "2"))),
+      "path",
+      "parent",
+    ),
+    on(Node, "path", "start", "countedChildren"),
+  );
+  const attributeOwner = contained(
+    on(Attribute, "path", "start", "kind"),
+    on(Node, "path", "start", "kind"),
+  );
+  const attrsFold = fold(
+    attributeFamily,
+    Monoid.or,
+    on(
+      select(Attribute, (a) => Compute.not(Compute.in(a.name, ["data-*"]))),
+      "path",
+      "start",
+      "slot",
+      "attrsWas",
+      "attrsAfter",
+    ),
+    on(Node, "path", "start", "attrs"),
+  );
+  const choiceOwner = contained(on(Choice, "path", "interaction"), on(Binding, "path", "start"));
+  const relations = [Attribute, Binding, Choice, Follow, Kind, Name, Node, Pos, Slot] as const;
+  const built = schema("Scratch", relations, [
+    nodeTree,
+    parentCopy,
+    followStep,
+    predecessorCopy,
+    lastSlot,
+    elementCount,
+    countedCount,
+    check("N1_sentinel", Node, (n) => n.or(n.gt(n.start, 0n), n.eq(n.state, "0"))),
+    attributeFamily,
+    attributeOwner,
+    attrsFold,
+    choiceFamily,
+    choiceOwner,
+    mirrors(on(Choice, "path", "start"), on(Node, "path", "start")),
+    key(on(Choice, "path", "interaction", "identifier")),
+  ]);
+  const lawsOfStatement = lawsByStatement(built);
+  const lawOf = (statement: (typeof built.statements)[number]): Law =>
+    pipe(
+      Arr.head(lawsOfStatement(statement)),
+      Option.getOrThrowWith(() => new Error("a scratch statement grizzle states no law of")),
+    );
+
+  return {
+    laws: schemaLawsOf(built),
+    named: {
+      attributeFamily: lawOf(attributeFamily),
+      attributeOwner: lawOf(attributeOwner),
+      attrsFold: lawOf(attrsFold),
+      choiceFamily: lawOf(choiceFamily),
+      choiceOwner: lawOf(choiceOwner),
+      countedCount: lawOf(countedCount),
+      elementCount: lawOf(elementCount),
+      lastSlot: lawOf(lastSlot),
+      nodeTree: lawOf(nodeTree),
+      parentCopy: lawOf(parentCopy),
+      predecessorCopy: lawOf(predecessorCopy),
+    },
+  };
+})();
+
+/**
+ * Whether a law side reads the relation and the terms of `expected`, whatever its selection: a
+ * containment Qti states over a selection of its relation reads it so.
+ *
+ * @param side - A side of a law Qti states.
+ * @param expected - The side, as {@link sideOf} builds it.
+ * @returns Whether it reads it.
+ */
+const readsAs = (side: LawSide, expected: LawSide): boolean =>
+  side.relation === expected.relation &&
+  side.terms.length === expected.terms.length &&
+  side.terms.every((term, at) => {
+    const held = expected.terms[at];
+
+    return held !== undefined && term.kind === held.kind && term.field === held.field;
+  });
+
+/**
+ * Build a law side over every fact, as an outcome names one.
+ *
+ * @param name - The relation.
+ * @param terms - Its terms: a field's name, or `pred:field`.
+ * @returns The side.
+ */
+const sideOf = (name: string, ...terms: readonly [string, ...string[]]): LawSide => {
+  const read = pipe(
+    terms,
+    Arr.map((t): LawSide["terms"][number] =>
+      t.startsWith("pred:") ? { field: t.slice(5), kind: "pred" } : { field: t, kind: "field" },
+    ),
+  );
+
+  return { relation: name, selection: { conjuncts: [] }, terms: read };
+};
+
+/**
+ * Collect the laws of {@link statedLaws} named `name` that `where` holds of.
+ *
+ * @param name - The law's name.
+ * @param where - Which of its laws, every one by default.
+ * @returns The laws.
+ */
+const statedNamed = (
+  name: keyof typeof lawTable,
+  where: (law: Law) => boolean = () => true,
+): readonly Law[] =>
+  statedLaws().flatMap(([law, owner]) => (owner === name && where(law) ? [law] : []));
+
+/**
+ * Whether a law is a fold.
+ *
+ * @param law - The law.
+ * @returns Whether it is.
+ */
+const isFold = (law: Law): boolean => law.kind === "fold";
+
+/**
+ * Whether a law is the family over the slots `owner.count`.
+ *
+ * @param owner - The owner relation.
+ * @param count - Its count.
+ * @returns The test.
+ */
+const familyOver =
+  (owner: string, count: string) =>
+  (law: Law): boolean =>
+    law.kind === "family" && law.slots.owner === owner && law.slots.count === count;
+
+/**
+ * Whether a law is a fold over the family of the slots `owner.count`.
+ *
+ * @param owner - The owner relation.
+ * @param count - Its count.
+ * @returns The test.
+ */
+const foldOver =
+  (owner: string, count: string) =>
+  (law: Law): boolean =>
+    law.kind === "fold" && law.family.owner === owner && law.family.count === count;
+
+/**
+ * Whether a law is a containment into `target`.
+ *
+ * @param target - The target relation.
+ * @returns The test.
+ */
+const containedInto =
+  (target: string) =>
+  (law: Law): boolean =>
+    law.kind === "contained" && law.to.relation === target;
+
+/**
+ * Whether a law is a containment from `source` whose terms begin with `fields`, each a field.
+ *
+ * @param source - The source relation.
+ * @param fields - The fields its terms begin with.
+ * @returns The test.
+ */
+const containedFrom =
+  (source: string, ...fields: readonly string[]) =>
+  (law: Law): boolean =>
+    law.kind === "contained" &&
+    law.from.relation === source &&
+    beginsWith(
+      law.from,
+      fields.map((field) => ({ field, kind: "field" as const })),
+    );
+
+/**
+ * The rules of each tier of the spec's order, from what pantry stores through QTI's own rules to
+ * the representation's (the plan's §1.3 to §1.7, reading 228): a refusal that names laws of several
+ * tiers names one of the most specific tier's.
+ */
+const tiers: readonly (readonly Rule[])[] = [
+  ["test-structure", "bank-shape"],
+  [
+    "document-key",
+    "idref-target",
+    "label-tool",
+    "document-lang",
+    "declaration-key",
+    "declaration-reserved",
+    "reserved-type",
+    "declaration-type",
+    "value-cardinality",
+    "typed-copy",
+    "mastery-range",
+    "binding-declared",
+    "binding-fit",
+    "record-binding-fit",
+    "binding-unique",
+    "choice-bounds",
+    "choice-identifier-distinct",
+    "hotspot-default",
+    "feedback-ref",
+    "template-ref",
+    "printed-variable-ref",
+    "context-variable-ref",
+    "pci-module-source",
+    "slider-bounds",
+    "max-strings-required",
+    "aria-value-range",
+    "adaptive-feedback",
+    "P2",
+    "P8",
+    "variable-kind",
+    "P20",
+    "P21",
+    "P22",
+    "P23",
+    "P24",
+    "P25",
+    "P26",
+    "P27",
+    "mapping-base-type",
+    "lookup-cardinality",
+    "lom-identifier",
+    "lom-title",
+    "structure-identifier",
+    "bank-key",
+    "stimulus-ref-key",
+    "item-ref-target",
+    "item-ref-identifier",
+    "stimulus-ref-target",
+    "include-target",
+    "include-root",
+    "inclusion-cycle",
+    "entry-kind",
+    "root-type-reverse",
+    "file-listed",
+    "file-exists",
+    "href-listed",
+    "self-dependency",
+  ],
+  ["math-arity", "ssml-fragment", "include-href"],
+  [
+    "xsi-type",
+    "required-attribute",
+    "attribute-count",
+    "attribute-lexical",
+    "text-copy",
+    "attribute-admission",
+  ],
+  ["ancestry-ban", "owner-copy", "ordering", "child-set", "union-count", "admission"],
+  [
+    "media-data",
+    "media-path",
+    "media-type",
+    "media-style",
+    "media-entity",
+    "media-foreign",
+    "entry-used",
+  ],
+  [
+    "key-text-bound",
+    "href-form",
+    "fragment-context",
+    "well-formedness",
+    "unmodeled-vocabulary",
+    "derived",
+    "reachability",
+  ],
+];
+
+/**
+ * Read the tier of a rule: its place in {@link tiers}.
+ *
+ * @param rule - The rule.
+ * @returns Its tier, from 0, or the number of tiers for a rule of none.
+ */
+const tierOf = (rule: Rule): number => {
+  const at = tiers.findIndex((tier) => tier.includes(rule));
+
+  return at === -1 ? tiers.length : at;
+};
+
+/**
+ * Read the rule of each law of a set by its name, straight from the table.
+ *
+ * @param laws - The laws.
+ * @returns Their rules, one per law the table owns, repeats and order kept.
+ */
+const lawRules = (laws: readonly Law[]): readonly (typeof precedence)[number][] =>
+  laws.flatMap((law) =>
+    Option.toArray(Option.map(schemaLawNameOf(law), (name) => lawTable[name].rule)),
+  );
+
+/**
+ * Write rules as one text, so two listings compare by a string's equality.
+ *
+ * @param named - The rules.
+ * @returns Them, space separated.
+ */
+const listed = (named: readonly string[]): string => named.join(" ");
+
+/**
+ * Check the rules of one set of laws one native object carries: every rule of its laws, each once
+ * and no other, most specific first by the precedence, whatever the laws' order or repeats, and
+ * the first of the most specific tier among them. No law is singled out: a refusal carries them
+ * all.
+ *
+ * @param laws - The laws, in any order, with any repeats.
+ */
+const assertRules = (laws: Arr.NonEmptyReadonlyArray<Law>): void => {
+  const rules = schemaRulesOf(laws);
+  const expected = Arr.dedupe(lawRules(laws)).toSorted(
+    (a, b) => precedence.indexOf(a) - precedence.indexOf(b),
+  );
+  const reversed = schemaRulesOf(Arr.reverse(laws));
+  // A repeat is a drawn law again, the same value, so the set keeps each value once.
+  const once = schemaRulesOf(Arr.dedupeWith(laws, (a, b) => a === b));
+  const [first] = rules;
+  if (
+    first !== undefined &&
+    listed(rules) === listed(expected) &&
+    listed(reversed) === listed(rules) &&
+    listed(once) === listed(rules) &&
+    tierOf(first) === Math.min(...rules.map(tierOf))
+  ) {
+    return;
+  }
+
+  const identities = laws.map((law) => Formatter.format(law)).join(" & ");
+  assert.isNotEmpty(rules, identities);
+  assert.deepStrictEqual(rules, expected, identities);
+  assert.deepStrictEqual(reversed, rules, identities);
+  assert.deepStrictEqual(once, rules, identities);
+  if (first !== undefined) {
+    assert.strictEqual(tierOf(first), Math.min(...rules.map(tierOf)), identities);
+  }
+};
+
+/**
+ * The axes {@link plannedAxes} names, the features the precedence's exhaustion must reach.
+ */
+const axisLabels = [
+  "Node owner",
+  "Node predecessor",
+  "Node last",
+  "Attribute owner",
+  "Attribute predecessor and last",
+  "OpenAttribute owner",
+  "Idref owner",
+  "Idref predecessor and last",
+  "Namespace",
+  "Choice",
+] as const;
+
+/**
+ * One of {@link axisLabels}.
+ */
+type AxisLabel = (typeof axisLabels)[number];
+
+/**
+ * Hold a list of laws nonempty, failing the suite where a planned group lost its laws.
+ *
+ * @param what - What the laws are, for the failure.
+ * @param laws - The laws.
+ * @returns The laws.
+ */
+const nonEmpty = <A>(what: string, laws: readonly A[]): Arr.NonEmptyReadonlyArray<A> =>
+  Arr.isReadonlyArrayNonEmpty(laws) ? laws : assert.fail(`${what}: no stated law`);
+
+/**
+ * Build a planned axis from groups of stated laws, with the rule the spec's order names for it.
+ *
+ * @param label - The axis.
+ * @param rule - Its rule.
+ * @param groups - Its laws, by group.
+ * @returns The axis.
+ */
+const plannedAxis = (
+  label: AxisLabel,
+  rule: Rule,
+  ...groups: readonly (readonly Law[])[]
+): Axis & { readonly label: AxisLabel; readonly rule: Rule } => ({
+  label,
+  laws: nonEmpty(label, groups.flat()),
+  rule,
+});
+
+/**
+ * The merged axes of the schema's families as `node.ts`, `chardata.ts` and `attributes.ts` state
+ * them, each with the rule its refusal names under the spec's order: a content-order law over the
+ * tree's own, and an attribute law over its family's.
+ */
+const plannedAxes = nonEmpty("the planned axes", [
+  plannedAxis("Node owner", "reachability", statedNamed("N2 tree"), statedNamed("T3 first child")),
+  plannedAxis(
+    "Node predecessor",
+    "ordering",
+    statedNamed("N2 tree"),
+    statedNamed("N5 fold"),
+    statedNamed("N7 Counted"),
+    statedNamed("N7 barred by"),
+    statedNamed("E1 derived", foldOver("Node", "children")),
+  ),
+  plannedAxis(
+    "Node last",
+    "ordering",
+    statedNamed("N2 tree"),
+    statedNamed("N7 last slot"),
+    statedNamed("N5 fold", isFold),
+    statedNamed("N7 Counted"),
+    statedNamed("N7 barred by"),
+    statedNamed("E1 derived", foldOver("Node", "children")),
+  ),
+  plannedAxis(
+    "Attribute owner",
+    "attribute-admission",
+    statedNamed("AL2 count", familyOver("Node", "attributes")),
+    statedNamed("AL1 owner", containedFrom("Attribute", "package", "path", "start", "kind")),
+  ),
+  plannedAxis(
+    "Attribute predecessor and last",
+    "attribute-admission",
+    statedNamed("AL2 count", familyOver("Node", "attributes")),
+    statedNamed("AL2 fold"),
+  ),
+  plannedAxis(
+    "OpenAttribute owner",
+    "attribute-admission",
+    statedNamed("AL2 count", familyOver("Node", "openAttributes")),
+    statedNamed("AL1 owner", containedFrom("OpenAttribute", "package", "path", "start", "kind")),
+  ),
+  plannedAxis(
+    "Idref owner",
+    "derived",
+    statedNamed("E1 derived", familyOver("Attribute", "idrefs")),
+  ),
+  plannedAxis(
+    "Idref predecessor and last",
+    "derived",
+    statedNamed("E1 derived", familyOver("Attribute", "idrefs")),
+    statedNamed("E1 derived", foldOver("Attribute", "idrefs")),
+  ),
+  plannedAxis(
+    "Namespace",
+    "reachability",
+    statedNamed("Namespace family", containedFrom("Namespace", "package", "path", "start")),
+  ),
+  plannedAxis(
+    "Choice",
+    "owner-copy",
+    statedNamed("N8 nearest", familyOver("Interaction", "choices")),
+  ),
+]);
+
+/**
+ * The laws one refusal may name together across the tiers: a law of each tier, a family law of
+ * the QTI tier among them, so a set drawn from it meets every pair of tiers.
+ */
+const crossTier = nonEmpty("the cross-tier laws", [
+  ...statedNamed("Binding declared", containedInto("Declaration")),
+  ...statedNamed("Choice bounds"),
+  { kind: "check", name: checkNameOf("MathML arity"), relation: "Node" } satisfies Law,
+  ...statedNamed("AL1 owner", containedFrom("Attribute", "package", "path", "start", "kind")),
+  { kind: "check", name: checkNameOf("N5 Follow"), relation: "Node" } satisfies Law,
+  ...statedNamed("N7 last slot"),
+  ...statedNamed("N2 tree"),
+  ...statedNamed("E1 derived", foldOver("Node", "children")),
+]);
+
+describe("the law table", () => {
+  it("ranks every rule a law keeps, each once, and no rule no law keeps", () => {
+    // Oracle: the law table itself, each law's rule. Bound: every law of the table and every rule
+    // the precedence lists, exhausted.
+    const owned: ReadonlySet<Rule> = new Set(Object.values(lawTable).map(({ rule }) => rule));
+
+    assert.strictEqual(new Set(precedence).size, precedence.length, "a rule ranks twice");
+    assert.deepStrictEqual(
+      [...owned].toSorted(),
+      [...precedence].toSorted(),
+      "the precedence is exactly the rules the laws keep",
+    );
+    for (const rule of precedence) {
+      assert.isTrue(Schema.is(ImportRule)(rule), rule);
+    }
+
+    for (const rule of limitRules) {
+      assert.include(precedence, rule, "a limit's rule ranks among the laws'");
+    }
+  });
+});
+
+/**
+ * Write a set of laws as one value to compare: each law's text, sorted. An axis's laws are a set,
+ * the laws one `some` refusal names together, and `lawsOf` lists them in its canonical order, not
+ * as the schema declares them.
+ *
+ * @param laws - The laws.
+ * @returns Their texts, sorted.
+ */
+const asSet = (laws: readonly Law[]): readonly string[] =>
+  laws.map((law) => Formatter.format(law)).toSorted();
+
+describe("the merged axes and the laws no row states", () => {
+  it("reads every merged axis of the scratch schema as grizzle generates its foreign key", () => {
+    const axes = mergedAxes(scratch.laws);
+    const {
+      attributeFamily,
+      attributeOwner,
+      attrsFold,
+      choiceFamily,
+      choiceOwner,
+      countedCount,
+      elementCount,
+      lastSlot,
+      nodeTree,
+      parentCopy,
+      predecessorCopy,
+    } = scratch.named;
+
+    assert.deepStrictEqual(
+      Object.fromEntries(axes.map(({ label, laws }) => [label, asSet(laws)])),
+      {
+        "Attribute last": asSet([attributeFamily, attrsFold]),
+        "Attribute owner": asSet([attributeFamily, attributeOwner]),
+        "Attribute predecessor": asSet([attributeFamily, attrsFold]),
+        "Choice owner": asSet([choiceFamily, choiceOwner]),
+        "Choice predecessor and last": asSet([choiceFamily]),
+        "Node last": asSet([nodeTree, lastSlot, elementCount, countedCount]),
+        "Node owner": asSet([nodeTree, parentCopy]),
+        "Node predecessor": asSet([nodeTree, predecessorCopy, elementCount, countedCount]),
+      },
+    );
+  });
+
+  it("names no rule for laws no row states, and still carries each law as the outcome names it", () => {
+    // Oracle: the outcome itself, read back field by field: its decision, the law's display text
+    // with no name or rule, no source, the witness's kind, and no rule.
+    const law: Law = {
+      from: sideOf("Nowhere", "x"),
+      kind: "contained",
+      to: sideOf("Node", "path", "start"),
+    };
+    const refused = refusalOf({ kind: "every", laws: [refusedOf(law)] }, { kind: "unreported" });
+
+    assert.deepStrictEqual(refused.rules, []);
+    assert.deepStrictEqual(refused.origin, {
+      _tag: "Database",
+      kind: "every",
+      laws: [{ text: Formatter.format(law) }],
+      sources: [],
+      witness: "unreported",
+    });
+    assert.isTrue(
+      refused.message.startsWith(
+        "The package was refused under laws no rule of the law table names: ",
+      ),
+      refused.message,
+    );
+    assert.isTrue(Option.isNone(schemaRuleOfLaw(law)));
+  });
+
+  it("gives each law the installed name of the constraint or domain that refused it, whatever the law's kind, and none where a write statement or a generated column's NOT NULL did", () => {
+    // Oracle: grizzle's `RefusedLaw.by` (`RefusingObject`, `types/changeset/changeset.ts` at the
+    // vendored commit): a table's constraint and a domain's CHECK carry the name PostgreSQL holds
+    // them under, and a write statement and a generated column's NOT NULL carry none, so the
+    // refusal reads the name off the refusing object and nothing off the schema. Bound: a check Qti
+    // states (AL1's admission), a check it does not (a media install's media path), a primary key,
+    // a contract and a generated field's law, each refused by each kind of object; exhausted.
+    const laws: readonly Law[] = [
+      { kind: "check", name: checkNameOf("AL1 admission"), relation: "Attribute" },
+      { kind: "check", name: checkNameOf("Media path"), relation: "Attribute" },
+      { fields: ["identifier"], kind: "primaryKey", relation: "Package" },
+      { contract: "natural", kind: "contract" },
+      { field: "value", kind: "generated", relation: "DocumentLang" },
+    ];
+    const objects = [
+      [{ kind: "constraint", name: "planted_constraint" }, Option.some("planted_constraint")],
+      [{ kind: "domain", name: "planted_domain_check" }, Option.some("planted_domain_check")],
+      [{ kind: "statement" }, Option.none()],
+      [{ kind: "notNull" }, Option.none()],
+    ] as const;
+
+    for (const law of laws) {
+      for (const [by, installed] of objects) {
+        const refused = refusalOf(
+          { kind: "every", laws: [{ by, id: "", law }] },
+          { kind: "unreported" },
+        );
+        const [fact] = refused.origin._tag === "Database" ? refused.origin.laws : [];
+
+        assert.deepStrictEqual(
+          Option.fromUndefinedOr(fact?.installed),
+          installed,
+          `${Formatter.format(law)}, refused by a ${by.kind}`,
+        );
+      }
+    }
+  });
+});
+
+/**
+ * One set of laws a native object carries: its axis and the laws, in drawn order, with repeats.
+ */
+interface Carried {
+  readonly axis: string;
+  readonly laws: Arr.NonEmptyReadonlyArray<Law>;
+}
+
+/**
+ * Every nonempty sequence of at most `max` of one axis's laws, repeats allowed: each order and
+ * repeat of each subset.
+ *
+ * @param axes - The axes, the first the simplest.
+ * @param max - The longest sequence.
+ * @returns The generator.
+ */
+const carriedOf =
+  (axes: Arr.NonEmptyReadonlyArray<Axis>, max: number): Gen<Carried> =>
+  (source) => {
+    const axis = source.draw(element(axes));
+    const laws = source.draw(array(element(axis.laws), { max, min: 1 }));
+    const [first, ...rest] = laws;
+
+    return { axis: axis.label, laws: first === undefined ? axis.laws : [first, ...rest] };
+  };
+
+/**
+ * Write a drawn set of laws as an exhaustion reports it.
+ *
+ * @param carried - The set.
+ * @returns Its axis and its laws, as grizzle names them.
+ */
+const carriedText = ({ axis, laws }: Carried): string =>
+  `${axis}: ${laws.map((law) => Formatter.format(law)).join(" & ")}`;
+
+/**
+ * Each adjacent pair of {@link precedence}, the rule a refusal names first and the one after it,
+ * with the reading or source that orders them: the spec's tiers (the precedence's own comment, the
+ * plan's §1.3 to §1.7) between tiers, and within one the dependency or the section order that puts
+ * the one before the other. A data mutant of the precedence, two rules swapped, breaks its pair
+ * here, where no differential can see it: no one cause breaks both rules of a pair such as
+ * `binding-declared` and `binding-fit`, since BindingFit reads the declaration Binding declared
+ * proves exists.
+ */
+const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
+  [
+    "test-structure",
+    "bank-shape",
+    "spec reading 1's limits on what pantry stores: a test's structure outside a bank before a bank's own shape, since a test is refused whole (reading 228)",
+  ],
+  [
+    "bank-shape",
+    "document-key",
+    "the tiers: what pantry stores before QTI's own rules, so a test or a section that is no bank is named for that first, whatever else its content breaks (reading 228)",
+  ],
+  [
+    "document-key",
+    "item-key",
+    "O1 (plan §1.7): a document's own IDs before the package's item identities, the narrower scope first",
+  ],
+  [
+    "item-key",
+    "idref-target",
+    "O1 (plan §1.7): an item's identity in its package stands before every reference a document makes",
+  ],
+  [
+    "idref-target",
+    "table-headers",
+    "reading 126: a cell's headers are IDREFs held to a th of its own table, Idref target's narrower case",
+  ],
+  [
+    "table-headers",
+    "label-tool",
+    "O1 (plan §1.7): references before a label's tools (reading 128)",
+  ],
+  [
+    "label-tool",
+    "card-support",
+    "O1 (phase-9-n §4.1): the catalog's rules join the identity tier after label-tool (reading R9-a)",
+  ],
+  [
+    "card-support",
+    "card-default",
+    "reading R9-a: a card's support (§5.26.1) before the entries it holds (§5.27.2), section order and containment",
+  ],
+  [
+    "card-default",
+    "document-lang",
+    "O1 (phase-9-n §4.1): the catalog's rules before the document's language (R26), an element's own identity first",
+  ],
+  ["document-lang", "declaration-key", "the tiers: O1 before O2 (plan §1.7)"],
+  [
+    "declaration-key",
+    "declaration-reserved",
+    "O2 (plan §1.7): one declaration per identifier before what the identifier may be (reading 72)",
+  ],
+  [
+    "declaration-reserved",
+    "reserved-type",
+    "reading 72: a reserved name is refused before a reserved variable's type is judged",
+  ],
+  [
+    "reserved-type",
+    "declaration-type",
+    "O2: a built-in variable's fixed type before a declared variable's (§5.42)",
+  ],
+  [
+    "declaration-type",
+    "value-cardinality",
+    "O2: a declaration's type before its values' count (§5.42, §5.125)",
+  ],
+  ["value-cardinality", "typed-copy", "O2: a value set's count before each value's lexical form"],
+  [
+    "typed-copy",
+    "mastery-range",
+    "O2: each value's form before the range its number is read in (§5.107)",
+  ],
+  ["mastery-range", "binding-declared", "the tiers: O2 before O3 (plan §1.7)"],
+  [
+    "binding-declared",
+    "binding-fit",
+    "readings 75 and 92: BindingFit reads the declaration Binding declared proves exists, so the undeclared binding is the cause",
+  ],
+  [
+    "binding-fit",
+    "record-binding-fit",
+    "reading 92: a record response's fit is the record arm of the same binding, read after its base type and cardinality",
+  ],
+  [
+    "record-binding-fit",
+    "binding-unique",
+    "reading 92: a binding's fit before the variable's one binding",
+  ],
+  ["binding-unique", "choice-bounds", "O3 (plan §1.7): bindings before choice counts (reading 18)"],
+  [
+    "choice-bounds",
+    "choice-identifier-distinct",
+    "O3: a choice's count before its identifiers (reading 104)",
+  ],
+  [
+    "choice-identifier-distinct",
+    "hotspot-default",
+    "O3: the choices' identifiers before a default hotspot's place (reading 80)",
+  ],
+  [
+    "hotspot-default",
+    "feedback-ref",
+    "O3: an interaction's own content before the references it makes (§2.4)",
+  ],
+  [
+    "feedback-ref",
+    "template-ref",
+    "O3's references in the plan's order: feedback (§5.49), then template (§5.169)",
+  ],
+  [
+    "template-ref",
+    "printed-variable-ref",
+    "O3's references in the plan's order: template, then printed variable (§7.30)",
+  ],
+  [
+    "printed-variable-ref",
+    "context-variable-ref",
+    "O3's references in the plan's order: printed variable, then context variable (§5.39)",
+  ],
+  [
+    "context-variable-ref",
+    "pci-module-source",
+    "O3: references before a PCI's module source (R10-a)",
+  ],
+  [
+    "pci-module-source",
+    "slider-bounds",
+    "O3: a PCI's module source before an interaction's numeric bounds (§5.137)",
+  ],
+  [
+    "slider-bounds",
+    "max-strings-required",
+    "O3: a slider's bounds before an extended text's string count (reading 92's cardinality kinds)",
+  ],
+  ["max-strings-required", "aria-value-range", "O3: QTI's counts before ARIA's range (reading 91)"],
+  [
+    "aria-value-range",
+    "adaptive-feedback",
+    "O3: an attribute's own range (reading 48) before the item's adaptive flag (Q5.09)",
+  ],
+  ["adaptive-feedback", "source-srcset", "the tiers: O3 before the HTML content (plan §1.7)"],
+  ["source-srcset", "source-src", "reading 124: a picture's source, then a media element's"],
+  ["source-src", "track-srclang", "readings 124, then 125"],
+  ["track-srclang", "q-punctuation", "readings 125, then 127"],
+  ["q-punctuation", "P2", "the tiers: the HTML content before O4 (plan §1.7)"],
+  ["P2", "P8", "O4: an operator's arity (P2, §2.11.3) before the variables it reads (P8)"],
+  ["P8", "P10", "O4: a variable's declaration before a rounding operator's figures (reading 119)"],
+  ["P10", "P36", "readings 119, then 121: the rounding figures before the tolerance"],
+  [
+    "P36",
+    "variable-kind",
+    "O4: an operator's own attributes before what kind of variable a reference names",
+  ],
+  ["variable-kind", "P20", "O4: a reference's kind before the old checker's rules (Q5.10)"],
+  ["P20", "P21", "the old processing checker's numbering (Q5.10)"],
+  ["P21", "P22", "the old processing checker's numbering (Q5.10)"],
+  ["P22", "P23", "the old processing checker's numbering (Q5.10)"],
+  ["P23", "P24", "the old processing checker's numbering (Q5.10)"],
+  ["P24", "P25", "the old processing checker's numbering (Q5.10)"],
+  ["P25", "P26", "the old processing checker's numbering (Q5.10)"],
+  ["P26", "P27", "the old processing checker's numbering (Q5.10)"],
+  ["P27", "mapping-base-type", "the tiers: O4 before O5 (plan §1.7)"],
+  [
+    "mapping-base-type",
+    "lookup-cardinality",
+    "O5 (plan §1.7): a mapping's base type (§5.5) before a lookup table's cardinality",
+  ],
+  ["lookup-cardinality", "lom-identifier", "the tiers: O5 before O6 (plan §1.7)"],
+  ["lom-identifier", "lom-title", "reading 62: the record's identifier before its title"],
+  ["lom-title", "lom-learning-resource-type", "O6: readings 62, then 122"],
+  [
+    "lom-learning-resource-type",
+    "structure-identifier",
+    "O6 before O7 (plan §1.7): the metadata's laws before a bank's names",
+  ],
+  [
+    "structure-identifier",
+    "bank-key",
+    "O7 (plan §1.7): a bank's names within its document before its identity across the package, the narrower scope first (reading 228)",
+  ],
+  [
+    "bank-key",
+    "stimulus-ref-key",
+    "O7 (plan §1.7): a bank's identity before an item's stimulus refs",
+  ],
+  [
+    "stimulus-ref-key",
+    "item-ref-target",
+    "O7: an item's stimulus refs before what an item ref names (B2, B3)",
+  ],
+  [
+    "item-ref-target",
+    "item-ref-identifier",
+    "B2 and B3 before QTI §4.1.1: an item ref names its item before its identifier is held to that item's (reading 228)",
+  ],
+  [
+    "item-ref-identifier",
+    "stimulus-ref-target",
+    "O7 (plan §1.7): a bank member's identity before a stimulus ref's target, both what a reference names",
+  ],
+  ["stimulus-ref-target", "include-target", "O7: refs before includes (reading 115)"],
+  [
+    "include-target",
+    "include-root",
+    "reading 115: an include names a document before its root is judged (reading 114)",
+  ],
+  [
+    "include-root",
+    "inclusion-cycle",
+    "readings 114, then 85: an include's target before the chain it closes",
+  ],
+  ["inclusion-cycle", "entry-kind", "the tiers: O7 before packaging's P1 to P4 (plan §1.6)"],
+  [
+    "entry-kind",
+    "root-type-reverse",
+    "reading 93 and package.ts's P3: a path's listing before the type of the root it lists, so a path listed under two document types is named for its listing, the cause (Decided 2026-11-07 by the coordinator, under Bjorn's standing ruling of 2026-11-05, from seat OL (0b4d8ec9)). Since reading 162 the path is typed by the listing its root bears out, so both laws break only where its root fits neither type; there PostgreSQL's immediate RootOfType check reports root-type-reverse before the deferred Document entry key, and the import names that, a stated limit of package.ts's rule, while the law oracle names entry-kind by this order",
+  ],
+  [
+    "root-type-reverse",
+    "file-listed",
+    "readings 93, then 33: a listed document's root type before the files a resource lists",
+  ],
+  ["file-listed", "file-exists", "P2: a listed file before the file it names exists"],
+  ["file-exists", "href-listed", "P3: a file's existence before a resource's href among its files"],
+  ["href-listed", "self-dependency", "P4: hrefs before dependencies (IMS Content Packaging 1.2)"],
+  ["self-dependency", "math-arity", "the tiers: packaging before the embedded languages"],
+  [
+    "math-arity",
+    "ssml-fragment",
+    "the embedded languages: reading 2 (MathML), then reading 3 (SSML)",
+  ],
+  [
+    "ssml-fragment",
+    "include-href",
+    "the embedded languages: SSML, then XInclude's href (reading 85)",
+  ],
+  ["include-href", "xsi-type", "the tiers: the embedded languages before XML Schema's assessment"],
+  [
+    "xsi-type",
+    "required-attribute",
+    "XML Schema's assessment: an element's governing type (reading 47) before the attributes it requires (AL3)",
+  ],
+  [
+    "required-attribute",
+    "attribute-count",
+    "AL3's required attributes before AL5's count (readings 41 and 43)",
+  ],
+  ["attribute-count", "attribute-lexical", "an attribute's count before its value's lexical form"],
+  ["attribute-lexical", "text-copy", "an attribute's form before an element's text (TextDomain)"],
+  [
+    "text-copy",
+    "attribute-admission",
+    "a governed value before whether its attribute is admitted at all (AL1), the assessment's most general",
+  ],
+  [
+    "attribute-admission",
+    "ancestry-ban",
+    "the tiers: XML Schema's assessment before the content model",
+  ],
+  [
+    "ancestry-ban",
+    "owner-copy",
+    "the content model: the ancestry bans (N6), then the nearest interaction (N8)",
+  ],
+  [
+    "owner-copy",
+    "ordering",
+    "the content model: the nearest interaction before the automaton's order (N5 Follow)",
+  ],
+  [
+    "ordering",
+    "child-set",
+    "a content-order law over a family law: the automaton's order before the counts it relaxes (N7)",
+  ],
+  [
+    "child-set",
+    "union-count",
+    "the content model: the counts the automaton relaxes, then a union's count",
+  ],
+  [
+    "union-count",
+    "admission",
+    "the content model: the family's end before admission, the most general (N5 admitted)",
+  ],
+  [
+    "admission",
+    "media-data",
+    "the tiers: the content model before a package-media install's policy, so content that is not valid QTI is named by the rule that says so",
+  ],
+  [
+    "media-data",
+    "media-path",
+    "the install's policy: a data: address is the cause its address outside the package follows from (media.ts)",
+  ],
+  [
+    "media-path",
+    "media-type",
+    "the install's policy: an address that names no file of the package before the type of the file it names, which only a path in the package has (media.ts)",
+  ],
+  [
+    "media-type",
+    "media-style",
+    "the install's policy: a file the player fetches before a style that fetches, which no fetched field is (media.ts)",
+  ],
+  [
+    "media-style",
+    "media-entity",
+    "the install's policy: what a value says it fetches before what an entity it keeps may make it fetch (media.ts)",
+  ],
+  [
+    "media-entity",
+    "media-foreign",
+    "the install's policy: markup it reads before markup pantry cannot read (media.ts)",
+  ],
+  [
+    "media-foreign",
+    "entry-used",
+    "the install's policy: what a document holds before a file no document names (media.ts)",
+  ],
+  [
+    "entry-used",
+    "lom-vocabulary",
+    "the tiers: a package-media install's policy before an install's LOM policy (lom.ts), what a player fetches before what a package states of itself",
+  ],
+  [
+    "lom-vocabulary",
+    "lom-vcard",
+    "the LOM policy: a term of a record before the vCard a contribute names (IEEE 1484.12.1 §4.4, 2.3.2)",
+  ],
+  [
+    "lom-vcard",
+    "package-identity",
+    "the LOM policy: what one row of a record writes before what the manifest's record states of the package (lom.ts)",
+  ],
+  [
+    "package-identity",
+    "package-classification",
+    "the LOM policy: the package's identity (QTI 3.0 Metadata §2.7.1.1) before what it is about (§2.7.9)",
+  ],
+  [
+    "package-classification",
+    "package-credit",
+    "the LOM policy: what the package is about before who made it (decisions 1 and 12)",
+  ],
+  [
+    "package-credit",
+    "source-pointer",
+    "the LOM policy: who made the package before what it was made from (decision 7)",
+  ],
+  [
+    "source-pointer",
+    "package-relation-target",
+    "the LOM policy: the package's own statements before the stored packages its relations name (decision 4)",
+  ],
+  [
+    "package-relation-target",
+    "version-lesson",
+    "the LOM policy: a named package that is stored before its being of the same lesson (decision 3), which only a stored one can be",
+  ],
+  [
+    "version-lesson",
+    "one-head",
+    "the LOM policy: each version a package names before the lesson's one head they leave (decision 5)",
+  ],
+  [
+    "one-head",
+    "deletion-version",
+    "the LOM policy: the lesson's head before what a head is, content or a deletion (decision 28)",
+  ],
+  [
+    "deletion-version",
+    "key-text-bound",
+    "the tiers: an install's policy before the document layer",
+  ],
+  [
+    "key-text-bound",
+    "href-form",
+    "the document layer: its stated limits first, in limitRules' order, the key-text bound (reading 133) before the href form (reading 102)",
+  ],
+  [
+    "href-form",
+    "fragment-context",
+    "limitRules' order: the href form (reading 102), then the fragment's one context (reading 117)",
+  ],
+  [
+    "fragment-context",
+    "namespace-name",
+    "the document layer: its stated limits before its laws, the first a namespace name (reading 131)",
+  ],
+  [
+    "namespace-name",
+    "well-formedness",
+    "the document layer: foreign names before the reader's productions (XML 1.0)",
+  ],
+  [
+    "well-formedness",
+    "unmodeled-vocabulary",
+    "the document layer: a production's breach before a name no vocabulary models",
+  ],
+  ["unmodeled-vocabulary", "derived", "the document layer: names before the derived fields (E1)"],
+  [
+    "derived",
+    "reachability",
+    "the document layer: the derived fields before the tree itself (N2), the most general",
+  ],
+];
+
+describe("the rules of the laws one native object carries, in the precedence's order", () => {
+  it("holds each adjacent pair of the precedence to the reading or source that orders it", () => {
+    // Oracle: the readings and the plan's tiers, pair by pair (precedencePairs). Bound: every
+    // adjacent pair of the 111 rules, so a swap of any two neighbours, or a rule moved or added,
+    // breaks a pair, and the message names it.
+    assert.deepStrictEqual(
+      precedencePairs.map(([earlier, later]) => `${earlier} before ${later}`),
+      precedence.slice(1).map((later, at) => `${precedence[at] ?? ""} before ${later}`),
+      "the precedence's order, pair by pair against the reading that orders each",
+    );
+    assert.isTrue(precedencePairs.every((pair) => pair[2].length > 0));
+  });
+
+  it("lists each planned axis's rules with the one the spec's order names first", () => {
+    for (const { label, laws, rule } of plannedAxes) {
+      assert.isAbove(laws.length, 0, label);
+      assert.deepStrictEqual(Arr.head(schemaRulesOf(laws)), Option.some(rule), label);
+    }
+  });
+
+  it.effect(
+    "lists the rules of every sequence of at most 4 of each planned axis's laws, any order and repeats, each once, most specific first",
+    (ctx) =>
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every nonempty sequence of at most 4 laws, repeats allowed, of each of the 10 planned axes (at most 6 laws each)",
+            caseHang: Duration.seconds(10),
+            concurrency: searchWidth,
+            coverage: requiredInSpace<AxisLabel>(axisLabels),
+            generator: carriedOf(plannedAxes, 4),
+            literal: carriedText,
+            oracle: {
+              kind: "specification",
+              name: "the plan's tiers (§1.3 to §1.7): a QTI rule over a tree law, a content-order law over a family law",
+            },
+            suite: "import/refusal/precedence-axes",
+          },
+          (carried, c) =>
+            Effect.sync(() => {
+              const label = axisLabels.find((known) => known === carried.axis);
+              if (label !== undefined) {
+                c.note(label);
+              }
+
+              assertRules(carried.laws);
+            }),
+        ),
+      ),
+  );
+
+  it.effect(
+    "lists the rules of every sequence of at most 3 laws across the tiers each once, most specific first",
+    (ctx) =>
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every nonempty sequence of at most 3 of 8 laws spanning the five tiers, repeats allowed",
+            caseHang: Duration.seconds(10),
+            concurrency: searchWidth,
+            coverage: requiredInSpace<"cross-tier">(["cross-tier"]),
+            generator: carriedOf([{ label: "cross-tier", laws: crossTier }], 3),
+            literal: carriedText,
+            oracle: {
+              kind: "specification",
+              name: "the plan's tiers (§1.3 to §1.7): a QTI rule over a tree law, a content-order law over a family law",
+            },
+            suite: "import/refusal/precedence-tiers",
+          },
+          (carried, c) =>
+            Effect.sync(() => {
+              c.note("cross-tier");
+              assertRules(carried.laws);
+            }),
+        ),
+      ),
+  );
+});
+
+describe("the refusals made before the database", () => {
+  it("names each reader, container and codec refusal by the rule the law oracle states for it", () => {
+    const cases: readonly (readonly [ReadRefusal, Rule])[] = [
+      ...(["element", "attribute"] as const).flatMap((kind) =>
+        unmodeledReasons.map(
+          (reason) =>
+            [
+              new UnmodeledVocabulary({ kind, name: "x", parent: Option.none(), reason }),
+              reason === "unadmitted" ? "attribute-admission" : "unmodeled-vocabulary",
+            ] as const,
+        ),
+      ),
+      [new XmlVersionRefused({ found: "2.0" }), "xml-version"],
+      [new PackageReadError({ dir: "d", path: "p", rule: "manifest-root" }), "manifest-root"],
+      [new PackageReadError({ dir: "d", path: "p", rule: "entry-path" }), "href-path"],
+      ...(["manifest-root", "href-path", "zip-format"] as const).map(
+        (rule) => [new ZipRefusal({ entry: "e", feature: "f", rule }), rule] as const,
+      ),
+      ...(
+        [
+          "decode",
+          "unsupported-encoding",
+          "encoding-mismatch",
+          "nul",
+          "undeclared-entity",
+          "entity-cycle",
+          "entity-expansion",
+        ] as const
+      ).map(
+        (rule) =>
+          [
+            new ReaderRefusal({ detail: "d", position: Option.none(), rule }),
+            "reader-refusal",
+          ] as const,
+      ),
+      [new WellFormednessError({ column: 1, line: 1, message: "m" }), "well-formedness"],
+    ];
+
+    for (const [error, rule] of cases) {
+      assert.deepStrictEqual(ruleOfError(error).rules, [rule], error._tag);
+    }
+
+    const refused = new ImportRefused({ detail: "x", origin: readerOrigin, rules: ["admission"] });
+    assert.strictEqual(ruleOfError(refused), refused);
+  });
+
+  it("names a reader refusal's line and column when it has a position, as a well-formedness error's", () => {
+    const placed = ruleOfError(
+      new ReaderRefusal({
+        detail: "d",
+        position: Option.some({ column: 7, line: 3 }),
+        rule: "element-depth",
+      }),
+    );
+    const unplaced = ruleOfError(
+      new ReaderRefusal({ detail: "d", position: Option.none(), rule: "element-depth" }),
+    );
+
+    assert.deepStrictEqual(placed.rules, ["reader-refusal"]);
+    assert.isTrue(placed.detail.endsWith(" at line 3, column 7"), placed.detail);
+    assert.deepStrictEqual(unplaced.rules, ["reader-refusal"]);
+    assert.notInclude(unplaced.detail, " at line ");
+  });
+});
+
+/**
+ * The pattern law of a field of the small schema of the per-field test, `Club`'s, of `^[a-z]*$`.
+ *
+ * @param field - The field.
+ * @returns Its law.
+ */
+const clubLaw = (field: string): Extract<Law, { readonly kind: "pattern" }> => ({
+  field,
+  kind: "pattern",
+  patterns: [{ flags: "u", source: "^[a-z]*$" }],
+  relation: "Club",
+});
+
+/**
+ * The pattern law `Qti` states of one field, as {@link statedLaws} names it.
+ *
+ * @param owner - The field's relation.
+ * @param field - The field.
+ * @returns Its law; a field with none fails the test, naming it.
+ */
+const statedPatternLaw = (
+  owner: string,
+  field: string,
+): Extract<Law, { readonly kind: "pattern" }> =>
+  pipe(
+    Arr.findFirst(
+      statedLaws().flatMap(([law]) => (law.kind === "pattern" ? [law] : [])),
+      (law) => law.relation === owner && law.field === field,
+    ),
+    Option.getOrThrowWith(() => new Error(`${owner}.${field} states no pattern law`)),
+  );
+
+/**
+ * The keys a table names more than once, for a census's message.
+ *
+ * @param rows - The table's rows, each a key and its law's name.
+ * @returns Each repeated key, once.
+ */
+const repeatedIn = (rows: readonly (readonly [string, LawName])[]): readonly string[] => {
+  const keys = rows.map(([named]) => named);
+
+  return Arr.dedupe(keys.filter((named, at) => keys.indexOf(named) !== at));
+};
+
+describe("the pattern laws, one per field", () => {
+  it("names each law grizzle states by its field's own type's row, a generated field's included, and none whose field's type no row holds", () => {
+    // Oracle: grizzle's pattern laws (`lawsOf`), one pattern law per stored field whose pattern states
+    // one, by relation name and declared field order, a tautology's field none. Live: two types of
+    // one pattern under two names, a generated field of one of them, a tautology's field, which
+    // states no law, so no row names it. Wild: a field whose type no row holds.
+    const code = str.regex("^[a-z]*$");
+    const alias = str.regex("^[a-z]*$");
+    const plain = str.regex("^.*$", "su");
+    const Club = relation.generated(
+      "Club",
+      { alias, code, id: natural, name: plain },
+      ["id"],
+      (r) => ({ joined: generated(code, Compute.concat(r.code, r.alias)) }),
+    );
+    const club = schema("Club", [Club], []);
+    const laws = schemaLawsOf(club).flatMap((law) => (law.kind === "pattern" ? [law] : []));
+    const namesBy = (rows: readonly (readonly [RegexText<string>, LawName])[]) =>
+      laws.map((law) => [law, patternNameIn(club.relations, new Map(rows), law)] as const);
+
+    assert.deepStrictEqual(
+      namesBy([
+        [code, "Key text bound"],
+        [alias, "XML production"],
+      ]),
+      [
+        [clubLaw("alias"), Option.some<LawName>("XML production")],
+        [clubLaw("code"), Option.some<LawName>("Key text bound")],
+        [clubLaw("joined"), Option.some<LawName>("Key text bound")],
+      ],
+    );
+    assert.deepStrictEqual(namesBy([[code, "Key text bound"]]), [
+      [clubLaw("alias"), Option.none<LawName>()],
+      [clubLaw("code"), Option.some<LawName>("Key text bound")],
+      [clubLaw("joined"), Option.some<LawName>("Key text bound")],
+    ]);
+  });
+
+  it(
+    "names two fields of one pattern apart: Node.chars an XML production, OpenElementName.namespace a key text's bound",
+    () => {
+      // Oracle: grizzle's per-field pattern law, its relation and field beside the patterns the
+      // field spells (changeset.ts's Law), and the classes of `textLaws`: a node's characters
+      // and a foreign namespace name are both `Char*`, but only the name is bounded, so a refusal
+      // of the one is crust's production and of the other the stated limit.
+      const chars = statedPatternLaw("Node", "chars");
+      const namespace = statedPatternLaw("OpenElementName", "namespace");
+
+      assert.deepStrictEqual(
+        chars.patterns,
+        namespace.patterns,
+        "the two fields spell one pattern",
+      );
+      assert.isFalse(sameLaw(chars, namespace));
+      assert.deepStrictEqual(
+        [schemaLawNameOf(chars), schemaLawNameOf(namespace)],
+        [Option.some("XML production"), Option.some("Key text bound")],
+      );
+    },
+    testTimeoutMs,
+  );
+});
+
+describe("the census of the composed Qti schema", () => {
+  it.effect(
+    "names every law Qti states, and lists every merged axis's rules each once, most specific first",
+    (ctx) =>
+      // Oracle: grizzle's laws (`lawsOf`), every law an outcome over Qti can name: each primary
+      // key, each statement's laws, each contract, each pattern law and each generated field's law.
+      Effect.gen(function* census() {
+        const laws = schemaLawsOf(Qti);
+        const unowned = laws
+          .filter((law) => Option.isNone(schemaLawNameOf(law)))
+          .map((law) => Formatter.format(law));
+
+        assert.deepStrictEqual(unowned, [], "laws Qti states that no row of the table owns");
+
+        const axes = mergedAxes(laws);
+        for (const { laws: carried } of axes) {
+          assertRules(carried);
+        }
+
+        yield* Effect.promise(() =>
+          ctx.annotate(
+            `${String(laws.length)} laws, ${String(axes.length)} merged axes`,
+            "the census",
+          ),
+        );
+      }),
+    testTimeoutMs,
+  );
+
+  it(
+    "names in each table only what Qti states, each once: a stored relation, a generated field, a contract, a pattern law's field's type",
+    () => {
+      // Oracle: grizzle's laws (`lawsOf`): each primary key's relation, each generated field's
+      // relation and field, each contract's name, and each pattern law's field's type, read from
+      // the schema's own descriptor. A row the schema no longer states, a key named twice, and a
+      // text type that types no field with a pattern law each fail here.
+      const laws = schemaLawsOf(Qti);
+      const held = {
+        contract: new Set(laws.flatMap((law) => (law.kind === "contract" ? [law.contract] : []))),
+        generated: new Set(
+          laws.flatMap((law) => (law.kind === "generated" ? [`${law.relation}.${law.field}`] : [])),
+        ),
+        primaryKey: new Set(
+          laws.flatMap((law) => (law.kind === "primaryKey" ? [law.relation] : [])),
+        ),
+      };
+      const typed: ReadonlySet<unknown> = new Set(
+        laws.flatMap((law) =>
+          law.kind === "pattern" ? Option.toArray(patternTypeOf(Qti.relations, law)) : [],
+        ),
+      );
+
+      for (const [table, named, stated] of [
+        ["keyNames", keyNames, held.primaryKey],
+        ["generatedNames", generatedNames, held.generated],
+        ["contractNames", contractNames, held.contract],
+      ] as const) {
+        assert.deepStrictEqual(repeatedIn(named), [], `${table}: keys named twice`);
+        assert.deepStrictEqual(
+          named.flatMap(([row]) => (stated.has(row) ? [] : [row])),
+          [],
+          `${table}: rows that name no law Qti states`,
+        );
+      }
+      assert.deepStrictEqual(
+        textLaws
+          .keys()
+          .filter((type) => !typed.has(type))
+          .map((type) => Formatter.format(type.patterns))
+          .toArray(),
+        [],
+        "rows of textLaws that type no field with a pattern law",
+      );
+    },
+    testTimeoutMs,
+  );
+
+  it(
+    "refuses a site that names no document by its own law: an include under include-target, an absent file under file-exists",
+    () => {
+      // Oracle: the specification as a checker, reading 115: an include whose path an entry holds
+      // but that names no document the manifest lists, or that writes no href that names a path of
+      // the package, breaks "Include target", the oracle's law for includes; and a site whose path
+      // no entry holds breaks "File exists", its SitePath's check, which gates it. Each is a law
+      // Qti states, under its own rule, so a dangling include is refused under one rule.
+      const stated = schemaLawsOf(Qti);
+      const kinds: readonly (readonly [LawSide, LawSide, Rule])[] = [
+        [
+          sideOf("SitePath", "package", "path", "start"),
+          sideOf("SiteTarget", "package", "path", "start"),
+          "include-target",
+        ],
+        [
+          sideOf("Site", "package", "path", "start", "kind"),
+          sideOf("SitePath", "package", "path", "start", "kind"),
+          "include-target",
+        ],
+        [
+          sideOf("SitePath", "package", "target"),
+          sideOf("Entry", "package", "path"),
+          "file-exists",
+        ],
+      ];
+
+      for (const [from, to, rule] of kinds) {
+        const shown = Formatter.format({ from, to });
+        const laws = stated.filter(
+          (law) => law.kind === "contained" && readsAs(law.from, from) && readsAs(law.to, to),
+        );
+
+        assert.isNotEmpty(laws, `${shown}: no containment Qti states`);
+        for (const law of laws) {
+          assert.deepStrictEqual(schemaRuleOfLaw(law), Option.some(rule), shown);
+        }
+      }
+    },
+    testTimeoutMs,
+  );
+
+  it("names no generated field no row owns, so a field Qti gains without one fails the census", () => {
+    // Oracle: grizzle's laws (`lawsOf`) of a schema of one generated field no row of
+    // `generatedNames` names: its law is listed, and named none, never another law's name.
+    const Planted = relation.generated(
+      "Planted",
+      { form: lexical(pg.bigint), start: natural },
+      ["start"],
+      (r) => ({ value: generated(pg.bigint, Compute.cast(r.form, pg.bigint)) }),
+    );
+    const raised = schemaLawsOf(schema("Planted", [Planted], [])).filter(
+      (law) => law.kind === "generated",
+    );
+
+    assert.deepStrictEqual(raised, [{ field: "value", kind: "generated", relation: "Planted" }]);
+    assert.deepStrictEqual(raised.map(schemaLawNameOf), [Option.none()]);
+  });
+});

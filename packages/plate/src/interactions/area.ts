@@ -1,0 +1,64 @@
+/**
+ * An area of a graphic interaction's image, as the four kinds whose areas are drawn on an image
+ * read it (Hotspot, Graphic Gap Match, Graphic Order and Graphic Associate): its coordinates and
+ * its name, each by one rule. A `qti-hotspot-choice` and a `qti-associable-hotspot` are empty
+ * elements, so an area's name is an attribute of its own or nothing.
+ *
+ * @module
+ * @see https://www.w3.org/TR/accname-1.2/#comp_label
+ */
+import { Option, pipe } from "effect";
+import type { SourceElement } from "#plate/document/source.ts";
+import type { ReaderKit } from "#plate/interactions/contract.ts";
+import { trimXmlSpace } from "#plate/model/values.ts";
+
+/**
+ * One coordinate of an area's `coords`, as written: its number, and whether it was written with
+ * `%`, a percentage of the image (QTI 3.0 information model 7.9, Coords).
+ */
+export interface AreaCoordinate {
+  readonly percent: boolean;
+  readonly value: number;
+}
+
+/**
+ * Read an area's `coords`, each coordinate as written, in written order.
+ *
+ * @param read The reader kit.
+ * @param area The `qti-hotspot-choice` or `qti-associable-hotspot`.
+ * @returns The coordinates.
+ */
+export const coordinatesOf = (read: ReaderKit, area: SourceElement): readonly AreaCoordinate[] =>
+  pipe(read.coordsOf(area), (coords) =>
+    coords.map(([value, percent]): AreaCoordinate => ({ percent, value })),
+  );
+
+/**
+ * The verdict's key for an area with no name of the author's, marked at its `qti-hotspot-choice`
+ * or `qti-associable-hotspot`.
+ */
+const unlabelledArea = "hotspot-label:missing";
+
+/**
+ * Read an area's name, and mark the item's verdict when it has none: its `hotspot-label`, else its
+ * `aria-label`, which the accessible-name computation takes as an element's name (accname 1.2,
+ * step 2C), each counting only when it holds more than XML whitespace, as a blank `aria-label`
+ * names nothing there. An area with neither is marked {@link unlabelledArea}: the name plate gives
+ * it in place of one, its position among the areas, is no text alternative for the area (WCAG 2.2,
+ * 1.1.1 Non-text Content), and the content admin who reads the verdict writes one.
+ *
+ * @param read The reader kit, whose `mark` records the verdict's mark.
+ * @param area The `qti-hotspot-choice` or `qti-associable-hotspot`.
+ * @returns The name as written, none when the author named the area neither way.
+ */
+export const areaLabel = (read: ReaderKit, area: SourceElement): Option.Option<string> => {
+  const written = (attribute: string): Option.Option<string> =>
+    read.valueOf(area, attribute).pipe(Option.filter((value) => trimXmlSpace(value) !== ""));
+  const label = Option.orElse(written("hotspot-label"), () => written("aria-label"));
+
+  if (Option.isNone(label)) {
+    read.mark(area, unlabelledArea);
+  }
+
+  return label;
+};

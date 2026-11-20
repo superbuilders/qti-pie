@@ -1,0 +1,226 @@
+import { assert, describe, it } from "@effect/vitest";
+import { Effect, Exit, Option } from "effect";
+import { classify, exportCharset } from "#crust/charset.ts";
+import { encode } from "#crust/encode.ts";
+import type { Attribute, Child, Element, Misc, PrologNode, XmlDocument } from "#crust/tree.ts";
+
+/**
+ * Builds an attribute in no namespace, whose name and value are the two arguments.
+ */
+const attribute = (qname: string, value: string): Attribute => ({
+  local: qname,
+  namespace: "",
+  prefix: "",
+  qname,
+  references: [],
+  value,
+});
+
+/**
+ * Builds an element in no namespace with the given attributes and children.
+ */
+const element = (
+  qname: string,
+  attributes: readonly Attribute[] = [],
+  children: readonly Child[] = [],
+): Element => ({
+  attributes,
+  children,
+  kind: "element",
+  local: qname,
+  namespace: "",
+  prefix: "",
+  qname,
+});
+
+/**
+ * Builds a document read under `charset` around `root`, with the given prolog and epilog.
+ */
+const document = (
+  charset: string,
+  root: Element,
+  around: { readonly epilog?: readonly Misc[]; readonly prolog?: readonly PrologNode[] } = {},
+): XmlDocument => ({
+  charset,
+  declaration: Option.none(),
+  epilog: around.epilog ?? [],
+  prolog: around.prolog ?? [],
+  root,
+});
+
+/**
+ * The euro sign, a code point above U+00FF, so above both single-byte thresholds.
+ */
+const euro = "€";
+
+/**
+ * Builds a comment node holding `text`.
+ */
+const comment = (text: string): Misc => ({ kind: "comment", text });
+
+describe("classify", () => {
+  it.effect("puts every ISO-8859-1 alias in the latin1 class, however it is spelled", () =>
+    Effect.sync(() => {
+      for (const label of ["latin1", "ISO_8859-1", "iso-8859-1", "L1", "IBM819", "iso-ir-100"]) {
+        assert.strictEqual(classify(label), "latin1");
+      }
+    }),
+  );
+
+  it.effect("puts every US-ASCII alias in the ascii class", () =>
+    Effect.sync(() => {
+      for (const label of ["US-ASCII", "ascii", "ANSI_X3.4-1968", "ISO646-US", "csASCII"]) {
+        assert.strictEqual(classify(label), "ascii");
+      }
+    }),
+  );
+
+  it.effect("gives UTF-8 and each UTF-16 label its own class", () =>
+    Effect.sync(() => {
+      assert.strictEqual(classify("utf-8"), "utf8");
+      assert.strictEqual(classify("UTF-16"), "utf16");
+      assert.strictEqual(classify("utf-16le"), "utf16le");
+      assert.strictEqual(classify("UTF-16BE"), "utf16be");
+    }),
+  );
+});
+
+describe("exportCharset", () => {
+  it.effect(
+    "returns the read label for UTF-8, UTF-16 and ISO-8859-1 documents within threshold",
+    () =>
+      Effect.sync(() => {
+        for (const label of ["UTF-8", "UTF-16", "ISO-8859-1"]) {
+          const doc = document(label, element("item", [attribute("id", "a")]), {
+            prolog: [comment(" café "), { data: "x", kind: "pi", target: "pi" }],
+          });
+
+          assert.strictEqual(exportCharset(label, doc), label);
+        }
+      }),
+  );
+
+  it.effect("returns the label as spelled, not its canonical name", () =>
+    Effect.sync(() => {
+      const doc = document("latin1", element("item"));
+
+      assert.strictEqual(exportCharset("latin1", doc), "latin1");
+    }),
+  );
+
+  it.effect("leaves a UTF-8 or UTF-16 document alone whatever characters it holds", () =>
+    Effect.sync(() => {
+      const doc = document("UTF-8", element("item"), { prolog: [comment(euro)] });
+
+      assert.strictEqual(exportCharset("UTF-8", doc), "UTF-8");
+      assert.strictEqual(exportCharset("UTF-16", doc), "UTF-16");
+    }),
+  );
+
+  it.effect("returns UTF-8 for a windows-1252 document", () =>
+    Effect.sync(() => {
+      const doc = document("windows-1252", element("item"));
+
+      assert.strictEqual(exportCharset("windows-1252", doc), "UTF-8");
+    }),
+  );
+
+  it.effect("returns UTF-8 for an ISO-8859-1 document with U+20AC inside a comment", () =>
+    Effect.sync(() => {
+      const doc = document("ISO-8859-1", element("item"), { prolog: [comment(` ${euro} `)] });
+
+      assert.strictEqual(exportCharset("ISO-8859-1", doc), "UTF-8");
+    }),
+  );
+
+  it.effect("finds a character above the threshold in every place a reference cannot reach", () =>
+    Effect.sync(() => {
+      const offenders: readonly (readonly [string, XmlDocument])[] = [
+        [
+          "doctype",
+          document("ISO-8859-1", element("a"), {
+            prolog: [{ kind: "doctype", text: `<!DOCTYPE a [<!-- ${euro} -->]>` }],
+          }),
+        ],
+        ["prolog comment", document("ISO-8859-1", element("a"), { prolog: [comment(euro)] })],
+        ["epilog comment", document("ISO-8859-1", element("a"), { epilog: [comment(euro)] })],
+        [
+          "prolog PI target",
+          document("ISO-8859-1", element("a"), {
+            prolog: [{ data: "", kind: "pi", target: `p${euro}` }],
+          }),
+        ],
+        [
+          "epilog PI data",
+          document("ISO-8859-1", element("a"), {
+            epilog: [{ data: euro, kind: "pi", target: "p" }],
+          }),
+        ],
+        ["root qname", document("ISO-8859-1", element(`a${euro}`))],
+        ["nested qname", document("ISO-8859-1", element("a", [], [element(`b${euro}`)]))],
+        [
+          "attribute qname",
+          document("ISO-8859-1", element("a", [], [element("b", [attribute(`c${euro}`, "")])])),
+        ],
+        [
+          "comment child",
+          document("ISO-8859-1", element("a", [], [{ kind: "comment", text: euro }])),
+        ],
+        [
+          "PI child",
+          document("ISO-8859-1", element("a", [], [{ data: euro, kind: "pi", target: "p" }])),
+        ],
+        [
+          "entity-reference name",
+          document("ISO-8859-1", element("a", [], [{ kind: "entityRef", name: "α" }])),
+        ],
+        [
+          "attribute reference name",
+          document(
+            "ISO-8859-1",
+            element("a", [{ ...attribute("alt", "&α;"), references: [{ name: "α", offset: 0 }] }]),
+          ),
+        ],
+      ];
+
+      for (const [where, doc] of offenders) {
+        assert.strictEqual(exportCharset("ISO-8859-1", doc), "UTF-8", where);
+        assert.isTrue(Exit.isFailure(Effect.runSyncExit(encode(doc, "ISO-8859-1"))), where);
+      }
+    }),
+  );
+
+  it.effect("does not inspect text runs or attribute values, which a reference can carry", () =>
+    Effect.sync(() => {
+      const doc = document(
+        "ISO-8859-1",
+        element(
+          "a",
+          [attribute("alt", euro)],
+          [
+            { cdata: true, kind: "text", value: euro },
+            { kind: "entityRef", name: "e" },
+          ],
+        ),
+      );
+
+      assert.strictEqual(exportCharset("ISO-8859-1", doc), "ISO-8859-1");
+    }),
+  );
+
+  it.effect("holds US-ASCII to 0x7F and ISO-8859-1 to 0xFF", () =>
+    Effect.sync(() => {
+      const accented = document("US-ASCII", element("a"), { prolog: [comment("café")] });
+      const astral = document("ISO-8859-1", element("a"), { prolog: [comment("\u{1F600}")] });
+
+      assert.strictEqual(exportCharset("US-ASCII", accented), "UTF-8");
+      assert.strictEqual(exportCharset("ISO-8859-1", accented), "ISO-8859-1");
+      assert.strictEqual(exportCharset("ISO-8859-1", astral), "UTF-8");
+
+      const reference = document("US-ASCII", element("a", [], [{ kind: "entityRef", name: "é" }]));
+
+      assert.strictEqual(exportCharset("US-ASCII", reference), "UTF-8");
+      assert.strictEqual(exportCharset("ISO-8859-1", reference), "ISO-8859-1");
+    }),
+  );
+});
