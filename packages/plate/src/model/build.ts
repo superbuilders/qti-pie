@@ -63,9 +63,9 @@ export interface Build extends ModelWalk {
    */
   readonly records: Map<string, RecordDeclaration>;
   /**
-   * Whether the walk reads a stimulus document's body ({@link stimulusBody}), where an interaction
-   * is the notice keyed by its element rather than a binding: a stimulus declares no response, so
-   * there is nothing to bind it to.
+   * Whether the walk reads a stimulus document (`buildStimulus` in `#plate/model/item.ts`), where
+   * an interaction is the notice keyed by its element rather than a binding: a stimulus declares no
+   * response, so there is nothing to bind it to.
    */
   readonly stimulus: boolean;
   readonly unsupported: UnsupportedFeature[];
