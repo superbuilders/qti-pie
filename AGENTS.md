@@ -4,7 +4,7 @@ qti-pie is edullm's IMS QTI 3.0.1 stack: three packages under `packages/qti-pie/
 `AGENTS.md` for everything this file does not say.
 
 This repository is `superbuilders/qti-pie`, a git submodule of edullm at `packages/qti-pie` (and of
-alphatest-novus). Every qti-pie change is committed here and pushed to `main`; edullm then commits its
+metis). Every qti-pie change is committed here and pushed to `main`; edullm then commits its
 `packages/qti-pie` pointer. No qti-pie change is committed in edullm's own tree.
 
 - `crust` (`@qti-pie/crust`) reads and writes XML, bytes to a tree and back. It depends only on `effect`, `saxes` and
