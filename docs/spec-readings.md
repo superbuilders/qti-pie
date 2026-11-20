@@ -4078,8 +4078,13 @@ C2: the oracle's own reader.)
      double is 2.67499999999999982236431605997495353221893310546875, prints `2.67`; `%.0f` of 0.5 prints `0` and of 2.5
      prints `2`; `%.1f` of 0.25 prints `0.2`; `%.20f` of 0.1 prints `0.10000000000000000555`; and `%e` of 5e-324 prints
      `4.940656e-324`. Every row of the implementation guide's worked table (Appendix E, "Format Attribute of Printed
-     Variable") prints the same either way. `qti-round-to` and `qti-equal-rounded` keep their own basis, the shortest
-     decimal, which is no printf conversion (their sections 2.11.3.43 and 2.11.3.4).
+     Variable") prints the same either way. `qti-round-to` and `qti-equal-rounded` round the same exact binary value by
+     their own rule, no printf conversion: the deciding digit of sections 2.11.3.43 and 2.11.3.4, read from the exact
+     expansion ("If the deciding digit is 5 or greater, the nth digit is increased by 1"). So `qti-round-to` of 0.175 to
+     2 decimal places, whose double is 0.174999999999999988897769753748434595763683319091796875, is 0.17, and of 0.125,
+     an exact tie, 0.13; over a non-negative double that is ECMAScript's `toFixed`. (The round-to basis restated
+     2026-11-20 from the shortest decimal by lane GRADING-SQL on the lead's ruling under Bjorn's bar: the grader is
+     literal QTI on the binary64 value, reading 235.)
 
      Of `power-form` the information model says "If the variable value is a float and powerForm is set to 'false', the
      variable will be rendered using the 'e' or 'E' format. If the powerform is set to 'true', the form "e+n" is changed
@@ -4585,24 +4590,21 @@ C2: the oracle's own reader.)
      island but a Media's replay (plate's UI suite's J1). This changes no verdict. This is not a case of documents in
      conflict. (Stated 2026-11-20 by lane IMPL-READALOUD; to be confirmed by the owner, Bjorn.)
 
-238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the shortest decimals of its values, so a
-     value written at an end of the range is inside it when that end is included.** The information model gives the
-     range, "In absolute mode the result of the comparison is true if the value of the second expression, y is within
-     the following range defined by the first value, x: x-t0,x+t1. In relative mode, t0 and t1 are treated as
-     percentages" (section 5.46.2), and the tolerance's purpose: "When comparing two floating point numbers for equality
-     it is often desirable to have a tolerance to ensure that spurious errors in scoring are not introduced by rounding
-     errors" (section 5.46.1). It names no arithmetic for the range's ends. Computed exactly over the doubles, the ends
-     carry the binary error of each literal: the exact sum of the doubles of 1.0 and 0.1 lies below the double of 1.1,
-     so `x = 1.0`, `t = 0.1` and `y = 1.1` compare false, and so do `2.5`, `0.1`, `2.6` and `0.5`, `0.05`, `0.55`: over
-     19,914 two-decimal answers written at an end of their range, the binary reading refused 27 % (register
-     J-EQUAL-01). That is the spurious error the tolerance exists to remove. So each float of the comparison, `x`, `y`,
-     `t0` and `t1`, is read as its shortest decimal, the shortest decimal that reads back to the same double (an integer
-     as itself), the basis `qti-round-to` and `qti-equal-rounded` already take (reading 209), and the ends `x - t0` and
-     `x + t1`, or `x - |x|·t0/100` and `x + |x|·t1/100` (reading 210), and the comparison with `y`, are computed in
-     exact decimal arithmetic. `include-lower-bound` and `include-upper-bound` close the ends as before (reading 210),
-     and `tolerance-mode` exact still compares the values themselves. An infinity or a NaN has no shortest decimal and
-     is compared as a double, as before. This changes scores: an answer written at an included end of its range is now
-     right. This binds plate and the SQL grader, which scores (GRADING-SQL mirrors it in p3's `bound_order`); pantry
-     stores the tolerance as written. This is not a case of documents in conflict: section 5.46.1 states the purpose and
-     section 5.46.2 leaves the arithmetic open. (Stated 2026-11-20 by lane SPEC-AUDIT, register J-EQUAL-01, on the
-     lead's ruling; to be confirmed by the owner, Bjorn.)
+238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the exact binary values of its floats, the
+     ends of its range computed exactly over them.** The information model gives the range, "In absolute mode the result
+     of the comparison is true if the value of the second expression, y is within the following range defined by the
+     first value, x: x-t0,x+t1. In relative mode, t0 and t1 are treated as percentages" (section 5.46.2), and the
+     tolerance's purpose: "When comparing two floating point numbers for equality it is often desirable to have a
+     tolerance to ensure that spurious errors in scoring are not introduced by rounding errors" (section 5.46.1). It
+     names no arithmetic for the range's ends, and the values it compares are doubles (the float base type is binary64,
+     reading 235). So each float of the comparison, `x`, `y`, `t0` and `t1`, is its double's exact binary rational, and
+     the ends `x - t0` and `x + t1`, or `x - |x|·t0/100` and `x + |x|·t1/100` (reading 210), and the comparison with `y`,
+     are computed in exact rational arithmetic. `include-lower-bound` and `include-upper-bound` close the ends (reading
+     210), `tolerance-mode` exact compares the values themselves, and an infinity or a NaN is compared as a double. A
+     value written at an end of its range compares by its double: `x = 0.123`, `t = 0.123` and `y = 0.246` is inside,
+     since y's double is exactly the sum of the others', while `x = 1.0`, `t = 0.1` and `y = 1.1` is outside, since
+     the exact sum of the doubles of 1.0 and 0.1 lies below the double of 1.1; an author who means that answer to be
+     right states a tolerance that holds it. This binds plate and the SQL grader (p3's `bound_order`); pantry stores the
+     tolerance as written. (Restated 2026-11-20 by lane GRADING-SQL on the lead's ruling, reversing register
+     J-EQUAL-01's shortest-decimal reading: Bjorn's bar keeps the grader literal QTI on binary64 values, a quirk
+     cleaned into QTI's own semantics and never reinterpreted in decimal.)
