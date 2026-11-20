@@ -17,7 +17,7 @@ import { qtiPieCache } from "#plate/test/qti-pie.ts";
  * The SHA-256 of the golden data's `SHA256SUMS`, as `scripts/golden.ts` printed it for the
  * recording the database grader is held to.
  */
-export const goldenDigest = "e6bfc621c730f9c6c7a6a0136406b618e1a0db5c95c7d016f6e5601d26ffd17b";
+export const goldenDigest = "10d8654936b3687e645e8e7035aa2aea7e75a801d1bca62fe707872ef6a2a290";
 
 /**
  * The directory the recording {@link goldenDigest} pins is read from,
