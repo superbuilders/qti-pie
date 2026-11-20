@@ -2,7 +2,14 @@
  * 1EdTech's QTI 3 example corpus as plate's UI suite shows it: every accepted item of the corpus,
  * opened through plate's public `openAdmitted` as a host opens a document, with the configuration
  * that gives every corpus file an address, the record an item whose template processing runs starts
- * from, and what the suite reads of its XML (`#specimen/ui/source.ts`).
+ * from, the stimuli its stimulus refs name, each the corpus's accepted stimulus at its ref's
+ * target, as a host hands them, and what the suite reads of its XML (`#specimen/ui/source.ts`).
+ *
+ * A file a corpus stimulus names that the corpus lacks (the sharedStimulus example's passage names
+ * `images/apip_VE_IP_05_croc.png` and its kin, which its package does not hold) is given an address
+ * under `/corpus-placeholder/`, as the admission run judged the stimulus with a placeholder of the
+ * file's kind in its place (`pantry/src/test/admission.ts`): the suite shows the document the
+ * database admitted.
  *
  * The corpus is extracted once, outside the repository, as plate's own corpus sweeps read it
  * (`plate/src/test/corpus.ts`): under `PLATE_CORPUS_DIR`, or the extraction directory in
@@ -15,8 +22,15 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import path from "node:path";
-import { acceptedItem, begin, configure, openAdmitted } from "@qti-pie/plate";
-import type { Accepted, Configuration } from "@qti-pie/plate";
+import {
+  acceptedItem,
+  acceptedStimulus,
+  assetPaths,
+  begin,
+  configure,
+  openAdmitted,
+} from "@qti-pie/plate";
+import type { Accepted, AcceptedStimulus, Configuration, Verdict } from "@qti-pie/plate";
 import { isAdmitted } from "@qti-pie/plate/test/admitted";
 import { Config, Data, Effect, Option, Result } from "effect";
 import { instance } from "#specimen/ui/rules.ts";
@@ -96,52 +110,103 @@ const causeText = (cause: unknown): string =>
   cause instanceof Error ? cause.message : String(cause);
 
 /**
+ * Write a path's address under a root, each segment percent-encoded.
+ *
+ * @param root The root, such as `/corpus/`.
+ * @param file The file's path from the corpus root.
+ * @returns The address.
+ */
+const addressOf = (root: string, file: string): string =>
+  `${root}${file.split("/").map(encodeURIComponent).join("/")}`;
+
+/**
  * Give an address for every corpus file, as a host serves a package's files: its path under
- * `/corpus/`, each segment percent-encoded.
+ * `/corpus/`; and one under `/corpus-placeholder/` for each file a stimulus names that the corpus
+ * lacks, the admission run's placeholder.
  *
  * @param files Every file's path from the corpus root.
+ * @param placeholders The files stimuli name that the corpus lacks.
  * @returns The configuration, every other field at its default.
  */
-const configurationOf = (files: readonly string[]) =>
+const configurationOf = (files: readonly string[], placeholders: readonly string[]) =>
   configure({
-    assets: files.map(
-      (file) => [file, `/corpus/${file.split("/").map(encodeURIComponent).join("/")}`] as const,
-    ),
+    assets: [
+      ...files.map((file) => [file, addressOf("/corpus/", file)] as const),
+      ...placeholders.map((file) => [file, addressOf("/corpus-placeholder/", file)] as const),
+    ],
     seed: "",
     validateResponses: false,
   });
 
 /**
- * Open one corpus document as the suite shows it: its verdict's accepted item, none for a refused
- * or unchecked one, with the record `begin` starts for an item whose template processing runs and
- * what the suite reads of its XML.
+ * A node of a stimulus's body, as plate's public type of an accepted stimulus holds it.
+ */
+type StimulusNode = AcceptedStimulus["stimulus"]["body"][number];
+
+/**
+ * Give the files a stimulus's body names by its elements' URL attributes, each as plate resolves it
+ * against the stimulus's own location (`assetPaths`), in document order.
  *
- * @param location The document's path from the root.
- * @param bytes Its bytes.
+ * @param document The stimulus's location.
+ * @param nodes Its body's nodes.
+ * @returns The files' paths from the corpus root.
+ */
+const filesNamed = (document: string, nodes: readonly StimulusNode[]): readonly string[] =>
+  nodes.flatMap((node) =>
+    node.kind === "element"
+      ? [
+          ...node.attributes.flatMap(({ name, value }) =>
+            assetPaths(document, node.tag, name, value),
+          ),
+          ...filesNamed(document, node.children),
+        ]
+      : [],
+  );
+
+/**
+ * Give one opened corpus document as the suite shows it: its verdict's accepted item, none for a
+ * refused or unchecked one or a document that is no item, with the record `begin` starts for an
+ * item whose template processing runs, the stimuli its refs name, and what the suite reads of its
+ * XML.
+ *
+ * @param opened The document's path from the root, its bytes and its verdict.
+ * @param opened.bytes Its bytes.
+ * @param opened.location Its path from the root.
+ * @param opened.verdict Its verdict.
  * @param configuration The configuration every corpus item renders under.
+ * @param stimuli The corpus's accepted stimuli, by their paths from the root.
  * @returns The item, or none.
  */
-const itemAt = (location: string, bytes: Uint8Array, configuration: Configuration) =>
-  Effect.map(openAdmitted(location, bytes), (verdict) =>
-    Option.map(acceptedItem(verdict), (accepted: Accepted): SourceItem => {
-      const facts = itemFactsOf(new TextDecoder().decode(bytes));
+const itemAt = (
+  {
+    bytes,
+    location,
+    verdict,
+  }: { readonly bytes: Uint8Array; readonly location: string; readonly verdict: Verdict },
+  configuration: Configuration,
+  stimuli: ReadonlyMap<string, AcceptedStimulus>,
+): Option.Option<SourceItem> =>
+  Option.map(acceptedItem(verdict), (accepted: Accepted): SourceItem => {
+    const facts = itemFactsOf(new TextDecoder().decode(bytes));
 
-      return {
-        accepted,
-        begun:
-          accepted.item.templateProcessing.kind === "runs"
-            ? Option.some(Result.getOrThrow(begin(accepted, { instance, seed: recordSeed })))
-            : Option.none(),
-        configuration,
-        given: Option.none(),
-        host: Option.none(),
-        kinds: facts.kinds,
-        location,
-        offered: facts.offered,
-        scoring: facts.scoring,
-      };
-    }),
-  );
+    return {
+      accepted,
+      begun:
+        accepted.item.templateProcessing.kind === "runs"
+          ? Option.some(Result.getOrThrow(begin(accepted, { instance, seed: recordSeed })))
+          : Option.none(),
+      configuration,
+      given: Option.none(),
+      host: Option.none(),
+      kinds: facts.kinds,
+      location,
+      offered: facts.offered,
+      scoring: facts.scoring,
+      stimuli: accepted.item.content["qti-assessment-stimulus-ref"].flatMap(({ target }) =>
+        Option.toArray(Option.fromUndefinedOr(stimuli.get(target))),
+      ),
+    };
+  });
 
 /**
  * Give the digest of a corpus's files: SHA-256 over each file's path from the root and its own
@@ -196,14 +261,33 @@ export const corpusItems = Effect.runSync(
         return yield* Effect.fail(new CorpusUnpinned({ digest, root }));
       }
 
-      const configuration = yield* configurationOf(paths);
-      const items = yield* Effect.forEach(
+      const opened = yield* Effect.forEach(
         files.filter(([file, bytes]) => file.endsWith(".xml") && isAdmitted(bytes)),
-        ([location, bytes]) => itemAt(location, bytes, configuration),
+        ([location, bytes]) =>
+          Effect.map(openAdmitted(location, bytes), (verdict) => ({ bytes, location, verdict })),
         { concurrency: availableParallelism() },
       );
+      const stimuli = new Map(
+        opened.flatMap(({ verdict }) =>
+          Option.toArray(
+            Option.map(
+              acceptedStimulus(verdict),
+              (accepted) => [accepted.stimulus.document, accepted] as const,
+            ),
+          ),
+        ),
+      );
+      const held = new Set(paths);
+      const placeholders = [
+        ...new Set(
+          [...stimuli.values()].flatMap(({ stimulus }) =>
+            filesNamed(stimulus.document, stimulus.body),
+          ),
+        ),
+      ].filter((file) => !held.has(file));
+      const configuration = yield* configurationOf(paths, placeholders);
 
-      return items.flatMap(Option.toArray);
+      return opened.flatMap((each) => Option.toArray(itemAt(each, configuration, stimuli)));
     }),
   ),
 );

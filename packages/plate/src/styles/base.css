@@ -204,6 +204,17 @@
     box-shadow: var(--plate-focus-halo);
   }
 
+  /*
+   * The stimulus pane, in the tab order so a keyboard scrolls the passage a theme gives a scroll of
+   * its own (WCAG 2.1.1), shows its focus with the two-toned ring inside its edge, the halo between
+   * the two, since what clips the pane's scroll would clip a ring outside it (2.4.7).
+   */
+  [data-slot="plate-stimuli"]:focus-visible {
+    outline: var(--plate-focus-ring);
+    outline-offset: -5px;
+    box-shadow: inset var(--plate-focus-halo);
+  }
+
   /* What a placement a target refused says beside its controls: nothing, while it is empty. */
   [data-slot="plate-placement-message"]:empty {
     display: none;

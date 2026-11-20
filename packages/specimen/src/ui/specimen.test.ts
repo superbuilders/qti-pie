@@ -91,6 +91,7 @@ const sourceOf = (held: Specimen) =>
       location: held.item.location,
       offered: facts.offered,
       scoring: { kind: "predicted", score: held.response.score },
+      stimuli: [],
     };
   });
 

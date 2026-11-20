@@ -35,7 +35,7 @@ import type {
 } from "#plate/model/item.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import type { Glossary, Glossed, ReadsAloud } from "#plate/ui/item/contents/catalog.tsx";
-import { content as mathmlContent } from "#plate/ui/item/contents/mathml.tsx";
+import { content as mathmlContent, missingInMath } from "#plate/ui/item/contents/mathml.tsx";
 import { content as rubricContent } from "#plate/ui/item/contents/rubric.tsx";
 import type { Position } from "#plate/ui/item/context.ts";
 import { NestedInteraction, UnrenderedNode } from "#plate/ui/item/errors.ts";
@@ -43,6 +43,7 @@ import { feedbackBlockOf, isExplanation } from "#plate/ui/item/feedback.tsx";
 import {
   headingLevelOf,
   htmlSubset,
+  missingIn,
   propsOf,
   takesFlow,
   textless,
@@ -145,7 +146,8 @@ export interface Walk {
  *   references a catalog keeping a spoken card that gives audio ({@link readAloudAfter}), and the
  *   verdict the review's feedback opens with, where the host handed a credit, with the feedback
  *   block whose run it heads, the first the body shows at a flow position
- *   ({@link firstFeedbackIn});
+ *   ({@link firstFeedbackIn}); and the stimulus an element of the body places by
+ *   `data-stimulus-idref`, after the element's children;
  * - `owned`, the content of an interaction that owns elements outside the subset
  *   (`ContentOptions.own` in `#plate/ui/item/context.ts`), which it renders;
  * - `plain`, any other content: an interaction's that owns none, a modal feedback's, a disclosure's
@@ -160,6 +162,12 @@ export type Scope =
       readonly interaction: InteractionAt;
       readonly kind: "body";
       readonly readAloud: ReadsAloud;
+      /**
+       * The stimulus the item places inside an element of its body by `data-stimulus-idref`,
+       * written after the element's own children (`placementsOf` in `#plate/ui/item/stimuli.tsx`);
+       * none for every other element, and in a stimulus's own body.
+       */
+      readonly stimulus: (element: BodyElement<RedactedLevel>) => Option.Option<ReactNode>;
       readonly verdict: Option.Option<VerdictAt>;
     }
   | {
@@ -304,6 +312,39 @@ export const contentsIn = (nodes: readonly RedactedNode[]): readonly ContentNode
       }
     }
   });
+
+/**
+ * Find the first file body nodes name that `assets` gives no address, resolved against the
+ * document the nodes are written for: a package URL of an element, through the elements a dropped
+ * element holds too, then a MathML formula's own URLs, so the page is refused before any of it is
+ * written.
+ *
+ * @param nodes Every body node a document writes.
+ * @param addressing The document's location and the assets.
+ * @returns The file's path from the package root, or undefined when every file has an address.
+ */
+export const missingInNodes = (
+  nodes: readonly RedactedNode[],
+  addressing: Pick<Addressing, "assets" | "document">,
+): string | undefined => {
+  for (const element of elementsIn(nodes, true)) {
+    const path = missingIn(element, addressing);
+
+    if (path !== undefined) {
+      return path;
+    }
+  }
+
+  for (const node of contentsIn(nodes)) {
+    const path = node.element === "math" ? missingInMath(node.node, addressing) : undefined;
+
+    if (path !== undefined) {
+      return path;
+    }
+  }
+
+  return undefined;
+};
 
 /**
  * Give the amount every authored heading shifts by: the item's shallowest written heading lands at
@@ -860,7 +901,10 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
   const tag = tagFor(element.tag, walk.headingOffset);
   const below = (): readonly ReactNode[] =>
     element.tag === "table" ? tableChildren(entries, inner) : renderedOf(entries, inner);
-  const children = voidElements.has(element.tag) ? undefined : below();
+  // A stimulus the item places here stands after the element's own children: "the stimulus is
+  // injected into" the element that names it (implementation guide §3.7.7).
+  const placedHere = walk.scope.kind === "body" ? Option.toArray(walk.scope.stimulus(element)) : [];
+  const children = voidElements.has(element.tag) ? undefined : [...below(), ...placedHere];
   const writtenAt = (at: Key): ReactNode => {
     // `satisfies` gives the literal React's `Attributes` as its contextual type, so `key` stays a
     // `Key`: without one, React's experimental types (Next loads them) widen `optimisticKey`'s

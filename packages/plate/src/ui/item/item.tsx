@@ -32,11 +32,10 @@ import type { Redacted } from "#plate/redact/walk.ts";
 import { noSupports } from "#plate/supports.ts";
 import type { Supports } from "#plate/supports.ts";
 import {
-  contentsIn,
-  elementsIn,
   feedbackOf,
   firstFeedbackIn,
   headingOffsetOf,
+  missingInNodes,
   nodesOf,
 } from "#plate/ui/item/content.tsx";
 import type { InteractionAt, VerdictAt, Walk } from "#plate/ui/item/content.tsx";
@@ -51,18 +50,24 @@ import {
   companionMaterials,
   missingInMaterials,
 } from "#plate/ui/item/contents/companion-materials.tsx";
-import { missingInMath } from "#plate/ui/item/contents/mathml.tsx";
 import type { ContentOptions, Graded, ReviewContext, Shows } from "#plate/ui/item/context.ts";
 import { AssetMissing, InvalidInstance, OutputTooLarge } from "#plate/ui/item/errors.ts";
 import { feedbackBlockOf, verdictOf } from "#plate/ui/item/feedback.tsx";
-import { missingIn } from "#plate/ui/item/html.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
 import {
   renderAnswer,
   renderContainer,
   renderInteraction,
 } from "#plate/ui/item/interactions/index.tsx";
-import type { Accepted } from "#plate/validate/verdict.ts";
+import {
+  missingInStimulus,
+  placementsOf,
+  shownStimuli,
+  stimulusArticle,
+  stimulusPane,
+} from "#plate/ui/item/stimuli.tsx";
+import type { ShownStimulus, StimulusSetting } from "#plate/ui/item/stimuli.tsx";
+import type { Accepted, AcceptedStimulus } from "#plate/validate/verdict.ts";
 import { carriedClass } from "#plate/vocabulary.ts";
 import type { OutcomeView } from "#plate/vocabulary.ts";
 
@@ -115,6 +120,14 @@ export interface ItemProps {
    * alone. None marks nothing and carries no credit.
    */
   readonly graded?: Graded;
+  /**
+   * The stimuli the item's stimulus refs name, each the `acceptedStimulus` of its document opened
+   * by `openAdmitted` at its path in the package, with its files' addresses in the configuration's
+   * `assets`: the shared content the candidate reads to answer the item (information model §7.6),
+   * which plate reads no file to find. The host may hand more than the item names; one the item
+   * names and the host does not hand is refused (`StimulusMissing`). None when absent.
+   */
+  readonly stimuli?: readonly AcceptedStimulus[];
   /**
    * The accessibility supports the host enabled for the candidate, none enabled when absent.
    */
@@ -178,14 +191,20 @@ const showsOf = (props: Pick<ItemProps, "graded" | "mode">): Shows =>
  * @param redacted The redacted item.
  * @param content The payload nodes of its item-placed content, each module's `copy` of a node
  *   the redaction kept.
+ * @param stimuli The stimuli it shows, each of whose files is looked up against its own location.
  * @throws {InvalidInstance} When the instance breaks a requirement of `checkInstance`.
  * @throws {OutputTooLarge} When a printed variable on content the page shows printed nothing.
  * @throws {AssetMissing} When a package URL in what the page shows names a file `assets` gives no
  *   address: in the body, an interaction's content, a modal feedback, a content module's node, a
- *   MathML formula's own URLs among them, a catalog card's content or files, or a companion
- *   material's file or icon.
+ *   MathML formula's own URLs among them, a catalog card's content or files, a companion
+ *   material's file or icon, or anything a stimulus shows, its document's location then named.
  */
-const refuse = (props: ItemProps, redacted: Redacted, content: ItemPayloadsHeld): void => {
+const refuse = (
+  props: ItemProps,
+  redacted: Redacted,
+  content: ItemPayloadsHeld,
+  stimuli: readonly ShownStimulus[],
+): void => {
   const breach = checkInstance(props.instance);
 
   if (Option.isSome(breach)) {
@@ -200,34 +219,32 @@ const refuse = (props: ItemProps, redacted: Redacted, content: ItemPayloadsHeld)
 
   const { document } = redacted;
   const addressing = { assets: props.configuration.assets, document };
-  const shown = [
-    ...redacted.body,
-    ...redacted.modalFeedback.flatMap((feedback) => feedback.content),
-    ...itemContentNodes(content),
-  ];
-
-  for (const element of elementsIn(shown, true)) {
-    const path = missingIn(element, addressing);
-
-    if (path !== undefined) {
-      throw new AssetMissing({ document, item: redacted.identifier, path });
-    }
-  }
-
-  for (const node of contentsIn(shown)) {
-    const path = node.element === "math" ? missingInMath(node.node, addressing) : undefined;
-
-    if (path !== undefined) {
-      throw new AssetMissing({ document, item: redacted.identifier, path });
-    }
-  }
-
   const path =
+    missingInNodes(
+      [
+        ...redacted.body,
+        ...redacted.modalFeedback.flatMap((feedback) => feedback.content),
+        ...itemContentNodes(content),
+      ],
+      addressing,
+    ) ??
     missingInCatalog(content["qti-catalog-info"], addressing) ??
     missingInMaterials(content["qti-companion-materials-info"], addressing);
 
   if (path !== undefined) {
     throw new AssetMissing({ document, item: redacted.identifier, path });
+  }
+
+  for (const shown of stimuli) {
+    const missing = missingInStimulus(shown, props.configuration.assets);
+
+    if (missing !== undefined) {
+      throw new AssetMissing({
+        document: shown.redacted.document,
+        item: redacted.identifier,
+        path: missing,
+      });
+    }
   }
 };
 
@@ -303,8 +320,15 @@ export const Item = (props: ItemProps): ReactNode => {
   );
   const credit = Option.fromUndefinedOr(props.graded?.credit);
   const itemContent = copyItemContent(redacted.content);
+  const stimuli = shownStimuli(
+    itemContent["qti-assessment-stimulus-ref"],
+    props.stimuli ?? [],
+    { configuration, supports, view: props.view ?? defaultView },
+    redacted,
+    instance,
+  );
 
-  refuse(props, redacted, itemContent);
+  refuse(props, redacted, itemContent, stimuli);
 
   const view = viewOf(props);
   const addressing: Addressing = {
@@ -380,6 +404,18 @@ export const Item = (props: ItemProps): ReactNode => {
       firstFeedbackIn(redacted.body).pipe(Option.map((at): VerdictAt => ({ at, part }))),
     ),
   );
+  const setting: StimulusSetting = {
+    assets: configuration.assets,
+    headingLevel: configuration.headingLevel,
+    locale: configuration.locale,
+    mode,
+  };
+  const placements = placementsOf(redacted.body, stimuli);
+  const placed = new Set(placements.values());
+  const pane = stimulusPane(
+    stimuli.filter((shown) => !placed.has(shown)),
+    setting,
+  );
   // The verdict after the body, where no feedback block of the body holds it: at the head of the
   // modal feedback, else alone.
   const verdictAfter = Option.isSome(verdictAt) ? [] : Option.toArray(verdict);
@@ -397,14 +433,10 @@ export const Item = (props: ItemProps): ReactNode => {
     ),
   ];
 
-  return (
-    <div
-      data-keyword-emphasis={keywordEmphasis ? "" : undefined}
-      data-mode={mode}
-      data-slot="plate-item"
-      id={scopedId(instance, "item")}
-      lang={Option.getOrUndefined(redacted.lang)}
-    >
+  // The item's own content: its companion materials, its body, its catalog's listing and its
+  // feedback, which stand in `plate-question` beside the stimulus pane where the item shows one.
+  const own = (
+    <>
       {companionMaterials(
         itemContent["qti-companion-materials-info"],
         addressing,
@@ -420,11 +452,40 @@ export const Item = (props: ItemProps): ReactNode => {
           interaction,
           kind: "body",
           readAloud,
+          stimulus: (element) =>
+            Option.map(Option.fromUndefinedOr(placements.get(element)), (shown) =>
+              stimulusArticle(shown, setting, "stimulus"),
+            ),
           verdict: verdictAt,
         },
       })}
       {listing(catalogs, redacted.body, (nodes) => nodesOf(nodes, outside), addressing)}
       {after.length === 0 ? null : feedbackOf("div", "feedback", outside, after)}
+    </>
+  );
+
+  return (
+    <div
+      data-keyword-emphasis={keywordEmphasis ? "" : undefined}
+      data-mode={mode}
+      data-slot="plate-item"
+      id={scopedId(instance, "item")}
+      lang={Option.getOrUndefined(redacted.lang)}
+    >
+      {Option.match(pane, {
+        onNone: () => own,
+        onSome: (stimuliPane) => (
+          <>
+            {stimuliPane}
+            <section
+              aria-label={message(configuration.locale, "question")}
+              data-slot="plate-question"
+            >
+              {own}
+            </section>
+          </>
+        ),
+      })}
     </div>
   );
 };

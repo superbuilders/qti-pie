@@ -70,6 +70,7 @@ import {
 } from "@qti-pie/plate";
 import type {
   Accepted,
+  AcceptedStimulus,
   Configuration,
   Entry,
   HostFacts,
@@ -140,6 +141,11 @@ export interface SourceItem {
    */
   readonly offered: ReadonlyMap<string, readonly string[]>;
   readonly scoring: Scoring;
+  /**
+   * The stimuli the item's stimulus refs name, as a host hands them to `<Item>`; none for an item
+   * that references none.
+   */
+  readonly stimuli: readonly AcceptedStimulus[];
 }
 
 /**
@@ -374,9 +380,10 @@ export const see = (
     showing,
   };
   const propsIn = (mode: ItemProps["mode"]): ItemProps => {
+    const { stimuli } = item;
     const plain: ItemProps = Option.match(item.host, {
-      onNone: () => ({ configuration, instance, item: accepted, mode }),
-      onSome: (host) => ({ configuration, host, instance, item: accepted, mode }),
+      onNone: () => ({ configuration, instance, item: accepted, mode, stimuli }),
+      onSome: (host) => ({ configuration, host, instance, item: accepted, mode, stimuli }),
     });
 
     return Option.match(item.begun, {
