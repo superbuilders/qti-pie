@@ -391,6 +391,36 @@
     font: inherit;
   }
 
+  /*
+   * A Text Entry's on-screen keypad: its keys on a grid of 64 px cells, read row by row as the
+   * markup holds them, three columns for a number and four for a text, whose fourth holds the
+   * operators. Under an integer's layout 0 stands in the middle column, under 8, as on a phone's
+   * keypad. Each key is a 64 px target, as every target a child presses on its own.
+   */
+  [data-slot="plate-text-entry-keypad"] {
+    display: inline-grid;
+    grid-template-columns: repeat(3, var(--plate-target-size));
+    grid-auto-rows: var(--plate-target-size);
+  }
+
+  [data-slot="plate-text-entry-keypad"][data-keypad-layout="string"] {
+    grid-template-columns: repeat(4, var(--plate-target-size));
+  }
+
+  [data-slot="plate-text-entry-keypad"][data-keypad-layout="integer"] > [data-keypad-key="0"] {
+    grid-column-start: 2;
+  }
+
+  :where([data-slot="plate-text-entry-keypad"]) [data-slot="button"] {
+    min-block-size: var(--plate-target-size);
+    min-inline-size: var(--plate-target-size);
+    border: 2px solid var(--ui-input);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* == end attempt == */
 
   /*

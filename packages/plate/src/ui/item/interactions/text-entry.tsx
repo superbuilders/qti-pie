@@ -4,10 +4,10 @@
  * `review` and `solution`. It stands where phrasing content does, inside the author's sentence.
  *
  * The island takes its binding, `base`, `expected-length`, `pattern-mask` with the author's
- * `data-patternmask-message` in place of the catalog's, its placeholder and its names. The review
- * shows the text in a read-only input, named as the island names its own, and, against the host's
- * solution, its mark; its {@link answer}, the right answer when the answer is not right, the body
- * walk writes after the block that holds the sentence.
+ * `data-patternmask-message` in place of the catalog's, its placeholder, its names and the host's
+ * `textEntryKeypad`. The review shows the text in a read-only input, named as the island names its
+ * own, and, against the host's solution, its mark; its {@link answer}, the right answer when the
+ * answer is not right, the body walk writes after the block that holds the sentence.
  *
  * @module
  */
@@ -45,6 +45,7 @@ export const island = (
     base={node.base}
     baseType={node.baseType}
     expectedLength={hintOf(node.expectedLength)}
+    keypad={context.textEntryKeypad}
     labels={labelsOf(textEntryKeys, context.locale, { pattern: model.patternMaskMessage })}
     name={node.formName}
     naming={controlNameOf(undefined, node, ownName(model, context), context)}

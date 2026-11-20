@@ -366,6 +366,7 @@ export const Item = (props: ItemProps): ReactNode => {
     instance,
     locale: configuration.locale,
     shows: showsOf(props),
+    textEntryKeypad: configuration.textEntryKeypad,
     values: mapOf(props.values),
   };
   const catalogs = itemContent["qti-catalog-info"];

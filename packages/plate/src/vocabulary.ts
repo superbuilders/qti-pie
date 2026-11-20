@@ -486,6 +486,8 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-indeterminate",
   "data-index",
   "data-invalid",
+  "data-keypad-key",
+  "data-keypad-layout",
   "data-keyword-emphasis",
   "data-loading",
   "data-major-increment",

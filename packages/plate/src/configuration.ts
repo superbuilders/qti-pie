@@ -92,6 +92,19 @@ const hotspotLists = ["shown", "visually-hidden"] as const;
 const hotspotPicks = ["ring", "fill"] as const;
 
 /**
+ * How a child types into a Text Entry beside the device's own keyboard: `none`, with that keyboard
+ * alone; or `on-screen`, with child-sized keys under each box, the keys the box's response can
+ * hold (`keypadOf` in `#plate/ui/text-entry/keypad.ts`), which type into the box as its keyboard
+ * does.
+ */
+const textEntryKeypads = ["none", "on-screen"] as const;
+
+/**
+ * How a child types into a Text Entry, as {@link textEntryKeypads} says.
+ */
+export type TextEntryKeypad = (typeof textEntryKeypads)[number];
+
+/**
  * The Schema of the renderer's configuration, which owns every field's constraint and default, and
  * which field has none.
  *
@@ -106,7 +119,10 @@ const hotspotPicks = ["ring", "fill"] as const;
  * list of areas and a picked area, `shown` and `ring` by default; `<Item>` writes them on its root,
  * where the stylesheet reads them, and nothing else reads them, so neither changes the markup, the
  * response or its scoring. Whether an area shows a ring before it is picked is the item's own word,
- * QTI's `qti-unselected-hidden` class, never the host's. `assets` maps each file an item's package
+ * QTI's `qti-unselected-hidden` class, never the host's. `textEntryKeypad` is whether every Text
+ * Entry of the item shows an on-screen keypad under its box, `none` by default; the islands read
+ * it, and its keys type through the box's own input, so it changes no response or its scoring.
+ * `assets` maps each file an item's package
  * URLs may name, by its path from the package root, to its address, the URL `<Item>` writes in its
  * place: `<Item>` resolves each package URL against the item's location, the path from the package
  * root the host opened it by, so `media/a.png` in `items/q1.xml` names `items/media/a.png`, and it
@@ -139,6 +155,9 @@ export const ConfigurationSchema = Schema.Struct({
     Schema.isBetween({ maximum: maximumOutputBudget, minimum: 1 }),
   ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(defaultOutputBudget))),
   seed: Schema.String,
+  textEntryKeypad: Schema.Literals(textEntryKeypads).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("none")),
+  ),
   validateResponses: Schema.Boolean,
 });
 
@@ -165,6 +184,7 @@ const allowedValues: Readonly<Record<Field, string>> = {
   outputBudget:
     "an integer from 1 to 536,870,888, the most characters an item's printed variables may print",
   seed: 'a string, the served item\'s shuffle seed, such as "7"',
+  textEntryKeypad: `how a child types into a Text Entry: ${textEntryKeypads.map((value) => `"${value}"`).join(" or ")}`,
   validateResponses: "true or false, as the stage states it",
 };
 

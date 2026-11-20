@@ -21,6 +21,14 @@ const refused = [
   { field: "hotspotPicks", input: { hotspotPicks: true, seed: "", validateResponses: false } },
   { field: "hotspotList", input: { hotspotList: "hidden", seed: "", validateResponses: false } },
   { field: "hotspotList", input: { hotspotList: false, seed: "", validateResponses: false } },
+  {
+    field: "textEntryKeypad",
+    input: { seed: "", textEntryKeypad: "onscreen", validateResponses: false },
+  },
+  {
+    field: "textEntryKeypad",
+    input: { seed: "", textEntryKeypad: true, validateResponses: false },
+  },
   { field: "maxAttempts", input: { maxAttempts: 1, seed: "", validateResponses: false } },
   { field: "showFeedback", input: { seed: "", showFeedback: true, validateResponses: false } },
   { field: "outputBudget", input: { outputBudget: 0, seed: "", validateResponses: false } },
@@ -132,6 +140,7 @@ describe("configure", () => {
         locale: "en",
         outputBudget: 16_777_216,
         seed: "7",
+        textEntryKeypad: "none",
         validateResponses: false,
       });
     }),
@@ -188,6 +197,18 @@ describe("configure", () => {
     }),
   );
 
+  it.effect('decodes textEntryKeypad "on-screen"', () =>
+    Effect.gen(function* onScreenKeypad() {
+      const { textEntryKeypad } = yield* configure({
+        seed: "",
+        textEntryKeypad: "on-screen",
+        validateResponses: false,
+      });
+
+      assert.strictEqual(textEntryKeypad, "on-screen");
+    }),
+  );
+
   it.effect("decodes outputBudget 536,870,888, the longest string V8 builds", () =>
     Effect.gen(function* longestBudget() {
       assert.strictEqual(
@@ -205,7 +226,7 @@ describe("configure", () => {
       );
 
       assert.include(error.message, "has no field showSolutions");
-      assert.include(error.message, "seed, validateResponses");
+      assert.include(error.message, "seed, textEntryKeypad, validateResponses");
     }),
   );
 

@@ -690,6 +690,32 @@
   }
 
   /*
+   * A Text Entry with its on-screen keypad: the box above its keys, both at the top of the line,
+   * so the sentence reads beside the box rather than beside the middle of the keypad. Each key's
+   * face is large and bold, centred in it.
+   */
+  [data-slot="plate-text-entry"]:has(> [data-slot="plate-text-entry-keypad"]) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--plate-gap);
+    vertical-align: top;
+  }
+
+  [data-slot="plate-text-entry-keypad"] {
+    gap: var(--plate-gap);
+  }
+
+  :where([data-slot="plate-text-entry-keypad"]) [data-slot="button"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+  }
+
+  /*
    * An Extended Text: its prompt and each of its boxes, a UI SDK textarea in a field, across the
    * item unless the author's expected length sets its columns, at least three lines tall or its
    * expected lines, growing down. Preformatted text is typed in the monospace face.

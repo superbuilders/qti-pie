@@ -11,10 +11,16 @@
  *
  * @module
  */
+import { Button } from "@ui-sdk/react/button";
 import { Field, FieldError } from "@ui-sdk/react/field";
-import { Input } from "@ui-sdk/react/input";
+import { Input, createInputController } from "@ui-sdk/react/input";
+import { Option } from "effect";
+import { useRef, useState } from "react";
+import type { TextEntryKeypad } from "#plate/configuration.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
+import { faces, keypadOf, pressed } from "#plate/ui/text-entry/keypad.ts";
+import type { Key } from "#plate/ui/text-entry/keypad.ts";
 import type { textEntryKeys } from "#plate/ui/text-entry/labels.ts";
 import { asTyped, inputModeOf, useBoxes } from "#plate/ui/typed.ts";
 import type { BoxCounts } from "#plate/ui/typed.ts";
@@ -42,6 +48,10 @@ export interface TextEntryProps extends Authored<Named> {
    * nothing.
    */
   readonly expectedLength: number | undefined;
+  /**
+   * The configuration's `textEntryKeypad`: whether the box shows an on-screen keypad under it.
+   */
+  readonly keypad: TextEntryKeypad;
   readonly labels: Labels<typeof textEntryKeys>;
   /**
    * The entry name the response posts under, plate's `entryName` for the item's instance.
@@ -78,7 +88,18 @@ const oneBox: BoxCounts = { most: 1, shown: 1 };
  *   input loses focus with text that fails the `pattern-mask` until the text matches, on the
  *   keystroke that makes it match. Meanwhile the field marks the input `aria-invalid`, names the
  *   hint in its `aria-describedby`, and announces the hint as it appears. Nothing shows while the
- *   child is still typing toward an answer.
+ *   child is still typing toward an answer;
+ * - `plate-text-entry-keypad`, under the field where the host's `textEntryKeypad` is `on-screen` and
+ *   the box's response has keys (`keypadOf` in `#plate/ui/text-entry/keypad.ts`), a `span` group
+ *   named by the `keypad` label, with `data-keypad-layout` naming its layout, holding a UI SDK
+ *   `button` per key, with `data-keypad-key` naming the key, showing its face and named by it, or
+ *   by the `delete` label for backspace.
+ *
+ * A key types into the input as a keyboard's key does: it replaces the input's selection, or
+ * deletes before its caret, through the input's controller, so the change reaches the response by
+ * the input's own value change, and the caret stands after it. The keys are native buttons, so Tab
+ * reaches them and Enter and Space press them. The keypad is part of the box: the hint waits for
+ * the child to leave both, so a tap on a key while typing toward an answer shows nothing.
  *
  * Every keystroke writes the response, and the host paces its saves. An empty input posts
  * nothing, and so does a blank one bound to a number, which the server would read as NULL. The
@@ -94,9 +115,21 @@ const oneBox: BoxCounts = { most: 1, shown: 1 };
  * @see https://ui-sdk.dev/docs/react/components/field
  */
 export const TextEntry = (props: TextEntryProps) => {
-  const { base, baseType, expectedLength, labels, name, naming, patternMask, placeholder, root } =
-    props;
+  const {
+    base,
+    baseType,
+    expectedLength,
+    keypad,
+    labels,
+    name,
+    naming,
+    patternMask,
+    placeholder,
+    root,
+  } = props;
   const reading = { base, baseType, blankIsEmpty: false };
+  const [controller] = useState(createInputController);
+  const input = useRef<HTMLInputElement>(null);
   const [[box], write, leave] = useBoxes({
     counts: oneBox,
     name,
@@ -105,23 +138,48 @@ export const TextEntry = (props: TextEntryProps) => {
     written: asTyped,
   });
 
+  const press = (key: Key) => {
+    const element = input.current;
+
+    if (element !== null) {
+      const typed = pressed(
+        {
+          end: element.selectionEnd ?? element.value.length,
+          start: element.selectionStart ?? element.value.length,
+          text: element.value,
+        },
+        key,
+      );
+
+      controller.setValue(typed.text);
+      element.setSelectionRange(typed.caret, typed.caret);
+    }
+  };
+
   return (
-    <span {...root} data-slot="plate-text-entry">
+    <span
+      {...root}
+      data-slot="plate-text-entry"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          leave(0);
+        }
+      }}
+    >
       <Field invalid={box.flagged} render={<span />}>
         <Input
           {...naming}
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
+          controller={controller}
           inputMode={inputModeOf(reading)}
           placeholder={placeholder}
+          ref={input}
           size={expectedLength}
           spellCheck={false}
           type="text"
           value={box.text}
-          onBlur={() => {
-            leave(0);
-          }}
           onValueChange={(text) => {
             write(0, text);
           }}
@@ -132,6 +190,31 @@ export const TextEntry = (props: TextEntryProps) => {
           </FieldError>
         ) : null}
       </Field>
+      {Option.match(keypadOf(keypad, reading), {
+        onNone: () => null,
+        onSome: (pad) => (
+          <span
+            aria-label={labels.keypad}
+            data-keypad-layout={pad.layout}
+            data-slot="plate-text-entry-keypad"
+            role="group"
+          >
+            {pad.keys.map((key) => (
+              <Button
+                aria-label={key === "backspace" ? labels.delete : undefined}
+                data-keypad-key={key}
+                key={key}
+                type="button"
+                onClick={() => {
+                  press(key);
+                }}
+              >
+                {faces[key]}
+              </Button>
+            ))}
+          </span>
+        ),
+      })}
     </span>
   );
 };

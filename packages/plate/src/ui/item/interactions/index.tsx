@@ -142,6 +142,7 @@ const islandContextOf = (context: IslandContext): IslandContext => ({
   locale: context.locale,
   readAloud: context.readAloud,
   spokenPrompt: context.spokenPrompt,
+  textEntryKeypad: context.textEntryKeypad,
 });
 
 /**

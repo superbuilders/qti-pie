@@ -13,6 +13,7 @@
  */
 import type { Option } from "effect";
 import type { ReactNode } from "react";
+import type { TextEntryKeypad } from "#plate/configuration.ts";
 import type { Credit } from "#plate/credit.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
@@ -118,6 +119,11 @@ export interface IslandContext {
    * prompt (`#plate/ui/item/interactions/labels.ts`); none otherwise.
    */
   readonly spokenPrompt: Option.Option<ReactNode>;
+  /**
+   * The configuration's `textEntryKeypad`: whether a Text Entry's island shows an on-screen keypad
+   * under its box.
+   */
+  readonly textEntryKeypad: TextEntryKeypad;
 }
 
 /**

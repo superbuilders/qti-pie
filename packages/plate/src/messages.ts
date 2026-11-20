@@ -19,6 +19,7 @@ import { positionObjectMessages } from "#plate/messages/position-object.ts";
 import { readAloudMessages } from "#plate/messages/read-aloud.ts";
 import { selectPointMessages } from "#plate/messages/select-point.ts";
 import { sliderMessages } from "#plate/messages/slider.ts";
+import { textEntryMessages } from "#plate/messages/text-entry.ts";
 
 /**
  * The locales the renderer writes its own text in.
@@ -68,6 +69,7 @@ type Areas = [
   typeof readAloudMessages,
   typeof selectPointMessages,
   typeof sliderMessages,
+  typeof textEntryMessages,
 ];
 
 /**
@@ -100,6 +102,7 @@ const en = {
   ...readAloudMessages,
   ...selectPointMessages,
   ...sliderMessages,
+  ...textEntryMessages,
 } satisfies Readonly<Record<SharedKeys<Areas>, never>>;
 
 /**
