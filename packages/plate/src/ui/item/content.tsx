@@ -832,7 +832,12 @@ const disclosuresAfter = (
 const readAloudAfter = (element: BodyElement<RedactedLevel>, walk: Walk): readonly ReactNode[] =>
   walk.scope.kind === "body" && element.catalog !== undefined
     ? Option.toArray(
-        walk.scope.readAloud(element.catalog, message(walk.locale, "readAloudText"), "read-aloud"),
+        walk.scope.readAloud(
+          element.catalog,
+          "text",
+          message(walk.locale, "readAloudText"),
+          "read-aloud",
+        ),
       )
     : [];
 

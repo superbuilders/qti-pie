@@ -4595,10 +4595,17 @@ C2: the oracle's own reader.)
      text) it is not presented, and the card is never listed, since a recording heard apart from its text, or a link
      to it, presents nothing the candidate can follow. The entry's other files (the guide's `application/xml`) are not
      presented, and a `spoken` card with no audio file is listed as before. A review and a solution present no
-     control: their page ships no island but a Media's replay (plate's UI suite's J1). This changes no verdict. This
-     is not a case of documents in conflict. (Stated 2026-11-20 by lane IMPL-READALOUD; widened from Choice and Order,
-     AlphaTest's two, to every choice kind the same day by lane MM-PLATE-READALOUD; to be confirmed by the owner,
-     Bjorn.)
+     control: their page ships no island but a Media's replay (plate's UI suite's J1). An item's controls play as one
+     session, AlphaTest's player's (mastery-track-player 941a86a, `src/contexts/TtsSessionContext.tsx` lines 96–159):
+     the item's first press, where it is a prompt's, plays that prompt, then every other control mounted, prompts
+     before texts before choices, each in document order, skipping any unmounted before its turn; any other press
+     plays its own part alone; and a press of another control, a press that stops the one playing, a stop by anything
+     else and moving to another item end the chain. A press that cannot play, where every `source` fails, `play()` is
+     refused but with an `AbortError` or a `MediaError` but `MEDIA_ERR_ABORTED` arrives, is told so once at the
+     control, in an assertive live region, in the words of plate's catalog for the configuration's `locale`. This
+     changes no verdict. This is not a case of documents in conflict. (Stated 2026-11-20 by lane IMPL-READALOUD;
+     widened from Choice and Order, AlphaTest's two, to every choice kind the same day by lane MM-PLATE-READALOUD, and
+     given its session and its notice by lane PLATE-READALOUD; to be confirmed by the owner, Bjorn.)
 
 238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the exact binary values of its floats, the
      ends of its range computed exactly over them.** The information model gives the range, "In absolute mode the result

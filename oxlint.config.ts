@@ -100,6 +100,7 @@ const plateClientModules = [
   "packages/plate/src/model/values.ts",
   "packages/plate/src/pci/json.ts",
   "packages/plate/src/pci/type-identifier.ts",
+  "packages/plate/src/read-aloud/session.ts",
 ];
 
 /**
@@ -434,13 +435,14 @@ export default defineConfig({
       files: ["packages/plate/src/ui/portable-custom/host.ts"],
       rules: { "anti-slop/no-unsafe-dictionary-type": "off" },
     },
-    // A Media's autostart, and read-aloud's press, handle `play()`'s refusal with its promise's own
-    // `catch`: the workspace forbids try/catch, and neither the effect that starts a Media nor the
-    // toggle's change handler that starts a recording can await.
+    // A Media's autostart, and read-aloud's session carrying out a press's play, handle `play()`'s
+    // refusal with its promise's own `catch`: the workspace forbids try/catch, and neither the effect
+    // that starts a Media nor the session, which plays a recording from a toggle's change handler or
+    // from the `ended` listener of the one before it, can await.
     {
       files: [
         "packages/plate/src/ui/media/media.tsx",
-        "packages/plate/src/ui/read-aloud/read-aloud.tsx",
+        "packages/plate/src/ui/read-aloud/session.tsx",
       ],
       rules: { "promise/prefer-await-to-then": "off" },
     },

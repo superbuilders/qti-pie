@@ -1033,6 +1033,16 @@
     margin: 0;
   }
 
+  /* == read aloud == */
+
+  /*
+   * Read-aloud's notice, told: its title and words framed as a refusal is, the title in bold.
+   */
+  [data-slot="plate-read-aloud-notice"]:not(:empty) {
+    padding: 0.5rem 0.75rem;
+    border: 2px solid var(--ui-input);
+  }
+
   /* == portable custom == */
 
   /*

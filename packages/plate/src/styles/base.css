@@ -814,6 +814,7 @@
   [data-slot="plate-read-aloud"] {
     display: inline-flex;
     flex: none;
+    align-items: center;
     vertical-align: middle;
   }
 
@@ -825,6 +826,29 @@
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * Read-aloud's notice, an assertive live region: told, it stands after the control, the answers'
+   * gap from it, its words wrapping within 20em so it keeps beside the control. Untold, it is
+   * empty, and then out of sight and out of the flow, but never `display: none`: a region hidden so
+   * leaves the accessibility tree, and the words it next says might not be read.
+   */
+  [data-slot="plate-read-aloud-notice"]:empty {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  [data-slot="plate-read-aloud-notice"]:not(:empty) {
+    max-inline-size: 20em;
+    margin-inline-start: var(--plate-gap);
   }
 
   /*
