@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
-import { heard, newSession } from "#plate/read-aloud/session.ts";
+import { heard, openedIn, pressedAfter } from "#plate/read-aloud/session.ts";
 import type {
   Command,
   ReadAloudRole,
@@ -104,14 +104,18 @@ const failures: readonly Refusal[] = [
  * controls are mounted, in document order, which one's recording plays, every command the session
  * gave, the faults no session may commit, a play over a recording still playing and a command to a
  * control that left the page, and whether a recording the session stops fires its `pause`, as one
- * playing does, or not, as one whose play the browser refused does not.
+ * playing does, or not, as one whose play the browser refused does not; and the item's instance,
+ * with the instances of its test's items a press has been heard of, as its test's memory holds them
+ * after each turn.
  */
 interface Room {
   commands: Command<Spot>[];
   readonly echoes: boolean;
   faults: string[];
+  readonly instance: string;
   mounted: readonly Spot[];
   playing: Option.Option<Spot>;
+  pressed: ReadonlySet<string>;
   session: Session<Spot>;
 }
 
@@ -122,6 +126,25 @@ interface Room {
 const echoings: readonly boolean[] = [true, false];
 
 /**
+ * Show an item in its test: a room on it, opening with the session its test's memory gives it.
+ *
+ * @param item The item's controls, in document order.
+ * @param instance The item's instance.
+ * @param pressed The instances of the test's items a press has been heard of.
+ * @returns The room.
+ */
+const visit = (item: readonly Spot[], instance: string, pressed: ReadonlySet<string>): Room => ({
+  commands: [],
+  echoes: true,
+  faults: [],
+  instance,
+  mounted: item,
+  playing: Option.none(),
+  pressed,
+  session: openedIn(pressed, instance),
+});
+
+/**
  * Open a room on an item no control of which has been pressed.
  *
  * @param item The item's controls, in document order.
@@ -129,12 +152,8 @@ const echoings: readonly boolean[] = [true, false];
  * @returns The room.
  */
 const opened = (item: readonly Spot[], echoes = true): Room => ({
-  commands: [],
+  ...visit(item, "item", new Set()),
   echoes,
-  faults: [],
-  mounted: item,
-  playing: Option.none(),
-  session: newSession,
 });
 
 /**
@@ -160,6 +179,7 @@ const hear = (room: Room, report: Report<Spot>): void => {
   const stopped: Spot[] = [];
 
   room.session = turn.session;
+  room.pressed = pressedAfter(room.pressed, room.instance, turn.session);
 
   for (const command of turn.commands) {
     room.commands.push(command);
@@ -262,6 +282,20 @@ const unmount = (room: Room, control: Spot): void => {
   }
 
   hear(room, { control, kind: "unmounted" });
+};
+
+/**
+ * Leave an item for another, as a host does: every control of the item unmounts.
+ *
+ * @param room The room.
+ * @returns The instances of the test's items a press has been heard of, as the item leaves them.
+ */
+const leave = (room: Room): ReadonlySet<string> => {
+  for (const spot of room.mounted) {
+    unmount(room, spot);
+  }
+
+  return room.pressed;
 };
 
 /**
@@ -812,6 +846,90 @@ describe("a press that cannot play", () => {
           }),
         ),
       ),
+    );
+
+    assert.deepStrictEqual(wrong, []);
+  });
+});
+
+describe("an item the student comes back to", () => {
+  it("keeps its first press spent where its test holds one memory, so a press of a prompt plays the prompt alone, however the first visit pressed it; and chains again where each visit holds its own", () => {
+    const wrong = itemsUpTo(4).flatMap((item) =>
+      item.flatMap((first) =>
+        item
+          .filter((spot) => spot.role === "prompt")
+          .flatMap((prompt) => {
+            const before = visit(item, "a", new Set());
+
+            press(before, first);
+            finish(before);
+
+            const remembered = leave(before);
+            const test = visit(item, "a", remembered);
+            const own = visit(item, "a", new Set());
+
+            for (const room of [test, own]) {
+              press(room, prompt);
+              finish(room);
+            }
+
+            const chain = namesOf(chainOf(item, prompt));
+
+            return playedIn(test) === prompt.name &&
+              playedIn(own) === chain &&
+              test.faults.length === 0 &&
+              own.faults.length === 0
+              ? []
+              : [
+                  {
+                    first: first.name,
+                    item: namesOf(item),
+                    own: playedIn(own),
+                    prompt: prompt.name,
+                    test: playedIn(test),
+                  },
+                ];
+          }),
+      ),
+    );
+
+    assert.deepStrictEqual(wrong, []);
+  });
+
+  it("still chains where its earlier visit pressed nothing, and where only another item was pressed", () => {
+    const wrong = itemsUpTo(4).flatMap((item) =>
+      item
+        .filter((spot) => spot.role === "prompt")
+        .flatMap((prompt) =>
+          item.flatMap((other) => {
+            const unpressed = visit(item, "a", new Set());
+            const elsewhere = visit(item, "b", leave(unpressed));
+
+            press(elsewhere, other);
+            finish(elsewhere);
+
+            const back = visit(item, "a", leave(elsewhere));
+
+            press(back, prompt);
+            finish(back);
+
+            const chain = namesOf(chainOf(item, prompt));
+
+            return playedIn(back) === chain &&
+              [...back.pressed].join(" ") === "b a" &&
+              back.faults.length === 0
+              ? []
+              : [
+                  {
+                    item: namesOf(item),
+                    other: other.name,
+                    played: playedIn(back),
+                    pressed: [...back.pressed].join(" "),
+                    prompt: prompt.name,
+                  },
+                ];
+          }),
+        ),
     );
 
     assert.deepStrictEqual(wrong, []);

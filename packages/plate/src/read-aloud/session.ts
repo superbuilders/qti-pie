@@ -3,8 +3,9 @@
  * item's first press starts where it is a prompt's, and the notice a press gets that cannot play.
  * A state machine over what the controls report ({@link heard}), pure, so its rules are checked
  * apart from any browser (`session.test.ts`); `<Item>`'s client provider holds one per item and
- * carries out its commands on the controls (`ReadAloudSession` in
- * `#plate/ui/read-aloud/session.tsx`).
+ * carries out its commands on the controls (`ReadAloudItem` in
+ * `#plate/ui/read-aloud/session.tsx`), and a host's `<ReadAloudSession>` holds the test's memory of
+ * which items a press has been heard of ({@link openedIn}).
  *
  * The rules are AlphaTest's player's, which pre-readers' tests read aloud by (mastery-track-player
  * at 941a86a, `src/contexts/TtsSessionContext.tsx` lines 96–159, `src/utils/audio-failure.ts`):
@@ -18,6 +19,10 @@
  *   anything else (another media's play, the page hidden) and an unmount of the playing one end the
  *   chain, as moving to another item does: the provider, keyed by the item's instance, unmounts
  *   every control with it.
+ * - **Revisits.** Whether an item's first press is spent is the test's to remember: an item opens
+ *   unpressed unless its test heard a press of it before ({@link openedIn}, {@link pressedAfter}),
+ *   so an item a student comes back to chains no more where the host holds one memory for the whole
+ *   test.
  * - **The notice.** A press whose recording cannot play, or a chain any of whose recordings cannot,
  *   is told so once, at the first control that cannot ({@link interrupts} says which refusals are
  *   no failure), and the next press takes the notice down. A refusal of a control that is not
@@ -81,6 +86,37 @@ export interface Session<Control> {
  * The session of an item no control of which has been pressed.
  */
 export const newSession: Session<never> = { phase: { kind: "unpressed" }, told: Option.none() };
+
+/**
+ * Give the session an item opens with in its test: unpressed, unless the test has heard a press of
+ * it, on an earlier visit, when its first press is spent and no press of it chains again, as
+ * AlphaTest's player remembers each question pressed for the whole test (`interactedRef`,
+ * `TtsSessionContext.tsx` lines 68 and 119–120).
+ *
+ * @param pressed The instances of the test's items a press has been heard of.
+ * @param instance The item's instance, the host's name for its item session.
+ * @returns The session the item opens with.
+ */
+export const openedIn = (pressed: ReadonlySet<string>, instance: string): Session<never> =>
+  pressed.has(instance) ? { phase: { kind: "resting" }, told: Option.none() } : newSession;
+
+/**
+ * Give the instances of a test's items a press has been heard of, after a turn of one of them: the
+ * item joins them once its session has left `unpressed`, which only a press does.
+ *
+ * @param pressed The instances heard of before the turn.
+ * @param instance The item's instance.
+ * @param session The item's session after the turn.
+ * @returns The instances heard of after it.
+ */
+export const pressedAfter = <Control>(
+  pressed: ReadonlySet<string>,
+  instance: string,
+  session: Session<Control>,
+): ReadonlySet<string> =>
+  session.phase.kind === "unpressed" || pressed.has(instance)
+    ? pressed
+    : new Set([...pressed, instance]);
 
 /**
  * Why a recording would not play, as the browser said it: `rejected`, the promise `play()` gave

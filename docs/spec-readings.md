@@ -4600,12 +4600,15 @@ C2: the oracle's own reader.)
      the item's first press, where it is a prompt's, plays that prompt, then every other control mounted, prompts
      before texts before choices, each in document order, skipping any unmounted before its turn; any other press
      plays its own part alone; and a press of another control, a press that stops the one playing, a stop by anything
-     else and moving to another item end the chain. A press that cannot play, where every `source` fails, `play()` is
-     refused but with an `AbortError` or a `MediaError` but `MEDIA_ERR_ABORTED` arrives, is told so once at the
-     control, in an assertive live region, in the words of plate's catalog for the configuration's `locale`. This
-     changes no verdict. This is not a case of documents in conflict. (Stated 2026-11-20 by lane IMPL-READALOUD;
-     widened from Choice and Order, AlphaTest's two, to every choice kind the same day by lane MM-PLATE-READALOUD, and
-     given its session and its notice by lane PLATE-READALOUD; to be confirmed by the owner, Bjorn.)
+     else and moving to another item end the chain. A host that holds one `<ReadAloudSession>` around every item of its
+     test session keeps an item's first press spent when the candidate comes back to it, as AlphaTest's player does for
+     the whole test; where none encloses it, the item's first press chains each time it is shown. A press that cannot
+     play, where every `source` fails, `play()` is refused but with an `AbortError` or a `MediaError` but
+     `MEDIA_ERR_ABORTED` arrives, is told so once at the control, in an assertive live region, in the words of plate's
+     catalog for the configuration's `locale`. This changes no verdict. This is not a case of documents in conflict.
+     (Stated 2026-11-20 by lane IMPL-READALOUD; widened from Choice and Order, AlphaTest's two, to every choice kind the
+     same day by lane MM-PLATE-READALOUD, and given its session and its notice by lane PLATE-READALOUD; to be confirmed
+     by the owner, Bjorn.)
 
 238. **Under `tolerance-mode` absolute or relative, a `qti-equal` compares the exact binary values of its floats, the
      ends of its range computed exactly over them.** The information model gives the range, "In absolute mode the result

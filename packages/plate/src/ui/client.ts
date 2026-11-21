@@ -1,8 +1,8 @@
 /**
- * Plate's client entry: what a host's client components use to hold an item's responses and to hear
- * of a Portable Custom Interaction that fails, and the interactions' islands with their props and
- * labels types, which the server entry renders. Every module it re-exports is a client module, or
- * holds types and pure data only.
+ * Plate's client entry: what a host's client components use to hold an item's responses, to hear of
+ * a Portable Custom Interaction that fails and to remember a test's read-aloud across its items,
+ * and the interactions' islands with their props and labels types, which the server entry renders.
+ * Every module it re-exports is a client module, or holds types and pure data only.
  *
  * @module
  */
@@ -45,6 +45,8 @@ export type { PlacementLabels } from "#plate/ui/placement/labels.ts";
 export { PciFailures } from "#plate/ui/portable-custom/failures.tsx";
 
 export type { PciFailure } from "#plate/ui/portable-custom/failures.tsx";
+
+export { ReadAloudSession } from "#plate/ui/read-aloud/session.tsx";
 
 export { Responses, useResponse } from "#plate/ui/responses.tsx";
 

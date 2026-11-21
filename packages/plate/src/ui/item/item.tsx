@@ -67,7 +67,7 @@ import {
   stimulusPane,
 } from "#plate/ui/item/stimuli.tsx";
 import type { ShownStimulus, StimulusSetting } from "#plate/ui/item/stimuli.tsx";
-import { ReadAloudSession } from "#plate/ui/read-aloud/session.tsx";
+import { ReadAloudItem } from "#plate/ui/read-aloud/session.tsx";
 import type { Accepted, AcceptedStimulus } from "#plate/validate/verdict.ts";
 import { carriedClass } from "#plate/vocabulary.ts";
 import type { OutcomeView } from "#plate/vocabulary.ts";
@@ -281,9 +281,10 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  *   term of the body that references the catalog, `plate-read-aloud`, in `answering`, read-aloud's
  *   control for a catalog's `spoken` card that gives audio, after each element of the body at a
  *   flow position, each prompt and beside each choice that references the catalog, every one of the
- *   item's in one read-aloud session keyed by the instance (`#plate/ui/read-aloud/session.tsx`),
- *   and `plate-catalog`, after the body, the listing of every other card the supports the host
- *   enabled keep (`#plate/ui/item/contents/catalog.tsx`);
+ *   item's in one read-aloud session keyed by the instance, which the host's `<ReadAloudSession>`
+ *   remembers for its test where one encloses the item (`#plate/ui/read-aloud/session.tsx`), and
+ *   `plate-catalog`, after the body, the listing of every other card the supports the host enabled
+ *   keep (`#plate/ui/item/contents/catalog.tsx`);
  * - Each interaction, through the interactions' seam: in `answering` its island inside its own
  *   `<Suspense fallback={null}>`, a hydration unit that suspends on nothing; in `review` and
  *   `solution` its server markup, with no boundary;
@@ -498,15 +499,16 @@ export const Item = (props: ItemProps): ReactNode => {
     >
       {mode === "answering" ? (
         // One read-aloud session per item session, so a chain never outlives its item.
-        <ReadAloudSession
+        <ReadAloudItem
           failed={{
             description: message(configuration.locale, "readAloudFailed"),
             title: message(configuration.locale, "readAloudFailedTitle"),
           }}
+          instance={instance}
           key={instance}
         >
           {shown}
-        </ReadAloudSession>
+        </ReadAloudItem>
       ) : (
         shown
       )}

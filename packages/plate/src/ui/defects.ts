@@ -98,15 +98,15 @@ export class PrimitiveWithoutOptions extends Data.TaggedError("PrimitiveWithoutO
 }
 
 /**
- * A read-aloud control was rendered outside a `ReadAloudSession`, whose session plays it: something
+ * A read-aloud control was rendered outside a `ReadAloudItem`, whose session plays it: something
  * other than `<Item>`, which holds one around every control it writes, rendered the control.
  */
-export class ReadAloudOutsideSession extends Data.TaggedError("ReadAloudOutsideSession") {
+export class ReadAloudOutsideItem extends Data.TaggedError("ReadAloudOutsideItem") {
   /**
    * Which part was misplaced, and where it belongs.
    */
   override get message(): string {
-    return "A ReadAloud needs an enclosing ReadAloudSession; render it inside <Item>, which holds one.";
+    return "A ReadAloud needs an enclosing ReadAloudItem; render it inside <Item>, which holds one.";
   }
 }
 

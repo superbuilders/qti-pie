@@ -26,8 +26,9 @@
  *   browser refuses leaves it unpressed.
  * - **The item's session.** What plays is the item's read-aloud session's to say
  *   (`#plate/ui/read-aloud/session.tsx`), which every control of the item mounts in: the item's
- *   first press, where it is a prompt's, plays the prompt and then every other control in turn,
- *   prompts, texts and choices, by its `role`, and any other press plays its own part alone.
+ *   first press in its test, where it is a prompt's, plays the prompt and then every other control
+ *   in turn, prompts, texts and choices, by its `role`, and any other press plays its own part
+ *   alone.
  * - **The notice.** A press that cannot play is told so once, at the control that failed, in
  *   `plate-read-aloud-notice`, an assertive live region (WCAG 4.1.3) that stays in the page empty,
  *   so the words it then says are read; the next press takes them down. It cannot play where every
@@ -52,7 +53,7 @@ import { Toggle } from "@ui-sdk/react/toggle";
 import { useEffect, useRef, useState } from "react";
 import type { ReadAloudRole } from "#plate/read-aloud/session.ts";
 import { flag } from "#plate/ui/attributes.ts";
-import { useReadAloudSession } from "#plate/ui/read-aloud/session.tsx";
+import { useReadAloudItem } from "#plate/ui/read-aloud/session.tsx";
 import type { ReadAloudPort } from "#plate/ui/read-aloud/session.tsx";
 
 /**
@@ -131,10 +132,10 @@ const reportError = (event: Event, element: HTMLAudioElement, port: ReadAloudPor
  * @param props The control's name, what it reads and the recording's files
  *   ({@link ReadAloudProps}).
  * @returns The `plate-read-aloud` part.
- * @throws {ReadAloudOutsideSession} When it is rendered outside its item's `<ReadAloudSession>`.
+ * @throws {ReadAloudOutsideItem} When it is rendered outside its item's `<ReadAloudItem>`.
  */
 export const ReadAloud = ({ label, role, sources }: ReadAloudProps) => {
-  const { failed, mount } = useReadAloudSession();
+  const { failed, mount } = useReadAloudItem();
   const audio = useRef<HTMLAudioElement>(null);
   const port = useRef<ReadAloudPort>(undefined);
   const [playing, setPlaying] = useState(false);
