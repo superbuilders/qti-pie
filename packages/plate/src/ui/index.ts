@@ -7,6 +7,7 @@
  * @module
  */
 export type { Credit, Graded, GradedMarks, Reveals } from "#plate/ui/item/context.ts";
+
 export type { AnswerMark, PartMark } from "#plate/ui/item/interactions/marks.ts";
 
 export { AssetMissing, InvalidInstance, OutputTooLarge } from "#plate/ui/item/errors.ts";

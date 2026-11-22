@@ -11,7 +11,7 @@
  *
  * @module
  */
-import { Option, Record as Rec } from "effect";
+import { Function, Option, Record as Rec } from "effect";
 import { format } from "#plate/model/values.ts";
 import type { Single } from "#plate/model/values.ts";
 import type { Reveals, ReviewContext } from "#plate/ui/item/context.ts";
@@ -65,17 +65,17 @@ export const markingOf = (response: string, context: Pick<ReviewContext, "shows"
     return { kind: "solution" };
   }
 
-  return Option.match(
-    Option.flatMap(context.shows.marks, (marks) =>
-      Option.map(
-        Option.filter(Rec.get(marks.parts, response), (parts) => parts.length > 0),
-        (parts) => ({ parts, reveals: marks.reveals }),
+  return context.shows.marks.pipe(
+    Option.flatMap((marks) =>
+      Rec.get(marks.parts, response).pipe(
+        Option.filter((parts) => parts.length > 0),
+        Option.map((parts) => ({ parts, reveals: marks.reveals })),
       ),
     ),
-    {
+    Option.match({
       onNone: (): Marking => ({ kind: "unmarked" }),
       onSome: ({ parts, reveals }): Marking => ({ kind: "marked", parts, reveals }),
-    },
+    }),
   );
 };
 
@@ -259,7 +259,7 @@ export const pointMarksOf = (
           ),
         (point) => `${point.x} ${point.y}`,
       )
-    : { given: points.map(() => undefined), missed: [] };
+    : { given: points.map(Function.constUndefined), missed: [] };
 
 /**
  * The mark of an answer a review shows in one position of a sequence: none where the review marks

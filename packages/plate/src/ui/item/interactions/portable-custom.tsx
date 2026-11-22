@@ -347,7 +347,10 @@ export const review = (
   const mark = markOf(
     shown,
     markingOf(node.response, context),
-    Option.getOrElse(Option.filter(model.cardinality, isValueCardinality), () => "single" as const),
+    model.cardinality.pipe(
+      Option.filter(isValueCardinality),
+      Option.getOrElse(() => "single" as const),
+    ),
   );
 
   return (

@@ -9,7 +9,7 @@
  *
  * @module
  */
-import { isNcName, replaced, trimmed } from "@qti-pie/crust/text.ts";
+import { isNcName, trimmed } from "@qti-pie/crust/text.ts";
 import { Data, Option, Result } from "effect";
 
 /**
@@ -59,7 +59,7 @@ export const isModelled = (baseType: string): baseType is ModelledBaseType =>
  * {@link parseElementText} reads it (spec reading 7): a string value holds no tab or line break,
  * as pantry stores it. It is grizzle-text's `replaced`, the one implementation crust re-exports.
  */
-export const replaceXmlSpace = replaced;
+export { replaced as replaceXmlSpace } from "@qti-pie/crust/text.ts";
 
 /**
  * Remove outer XML whitespace from text: space, tab, carriage return and line feed, and no other

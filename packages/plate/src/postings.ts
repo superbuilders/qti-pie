@@ -112,43 +112,6 @@ const blankIsEmptyOf = (interaction: Interaction): boolean =>
   (interaction.kind === "extended-text" && interaction.format !== "xhtml");
 
 /**
- * The responses an item's End Attempt interactions bind that no posting carries, each with the
- * value its module gives a submission without its entry, `false`: an End Attempt the page does not
- * show, inside hidden feedback or a hidden template block, posts no entry, and its response is
- * false all the same, whatever its default (QTI 3.0.1 information model §5.45, info:23377: "If
- * response processing is invoked in any other way, either through a different endAttemptInteraction
- * or through the default method for the delivery engine, then the associated response variable is
- * set to 'false'. The default value of the response variable is always ignored."; SPEC-AUDIT
- * SV-RP-01). A host adds them to what `decode` reads from the posted entries; an End Attempt the
- * page shows has its posting, whose `absent` gives the same false.
- *
- * @param accepted The accepted item.
- * @param instance The instance token the render used.
- * @param record The record of the attempt the page shows, as {@link postings} takes it, whose
- *   values show or hide the content an End Attempt sits in; none to read the item as it reads with
- *   no record.
- * @returns Each unposted End Attempt's response and its value, in document order, each once.
- */
-export const unpostedEndAttempts = (
-  accepted: Accepted,
-  instance: string,
-  record?: RedactRecord,
-): ReadonlyArray<readonly [string, Value]> => {
-  const posted = new Set(postings(accepted, instance, record).map(({ identifier }) => identifier));
-  const unposted = new Map<string, Value>();
-  for (const interaction of interactionsIn(accepted.item.body)) {
-    if (
-      interaction.kind === "end-attempt" &&
-      !posted.has(interaction.response) &&
-      !unposted.has(interaction.response)
-    ) {
-      Option.map(absentValueOf(interaction), (value) => unposted.set(interaction.response, value));
-    }
-  }
-  return [...unposted];
-};
-
-/**
  * Give the postings of a body and its response bindings in one instance, as {@link postings} gives
  * an accepted item's: plate's own, so a caller that holds a `RedactedStructure` or a bare
  * item learns which responses a page posts without printing the item. `src/index.ts` does not
@@ -241,3 +204,41 @@ export const postings = (
   instance: string,
   record?: RedactRecord,
 ): readonly Posting[] => postingsIn(redactStructure(accepted.item, record), instance);
+
+/**
+ * The responses an item's End Attempt interactions bind that no posting carries, each with the
+ * value its module gives a submission without its entry, `false`: an End Attempt the page does not
+ * show, inside hidden feedback or a hidden template block, posts no entry, and its response is
+ * false all the same, whatever its default (QTI 3.0.1 information model §5.45, info:23377: "If
+ * response processing is invoked in any other way, either through a different endAttemptInteraction
+ * or through the default method for the delivery engine, then the associated response variable is
+ * set to 'false'. The default value of the response variable is always ignored."; SPEC-AUDIT
+ * SV-RP-01). A host adds them to what `decode` reads from the posted entries; an End Attempt the
+ * page shows has its posting, whose `absent` gives the same false.
+ *
+ * @param accepted The accepted item.
+ * @param instance The instance token the render used.
+ * @param record The record of the attempt the page shows, as {@link postings} takes it, whose
+ *   values show or hide the content an End Attempt sits in; none to read the item as it reads with
+ *   no record.
+ * @returns Each unposted End Attempt's response and its value, in document order, each once.
+ */
+export const unpostedEndAttempts = (
+  accepted: Accepted,
+  instance: string,
+  record?: RedactRecord,
+): readonly (readonly [string, Value])[] => {
+  const posted = new Set(postings(accepted, instance, record).map(({ identifier }) => identifier));
+  const unposted = new Map<string, Value>();
+  for (const interaction of interactionsIn(accepted.item.body)) {
+    if (
+      interaction.kind === "end-attempt" &&
+      !posted.has(interaction.response) &&
+      !unposted.has(interaction.response)
+    ) {
+      Option.map(absentValueOf(interaction), (value) => unposted.set(interaction.response, value));
+    }
+  }
+
+  return [...unposted];
+};

@@ -805,6 +805,22 @@ const exempts = (reading: number, parent: string): boolean =>
   exemptions.some((row) => row.reading === reading && row.parents.includes(parent));
 
 /**
+ * Whether a spec reading narrows the XSD to refuse a family it accepts. Reading 44: an SSML `token`
+ * or `w` holds no `voice` (SSML 1.1 §3.1.8.2), where `tokenType` admits one. Reading 118: an
+ * include holds at most one fallback (XInclude 1.0 §3.1), where its XSD admits any number, so an
+ * include's family that holds two.
+ *
+ * @param parent - The family's parent.
+ * @param children - The family.
+ * @returns Whether a reading narrows it.
+ */
+const narrowedByReading = (parent: string, children: readonly string[]): boolean =>
+  (exempts(44, parent) && children.includes("ssml:voice")) ||
+  (exempts(118, parent) && children.filter((child) => child === "xi:fallback").length > 1) ||
+  (exempts(240, parent) && children.includes("col") && children.includes("colgroup")) ||
+  (exempts(241, parent) && children.filter((child) => child === "figcaption").length > 1);
+
+/**
  * Classify the grammar's verdict on an xmllint probe against xmllint's: they agree, a spec reading
  * rules their difference, or they disagree. Reading 96 rules a family the grammar refuses and
  * xmllint accepts: one only libxml2's widened sequence accepts ({@link widenedOnly}). A spec
@@ -849,22 +865,6 @@ const xmllintRuling = (input: {
 
   return widenedOnly(input.grammar, input.readings, probe) ? "reading 96" : "disagrees";
 };
-
-/**
- * Whether a spec reading narrows the XSD to refuse a family it accepts. Reading 44: an SSML `token`
- * or `w` holds no `voice` (SSML 1.1 §3.1.8.2), where `tokenType` admits one. Reading 118: an
- * include holds at most one fallback (XInclude 1.0 §3.1), where its XSD admits any number, so an
- * include's family that holds two.
- *
- * @param parent - The family's parent.
- * @param children - The family.
- * @returns Whether a reading narrows it.
- */
-const narrowedByReading = (parent: string, children: readonly string[]): boolean =>
-  (exempts(44, parent) && children.includes("ssml:voice")) ||
-  (exempts(118, parent) && children.filter((child) => child === "xi:fallback").length > 1) ||
-  (exempts(240, parent) && children.includes("col") && children.includes("colgroup")) ||
-  (exempts(241, parent) && children.filter((child) => child === "figcaption").length > 1);
 
 /**
  * The grammar's verdict on a family holding an undeclared element at a wildcard: its automaton,

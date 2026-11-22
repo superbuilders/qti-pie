@@ -330,6 +330,12 @@ const statedViews = new Set<unknown>([
   PackageRelation,
 ]);
 
+/**
+ * The relations the level's checks judge: a term of LOM's own vocabulary and a record document's
+ * node.
+ */
+const judgedRelations = new Set<unknown>([LomTerm, RecordNode]);
+
 describe("the LOM level", () => {
   it("states each law of lomLawsByName and no other, each check named by its law", () => {
     // Oracle: the level's own grouping, and `checkNameOf`, the naming every check of the schema
@@ -355,7 +361,7 @@ describe("the LOM level", () => {
     // alone, never a view of what a package may state. Bound: every statement of the level.
     for (const statement of Object.values(lomLawsByName).flat()) {
       assert.strictEqual(statement.kind, "check");
-      assert.include([LomTerm, RecordNode] as readonly unknown[], statement.relation);
+      assert.isTrue(judgedRelations.has(statement.relation), statement.name);
       assert.isFalse(statedViews.has(statement.relation), statement.name);
     }
   });

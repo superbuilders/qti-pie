@@ -218,7 +218,9 @@ describe("qti/mapping.ts, a typed map key read collapsed", { timeout: searchTime
           Effect.gen(function* collapsedKey() {
             const read = text.replaceAll(/ +/gu, " ").replace(/^ /u, "").replace(/ $/u, "");
             const integer = /^[+-]?[0-9]+$/u.test(read);
-            c.note(integer ? (read === text ? "bare integer" : "padded integer") : "no integer");
+            const integerNote = read === text ? "bare integer" : "padded integer";
+            c.note(integer ? integerNote : "no integer");
+
             const found = yield* mappingBreachesOf(mappedItem("integer", [text], "7"));
 
             assert.strictEqual(

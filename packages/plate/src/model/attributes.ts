@@ -11,7 +11,6 @@
  *
  * @module
  */
-import { collapsed } from "@qti-pie/crust/text.ts";
 import { Array as Arr, Data, Option, Result } from "effect";
 import { attributePath, qtiNamespace, xmlNamespace } from "#plate/document/source.ts";
 import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
@@ -350,7 +349,7 @@ export const xmlWhitespaceRun = /[\t\n\r ]+/gu;
  * an `xs:IDREF` and an `xs:token` are read this way. It is grizzle-text's `collapsed`, the one
  * implementation crust re-exports.
  */
-export const collapseXmlSpace = collapsed;
+export { collapsed as collapseXmlSpace } from "@qti-pie/crust/text.ts";
 
 /**
  * Replace a value's XML whitespace, as XSD's `whiteSpace="replace"` facet reads it: each tab, line

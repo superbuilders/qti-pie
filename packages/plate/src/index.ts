@@ -40,11 +40,12 @@
  * Nothing else under `src/` is reachable from outside the package but the UI's four entries,
  * `./admission-codes`, the reason codes `refusalMessages` words, the one list (generated from the
  * QTI database's machine) the ledger builds its closed roster `AdmissionCode` from without loading
- * the rest of plate, `./test/admitted`, the test support that tells a document the database admitted, which specimen's
- * UI suite sweeps the corpus by as plate's own sweeps do, and `./test/records`, the record a test
- * shows an item by before its first attempt. The tests' seams (`acceptForTest` and its
- * kin) and the redacted item's brand constructor (`brandRedacted`) are never exported, so a host
- * holds an `Accepted` only from `openAdmitted`, and a `Redacted` only from `redact`.
+ * the rest of plate, `./test/admitted`, the test support that tells a document the database
+ * admitted, which specimen's UI suite sweeps the corpus by as plate's own sweeps do, and
+ * `./test/records`, the record a test shows an item by before its first attempt. The tests' seams
+ * (`acceptForTest` and its kin) and the redacted item's brand constructor (`brandRedacted`) are
+ * never exported, so a host holds an `Accepted` only from `openAdmitted`, and a `Redacted` only
+ * from `redact`.
  *
  * @module
  */
