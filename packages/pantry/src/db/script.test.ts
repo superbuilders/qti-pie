@@ -44,8 +44,8 @@ export default defineConfig({
 
 /**
  * The variables of the process the tests run in that scripts/db.sh or the grizzle config reads,
- * removed from each run, so only a case's own settings reach it. `HOME` stays, for corepack's
- * pnpm; every default the script derives from it is set.
+ * removed from each run, so only a case's own settings reach it. Every default the script derives
+ * from `HOME` is set.
  */
 const cleared = {
   QTI_PIE_GRIZZLE_CONFIG: undefined,

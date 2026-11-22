@@ -115,14 +115,15 @@ exists() {
 # Usage: as_migration migrate|roles|uninstall. Only this is given the migration identity's password, unless
 # QTI_PIE_PG_PASSWORD_COMMAND gives every role its own. It reads the password first either way, so a password command
 # that gives none is refused here, by owner_password's message, before any grizzle command runs; grizzle then runs
-# the command again for each connection it opens.
+# the command again for each connection it opens. grizzle is the package's own bin, which starts node on grizzle's
+# entry; `pnpm exec` would start a node of its own before it.
 as_migration() {
 	local password
 	password="$(owner_password)" || return
 	if [[ -n "${QTI_PIE_PG_PASSWORD_COMMAND:-}" ]]; then
-		pnpm exec grizzle "$1" "$config"
+		node_modules/.bin/grizzle "$1" "$config"
 	else
-		QTI_PIE_PG_MIGRATION_PASSWORD="$password" pnpm exec grizzle "$1" "$config"
+		QTI_PIE_PG_MIGRATION_PASSWORD="$password" node_modules/.bin/grizzle "$1" "$config"
 	fi
 }
 
