@@ -8,8 +8,9 @@
  * What an element does comes from its QTI name, attributes and binding alone: no vocabulary class
  * changes it. `styles/theme.css` is the inventory of the classes plate presents, but for
  * `qti-match-tabular`, which lays a Match out as a table whose markup no stylesheet could write
- * (`#plate/ui/item/interactions/match.tsx`), and {@link carriedClass} the one class plate leaves off
- * for a candidate's PNP.
+ * (`#plate/ui/item/interactions/match.tsx`), {@link carriedClass} the one class plate leaves off
+ * for a candidate's PNP, and plate's own renderer vocabulary ({@link rendererClasses}), whose
+ * classes an island reads where a stylesheet alone cannot present them.
  *
  * @module
  */
@@ -336,6 +337,63 @@ export const carriedClass = (
       return Option.some(kept.length === tokens.length ? classes : kept.join(" "));
     }),
   );
+
+/**
+ * Plate's renderer vocabulary: the classes an author or a converter writes on standard QTI content
+ * to ask plate for a presentation QTI's shared vocabulary has no class for, each by its meaning.
+ * Each is a class token only, never a `data-*` plate reads (Bjorn's ruling of 2026-11-10 reserves
+ * those), so the content beneath stays the standard element, answerable and gradable by any
+ * renderer that knows none of them; plate presents each in its theme or, where markup must change,
+ * in the island that reads it ({@link carriesRendererClass}).
+ *
+ * The prefix is plate's own, `plate-`. QTI 3's shared vocabulary names its classes with `qti-` and
+ * holds no sentence reserving the prefix; QTI 3's Best Practices and Implementation Guide does, in
+ * §3.2.1: "Implementers of custom presentations/behaviors should avoid using classes with the
+ * "qti-" prefix", and §3.6.1 asks for "a naming convention for CSS classes which includes a prefix
+ * with an item vendor-specific code".
+ *
+ * @see https://www.imsglobal.org/spec/qti/v3p0/impl
+ */
+export const rendererClasses = {
+  /**
+   * On a `span`: a highlighted run of text, filled as a highlighter marks it (theme.css).
+   */
+  "plate-highlight": "a highlighted run of text",
+  /**
+   * On a `qti-order-interaction`: one numbered list of the choices in their presented order, which
+   * the child reorders by a drag, a tap or a key, each move a swap, posting nothing until the first
+   * move and then always the full order (`#plate/ui/order/order.tsx`).
+   */
+  "plate-order-list": "an order as one numbered list, reordered in place",
+  /**
+   * On a `span`: a paragraph's number, a badge set apart from the paragraph's first word
+   * (theme.css).
+   */
+  "plate-paragraph-number": "a paragraph's number, as a badge",
+  /**
+   * On a `qti-slider-interaction`: no readout of the value and no labels of the bounds or steps,
+   * which would show the answer, and a hint to drag the handle while no value is chosen
+   * (`#plate/ui/slider/slider.tsx`); the thumb still tells a screen reader its value.
+   */
+  "plate-slider-value-hidden": "a slider that shows no value",
+} as const;
+
+/**
+ * One of plate's renderer classes ({@link rendererClasses}).
+ */
+export type RendererClass = keyof typeof rendererClasses;
+
+/**
+ * Tell whether an element's `class` holds one of plate's renderer classes.
+ *
+ * @param classes The `class` as written, none when absent.
+ * @param name The renderer class.
+ * @returns Whether one of its tokens is the class.
+ */
+export const carriesRendererClass = (
+  classes: Option.Option<string>,
+  name: RendererClass,
+): boolean => Option.exists(classes, (written) => classTokensOf(written).includes(name));
 
 /**
  * The prefix of the `data-*` names plate reserves wholesale, but for QTI's own shared vocabulary

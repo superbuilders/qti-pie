@@ -19,4 +19,9 @@ export const sliderKeys = {
    * where specified by a default value").
    */
   empty: "sliderEmpty",
-} as const satisfies LabelKeys<"empty">;
+  /**
+   * The line a slider that shows no value (`plate-slider-value-hidden` in `#plate/vocabulary.ts`)
+   * writes under its scale while it holds no value.
+   */
+  hint: "sliderHint",
+} as const satisfies LabelKeys<"empty" | "hint">;

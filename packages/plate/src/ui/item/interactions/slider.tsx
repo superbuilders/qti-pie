@@ -36,6 +36,7 @@ import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { sliderKeys } from "#plate/ui/slider/labels.ts";
 import { Slider } from "#plate/ui/slider/slider.tsx";
+import { carriesRendererClass } from "#plate/vocabulary.ts";
 
 /**
  * A Slider's payload node, as its module's `redact` gave it.
@@ -195,6 +196,7 @@ export const island = (paired: Paired<"slider">, context: IslandContext): ReactN
       step={Option.getOrUndefined(node.step)}
       steps={node.steps}
       upper={endOf(node)}
+      valueHidden={carriesRendererClass(model.class, "plate-slider-value-hidden")}
     />
   );
 };

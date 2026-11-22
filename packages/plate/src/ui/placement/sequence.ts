@@ -17,6 +17,7 @@
  */
 import { useMemo, useState } from "react";
 import type { Sequence, SequenceBoard } from "#plate/ui/placement/machine.ts";
+import { listPlacements, listResponse } from "#plate/ui/placement/order-list.ts";
 import { useResponse } from "#plate/ui/responses.tsx";
 
 /**
@@ -123,6 +124,39 @@ export const useSequence = (
 
       if (keptSequence(next, texts, positions, required) !== next) {
         set(responseOf(next, required));
+      }
+    },
+    placements,
+  };
+};
+
+/**
+ * Hold an order laid out as one numbered list (`plate-order-list`) on a sequence board bound to an
+ * ordered response: one position per choice, each filled from the start, the choices in their
+ * presented order until the child's first move or the response the host restored
+ * ({@link listPlacements}); each move that reorders them posts the full order, and none other
+ * posts anything ({@link listResponse}).
+ *
+ * @param name The entry name the response posts under.
+ * @param chips The choices, in their presented order, each by its `identifier`.
+ * @returns The root's options.
+ */
+export const useOrderList = (
+  name: string,
+  chips: readonly { readonly identifier: string }[],
+): SequenceRoot => {
+  const [texts, set] = useResponse(name);
+  const presented = useMemo(() => chips.map(({ identifier }) => identifier), [chips]);
+  const board = useMemo((): SequenceBoard => ({ chips: presented, kind: "sequence" }), [presented]);
+  const placements = useMemo(() => listPlacements(texts, presented), [presented, texts]);
+
+  return {
+    board,
+    onPlacementsChange: (next) => {
+      const order = listResponse(next, placements);
+
+      if (order !== undefined) {
+        set(order);
       }
     },
     placements,

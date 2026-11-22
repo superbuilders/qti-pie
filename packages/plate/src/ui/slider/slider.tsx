@@ -102,6 +102,13 @@ export interface SliderProps extends Authored<Named> {
    * thumb's travel ends where its values do.
    */
   readonly upper: number;
+  /**
+   * Whether the slider shows no value, as `plate-slider-value-hidden` on its root asks
+   * (`rendererClasses` in `#plate/vocabulary.ts`): the base sheet hides its readout and its bounds'
+   * and steps' labels from the eye, which would show the answer, and the island writes `hint` under
+   * the scale, which the sheet shows only while the slider holds no value.
+   */
+  readonly valueHidden: boolean;
 }
 
 /**
@@ -208,6 +215,8 @@ const resolutionOf = (span: number): number =>
  *   slider is reversed;
  * - `plate-slider-bound`, each end's number, `data-bound="lower"` or `"upper"`, which the thumb's
  *   `aria-describedby` names;
+ * - `plate-slider-hint`, where the slider shows no value (`valueHidden`), the `hint` label under the
+ *   scale, which the base sheet shows only while the root is `data-empty`;
  * - UI SDK's `slider`, `slider-value` (the readout, the `empty` label while there is no value),
  *   `slider-control` (where presses land), `slider-track`, `slider-indicator` and `slider-thumb`,
  *   whose native range input takes focus, named by `naming`, which the server resolved: the prompt,
@@ -224,8 +233,20 @@ const resolutionOf = (span: number): number =>
  * @see https://ui-sdk.dev/docs/react/components/slider
  */
 export const Slider = (props: SliderProps) => {
-  const { labels, lower, name, naming, orientation, prompt, reverse, root, step, steps, upper } =
-    props;
+  const {
+    labels,
+    lower,
+    name,
+    naming,
+    orientation,
+    prompt,
+    reverse,
+    root,
+    step,
+    steps,
+    upper,
+    valueHidden,
+  } = props;
   const [texts, set] = useResponse(name);
   const hydrated = useHydrated();
   const id = useId();
@@ -356,6 +377,7 @@ export const Slider = (props: SliderProps) => {
           </ol>
         ) : null}
       </div>
+      {valueHidden ? <p data-slot="plate-slider-hint">{labels.hint}</p> : null}
     </div>
   );
 };

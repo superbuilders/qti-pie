@@ -653,6 +653,33 @@
   /* == slider == */
 
   /*
+   * A slider that shows no value (`plate-slider-value-hidden`, plate's renderer vocabulary): its
+   * readout and its bounds' and steps' labels hidden from the eye only, since they would show the
+   * answer, so the thumb's value and the bounds it is described by still reach a screen reader; and
+   * its hint (`plate-slider-hint`) only while it holds no value.
+   */
+  [data-slot="plate-slider"].plate-slider-value-hidden
+    :is(
+      [data-slot="slider-value"],
+      [data-slot="plate-slider-bound"],
+      [data-slot="plate-slider-steps"]
+    ) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  [data-slot="plate-slider"]:not([data-empty]) > [data-slot="plate-slider-hint"] {
+    display: none;
+  }
+
+  /*
    * A Slider's scale, a grid: the lower bound, the slider and the upper bound on one line, the step
    * labels under the slider; a vertical one stands its slider between the upper bound above and the
    * lower below, or the other way up when reversed, the labels beside it. A reversed horizontal one

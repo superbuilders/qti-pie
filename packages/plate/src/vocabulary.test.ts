@@ -11,6 +11,7 @@ import {
   interactionNames,
   isAuthorData,
   modelled,
+  rendererClasses,
 } from "#plate/vocabulary.ts";
 
 /**
@@ -128,6 +129,57 @@ describe("the reserved data-* names, against plate's UI (decision D24)", () => {
       [...written].filter((name) => isAuthorData(name)),
       [],
       "a data-* name the UI writes that securing would keep for an author",
+    );
+  });
+});
+
+/**
+ * Plate's two stylesheets, as a host imports them.
+ */
+const sheets = ["base.css", "theme.css"].map((sheet) =>
+  readFileSync(new URL(`styles/${sheet}`, import.meta.url), "utf-8"),
+);
+
+/**
+ * List the renderer classes nothing presents: no stylesheet selects the class, and no module reads
+ * it with `carriesRendererClass`.
+ *
+ * @param classes The classes.
+ * @param sources The package's modules, by path.
+ * @param styles The stylesheets.
+ * @returns Each class nothing presents.
+ */
+const unpresented = (
+  classes: readonly string[],
+  sources: ReadonlyMap<string, string>,
+  styles: readonly string[],
+): readonly string[] =>
+  classes.filter(
+    (name) =>
+      !styles.some((sheet) => new RegExp(`\\.${name}(?![\\w-])`, "u").test(sheet)) &&
+      ![...sources].some(
+        ([path, source]) =>
+          !path.endsWith(".test.ts") &&
+          source.includes(`carriesRendererClass(`) &&
+          source.includes(`"${name}"`),
+      ),
+  );
+
+describe("plate's renderer vocabulary", () => {
+  it("names each class under plate's own prefix, never QTI's qti-, as QTI's implementation guide §3.2.1 asks", () => {
+    for (const name of Object.keys(rendererClasses)) {
+      assert.match(name, /^plate-[a-z]+(?:-[a-z]+)*$/u, name);
+    }
+  });
+
+  it("presents every class: a stylesheet selects it or a module reads it", () => {
+    assert.deepStrictEqual(unpresented(Object.keys(rendererClasses), sourceModules(), sheets), []);
+  });
+
+  it("refuses a class nothing presents (the plant)", () => {
+    assert.deepStrictEqual(
+      unpresented([...Object.keys(rendererClasses), "plate-planted"], sourceModules(), sheets),
+      ["plate-planted"],
     );
   });
 });

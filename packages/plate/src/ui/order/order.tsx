@@ -13,6 +13,11 @@
  * there, which moves to the position the dropped chip left, or back to the bank when the dropped
  * chip came from the bank.
  *
+ * An order whose root carries `plate-order-list` is one numbered list instead: no bank, one
+ * position per choice, each filled from the start in the presented order, and the child reorders
+ * them in place, each move a swap; its response is NULL until the first move, then always the full
+ * order (`#plate/ui/placement/order-list.ts`), as AlphaTest's player posted it.
+ *
  * The response is the chips in position order, posted once the positions are filled from the first
  * as far as the order requires (`useSequence` in `#plate/ui/placement/sequence.ts`): until then,
  * and while an empty position stands before a filled one, it stays NULL, "the candidate has not
@@ -35,7 +40,7 @@ import {
   PlacementTarget,
   PlacementTargetLabel,
 } from "#plate/ui/placement/parts.tsx";
-import { useSequence } from "#plate/ui/placement/sequence.ts";
+import { useOrderList, useSequence } from "#plate/ui/placement/sequence.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
@@ -99,6 +104,13 @@ export interface OrderProps extends Authored<NameAttributes> {
    */
   readonly prompt: Prompt | undefined;
   /**
+   * Whether the order is laid out as one numbered list (`plate-order-list` on its root, plate's
+   * renderer vocabulary in `#plate/vocabulary.ts`): one position per choice, every choice standing
+   * in its presented order from the start and reordered in place, with no bank, and the response
+   * NULL until the child's first move, then the full order (`useOrderList`).
+   */
+  readonly list: boolean;
+  /**
    * How many positions the response must fill before it posts, which the server derives from
    * `min-choices`: the `min-choices` written, or one per choice when there is none, since then
    * every choice must be ordered (5.97.2). It never stops a child placing or taking out a choice;
@@ -145,6 +157,7 @@ export const Order = (props: OrderProps) => {
   const {
     choices,
     labels,
+    list,
     name,
     naming,
     orientation,
@@ -153,10 +166,13 @@ export const Order = (props: OrderProps) => {
     required,
     root: authored,
   } = props;
-  const root = useSequence(name, choices, positions, required);
+  const board = useSequence(name, choices, positions, required);
+  const listed = useOrderList(name, choices);
+  const root = list ? listed : board;
+  const shown = list ? choices.length : positions;
   const spots = useMemo(
-    () => Array.from({ length: positions }, (_, index): Position => ({ index, kind: "position" })),
-    [positions],
+    () => Array.from({ length: shown }, (_, index): Position => ({ index, kind: "position" })),
+    [shown],
   );
   const chipsBy = useMemo(
     () => new Map(choices.map((choice) => [choice.identifier, choice])),
@@ -173,22 +189,24 @@ export const Order = (props: OrderProps) => {
     >
       <PromptPart prompt={prompt} />
       <PlacementRoot {...root} labels={labels}>
-        <PlacementBank>
-          {choices.map((choice) =>
-            spokenBeside(
-              <PlacementChip
-                key={choice.identifier}
-                aria-label={choice.label}
-                value={choice.identifier}
-              >
-                {choice.content}
-              </PlacementChip>,
-              choice,
-              { key: choice.identifier, slot: "plate-order-choice" },
-            ),
-          )}
-          <PlacementSlot />
-        </PlacementBank>
+        {list ? null : (
+          <PlacementBank>
+            {choices.map((choice) =>
+              spokenBeside(
+                <PlacementChip
+                  key={choice.identifier}
+                  aria-label={choice.label}
+                  value={choice.identifier}
+                >
+                  {choice.content}
+                </PlacementChip>,
+                choice,
+                { key: choice.identifier, slot: "plate-order-choice" },
+              ),
+            )}
+            <PlacementSlot />
+          </PlacementBank>
+        )}
         <ol data-slot="plate-order-positions" role="list">
           {spots.map((spot) => (
             <PlacementTarget
@@ -200,11 +218,25 @@ export const Order = (props: OrderProps) => {
               {({ chips }) => (
                 <>
                   <PlacementTargetLabel>{spot.index + 1}</PlacementTargetLabel>
-                  {chips.map((chip) => (
-                    <PlacementChip key={chip} aria-label={chipsBy.get(chip)?.label} value={chip}>
-                      {chipsBy.get(chip)?.copy}
-                    </PlacementChip>
-                  ))}
+                  {chips.map((chip) =>
+                    list ? (
+                      spokenBeside(
+                        <PlacementChip
+                          key={chip}
+                          aria-label={chipsBy.get(chip)?.label}
+                          value={chip}
+                        >
+                          {chipsBy.get(chip)?.content}
+                        </PlacementChip>,
+                        chipsBy.get(chip) ?? {},
+                        { key: chip, slot: "plate-order-choice" },
+                      )
+                    ) : (
+                      <PlacementChip key={chip} aria-label={chipsBy.get(chip)?.label} value={chip}>
+                        {chipsBy.get(chip)?.copy}
+                      </PlacementChip>
+                    ),
+                  )}
                   {chips.length === 0 ? <PlacementSlot /> : null}
                 </>
               )}

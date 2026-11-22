@@ -30,6 +30,7 @@ import { PromptPart } from "#plate/ui/prompt.tsx";
 import { chipName } from "#plate/ui/item/interactions/text.ts";
 import { orderKeys } from "#plate/ui/order/labels.ts";
 import { Order } from "#plate/ui/order/order.tsx";
+import { carriesRendererClass } from "#plate/vocabulary.ts";
 
 /**
  * Give the choice a review shows missing at a position: the right choice of a wrong position, or
@@ -145,6 +146,7 @@ export const island = (
         ...spokenOf(choice, index + 1, "readAloudChoice", context),
       }))}
       labels={labelsOf(orderKeys, context.locale, {})}
+      list={carriesRendererClass(model.class, "plate-order-list")}
       name={node.formName}
       naming={groupNameOf(prompt, node, context)}
       orientation={Option.getOrUndefined(node.orientation)}

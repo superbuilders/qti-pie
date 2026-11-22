@@ -875,6 +875,13 @@
 
   /* == slider == */
 
+  /* A slider's hint, where it shows no value: under the scale, in the muted text. */
+  :where([data-slot="plate-slider"]) [data-slot="plate-slider-hint"] {
+    margin: 0.5rem 0 0;
+    color: var(--ui-muted-foreground);
+    font-weight: 500;
+  }
+
   /*
    * A Slider: its prompt and its scale, 12 px apart.
    */
@@ -3887,6 +3894,34 @@
     list-style-type: upper-roman;
   }
 
+  /* == plate's renderer vocabulary in the body (`rendererClasses` in vocabulary.ts) == */
+
+  /*
+   * A paragraph's number (`plate-paragraph-number`): a green badge with an edge, set apart from the
+   * paragraph's first word, as AlphaTest's passages drew it, so "1" never runs into "Once".
+   */
+  :where([data-slot="plate-item"]) .plate-paragraph-number {
+    display: inline-block;
+    margin-inline-end: 0.4em;
+    padding: 0 0.3em;
+    border: 1px solid oklch(0.45 0.12 145);
+    border-radius: 0.25em;
+    background: oklch(0.72 0.14 145);
+    color: oklch(0.15 0 0);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /*
+   * A highlighted run of text (`plate-highlight`): filled as a highlighter marks it, the text's own
+   * colour kept, at 7:1 or more against the fill.
+   */
+  :where([data-slot="plate-item"]) .plate-highlight {
+    padding-inline: 0.1em;
+    background: oklch(0.95 0.15 105);
+    color: oklch(0.15 0 0);
+  }
+
   /* == hover, only for a pointer that hovers, so a tap on a tablet leaves nothing behind == */
 
   /* == a disabled control == */
@@ -3912,6 +3947,13 @@
    * which forced colours keep.
    */
   @media (forced-colors: active) {
+    /* A highlight and a paragraph's number in the system's mark colours, which forced colours keep. */
+    :where([data-slot="plate-item"]) :is(.plate-highlight, .plate-paragraph-number) {
+      forced-color-adjust: none;
+      background: Mark;
+      color: MarkText;
+    }
+
     :is([data-slot="plate-choice-option"], [data-slot="plate-hotspot-option"])[data-selected],
     [data-slot="plate-placement-bank"][data-over] {
       outline: 3px solid Highlight;
