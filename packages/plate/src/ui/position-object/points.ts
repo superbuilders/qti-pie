@@ -15,7 +15,7 @@ import { Option } from "effect";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import { pointCoordinates } from "#plate/model/values.ts";
 import type { ImagePoint } from "#plate/graphic/geometry.ts";
-import type { PostedEntries, PostedEntry } from "#plate/ui/responses.tsx";
+import type { PostedEntries, PostedEntry } from "#plate/ui/props.ts";
 
 /**
  * Read a point from the text it posts, as the value model reads a point's text

@@ -13,6 +13,7 @@
     "./math-entry": "./src/math-entry/field.ts",
     "./ui": "./src/ui/index.ts",
     "./ui/client": "./src/ui/client.ts",
+    "./ui/props": "./src/ui/props.ts",
     "./ui/pci-frame": "./src/ui/portable-custom/frame-page.ts",
     "./styles/base.css": "./src/styles/base.css",
     "./styles/theme.css": "./src/styles/theme.css",

@@ -15,22 +15,17 @@
  */
 import { Option } from "effect";
 import type { Key, ReactNode } from "react";
-import type { Configuration } from "#plate/configuration.ts";
 import { defaultView } from "#plate/content/contract.ts";
 import { copyItemContent, itemContentNodes } from "#plate/content/modules.ts";
 import type { ItemPayloadsHeld } from "#plate/content/modules.ts";
 import { checkInstance, scopedId } from "#plate/form/encoding.ts";
 import { message } from "#plate/messages.ts";
 import type { Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
-import type { RedactRecord } from "#plate/model/record.ts";
-import type { ResponseValue } from "#plate/model/values.ts";
 import { interactionPayload } from "#plate/payload.ts";
-import type { PairedInteraction, RenderMode, View } from "#plate/payload.ts";
-import type { HostFacts } from "#plate/pci/host.ts";
+import type { PairedInteraction, View } from "#plate/payload.ts";
 import { redact } from "#plate/redact.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
 import { noSupports } from "#plate/supports.ts";
-import type { Supports } from "#plate/supports.ts";
 import {
   feedbackOf,
   firstFeedbackIn,
@@ -51,7 +46,7 @@ import {
   companionMaterials,
   missingInMaterials,
 } from "#plate/ui/item/contents/companion-materials.tsx";
-import type { ContentOptions, Graded, ReviewContext, Shows } from "#plate/ui/item/context.ts";
+import type { ContentOptions, ReviewContext, Shows } from "#plate/ui/item/context.ts";
 import { AssetMissing, InvalidInstance, OutputTooLarge } from "#plate/ui/item/errors.ts";
 import { feedbackBlockOf, verdictOf } from "#plate/ui/item/feedback.tsx";
 import type { Addressing } from "#plate/ui/item/html.ts";
@@ -68,84 +63,9 @@ import {
   stimulusPane,
 } from "#plate/ui/item/stimuli.tsx";
 import type { ShownStimulus, StimulusSetting } from "#plate/ui/item/stimuli.tsx";
+import type { ItemProps } from "#plate/ui/props.ts";
 import { ReadAloudItem } from "#plate/ui/read-aloud/session.tsx";
-import type { Accepted, AcceptedStimulus } from "#plate/validate/verdict.ts";
 import { carriedClass } from "#plate/vocabulary.ts";
-import type { OutcomeView } from "#plate/vocabulary.ts";
-
-/**
- * What `<Item>` takes: the opened item, the configuration, the instance the host names, the mode,
- * the QTI database's results the page shows, and what the host knows of where the item's scripts
- * run.
- */
-export interface ItemProps {
-  /**
-   * The configuration `configure` gives: the address of each file in `assets`, the `locale` of
-   * plate's own text, the `seed` a shuffle is keyed by with the response, the
-   * `headingLevel` the item's shallowest heading lands at, and the `outputBudget` its printed
-   * text is held to.
-   */
-  readonly configuration: Configuration;
-  /**
-   * What the host knows and plate does not, which the interaction modules that need it read: a
-   * Portable Custom Interaction's frame page and module routes (`pci`, `PciHostFacts`), without
-   * which a PCI is plate's Notice part. A render input, never item data: none reaches the page but
-   * what a module bakes into its own payload node. None when absent.
-   */
-  readonly host?: HostFacts;
-  /**
-   * The host's name for this use of the item, one per item session: it scopes every id and entry
-   * name the item writes. A token `checkInstance` passes.
-   */
-  readonly instance: string;
-  /**
-   * The item `openAdmitted` accepted, as `acceptedItem` gives it.
-   */
-  readonly item: Accepted;
-  /**
-   * The state the item is shown in: `answering`, where each interaction is its island; `review`,
-   * a recorded attempt; `solution`, the correct responses. In `review` and `solution` each
-   * interaction is plain server markup and ships no JavaScript, but a Media, whose replay island
-   * plays its media and posts nothing.
-   */
-  readonly mode: RenderMode;
-  /**
-   * The record of the attempt shown, such as `restore`'s `record` after `score`: its outcomes
-   * decide the feedback shown and the printed variables' text, its template values the template
-   * content and the choices shown. None shows the item as it reads with no record.
-   */
-  readonly record?: RedactRecord;
-  /**
-   * How the attempt a review shows did, read in `review` alone: the credit its feedback carries
-   * where the host shows the review's feedback, and the marks it draws, the database's
-   * `AttemptMark` rows of the attempt, revealing the solution where the host may show it
-   * (`show-solution`), else marking the candidate's own answers alone. None marks nothing and
-   * carries no credit.
-   */
-  readonly graded?: Graded;
-  /**
-   * The stimuli the item's stimulus refs name, each the `acceptedStimulus` of its document opened
-   * by `openAdmitted` at its path in the package, with its files' addresses in the configuration's
-   * `assets`: the shared content the candidate reads to answer the item (information model §7.6),
-   * which plate reads no file to find. The host may hand more than the item names; one the item
-   * names and the host does not hand is refused (`StimulusMissing`). None when absent.
-   */
-  readonly stimuli?: readonly AcceptedStimulus[];
-  /**
-   * The accessibility supports the host enabled for the candidate, none enabled when absent.
-   */
-  readonly supports?: Supports;
-  /**
-   * The responses shown, by response identifier: in `review` the candidate's (`restore`'s
-   * `values`), in `solution` the correct ones (`solution`'s). None in `answering`, where the host's
-   * `<Responses>` holds them.
-   */
-  readonly values?: Readonly<Record<string, ResponseValue>>;
-  /**
-   * The view the item is shown to, one of QTI's six, the candidate's when absent.
-   */
-  readonly view?: OutcomeView;
-}
 
 /**
  * Give a record keyed by identifier as the map a view holds.

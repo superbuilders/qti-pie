@@ -59,7 +59,7 @@ export { ReadAloudSession } from "#plate/ui/read-aloud/session.tsx";
 
 export { Responses, useResponse } from "#plate/ui/responses.tsx";
 
-export type { PostedEntries, PostedEntry } from "#plate/ui/responses.tsx";
+export type { PostedEntries, PostedEntry } from "#plate/ui/props.ts";
 
 export { digitsClass, digitsOf } from "#plate/ui/text-entry/digits.ts";
 

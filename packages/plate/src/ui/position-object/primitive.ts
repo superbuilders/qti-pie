@@ -55,7 +55,7 @@ import { reached } from "#plate/placement/limit.ts";
 import type { Limit } from "#plate/placement/limit.ts";
 import { middleOf, pointOn, pointsOf, withPoints } from "#plate/ui/position-object/points.ts";
 import type { PositionObjectLabels } from "#plate/ui/position-object/labels.ts";
-import type { PostedEntries } from "#plate/ui/responses.tsx";
+import type { PostedEntries } from "#plate/ui/props.ts";
 
 /**
  * Why the placements changed: `item-press` for a tap, a click, or Space or Enter; `drag` for a

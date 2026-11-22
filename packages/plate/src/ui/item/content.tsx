@@ -36,12 +36,12 @@ import type {
 import { spokenBefore } from "#plate/read-aloud/placement.ts";
 import type { SpokenBefore } from "#plate/read-aloud/placement.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
-import type { Glossary, Glossed, ReadsAloud } from "#plate/ui/item/contents/catalog.tsx";
+import type { Glossary, Glossed } from "#plate/ui/item/contents/catalog.tsx";
 import { content as mathmlContent, missingInMath } from "#plate/ui/item/contents/mathml.tsx";
 import { content as rubricContent } from "#plate/ui/item/contents/rubric.tsx";
 import { slotPlan } from "#plate/content/math-slots.ts";
 import type { SlotSize } from "#plate/content/math-slots.ts";
-import type { Credit, Position } from "#plate/ui/item/context.ts";
+import type { Credit, Position, ReadsAloud } from "#plate/ui/item/context.ts";
 import { NestedInteraction, UnrenderedNode } from "#plate/ui/item/errors.ts";
 import { feedbackBlockOf, isExplanation } from "#plate/ui/item/feedback.tsx";
 import {

@@ -30,7 +30,7 @@
 import { floatBits } from "@bjornpagen/grizzle";
 import type { Sha256 } from "@bjornpagen/grizzle";
 import type { ItemRecord, RecordValue, Responses, ResponseValue, Value } from "@qti-pie/plate";
-import type { AnswerMark, Credit, PartMark } from "@qti-pie/plate/ui";
+import type { AnswerMark, Credit, PartMark } from "@qti-pie/plate/ui/props";
 import { Effect, Option, Order, Schema } from "effect";
 import { QtiInteger } from "#ledger/scalars.ts";
 

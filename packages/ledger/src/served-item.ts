@@ -46,8 +46,7 @@ import type {
   Responses,
   Supports,
 } from "@qti-pie/plate";
-import type { Graded, ItemProps } from "@qti-pie/plate/ui";
-import type { PostedEntries } from "@qti-pie/plate/ui/client";
+import type { Graded, ItemProps, PostedEntries } from "@qti-pie/plate/ui/props";
 import { Effect, Option, Schema } from "effect";
 import { begunOfRows } from "#ledger/served-values.ts";
 import type { Judged, StartRows } from "#ledger/served-values.ts";

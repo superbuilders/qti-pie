@@ -61,7 +61,7 @@ const plateNodePattern = {
 /**
  * What plate's modules may not load, each refused by its own specifier, so the rule holds file by
  * file and needs no walk of the module graph. Its served entries (`.`, `./open`, `./package` and
- * the UI's three) stay loadable by any host, and its islands by a page: test support (the Node-only
+ * the UI's four) stay loadable by any host, and its islands by a page: test support (the Node-only
  * corpus reader among it), every Node built-in (with or without `node:`; the keyed digest alone
  * loads `node:crypto`), the test runner by package, so no re-export under another name routes
  * around the list, and pantry and grizzle. A type-only import loads nothing, and is allowed.
@@ -242,6 +242,64 @@ export default defineConfig({
           { patterns: [...sharedImportPatterns, ...plateCorePatterns] },
         ],
         "workspace/no-bare-error": "error",
+      },
+    },
+    // The UI's data entry, `@qti-pie/plate/ui/props`, is what server code imports of the UI, so it
+    // reaches no rendering module: its modules load no `.tsx` module, a type-only import included,
+    // since TypeScript compiles every module a type-only import names, and a rendering module
+    // reaches the islands, whose browser libraries a server's program resolves to their server
+    // builds. A module that joins the entry's closure joins the list.
+    {
+      files: [
+        "packages/plate/src/ui/item/context.ts",
+        "packages/plate/src/ui/item/html.ts",
+        "packages/plate/src/ui/item/ids.ts",
+        "packages/plate/src/ui/item/interactions/marks.ts",
+        "packages/plate/src/ui/props.ts",
+      ],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              ...sharedImportPatterns,
+              ...plateCorePatterns,
+              {
+                message:
+                  "The UI's data entry (`@qti-pie/plate/ui/props`) reaches no rendering module: move the type into a `.ts` module.",
+                regex: "\\.tsx$",
+              },
+            ],
+          },
+        ],
+        "workspace/no-bare-error": "error",
+      },
+    },
+    // The ledger and pantry are server code: they import plate's pure entries and the UI's data
+    // entry (`@qti-pie/plate/ui/props`), never the UI's rendering entries, whose modules reach the
+    // islands, which a server's program cannot compile (MathLive resolves to its `node` build, with
+    // no `MathfieldElement`). A type-only import is refused too: TypeScript compiles what it names.
+    {
+      files: ["packages/ledger/**/*.ts", "packages/pantry/**/*.ts"],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            paths: [
+              {
+                message:
+                  "Server code imports the UI's types from `@qti-pie/plate/ui/props`, never the UI's rendering entry.",
+                name: "@qti-pie/plate/ui",
+              },
+              {
+                message:
+                  "Server code imports the UI's types from `@qti-pie/plate/ui/props`, never the UI's client entry.",
+                name: "@qti-pie/plate/ui/client",
+              },
+            ],
+            patterns: sharedImportPatterns,
+          },
+        ],
       },
     },
     // plate's UI is React that its host's Next build compiles with the React Compiler at

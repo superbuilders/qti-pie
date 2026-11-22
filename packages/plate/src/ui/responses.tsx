@@ -10,21 +10,8 @@
  */
 import { createContext, use, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { Entry } from "#plate/form/encoding.ts";
 import { ResponsesMissing } from "#plate/ui/defects.ts";
-
-/**
- * One posted entry, plate's `Entry` (`#plate/form/encoding.ts`): the name a response posts under,
- * from plate's `entryName`, and one text it posts. A response holding several values posts one
- * entry per value, in its order, so a bag repeats a text as often as it holds it and a sequence
- * keeps its order.
- */
-export type PostedEntry = Entry;
-
-/**
- * Every entry an item posts.
- */
-export type PostedEntries = readonly PostedEntry[];
+import type { PostedEntries, PostedEntry } from "#plate/ui/props.ts";
 
 /**
  * What a host's `onChange` is called with: every entry the item posts after a child's change, and
