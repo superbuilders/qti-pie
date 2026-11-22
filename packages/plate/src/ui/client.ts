@@ -16,6 +16,10 @@ export { ExtendedText } from "#plate/ui/extended-text/extended-text.tsx";
 
 export type { ExtendedTextProps } from "#plate/ui/extended-text/extended-text.tsx";
 
+export { RichText } from "#plate/ui/extended-text/rich-text.tsx";
+
+export type { RichTextProps } from "#plate/ui/extended-text/rich-text.tsx";
+
 export { Gap, GapMatch } from "#plate/ui/gap-match/gap-match.tsx";
 
 export type { GapMatchProps, GapProps } from "#plate/ui/gap-match/gap-match.tsx";

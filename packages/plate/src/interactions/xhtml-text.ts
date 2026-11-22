@@ -100,9 +100,129 @@ const resolved = (text: string): string =>
   });
 
 /**
+ * JavaScript's `\s`, spelled out as the class the database's text reads white space inside and
+ * between tags by (`p3.xhtml_text`), so the two read alike.
+ */
+const space = String.raw`[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]`;
+
+/**
+ * The block elements whose boundaries part lines, declared once: QTI 3.0.1's block content, the
+ * twenty-five tags of the information model's `BlockContentModel` (§6.3, Tables 6.3.1 to 6.3.25:
+ * "This is an abstract class that enables the HTML block content tags to be used"), and the
+ * structural children those blocks contain: a list's `li` (`ol`, `ul`, §6.3.11 and §6.3.12), a
+ * definition list's `dt` and `dd` (`dl`, §6.3.10), a table's `caption`, row groups, rows and cells
+ * (`table`, §6.3.15), and a figure's `figcaption` (`figure`, §6.3.20). The ledger's machine reads
+ * the same list (`p3.xhtml_blocks`, held to this one by the ledger's xhtml-blocks test).
+ */
+export const blockElements = [
+  "pre",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "p",
+  "address",
+  "dl",
+  "ol",
+  "ul",
+  "hr",
+  "blockquote",
+  "table",
+  "div",
+  "article",
+  "aside",
+  "audio",
+  "figure",
+  "footer",
+  "header",
+  "nav",
+  "section",
+  "video",
+  "li",
+  "dt",
+  "dd",
+  "caption",
+  "thead",
+  "tbody",
+  "tfoot",
+  "tr",
+  "th",
+  "td",
+  "figcaption",
+] as const;
+
+/**
+ * A start tag of a block element ({@link blockElements}), whatever its case, self-closing or not.
+ */
+const blockStart = String.raw`<(?:${blockElements.join("|")})(?:${space}[^>]*)?\/?>`;
+
+/**
+ * An end tag of a block element ({@link blockElements}), whatever its case.
+ */
+const blockEnd = String.raw`<\/(?:${blockElements.join("|")})(?:${space}[^>]*)?>`;
+
+/**
+ * A run of block tags: where one block ends and the next begins. White space belongs to it only
+ * after an end tag and before the next block tag, where it stands between two elements; after a
+ * start tag it is the block's own text, as a paragraph's space is.
+ */
+const blockRun = new RegExp(
+  `(?:${blockStart}|${blockEnd}(?:${space}+(?=${blockStart}|${blockEnd}))?)+`,
+  "giu",
+);
+
+/**
+ * The value's first paragraph's start tag, at the start of a run that opens the value.
+ */
+const openingParagraph = new RegExp(`^<p(?:${space}[^>]*)?>`, "iu");
+
+/**
+ * The value's last paragraph's end tag, at the end of a run that closes the value.
+ */
+const closingParagraph = new RegExp(`<\\/p${space}*>$`, "iu");
+
+/**
+ * A run of paragraph boundaries alone: one paragraph's end and the next one's start, once or more.
+ */
+const paragraphBoundaries = new RegExp(
+  `^(?:${space}*<\\/p${space}*>${space}*<p(?:${space}[^>]*)?>)+${space}*$`,
+  "iu",
+);
+
+/**
+ * What a run of block tags reads as: a blank line for each paragraph boundary it is made of alone
+ * (once the value's own first start and last end are set aside), so plate's values read back
+ * exactly; nothing where it opens or closes the value; one line break anywhere else.
+ *
+ * @param run The run.
+ * @param opens Whether it opens the value.
+ * @param closes Whether it closes the value.
+ * @returns What it reads as.
+ */
+const runText = (run: string, opens: boolean, closes: boolean): string => {
+  const afterOpening = opens ? run.replace(openingParagraph, "") : run;
+  const inner = closes ? afterOpening.replace(closingParagraph, "") : afterOpening;
+
+  if (inner === "") {
+    return "";
+  }
+
+  if (paragraphBoundaries.test(inner)) {
+    return "\n\n".repeat(inner.match(/<\/p/giu)?.length ?? 0);
+  }
+
+  return opens || closes ? "" : "\n";
+};
+
+/**
  * Read a response's XHTML value back as the text a textarea shows: exactly the text typed, for a
- * value plate wrote ({@link xhtmlOfText}); for any other, its text, paragraphs parted by a blank
- * line and breaks as line breaks.
+ * value plate wrote ({@link xhtmlOfText}); for any other, its text: each `br` a line break, each
+ * boundary between two paragraphs a blank line, each other boundary between blocks
+ * ({@link blockElements}: a heading, a list or its item, a quotation, a table or its cell, a
+ * division, a section) a line break ({@link runText}), so words in separate blocks are
+ * separate words, and every other tag dropped.
  *
  * @param xhtml The value.
  * @returns The text.
@@ -126,10 +246,13 @@ export const textOfXhtml = (xhtml: string): string => {
       .join("\n\n");
   }
 
+  const lines = xhtml.replaceAll(new RegExp(`<br${space}*\\/?>`, "giu"), "\n");
+
   return resolved(
-    xhtml
-      .replaceAll(/<br\s*\/?>/giu, "\n")
-      .replaceAll(/<\/p\s*>\s*<p(?:\s[^>]*)?>/giu, "\n\n")
+    lines
+      .replaceAll(blockRun, (run: string, at: number) =>
+        runText(run, at === 0, at + run.length === lines.length),
+      )
       .replaceAll(/<[^>]*>/gu, ""),
   );
 };

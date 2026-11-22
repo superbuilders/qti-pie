@@ -5,10 +5,12 @@
  *
  * The island takes its binding, `base`, its boxes and their size from `expected-length` and
  * `expected-lines`, `format`, `pattern-mask` with the author's `data-patternmask-message` in place
- * of the catalog's, its placeholder, prompt and name. The review shows each string in a read-only
- * textarea, sized and named as the island's boxes are, and by the host's marks marks each
- * box and writes the right answers the strings miss ({@link marksOf}). Where `min-strings` asks for
- * more boxes than plate shows, both are the cap's notice in its place.
+ * of the catalog's, its placeholder, prompt and response; an `xhtml` one of one box bound to a
+ * string is the rich-text essay's editor. The review shows each string in a read-only textarea, an
+ * `xhtml` one as its formatted document, sized and named as the island's boxes are, and by the
+ * host's marks marks each box and writes the right answers the strings miss ({@link marksOf}).
+ * Where `min-strings` asks for more boxes than plate shows, both are the cap's notice in its
+ * place.
  *
  * @module
  */
@@ -24,6 +26,9 @@ import { format, isNullResponse, isRecordValue } from "#plate/model/values.ts";
 import type { ResponseValue, Single } from "#plate/model/values.ts";
 import type { Paired } from "#plate/payload.ts";
 import { ExtendedText } from "#plate/ui/extended-text/extended-text.tsx";
+import { RichAnswer } from "#plate/ui/extended-text/rich-answer.tsx";
+import { WordCount } from "#plate/ui/extended-text/word-count.tsx";
+import { RichText } from "#plate/ui/extended-text/rich-text.tsx";
 import type { BoxSize } from "#plate/ui/extended-text/extended-text.tsx";
 import { extendedTextKeys } from "#plate/ui/extended-text/labels.ts";
 import { noticeOf } from "#plate/ui/item/content.tsx";
@@ -94,16 +99,30 @@ export const island = (
   }
 
   const prompt = promptAt(node.prompt, node.response, context);
+  const naming = controlNameOf(prompt, node, ownName(model, context), context);
+  const labels = labelsOf(extendedTextKeys, context.locale, {
+    pattern: model.patternMaskMessage,
+    placeholder: node.placeholder,
+  });
 
-  return (
+  return node.format === "xhtml" && node.boxes.most === 1 && node.baseType === "string" ? (
+    <RichText
+      naming={naming}
+      placeholder={labels.placeholder}
+      prompt={prompt}
+      response={node.declared}
+      root={rootOf(model, context)}
+      wordCount={{ one: labels.wordOne, other: labels.words }}
+    />
+  ) : (
     <ExtendedText
       base={node.base}
       baseType={node.baseType}
       boxes={node.boxes}
       format={node.format}
-      labels={labelsOf(extendedTextKeys, context.locale, { pattern: model.patternMaskMessage })}
+      labels={labels}
       response={node.declared}
-      naming={controlNameOf(prompt, node, ownName(model, context), context)}
+      naming={naming}
       patternMask={Option.getOrUndefined(model.patternMask)}
       placeholder={Option.getOrUndefined(node.placeholder)}
       prompt={prompt}
@@ -212,10 +231,11 @@ const answerPart = (single: Single, base: number, locale: Locale, key: string): 
 
 /**
  * Render an Extended Text's review: each string in a read-only textarea in its
- * `plate-extended-text-box`, an `xhtml` one as the text its XHTML was typed from, named as the
- * island names its boxes, marked by the host's marks with the mark's words, each right
- * answer it misses after its box or after the last ({@link marksOf}); or the cap's notice where its
- * `min-strings` asks for more boxes than plate shows.
+ * `plate-extended-text-box`, an `xhtml` one as the document its XHTML holds, formatted
+ * (`RichAnswer`), and one box bound to a string with its word count after it (`WordCount`), as
+ * AlphaTest's review counted it, named as the island names its boxes, marked by the host's marks
+ * with the mark's words, each right answer it misses after its box or after the last ({@link
+ * marksOf}); or the cap's notice where its `min-strings` asks for more boxes than plate shows.
  *
  * @param paired The Extended Text.
  * @param paired.model Its model node: the author's `data-*`, `expected-length`, and the control
@@ -236,6 +256,7 @@ export const review = (
   const prompt = promptAt(node.prompt, node.response, context);
   const naming = controlNameOf(prompt, node, ownName(model, context), context);
   const grouped = node.restores.length > 1;
+  const [only, ...others] = node.restores;
   const size = sizeOf(model, node);
   const box = messageText(locale, extendedTextKeys.box);
   const marks = marksOf(
@@ -255,20 +276,25 @@ export const review = (
       <PromptPart prompt={prompt} />
       {node.restores.map((text, index) => {
         const { mark, missed } = marks.boxes[index] ?? none;
+        const boxNaming = grouped
+          ? { "aria-label": fillLabel(box, { count: node.restores.length, n: index + 1 }) }
+          : naming;
 
         // A box is a place, not an item: it keeps its place whatever its text, so its place is its key.
         return [
           <div key={`box-${String(index)}`} data-mark={mark} data-slot="plate-extended-text-box">
-            <textarea
-              {...(grouped
-                ? { "aria-label": fillLabel(box, { count: node.restores.length, n: index + 1 }) }
-                : naming)}
-              cols={size.cols}
-              data-slot="textarea"
-              readOnly
-              rows={size.rows}
-              value={node.format === "xhtml" ? textOfXhtml(text) : text}
-            />
+            {node.format === "xhtml" ? (
+              <RichAnswer naming={boxNaming} xhtml={text} />
+            ) : (
+              <textarea
+                {...boxNaming}
+                cols={size.cols}
+                data-slot="textarea"
+                readOnly
+                rows={size.rows}
+                value={text}
+              />
+            )}
             {markPart(wordsOfMark(mark), locale)}
           </div>,
           ...Option.toArray(missed).map((single) =>
@@ -279,6 +305,16 @@ export const review = (
       {marks.after.map((single, index) =>
         answerPart(single, node.base, locale, `after-${String(index)}`),
       )}
+      {only !== undefined && others.length === 0 && node.baseType === "string" ? (
+        <WordCount
+          labels={{
+            one: messageText(locale, extendedTextKeys.wordOne),
+            other: messageText(locale, extendedTextKeys.words),
+          }}
+          read={node.format === "xhtml" ? "rich" : "plain"}
+          text={node.format === "xhtml" ? textOfXhtml(only) : only}
+        />
+      ) : null}
     </div>
   );
 };

@@ -538,7 +538,8 @@ const isSharedVocabulary = (name: string): boolean =>
  * card's `support`, what a companion material says a host supplies, the states the islands and the
  * review markup set (a slider's bound and direction, a slider review value's place along its scale,
  * a placement's pairing, a bank chip a review shows as missing, a marker's index and tone, a media
- * island's playing, an End Attempt's pending post, a PCI island's loading and failure), the line
+ * island's playing, an End Attempt's pending post, a PCI island's loading and failure, a rich-text
+ * answer's alignment, indent, underline and strike), the line
  * every picture of the body carries for the stylesheet to show where it fails to load
  * (`data-plate-unloaded`), and the
  * states of UI SDK's components that `styles/base.css` and `styles/theme.css` select, and a
@@ -549,6 +550,7 @@ const isSharedVocabulary = (name: string): boolean =>
  * a member, and plate writes no name under it.
  */
 const reservedDataNames: ReadonlySet<string> = new Set([
+  "data-align",
   "data-area",
   "data-background",
   "data-bound",
@@ -571,6 +573,7 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-highlighted",
   "data-hotspot-list",
   "data-hotspot-picks",
+  "data-indent",
   "data-indeterminate",
   "data-index",
   "data-invalid",
@@ -607,11 +610,13 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-reverse",
   "data-selected",
   "data-slot",
+  "data-strike",
   "data-support",
   "data-system",
   "data-table",
   "data-tone",
   "data-unchecked",
+  "data-underline",
   "data-unnamed",
   "data-use",
   "data-used",

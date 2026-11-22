@@ -5360,13 +5360,17 @@ C2: the oracle's own reader.)
      candidate's response must match in order to be considered valid" (section 5.48.4). It does not say whether, for an
      `xhtml` response, the mask judges the markup the value holds or the text the candidate entered. This reading judges
      the text: the value with each `br` read as a line feed, each boundary between two `p` elements as a blank line,
-     every other tag removed and its character references resolved, which for a value plate writes is exactly the text
-     typed. The mask constrains what the candidate enters, and the candidate enters text; the markup is how one editor
+     each other boundary between two blocks (QTI 3.0.1's block content, `BlockContentModel` §6.3, and the structural
+     children those blocks hold: a list's `li`, a definition list's `dt` and `dd`, a table's caption, row groups, rows
+     and cells, a figure's `figcaption`) as a line feed, so words in separate blocks are separate words, every other
+     tag removed and its character references resolved, which for a value plate writes is exactly the text typed. The
+     mask constrains what the candidate enters, and the candidate enters text; the markup is how one editor
      encodes it (plate's textarea writes `p` and `br`, a WYSIWYG editor writes others), so a mask matched against markup
      would judge one entry differently by editor, and a mask that counts words would count tags as words. So
      `<p>one</p><p>two</p>` is matched as `one`, a blank line and `two`, and `<p>hel<b>lo</b></p>` as `hello`. A
      `plain` or `preformatted` Extended Text is matched as typed (reading 54). The QTI database states the text once,
-     `p3.xhtml_text` in the ledger's machine (`machine/admission.sql`), and its admission matches the mask against it;
+     `p3.xhtml_text` in the ledger's machine (`machine/admission.sql`, its block list `p3.xhtml_blocks`, held to plate's
+     `blockElements` by the ledger's xhtml-blocks test), and its admission matches the mask against it;
      plate's `textOfXhtml` (`src/interactions/xhtml-text.ts`), which its island's box shows and its hint judges, reads
      the same text, and the ledger's `xhtml-text.db.test.ts` holds the two to one reading over drawn values. A numeric
      reference to U+0000 or to a surrogate, which neither an XML value nor PostgreSQL's text can hold, stands as written

@@ -16087,19 +16087,51 @@ export const xhtmlReference = fn("xhtmlReference", {
   volatility: "immutable",
 });
 
+export const xhtmlRun = fn("xhtmlRun", {
+  args: { closes: pg.boolean, opens: pg.boolean, r: anyText },
+  body: fn.body`
+  select case
+    when i = '' then ''
+    when i ~* '^(?:[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*</p[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*>[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*<p(?:[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF][^>]*)?>)+[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*$' then repeat(E'\\n\\n', regexp_count(i, '</p', 1, 'i'))
+    when opens or closes then ''
+    else E'\\n' end
+  from (select case when closes then regexp_replace(a, '</p[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*>$', '', 'i') else a end as i
+    from (select case when opens then regexp_replace(r, '^<p(?:[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF][^>]*)?>', '', 'i') else r end as a) o) c
+`,
+  calls: [],
+  language: "sql",
+  nullInput: "called",
+  returns: anyText,
+  volatility: "immutable",
+});
+
+export const xhtmlBlocks = fn("xhtmlBlocks", {
+  args: { y: anyText },
+  body: fn.body`
+  select coalesce(string_agg(case
+      when t.m[1] is null then t.m[2]
+      else xhtml_run(r => t.m[1], opens => t.o = 1, closes => t.o = t.n) end, '' order by t.o), '')
+  from (select r.m, r.o, count(*) over () as n
+    from regexp_matches(y, '((?:<(?:pre|h1|h2|h3|h4|h5|h6|p|address|dl|ol|ul|hr|blockquote|table|div|article|aside|audio|figure|footer|header|nav|section|video|li|dt|dd|caption|thead|tbody|tfoot|tr|th|td|figcaption)(?:[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF][^>]*)?/?>|</(?:pre|h1|h2|h3|h4|h5|h6|p|address|dl|ol|ul|hr|blockquote|table|div|article|aside|audio|figure|footer|header|nav|section|video|li|dt|dd|caption|thead|tbody|tfoot|tr|th|td|figcaption)(?:[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF][^>]*)?>(?:[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]+(?=<(?:pre|h1|h2|h3|h4|h5|h6|p|address|dl|ol|ul|hr|blockquote|table|div|article|aside|audio|figure|footer|header|nav|section|video|li|dt|dd|caption|thead|tbody|tfoot|tr|th|td|figcaption)(?:[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF][^>]*)?/?>|</(?:pre|h1|h2|h3|h4|h5|h6|p|address|dl|ol|ul|hr|blockquote|table|div|article|aside|audio|figure|footer|header|nav|section|video|li|dt|dd|caption|thead|tbody|tfoot|tr|th|td|figcaption)(?:[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF][^>]*)?>))?)+)|([^<]+|<)', 'gi') with ordinality r(m, o)) t
+`,
+  calls: [xhtmlRun],
+  language: "sql",
+  nullInput: "called",
+  returns: anyText,
+  volatility: "immutable",
+});
+
 export const xhtmlText = fn("xhtmlText", {
   args: { x: anyText },
   body: fn.body`
   select coalesce(string_agg(case when m[1] is null then m[2] else xhtml_reference(r => m[1]) end, '' order by o), '')
   from regexp_matches(
     regexp_replace(
-      regexp_replace(
-        regexp_replace(x, '<br[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*/?>', E'\\n', 'gi'),
-        '</p[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*>[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*<p(?:[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF][^>]*)?>', E'\\n\\n', 'gi'),
+      xhtml_blocks(y => regexp_replace(x, '<br[\\t\\n\\v\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*/?>', E'\\n', 'gi')),
       '<[^>]*>', '', 'g'),
     '(&#x[0-9A-Fa-f]+;|&#[0-9]+;|&[A-Za-z]+;)|([^&]+|&)', 'g') with ordinality t(m, o)
 `,
-  calls: [xhtmlReference],
+  calls: [xhtmlReference, xhtmlBlocks],
   language: "sql",
   nullInput: "called",
   returns: anyText,
@@ -17295,6 +17327,8 @@ export const gradingFunctions = [
   admissionRound,
   floatText,
   xhtmlReference,
+  xhtmlRun,
+  xhtmlBlocks,
   xhtmlText,
   admissionOne,
   admissionOf,

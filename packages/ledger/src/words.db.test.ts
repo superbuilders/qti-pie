@@ -67,14 +67,16 @@ const functionOf = (sql: string, name: string, end: string): string => {
 const xsdText = readFileSync(new URL("../machine/xsd.sql", import.meta.url), "utf-8");
 
 /**
- * The machine's text of an xhtml value, `p3.xhtml_reference` and `p3.xhtml_text` of
- * `machine/admission.sql`.
+ * The machine's text of an xhtml value, `p3.xhtml_reference`, `p3.xhtml_run`, `p3.xhtml_blocks`
+ * and `p3.xhtml_text` of `machine/admission.sql`.
  */
 const textText = ((): string => {
   const sql = readFileSync(new URL("../machine/admission.sql", import.meta.url), "utf-8");
 
   return [
     functionOf(sql, "p3.xhtml_reference", "$$;"),
+    functionOf(sql, "p3.xhtml_run", "$$;"),
+    functionOf(sql, "p3.xhtml_blocks", "$$;"),
     functionOf(sql, "p3.xhtml_text", "$$;"),
   ].join("\n\n");
 })();
@@ -149,6 +151,7 @@ type Feature =
   | "a plain answer"
   | "a br"
   | "a paragraph boundary"
+  | "a block boundary"
   | "an inline tag"
   | "a no-break space reference"
   | "white space beyond XML's four"
@@ -204,6 +207,10 @@ const PIECES = [
   piece("</p>", false),
   piece("</p><p>", false, "a paragraph boundary"),
   piece("</p>\n<p>", false, "a paragraph boundary"),
+  piece("<h1>", false, "a block boundary"),
+  piece("</h1><p>", false, "a block boundary"),
+  piece("</li><li>", false, "a block boundary"),
+  piece("<ul><li>", false, "a block boundary"),
   piece("<b>", false, "an inline tag"),
   piece("</b>", false, "an inline tag"),
   piece("&nbsp;", false, "a no-break space reference"),
@@ -252,6 +259,7 @@ const situations = [
   "a plain answer",
   "a br",
   "a paragraph boundary",
+  "a block boundary",
   "an inline tag",
   "a no-break space reference",
   "white space beyond XML's four",

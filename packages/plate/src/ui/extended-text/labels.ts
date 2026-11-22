@@ -25,4 +25,18 @@ export const extendedTextKeys = {
    * refusal does.
    */
   pattern: "patternMismatch",
-} as const satisfies LabelKeys<"box" | "pattern">;
+  /**
+   * What an empty rich-text editor shows where the author wrote no `placeholder-text` (5.48.5):
+   * AlphaTest's player's words (`ExtendedTextInteraction.tsx` line 313).
+   */
+  placeholder: "typeYourAnswer",
+  /**
+   * What a rich-text essay says under its editor when its answer holds one word.
+   */
+  wordOne: "wordCountOne",
+  /**
+   * What a rich-text essay says under its editor of how many words its answer holds, with `{n}` for
+   * the count, which the island fills; at a count of 1, `wordOne`.
+   */
+  words: "wordCount",
+} as const satisfies LabelKeys<"box" | "pattern" | "placeholder" | "wordOne" | "words">;

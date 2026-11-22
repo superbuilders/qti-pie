@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@bjornpagen/testing": "workspace:*",
+    "@qti-pie/crust": "workspace:*",
     "@qti-pie/plate": "workspace:*",
     "effect": "catalog:"
   },

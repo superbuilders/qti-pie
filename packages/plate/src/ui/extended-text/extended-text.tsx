@@ -23,6 +23,7 @@ import { Field, FieldError } from "@ui-sdk/react/field";
 import { Textarea } from "@ui-sdk/react/textarea";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { extendedTextKeys } from "#plate/ui/extended-text/labels.ts";
+import { WordCount } from "#plate/ui/extended-text/word-count.tsx";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
@@ -136,6 +137,8 @@ const asXhtml: Written = { read: textOfXhtml, write: xhtmlOfText };
  *   Meanwhile the field marks the textarea `aria-invalid`, names the hint in its
  *   `aria-describedby`, and announces the hint as it appears. Each box is judged on its own, and
  *   nothing shows while the child is still typing in it.
+ * - `plate-word-count`, under an essay of one box bound to a string, how many words its text holds,
+ *   as AlphaTest's player said under every essay (`#plate/ui/extended-text/word-count.tsx`).
  *
  * Every keystroke writes the boxes' texts as typed and the response read from them: the boxes that
  * hold an answer, in the boxes' order. A box left empty is no answer and leaves the others in their
@@ -179,6 +182,7 @@ export const ExtendedText = (props: ExtendedTextProps) => {
     written,
   });
   const grouped = boxes.length > 1;
+  const [only, ...others] = boxes;
   const boxName = (index: number): Named =>
     grouped
       ? { "aria-label": fillLabel(labels.box, { count: boxes.length, n: index + 1 }) }
@@ -218,6 +222,13 @@ export const ExtendedText = (props: ExtendedTextProps) => {
           {box.flagged ? <FieldError match>{labels.pattern}</FieldError> : null}
         </Field>
       ))}
+      {only !== undefined && others.length === 0 && baseType === "string" ? (
+        <WordCount
+          labels={{ one: labels.wordOne, other: labels.words }}
+          read="plain"
+          text={only.text}
+        />
+      ) : null}
     </div>
   );
 };

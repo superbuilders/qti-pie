@@ -49,6 +49,10 @@
  * `gapMatch…` and `order…` keys that name a choice, a gap or a pair by its identifier (`{choice}`,
  * `{gap}`, `{source}`, `{target}`, `{pair}`) and the identifiers a `match-group` lists
  * (`{group}`); a key ending in `One` is its count's singular, written at a count of 1.
+ *
+ * A rich-text essay says how many words its answer holds under its editor, `wordCount` with `{n}`
+ * the count or `wordCountOne` at 1, AlphaTest's player's words (`ExtendedTextInteraction.tsx` line
+ * 848).
  */
 export const coreMessages = {
   answer: "Answer",
@@ -134,8 +138,11 @@ export const coreMessages = {
   placementTargetFull: "{target} is full. Take one out first.",
   placementTotalReached: "No more can go in. Take one out first.",
   selectPrompt: "Choose",
+  typeYourAnswer: "Type your answer here...",
   unknownChoice: "Choose one of the listed options.",
   verdictFull: "That's right.",
   verdictNone: "Not quite.",
   verdictPartial: "Part of it is right.",
+  wordCount: "{n} words",
+  wordCountOne: "1 word",
 } as const;

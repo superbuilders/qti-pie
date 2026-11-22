@@ -641,6 +641,17 @@ export default defineConfig({
       files: ["packages/plate/src/ui/portable-custom/host.ts"],
       rules: { "anti-slop/no-unsafe-dictionary-type": "off" },
     },
+    // The rich-text essay reads Quill's document as its Delta (`editor.getContents().ops`), which
+    // the type-aware lint types as an error type where tsc types it as quill-delta's Delta: the lint
+    // does not follow quill's typings into quill-delta's CommonJS `Delta.d.ts`. The island reads
+    // only `ops`, the `Op[]` `#plate/rich-text/xhtml.ts` takes, which tsc checks.
+    {
+      files: ["packages/plate/src/ui/extended-text/rich-text.tsx"],
+      rules: {
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-member-access": "off",
+      },
+    },
     // A Media's autostart, and read-aloud's session carrying out a press's play, handle `play()`'s
     // refusal with its promise's own `catch`: the workspace forbids try/catch, and neither the effect
     // that starts a Media nor the session, which plays a recording from a toggle's change handler or

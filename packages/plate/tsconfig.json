@@ -5,6 +5,7 @@
     "**/node_modules",
     "**/work",
     "src/ui/**",
+    "src/rich-text/**",
     "src/alpha/math-entry/**",
     "src/alpha/pci-modules/**",
     "src/alpha/renderers.ts",

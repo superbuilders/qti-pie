@@ -54,6 +54,13 @@
  */
 @layer ui-sdk, plate;
 
+/*
+ * Quill's sheet and its snow theme, for the rich-text essay's editor
+ * (`#plate/ui/extended-text/rich-text.tsx`): its toolbar's icons are inline SVG, and the sheet names
+ * no file, so it loads nothing.
+ */
+@import "quill/dist/quill.snow.css" layer(plate);
+
 @layer plate {
   /* == tokens == */
 
@@ -666,6 +673,115 @@
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * A rich-text essay's editor (`plate-rich-text`, Quill's toolbar and editing area): its text in
+   * the item's font, size and line height, where Quill's sheet sets 13 px Helvetica, and an edge at
+   * 3:1. It grows with its text, as a plain essay's box does: its editing area at least 200 px
+   * tall, as AlphaTest's stood (`ExtendedTextInteraction.tsx` line 400), and the toolbar and the
+   * editing area together no taller than the host's view (`--plate-view-block-size`). Past it the
+   * editing area scrolls inside, under a toolbar that stays on the screen, whatever the toolbar's
+   * height: a column whose toolbar takes its own height and whose editing area takes the rest. A
+   * review draws the answer without the editor (`plate-rich-answer`), whole, however long. Quill's
+   * sheet sizes the container and the editing area to the editor's whole place, toolbar and all,
+   * which pushed the editing area past the place's end.
+   */
+  :where([data-slot="plate-rich-text"]) :is(.ql-container, .ql-editor) {
+    font: inherit;
+  }
+
+  [data-slot="plate-rich-text"] {
+    display: flex;
+    flex-direction: column;
+    max-block-size: var(--plate-view-block-size);
+  }
+
+  :where([data-slot="plate-rich-text"]) .ql-container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    block-size: auto;
+    min-block-size: 0;
+  }
+
+  :where([data-slot="plate-rich-text"]) .ql-editor {
+    flex: 1;
+    block-size: auto;
+    min-block-size: 12.5rem;
+    overflow-y: auto;
+  }
+
+  /*
+   * The word count under an essay's box (`plate-word-count`), at its end, in the muted text colour,
+   * as AlphaTest's stood right-aligned and grey under its box.
+   */
+  [data-slot="plate-word-count"] {
+    margin: 0;
+    color: var(--ui-muted-foreground);
+    text-align: end;
+  }
+
+  /*
+   * A rich-text essay's answer in a review (`plate-rich-answer`), as the editor drew it: in the
+   * text box's edge, padding and font, its blocks with no margin of their own, each alignment, each
+   * indent 3em a level as Quill's, and the underline and the strike as lines through or under
+   * their words.
+   */
+  [data-slot="plate-rich-answer"] {
+    min-block-size: var(--plate-control-size);
+    padding: 0.5rem 0.75rem;
+    border: 2px solid var(--ui-input);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  :where([data-slot="plate-rich-answer"]) :is(p, h1, h2, h3, ol, ul) {
+    margin: 0;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-align="center"] {
+    text-align: center;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-align="right"] {
+    text-align: right;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-align="justify"] {
+    text-align: justify;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-indent="1"] {
+    margin-inline-start: 3em;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-indent="2"] {
+    margin-inline-start: 6em;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-indent="3"] {
+    margin-inline-start: 9em;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-indent="4"] {
+    margin-inline-start: 12em;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-indent="5"] {
+    margin-inline-start: 15em;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-underline] {
+    text-decoration-line: underline;
+  }
+
+  :where([data-slot="plate-rich-answer"]) [data-strike] {
+    text-decoration-line: line-through;
+  }
+
+  [data-slot="plate-rich-text"] :is(.ql-toolbar, .ql-container).ql-snow {
+    border-color: var(--ui-input);
   }
 
   /* == end attempt == */

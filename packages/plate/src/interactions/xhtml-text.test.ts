@@ -79,6 +79,17 @@ describe("xhtmlOfText and textOfXhtml", () => {
     assert.strictEqual(textOfXhtml(xhtmlOfText("😀 \u{10FFFF}")), "😀 \u{10FFFF}");
   });
 
+  it("read another editor's blocks as lines, so words in separate blocks are separate words", () => {
+    assert.strictEqual(textOfXhtml("<h1>Title</h1><p>Body</p>"), "Title\nBody");
+    assert.strictEqual(textOfXhtml("<ul><li>one</li><li>two</li></ul>"), "one\ntwo");
+    assert.strictEqual(textOfXhtml("<p>a</p><ul><li>b</li></ul>"), "a\nb");
+    assert.strictEqual(textOfXhtml("<ul><li>a<ul><li>b</li></ul></li><li>c</li></ul>"), "a\nb\nc");
+    assert.strictEqual(textOfXhtml("<p>a</p><p></p><p>b</p>"), "a\n\n\n\nb");
+    assert.strictEqual(textOfXhtml("<p> </p><h2>x</h2>"), " \nx");
+    assert.strictEqual(textOfXhtml("<p>a</p>\n<p>b</p>"), "a\n\nb");
+    assert.strictEqual(textOfXhtml("<p><strong>wo</strong>rd</p>"), "word");
+  });
+
   it("read another editor's HTML as its text", () => {
     assert.strictEqual(
       textOfXhtml(

@@ -140,18 +140,47 @@ create function p3.xhtml_reference(r text) returns text language sql immutable a
     from (select r ~ '^&#x' as hex, ltrim(substring(r from '^&#x?([0-9A-Fa-f]*);$'), '0') as d) h) n
 $$;
 
+-- What a run of block tags reads as (p3.xhtml_blocks): a blank line for each paragraph boundary it is made of alone,
+-- once the value's own first paragraph start (where the run opens the value) and last paragraph end (where it closes
+-- it) are set aside, so a value plate wrote reads back exactly; nothing where it opens or closes the value; one line
+-- feed anywhere else (plate's runText, interactions/xhtml-text.ts).
+create function p3.xhtml_run(closes boolean, opens boolean, r text) returns text language sql immutable as $$
+  select case
+    when i = '' then ''
+    when i ~* '^(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*</p[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*>[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*<p(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF][^>]*)?>)+[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*$' then repeat(E'\n\n', regexp_count(i, '</p', 1, 'i'))
+    when opens or closes then ''
+    else E'\n' end
+  from (select case when closes then regexp_replace(a, '</p[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*>$', '', 'i') else a end as i
+    from (select case when opens then regexp_replace(r, '^<p(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF][^>]*)?>', '', 'i') else r end as a) o) c
+$$;
+
+-- The block boundaries of an xhtml value, its br already line feeds: each run of start and end tags of the block
+-- elements (QTI 3.0.1's BlockContentModel, info §6.3, and the structural children those blocks contain, whatever its
+-- case: plate's blockElements, interactions/xhtml-text.ts, the one list, which the ledger's xhtml-blocks test holds
+-- this one to) read by p3.xhtml_run, so words in separate blocks are separate words; every other character as
+-- written. White space belongs to a run only after an end tag and before the next block tag, where it stands between
+-- two elements; after a start tag it is the block's own text. The value is read as runs and the pieces between them,
+-- in order, so the first piece is the value's start and the last its end. White space is JavaScript's `\s`, as plate's
+-- expressions read it (plate's blockRun).
+create function p3.xhtml_blocks(y text) returns text language sql immutable as $$
+  select coalesce(string_agg(case
+      when t.m[1] is null then t.m[2]
+      else xhtml_run(r => t.m[1], opens => t.o = 1, closes => t.o = t.n) end, '' order by t.o), '')
+  from (select r.m, r.o, count(*) over () as n
+    from regexp_matches(y, '((?:<(?:pre|h1|h2|h3|h4|h5|h6|p|address|dl|ol|ul|hr|blockquote|table|div|article|aside|audio|figure|footer|header|nav|section|video|li|dt|dd|caption|thead|tbody|tfoot|tr|th|td|figcaption)(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF][^>]*)?/?>|</(?:pre|h1|h2|h3|h4|h5|h6|p|address|dl|ol|ul|hr|blockquote|table|div|article|aside|audio|figure|footer|header|nav|section|video|li|dt|dd|caption|thead|tbody|tfoot|tr|th|td|figcaption)(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF][^>]*)?>(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+(?=<(?:pre|h1|h2|h3|h4|h5|h6|p|address|dl|ol|ul|hr|blockquote|table|div|article|aside|audio|figure|footer|header|nav|section|video|li|dt|dd|caption|thead|tbody|tfoot|tr|th|td|figcaption)(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF][^>]*)?/?>|</(?:pre|h1|h2|h3|h4|h5|h6|p|address|dl|ol|ul|hr|blockquote|table|div|article|aside|audio|figure|footer|header|nav|section|video|li|dt|dd|caption|thead|tbody|tfoot|tr|th|td|figcaption)(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF][^>]*)?>))?)+)|([^<]+|<)', 'gi') with ordinality r(m, o)) t
+$$;
+
 -- The text of an xhtml Extended Text's value, the text its box shows, as plate reads a value (`textOfXhtml` in plate's
--- interactions/xhtml-text.ts; reading 244): each `br` a line feed, each boundary between two `p` elements a blank
--- line, every other tag removed, then each character reference resolved in one pass (p3.xhtml_reference), so `&amp;lt;`
--- reads `&lt;`. White space inside a tag is JavaScript's `\s`, as plate's expressions read it. A value plate wrote reads
--- back exactly as the text typed. An xhtml Extended Text's pattern-mask is matched against this text, never the markup.
+-- interactions/xhtml-text.ts; reading 244): each `br` a line feed, each block boundary read by p3.xhtml_blocks (a blank
+-- line between two paragraphs, a line feed between other blocks), every other tag removed, then each character
+-- reference resolved in one pass (p3.xhtml_reference), so `&amp;lt;` reads `&lt;`. White space inside a tag is
+-- JavaScript's `\s`, as plate's expressions read it. A value plate wrote reads back exactly as the text typed. An xhtml
+-- Extended Text's pattern-mask is matched against this text, never the markup.
 create function p3.xhtml_text(x text) returns text language sql immutable as $$
   select coalesce(string_agg(case when m[1] is null then m[2] else xhtml_reference(r => m[1]) end, '' order by o), '')
   from regexp_matches(
     regexp_replace(
-      regexp_replace(
-        regexp_replace(x, '<br[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*/?>', E'\n', 'gi'),
-        '</p[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*>[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*<p(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF][^>]*)?>', E'\n\n', 'gi'),
+      xhtml_blocks(y => regexp_replace(x, '<br[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*/?>', E'\n', 'gi')),
       '<[^>]*>', '', 'g'),
     '(&#x[0-9A-Fa-f]+;|&#[0-9]+;|&[A-Za-z]+;)|([^&]+|&)', 'g') with ordinality t(m, o)
 $$;

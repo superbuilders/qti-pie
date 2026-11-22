@@ -4,7 +4,9 @@
  * (`machine/admission.sql`), held to plate's `textOfXhtml`, the text the item's box shows and its
  * hint judges, over drawn values: paragraphs and line breaks as plate writes them and as other
  * editors do (`<br>`, `<BR />`, `</p >` and white space between paragraphs, a tag's white space any
- * of JavaScript's `\s`), inline tags, every reference plate resolves or leaves as written, and text
+ * of JavaScript's `\s`), the boundaries of the other blocks a rich editor writes (headings, lists
+ * and their items, quotations, divisions), inline tags, every reference plate resolves or leaves as
+ * written, and text
  * of every space a word count reads. A numeric reference to U+0000 or a surrogate is never drawn:
  * neither an XML value nor PostgreSQL's text holds what plate makes of it, so the database's text
  * keeps it as written (reading 244).
@@ -14,10 +16,11 @@
  * `src/grading.ts` is generated from, which `generate:check` holds to it) and created in a schema
  * of this run's own on the lane's database, in a transaction that rolls back.
  *
- * Four plants restate readings the text must not take, each created beside it, and the search must
+ * Five plants restate readings the text must not take, each created beside it, and the search must
  * catch each: a `br` read as nothing (`one<br/>two` would be one word), a paragraph boundary read
- * as one line feed, a named reference read whatever its case (`&AMP;` as `&`), and a tag's white
- * space read as XML's four (a `br` written with a no-break space, kept where it reads a line feed).
+ * as one line feed, a block boundary read as nothing (`<h1>a</h1><p>b</p>` would be one word), a
+ * named reference read whatever its case (`&AMP;` as `&`), and a tag's white space read as XML's
+ * four (a `br` written with a no-break space, kept where it reads a line feed).
  *
  * It runs only where a database is handed to it, as pantry's database suites do
  * (`QTI_PIE_PG_DATABASE` and pantry's `QTI_PIE_PG_*`), and is skipped elsewhere.
@@ -43,8 +46,9 @@ import type { Client } from "pg";
 const lease = Effect.runSync(Config.option(Config.String("QTI_PIE_PG_DATABASE")));
 
 /**
- * The machine's SQL of the two functions that state the text, as `machine/admission.sql` holds it:
- * from `p3.xhtml_reference`'s declaration to the end of `p3.xhtml_text`'s.
+ * The machine's SQL of the functions that state the text, as `machine/admission.sql` holds it:
+ * from `p3.xhtml_reference`'s declaration, through `p3.xhtml_blocks`', to the end of
+ * `p3.xhtml_text`'s.
  */
 const machineText = ((): string => {
   const sql = readFileSync(new URL("../machine/admission.sql", import.meta.url), "utf-8");
@@ -73,8 +77,13 @@ const PLANTS = [
   },
   {
     name: "caught: a paragraph boundary read as one line feed",
-    original: String.raw`E'\n\n', 'gi'`,
-    replacement: String.raw`E'\n', 'gi'`,
+    original: String.raw`repeat(E'\n\n', regexp_count`,
+    replacement: String.raw`repeat(E'\n', regexp_count`,
+  },
+  {
+    name: "caught: a block boundary read as nothing",
+    original: String.raw`else E'\n' end`,
+    replacement: "else '' end",
   },
   {
     name: "caught: a tag's white space read as XML's four",
@@ -94,6 +103,7 @@ type Caught = (typeof PLANTS)[number]["name"];
 type Feature =
   | "a br"
   | "a paragraph boundary"
+  | "a block boundary"
   | "an inline tag"
   | "a named reference"
   | "a numeric reference"
@@ -146,9 +156,40 @@ const PIECES = [
   piece("</p><p>", "a paragraph boundary"),
   piece("</p>\n<p>", "a paragraph boundary"),
   piece('</P >\u3000<p class="x">', "a paragraph boundary"),
+  piece("<h1>", "a block boundary"),
+  piece("</h2>", "a block boundary"),
+  piece("<li>", "a block boundary"),
+  piece("</li><li>", "a block boundary"),
+  piece('<ul class="qti-margin-s-1">', "a block boundary"),
+  piece("</UL>", "a block boundary"),
+  piece("<blockquote>", "a block boundary"),
+  piece("<div/>", "a block boundary"),
+  piece("</p>\n<ol>", "a block boundary"),
+  piece("<table><tr><td>", "a block boundary"),
+  piece("</td><td>", "a block boundary"),
+  piece("<section>", "a block boundary"),
+  piece("<hr/>", "a block boundary"),
+  piece("<dl><dt>", "a block boundary"),
+  piece("</dt><dd>", "a block boundary"),
+  piece("<figure><figcaption>", "a block boundary"),
+  piece("</figcaption>", "a block boundary"),
+  piece("<table><caption>", "a block boundary"),
+  piece("<thead><tr><th>", "a block boundary"),
+  piece("</th></tr></thead><tbody>", "a block boundary"),
+  piece("<tfoot>", "a block boundary"),
+  piece("<div><p>", "a block boundary"),
+  piece("</p></div>", "a block boundary"),
+  piece("</td>\n\t<td>", "a block boundary"),
+  piece("<LI>", "a block boundary"),
+  piece('<li\u00A0class="x">', "a block boundary"),
+  piece("<address>", "a block boundary"),
+  piece("<article><aside>", "a block boundary"),
+  piece("<header/><nav/><footer/>", "a block boundary"),
+  piece("<br/></p><p>", "a block boundary"),
+  piece("<p></p>", "a block boundary"),
   piece("<b>", "an inline tag"),
   piece("</b>", "an inline tag"),
-  piece("<pre>", "an inline tag"),
+  piece("<pre>", "a block boundary"),
   piece('<span title="a">', "an inline tag"),
   piece("&amp;", "a named reference"),
   piece("&lt;", "a named reference"),
@@ -191,6 +232,7 @@ const values: Gen<Drawn> = map(array(element(PIECES), { max: 16, min: 0 }), (pie
 const situations = [
   "a br",
   "a paragraph boundary",
+  "a block boundary",
   "an inline tag",
   "a named reference",
   "a numeric reference",
@@ -246,7 +288,9 @@ const sessionOf = (database: string) =>
             client,
             source
               .replaceAll("p3.", `${schemaName}.`)
-              .replaceAll("xhtml_reference(r =>", `${schemaName}.xhtml_reference(r =>`),
+              .replaceAll("xhtml_reference(r =>", `${schemaName}.xhtml_reference(r =>`)
+              .replaceAll("xhtml_blocks(y =>", `${schemaName}.xhtml_blocks(y =>`)
+              .replaceAll("xhtml_run(r =>", `${schemaName}.xhtml_run(r =>`),
           ),
         );
 

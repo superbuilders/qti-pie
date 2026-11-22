@@ -74,7 +74,7 @@ export type { Configuration, ConfigurationInput } from "#plate/configuration.ts"
 
 export { configure, InvalidConfiguration } from "#plate/configuration.ts";
 
-export { textOfXhtml } from "#plate/interactions/xhtml-text.ts";
+export { blockElements, textOfXhtml } from "#plate/interactions/xhtml-text.ts";
 
 export { collapseXmlSpace } from "#plate/model/attributes.ts";
 
