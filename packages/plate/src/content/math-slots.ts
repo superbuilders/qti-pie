@@ -20,6 +20,16 @@
  * (`min-inline-size: 6rem` in the base sheet, about 4.5 em). A gap is as wide as five em, room for
  * a short gap text's chip.
  *
+ * A slot in a fraction's numerator or denominator, or in a script, is drawn at the size MathJax
+ * draws that part at, TeX's script style, about 0.71 of the formula's size outside a display
+ * formula, as AlphaTest's player drew it: 38 px tall where a slot at the formula's own size is 53,
+ * as a hydrated drive of the converted corpus measured. Kept, a counted fate: 31 of the 65 anchored
+ * slots of run 20261122T104633Z's 44 items stand so, 30 in a fraction and 1 in a power. 38 px is
+ * above the 24 px floor WCAG 2.2 sets a target (2.5.8), and plate's 48 px control size is a
+ * standalone control's, not a slot's the size of the glyphs around it (edullm-bd, 2026-11-22:
+ * "Slots sized in the formula's em are AlphaTest parity, and 38 px is above WCAG 2.5.8's 24 px
+ * floor").
+ *
  * @module
  */
 import { Option } from "effect";
