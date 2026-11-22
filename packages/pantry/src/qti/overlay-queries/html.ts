@@ -11,6 +11,7 @@ import { QtiBase } from "#pantry/qti/base.ts";
 import { CellHeaders, HeaderToken, TableHeader, TableScope } from "#pantry/qti/html.ts";
 import { IdValue, listForms, spelledByTokens } from "#pantry/qti/names.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * Each table scope beside its element's kind and parent, by the element's place.
@@ -91,8 +92,10 @@ const inheritedScopes = select(TableScopeNode, (s) =>
  *   every token it writes is refused.
  */
 export const htmlOverlayLawsByName = {
-  "DocumentId key": [key(on(TabledHeader, "package", "path", "table", "id"))],
-  "E1 derived": [
+  "DocumentId key": declared("DocumentId key", [
+    key(on(TabledHeader, "package", "path", "table", "id")),
+  ]),
+  "E1 derived": declared("E1 derived", [
     check("E1_derived", TableScopeNode, (s) =>
       s.or(
         s.and(s.eq(s.kind, "table"), s.eq(s.table, s.start)),
@@ -109,13 +112,13 @@ export const htmlOverlayLawsByName = {
       on(IdValue, "package", "path", "start", "id", "owner"),
     ),
     spelledByTokens(CellHeadersForm),
-  ],
-  "Table headers": [
+  ]),
+  "Table headers": declared("Table headers", [
     contained(
       on(CellToken, "package", "path", "table", "token"),
       on(TabledHeader, "package", "path", "table", "id"),
     ),
-  ],
+  ]),
 } as const;
 
 /**

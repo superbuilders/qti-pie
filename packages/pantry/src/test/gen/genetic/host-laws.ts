@@ -11,8 +11,8 @@
  * - A pattern: every value of a field whose type states it inside its domain, as grizzle's evaluator
  *   admits a row (`rowEvaluator`'s `admit`), a row its domain refuses breaking it;
  * - A generated field's law: every row's generated value no NULL, as the evaluator computes it;
- * - A bounded text's bound: no field of a bounded text type holds more UTF-8 bytes than its type's
- *   bound, a key text's `matchedTextBytes`.
+ * - A bounded text's bound: no field of a key text type holds more UTF-8 bytes than its type's bound
+ *   (`#pantry/test/key-copies.ts` `keyTextBounds`), each declared in `#pantry/qti/limits.ts`.
  *
  * A write the preview refuses before any SQL breaks the law it names (a key's, a generated field's
  * or a counted family's), and leaves every other law unknown. A statement over a derived relation,
@@ -30,7 +30,7 @@ import type { Law } from "@bjornpagen/grizzle";
 import { lawOfCheck } from "#pantry/import/refusal.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
-import { matchedText, matchedTextBytes, utf8Length } from "#pantry/qti/limits.ts";
+import { utf8Length } from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import {
   judge,
@@ -39,7 +39,7 @@ import {
   readingsOf,
 } from "#pantry/test/host-judge.ts";
 import type { RowReading } from "#pantry/test/host-judge.ts";
-import { identityOf } from "#pantry/test/key-copies.ts";
+import { identityOf, keyTextBounds } from "#pantry/test/key-copies.ts";
 import { schemaLawNameOf, statedLaws, statementLawsOf } from "#pantry/test/law-namer.ts";
 
 /**
@@ -204,7 +204,13 @@ const patternFields: ReadonlyMap<PatternLaw, readonly (readonly [string, string]
       const law =
         kind === "relation" && patterns !== undefined
           ? patternLaws.find((stated) =>
-              sameLaw(stated, { field, kind: "pattern", patterns, relation: name }),
+              sameLaw(stated, {
+                entry: stated.entry,
+                field,
+                kind: "pattern",
+                patterns,
+                relation: name,
+              }),
             )
           : undefined;
       if (law !== undefined) {
@@ -217,16 +223,6 @@ const patternFields: ReadonlyMap<PatternLaw, readonly (readonly [string, string]
 })();
 
 /**
- * The UTF-8 byte bound of each bounded text type, the stated limit "Key text bound" (spec reading
- * 1): a text a query reads by a pattern, `matchedText`'s `matchedTextBytes`. A text of any other
- * type, a package's name, an entry's path and `anyText` among them, is of any length: a key holds
- * it by its image.
- */
-const textBounds: ReadonlyMap<unknown, number> = new Map<unknown, number>([
-  [matchedText, matchedTextBytes],
-]);
-
-/**
  * A stored relation of the schema as grizzle keeps it, its fields' types as they are, so a type is
  * told by its identity.
  */
@@ -237,7 +233,7 @@ const TypedRelation = Schema.Struct({
 });
 
 /**
- * The bound of each stored field of a bounded text type ({@link textBounds}), by `Relation.field`.
+ * The bound of each stored field of a key text type (`keyTextBounds`), by `Relation.field`.
  */
 const fieldBounds: ReadonlyMap<string, number> = new Map(
   Object.values(Qti.relations).flatMap((member) =>
@@ -245,7 +241,7 @@ const fieldBounds: ReadonlyMap<string, number> = new Map(
       onNone: () => [],
       onSome: ({ fields, name }) =>
         Object.entries(fields).flatMap(([field, type]) =>
-          Option.toArray(Option.fromUndefinedOr(textBounds.get(type))).map(
+          Option.toArray(Option.fromUndefinedOr(keyTextBounds.get(type))).map(
             (bytes) => [`${name}.${field}`, bytes] as const,
           ),
         ),

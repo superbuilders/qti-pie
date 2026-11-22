@@ -42,10 +42,14 @@ import type { NodeRow } from "#pantry/model/xdm.ts";
 import type {
   CandidatePath,
   File,
+  FileOutside,
+  FilePath,
   Package,
   Reference,
   ReferencePath,
   ResourceHref,
+  ResourceHrefOutside,
+  ResourceHrefPath,
   Srcset,
   SrcsetCandidate,
   TextReference,
@@ -67,7 +71,11 @@ export interface ManifestIds {
  */
 export interface PackageRows {
   readonly File: ReadonlyMap<string, Addition<typeof File>>;
+  readonly FileOutside: ReadonlyMap<string, Addition<typeof FileOutside>>;
+  readonly FilePath: ReadonlyMap<string, Addition<typeof FilePath>>;
   readonly ResourceHref: ReadonlyMap<string, Addition<typeof ResourceHref>>;
+  readonly ResourceHrefOutside: ReadonlyMap<string, Addition<typeof ResourceHrefOutside>>;
+  readonly ResourceHrefPath: ReadonlyMap<string, Addition<typeof ResourceHrefPath>>;
 }
 
 /**
@@ -77,7 +85,14 @@ export interface PackageRows {
  * own node (its root's resource type, its required attributes), never a manifest overlay's key or
  * copy, one cause, one rule.
  */
-export const noPackageRows: PackageRows = { File: new Map(), ResourceHref: new Map() };
+export const noPackageRows: PackageRows = {
+  File: new Map(),
+  FileOutside: new Map(),
+  FilePath: new Map(),
+  ResourceHref: new Map(),
+  ResourceHrefOutside: new Map(),
+  ResourceHrefPath: new Map(),
+};
 
 /**
  * The `ResourceType` handle a `cp:resource`'s `type` names: every handle but the null object is
@@ -519,10 +534,10 @@ export const entryPathOf = (resolution: HrefResolution): Option.Option<string> =
   resolution.scope === "entry" ? Option.some(resolution.path) : Option.none();
 
 /**
- * The path an href is compared by, `ResourceHref`'s and `File`'s `target`, and an item ref's or a
- * site's (`#pantry/import/overlays/tests.ts` `ResolvedHref`): the entry path it resolves to in the
+ * The path an href is compared by, an item ref's or a site's (`#pantry/import/overlays/tests.ts`
+ * `ResolvedHref`), and a resource's (`resourcePathsOf`): the entry path it resolves to in the
  * package, and otherwise its path piece as read, so two external hrefs are compared as written
- * (reading 102).
+ * (reading 102), as `ResourceHrefOutside`'s and `FileOutside`'s `target` are.
  *
  * @param resolution - Its resolution.
  * @param value - Its value ({@link valueAt}).
@@ -558,30 +573,51 @@ export const rowsOf = (view: DocumentView, ids: ManifestIds): PackageRows => {
   const keyAt = (node: NodeRow<Composed>): string =>
     keyTextOf(ids.package, manifestPath, node.start);
   const files = new Map<string, Addition<typeof File>>();
+  const filePaths = new Map<string, Addition<typeof FilePath>>();
+  const filesOutside = new Map<string, Addition<typeof FileOutside>>();
   const resourceHrefs = new Map<string, Addition<typeof ResourceHref>>();
+  const resourcePaths = new Map<string, Addition<typeof ResourceHrefPath>>();
+  const resourcesOutside = new Map<string, Addition<typeof ResourceHrefOutside>>();
 
   for (const node of rows.nodes) {
+    const key = keyAt(node);
+    const head = { ...at, start: node.start };
+
     if (node.kind === "cp:resource") {
       for (const href of Option.toArray(valueAt(view, node, "href"))) {
         const resolution = resolve(node.start, href);
-        resourceHrefs.set(keyAt(node), {
-          ...at,
-          scope: resolution.scope,
-          start: node.start,
-          target: comparedPathOf(resolution, href),
-        });
+        resourceHrefs.set(key, { ...head, scope: resolution.scope });
+        if (resolution.scope === "entry") {
+          resourcePaths.set(key, { ...head, target: resolution.path });
+        }
+
+        if (resolution.scope === "external") {
+          resourcesOutside.set(key, { ...head, target: hrefPathOf(hrefTextOf(href)) });
+        }
       }
     }
 
     for (const href of node.kind === "cp:file" ? Option.toArray(valueAt(view, node, "href")) : []) {
       const resolution = resolve(node.start, href);
-      const target = comparedPathOf(resolution, href);
-      const { scope } = resolution;
-      files.set(keyAt(node), { ...at, scope, start: node.start, target });
+      files.set(key, { ...head, scope: resolution.scope });
+      if (resolution.scope === "entry") {
+        filePaths.set(key, { ...head, target: resolution.path });
+      }
+
+      if (resolution.scope === "external") {
+        filesOutside.set(key, { ...head, target: hrefPathOf(hrefTextOf(href)) });
+      }
     }
   }
 
-  return { File: files, ResourceHref: resourceHrefs };
+  return {
+    File: files,
+    FileOutside: filesOutside,
+    FilePath: filePaths,
+    ResourceHref: resourceHrefs,
+    ResourceHrefOutside: resourcesOutside,
+    ResourceHrefPath: resourcePaths,
+  };
 };
 
 /**
@@ -607,36 +643,36 @@ export const resourceTypesOf = (manifest: FlatDocument): ReadonlyMap<bigint, Res
   );
 
 /**
- * A typed href as the host reads it: a resource's `ResourceHref` beside its type's code. Its `path`
- * is the manifest's, the document that lists the resource, and `target` the path its href is
- * compared by.
+ * A typed href that resolves in the package as the host reads it: a resource's `ResourceHrefPath`
+ * beside its type's code. Its `path` is the manifest's, the document that lists the resource, and
+ * `target` the entry path its href names.
  */
-export type TypedHrefRow = Pick<
-  Addition<typeof ResourceHref>,
-  "package" | "path" | "scope" | "start" | "target"
+export type TypedPathRow = Pick<
+  Addition<typeof ResourceHrefPath>,
+  "package" | "path" | "start" | "target"
 > & { readonly type: ResourceTypeHandle };
 
 /**
- * Read the typed hrefs of a manifest: each resource's href beside the code its `type` spells, the
- * rows of the query `TypedHref` (`#pantry/qti/queries.ts`), which no table stores. The importer
- * reads them on the host before it writes a row, to name the documents it reads
- * ({@link namedDocuments}) and the resources an item ref names; the database reads the same join
- * where a rule over the query judges the rows written.
+ * Read the typed hrefs of a manifest that resolve in the package: each resource's entry path
+ * beside the code its `type` spells, the rows of the query `TypedPath` (`#pantry/qti/queries.ts`),
+ * which no table stores. The importer reads them on the host before it writes a row, to name the
+ * documents it reads ({@link namedDocuments}) and the resources an item ref names; the database
+ * reads the same join where a rule over the query judges the rows written. An href outside the
+ * package names no entry, so it names no document and is no item ref's target.
  *
  * @param rows - The manifest's overlay rows.
  * @param types - Its resources' type codes ({@link resourceTypesOf}).
- * @returns The typed hrefs, in the manifest's order: none for a resource with no href, or whose
- *   `type` spells no handle.
+ * @returns The typed paths, in the manifest's order: none for a resource whose href resolves
+ *   outside the package or not at all, or whose `type` spells no handle.
  */
-export const typedHrefsOf = (
-  rows: Pick<PackageRows, "ResourceHref">,
+export const typedPathsOf = (
+  rows: Pick<PackageRows, "ResourceHrefPath">,
   types: ReadonlyMap<bigint, ResourceTypeHandle>,
-): readonly TypedHrefRow[] =>
-  [...rows.ResourceHref.values()].flatMap(({ package: pkg, path, scope, start, target }) =>
+): readonly TypedPathRow[] =>
+  [...rows.ResourceHrefPath.values()].flatMap(({ package: pkg, path, start, target }) =>
     Option.toArray(Option.fromUndefinedOr(types.get(start))).map((type) => ({
       package: pkg,
       path,
-      scope,
       start,
       target,
       type,
@@ -649,20 +685,18 @@ export const typedHrefsOf = (
  * at the path as a document of that type (reading 102: the href's launch parameters name no other
  * file). An href outside the package names no document, and "Document entry" refuses it.
  *
- * @param typed - The manifest's typed hrefs ({@link typedHrefsOf}).
+ * @param typed - The manifest's typed paths ({@link typedPathsOf}).
  * @returns The named documents' paths and types, a keyed set by (path, type), in the manifest's
  *   order. One path named under two types is two pairs; the import reads the path once, as the
  *   type its root bears out (`#pantry/import/program.ts`, reading 162), so the other's href names
  *   no document of its type, and "Document entry" refuses it.
  */
 export const namedDocuments = (
-  typed: readonly TypedHrefRow[],
+  typed: readonly TypedPathRow[],
 ): ReadonlyMap<string, { readonly path: string; readonly type: ResourceTypeHandle }> =>
   new Map(
-    typed.flatMap(({ scope, target, type }) =>
-      scope === "entry" && documentTyped.has(type)
-        ? [[keyTextOf(target, type), { path: target, type }] as const]
-        : [],
+    typed.flatMap(({ target, type }) =>
+      documentTyped.has(type) ? [[keyTextOf(target, type), { path: target, type }] as const] : [],
     ),
   );
 

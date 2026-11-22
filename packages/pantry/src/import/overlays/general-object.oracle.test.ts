@@ -14,10 +14,10 @@
  * laws the import's rows break on the host (`#pantry/test/gen/genetic/judge.ts` `judgeOne`), and
  * both against §2.7.1 and readings 93 and 146 as stated above: the two agree on every case, and
  * each raises "Document entry" exactly where the `href` names no document a resource names.
- * "Document entry" (over `TypedHref`), `lom-identifier`, `lom-title` and `document-lang` are rules
- * over queries, which only the database judges (the host judge leaves them unjudged), so the
- * oracle's side alone is held to them here, and the database tests hold the database to them
- * through the importer.
+ * "Document entry" (over `TypedHref` and `TypedPath`), `lom-identifier`, `lom-title` and
+ * `document-lang` are rules over queries, which only the database judges (the host judge leaves
+ * them unjudged), so the oracle's side alone is held to them here, and the database tests hold the
+ * database to them through the importer.
  *
  * Bound: a package of one resource, of the item type, the one type whose record names its
  * document (pantry stores no test, spec reading 228), whose `href` names each of the listed

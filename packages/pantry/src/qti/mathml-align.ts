@@ -86,7 +86,7 @@ import {
   Type,
 } from "@bjornpagen/grizzle";
 import { anyText } from "#pantry/grammar/install.ts";
-import { EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
+import { CopiedLexical, EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
 
@@ -128,7 +128,7 @@ export const MathAction = relation.generated(
   {
     package: PackageName,
     path: EntryPath,
-    selectionLexical: anyText,
+    selectionLexical: CopiedLexical,
     selectionWritten: pg.boolean,
     start: natural,
   },

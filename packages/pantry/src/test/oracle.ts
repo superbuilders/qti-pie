@@ -122,10 +122,16 @@ import { builtinDomainOf } from "#pantry/vocab/derive/domains.ts";
 import { attributeDeclarations } from "#pantry/vocab/inventory/attributes.ts";
 import type { Domain, WhiteSpace } from "#pantry/vocab/inventory/types.ts";
 import {
+  entryPathBytes,
   foreignNameBytes,
+  identifierBytes,
+  keyMatchedTextBytes,
   matchedTextBytes,
   parsedDecimalBytes,
+  uriBytes,
   utf8Length,
+  xmlIdBytes,
+  xmlNameBytes,
 } from "#pantry/qti/limits.ts";
 import {
   admittedOf as admittedChildrenOf,
@@ -2521,8 +2527,9 @@ interface IdForm {
  * Collect a document's ID-typed forms ({@link IdForm}): every attribute whose domain is an `ID`, or
  * that is a context declaration's `identifier` ({@link isContextIdentifier}), and every element's
  * text whose governor reads it in an `ID` domain (C50), attributes first, each in document order.
- * The database holds each one's value, whatever its form, as its document's `IdValue`, and its
- * placed copies in an assembly (`PlacedId.id`), each of any length: a key holds it by its image.
+ * The database holds each one's value, whatever its form, as its document's `IdValue`, in no key,
+ * and its placed copies in an assembly (`PlacedId.id`) and a `th`'s and a catalog's own
+ * (`TableHeader.id`, `CatalogId.id`), each an `xs:ID` a key holds, of at most `xmlIdBytes`.
  *
  * @param view - The document.
  * @param laws - The grammar's tables.
@@ -3004,19 +3011,223 @@ const ariaFields: ReadonlyMap<string, string> = new Map([
 ]);
 
 /**
+ * The sources, collapsed, of the LOM vocabulary's terms (reading 122): LOMv1.0, and the empty
+ * source, which the loose binding's default="LOMv1.0" fills (imsmd_loose_v1p3p2.xsd:1288). A term
+ * that writes no source reads as the empty one.
+ */
+const lomVocabulary: ReadonlySet<string> = new Set(["", "LOMv1.0"]);
+
+/**
+ * The choice classes, each of whose identifier "must not be used by any other" element of its noun
+ * "or item variable" (information model §5.132.1, §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1,
+ * §5.67.1, §5.73.1 and §5.131.1). Spec reading 104 as amended reads each sentence's noun: two
+ * elements of one class never share an identifier, and across classes only a "choice" bars,
+ * {@link choiceNouns}' classes barring every other choice ({@link barredByChoice}).
+ */
+const choiceClasses: ReadonlySet<string> = new Set([
+  "qti-associable-hotspot",
+  "qti-gap",
+  "qti-gap-img",
+  "qti-gap-text",
+  "qti-hotspot-choice",
+  "qti-hottext",
+  "qti-inline-choice",
+  "qti-simple-associable-choice",
+  "qti-simple-choice",
+]);
+
+/**
+ * The attributes by which an interaction binds a response variable: its `response-identifier`,
+ * and an entry interaction's `string-identifier` (§5.48.2, §5.162.3: "binding the interaction to a
+ * second response variable (of base-type string)").
+ */
+const bindingNames = ["response-identifier", "string-identifier"] as const;
+
+/**
+ * The identifiers a check holds within a key text's bound where a view keys them, each an
+ * attribute's value, collapsed: each declaration's `identifier` (`DeclaredIdentifierText`,
+ * `#pantry/qti/names.ts`) and each test's (`TestIdentifierText`,
+ * `#pantry/qti/overlay-queries/tests.ts`), each a QTI identifier; and in the manifest, its own and
+ * each resource's `identifier` and each dependency's `identifierref` (`ManifestIdText`,
+ * `#pantry/qti/overlay-queries/package.ts`), each an `xs:ID`'s.
+ */
+const checkedIdentifiers: readonly {
+  readonly bound: number;
+  readonly field: string;
+  readonly holds: (laws: Laws, kind: string) => boolean;
+  readonly manifest: boolean;
+  readonly name: string;
+}[] = [
+  {
+    bound: identifierBytes,
+    field: "DeclaredIdentifierText.text",
+    holds: (laws, kind) => laws.grammar.references.declarationKind.has(kind),
+    manifest: false,
+    name: "identifier",
+  },
+  {
+    bound: identifierBytes,
+    field: "TestIdentifierText.text",
+    holds: (_laws, kind) => kind === "qti-assessment-test",
+    manifest: false,
+    name: "identifier",
+  },
+  {
+    bound: xmlIdBytes,
+    field: "ManifestIdText.text",
+    holds: (_laws, kind) => kind === "cp:manifest" || kind === "cp:resource",
+    manifest: true,
+    name: "identifier",
+  },
+  {
+    bound: xmlIdBytes,
+    field: "ManifestIdText.text",
+    holds: (_laws, kind) => kind === "cp:dependency",
+    manifest: true,
+    name: "identifierref",
+  },
+];
+
+/**
+ * The relation that holds an element's own ID attribute, by the element's kind: a `th`'s, held as
+ * `TableHeader.id` (`#pantry/qti/html.ts`), and a catalog's, as `CatalogId.id`
+ * (`#pantry/qti/catalog.ts`), each its ID's value collapsed.
+ */
+const idHoldersByKind: ReadonlyMap<string, string> = new Map([
+  ["qti-catalog", "CatalogId.id"],
+  ["th", "TableHeader.id"],
+]);
+
+/**
+ * The children of a node of one kind.
+ *
+ * @param view - The node's document.
+ * @param parent - The node's `start`.
+ * @param kind - The children's kind.
+ * @returns Them, in document order.
+ */
+const childrenOfKind = (
+  view: View,
+  parent: bigint,
+  kind: string,
+): readonly FoldedNode<Composed>[] =>
+  (view.childrenOf.get(parent) ?? []).filter((child) => child.kind === kind);
+
+/**
+ * Whether a term's node names a vocabulary of its own: a `lom:source` child whose collapsed
+ * string value is no LOM vocabulary's source ({@link lomVocabulary}), as `otherVocabularies`
+ * (`#pantry/qti/lom.ts`) reads it.
+ *
+ * @param view - The record's document.
+ * @param term - The term's node, a kind, a purpose, a role or a status.
+ * @returns Whether it is another vocabulary's.
+ */
+const otherVocabulary = (view: View, term: bigint): boolean =>
+  childrenOfKind(view, term, "lom:source").some(
+    (source) => !lomVocabulary.has(collapsed(source.stringValue)),
+  );
+
+/**
+ * Read the manifest's record's LOM texts a view keys, `LomKeyText` of `#pantry/qti/lom.ts`, each by
+ * its node: each general identifier's catalog and entry where it writes both; each relation's
+ * resource's identifier's catalog and entry where both are written, of a relation whose kind writes
+ * a value of LOM's own vocabulary; and each taxon path's source string and taxon id where both are
+ * written, of a classification whose purpose writes a value of LOM's own vocabulary. Each category
+ * is a child of the manifest's own `lom:lom`, in its `cp:metadata`.
+ *
+ * @param manifest - The manifest's document.
+ * @returns The texts, category by category, each in document order.
+ */
+const lomKeyTextsOf = (
+  manifest: View,
+): readonly { readonly node: bigint; readonly value: string }[] => {
+  const categories = (kind: string) =>
+    manifest.members.filter((member) => {
+      const record = manifest.byStart.get(member.parent);
+
+      return (
+        member.kind === kind &&
+        record?.kind === "lom:lom" &&
+        manifest.byStart.get(record.parent)?.kind === "cp:metadata.manifest"
+      );
+    });
+  const identified = (identifier: bigint) => {
+    const catalogs = childrenOfKind(manifest, identifier, "lom:catalog");
+    const entries = childrenOfKind(manifest, identifier, "lom:entry");
+
+    return catalogs.length > 0 && entries.length > 0 ? [...catalogs, ...entries] : [];
+  };
+  const ofOwnVocabulary = (owner: bigint, kind: string) =>
+    childrenOfKind(manifest, owner, kind).some(
+      (term) =>
+        childrenOfKind(manifest, term.start, "lom:value").length > 0 &&
+        !otherVocabulary(manifest, term.start),
+    );
+  const held = [
+    ...categories("lom:general").flatMap((general) =>
+      childrenOfKind(manifest, general.start, "lom:identifier").flatMap(({ start }) =>
+        identified(start),
+      ),
+    ),
+    ...categories("lom:relation")
+      .filter((relation) => ofOwnVocabulary(relation.start, "lom:kind"))
+      .flatMap((relation) =>
+        childrenOfKind(manifest, relation.start, "lom:resource").flatMap((resource) =>
+          childrenOfKind(manifest, resource.start, "lom:identifier").flatMap(({ start }) =>
+            identified(start),
+          ),
+        ),
+      ),
+    ...categories("lom:classification")
+      .filter((classification) => ofOwnVocabulary(classification.start, "lom:purpose"))
+      .flatMap((classification) =>
+        childrenOfKind(manifest, classification.start, "lom:taxonPath").flatMap((path) => {
+          const sources = childrenOfKind(manifest, path.start, "lom:source.langString").flatMap(
+            (source) => childrenOfKind(manifest, source.start, "lom:string"),
+          );
+          const ids = childrenOfKind(manifest, path.start, "lom:taxon").flatMap((taxon) =>
+            childrenOfKind(manifest, taxon.start, "lom:id"),
+          );
+
+          return sources.length > 0 && ids.length > 0 ? [...sources, ...ids] : [];
+        }),
+      ),
+  ];
+
+  return held.map((node) => ({ node: node.start, value: node.stringValue }));
+};
+
+/**
  * Collect the texts of a document the schema holds in a key, each with the field that holds it, its
- * node, and the one bound of its kind (`#pantry/qti/limits.ts`): as matched texts (`matchedText`),
- * every text a copy of the schema writes into a `matchedText` field (`#pantry/test/key-copies.ts`
- * `keyCopies`, read from the schema's statements: an IDREF's, a manifest's, a declaration's and
- * every other attribute a containment or a check copies, and the string value of each element whose
- * text is checked or copied), every value the import writes into one that a rule over a query holds
- * ({@link heldValuesOf}), and the document's path (`Document.path`); as a parse's operand, each
- * ARIA bound of an element that writes both that is an `xs:decimal` ({@link ariaFields}), at
- * `parsedDecimalBytes`; and a foreign element's namespace name and local name
- * (`OpenElementName.namespace`, `OpenElementName.local`), each at `foreignNameBytes`, half of the
- * regex engine's bytes, within which a query matches the two as one expanded name. An open
- * attribute's names and every prefix are of any length (Namespaces in XML 1.0, §4), as no index
- * orders by one.
+ * node, and the bound of that field's type (`#pantry/qti/limits.ts`):
+ *
+ * - Every text a copy of the schema writes into a field of a narrower bound than the one it is read
+ *   from (`#pantry/test/key-copies.ts` `keyCopies`, read from the schema's statements: an IDREF's,
+ *   a manifest's, a declaration's, an `m:cn`'s `type` and `base` and every other attribute a
+ *   containment or a check copies, and the string value of each element whose text is checked or
+ *   copied), at the narrower field's bound;
+ * - Every value the import writes into a `matchedText` field that a rule over a query holds
+ *   ({@link heldValuesOf});
+ * - The texts the host writes from the document where they stand, each at its type's bound: each
+ *   namespace declaration's prefix and each closed and open attribute's (`Namespace.prefix`,
+ *   `Attribute.prefix`, `OpenAttribute.prefix`, `xmlNameBytes`), each open attribute's local name
+ *   (`OpenAttribute.local`, `xmlNameBytes`) and namespace name (`OpenAttribute.uri`, `uriBytes`),
+ *   each IDREF token of an attribute or of an element's text (`Idref.token`, `TextIdref.token`,
+ *   `xmlIdBytes`), each `m:share`'s same-document fragment (`ShareFragment.id`), every ID of the
+ *   document, an ID-typed attribute's value or element's text collapsed (`IdText.text`, the one
+ *   `IdValue` keys), a `th`'s and a catalog's as their own rows hold it too (`TableHeader.id`,
+ *   `CatalogId.id`), each choice's and hottext's identifier (`Choice.identifier`,
+ *   `Hottext.identifier`, `identifierBytes`), each interaction's binding that names a variable
+ *   (`BindingName.identifier`), each identifier a check holds where a view keys it
+ *   ({@link checkedIdentifiers}), and in the manifest each LOM text a view keys (`LomKeyText.text`,
+ *   `keyMatchedTextBytes`, {@link lomKeyTextsOf});
+ * - As a parse's operand, each ARIA bound of an element that writes both that is an `xs:decimal`
+ *   ({@link ariaFields}), at `parsedDecimalBytes`;
+ * - And a foreign element's namespace name and local name (`OpenElementName.namespace`,
+ *   `OpenElementName.local`), each at `foreignNameBytes`, half of the regex engine's bytes, within
+ *   which a query matches the two as one expanded name, and which no key holds.
+ *
+ * An entry's path is the package's ({@link packageBreaches}), held to `entryPathBytes` there.
  *
  * @param view - The document.
  * @param laws - The grammar's tables.
@@ -3059,12 +3270,111 @@ const keyTexts = (
   return [
     ...keyCopies.flatMap((copy) =>
       copiedTexts(copy, rows).map(({ node, value }) => ({
-        bound: matchedTextBytes,
+        bound: copy.bound,
         field: copy.field,
         node,
         value,
       })),
     ),
+    ...view.rows.namespaces.map(({ prefix, start }) => ({
+      bound: xmlNameBytes,
+      field: "Namespace.prefix",
+      node: start,
+      value: prefix,
+    })),
+    ...view.rows.attributes.map(({ prefix, start }) => ({
+      bound: xmlNameBytes,
+      field: "Attribute.prefix",
+      node: start,
+      value: prefix,
+    })),
+    ...view.rows.openAttributes.flatMap(({ local, prefix, start, uri }) => [
+      { bound: xmlNameBytes, field: "OpenAttribute.prefix", node: start, value: prefix },
+      { bound: xmlNameBytes, field: "OpenAttribute.local", node: start, value: local },
+      { bound: uriBytes, field: "OpenAttribute.uri", node: start, value: uri },
+    ]),
+    ...view.rows.attributes.flatMap((attribute) => [
+      ...(Option.exists(compiledOf(laws, attribute), (held) => isIdref(held.domain))
+        ? tokensOf(attribute.lexical).map((token) => ({
+            bound: xmlIdBytes,
+            field: "Idref.token",
+            node: attribute.start,
+            value: token,
+          }))
+        : []),
+      ...(attribute.kind === "m:share" && attribute.name === "src"
+        ? Option.toArray(fragmentOfSrc(collapsed(attribute.lexical))).map((id) => ({
+            bound: xmlIdBytes,
+            field: "ShareFragment.id",
+            node: attribute.start,
+            value: id,
+          }))
+        : []),
+    ]),
+    ...view.rows.nodes.flatMap((node) =>
+      Option.exists(checkedTextOf(laws, node), ({ domain }) => isIdref(domain))
+        ? tokensOf(node.stringValue).map((token) => ({
+            bound: xmlIdBytes,
+            field: "TextIdref.token",
+            node: node.start,
+            value: token,
+          }))
+        : [],
+    ),
+    ...view.members.flatMap((node) => [
+      ...(choiceClasses.has(node.kind)
+        ? Option.toArray(valueOf(view, node.start, "identifier")).map((lexical) => ({
+            bound: identifierBytes,
+            field: node.kind === "qti-hottext" ? "Hottext.identifier" : "Choice.identifier",
+            node: node.start,
+            value: collapsed(lexical),
+          }))
+        : []),
+      ...(Option.isSome(laws.grammar.kinds.interaction.lookup({ kind: node.kind }))
+        ? bindingNames.flatMap((name) =>
+            Option.toArray(valueOf(view, node.start, name))
+              .map((lexical) => collapsed(lexical))
+              .filter((value) => nameForm.test(value))
+              .map((value) => ({
+                bound: identifierBytes,
+                field: "BindingName.identifier",
+                node: node.start,
+                value,
+              })),
+          )
+        : []),
+    ]),
+    ...view.members.flatMap((node) =>
+      [...checkedIdentifiers]
+        .filter(({ holds }) => holds(laws, node.kind))
+        .filter(({ manifest }) => !manifest || view.path === manifestEntry)
+        .flatMap(({ bound, field: checked, name }) =>
+          Option.toArray(valueOf(view, node.start, name)).map((lexical) => ({
+            bound,
+            field: checked,
+            node: node.start,
+            value: collapsed(lexical),
+          })),
+        ),
+    ),
+    ...idFormsOf(view, laws).flatMap(({ id, node, owner }) => {
+      const holder = idHoldersByKind.get(view.byStart.get(node)?.kind ?? "");
+
+      return [
+        { bound: xmlIdBytes, field: "IdText.text", node, value: id },
+        ...(holder !== undefined && owner === node
+          ? [{ bound: xmlIdBytes, field: holder, node, value: id }]
+          : []),
+      ];
+    }),
+    ...(view.path === manifestEntry
+      ? lomKeyTextsOf(view).map(({ node, value }) => ({
+          bound: keyMatchedTextBytes,
+          field: "LomKeyText.text",
+          node,
+          value,
+        }))
+      : []),
     ...view.rows.attributes.flatMap((attribute) =>
       heldValuesOf(attribute).map((held) => ({
         bound: matchedTextBytes,
@@ -3440,13 +3750,6 @@ interface Finding {
 }
 
 /**
- * The attributes by which an interaction binds a response variable: its `response-identifier`,
- * and an entry interaction's `string-identifier` (§5.48.2, §5.162.3: "binding the interaction to a
- * second response variable (of base-type string)").
- */
-const bindingNames = ["response-identifier", "string-identifier"] as const;
-
-/**
  * Read the base type a declaration writes, as its type reads it ({@link typedValueOf}): the type
  * every law that reads one judges, a binding's fit, a mapping's or an area mapping's type, a map
  * key's or a table value's form, and a feedback outcome's type. An unwritten `base-type` is no
@@ -3638,25 +3941,6 @@ export const typedTextHolds = (baseType: string, text: string): boolean => {
     baseType === "uri" ? trimmed.replaceAll(/[\t\n\r ]+/gu, " ") : trimmed,
   );
 };
-
-/**
- * The choice classes, each of whose identifier "must not be used by any other" element of its noun
- * "or item variable" (information model §5.132.1, §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1,
- * §5.67.1, §5.73.1 and §5.131.1). Spec reading 104 as amended reads each sentence's noun: two
- * elements of one class never share an identifier, and across classes only a "choice" bars,
- * {@link choiceNouns}' classes barring every other choice ({@link barredByChoice}).
- */
-const choiceClasses: ReadonlySet<string> = new Set([
-  "qti-associable-hotspot",
-  "qti-gap",
-  "qti-gap-img",
-  "qti-gap-text",
-  "qti-hotspot-choice",
-  "qti-hottext",
-  "qti-inline-choice",
-  "qti-simple-associable-choice",
-  "qti-simple-choice",
-]);
 
 /**
  * The classes whose identifier sentence names the noun "choice": "This identifier must not be used
@@ -3894,13 +4178,6 @@ const readerLabels: ReadonlySet<string> = new Set([
   "qti-digital-material",
   "qti-printed-variable",
 ]);
-
-/**
- * The sources, collapsed, of the LOM vocabulary's terms (reading 122): LOMv1.0, and the empty
- * source, which the loose binding's default="LOMv1.0" fills (imsmd_loose_v1p3p2.xsd:1288). A term
- * that writes no source reads as the empty one.
- */
-const lomVocabulary: ReadonlySet<string> = new Set(["", "LOMv1.0"]);
 
 /**
  * The overlay laws of §1.7 over one node: O3's bindings and choice bounds, O4's arity and
@@ -5080,12 +5357,12 @@ const rootedResolutionOf = (
  * Evaluate R6 and the reference half of the stated limit over each listed document (readings 102
  * and 103): every attribute of the grammar's reference census, and the string value of every
  * element of its text census (`textReferenceKinds`, spec reading R9-b), is resolved with the
- * `xml:base` values in scope ({@link resolvedAt}), a `srcset`'s each image candidate's URL
- * ({@link oracleSrcsetOf}); one the representation reads no name from breaks "Href form"; and
- * each that
+ * `xml:base` values in scope ({@link resolvedAt}), a `srcset`'s each image candidate's URL ({@link
+ * oracleSrcsetOf}); one the representation reads no name from breaks "Href form"; and each that
  * resolves in the package names an entry ("File exists", IMS Content Packaging 1.2,
- * InterchangePackage (d)), and a stimulus ref's a stimulus. An entry path is of any length, as a
- * `srcset`'s candidates are: a key holds each by its image.
+ * InterchangePackage (d)), and a stimulus ref's a stimulus. Each path a reference resolves to in
+ * the package is held in a key as an entry's path is, of at most `entryPathBytes`, a stated limit
+ * of the representation ("Key text bound", the field that holds it).
  *
  * @param documents - The documents the manifest lists, read.
  * @param entries - The package's entry paths.
@@ -5164,6 +5441,18 @@ const referenceBreaches = (
               ]
             : [],
         ),
+      ...resolved.flatMap(({ field: held, member, resolution }) =>
+        resolution.scope === "entry" && utf8Length(resolution.path) > entryPathBytes
+          ? [
+              breach("Key text bound", {
+                bound: String(entryPathBytes),
+                bytes: String(utf8Length(resolution.path)),
+                field: held,
+                node: pathOf(view, member.start),
+              }),
+            ]
+          : [],
+      ),
       ...resolved.flatMap(({ member, resolution }) =>
         resolution.scope !== "entry" || entries.has(resolution.path)
           ? []
@@ -5832,11 +6121,12 @@ const documentLangBreaches = (
 };
 
 /**
- * Evaluate the laws of §1.6 and O6 over a package: the stated limit `href-form` first, then
- * `root-type-reverse`, `file-listed`, `href-listed`, `entry-kind`, `file-exists`,
- * `self-dependency` and `lom-identifier`, and reading 85's `inclusion-cycle`
- * ({@link inclusionCycles}), then R26's `document-lang` ({@link documentLangBreaches}). A
- * resource's or a file's target is of any length: a key holds it by its image.
+ * Evaluate the laws of §1.6 and O6 over a package: the stated limits, each entry's path within
+ * `entryPathBytes` (`key-text-bound`) and `href-form`, first, then `root-type-reverse`,
+ * `file-listed`, `href-listed`, `entry-kind`, `file-exists`, `self-dependency` and
+ * `lom-identifier`, and reading 85's `inclusion-cycle` ({@link inclusionCycles}), then R26's
+ * `document-lang` ({@link documentLangBreaches}). A resource's or a file's target as written is
+ * of any length, held in no key.
  *
  * @param input - The package.
  * @param input.files - Its entries.
@@ -5888,6 +6178,18 @@ const packageBreaches = (
   }
 
   return [
+    // An entry's path is held in `Entry`'s key and every key of its rows, of at most
+    // `entryPathBytes` (`#pantry/qti/limits.ts`), a stated limit of the representation.
+    ...input.files
+      .filter(({ path }) => utf8Length(path) > entryPathBytes)
+      .map(({ path }) =>
+        breach("Key text bound", {
+          bound: String(entryPathBytes),
+          bytes: String(utf8Length(path)),
+          entry: path,
+          field: "Entry.path",
+        }),
+      ),
     ...fileNodes
       .filter(({ resolved }) => resolved.resolution.scope === "unresolved")
       .map(({ href, member }) =>
@@ -5925,9 +6227,12 @@ const packageBreaches = (
     ...resources.flatMap((resource) =>
       Option.toArray(resource.href)
         .filter(() =>
+          // An unresolved href has no arm to list ("Href form" refuses it alone); every other
+          // scope's is compared with its resource's files of its scope.
           Option.exists(
             resource.resolved,
             (own) =>
+              own.resolution.scope !== "unresolved" &&
               !resource.files.some(
                 (file) => file.resolution.scope === own.resolution.scope && file.path === own.path,
               ),
@@ -5961,6 +6266,32 @@ const packageBreaches = (
       Option.toArray(entryPathAt(resolved))
         .filter((path) => !entryPaths.has(path))
         .map((path) => breach("File exists", { from: pathOf(manifest, member.start), path })),
+    ),
+    // A file's or a resource's href that resolves in the package is an entry path, its arm's
+    // `target` (`FilePath`, `ResourceHrefPath`), so one past `entryPathBytes` is a key text past
+    // its bound.
+    ...[
+      ...fileNodes.map(({ member, resolved }) => ({
+        field: "FilePath.target",
+        path: entryPathAt(resolved),
+        start: member.start,
+      })),
+      ...resources.map((resource) => ({
+        field: "ResourceHrefPath.target",
+        path: pipe(resource.resolved, Option.flatMap(entryPathAt)),
+        start: resource.node.start,
+      })),
+    ].flatMap(({ field: held, path, start }) =>
+      Option.toArray(path)
+        .filter((target) => utf8Length(target) > entryPathBytes)
+        .map((target) =>
+          breach("Key text bound", {
+            bound: String(entryPathBytes),
+            bytes: String(utf8Length(target)),
+            field: held,
+            node: pathOf(manifest, start),
+          }),
+        ),
     ),
     ...inclusionCycles(input.documents, grammar).map((chain) =>
       breach("Inclusion cycle", { chain: spaced(chain), path: chain[0] ?? "" }),

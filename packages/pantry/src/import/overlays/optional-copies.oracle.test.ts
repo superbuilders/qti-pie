@@ -1,6 +1,7 @@
 /**
  * The row of an optional attribute stands exactly where the attribute is written: a
- * `cp:resource`'s `href`, its `ResourceHref` (IMS Content Packaging 1.2, `resource`: `href` is
+ * `cp:resource`'s `href`, its `ResourceHref` and the arm its scope names (IMS Content Packaging
+ * 1.2, `resource`: `href` is
  * optional). A value that may be missing is a row of its own relation, which represents an actual
  * optional domain value (AGENTS.md, Schema intent), so no such row stands for an attribute that is
  * not written. A `lom:string`'s optional `language` has no row: `lom-title` reads the attribute
@@ -237,13 +238,13 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   );
                   yield* fs.remove(dir, { recursive: true });
 
-                  // Every href of the box names an entry at the package's root, so its target, the
-                  // path it resolves to, is the href as written.
+                  // Every href of the box names an entry at the package's root, so each has its entry
+                  // arm, whose target, the path it resolves to, is the href as written.
                   const hrefs = [...inputs.ResourceHref.values()];
                   assert.sameMembers(
-                    hrefs.map(({ target }) => target),
+                    [...inputs.ResourceHrefPath.values()].map(({ target }) => target),
                     [...writtenHrefs(of)],
-                    `${said}: ResourceHref`,
+                    `${said}: ResourceHrefPath`,
                   );
 
                   const own = hostVerdictOf(inputs).broken;
@@ -257,7 +258,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   );
 
                   const hrefPlaces = new Set(hrefs.map(placeOf));
-                  const files = [...inputs.File.values()];
+                  const files = [...inputs.FilePath.values()];
                   // The `webcontent` resources, each by its `identifier`'s element in the manifest.
                   const webIdentifiers = new Set(of.resources.map(({ identifier }) => identifier));
                   const bare = documents.flatMap(({ ids, view }) =>
@@ -274,7 +275,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   assert.lengthOf(bare, hrefless(of).length, said);
                   for (const resource of bare) {
                     // A resource's file is its first child, the first file after it in document
-                    // order: the file's resource is its node's parent, which no File row copies.
+                    // order: the file's resource is its node's parent, which no FilePath row copies.
                     const file = Arr.head(
                       files
                         .filter(
@@ -284,23 +285,24 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                     );
                     assert.isTrue(Option.isSome(file), `${said}: the resource's file`);
                     if (Option.isSome(file)) {
-                      // The href a writer plants is its resource's own file's; its typed href is
-                      // the query `TypedHref`'s, which no row stores.
-                      const { scope, target } = file.value;
+                      // The href a writer plants is its resource's own file's, in the package, so its
+                      // header beside its entry arm; its typed path is the query `TypedPath`'s,
+                      // which no row stores.
+                      const { target } = file.value;
+                      const head = {
+                        package: resource.package,
+                        path: resource.path,
+                        start: resource.start,
+                      };
                       const planted: PackageInputs = {
                         ...inputs,
                         ResourceHref: new Map([
                           ...inputs.ResourceHref,
-                          [
-                            `planted ${placeOf(resource)}`,
-                            {
-                              package: resource.package,
-                              path: resource.path,
-                              scope,
-                              start: resource.start,
-                              target,
-                            },
-                          ],
+                          [`planted ${placeOf(resource)}`, { ...head, scope: "entry" }],
+                        ]),
+                        ResourceHrefPath: new Map([
+                          ...inputs.ResourceHrefPath,
+                          [`planted ${placeOf(resource)}`, { ...head, target }],
                         ]),
                       };
                       const broken = newlyBroken(planted, inputs);

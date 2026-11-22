@@ -86,9 +86,25 @@ import { Qti } from "#pantry/qti/schema.ts";
 const MediaExtension = str.regex("^[a-z0-9]{1,127}$");
 
 /**
+ * The most bytes a media type holds, a type and a subtype a `/` apart, each a restricted name of at
+ * most 127 characters, every one ASCII: what {@link MediaTypeName}'s pattern admits, and the bound
+ * a text that names a media type is held to where it holds none of the pattern.
+ *
+ * @limitKind published
+ * @owner RFC 6838 (IETF, Media Type Specifications and Registration Procedures)
+ * @unit UTF-8 bytes
+ * @scope one media type, a type and a subtype with no parameter
+ * @constraint compile-time constant
+ * @source https://www.rfc-editor.org/rfc/rfc6838#section-4.2
+ * @quote restricted-name = restricted-name-first *126restricted-name-chars
+ * @verified 2026-11-21
+ */
+export const mediaTypeBytes = 127 + 1 + 127;
+
+/**
  * The media type a policy serves an extension's files with, as an HTTP `Content-Type` names it: a
  * type and a subtype, each a restricted name (RFC 6838, §4.2), in lower case, the form the registry
- * writes, with no parameter.
+ * writes, with no parameter, of at most {@link mediaTypeBytes}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc6838#section-4.2 | RFC 6838, §4.2 Naming Requirements}
  */

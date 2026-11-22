@@ -65,9 +65,9 @@ import {
   relation,
   select,
 } from "@bjornpagen/grizzle";
-import { anyText, NodeKind } from "#pantry/grammar/install.ts";
+import { NodeKind } from "#pantry/grammar/install.ts";
 import { ShareFragment } from "#pantry/qti/identity.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Instance, AssembledDocument } from "#pantry/qti/tests.ts";
 
@@ -100,7 +100,7 @@ export const MathRank = relation(
 export const ShareTarget = relation(
   "ShareTarget",
   {
-    id: anyText,
+    id: XmlId,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -154,7 +154,7 @@ export const PlacedShareTarget = relation(
   {
     assembly: EntryPath,
     assemblyKind: closedId(NodeKind),
-    id: anyText,
+    id: XmlId,
     instance: natural,
     package: PackageName,
     path: EntryPath,

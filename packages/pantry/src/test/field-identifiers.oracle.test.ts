@@ -128,7 +128,7 @@ const nameOf = (value: Written): Option.Option<string> =>
 /**
  * The laws a case breaks, by the specification:
  *
- * - **the varied field** (§8.16, CardinalityEnum, `record`: "a set of independent values each
+ * - **the varied field** (§8.17, CardinalityEnum, `record`: "a set of independent values each
  *   identified by its own identifier"; §7.46.1: its `field-identifier` is an `IdentifierDType`):
  *   one that names nothing breaks its value domain alone; one that names `b` breaks Record field
  *   key, which compares names collapsed; one unwritten breaks Value cardinality, since a record's

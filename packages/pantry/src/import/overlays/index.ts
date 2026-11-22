@@ -75,7 +75,7 @@ import {
   referenceCensus,
   referenceRowsOf,
   resourceTypesOf,
-  typedHrefsOf,
+  typedPathsOf,
 } from "#pantry/import/overlays/package.ts";
 import type { PackageRows, ReferenceRows } from "#pantry/import/overlays/package.ts";
 import { assembledRowsOf, rowsOf as testRowsOf } from "#pantry/import/overlays/tests.ts";
@@ -279,7 +279,7 @@ export const overlayPartsOf = (
   const referenced = assembledExpressionRowsOf(
     built.map(({ document }) => ({ ids: document.ids, view: document.view })),
     built.flatMap(({ document, rows }) =>
-      typedHrefsOf(rows.package, resourceTypesOf(document.view)),
+      typedPathsOf(rows.package, resourceTypesOf(document.view)),
     ),
   );
 

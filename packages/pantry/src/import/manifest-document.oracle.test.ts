@@ -4,7 +4,7 @@
  * (reading 93), and the manifest's is fixed, `manifest` (reading 176), since it is read before any
  * resource names a path. So a document-typed resource whose href names `imsmanifest.xml` names no
  * document of its type, and "Document entry" (`entry-kind`) refuses it, in the law oracle and, over
- * the query `TypedHref`, in the database; a `cp:file` naming it
+ * the query `TypedPath`, in the database; a `cp:file` naming it
  * only locates it (IMS Content Packaging 1.2, §6.11.3); and a site whose href names it names no
  * document, whatever names it. The import's reader and the oracle shredded the manifest a second
  * time, as the document of each resource whose href named it, so the package held two documents at
@@ -15,7 +15,8 @@
  * laws the import's rows break on the host (`#pantry/test/gen/genetic/judge.ts` `judgeOne`), and
  * the specification as a checker for the documents each side reads: one per path, the manifest's
  * of no type, no site's target. "Document entry" over a document-typed href is a rule over a query
- * (`TypedHref`, `#pantry/qti/queries.ts`), which the host judge leaves to the database, so the
+ * (`TypedHref` and `TypedPath`, `#pantry/qti/queries.ts`), which the host judge leaves to the
+ * database, so the
  * oracle's side alone is held to it here.
  *
  * Bound: a manifest with 0 to 2 item resources, each listing as files a subset of

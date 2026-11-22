@@ -436,7 +436,7 @@ export const lawTable = {
   "Href listed": {
     rule: "href-listed",
     source:
-      "imscp_infov1p2pd2.txt:770 (IMS Content Packaging 1.2, §6.6.2: 'A file reference declared in a Resource{ Href } shall have an associated declaration in a File object in the same Resource'): a resource href names the file one of its own files names, compared by resolved path in the package and as written outside it, its launch parameters aside (reading 102)",
+      "imscp_infov1p2pd2.txt:770 (IMS Content Packaging 1.2, §6.6.2: 'A file reference declared in a Resource{ Href } shall have an associated declaration in a File object in the same Resource'): a resource href names the file one of its own files names, compared by resolved path in the package (ResourceHrefPath in FilePath) and as written outside it, its launch parameters aside (ResourceHrefOutside in FileOutside, by its digest first, reading 102)",
   },
   "Idref target": {
     rule: "idref-target",
@@ -481,7 +481,7 @@ export const lawTable = {
   "Key text bound": {
     rule: "key-text-bound",
     source:
-      "src/qti/limits.ts: a key holds a text of any length by its image, and no index orders by a name, a prefix or a path (the host orders them), so each bound is PostgreSQL's: a text a query reads by a pattern (matchedText) at most matchedTextBytes UTF-8 bytes, the regex engine's (regexTextMaxBytes); a foreign element's namespace name and local name at most foreignNameBytes each, half of what that engine reads of the expanded name a query matches them as (OpenElementName.expanded), since XML puts no bound on a name (reading 94); and an ARIA bound of a pair that is an xs:decimal at most parsedDecimalBytes, what Text.parseDecimal reads (decimalTextMaxBytes), past which a decimal may name a value numeric does not hold (overlay-queries/interaction.ts Key_text_bound over AriaBounds); a stated limit of the representation, not a law of the specification",
+      "src/qti/limits.ts: no index orders by a name, a prefix or a path (the host orders them), and each bound on a text a query reads is PostgreSQL's: a text a query reads by a pattern (matchedText) at most matchedTextBytes UTF-8 bytes, the regex engine's (regexTextMaxBytes); a foreign element's namespace name and local name at most foreignNameBytes each, half of what that engine reads of the expanded name a query matches them as (OpenElementName.expanded), since XML puts no bound on a name (reading 94); and an ARIA bound of a pair that is an xs:decimal at most parsedDecimalBytes, what Text.parseDecimal reads (decimalTextMaxBytes), past which a decimal may name a value numeric does not hold (overlay-queries/interaction.ts Key_text_bound over AriaBounds); a stated limit of the representation, not a law of the specification",
   },
   "LOM learning resource type": {
     rule: "lom-learning-resource-type",
@@ -506,7 +506,7 @@ export const lawTable = {
   "Literal lexical": {
     rule: "attribute-lexical",
     source:
-      "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.13, BaseTypeEnum, each base type's value set): a qti-base-value's text is a lexical form of its base-type, the same language as Typed value's (expression-types.ts BaseTypePattern; readings 7, 34, 45 and 71)",
+      "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.14, BaseTypeEnum, each base type's value set): a qti-base-value's text is a lexical form of its base-type, the same language as Typed value's (expression-types.ts BaseTypePattern; readings 7, 34, 45 and 71)",
   },
   LomObjectIdentifier: {
     rule: "lom-identifier",
@@ -531,7 +531,7 @@ export const lawTable = {
   "Manifest overlay": {
     rule: "reachability",
     source:
-      "plan §1.6 and the W5 amendment's C18, under decision S3: each manifest overlay (ResourceHref, File) is its element's row, keyed by its node, and holds its own facts alone: it stands at a node of its kind (a constant pin) exactly where its href is written and holds its resolution, never its form, and a file's resource is its node's parent, which its laws read through Node; the manifest's identifier is its attribute's value (overlay-queries/package.ts manifestIdentifiers), one per package by the single root N5 admits (Q5.06)",
+      "plan §1.6 and the W5 amendment's C18, under decision S3: each manifest overlay (ResourceHref, File) is its element's row, keyed by its node, and holds its own facts alone: it stands at a node of its kind (a constant pin) exactly where its href is written and holds its resolution, never its form, each header with exactly the arm its scope names (grizzle's alternatives: ResourceHrefPath and FilePath an entry path in the package, ResourceHrefOutside and FileOutside a path outside it, as written), and a file's resource is its node's parent, which its laws read through Node; the manifest's identifier is its attribute's value (overlay-queries/package.ts manifestIdentifiers), one per package by the single root N5 admits (Q5.06)",
   },
   MappableBaseType: {
     rule: "mapping-base-type",
@@ -759,7 +759,7 @@ export const lawTable = {
   "Record field key": {
     rule: "value-cardinality",
     source:
-      "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_CardinalityEnum (§8.16, CardinalityEnum, record: 'a special container that contains a set of independent values each identified by its own identifier and having its own base-type'): no two fields of one record value share a field-identifier, compared collapsed",
+      "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_CardinalityEnum (§8.17, CardinalityEnum, record: 'a special container that contains a set of independent values each identified by its own identifier and having its own base-type'): no two fields of one record value share a field-identifier, compared collapsed",
   },
   RecordBindingFit: {
     rule: "record-binding-fit",
@@ -932,22 +932,22 @@ export const lawTable = {
   "Typed attribute value": {
     rule: "attribute-lexical",
     source:
-      "readings 7 and 8, and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.13, BaseTypeEnum, each base type's value set): a qti-map-entry's map-key is a value of its mapping's base type (§7.21.1, 'The source value'), and a lookup table entry's target-value and a table's default-value are values of its outcome's base type (§5.90.1, §5.78.1, §7.23.2, §7.18.3); each is its base type's lexical form, read as written for string and, for every other base type, after XML Schema's collapse, the whiteSpace facet every typed simple type fixes (https://www.w3.org/TR/xmlschema-2/#rf-whiteSpace, §4.3.6: 'whiteSpace is applicable to all atomic and list datatypes ... For all atomic datatypes other than string (and types derived by restriction from it) the value of whiteSpace is collapse'), so ' 3 ' is the integer 3 (reading 7; mapping.ts Typed_attribute_value over expression-types.ts BaseTypePattern)",
+      "readings 7 and 8, and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.14, BaseTypeEnum, each base type's value set): a qti-map-entry's map-key is a value of its mapping's base type (§7.21.1, 'The source value'), and a lookup table entry's target-value and a table's default-value are values of its outcome's base type (§5.90.1, §5.78.1, §7.23.2, §7.18.3); each is its base type's lexical form, read as written for string and, for every other base type, after XML Schema's collapse, the whiteSpace facet every typed simple type fixes (https://www.w3.org/TR/xmlschema-2/#rf-whiteSpace, §4.3.6: 'whiteSpace is applicable to all atomic and list datatypes ... For all atomic datatypes other than string (and types derived by restriction from it) the value of whiteSpace is collapse'), so ' 3 ' is the integer 3 (reading 7; mapping.ts Typed_attribute_value over expression-types.ts BaseTypePattern)",
   },
   "Typed value": {
     rule: "typed-copy",
     source:
-      "https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Value (§7.46, Value: 'The base-type is defined by the 'base-type' attribute of the declaration except in the case of variables with record cardinality') and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.13, BaseTypeEnum, each base type's value set): a qti-value's text is a lexical form of its base type, outer whitespace formatting but for string (reading 7): boolean xs:boolean's true, false, 1 or 0 (reading 34: §8.14, 'the set of boolean values is the same as the set of values defined by the boolean primitiveType'), integer xs:integer unbounded (reading 45), float xs:double (reading 56) and duration xs:double (§8.13: 'Durations are represented using the 'xsd:double' datatype'), identifier IdentifierDType, uri xs:anyURI (reading 71), point two integers, pair and directedPair two identifiers; string and file any text",
+      "https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Value (§7.46, Value: 'The base-type is defined by the 'base-type' attribute of the declaration except in the case of variables with record cardinality') and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.14, BaseTypeEnum, each base type's value set): a qti-value's text is a lexical form of its base type, outer whitespace formatting but for string (reading 7): boolean xs:boolean's true, false, 1 or 0 (reading 34: §8.14, 'the set of boolean values is the same as the set of values defined by the boolean primitiveType'), integer xs:integer unbounded (reading 45), float xs:double (reading 56) and duration xs:double (§8.13: 'Durations are represented using the 'xsd:double' datatype'), identifier IdentifierDType, uri xs:anyURI (reading 71), point two integers, pair and directedPair two identifiers; string and file any text",
   },
   "Usage typed value": {
     rule: "typed-copy",
     source:
-      "reading 105: https://www.imsglobal.org/sites/default/files/spec/qti/v3/ud-bind/index.html (QTI 3.0 Usage Data binding §2.6.5, Value: 'A class that can represent a single value of any baseType'; §2.7.1, BaseTypeEnum) and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.13, BaseTypeEnum, each base type's value set): a ud:value that forms part of a record (it writes a fieldIdentifier) and writes baseType holds a lexical form of that base type, read as a qti-value's text is (readings 7, 34, 45 and 71), and any other ud:value, outside a record or writing no baseType, is xs:normalizedString text, accepted untyped (metadata.ts UsageValueBaseType over expression-types.ts BaseTypePattern)",
+      "reading 105: https://www.imsglobal.org/sites/default/files/spec/qti/v3/ud-bind/index.html (QTI 3.0 Usage Data binding §2.6.5, Value: 'A class that can represent a single value of any baseType'; §2.7.1, BaseTypeEnum) and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.14, BaseTypeEnum, each base type's value set): a ud:value that forms part of a record (it writes a fieldIdentifier) and writes baseType holds a lexical form of that base type, read as a qti-value's text is (readings 7, 34, 45 and 71), and any other ud:value, outside a record or writing no baseType, is xs:normalizedString text, accepted untyped (metadata.ts UsageValueBaseType over expression-types.ts BaseTypePattern)",
   },
   "Value cardinality": {
     rule: "value-cardinality",
     source:
-      "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_CardinalityEnum (§8.16, CardinalityEnum: single 'a single value'; record 'a set of independent values each identified by its own identifier and having its own base-type') and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Value (§7.46.1, §7.46.2: field-identifier and base-type are 'only used for' a value that forms part of a record): a single variable's default or correct value holds one qti-value, and every value of a record's default or correct value is a field, with its field-identifier and base-type both (§8.16, record: 'a set of independent values each identified by its own identifier and having its own base-type'); a value of any other variable may write either attribute, which names and types nothing there (§7.46: 'The base-type is defined by the 'base-type' attribute of the declaration except in the case of variables with record cardinality'), so none is refused for it (overlay-queries/declaration.ts RecordSetValue)",
+      "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_CardinalityEnum (§8.17, CardinalityEnum: single 'a single value'; record 'a set of independent values each identified by its own identifier and having its own base-type') and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Value (§7.46.1, §7.46.2: field-identifier and base-type are 'only used for' a value that forms part of a record): a single variable's default or correct value holds one qti-value, and every value of a record's default or correct value is a field, with its field-identifier and base-type both (§8.16, record: 'a set of independent values each identified by its own identifier and having its own base-type'); a value of any other variable may write either attribute, which names and types nothing there (§7.46: 'The base-type is defined by the 'base-type' attribute of the declaration except in the case of variables with record cardinality'), so none is refused for it (overlay-queries/declaration.ts RecordSetValue)",
   },
   "Variable declared": {
     rule: "P8",

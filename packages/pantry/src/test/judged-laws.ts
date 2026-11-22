@@ -7,26 +7,25 @@
  * It reads grizzle's values, so the law oracle reaches it from none of its modules: the oracle is a
  * second implementation, and reads no value of grizzle's (`src/grammar/purity.test.ts`).
  */
-import { Option } from "effect";
-import { containmentsIn, statedAs } from "#pantry/test/host-judge.ts";
+import { Array as Arr, Option } from "effect";
+import { containmentsIn } from "#pantry/test/host-judge.ts";
+import type { Law } from "@bjornpagen/grizzle";
 import type { Containment } from "#pantry/test/host-judge.ts";
 import type { Qti } from "#pantry/qti/schema.ts";
-import { installedNameOf, statementLawsOf } from "#pantry/test/law-namer.ts";
+import { installedNameOf, schemaLawsOf, statementLawsOf } from "#pantry/test/law-namer.ts";
 
 /**
  * Read every containment the schema states from one relation (`containmentsIn` of
  * `#pantry/test/host-judge.ts`), so a test can judge rows by the schema's own statements, their
  * selections included. Each law is its statement's own, named as the host judge's `judgedLaws`
- * names it (its `statedAs`), so `src/import/refusal.ts`'s `lawNameOf` names it.
+ * names it, so `src/import/refusal.ts`'s `lawNameOf` names it.
  *
  * @param schema - The schema, `Qti`.
  * @param from - The source relation.
  * @returns The containments, in statement order.
  */
 export const containmentsOf = (schema: typeof Qti, from: string): readonly Containment[] =>
-  statementLawsOf(schema).flatMap(({ laws, statement }) =>
-    containmentsIn(statement, from).map((containment) => statedAs(containment, laws)),
-  );
+  statementLawsOf(schema).flatMap(({ laws, statement }) => containmentsIn(statement, from, laws));
 
 /**
  * The name PostgreSQL holds a check under, which a direct SQL writer's refusal by it names
@@ -47,7 +46,14 @@ export const containmentsOf = (schema: typeof Qti, from: string): readonly Conta
  */
 export const checkConstraintOf = (schema: typeof Qti, relation: string, name: string): string =>
   Option.getOrThrowWith(
-    installedNameOf(schema, { kind: "check", name, relation }),
+    Option.flatMap(
+      Arr.findFirst(
+        schemaLawsOf(schema),
+        (law): law is Extract<Law, { readonly kind: "check" }> =>
+          law.kind === "check" && law.relation === relation && law.name === name,
+      ),
+      (law) => installedNameOf(schema, law),
+    ),
     () =>
       new Error(
         `The schema states no check ${name} on ${relation}, so the installation holds no CHECK for it. Name a check the schema declares on that relation.`,

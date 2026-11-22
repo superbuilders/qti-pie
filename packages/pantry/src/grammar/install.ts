@@ -93,12 +93,29 @@ const nonEmpty = <H extends string>(name: string, handles: readonly H[]): readon
 
 /**
  * Any text, line ends included, as XML Schema's `xs:string` reads one: the type of a closed
- * relation's open text payloads, of every text no law reads, and the language every byte-bounded
- * text cuts (`#pantry/qti/limits.ts`). Its pattern is a tautology, so grizzle installs a field of
- * it as plain text, with no domain and no pattern law (`physical/ddl/domains.ts` `structuralRegex`
- * of the vendored engine). It is declared once, here, so grizzle analyzes the pattern once.
+ * relation's open text payloads and of every text no law reads. Its pattern is a tautology, so
+ * grizzle installs a field of it as plain text, with no domain and no pattern law
+ * (`physical/ddl/domains.ts` `structuralRegex` of the vendored engine). It is declared once, here,
+ * so grizzle analyzes the pattern once.
  */
 export const anyText = str.regex("^.*$", "su");
+
+/**
+ * A run of XML 1.0's `Char`, tabs, line feeds and carriage returns included.
+ *
+ * @see {@link https://www.w3.org/TR/xml/#NT-Char | XML 1.0, Char}
+ */
+const charsPattern = "^[\\t\\n\\r\\u{20}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-\\u{10FFFF}]*$";
+
+/**
+ * The text type of a node's characters, and of an attribute's lexical form, the record (U1,
+ * `#pantry/qti/attributes.ts`): the value as attribute-value normalization leaves it, each
+ * unexpanded entity reference kept as `&name;`, so any run of XML `Char`s; and the language every
+ * byte-bounded text of a document cuts (`#pantry/qti/limits.ts`), each a run of a document's
+ * characters. One declaration, so grizzle analyzes the pattern once. Exported for
+ * `src/import/refusal.ts`, which names its pattern law.
+ */
+export const Chars = str.regex(charsPattern);
 
 // Handle lists (C8): membership is `Logic.in`, so these sets are lists, never installed.
 

@@ -52,7 +52,7 @@ import { fallbackKind } from "#pantry/grammar/include.ts";
 import { includeParentKinds } from "#pantry/grammar/install.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, identifierBytes, keyedIdentifier, PackageName } from "#pantry/qti/limits.ts";
 import { itemSessionVariables } from "#pantry/qti/declarations.ts";
 import { attributeValues, NamedDeclaration, QtiViews } from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
@@ -90,6 +90,7 @@ import {
   timeLimitsKind,
   weightKind,
 } from "#pantry/vocab/terms/tests.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * The `identifier` of each test part, section, item ref and stimulus ref, by its element's place,
@@ -164,8 +165,29 @@ const testRootRows = query(QtiBase).rule((r) => {
   return r
     .match(testRootIdentifiers, { package: pkg, path, start, value: test })
     .match(Node, { kind: testKind, package: pkg, parentKind: "document", path, start })
-    .find({ package: pkg, path, start, test });
+    .find({
+      package: pkg,
+      path,
+      start,
+      test: keyedIdentifier(test),
+    });
 });
+
+/**
+ * Each test's `identifier` as written, by its root's place: the text {@link testRootRows} keys as a
+ * `QtiIdentifier` under grizzle's byte guard, which "Key text bound" holds within
+ * `identifierBytes`.
+ */
+const TestIdentifierText = derived(
+  "TestIdentifierText",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start, value } = v(testRootIdentifiers, "root");
+
+    return r
+      .match(testRootIdentifiers, { package: pkg, path, start, value })
+      .find({ package: pkg, path, start, text: value });
+  }),
+);
 
 /**
  * {@link testRootRows} as a relation of `Qti`.
@@ -2174,12 +2196,12 @@ const sectionFilters = attributeValues("section-identifier", sectionFilterKinds)
  */
 const placedFilterRows = query(QtiBase).rule((r) => {
   const { assembly, package: pkg, path } = v(testInstances, "instance");
-  const { start, value } = v(sectionFilters, "filter");
+  const { start, value, valueDigest } = v(sectionFilters, "filter");
 
   return r
     .match(testInstances, { assembly, package: pkg, path })
-    .match(sectionFilters, { package: pkg, path, start, value })
-    .find({ assembly, package: pkg, path, start, value });
+    .match(sectionFilters, { package: pkg, path, start, value, valueDigest })
+    .find({ assembly, package: pkg, path, start, value, valueDigest });
 });
 
 /**
@@ -2196,12 +2218,19 @@ const PlacedFilter = derived("PlacedFilter", placedFilterRows);
 const FilteredSection = derived(
   "FilteredSection",
   query(QtiBase).rule((r) => {
-    const { assembly, package: pkg, path, start, value } = v(placedFilterRows, "filter");
+    const {
+      assembly,
+      package: pkg,
+      path,
+      start,
+      value,
+      valueDigest,
+    } = v(placedFilterRows, "filter");
     const { instance, path: sectionPath } = v(testInstances, "placement");
     const { kind, start: section } = v(structureNodeRows, "section");
 
     return r
-      .match(placedFilterRows, { assembly, package: pkg, path, start, value })
+      .match(placedFilterRows, { assembly, package: pkg, path, start, value, valueDigest })
       .match(testInstances, { assembly, instance, package: pkg, path: sectionPath })
       .match(structureNodeRows, {
         identifier: value,
@@ -2302,12 +2331,12 @@ const testVariablesBases = attributeValues("base-type", ["qti-test-variables"]);
  * place, with the base type's value as written (`BaseTypeEnum`, an `xs:string` enumeration).
  */
 const weightedBaseTypeRows = query(QtiBase).rule((r) => {
-  const { package: pkg, path, start, value } = v(testVariablesBases, "base");
+  const { package: pkg, path, start, value, valueDigest } = v(testVariablesBases, "base");
 
   return r
-    .match(testVariablesBases, { package: pkg, path, start, value })
+    .match(testVariablesBases, { package: pkg, path, start, value, valueDigest })
     .match(Attribute, { name: "weight-identifier", package: pkg, path, start })
-    .find({ package: pkg, path, start, value });
+    .find({ package: pkg, path, start, value, valueDigest });
 });
 
 /**
@@ -2736,12 +2765,12 @@ export const UnplacedInclude = derived(
 const PointerParse = derived(
   "PointerParse",
   query(QtiBase).rule((r) => {
-    const { package: pkg, path, start, value } = v(parses, "parse");
+    const { package: pkg, path, start, value, valueDigest } = v(parses, "parse");
 
     return r
-      .match(parses, { package: pkg, path, start, value })
+      .match(parses, { package: pkg, path, start, value, valueDigest })
       .match(xpointers, { package: pkg, path, start })
-      .find({ package: pkg, path, start, value });
+      .find({ package: pkg, path, start, value, valueDigest });
   }),
 );
 
@@ -2769,46 +2798,55 @@ const PointerParse = derived(
  *   names an item, and its `template-identifier` a template declaration of that item.
  */
 export const testOverlayLawsByName = {
-  "Branch forward": [
+  "Branch forward": declared("Branch forward", [
     contained(
       on(TargetedBranchRule, "package", "assembly", "instance", "start"),
       on(ForwardBranchRule, "package", "assembly", "instance", "start"),
     ),
-  ],
-  "Branch target": [
+  ]),
+  "Branch target": declared("Branch target", [
     contained(
       on(BranchResolution, "package", "assembly", "instance", "start"),
       on(ResolvedBranchRule, "package", "assembly", "instance", "start"),
     ),
-  ],
-  "E1 derived": [check("E1_derived", StructureNode, (n) => n.in(n.kind, namedKinds))],
-  "Include parse": [check("Include_parse", PointerParse, (p) => p.ne(p.value, "text"))],
-  "Include target": [
+  ]),
+  "E1 derived": declared("E1 derived", [
+    check("E1_derived", StructureNode, (n) => n.in(n.kind, namedKinds)),
+  ]),
+  "Include parse": declared("Include parse", [
+    check("Include_parse", PointerParse, (p) => p.ne(p.value, "text")),
+  ]),
+  "Include target": declared("Include target", [
     contained(
       on(PlacedIncludePath, "package", "path", "start"),
       on(SiteTarget, "package", "path", "start"),
     ),
-  ],
-  "Section identifier target": [
+  ]),
+  "Key text bound": declared("Key text bound", [
+    check("Key_text_bound", TestIdentifierText, (t) =>
+      t.le(Text.octetLength(t.text), identifierBytes),
+    ),
+  ]),
+  "Section identifier target": declared("Section identifier target", [
     contained(
       on(PlacedFilter, "package", "assembly", "path", "start"),
       on(FilteredSection, "package", "assembly", "path", "start"),
     ),
     key(on(FilteredSection, "package", "assembly", "path", "start")),
-  ],
-  "Selection bound": [
+  ]),
+  "Selection bound": declared("Selection bound", [
     contained(
       on(SelectionWithoutReplacement, "package", "path", "section"),
       on(BoundedSelection, "package", "path", "section"),
     ),
-  ],
-  "Selection required": [
+  ]),
+  "Selection required": declared("Selection required", [
     contained(
       on(RequiredParts, "package", "path", "section"),
       on(RequirementMet, "package", "path", "section"),
     ),
-  ],
-  "Template default target": [
+  ]),
+  "Template default target": declared("Template default target", [
     contained(
       on(PackagedTemplateDefault, "package", "path", "ref"),
       on(ItemRefDocument, "package", "path", "start"),
@@ -2817,12 +2855,12 @@ export const testOverlayLawsByName = {
       on(ItemTemplateDefault, "package", "item", "template"),
       on(templateNames, "package", "path", "identifier"),
     ),
-  ],
-  "Test name key": [
+  ]),
+  "Test name key": declared("Test name key", [
     key(on(AnchoredName, "package", "assembly", "anchor", "identifier")),
     key(on(AssembledName, "package", "assembly", "identifier")),
-  ],
-  "Test overlay": [
+  ]),
+  "Test overlay": declared("Test overlay", [
     contained(on(ReadInclude, "package", "path", "start"), on(Site, "package", "path", "start")),
     contained(
       on(includeSites, "package", "path", "start"),
@@ -2840,14 +2878,14 @@ export const testOverlayLawsByName = {
       on(StimulusRef, "package", "path", "start", "identifier"),
       on(TestIdentifier, "package", "path", "start", "value"),
     ),
-  ],
-  "Variable mapping source": [
+  ]),
+  "Variable mapping source": declared("Variable mapping source", [
     contained(
       on(ItemMapping, "package", "item", "source"),
       on(outcomeNames, "package", "path", "identifier"),
     ),
-  ],
-  "Variable mapping target": [
+  ]),
+  "Variable mapping target": declared("Variable mapping target", [
     key(on(VariableMapping, "package", "path", "ref", "target")),
     check("Variable_mapping_target", VariableMapping, (m) =>
       m.not(m.in(m.target, itemSessionVariables)),
@@ -2856,15 +2894,20 @@ export const testOverlayLawsByName = {
       on(ItemMapping, "package", "path", "start"),
       on(FreeMappingTarget, "package", "path", "start"),
     ),
-  ],
-  "Weight key": [key(on(WeightName, "package", "path", "ref", "identifier"))],
-  "Weighted base": [check("Weighted_base", WeightedBaseType, (w) => w.eq(w.value, "float"))],
+  ]),
+  "Weight key": declared("Weight key", [
+    key(on(WeightName, "package", "path", "ref", "identifier")),
+  ]),
+  "Weighted base": declared("Weighted base", [
+    check("Weighted_base", WeightedBaseType, (w) => w.eq(w.value, "float")),
+  ]),
 } as const;
 
 /**
  * The queries of this module, each carrying its own name.
  */
 export const testOverlayRelations = [
+  TestIdentifierText,
   DeliverableTest,
   AnchoredName,
   AssembledName,

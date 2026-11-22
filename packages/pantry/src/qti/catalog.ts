@@ -41,18 +41,18 @@
  * No row here copies a card's `support`, an entry's `default` or a reference's token: each is its
  * attribute's `value` or its `Idref` piece, selected by the queries of
  * `#pantry/qti/overlay-queries/catalog.ts` (C18). Every copied text that takes part in a cross-row
- * equality is of any length, a key, a containment's target and a lookup holding it by its image
- * (`#pantry/qti/limits.ts`). Every check is named by its oracle law (`#pantry/test/oracle.ts`
- * `LawName`) with spaces written as underscores; the overlays' agreement with what the tree holds
- * is "E1 derived" (rule `derived`).
+ * equality is of its type's bound in a key (`#pantry/qti/limits.ts`), so a key, a containment's
+ * target and a lookup hold it as itself. Every check is named by its oracle law
+ * (`#pantry/test/oracle.ts` `LawName`) with spaces written as underscores; the overlays' agreement
+ * with what the tree holds is "E1 derived" (rule `derived`).
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Card | QTI 3.0 information model, §5.26 Card}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_CardEntry | QTI 3.0 information model, §5.27 CardEntry}
  */
 import { check, contained, key, natural, on, relation } from "@bjornpagen/grizzle";
 import { attributesOf } from "#pantry/qti/attributes.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
-import { anyText } from "#pantry/grammar/install.ts";
+import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * One `qti-catalog` that carries an ID, keyed by its element: its `id`, the ID's value as `IdValue`
@@ -62,7 +62,7 @@ import { anyText } from "#pantry/grammar/install.ts";
 export const CatalogId = relation(
   "CatalogId",
   {
-    id: anyText,
+    id: XmlId,
     owner: natural,
     package: PackageName,
     path: EntryPath,
@@ -80,7 +80,7 @@ export const AssembledCatalog = relation(
   "AssembledCatalog",
   {
     assembly: EntryPath,
-    id: anyText,
+    id: XmlId,
     owner: natural,
     package: PackageName,
     path: EntryPath,
@@ -113,8 +113,8 @@ const catalogIdAttributes = attributesOf("id", ["qti-catalog"]);
  *   {@link AssembledCatalog} a binding of the query `AssembledId` owned by a catalog.
  */
 export const catalogLawsByName = {
-  "DocumentId key": [key(on(CatalogId, "package", "path", "id"))],
-  "E1 derived": [
+  "DocumentId key": declared("DocumentId key", [key(on(CatalogId, "package", "path", "id"))]),
+  "E1 derived": declared("E1 derived", [
     contained(
       on(catalogIdAttributes, "package", "path", "start"),
       on(CatalogId, "package", "path", "start"),
@@ -128,7 +128,7 @@ export const catalogLawsByName = {
       on(AssembledCatalog, "package", "path", "owner"),
       on(CatalogId, "package", "path", "start"),
     ),
-  ],
+  ]),
 } as const;
 
 /**

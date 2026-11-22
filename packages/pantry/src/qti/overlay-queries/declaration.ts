@@ -30,24 +30,27 @@ import { testKind } from "#pantry/vocab/terms/tests.ts";
 import { placedTableReaders } from "#pantry/qti/overlay-queries/reference.ts";
 import { lookupEntryKinds, lookupTableKinds, LookupValue, MapKey } from "#pantry/qti/mapping.ts";
 import {
-  attributeValues,
   attributeCodes,
+  attributeValues,
   DeclarationBaseType,
   DeclarationCardinality,
   DeclarationName,
+  DeclaredIdentifierText,
   MasteryValue,
   NamedDeclaration,
   NormalMaximum,
   NormalMinimum,
   QtiViews,
 } from "#pantry/qti/names.ts";
+import { identifierBytes } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * Each value's `field-identifier`, by its `qti-value` element's place, its `value` the field's name
  * collapsed (`IdentifierDType`'s class, C18): one field of a record's value, "a set of independent
  * values each identified by its own identifier and having its own base-type" (information model
- * §8.16, CardinalityEnum, `record`), where its set is a record's ("Value cardinality"); on any
+ * §8.17, CardinalityEnum, `record`), where its set is a record's ("Value cardinality"); on any
  * other value it names nothing (§7.46.1). No row copies it. A value that is no NCName names no
  * field (spec reading 152), and no rule reads one: AL1's `value_domain` refuses the write that
  * holds it at its own insert, before any rule over a query is judged at COMMIT, so the selection
@@ -176,7 +179,7 @@ const SetFieldName = derived(
  * set of a declaration whose {@link DeclarationCardinality} is `record`. "Value cardinality" holds
  * each to its field, a `field-identifier` and a `base-type` both, since a record is "a set of
  * independent values each identified by its own identifier and having its own base-type"
- * (information model §8.16, CardinalityEnum).
+ * (information model §8.17, CardinalityEnum).
  */
 const RecordSetValue = derived(
   "RecordSetValue",
@@ -568,41 +571,53 @@ const RootedDeclaration = derived(
  *   §7.46.2: each "is only used for" a value that forms part of a record).
  */
 export const declarationOverlayLawsByName = {
-  "AreaMapping base type": [
+  "AreaMapping base type": declared("AreaMapping base type", [
     check("AreaMapping_base_type", AreaMappingCardinality, (a) => a.ne(a.cardinality, "record")),
     check("AreaMapping_base_type", AreaMappingBaseType, (a) => a.eq(a.baseType, "point")),
-  ],
-  "Declaration base type": [
+  ]),
+  "Declaration base type": declared("Declaration base type", [
     check("Declaration_base_type", BaseTypeCardinality, (c) => c.ne(c.cardinality, "record")),
     contained(
       on(nonRecordDeclarations, "package", "path", "start"),
       on(baseTypeAttributes, "package", "path", "start"),
     ),
-  ],
-  "Declaration key": [key(on(NamedDeclaration, "package", "path", "identifier"))],
-  "Declaration not reserved": [
+  ]),
+  "Declaration key": declared("Declaration key", [
+    key(on(NamedDeclaration, "package", "path", "identifier")),
+  ]),
+  "Declaration not reserved": declared("Declaration not reserved", [
     check("Declaration_not_reserved", RootedDeclaration, (d) =>
       d.or(
         d.and(d.eq(d.rootKind, testKind), d.not(d.in(d.identifier, testSessionVariables))),
         d.and(d.ne(d.rootKind, testKind), d.not(d.in(d.identifier, itemSessionVariables))),
       ),
     ),
-  ],
-  "Lookup table cardinality": [
+  ]),
+  "Key text bound": declared("Key text bound", [
+    check("Key_text_bound", DeclaredIdentifierText, (t) =>
+      t.le(Text.octetLength(t.text), identifierBytes),
+    ),
+  ]),
+  "Lookup table cardinality": declared("Lookup table cardinality", [
     check("Lookup_table_cardinality", LookupTableCardinality, (t) => t.eq(t.cardinality, "single")),
-  ],
-  "Lookup type": [readsItsTable("qti-lookup-outcome-value")],
-  MappableBaseType: [
+  ]),
+  "Lookup type": declared("Lookup type", [readsItsTable("qti-lookup-outcome-value")]),
+  MappableBaseType: declared("MappableBaseType", [
     check("MappableBaseType", MappingCardinality, (m) => m.ne(m.cardinality, "record")),
     contained(on(MappingBaseType, "baseType"), on(MappableBaseType, "baseType")),
-  ],
-  "Mapped response": [readsItsTable("qti-map-response"), readsItsTable("qti-map-response-point")],
-  "Mastery range": [
+  ]),
+  "Mapped response": declared("Mapped response", [
+    readsItsTable("qti-map-response"),
+    readsItsTable("qti-map-response-point"),
+  ]),
+  "Mastery range": declared("Mastery range", [
     check("Mastery_range", MasteryFloor, floorCheck),
     check("Mastery_range", MasteryCeiling, ceilingCheck),
-  ],
-  "Record field key": [key(on(SetFieldName, "package", "path", "set", "identifier"))],
-  "Reserved type": [
+  ]),
+  "Record field key": declared("Record field key", [
+    key(on(SetFieldName, "package", "path", "set", "identifier")),
+  ]),
+  "Reserved type": declared("Reserved type", [
     check("Reserved_type", NamedDeclaration, (d) =>
       d.or(
         d.ne(d.identifier, contextVariable.identifier),
@@ -615,8 +630,8 @@ export const declarationOverlayLawsByName = {
         d.eq(d.cardinality, contextVariable.cardinality),
       ),
     ),
-  ],
-  "Typed attribute value": [
+  ]),
+  "Typed attribute value": declared("Typed attribute value", [
     check("Typed_attribute_value", MapKeyType, (k) =>
       k.or(
         k.and(
@@ -641,8 +656,8 @@ export const declarationOverlayLawsByName = {
         ),
       ),
     ),
-  ],
-  "Typed value": [
+  ]),
+  "Typed value": declared("Typed value", [
     check("Typed_value", TypedValueText, (t) =>
       t.or(
         t.eq(t.cardinality, "record"),
@@ -657,8 +672,8 @@ export const declarationOverlayLawsByName = {
         Text.matches(f.text, BaseTypePattern.at("pattern", f.baseType)),
       ),
     ),
-  ],
-  "Value cardinality": [
+  ]),
+  "Value cardinality": declared("Value cardinality", [
     check("Value_cardinality", SetCardinality, (c) =>
       c.or(c.ne(c.cardinality, "single"), c.eq(c.elementChildren, 1n)),
     ),
@@ -670,7 +685,7 @@ export const declarationOverlayLawsByName = {
       on(RecordSetValue, "package", "path", "start"),
       on(fieldBaseTypes, "package", "path", "start"),
     ),
-  ],
+  ]),
 } as const;
 
 /**

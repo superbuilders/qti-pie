@@ -305,10 +305,9 @@ const attributesOf = (node: NodeInput) =>
  * Build an element's attributes of open names (`data-*`, foreign, no-namespace and own-namespace
  * attributes), a set keyed by expanded name, delivered in no order, each with its class and its
  * entity references by offset, correlated to its key `(package, path, start, uri, local)` as
- * {@link attributesOf}'s are. XML gives an element's attributes no order, and a namespace name and
- * a local name are of any length, so no index orders by them: the model orders them on the host
- * (`#pantry/model/assemble.ts`), and the key holds each by its image where it would outgrow an
- * entry.
+ * {@link attributesOf}'s are. XML gives an element's attributes no order, so no index orders by a
+ * namespace name or a local name: the model orders them on the host (`#pantry/model/assemble.ts`),
+ * and the key holds each as itself, within its type's bound (`#pantry/qti/limits.ts`).
  *
  * @param node - The element's key.
  * @returns The open attributes, with `entities` attached.
@@ -365,9 +364,9 @@ const openAttributesOf = (node: NodeInput) =>
 
 /**
  * Build an element's namespace declarations, a set keyed by prefix, delivered in no order.
- * Namespaces in XML gives an element's declarations no order, and a prefix is of any length, so no
- * index orders by one: the model orders them on the host (`#pantry/model/assemble.ts`), and the
- * key holds a prefix by its image where it would outgrow an entry.
+ * Namespaces in XML gives an element's declarations no order, so no index orders by a prefix: the
+ * model orders them on the host (`#pantry/model/assemble.ts`), and the key holds a prefix as
+ * itself, within its type's bound (`#pantry/qti/limits.ts`).
  *
  * @param node - The element's key.
  * @returns The declarations' prefixes and URIs.
@@ -476,11 +475,11 @@ export const documentScanOf = (document: DocumentInput) =>
 
 /**
  * A package's entries: every entry's path and kind, a set keyed by path, delivered in no order (IMS
- * Content Packaging gives a package's entries none, so no index orders by a path and a path of any
- * length is held by its image; the export orders them on the host), each media entry with its
- * `Media` row's digest, the name its bytes have in the content-addressed store, attached exactly
- * where its kind is `media` ("Entry kind", grizzle's `arm`). A `document` entry is the `Document`
- * at its package and path, the parameter of its {@link documentScan}.
+ * Content Packaging gives a package's entries none, so no index orders by a path, which a key holds
+ * as itself, within `entryPathBytes`; the export orders them on the host), each media entry with
+ * its `Media` row's digest, the name its bytes have in the content-addressed store, attached
+ * exactly where its kind is `media` ("Entry kind", grizzle's `arm`). A `document` entry is the
+ * `Document` at its package and path, the parameter of its {@link documentScan}.
  *
  * `package` is in the head, fixed by its parameter, so the attachment correlates to it, as
  * {@link documentScan}'s `package` is.

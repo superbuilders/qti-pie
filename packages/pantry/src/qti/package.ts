@@ -65,6 +65,7 @@ import {
   closed,
   closedId,
   contained,
+  Crypto,
   drawn,
   generated,
   mirrors,
@@ -72,6 +73,7 @@ import {
   on,
   relation,
   select,
+  sha256,
   str,
   Text,
 } from "@bjornpagen/grizzle";
@@ -91,9 +93,16 @@ import { Attribute, attributesOf, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
 import { EntryPath, matchedTextBytes, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { Space, tokenFields, tokenList } from "#pantry/qti/token-list.ts";
+import {
+  piecesDigests,
+  Space,
+  tokenFields,
+  tokenList,
+  tokenTextDigest,
+} from "#pantry/qti/token-list.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { includeKind } from "#pantry/vocab/terms/tests.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * A `#` anywhere in a text: an `xi:include`'s parameters that hold a fragment identifier.
@@ -111,12 +120,6 @@ const fragmentMark = Text.pattern("#");
  * names.
  */
 export const Package = relation("Package", { name: PackageName }, ["name"]);
-
-/**
- * A SHA-256 digest as text: 64 lowercase hex digits, the form a content-addressed store names a
- * file's bytes by (the media CDN's `sha256/<digest>`).
- */
-export const Sha256Hex = str.regex("^[0-9a-f]{64}$");
 
 /**
  * What an entry is: a `document`, which the import shreds and the database holds as its tree alone
@@ -140,17 +143,17 @@ export const Entry = relation(
 );
 
 /**
- * A media entry, keyed by its entry: `digest`, the SHA-256 of its bytes ({@link Sha256Hex}), which
- * the host that read the bytes states, and under which it put them in the content-addressed store
- * before it wrote the row (`#pantry/package/media.ts` `MediaStore`; the media CDN on the QTI
- * install). PostgreSQL holds no bytes to compute it from, and the store is content-addressed, so
- * the digest names exactly the bytes a player is served. A player fetches the file by it.
+ * A media entry, keyed by its entry: `digest`, the SHA-256 of its bytes, its 32 octets (grizzle's
+ * `sha256`), which the host that read the bytes states, and under which it put them in the
+ * content-addressed store before it wrote the row (`#pantry/package/media.ts` `MediaStore`; the
+ * media CDN on the QTI install). PostgreSQL holds no bytes to compute it from, and the store is
+ * content-addressed, so the digest names exactly the bytes a player is served. A player fetches the
+ * file by it.
  */
-export const Media = relation(
-  "Media",
-  { digest: Sha256Hex, package: PackageName, path: EntryPath },
-  ["package", "path"],
-);
+export const Media = relation("Media", { digest: sha256, package: PackageName, path: EntryPath }, [
+  "package",
+  "path",
+]);
 
 /**
  * The pattern of an href's `params` piece (reading 102): empty, or a query or a fragment, from the
@@ -175,9 +178,9 @@ export const HrefParams = str.regex(hrefParamsPattern, "su");
 
 /**
  * An external href, which names no package entry and is never resolved: a URI with a scheme
- * (reading 35's absolute href), or a reference that starts with `/`, a network path or an absolute
- * path, which resolves against the location a package is read from rather than within it (reading
- * 102). The pattern reads the start of the href alone.
+ * (reading 35's absolute href), an inline `data:` URI among them, or a reference that starts with
+ * `/`, a network path or an absolute path, which resolves against the location a package is read
+ * from rather than within it (reading 102). The pattern reads the start of the href alone.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-4.2 | RFC 3986, §4.2}
  */
@@ -227,10 +230,12 @@ export const SrcsetDescriptor = str.regex("^(?:[\\t\\n\\r ].*)?$", "su");
  * How an href resolves (readings 102 and 103), the outcome the importer writes on every href's row:
  *
  * - `entry`: a path in the package, which names the entry the row holds as its `path`;
- * - `external`: a location outside the package, admitted and never resolved: a URI with a scheme
- *   (reading 35), a network or absolute path (a leading `/`, reading 102), a path whose `..`
- *   segments climb above the package root, and any relative href in the scope of an `xml:base` that
- *   is one of those;
+ * - `external`: no reference into the package, whatever its scheme, admitted as written and never
+ *   resolved: a URI with a scheme (reading 35), an inline `data:` URI (RFC 2397) among them, a
+ *   network or absolute path (a leading `/`, reading 102), a path whose `..` segments climb above
+ *   the package root, and any relative href in the scope of an `xml:base` that is one of those. It
+ *   names no entry, so no file of the package is served for it, and nothing here reads it as a
+ *   remote location: an inline `data:` URI is its own content;
  * - `document`: its own document, admitted and never resolved: a path that is empty, as the empty
  *   reference, a query alone and a fragment alone have (RFC 3986, §4.4, a same-document reference,
  *   whose dereference "should not result in a new retrieval action");
@@ -256,23 +261,42 @@ export const resolvedPathPattern = Text.pattern(
 
 /**
  * A resource's `href`'s resolution, keyed by the resource's node, a row exactly where the resource
- * writes an `href` (an optional attribute is a row of its own): its {@link HrefScope}; and
- * `target`, what it is compared by: the entry path it resolves to in the package, and otherwise
- * its path as written, its launch parameters aside (CP 1.2 §6.6.2, reading 102), which is how an
- * external href is compared with its resource's files. The `href` as written is its `Attribute`
- * row's alone, which no row copies (C18). Beside its resource's type code (`resourceTypes` of
- * `#pantry/qti/queries.ts`) it is a typed href, the query `TypedHref`.
+ * writes an `href` (an optional attribute is a row of its own): its {@link HrefScope}, the header of
+ * the arm its scope names ("Manifest overlay", grizzle's `alternatives`): {@link ResourceHrefPath}
+ * for an href that resolves in the package, {@link ResourceHrefOutside} for one outside it; a
+ * same-document href is its scope alone, and an unresolved one is refused ("Href form"). The `href`
+ * as written is its `Attribute` row's alone, which no row copies (C18). Beside its resource's type
+ * code (`resourceTypes` of `#pantry/qti/queries.ts`) it is a typed href, the query `TypedHref`.
  */
 export const ResourceHref = relation(
   "ResourceHref",
-  {
-    package: PackageName,
-    path: EntryPath,
-    scope: closedId(HrefScope),
-    start: natural,
-    target: anyText,
-  },
+  { package: PackageName, path: EntryPath, scope: closedId(HrefScope), start: natural },
   ["package", "path", "start"],
+);
+
+/**
+ * A resource's `href` that resolves in the package, keyed by the resource's node: `target`, the
+ * entry path it resolves to (RFC 3986, §5.2; readings 102 and 103), what it is compared by with its
+ * resource's files and with an item ref's target, and the document a document-typed resource names.
+ */
+export const ResourceHrefPath = relation(
+  "ResourceHrefPath",
+  { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
+  ["package", "path", "start"],
+);
+
+/**
+ * A resource's `href` outside the package, keyed by the resource's node: `target`, its path as
+ * written, its launch parameters aside (CP 1.2 §6.6.2, reading 102), of no bound, which is how it
+ * is compared with its resource's files. `targetDigest`, its SHA-256, is what "Href listed" pays
+ * for: its outside comparison, of a text no key bound fits, finds a file by the digest first and
+ * the text after it.
+ */
+export const ResourceHrefOutside = relation.generated(
+  "ResourceHrefOutside",
+  { package: PackageName, path: EntryPath, start: natural, target: anyText },
+  ["package", "path", "start"],
+  (row) => ({ targetDigest: generated(sha256, Crypto.sha256(row.target)) }),
 );
 
 /**
@@ -306,21 +330,39 @@ export const ResourceDocument = relation.generated(
 
 /**
  * A file's `href`'s resolution, keyed by the `cp:file` node, a row for each `cp:file` that writes
- * an `href`: its {@link HrefScope}, and `target`, what it is compared by as {@link ResourceHref}'s
- * is: the entry path it resolves to in the package, and otherwise its path as written. The `href`
- * as written is its `Attribute` row's alone, which no row copies (C18). Its resource is its node's
- * parent, which "Href listed" reads through `Node`.
+ * an `href`: its {@link HrefScope}, the header of the arm its scope names ("Manifest overlay",
+ * grizzle's `alternatives`), as {@link ResourceHref}'s: {@link FilePath} in the package,
+ * {@link FileOutside} outside it, and a same-document href its scope alone. The `href` as written is
+ * its `Attribute` row's alone, which no row copies (C18). Its resource is its node's parent, which
+ * "Href listed" reads through `Node`.
  */
 export const File = relation(
   "File",
-  {
-    package: PackageName,
-    path: EntryPath,
-    scope: closedId(HrefScope),
-    start: natural,
-    target: anyText,
-  },
+  { package: PackageName, path: EntryPath, scope: closedId(HrefScope), start: natural },
   ["package", "path", "start"],
+);
+
+/**
+ * A file's `href` that resolves in the package, keyed by the `cp:file` node: `target`, the entry
+ * path it resolves to, which names an entry ("File exists") and which every entry the manifest
+ * lists is ("File listed").
+ */
+export const FilePath = relation(
+  "FilePath",
+  { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
+  ["package", "path", "start"],
+);
+
+/**
+ * A file's `href` outside the package, keyed by the `cp:file` node: `target`, its path as written,
+ * its launch parameters aside, of no bound. `targetDigest`, its SHA-256, is what "Href listed" pays
+ * for, as {@link ResourceHrefOutside}'s.
+ */
+export const FileOutside = relation.generated(
+  "FileOutside",
+  { package: PackageName, path: EntryPath, start: natural, target: anyText },
+  ["package", "path", "start"],
+  (row) => ({ targetDigest: generated(sha256, Crypto.sha256(row.target)) }),
 );
 
 /**
@@ -439,12 +481,12 @@ export const TextReferencePath = relation(
  * - **the element's:** `package`, `path` and `start`;
  * - **the host's:** `trail`;
  * - **drawn:** `tokens`, its candidates;
- * - **accumulated:** `tokenText`, the end of its candidates' concatenation, any text, which the
- *   family's axes carry by its image (grizzle's README: a `Monoid.concat` fold's accumulators ride
- *   its axes by their images), so a `srcset` has no byte bound of its own, only each candidate's
- *   URL ({@link SrcsetCandidateUrl}).
+ * - **accumulated:** `tokenText`, the end of its candidates' concatenation, any text;
+ * - **generated:** `tokenTextDigest`, its digest, which the family's last axis carries in its place,
+ *   so a `srcset` has no byte bound of its own, only each candidate's URL
+ *   ({@link SrcsetCandidateUrl}).
  */
-export const Srcset = relation(
+export const Srcset = relation.generated(
   "Srcset",
   {
     package: PackageName,
@@ -455,6 +497,7 @@ export const Srcset = relation(
     trail: SrcsetGap,
   },
   ["package", "path", "start"],
+  (s) => tokenTextDigest(s),
 );
 
 /**
@@ -467,7 +510,9 @@ export const Srcset = relation(
  * its {@link CandidatePath}.
  *
  * - **the host's:** `lead`, `url`, `descriptor` and `scope`;
- * - **generated:** `piece`, `lead ‖ url ‖ descriptor`, the concatenation's step;
+ * - **generated:** `piece`, `lead ‖ url ‖ descriptor`, the concatenation's step, and
+ *   `piecesWasDigest` and `piecesAfterDigest`, its running texts' digests, which the family's axes
+ *   carry in their place;
  * - **the family's group:** `package`, `path` and `start`, its element's;
  * - **drawn:** `at`;
  * - **accumulated:** `piecesWas` and `piecesAfter`, the concatenation before and after it.
@@ -489,6 +534,7 @@ export const SrcsetCandidate = relation.generated(
   ["package", "path", "start", "at"],
   (c) => ({
     piece: generated(anyText, Text.concat(Text.concat(c.lead, c.url), c.descriptor)),
+    ...piecesDigests(c),
   }),
 );
 
@@ -561,12 +607,6 @@ const fileHrefs = manifestHrefs("cp:file");
  * @returns The selection.
  */
 const nodesOf = (kind: "cp:file" | "cp:resource") => select(Node, (n) => n.eq(n.kind, kind));
-
-/**
- * The files the importer resolved in the package: each names an entry (`file-exists`). An external
- * href is left out (reading 35), and so is one that names its own document, the manifest.
- */
-const entryFiles = select(File, (f) => f.eq(f.scope, "entry"));
 
 /**
  * The entries a `cp:file` lists: every one but the manifest. Exported for "File listed"
@@ -722,7 +762,7 @@ export const hrefPaths = select(ReferencePath, (p) => p.eq(p.name, "href"));
  *   query, in `#pantry/qti/overlay-queries/package.ts`.
  */
 export const packageLawsByName = {
-  "E1 derived": [
+  "E1 derived": declared("E1 derived", [
     contained(
       on(ResourceDocument, "package", "path", "rootKind", "documentType"),
       on(Document, "package", "path", "rootKind", "documentType"),
@@ -735,12 +775,8 @@ export const packageLawsByName = {
       ),
       on(ResourceDocument, "package", "path"),
     ),
-    check("E1_derived", ResourceHref, (h) =>
-      h.or(h.ne(h.scope, "entry"), Text.matches(h.target, resolvedPathPattern)),
-    ),
-    check("E1_derived", File, (f) =>
-      f.or(f.ne(f.scope, "entry"), Text.matches(f.target, resolvedPathPattern)),
-    ),
+    check("E1_derived", ResourceHrefPath, (h) => Text.matches(h.target, resolvedPathPattern)),
+    check("E1_derived", FilePath, (f) => Text.matches(f.target, resolvedPathPattern)),
     check("E1_derived", Reference, (r) =>
       r.and(
         Text.matches(r.target, hrefPathPattern),
@@ -769,28 +805,35 @@ export const packageLawsByName = {
       ),
     ),
     check("E1_derived", CandidatePath, (p) => Text.matches(p.target, resolvedPathPattern)),
-  ],
-  "Entry family": [contained(on(Entry, "package"), on(Package, "name"))],
-  "Entry kind": [alternatives(Entry, "kind", EntryKind, { document: Document, media: Media })],
-  "File exists": [
-    contained(on(entryFiles, "package", "target"), on(Entry, "package", "path")),
+  ]),
+  "Entry family": declared("Entry family", [contained(on(Entry, "package"), on(Package, "name"))]),
+  "Entry kind": declared("Entry kind", [
+    alternatives(Entry, "kind", EntryKind, { document: Document, media: Media }),
+  ]),
+  "File exists": declared("File exists", [
+    contained(on(FilePath, "package", "target"), on(Entry, "package", "path")),
     contained(on(ReferencePath, "package", "target"), on(Entry, "package", "path")),
     contained(on(TextReferencePath, "package", "target"), on(Entry, "package", "path")),
     contained(on(CandidatePath, "package", "target"), on(Entry, "package", "path")),
-  ],
-  "Href form": [
+  ]),
+  "Href form": declared("Href form", [
     check("Href_form", ResourceHref, (h) => h.ne(h.scope, "unresolved")),
     check("Href_form", File, (f) => f.ne(f.scope, "unresolved")),
     check("Href_form", Reference, (r) => r.ne(r.scope, "unresolved")),
     check("Href_form", SrcsetCandidate, (c) => c.ne(c.scope, "unresolved")),
     check("Href_form", TextReference, (r) => r.ne(r.scope, "unresolved")),
-  ],
-  "Include fragment identifier": [
+  ]),
+  "Include fragment identifier": declared("Include fragment identifier", [
     check("Include_fragment_identifier", Reference, (r) =>
       r.or(r.ne(r.kind, includeKind), r.not(Text.matches(r.params, fragmentMark))),
     ),
-  ],
-  "Manifest overlay": [
+  ]),
+  "Manifest overlay": declared("Manifest overlay", [
+    alternatives(ResourceHref, "scope", HrefScope, {
+      entry: ResourceHrefPath,
+      external: ResourceHrefOutside,
+    }),
+    alternatives(File, "scope", HrefScope, { entry: FilePath, external: FileOutside }),
     mirrors(
       on(resourceHrefs, "package", "path", "start"),
       on(ResourceHref, "package", "path", "start"),
@@ -804,8 +847,8 @@ export const packageLawsByName = {
       on(nodesOf("cp:file"), "package", "path", "start"),
     ),
     contained(on(fileHrefs, "package", "path", "start"), on(File, "package", "path", "start")),
-  ],
-  "Reference overlay": [
+  ]),
+  "Reference overlay": declared("Reference overlay", [
     contained(
       on(censusAttributes, "package", "path", "start", "name", "kind"),
       on(Reference, "package", "path", "start", "name", "kind"),
@@ -846,8 +889,8 @@ export const packageLawsByName = {
       on(entryCandidates, "package", "path", "start", "at"),
       on(CandidatePath, "package", "path", "start", "at"),
     ),
-  ],
-  RootOfType: [
+  ]),
+  RootOfType: declared("RootOfType", [
     check("RootOfType", Document, (d) =>
       d.or(
         d.and(d.eq(d.documentType, "manifest"), d.eq(d.path, manifestPath)),
@@ -855,10 +898,10 @@ export const packageLawsByName = {
       ),
     ),
     contained(on(ResourceDocument, "type", "rootKind"), on(RootOfType, "type", "root")),
-  ],
-  "Stimulus ref target": [
+  ]),
+  "Stimulus ref target": declared("Stimulus ref target", [
     contained(on(stimulusPaths, "package", "target"), on(stimulusDocuments, "package", "path")),
-  ],
+  ]),
 } as const;
 
 /**
@@ -877,6 +920,8 @@ export const packageRelations = [
   Entry,
   EntryKind,
   File,
+  FileOutside,
+  FilePath,
   HrefScope,
   Media,
   Package,
@@ -884,6 +929,8 @@ export const packageRelations = [
   ReferencePath,
   ResourceDocument,
   ResourceHref,
+  ResourceHrefOutside,
+  ResourceHrefPath,
   Srcset,
   SrcsetCandidate,
   TextReference,

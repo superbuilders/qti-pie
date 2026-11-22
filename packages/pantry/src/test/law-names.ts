@@ -5,9 +5,10 @@
  * pattern law's LawId under its installed domain, and a generated field's law's GeneratedLawId.
  * `law-names.committed.test.ts` holds the committed file to it.
  *
- * The dictionary stays because a refusal carries its law and that id, never the name pantry's law
- * table gives it: the name is the schema's naming, which only the schema's law model computes, and
- * the importer names a refusal without building the schema (`#pantry/import/refusal.ts`).
+ * The dictionary stays for the laws no statement states, whose entry grizzle derives: a refusal of
+ * one carries its law and that id, never the name pantry's law table gives it, which only the
+ * schema's law model computes, and the importer names a refusal without building the schema
+ * (`#pantry/import/refusal.ts`). A statement's law is named by the entry it carries.
  *
  * Run it from the package's folder:
  * `node src/test/law-names.ts` writes the file.
@@ -76,8 +77,10 @@ const sortedRecord = <A>(record: Readonly<Record<string, A>>): Readonly<Record<s
 
 /**
  * Build the dictionary from the schema: under its id, each named law of grizzle's `lawsOf(Qti)`
- * but a check, which its own name names. Two laws of one id named apart is a defect of grizzle's
- * ids or of the schema's naming, and the build throws naming it.
+ * that no entry names, a check by its own name and a statement's law by the entry its statement
+ * declares (`#pantry/qti/law-entries.ts`): the laws no statement states, a primary key, a pattern
+ * law, a generated field's and a contract's. Two laws of one id named apart is a defect of
+ * grizzle's ids or of the schema's naming, and the build throws naming it.
  *
  * @returns The dictionary.
  */
@@ -85,7 +88,8 @@ export const lawNamesOf = (): LawNamesFile => {
   const laws: Record<string, { readonly name: string }> = {};
 
   for (const { id, law } of lawsOf(Qti)) {
-    for (const name of law.kind === "check" ? [] : Option.toArray(schemaLawNameOf(law))) {
+    const named = law.kind === "check" || law.entry.kind === "declared";
+    for (const name of named ? [] : Option.toArray(schemaLawNameOf(law))) {
       const held = laws[id];
       if (held !== undefined && held.name !== name) {
         throw new Error(

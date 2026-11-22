@@ -34,7 +34,7 @@ import type { Path, PlatformError } from "effect";
 import type { Element } from "@qti-pie/crust/tree.ts";
 import { XML_NAMESPACE } from "@qti-pie/crust/tree.ts";
 import { sameLaw } from "@bjornpagen/grizzle";
-import type { Law } from "@bjornpagen/grizzle";
+import type { Law, StatedLaw } from "@bjornpagen/grizzle";
 import { admissionOf } from "#pantry/grammar/attributes.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import { readProgram } from "#pantry/import/program.ts";
@@ -302,7 +302,7 @@ export type Signature = (
   | { readonly importRule: string; readonly kind: "codec-import-only" }
   | { readonly importRule: string; readonly kind: "codec-rule"; readonly oracleRule: string }
   | { readonly kind: "codec-oracle-only"; readonly oracleRule: string }
-  | { readonly kind: "import-only-law"; readonly law: Law }
+  | { readonly kind: "import-only-law"; readonly law: Law | StatedLaw }
   | { readonly kind: "noise-moved"; readonly noise: Noise; readonly side: "import" | "oracle" }
   | { readonly kind: "oracle-only-law"; readonly law: LawName }
 ) & { readonly limit?: Limit };
@@ -377,10 +377,30 @@ export const signatureOf = (disagreement: Disagreement): Signature => {
 };
 
 /**
+ * The one catalog entry two signatures' laws are compared under: a class `known.ts` records is what
+ * its law states, which it writes with no entry, so a found law's entry, declared or derived, takes
+ * no part in which class it is.
+ */
+const classEntry = {
+  kind: "derived",
+  name: "a known class's law",
+  source: "#pantry/test/gen/genetic/known.ts",
+} as const;
+
+/**
+ * A signature's law as {@link sameSignature} compares it: what it states, under {@link classEntry}.
+ *
+ * @param law - The law, as a disagreement carries it or as `known.ts` records it.
+ * @returns The law under the one entry.
+ */
+export const classLawOf = (law: Law | StatedLaw): Law =>
+  law.kind === "above" ? law : { ...law, entry: classEntry };
+
+/**
  * Whether two signatures are one class: two of `import-only-law` when grizzle's `sameLaw` holds
- * them one law (as `#pantry/import/refusal.ts` `lawNameOf` matches a law to the one `Qti` states)
- * and they carry one stated limit or none, two of any other kind when their kind and every field,
- * the limit included, are the same.
+ * them one law under one entry ({@link classLawOf}), as `#pantry/import/refusal.ts` matches a law
+ * to the one `Qti` states, and they carry one stated limit or none, two of any other kind when
+ * their kind and every field, the limit included, are the same.
  *
  * @param left - A signature.
  * @param right - Another.
@@ -391,7 +411,7 @@ export const sameSignature: Equivalence.Equivalence<Signature> = (left, right) =
     ? left.kind === "import-only-law" &&
       right.kind === "import-only-law" &&
       left.limit === right.limit &&
-      (left.law === right.law || sameLaw(left.law, right.law))
+      (left.law === right.law || sameLaw(classLawOf(left.law), classLawOf(right.law)))
     : Equivalence.Record(Equivalence.strictEqual<unknown>())(left, right);
 
 /**
@@ -812,10 +832,12 @@ const codecDisagreements = (oracle: OracleSide, side: ImportSide): readonly Disa
 };
 
 /**
- * The `matchedText` fields the database fills and the import never writes: an owner's end a fold of
- * the document tree computes, and every accumulator's or generated field's of type `matchedText`,
- * such as `Node.stringValue`. A key text the oracle bounds there has no row of the import to be in,
- * so no field the database fills is held on the host.
+ * The key text fields the database fills and the import never writes: an owner's end a fold of the
+ * document tree computes, and every accumulator's or generated field's of a key text type, such as
+ * `Node.stringValue`. A key text the oracle bounds there has no row of the import to be in, so no
+ * field the database fills is held on the host; nor is a derived relation's text a "Key text
+ * bound" check holds (`DeclaredIdentifierText`, `ManifestIdText`, `LomKeyText` and the like),
+ * which no row the import writes holds.
  */
 const filledFields: ReadonlySet<string> = new Set([
   ...keyCopies.flatMap((copy) => (copy.by === "fold" ? [copy.field] : [])),
@@ -924,9 +946,11 @@ const loneRefusal = (breaches: readonly Breach[], host: HostVerdict): readonly D
   }
 
   const rule = ruleOf(lone);
+  const name = lone.replaceAll(" ", "_");
   const planted = {
+    entry: { kind: "derived", name, source: "a check planted by the oracle's lone breach" },
     kind: "check",
-    name: lone.replaceAll(" ", "_"),
+    name,
     relation: "Node",
   } satisfies Law;
   const laws = [planted, ...host.brokenLaws] as const;

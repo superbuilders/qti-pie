@@ -76,7 +76,7 @@ import {
   CnType,
   CnTypeSpelling,
 } from "#pantry/grammar/install.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { CopiedLexical, EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
 
@@ -164,12 +164,12 @@ export const CnSlot = relation(
 /**
  * One `type` or `base` attribute of an `m:cn`, keyed by its node and its name: its lexical form as
  * written, whether or not the `cn` is judged, copied so that a law can compare it in a key, which
- * holds a value of any length by its image (`#pantry/qti/limits.ts`).
+ * holds it as itself, a `CopiedLexical` (`#pantry/qti/limits.ts`).
  */
 export const CnAttribute = relation(
   "CnAttribute",
   {
-    lexical: anyText,
+    lexical: CopiedLexical,
     name: closedId(AttributeName),
     package: PackageName,
     path: EntryPath,

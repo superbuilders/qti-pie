@@ -96,6 +96,7 @@ import {
   rootLanguages,
   ruleKindHandles,
 } from "#pantry/vocab/terms/expression-types.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * Each document in no assembly as its own one placement (spec reading 117), by its path: numbered
@@ -1401,7 +1402,7 @@ const operandExpressions = select(ExpressionNode, (e) => e.in(e.parentKind, expr
  * operator is a pair its syntax table lists.
  */
 const expressionLawsByName = {
-  Arity: [
+  Arity: declared("Arity", [
     // At least its least number: an operand of that rank.
     contained(
       on(ArityFloor, "package", "path", "start", "min"),
@@ -1428,8 +1429,8 @@ const expressionLawsByName = {
     check("Arity", MathOperand, (o) =>
       o.or(o.le(o.rank, 1n), o.and(o.in(o.name, binaryMathOperators), o.le(o.rank, 2n))),
     ),
-  ],
-  "Condition type": [
+  ]),
+  "Condition type": declared("Condition type", [
     check("Condition_type", PlacedExpressionNode, (e) =>
       e.or(
         e.not(e.in(e.parentKind, conditionKindHandles)),
@@ -1439,8 +1440,8 @@ const expressionLawsByName = {
         ),
       ),
     ),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     mirrors(
       on(PlacedExpression, "package", "assembly", "instance", "path", "start"),
       on(PlacedExpressionSite, "package", "assembly", "instance", "path", "start"),
@@ -1775,18 +1776,18 @@ const expressionLawsByName = {
         ),
       ),
     ),
-  ],
-  "MathML align first": [
+  ]),
+  "MathML align first": declared("MathML align first", [
     check("MathML_align_first", CellLeafNode, (l) =>
       l.or(l.ne(l.at, 0n), l.eq(l.groups, 0n), l.eq(l.kind, "m:maligngroup")),
     ),
-  ],
-  "MathML align placement": [
+  ]),
+  "MathML align placement": declared("MathML align placement", [
     check("MathML_align_placement", ScopeNode, (s) =>
       s.or(s.ne(s.kind, "m:maligngroup"), s.ne(s.state, "closed")),
     ),
-  ],
-  "MathML arity": [
+  ]),
+  "MathML arity": declared("MathML arity", [
     contained(
       on(LeastOneApply, "package", "path", "apply"),
       on(ApplyArgument, "package", "path", "apply"),
@@ -1797,11 +1798,11 @@ const expressionLawsByName = {
     ),
     key(on(MostOneArgument, "package", "path", "apply")),
     key(on(MostTwoArgumentPair, "package", "path", "apply")),
-  ],
-  "MathML head qualifier": [
+  ]),
+  "MathML head qualifier": declared("MathML head qualifier", [
     contained(on(HeadQualifierPair, "head", "kind"), on(HeadQualifier, "head", "qualifier")),
-  ],
-  "MathML maction selection": [
+  ]),
+  "MathML maction selection": declared("MathML maction selection", [
     check("MathML_maction_selection", MathActionNode, (m) =>
       m.and(
         m.gt(m.elementChildren, 0n),
@@ -1809,16 +1810,16 @@ const expressionLawsByName = {
         m.le(m.selection, m.elementChildren),
       ),
     ),
-  ],
-  "MathML share cycle": [
+  ]),
+  "MathML share cycle": declared("MathML share cycle", [
     check("MathML_share_cycle", ShareRanks, (s) => s.gt(s.shareRank, s.targetRank)),
     check("MathML_share_cycle", PlacedShareRanks, (s) => s.gt(s.shareRank, s.targetRank)),
-  ],
-  "One base": [
+  ]),
+  "One base": declared("One base", [
     key(on(KnownOperandBase, "package", "assembly", "instance", "path", "operator")),
     key(on(KnownOperandCardinality, "package", "assembly", "instance", "path", "operator")),
-  ],
-  "Operand fit": [
+  ]),
+  "Operand fit": declared("Operand fit", [
     check("Operand_fit", OperandOf, (o) =>
       o.and(
         o.eq(Bits.subset(o.baseTypeBit, OperandBase.row(o.operatorKind)), true),
@@ -1832,12 +1833,12 @@ const expressionLawsByName = {
         ),
       ),
     ),
-  ],
-  "Outcome only": [
+  ]),
+  "Outcome only": declared("Outcome only", [
     check("Outcome_only", ExpressionNode, (e) =>
       e.or(e.not(e.in(e.kind, outcomeOnlyKinds)), e.eq(e.language, "outcome")),
     ),
-  ],
+  ]),
 } as const;
 
 /**

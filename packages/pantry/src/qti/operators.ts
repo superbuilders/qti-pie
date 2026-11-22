@@ -35,23 +35,21 @@
  * it by. Every copy of an attribute into an overlay follows C18 the other way round, as
  * `identity.ts` states it: from `select(Attribute, φ)` into the overlay, keyed by `Attribute`'s key
  * `(package, path, start, name)` once the selection fixes the name, whose index serves the copy's
- * reverse probe. Every copied text that takes part in a cross-row equality is of any length, a key,
- * a containment's target and a lookup holding it by its image (`#pantry/qti/limits.ts`). Every
- * check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written as
- * underscores.
+ * reverse probe. Every copied text that takes part in a cross-row equality is of its type's bound
+ * in a key (`#pantry/qti/limits.ts`), so a key, a containment's target and a lookup hold it as
+ * itself. Every check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces
+ * written as underscores.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_EqualRounded | QTI 3.0 information model, §5.47 EqualRounded}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_RoundTo | QTI 3.0 information model, §5.119 RoundTo}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Equal | QTI 3.0 information model, §5.46 Equal}
  */
 import {
-  accumulated,
   alternatives,
   check,
   closed,
   closedId,
   contained,
-  drawn,
   generated,
   Logic,
   mirrors,
@@ -64,11 +62,18 @@ import {
   Type,
 } from "@bjornpagen/grizzle";
 import { Attribute, attributesOf } from "#pantry/qti/attributes.ts";
-import { EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
+import { CopiedLexical, EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { listTokens, tokenList, whitespaceTokens } from "#pantry/qti/token-list.ts";
+import {
+  listTokens,
+  tokenFields,
+  tokenList,
+  tokenTextDigest,
+  whitespaceTokens,
+} from "#pantry/qti/token-list.ts";
 import { roundingKinds, roundingModes } from "#pantry/vocab/terms/operators.ts";
 import { anyText } from "#pantry/grammar/install.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * Which of reading 119's two inputs a rounding operator has, its {@link Rounding} row's `holds`:
@@ -149,10 +154,10 @@ export const Rounding = relation(
  */
 export const RoundingFigures = relation.generated(
   "RoundingFigures",
-  { figuresLexical: anyText, package: PackageName, path: EntryPath, start: natural },
+  { figuresLexical: CopiedLexical, package: PackageName, path: EntryPath, start: natural },
   ["package", "path", "start"],
   (f) => ({
-    figures: generated(anyText, Text.collapse(f.figuresLexical)),
+    figures: generated(CopiedLexical, Text.collapse(f.figuresLexical)),
   }),
 );
 
@@ -165,7 +170,7 @@ export const RoundingFigures = relation.generated(
 export const RoundingModeFigures = relation(
   "RoundingModeFigures",
   {
-    figures: anyText,
+    figures: CopiedLexical,
     mode: anyText,
     package: PackageName,
     path: EntryPath,
@@ -176,21 +181,23 @@ export const RoundingModeFigures = relation(
 
 /**
  * One `qti-equal`'s `tolerance`, keyed by the element's place, where it writes one: its
- * {@link ToleranceToken} count, `tokens` (drawn), and the end of their concatenation, `tokenText`
- * (accumulated). The value as written is the attribute's `lexical`, which no row copies (C18): the
- * rule over the query `ToleranceForm` holds the tokens to it
+ * {@link ToleranceToken} count, `tokens` (drawn), the end of their concatenation, `tokenText`
+ * (accumulated), and its digest, `tokenTextDigest` (generated, the fold's end on the family's last
+ * axis). The value as written is the attribute's `lexical`, which no row copies (C18): the rule
+ * over the query `ToleranceForm` holds the tokens to it
  * (`#pantry/qti/overlay-queries/expression.ts`).
  */
-export const Tolerance = relation(
+export const Tolerance = relation.generated(
   "Tolerance",
   {
     package: PackageName,
     path: EntryPath,
     start: natural,
-    tokenText: accumulated(anyText, ""),
-    tokens: drawn(natural),
+    tokenText: tokenFields.piecesWas,
+    tokens: tokenFields.at,
   },
   ["package", "path", "start"],
+  (t) => tokenTextDigest(t),
 );
 
 /**
@@ -318,7 +325,7 @@ const tolerancePositive = check("Equal_tolerance", ToleranceToken, (x) =>
  * - **Reading 121:** {@link toleranceRequired}, {@link toleranceCount} and {@link tolerancePositive}.
  */
 export const operatorLawsByName = {
-  "E1 derived": [
+  "E1 derived": declared("E1 derived", [
     mirrors(
       on(roundingNodes, "package", "path", "start"),
       on(Rounding, "package", "path", "start"),
@@ -345,9 +352,13 @@ export const operatorLawsByName = {
       on(Tolerance, "package", "path", "start"),
     ),
     ...tokenList(ToleranceToken, Tolerance, whitespaceTokens(ToleranceToken)),
-  ],
-  "Equal tolerance": [toleranceRequired, toleranceCount, tolerancePositive],
-  "Rounding figures": [roundingFigures],
+  ]),
+  "Equal tolerance": declared("Equal tolerance", [
+    toleranceRequired,
+    toleranceCount,
+    tolerancePositive,
+  ]),
+  "Rounding figures": declared("Rounding figures", [roundingFigures]),
 } as const;
 
 /**

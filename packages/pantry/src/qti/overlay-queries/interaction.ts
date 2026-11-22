@@ -77,6 +77,7 @@ import {
   hotspotKinds,
   pciKind,
 } from "#pantry/vocab/terms/interactions.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * Each interaction beside its node's kind, by its place: its {@link Interaction} row's count of
@@ -855,7 +856,7 @@ export const PatternText = derived(
  *   last slot" over each hotspot's shape, its rank and its parent's count.
  */
 export const interactionOverlayLawsByName = {
-  "Aria value range": [
+  "Aria value range": declared("Aria value range", [
     check("Aria_value_range", AriaBounds, (r) =>
       r.or(
         r.not(Text.matches(r.min, decimalText)),
@@ -886,14 +887,14 @@ export const interactionOverlayLawsByName = {
         ),
       ),
     ),
-  ],
-  "Binding cardinality": [
+  ]),
+  "Binding cardinality": declared("Binding cardinality", [
     check("Binding_cardinality", SingleBindingMost, (b) => b.eq(b.mostValue, 1n)),
     check("Binding_cardinality", PlacedSingleBindingMost, (b) => b.eq(b.mostValue, 1n)),
     key(on(SingleResponseGap, "package", "path", "start")),
     key(on(PlacedSingleResponseGap, "package", "assembly", "instance", "start")),
-  ],
-  BindingFit: [
+  ]),
+  BindingFit: declared("BindingFit", [
     // A string identifier's variable is "of base-type string" (§5.48.2, §5.162.3), which a record,
     // having no base type, is not: its whole value is judged by its cardinality alone, and a
     // typed variable's base type by its declaration's.
@@ -939,17 +940,17 @@ export const interactionOverlayLawsByName = {
       ),
       on(BindingFit, "baseType", "cardinality", "kind"),
     ),
-  ],
-  "Choice bounds": [
+  ]),
+  "Choice bounds": declared("Choice bounds", [
     check("Choice_bounds", LeastChoiceBound, leastBounds),
     check("Choice_bounds", MostChoiceBound, mostBounds),
     check("Choice_bounds", BoundRange, rangeBounds),
-  ],
-  "Choice identifier key": [
+  ]),
+  "Choice identifier key": declared("Choice identifier key", [
     key(on(ChoiceNode, "package", "path", "kind", "identifier")),
     key(on(PlacedChoiceNode, "package", "assembly", "kind", "identifier")),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     check("E1_derived", InteractionNode, (i) => i.in(i.kind, interactionKinds)),
     check("E1_derived", ChoiceNode, (c) => c.in(c.kind, choiceKinds)),
     check("E1_derived", HottextNode, (h) =>
@@ -1040,8 +1041,8 @@ export const interactionOverlayLawsByName = {
         ...defaultedMost.map(({ kinds, value }) => m.and(m.in(m.kind, kinds), m.eq(m.most, value))),
       ),
     ),
-  ],
-  "Graphic gap match default hotspot": [
+  ]),
+  "Graphic gap match default hotspot": declared("Graphic gap match default hotspot", [
     check("Graphic_gap_match_default_hotspot", HotspotNode, (h) =>
       h.or(
         h.ne(h.kind, "qti-associable-hotspot"),
@@ -1049,8 +1050,8 @@ export const interactionOverlayLawsByName = {
         h.ne(h.area, defaultArea),
       ),
     ),
-  ],
-  "Key text bound": [
+  ]),
+  "Key text bound": declared("Key text bound", [
     check("Key_text_bound", AriaBounds, (r) =>
       r.and(
         r.or(
@@ -1063,8 +1064,8 @@ export const interactionOverlayLawsByName = {
         ),
       ),
     ),
-  ],
-  "Max strings required": [
+  ]),
+  "Max strings required": declared("Max strings required", [
     contained(
       on(
         select(BindingCardinalityNode, (r) =>
@@ -1105,8 +1106,8 @@ export const interactionOverlayLawsByName = {
         "start",
       ),
     ),
-  ],
-  "N8 nearest": [
+  ]),
+  "N8 nearest": declared("N8 nearest", [
     contained(
       on(ChoiceInteraction, "package", "path", "start", "interaction"),
       on(ChoiceNode, "package", "path", "start", "nearest"),
@@ -1131,16 +1132,16 @@ export const interactionOverlayLawsByName = {
       ),
       on(Document, "package", "path", "contextPath", "contextNearest"),
     ),
-  ],
-  "PCI module source": [
+  ]),
+  "PCI module source": declared("PCI module source", [
     check("PCI_module_source", InteractionNode, (i) =>
       i.or(i.ne(i.kind, pciKind), i.gt(i.moduleForms, 0n)),
     ),
-  ],
-  "Pattern language": [
+  ]),
+  "Pattern language": declared("Pattern language", [
     check("Pattern_language", PatternText, (p) => p.eq(Xml.isPattern(p.pattern), true)),
-  ],
-  RecordBindingFit: [
+  ]),
+  RecordBindingFit: declared("RecordBindingFit", [
     contained(
       on(
         select(BindingCardinalityNode, (r) =>
@@ -1167,9 +1168,13 @@ export const interactionOverlayLawsByName = {
       ),
       on(RecordBindingFit, "kind"),
     ),
-  ],
-  "Slider bounds": [check("Slider_bounds", SliderBounds, (b) => doublesInOrder(b.lower, b.upper))],
-  "default hotspot last slot": [check("default_hotspot_last_slot", HotspotNode, lastWhere)],
+  ]),
+  "Slider bounds": declared("Slider bounds", [
+    check("Slider_bounds", SliderBounds, (b) => doublesInOrder(b.lower, b.upper)),
+  ]),
+  "default hotspot last slot": declared("default hotspot last slot", [
+    check("default_hotspot_last_slot", HotspotNode, lastWhere),
+  ]),
 } as const;
 
 /**

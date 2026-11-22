@@ -1,8 +1,7 @@
 /**
  * The bounds of `#pantry/qti/limits.ts` against grizzle's own: a text a query matches by a pattern
- * bounded by the regex engine alone (`regexTextMaxBytes`), since every index holds a text its entry
- * could not hold as itself by its image, and a foreign element's names, which a query matches as
- * one expanded name, at half of it.
+ * bounded by the regex engine alone (`regexTextMaxBytes`), and a foreign element's names, which a
+ * query matches as one expanded name, at half of it.
  */
 import { regexTextMaxBytes } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";

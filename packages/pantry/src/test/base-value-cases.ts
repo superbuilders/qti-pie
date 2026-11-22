@@ -1,6 +1,6 @@
 /**
  * A base value's `base-type` as a small box of 25 forms, each with the verdict the specification
- * gives its package: the eleven bases of the information model's BaseTypeEnum (§8.13), each written
+ * gives its package: the eleven bases of the information model's BaseTypeEnum (§8.14), each written
  * exactly, and fourteen forms that spell none. The enumeration is an `xs:string` one whose
  * whiteSpace is preserve (XSD 1.1 Part 2, §4.3.6), so a form outside it, padded included, spells no
  * base, and AL1's value domain refuses its `base-type` alone (`attribute-lexical`); a form that

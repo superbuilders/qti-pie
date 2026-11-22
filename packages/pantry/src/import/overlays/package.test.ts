@@ -34,7 +34,7 @@ import {
   referenceRowsOf,
   resourceTypesOf,
   rowsOf,
-  typedHrefsOf,
+  typedPathsOf,
 } from "#pantry/import/overlays/package.ts";
 import { attributeValueOf, valueReadingOf } from "#pantry/import/names.ts";
 import type {
@@ -86,12 +86,12 @@ const nodeKey = (start: bigint): string => keyTextOf(ids.package, manifestPath, 
 
 /**
  * One overlay row as the walk expects it: its relation and its fields, and the rows of the two
- * queries over them no relation stores, the typed hrefs (`typedHrefsOf`, over the host's type
+ * queries over them no relation stores, the typed paths (`typedPathsOf`, over the host's type
  * codes, `resourceTypesOf`) and the unread-type hrefs ({@link unreadTypeHrefsOf}), each by the
  * resource's node.
  */
 type Expected = {
-  readonly [Relation in keyof PackageRows | "TypedHref" | "UnreadTypeHref"]: Map<string, object>;
+  readonly [Relation in keyof PackageRows | "TypedPath" | "UnreadTypeHref"]: Map<string, object>;
 };
 
 /**
@@ -108,7 +108,8 @@ const spelledTypes: ReadonlySet<string> = new Set(
  *
  * @param href - The href, as written.
  * @param bases - The `xml:base` values in scope, outermost first.
- * @returns Its scope and the path it is compared by.
+ * @returns Its scope and the path it is compared by: the entry path it resolves to in the package,
+ *   else its path as written.
  */
 const manifestHrefOf = (href: string, bases: readonly string[]) => {
   const value = oracleValueOf(href, "collapse");
@@ -118,9 +119,44 @@ const manifestHrefOf = (href: string, bases: readonly string[]) => {
 };
 
 /**
- * Expect a resource's `href` rows: its `ResourceHref`, resolved by the oracle; where its type
- * spells a handle, its typed href, of its compared path and type; and where its type is written and
- * spells none, its unread-type href, of its compared path.
+ * Expect an href's arm, the row its scope names beside its header: the entry path it resolves to
+ * for an href in the package, its path as written for one outside it, and none for a
+ * same-document or an unresolved one.
+ *
+ * @param arms - The arms' expected rows: the entry arm's and the outside arm's.
+ * @param arms.entry - The entry arm's.
+ * @param arms.outside - The outside arm's.
+ * @param row - The href's place, its scope and the path it is compared by.
+ * @param row.scope - Its scope.
+ * @param row.start - Its node's position.
+ * @param row.target - The path it is compared by.
+ */
+const expectArm = (
+  arms: { readonly entry: Map<string, object>; readonly outside: Map<string, object> },
+  row: {
+    readonly package: string;
+    readonly path: string;
+    readonly scope: string;
+    readonly start: bigint;
+    readonly target: string;
+  },
+): void => {
+  const { scope, start, target } = row;
+  const at = { package: row.package, path: row.path, start };
+  if (scope === "entry") {
+    arms.entry.set(nodeKey(start), { ...at, target });
+  }
+
+  if (scope === "external") {
+    arms.outside.set(nodeKey(start), { ...at, target });
+  }
+};
+
+/**
+ * Expect a resource's `href` rows: its `ResourceHref`, resolved by the oracle, and its arm
+ * ({@link expectArm}); where its href names an entry, and its type spells a handle, its typed path,
+ * of the entry path and type; and where it names an entry and its type is written and spells none,
+ * its unread-type href, of the entry path.
  *
  * @param expected - The walk's rows so far.
  * @param resource - The resource's href, node, package, type and its lexical form, and the bases
@@ -146,9 +182,17 @@ const expectHref = (
   const { bases, href, pkg, start, type, typeLexical } = resource;
   const { scope, target } = manifestHrefOf(href, bases);
   const at = { package: pkg, path: manifestPath, start };
-  expected.ResourceHref.set(nodeKey(start), { ...at, scope, target });
+  expected.ResourceHref.set(nodeKey(start), { ...at, scope });
+  expectArm(
+    { entry: expected.ResourceHrefPath, outside: expected.ResourceHrefOutside },
+    { ...at, scope, target },
+  );
+  if (scope !== "entry") {
+    return;
+  }
+
   for (const code of Option.toArray(type)) {
-    expected.TypedHref.set(nodeKey(start), { ...at, scope, target, type: code });
+    expected.TypedPath.set(nodeKey(start), { ...at, target, type: code });
   }
 
   if (Option.isNone(type) && typeLexical !== undefined && typeLexical !== "") {
@@ -201,8 +245,12 @@ const expectResource = (
 const walk = (doc: XdmDocument<Composed>): Expected => {
   const expected: Expected = {
     File: new Map(),
+    FileOutside: new Map(),
+    FilePath: new Map(),
     ResourceHref: new Map(),
-    TypedHref: new Map(),
+    ResourceHrefOutside: new Map(),
+    ResourceHrefPath: new Map(),
+    TypedPath: new Map(),
     UnreadTypeHref: new Map(),
   };
   const interactions = new Set<string>(interactionKinds);
@@ -246,7 +294,11 @@ const walk = (doc: XdmDocument<Composed>): Expected => {
     const fileHref = kind === "cp:file" ? valueOf("href") : undefined;
     if (fileHref !== undefined) {
       const { scope, target } = manifestHrefOf(fileHref, bases);
-      expected.File.set(nodeKey(start), { ...place, scope, target });
+      expected.File.set(nodeKey(start), { ...place, scope });
+      expectArm(
+        { entry: expected.FilePath, outside: expected.FileOutside },
+        { ...place, scope, target },
+      );
     }
 
     for (const grandchild of child.children) {
@@ -268,7 +320,14 @@ const walk = (doc: XdmDocument<Composed>): Expected => {
 /**
  * The overlay relations the builder writes rows of.
  */
-const relationNames = ["File", "ResourceHref"] as const satisfies readonly (keyof PackageRows)[];
+const relationNames = [
+  "File",
+  "FileOutside",
+  "FilePath",
+  "ResourceHref",
+  "ResourceHrefOutside",
+  "ResourceHrefPath",
+] as const satisfies readonly (keyof PackageRows)[];
 
 /**
  * List a keyed set's entries in key order, so two sets compare as sets.
@@ -281,7 +340,7 @@ const sortedEntries = (map: ReadonlyMap<string, object>): readonly (readonly [st
 
 /**
  * A row of the query `UnreadTypeHref`: a resource's node, its package, the path of the manifest
- * that holds it, and the target its href is compared by.
+ * that holds it, and the entry path its href names.
  */
 interface UnreadTypeHrefRow {
   readonly package: string;
@@ -292,11 +351,11 @@ interface UnreadTypeHrefRow {
 
 /**
  * The rows of the query `UnreadTypeHref` (`#pantry/qti/queries.ts`) over a manifest, restated on
- * the host: each resource's `ResourceHref` beside its `type` attribute as the tree's rows hold it,
- * where that form is nonempty and spells no `ResourceType` handle ({@link spelledTypes}), as its
- * node's key and the path it is compared by, by the node. Only the database evaluates the query,
- * which "Item ref target" reads by (package, target); this reads the rows the query reads, the
- * builder's and the tree's, so a builder that loses an unread-type resource's href fails here.
+ * the host: each resource's `ResourceHrefPath` beside its `type` attribute as the tree's rows hold
+ * it, where that form is nonempty and spells no `ResourceType` handle ({@link spelledTypes}), as
+ * its node's key and the entry path its href names, by the node. Only the database evaluates the
+ * query, which "Item ref target" reads by (package, target); this reads the rows the query reads,
+ * the builder's and the tree's, so a builder that loses an unread-type resource's href fails here.
  *
  * @param doc - The manifest's tree.
  * @param rows - The builder's rows of it.
@@ -304,7 +363,7 @@ interface UnreadTypeHrefRow {
  */
 const unreadTypeHrefsOf = (
   doc: XdmDocument<Composed>,
-  rows: Pick<PackageRows, "ResourceHref">,
+  rows: Pick<PackageRows, "ResourceHrefPath">,
 ): ReadonlyMap<string, UnreadTypeHrefRow> => {
   const flat = flatten(doc);
   const resources = new Set<bigint>(
@@ -317,7 +376,7 @@ const unreadTypeHrefsOf = (
   );
 
   return new Map(
-    [...rows.ResourceHref.values()].flatMap(({ package: pkg, path, start, target }) =>
+    [...rows.ResourceHrefPath.values()].flatMap(({ package: pkg, path, start, target }) =>
       Option.toArray(Option.fromUndefinedOr(types.get(start)))
         .filter((lexical) => lexical !== "" && !spelledTypes.has(lexical))
         .map(() => [nodeKey(start), { package: pkg, path, start, target }] as const),
@@ -327,7 +386,7 @@ const unreadTypeHrefsOf = (
 
 /**
  * Compare the builder's keyed sets with the walk's: every relation's keys and rows alike, and the
- * rows of the queries over them the host reads or restates, the typed hrefs (`typedHrefsOf`) and
+ * rows of the queries over them the host reads or restates, the typed paths (`typedPathsOf`) and
  * the unread-type hrefs ({@link unreadTypeHrefsOf}), by the resource's node.
  *
  * @param doc - The manifest's tree.
@@ -352,13 +411,13 @@ const assertRows = (
   assert.deepStrictEqual(
     sortedEntries(
       new Map(
-        typedHrefsOf(rows, resourceTypesOf(flatDocumentOf(doc))).map(
+        typedPathsOf(rows, resourceTypesOf(flatDocumentOf(doc))).map(
           (typed) => [nodeKey(typed.start), typed] as const,
         ),
       ),
     ),
-    sortedEntries(expected.TypedHref),
-    `${label} TypedHref`,
+    sortedEntries(expected.TypedPath),
+    `${label} TypedPath`,
   );
   assert.deepStrictEqual(
     sortedEntries(unreadTypeHrefsOf(doc, rows)),
@@ -663,7 +722,7 @@ const unreadOf = (
   return {
     hrefs: unread.map(({ target }) => target),
     paths: [...new Set(unread.map(({ target }) => target))],
-    typed: typedHrefsOf(rows, resourceTypesOf(flatDocumentOf(doc))).map(({ target }) => target),
+    typed: typedPathsOf(rows, resourceTypesOf(flatDocumentOf(doc))).map(({ target }) => target),
   };
 };
 
@@ -722,7 +781,7 @@ describe("import/overlays/package.ts", () => {
 
             assertRows(doc, rows, walk(doc), "generated");
             for (const [at, { type }] of namedDocuments(
-              typedHrefsOf(rows, resourceTypesOf(flatDocumentOf(doc))),
+              typedPathsOf(rows, resourceTypesOf(flatDocumentOf(doc))),
             )
               .values()
               .map((named) => [named.path, named] as const)) {
@@ -737,7 +796,7 @@ describe("import/overlays/package.ts", () => {
     // Oracle: R-O6's manifest (the genetic repair's gr-5a): its first resource's type carries a
     // trailing space, so it spells no handle; the test resource's spells one. A `bogus` type is
     // unread too; a resource that writes no type has no row, and AL3 refuses it alone. The query
-    // (`#pantry/qti/queries.ts`) is restated over the rows it reads, the builder's `ResourceHref`
+    // (`#pantry/qti/queries.ts`) is restated over the rows it reads, the builder's `ResourceHrefPath`
     // and the tree's `type` attribute ({@link unreadTypeHrefsOf}); two unread resources of one
     // path are two rows of one (package, target), the pair "Item ref target" reads.
     assert.deepStrictEqual(

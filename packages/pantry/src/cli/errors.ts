@@ -342,7 +342,7 @@ const ownKinds = {
 const ownHelpOf = (error: OwnError): string =>
   Match.valueTags(error, {
     BadName: () =>
-      "Name the package with letters, digits, '-', '_' and '.', starting with a letter or '_'; to export, use the name it was imported under.",
+      "Name the package with at most 255 bytes of letters, digits, '-', '_' and '.', starting with a letter or '_'; to export, use the name it was imported under.",
     CommandTimedOut: () => `${longerLimit}.`,
     NotADirectory: () => "Name the directory of an unzipped QTI package, or its .zip file.",
     RoundtripDiffers: ({ exportDir }) =>

@@ -293,11 +293,11 @@ export const packageMutations = {
   ]),
   // Key text bound (the stated limit, reading 133): the item's division's aria-valuemin, an
   // `xs:decimal` of zeros past `parsedDecimalBytes`, the most `Text.parseDecimal` reads
-  // (`AriaBounds.min`), each digit one byte, its value 0, so its range holds: the smallest bound
-  // the law refuses a drawn text at. A foreign element's names are bounded at half and a text a
-  // query matches at all of `matchedTextBytes`, a quarter of a gigabyte, which no drawn package
-  // reaches; a prefix, an open attribute's names, an IDREF's token, an ID and an href are of any
-  // length, a key holding each by its image.
+  // (`AriaBounds.min`), each digit one byte, its value 0, so its range holds and the bound alone
+  // refuses it. A foreign element's names are bounded at half and a text a query matches at all of
+  // `matchedTextBytes`, a quarter of a gigabyte, which no drawn package reaches; a path, a prefix,
+  // an open attribute's names, an IDREF's token, an ID and an identifier a key holds are each held
+  // to its key text type's bound (`#pantry/qti/limits.ts`), and an href as written to none.
   "Key text bound": {
     law: "Key text bound",
     mutate:

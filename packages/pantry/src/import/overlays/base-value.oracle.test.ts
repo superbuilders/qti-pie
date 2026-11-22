@@ -21,7 +21,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
       "accepts a base value of a spelled base and refuses one that spells none under its value domain alone",
       () =>
         // Oracle: the specification's verdict of each case (`base-value-cases.ts`), the information
-        // model's BaseTypeEnum (§8.13), a preserve `xs:string` enumeration. Bound: the eleven bases
+        // model's BaseTypeEnum (§8.14), a preserve `xs:string` enumeration. Bound: the eleven bases
         // written exactly and fourteen forms that spell none.
         Effect.gen(function* baseValueVerdicts() {
           for (const drawn of baseValueCases) {

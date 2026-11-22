@@ -30,7 +30,7 @@ import {
   referenceRowsOf,
   resourceTypesOf,
   rowsOf as packageRowsOf,
-  typedHrefsOf,
+  typedPathsOf,
 } from "#pantry/import/overlays/package.ts";
 import { ownViewOf } from "#pantry/import/fold.ts";
 import { ruleOfError } from "#pantry/import/rules.ts";
@@ -100,7 +100,7 @@ export interface QtiPackage {
 
 /**
  * The name a caller gave a package is no name a package can be stored under: an NCName, an XML name
- * with no colon (`PackageName`, `#pantry/qti/limits.ts`).
+ * with no colon, of at most 255 UTF-8 bytes (`PackageName`, `#pantry/qti/limits.ts`).
  * Nothing was read.
  */
 export class BadPackageName extends Schema.TaggedError<BadPackageName>()("BadPackageName", {
@@ -110,13 +110,13 @@ export class BadPackageName extends Schema.TaggedError<BadPackageName>()("BadPac
    * The name, why no package can be stored under it, and what a name is.
    */
   override get message(): string {
-    return `No package can be stored under the name ${JSON.stringify(this.name)}: a package's name is an XML name with no colon and no space (an NCName), such as g3-science or MANIFEST-1. Name the package with one.`;
+    return `No package can be stored under the name ${JSON.stringify(this.name)}: a package's name is an XML name with no colon and no space (an NCName) of at most 255 bytes, such as g3-science or MANIFEST-1. Name the package with one.`;
   }
 }
 
 /**
- * Hold a caller's name for a package to `PackageName`'s language, an NCName of at most
- * (`isPackageName`, `#pantry/qti/limits.ts`), before anything is read,
+ * Hold a caller's name for a package to `PackageName`'s language, an NCName of at most 255 UTF-8
+ * bytes (`isPackageName`, `#pantry/qti/limits.ts`), before anything is read,
  * so no row is built under a name the database would refuse.
  *
  * @param name - The name the caller gave.
@@ -184,7 +184,7 @@ const listDocuments = Effect.fn("import.listDocuments")(function* listDocuments(
   const byPath = new Map(entries.map((entry) => [entry.path, entry] as const));
   const manifestView = ownViewOf(manifestTree);
   const named = namedDocuments(
-    typedHrefsOf(packageRowsOf(manifestView, { package: name }), resourceTypesOf(manifestView)),
+    typedPathsOf(packageRowsOf(manifestView, { package: name }), resourceTypesOf(manifestView)),
   );
   // A path is one document, of one type (reading 93): the manifest's, `manifest`, read before any
   // resource names a path (reading 146), else the type its root bears out among those resources

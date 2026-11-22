@@ -9,14 +9,35 @@
  * form its
  * attribute's `lexical`, read beside its split ({@link SrcsetForm}).
  */
-import { check, contained, derived, on, query, Text, Type, v } from "@bjornpagen/grizzle";
+import { check, contained, derived, on, query, select, Text, Type, v } from "@bjornpagen/grizzle";
 import { ReferenceAttribute } from "#pantry/grammar/install.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
+import { keyedXmlId, xmlIdBytes } from "#pantry/qti/limits.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { attributeValues } from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { File, listedEntries, ResourceHref, Srcset } from "#pantry/qti/package.ts";
+import {
+  File,
+  FileOutside,
+  FilePath,
+  listedEntries,
+  ResourceHref,
+  ResourceHrefOutside,
+  ResourceHrefPath,
+  Srcset,
+} from "#pantry/qti/package.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+
+/**
+ * The attribute values {@link manifestValuesOf} reads, as written, by kind: the manifest's and the
+ * resources' `identifier` and the dependencies' `identifierref`.
+ */
+const manifestIdTexts = {
+  dependency: attributeValues("identifierref", ["cp:dependency"]),
+  manifest: attributeValues("identifier", ["cp:manifest"]),
+  resource: attributeValues("identifier", ["cp:resource"]),
+} as const;
 
 /**
  * The attributes of one name on the elements of one kind in the package's manifest, the document
@@ -35,25 +56,64 @@ import { manifestPath } from "#pantry/vocab/terms/package.ts";
  * judged, and no pattern here restates the domain, an NCName once collapsed (spec readings 152 and
  * 156).
  *
- * @param kind - The element's kind.
- * @param name - The attribute's name.
+ * Its `value` is an `XmlId`, cast under grizzle's byte guard: "Key text bound" holds every such
+ * value within `xmlIdBytes` at import ({@link ManifestIdText}), so the guard's other arm, the empty
+ * text, never stands in a committed state.
+ *
+ * @param attributes - The attributes, of one name on the elements of one kind
+ *   ({@link manifestIdTexts}).
  * @returns The query.
  */
-const manifestValuesOf = (
-  kind: "cp:dependency" | "cp:manifest" | "cp:resource",
-  name: "identifier" | "identifierref",
-) => {
-  const attributes = attributeValues(name, [kind]);
-
-  return query(QtiBase).rule((r) => {
+const manifestValuesOf = (attributes: (typeof manifestIdTexts)[keyof typeof manifestIdTexts]) =>
+  query(QtiBase).rule((r) => {
     const { package: pkg, path, start, value } = v(attributes, "attribute");
 
     return r
       .match(attributes, { package: pkg, path, start, value })
       .where(r.eq(path, manifestPath))
-      .find({ package: pkg, start, value });
+      .find({
+        package: pkg,
+        start,
+        value: keyedXmlId(value),
+      });
   });
-};
+
+/**
+ * The manifest's `xs:ID` and `xs:IDREF` texts its {@link manifestValuesOf} views key, by their
+ * attribute's element: the manifest's and each resource's `identifier` and each dependency's
+ * `identifierref`, as written. "Key text bound" holds each within `xmlIdBytes`
+ * (`#pantry/qti/limits.ts`), so a package with a longer one is refused at its import, and each view
+ * casts its value into an `XmlId` under grizzle's byte guard, whose other arm, the empty text,
+ * never stands in a committed state.
+ */
+const ManifestIdText = derived(
+  "ManifestIdText",
+  query(QtiBase)
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(manifestIdTexts.manifest, "manifest");
+
+      return r
+        .match(manifestIdTexts.manifest, { package: pkg, path, start, value })
+        .where(r.eq(path, manifestPath))
+        .find({ package: pkg, start, text: value });
+    })
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(manifestIdTexts.resource, "resource");
+
+      return r
+        .match(manifestIdTexts.resource, { package: pkg, path, start, value })
+        .where(r.eq(path, manifestPath))
+        .find({ package: pkg, start, text: value });
+    })
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(manifestIdTexts.dependency, "dependency");
+
+      return r
+        .match(manifestIdTexts.dependency, { package: pkg, path, start, value })
+        .where(r.eq(path, manifestPath))
+        .find({ package: pkg, start, text: value });
+    }),
+);
 
 /**
  * The manifest's identifier ({@link manifestValuesOf}), one per package: the manifest is its
@@ -72,7 +132,7 @@ const manifestValuesOf = (
  * table (`IdBinding` of `#pantry/qti/overlay-queries/identity.ts`): the manifest's and its
  * resources' identifiers are one `xs:ID` space (IMS Content Packaging 1.2).
  */
-export const manifestIdentifiers = manifestValuesOf("cp:manifest", "identifier");
+export const manifestIdentifiers = manifestValuesOf(manifestIdTexts.manifest);
 
 /**
  * Each resource's identifier ({@link manifestValuesOf}), which a dependency's `identifierref` names
@@ -80,13 +140,13 @@ export const manifestIdentifiers = manifestValuesOf("cp:manifest", "identifier")
  * `#pantry/qti/lom.ts`). Like {@link manifestIdentifiers}, it is an `xs:ID` of the manifest, which
  * "DocumentId key" holds distinct over the manifest's ID/IDREF table, and a query, no relation.
  */
-export const resourceIdentifiers = manifestValuesOf("cp:resource", "identifier");
+export const resourceIdentifiers = manifestValuesOf(manifestIdTexts.resource);
 
 /**
  * Each dependency's `identifierref` ({@link manifestValuesOf}), which names a resource of its
  * package, the one whose identifier it is. Its resource is its node's parent.
  */
-const dependencyRefs = manifestValuesOf("cp:dependency", "identifierref");
+const dependencyRefs = manifestValuesOf(manifestIdTexts.dependency);
 
 /**
  * {@link dependencyRefs} as a relation of `Qti`, every one of which "Dependency target" holds to
@@ -95,32 +155,65 @@ const dependencyRefs = manifestValuesOf("cp:dependency", "identifierref");
 export const Dependency = derived("Dependency", dependencyRefs);
 
 /**
- * The paths a package's files name in the package, by package and path: a file whose href
- * resolved to an entry.
+ * The paths a package's files name in the package, by package and path: each file whose href
+ * resolved to an entry ({@link FilePath}).
  */
 const EntryFileTarget = derived(
   "EntryFileTarget",
   query(QtiBase).rule((r) => {
-    const { package: pkg, target } = v(File, "file");
+    const { package: pkg, target } = v(FilePath, "file");
 
-    return r.match(File, { package: pkg, scope: "entry", target }).find({ package: pkg, target });
+    return r.match(FilePath, { package: pkg, target }).find({ package: pkg, target });
   }),
 );
 
 /**
- * The paths each resource's files name, by the resource's place, each with its scope: a file's
- * resource is its node's parent.
+ * The entry paths each resource's files name, by the resource's place: a file's resource is its
+ * node's parent.
  */
-const ResourceFileTarget = derived(
-  "ResourceFileTarget",
+const ResourceFilePath = derived(
+  "ResourceFilePath",
   query(QtiBase).rule((r) => {
-    const { package: pkg, path, scope, start, target } = v(File, "file");
+    const { package: pkg, path, start, target } = v(FilePath, "file");
     const { parent: resource } = v(Node, "node");
 
     return r
-      .match(File, { package: pkg, path, scope, start, target })
+      .match(FilePath, { package: pkg, path, start, target })
       .match(Node, { package: pkg, parent: resource, path, start })
-      .find({ package: pkg, path, resource, scope, target });
+      .find({ package: pkg, path, resource, target });
+  }),
+);
+
+/**
+ * The paths outside the package each resource's files name, as written, by the resource's place,
+ * each with its digest, by which "Href listed" finds one first.
+ */
+const ResourceFileOutside = derived(
+  "ResourceFileOutside",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start, target, targetDigest } = v(FileOutside, "file");
+    const { parent: resource } = v(Node, "node");
+
+    return r
+      .match(FileOutside, { package: pkg, path, start, target, targetDigest })
+      .match(Node, { package: pkg, parent: resource, path, start })
+      .find({ package: pkg, path, resource, target, targetDigest });
+  }),
+);
+
+/**
+ * The resources that list a file naming its own document, the manifest, by the resource's place.
+ */
+const ResourceFileDocument = derived(
+  "ResourceFileDocument",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start } = v(File, "file");
+    const { parent: resource } = v(Node, "node");
+
+    return r
+      .match(File, { package: pkg, path, scope: "document", start })
+      .match(Node, { package: pkg, parent: resource, path, start })
+      .find({ package: pkg, path, resource });
   }),
 );
 
@@ -180,26 +273,42 @@ export const SrcsetForm = derived(
  *   1.2, §6.11.5 B ii).
  */
 export const packageOverlayLawsByName = {
-  "Dependency target": [
+  "Dependency target": declared("Dependency target", [
     contained(on(Dependency, "package", "start"), on(DependencyResolved, "package", "start")),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     check("E1_derived", SrcsetForm, (s) =>
       s.eq(s.lexical, Text.concat(Type.base(s.tokenText), Type.base(s.trail))),
     ),
-  ],
-  "File listed": [
+  ]),
+  "File listed": declared("File listed", [
     contained(on(listedEntries, "package", "path"), on(EntryFileTarget, "package", "target")),
-  ],
-  "Href listed": [
+  ]),
+  "Href listed": declared("Href listed", [
     contained(
-      on(ResourceHref, "package", "path", "start", "scope", "target"),
-      on(ResourceFileTarget, "package", "path", "resource", "scope", "target"),
+      on(ResourceHrefPath, "package", "path", "start", "target"),
+      on(ResourceFilePath, "package", "path", "resource", "target"),
     ),
-  ],
-  "Self dependency": [
+    contained(
+      on(ResourceHrefOutside, "package", "path", "start", "targetDigest", "target"),
+      on(ResourceFileOutside, "package", "path", "resource", "targetDigest", "target"),
+    ),
+    contained(
+      on(
+        select(ResourceHref, (h) => h.eq(h.scope, "document")),
+        "package",
+        "path",
+        "start",
+      ),
+      on(ResourceFileDocument, "package", "path", "resource"),
+    ),
+  ]),
+  "Key text bound": declared("Key text bound", [
+    check("Key_text_bound", ManifestIdText, (t) => t.le(Text.octetLength(t.text), xmlIdBytes)),
+  ]),
+  "Self dependency": declared("Self dependency", [
     check("Self_dependency", DependencyResolved, (d) => d.ne(d.target, d.resource)),
-  ],
+  ]),
 } as const;
 
 /**
@@ -209,7 +318,10 @@ export const packageOverlayRelations = [
   Dependency,
   DependencyResolved,
   EntryFileTarget,
-  ResourceFileTarget,
+  ManifestIdText,
+  ResourceFileDocument,
+  ResourceFileOutside,
+  ResourceFilePath,
   SrcsetForm,
 ] as const;
 

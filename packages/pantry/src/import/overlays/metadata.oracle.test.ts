@@ -654,7 +654,7 @@ describe("import/overlays/metadata.ts, the manifest's resources", () => {
       // its one manifest's, so a `cp:resource` of any other document, a record file's included,
       // names no resource of the package. Sterling's 05cdedfa case, restated: our model holds no
       // `LomResource` (660a9d64). A record names the document it describes through `namingRecords`
-      // (`#pantry/qti/queries.ts`), over the `ResourceHref` rows that the package overlay writes
+      // (`#pantry/qti/queries.ts`), over the `ResourceHrefPath` rows that the package overlay writes
       // from the manifest alone (`#pantry/import/overlays/index.ts`), so the metadata overlay writes
       // no row of a resource in either document.
       // Bound: R-O3s, its manifest listing two resources and its record file a `cp:manifest` root

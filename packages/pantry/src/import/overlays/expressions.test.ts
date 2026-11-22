@@ -1247,7 +1247,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
       "types a base value by the base its base-type spells, and the schema's laws over the import's rows refuse one that spells none under its value domain alone",
       () =>
         // Oracle: the specification's verdict of each case by hand (`base-value-cases.ts`), the
-        // information model's BaseTypeEnum (§8.13), a preserve `xs:string` enumeration, so a form
+        // information model's BaseTypeEnum (§8.14), a preserve `xs:string` enumeration, so a form
         // that spells no base is AL1's lexical half's alone ("value domain", rule
         // attribute-lexical), against the schema's laws over the import's rows: the host judge's,
         // the declaration queries' and the expression laws over a query as `breachesOf` restates

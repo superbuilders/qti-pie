@@ -22,16 +22,17 @@
  * The importer writes every member and property it reads, and the database judges them. Which rows
  * a value has is the JSON's grammar, and no grizzle term derives rows from a text (no JSON type, no
  * scalar term that splits a text), so the importer reads it once, before the database, as it reads
- * a document's XML. Every text a law compares is of any length, a key, a containment's target and a
- * lookup holding it by its image (`#pantry/qti/limits.ts`).
+ * a document's XML. Every text a law compares is of its type's bound in a key
+ * (`#pantry/qti/limits.ts`), so a key, a containment's target and a lookup hold it as itself.
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/data-ssml_infobind/imsqtiv3p0_datassml_v1p0_InfoBind.html#JSOND | IMS Data-SSML 1.0, 3.4 Description of the JSON Schema}
  */
 import { check, contained, natural, on, relation, select, Text } from "@bjornpagen/grizzle";
 import { Attribute } from "#pantry/qti/attributes.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName, SsmlMemberText } from "#pantry/qti/limits.ts";
 import { dataSsmlMembers } from "#pantry/vocab/data-ssml.ts";
 import { anyText } from "#pantry/grammar/install.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * A text with no tab, line feed or carriage return: an `xs:normalizedString`'s value.
@@ -54,7 +55,7 @@ export const DataSsml = relation(
  */
 export const DataSsmlMember = relation(
   "DataSsmlMember",
-  { at: natural, member: anyText, package: PackageName, path: EntryPath, start: natural },
+  { at: natural, member: SsmlMemberText, package: PackageName, path: EntryPath, start: natural },
   ["package", "path", "start", "at"],
 );
 
@@ -68,8 +69,8 @@ export const DataSsmlProperty = relation(
   {
     at: natural,
     member: natural,
-    memberName: anyText,
-    name: anyText,
+    memberName: SsmlMemberText,
+    name: SsmlMemberText,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -124,7 +125,7 @@ const { enumeratedProperties, normalizedProperties } = (() => {
  * with spaces written as underscores.
  */
 export const dataSsmlLawsByName = {
-  "Data SSML": [
+  "Data SSML": declared("Data SSML", [
     contained(
       on(dataSsmlAttributes, "package", "path", "start"),
       on(DataSsml, "package", "path", "start"),
@@ -149,8 +150,8 @@ export const dataSsmlLawsByName = {
         ),
       ),
     ),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     contained(
       on(DataSsml, "package", "path", "start"),
       on(dataSsmlAttributes, "package", "path", "start"),
@@ -163,7 +164,7 @@ export const dataSsmlLawsByName = {
       on(DataSsmlProperty, "package", "path", "start", "member", "memberName"),
       on(DataSsmlMember, "package", "path", "start", "at", "member"),
     ),
-  ],
+  ]),
 } as const;
 
 /**

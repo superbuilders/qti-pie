@@ -78,7 +78,6 @@ import type { RowScalars } from "@bjornpagen/grizzle";
 import { Array as Arr, Option } from "effect";
 import { ncNamePattern } from "#pantry/grammar/domains.ts";
 import {
-  anyText,
   AttributeName,
   BaseType,
   builtInBaseTypes,
@@ -107,7 +106,7 @@ import {
   ValueCardinalityBit,
   ValueCardinalityOf,
 } from "#pantry/qti/expression-types.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, LiteralText, PackageName, QtiIdentifier } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { spacePattern } from "#pantry/qti/token-list.ts";
 import {
@@ -118,6 +117,7 @@ import {
   valueBaseOf,
   valueCardinalityOf,
 } from "#pantry/vocab/terms/expression-types.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * What a reference's lexical form holds around the name it spells: XML whitespace `S`, possibly
@@ -215,7 +215,7 @@ export const VariableRef = relation(
     after: Affix,
     attribute: closedId(AttributeName),
     before: Affix,
-    identifier: anyText,
+    identifier: QtiIdentifier,
     language: closedId(Language),
     package: PackageName,
     path: EntryPath,
@@ -258,7 +258,7 @@ export const PlacedVariableRef = relation(
     attribute: closedId(AttributeName),
     baseType: closedId(ValueBase),
     cardinality: closedId(ValueCardinality),
-    identifier: anyText,
+    identifier: QtiIdentifier,
     instance: natural,
     package: PackageName,
     path: EntryPath,
@@ -282,7 +282,7 @@ export const Literal = relation(
     package: PackageName,
     path: EntryPath,
     start: natural,
-    text: anyText,
+    text: LiteralText,
   },
   ["package", "path", "start"],
 );
@@ -300,7 +300,7 @@ export const LiteralTyped = relation.generated(
     package: PackageName,
     path: EntryPath,
     start: natural,
-    text: anyText,
+    text: LiteralText,
     typeCode: closedId(BaseType),
   },
   ["package", "path", "start"],
@@ -537,7 +537,7 @@ export const builtInResponses = builtIns.filter(
  * over the derived `OperandOf` (`#pantry/qti/overlay-queries/expression.ts`).
  */
 export const expressionLawsByName = {
-  "E1 derived": [
+  "E1 derived": declared("E1 derived", [
     // Expression: one for every expression element, at its node. Its kind, parent and parent's
     // kind are its node's: the rules that read them are over `ExpressionNode`.
     contained(
@@ -604,13 +604,13 @@ export const expressionLawsByName = {
       on(LiteralTyped, "package", "path", "start", "text", "baseType"),
       on(Literal, "package", "path", "start", "text", "baseType"),
     ),
-  ],
-  "Literal lexical": [
+  ]),
+  "Literal lexical": declared("Literal lexical", [
     check("Literal_lexical", LiteralTyped, (l) =>
       Text.matches(l.text, BaseTypePattern.at("pattern", l.typeCode)),
     ),
-  ],
-  "Reference type": [
+  ]),
+  "Reference type": declared("Reference type", [
     check("Reference_type", PlacedVariableRef, (v) =>
       v.or(
         v.eq(v.attribute, "identifier"),
@@ -625,7 +625,7 @@ export const expressionLawsByName = {
         ),
       ),
     ),
-  ],
+  ]),
 } as const;
 
 /**

@@ -77,7 +77,6 @@ import {
 import type { RowScalars } from "@bjornpagen/grizzle";
 import type { Kind } from "#pantry/grammar/compose.ts";
 import {
-  anyText,
   AttributeName,
   Flag,
   Governor,
@@ -90,7 +89,7 @@ import {
 import { attributesOf } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
 import { namePattern } from "#pantry/qti/declarations.ts";
-import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, KeyMatchedText, PackageName, QtiIdentifier } from "#pantry/qti/limits.ts";
 import { Node, nodeContext } from "#pantry/qti/node.ts";
 import { Entry, hrefPaths, Reference } from "#pantry/qti/package.ts";
 import {
@@ -103,6 +102,7 @@ import {
   splicingParents,
   stimulusRefKind,
 } from "#pantry/vocab/terms/tests.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * An assembled document, keyed by its `(package, path)`, its `Document`'s key: the counts of its
@@ -146,7 +146,7 @@ export const AssembledDocument = relation(
  */
 export const Named = relation(
   "Named",
-  { identifier: anyText, package: PackageName, path: EntryPath, start: natural },
+  { identifier: QtiIdentifier, package: PackageName, path: EntryPath, start: natural },
   ["package", "path", "start"],
 );
 
@@ -328,7 +328,7 @@ export const Instance = relation(
  */
 export const StimulusRef = relation(
   "StimulusRef",
-  { identifier: anyText, package: PackageName, path: EntryPath, start: natural },
+  { identifier: QtiIdentifier, package: PackageName, path: EntryPath, start: natural },
   ["package", "path", "start"],
 );
 
@@ -385,14 +385,14 @@ export const NumberedReading = relation(
   {
     assembly: EntryPath,
     attribute: closedId(AttributeName),
-    number: matchedText,
+    number: KeyMatchedText,
     package: PackageName,
     path: EntryPath,
     scope: natural,
     scopeInstance: natural,
     scopePath: EntryPath,
     start: natural,
-    variable: matchedText,
+    variable: QtiIdentifier,
   },
   ["package", "assembly", "path", "start", "attribute", "scopeInstance", "scope", "number"],
 );
@@ -419,7 +419,7 @@ export const LinkReading = relation(
     scopeInstance: natural,
     scopePath: EntryPath,
     start: natural,
-    variable: matchedText,
+    variable: QtiIdentifier,
   },
   ["package", "assembly", "path", "start", "attribute", "scopeInstance", "scope"],
 );
@@ -730,7 +730,7 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
  * or not (reading 147).
  */
 export const testLawsByName = {
-  "E1 derived": [
+  "E1 derived": declared("E1 derived", [
     siteTargetFamily,
     contextFold,
     check("E1_derived", Inclusion, (i) =>
@@ -791,13 +791,15 @@ export const testLawsByName = {
         ),
       ),
     ),
-  ],
-  "File exists": [
+  ]),
+  "File exists": declared("File exists", [
     check("File_exists", SitePath, (s) => s.eq(s.entry, true)),
     contained(on(entryPaths, "package", "target"), on(Entry, "package", "path")),
-  ],
-  "Include root": [check("Include_root", Inclusion, (i) => i.or(standsFor(i), standsSplit(i)))],
-  "Include target": [
+  ]),
+  "Include root": declared("Include root", [
+    check("Include_root", Inclusion, (i) => i.or(standsFor(i), standsSplit(i))),
+  ]),
+  "Include target": declared("Include target", [
     contained(
       on(includeSites, "package", "path", "start", "kind"),
       on(SitePath, "package", "path", "start", "kind"),
@@ -822,8 +824,8 @@ export const testLawsByName = {
         "contextNearestKind",
       ),
     ),
-  ],
-  "Inclusion cycle": [
+  ]),
+  "Inclusion cycle": declared("Inclusion cycle", [
     instanceTree,
     contained(
       on(instanceMembers, "package", "assembly", "parent", "assemblyKind", "siteDocument"),
@@ -844,8 +846,8 @@ export const testLawsByName = {
     ),
     key(on(instanceRoots, "package", "document")),
     documentInstanceFamily,
-  ],
-  "Item ref target": [
+  ]),
+  "Item ref target": declared("Item ref target", [
     contained(
       on(ItemRefHref, "package", "path", "start"),
       on(nodesOf(itemRefKind), "package", "path", "start"),
@@ -859,8 +861,8 @@ export const testLawsByName = {
       on(hrefPaths, "package", "path", "start", "target"),
     ),
     contained(on(ItemRefDocument, "package", "target"), on(itemDocuments, "package", "path")),
-  ],
-  "Section ref target": [
+  ]),
+  "Section ref target": declared("Section ref target", [
     contained(
       on(sectionRefSites, "package", "path", "start", "kind"),
       on(SitePath, "package", "path", "start", "kind"),
@@ -872,10 +874,14 @@ export const testLawsByName = {
     check("Section_ref_target", SiteTarget, (s) =>
       s.or(s.ne(s.kind, sectionRefKind), s.eq(s.targetRoot, sectionKind)),
     ),
-  ],
-  "Stimulus ref key": [key(on(StimulusRef, "package", "path", "identifier"))],
-  "Structure identifier": [key(on(Named, "package", "path", "identifier"))],
-  "Test overlay": [
+  ]),
+  "Stimulus ref key": declared("Stimulus ref key", [
+    key(on(StimulusRef, "package", "path", "identifier")),
+  ]),
+  "Structure identifier": declared("Structure identifier", [
+    key(on(Named, "package", "path", "identifier")),
+  ]),
+  "Test overlay": declared("Test overlay", [
     contained(
       on(
         select(Document, (d) => d.in(d.rootKind, assembledRoots)),
@@ -969,7 +975,7 @@ export const testLawsByName = {
       on(StimulusRef, "package", "path", "start"),
     ),
     contained(on(assembledDocuments, "package", "path"), on(AssembledDocument, "package", "path")),
-  ],
+  ]),
 } as const;
 
 /**

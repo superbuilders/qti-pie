@@ -5,7 +5,9 @@
  * `srcsetCandidatesOf` a `srcset`. Each piece is a member row of an ordered family of its owner,
  * in the form's order. The members' `piece`s concatenate, by grizzle's `Monoid.concat` fold, to
  * the owner's `tokenText`, and the owner's own law holds that text to its form. So a wrong split is
- * refused, never stored.
+ * refused, never stored. The running texts and the end are of any length, so each rides the
+ * family's axes by its SHA-256 digest, a generated field beside it ({@link piecesDigests},
+ * {@link tokenTextDigest}).
  *
  * A whitespace list's token (`Idref`, `TextIdref`, `HeaderToken` and `ToleranceToken`) is a run of
  * no XML whitespace, each but the first after whitespace ({@link whitespaceTokens}). That check
@@ -36,6 +38,7 @@ import type {
 import {
   accumulated,
   check,
+  Crypto,
   drawn,
   fin,
   fold,
@@ -45,10 +48,11 @@ import {
   on,
   ordered,
   relation,
+  sha256,
   str,
   Text,
 } from "@bjornpagen/grizzle";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
 import { anyText } from "#pantry/grammar/install.ts";
 
 /**
@@ -80,10 +84,8 @@ export const tokenPattern = Text.pattern("^[^\\t\\n\\r ]+$");
  * A whitespace list's token's own fields, beside its owner's key: `before`, `token` and `after`,
  * the host's split, with the whitespace written before the token and, for the last, after it;
  * `at`, its drawn place; and `piecesWas` and `piecesAfter`, the concatenation before and after it.
- * `token` and the running values are of any length: the running values ride the family's
- * predecessor and last axes, which hold a text their entry could outgrow by its image (grizzle's
- * README: a `Monoid.concat` fold's accumulators ride its axes by their images), so no list is
- * refused for its length.
+ * The running values are of any length: they ride the family's predecessor and last axes by their
+ * digests ({@link piecesDigests}), so no list is refused for its length.
  */
 export const tokenFields = {
   after: Space,
@@ -91,7 +93,7 @@ export const tokenFields = {
   before: Space,
   piecesAfter: accumulated(anyText, ""),
   piecesWas: accumulated(anyText, ""),
-  token: anyText,
+  token: XmlId,
 } as const;
 
 /**
@@ -101,23 +103,62 @@ export const tokenFields = {
 type TokenRow = RowScalars<Relation<string, typeof tokenFields, readonly ["at"]>>;
 
 /**
- * A token's piece: its token with the whitespace written around it, `before ‖ token ‖ after`.
+ * A list piece's running texts' SHA-256 digests, `piecesWasDigest` and `piecesAfterDigest`, which
+ * PostgreSQL stores beside them: the concatenation's fold names them where the texts stand, so the
+ * family's predecessor axis pairs each piece's `piecesWasDigest` with its predecessor's
+ * `piecesAfterDigest` and its last axis the owner's {@link tokenTextDigest} with its last piece's
+ * `piecesAfterDigest`, a text of any length riding the axes as 32 bytes (grizzle's README,
+ * "Families": a running text of any length rides the axes by its digest).
+ *
+ * @param t - The piece's row.
+ * @param t.piecesAfter - The concatenation after it.
+ * @param t.piecesWas - The concatenation before it.
+ * @returns Its generated digests.
+ */
+export const piecesDigests = (t: Pick<TokenRow, "piecesAfter" | "piecesWas">) => ({
+  piecesAfterDigest: generated(sha256, Crypto.sha256(t.piecesAfter)),
+  piecesWasDigest: generated(sha256, Crypto.sha256(t.piecesWas)),
+});
+
+/**
+ * A list owner's row, as a generated field reads it: the end of its pieces' concatenation, whatever
+ * its owner's key.
+ */
+type OwnerRow = RowScalars<
+  Relation<string, { readonly tokenText: typeof tokenFields.piecesWas }, readonly ["tokenText"]>
+>;
+
+/**
+ * A list owner's end's SHA-256 digest, `tokenTextDigest`, which the concatenation's fold names
+ * where the end stands, beside its pieces' {@link piecesDigests}.
+ *
+ * @param o - The owner's row.
+ * @param o.tokenText - The end of its pieces' concatenation.
+ * @returns Its generated digest.
+ */
+export const tokenTextDigest = (o: OwnerRow) => ({
+  tokenTextDigest: generated(sha256, Crypto.sha256(o.tokenText)),
+});
+
+/**
+ * A token's generated fields: its piece, its token with the whitespace written around it, `before ‖
+ * token ‖ after`, and its running texts' {@link piecesDigests}.
  *
  * @param t - The token's row.
- * @param t.after - The whitespace after it.
- * @param t.before - The whitespace before it.
- * @param t.token - The token.
- * @returns Its generated `piece`.
+ * @returns Its generated `piece`, `piecesAfterDigest` and `piecesWasDigest`.
  */
-export const tokenPiece = (t: Pick<TokenRow, "after" | "before" | "token">) => ({
+export const tokenPiece = (
+  t: Pick<TokenRow, "after" | "before" | "piecesAfter" | "piecesWas" | "token">,
+) => ({
   piece: generated(anyText, Text.concat(Text.concat(t.before, t.token), t.after)),
+  ...piecesDigests(t),
 });
 
 /**
  * Construct a whitespace list's token relation whose owner is keyed by its element, `(package,
  * path, start)`: {@link tokenFields} beside the owner's key, in the order of their names, which is
  * the order of its columns. Its `piece` is generated, `before ‖ token ‖ after`, the concatenation's
- * step, any text.
+ * step, any text, and so are its running texts' digests ({@link tokenPiece}).
  *
  * @param name - The relation's name.
  * @returns The relation, keyed by its owner's key and its place.
@@ -142,7 +183,7 @@ export const listTokens = <const Name extends string>(name: RelationName<Name>) 
 
 /**
  * A relation of a list's pieces whose owner is keyed by its element: each piece's place, its
- * generated `piece` and the concatenation's running values.
+ * generated `piece`, the concatenation's running values and their generated digests.
  */
 type ListPieces = Relation<
   string,
@@ -152,15 +193,17 @@ type ListPieces = Relation<
     readonly path: typeof EntryPath;
     readonly piece: GeneratedField<typeof anyText>;
     readonly piecesAfter: typeof tokenFields.piecesAfter;
+    readonly piecesAfterDigest: GeneratedField<typeof sha256>;
     readonly piecesWas: typeof tokenFields.piecesWas;
+    readonly piecesWasDigest: GeneratedField<typeof sha256>;
     readonly start: typeof natural;
   },
   readonly ["package", "path", "start", "at"]
 >;
 
 /**
- * A list's owner keyed by its element: its count of pieces, `tokens`, and the end of their
- * concatenation, `tokenText`.
+ * A list's owner keyed by its element: its count of pieces, `tokens`, the end of their
+ * concatenation, `tokenText`, and its generated digest, `tokenTextDigest`.
  */
 type ListOwner = Relation<
   string,
@@ -169,6 +212,7 @@ type ListOwner = Relation<
     readonly path: typeof EntryPath;
     readonly start: typeof natural;
     readonly tokenText: typeof tokenFields.piecesWas;
+    readonly tokenTextDigest: GeneratedField<typeof sha256>;
     readonly tokens: typeof tokenFields.at;
   },
   readonly ["package", "path", "start"]
@@ -198,7 +242,8 @@ export const whitespaceTokens = <T extends WhitespaceTokens>(tokens: T) =>
 
 /**
  * State a list whose owner is keyed by its element: its pieces an ordered family of the owner,
- * counted by `tokens`; their concatenation folded into `tokenText`; and the check on each piece,
+ * counted by `tokens`; their concatenation folded into `tokenText`, its running texts and end
+ * named by their digests; and the check on each piece,
  * {@link whitespaceTokens} for a whitespace list, or the list's own grammar's.
  *
  * @param pieces - The list's piece relation.
@@ -223,8 +268,8 @@ export const tokenList = <
     fold(
       family,
       Monoid.concat,
-      on(pieces, "package", "path", "start", "piece", "piecesWas", "piecesAfter"),
-      on(owner, "package", "path", "start", "tokenText"),
+      on(pieces, "package", "path", "start", "piece", "piecesWasDigest", "piecesAfterDigest"),
+      on(owner, "package", "path", "start", "tokenTextDigest"),
     ),
     pieceCheck,
   ] as const;

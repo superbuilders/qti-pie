@@ -506,7 +506,8 @@ const nodesOf = (
  *
  * Each overlay holds one row per element it describes, keyed by the element, `(package, path,
  * start)`, and each projection one row per value, so a value an element repeats is one row. A
- * copied text is of any length, a key holding it by its image (`#pantry/qti/limits.ts`).
+ * copied text is written whatever its length, and its key text type's bound
+ * (`#pantry/qti/limits.ts`) is the database's to hold it to.
  *
  * @param view - The document's view, whose tree and rows it reads.
  * @param ids - Where it stands in its package.

@@ -31,14 +31,14 @@ import {
   tree,
   Type,
 } from "@bjornpagen/grizzle";
-import type { Law, LawSide, RegexText } from "@bjornpagen/grizzle";
+import type { Law, LawSide, RegexText, StatedLaw } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
 import { array, element } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Array as Arr, Duration, Effect, Formatter, Option, pipe, Schema } from "effect";
+import { Array as Arr, Duration, Effect, Formatter, Option, pipe, Schema, Struct } from "effect";
 import { ReaderRefusal, WellFormednessError } from "@qti-pie/crust/errors.ts";
 import { checkNameOf, refusalOf } from "#pantry/import/refusal.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
@@ -58,6 +58,7 @@ import {
   keyNames,
   patternNameIn,
   patternTypeOf,
+  plantedLaw,
   schemaLawNameOf,
   schemaLawsOf,
   schemaRuleOfLaw,
@@ -646,9 +647,15 @@ const plannedAxes = nonEmpty("the planned axes", [
 const crossTier = nonEmpty("the cross-tier laws", [
   ...statedNamed("Binding declared", containedInto("Declaration")),
   ...statedNamed("Choice bounds"),
-  { kind: "check", name: checkNameOf("MathML arity"), relation: "Node" } satisfies Law,
+  plantedLaw(
+    { kind: "check", name: checkNameOf("MathML arity"), relation: "Node" },
+    "a check of the MathML tier, named by its own name",
+  ),
   ...statedNamed("AL1 owner", containedFrom("Attribute", "package", "path", "start", "kind")),
-  { kind: "check", name: checkNameOf("N5 Follow"), relation: "Node" } satisfies Law,
+  plantedLaw(
+    { kind: "check", name: checkNameOf("N5 Follow"), relation: "Node" },
+    "a check of the content-order tier, named by its own name",
+  ),
   ...statedNamed("N7 last slot"),
   ...statedNamed("N2 tree"),
   ...statedNamed("E1 derived", foldOver("Node", "children")),
@@ -722,11 +729,10 @@ describe("the merged axes and the laws no row states", () => {
   it("names no rule for laws no row states, and still carries each law as the outcome names it", () => {
     // Oracle: the outcome itself, read back field by field: its decision, the law's display text
     // with no name or rule, no source, the witness's kind, and no rule.
-    const law: Law = {
-      from: sideOf("Nowhere", "x"),
-      kind: "contained",
-      to: sideOf("Node", "path", "start"),
-    };
+    const law = plantedLaw(
+      { from: sideOf("Nowhere", "x"), kind: "contained", to: sideOf("Node", "path", "start") },
+      "a containment from a relation Qti does not hold",
+    );
     const refused = refusalOf({ kind: "every", laws: [refusedOf(law)] }, { kind: "unreported" });
 
     assert.deepStrictEqual(refused.rules, []);
@@ -754,11 +760,23 @@ describe("the merged axes and the laws no row states", () => {
     // states (AL1's admission), a check it does not (one a level an install stacks names), a primary key,
     // a contract and a generated field's law, each refused by each kind of object; exhausted.
     const laws: readonly Law[] = [
-      { kind: "check", name: checkNameOf("AL1 admission"), relation: "Attribute" },
-      { kind: "check", name: "Planted_level_check", relation: "Attribute" },
-      { fields: ["identifier"], kind: "primaryKey", relation: "Package" },
-      { contract: "natural", kind: "contract" },
-      { field: "value", kind: "generated", relation: "DocumentLang" },
+      plantedLaw(
+        { kind: "check", name: checkNameOf("AL1 admission"), relation: "Attribute" },
+        "a check Qti states, named by its own name",
+      ),
+      plantedLaw(
+        { kind: "check", name: "Planted_level_check", relation: "Attribute" },
+        "a check a level an install stacks names",
+      ),
+      plantedLaw(
+        { fields: ["identifier"], kind: "primaryKey", relation: "Package" },
+        "a primary key, as a refusal by its index names it",
+      ),
+      plantedLaw({ contract: "natural", kind: "contract" }, "a contract, as its domain names it"),
+      plantedLaw(
+        { field: "value", kind: "generated", relation: "DocumentLang" },
+        "a generated field's law, as its NOT NULL names it",
+      ),
     ];
     const objects = [
       [{ kind: "constraint", name: "planted_constraint" }, Option.some("planted_constraint")],
@@ -1356,7 +1374,7 @@ describe("the refusals made before the database", () => {
  * @param field - The field.
  * @returns Its law.
  */
-const clubLaw = (field: string): Extract<Law, { readonly kind: "pattern" }> => ({
+const clubLaw = (field: string): Extract<StatedLaw, { readonly kind: "pattern" }> => ({
   field,
   kind: "pattern",
   patterns: [{ flags: "u", source: "^[a-z]*$" }],
@@ -1412,7 +1430,10 @@ describe("the pattern laws, one per field", () => {
     const club = schema("Club", [Club], []);
     const laws = schemaLawsOf(club).flatMap((law) => (law.kind === "pattern" ? [law] : []));
     const namesBy = (rows: readonly (readonly [RegexText<string>, LawName])[]) =>
-      laws.map((law) => [law, patternNameIn(club.relations, new Map(rows), law)] as const);
+      laws.map(
+        (law) =>
+          [Struct.omit(law, ["entry"]), patternNameIn(club.relations, new Map(rows), law)] as const,
+      );
 
     assert.deepStrictEqual(
       namesBy([
@@ -1590,10 +1611,17 @@ describe("the census of the composed Qti schema", () => {
       (r) => ({ value: generated(pg.bigint, Type.cast(r.form, pg.bigint)) }),
     );
     const raised = schemaLawsOf(schema("Planted", [Planted], [])).filter(
-      (law) => law.kind === "generated",
+      (law): law is Extract<Law, { readonly kind: "generated" }> => law.kind === "generated",
     );
 
-    assert.deepStrictEqual(raised, [{ field: "value", kind: "generated", relation: "Planted" }]);
+    assert.deepStrictEqual(
+      raised.map((law) => Struct.omit(law, ["entry"])),
+      [{ field: "value", kind: "generated", relation: "Planted" }],
+    );
+    assert.deepStrictEqual(
+      raised.map(({ entry }) => entry.kind),
+      ["derived"],
+    );
     assert.deepStrictEqual(raised.map(schemaLawNameOf), [Option.none()]);
   });
 });

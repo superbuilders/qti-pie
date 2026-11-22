@@ -57,6 +57,7 @@ import { contained, key, natural, on, relation, select } from "@bjornpagen/grizz
 import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
 import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * A map entry's overlay, keyed by its `qti-map-entry` element's place: its `map-key` as written.
@@ -154,8 +155,10 @@ const lookupAttributes = select(Attribute, (a) =>
  * a query (`#pantry/qti/overlay-queries/declaration.ts`), stated there under the same names.
  */
 export const mappingLawsByName = {
-  "DocumentId key": [key(on(lookupAttributes, "package", "path", "start"))],
-  "Mapping overlay": [
+  "DocumentId key": declared("DocumentId key", [
+    key(on(lookupAttributes, "package", "path", "start")),
+  ]),
+  "Mapping overlay": declared("Mapping overlay", [
     contained(on(MapKey, "package", "path", "start"), on(mapEntries, "package", "path", "start")),
     contained(
       on(mapKeyAttributes, "package", "path", "start"),
@@ -169,7 +172,7 @@ export const mappingLawsByName = {
       on(LookupValue, "package", "path", "start"),
       on(lookupAttributes, "package", "path", "start"),
     ),
-  ],
+  ]),
 } as const;
 
 /**

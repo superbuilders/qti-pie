@@ -23,6 +23,7 @@ import {
 import { QtiBase } from "#pantry/qti/base.ts";
 import { OpenElementName, OpenElementType } from "#pantry/qti/chardata.ts";
 import { Node, typeGovernorOf } from "#pantry/qti/node.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * Each foreign element's name, its namespace and its expanded spelling, beside its node's kind,
@@ -113,10 +114,10 @@ const OpenTypeUnderForeign = derived(
  *   there.
  */
 export const chardataOverlayLawsByName = {
-  "E1 derived": [
+  "E1 derived": declared("E1 derived", [
     check("E1_derived", OpenTypeNode, (t) => t.eq(t.governor, typeGovernorOf(t.kind, t.type))),
-  ],
-  "Foreign element class": [
+  ]),
+  "Foreign element class": declared("Foreign element class", [
     check("Foreign_element_class", OpenNameNode, (o) => {
       const parentNamespace = KindNamespace.at("namespace", o.parentKind);
 
@@ -150,13 +151,13 @@ export const chardataOverlayLawsByName = {
         ),
       ),
     ),
-  ],
-  "OpenElementName canonical": [
+  ]),
+  "OpenElementName canonical": declared("OpenElementName canonical", [
     check("OpenElementName_canonical", OpenNameNode, (o) =>
       o.not(Text.matches(o.expanded, KindByNameUnder.at("names", o.parentKind))),
     ),
-  ],
-  "Strictly held": [
+  ]),
+  "Strictly held": declared("Strictly held", [
     contained(
       on(
         select(OpenNameNode, (o) =>
@@ -181,8 +182,8 @@ export const chardataOverlayLawsByName = {
       ),
       on(OpenElementType, "package", "path", "start"),
     ),
-  ],
-  "XsiType available": [
+  ]),
+  "XsiType available": declared("XsiType available", [
     check("XsiType_available", OpenTypeNode, (t) => {
       const parentNamespace = KindNamespace.at("namespace", t.parentKind);
 
@@ -198,7 +199,7 @@ export const chardataOverlayLawsByName = {
         t.not(t.in(t.parentNamespace, vocabularyNamespaceNames)),
       ),
     ),
-  ],
+  ]),
 } as const;
 
 /**

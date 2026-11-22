@@ -123,9 +123,10 @@ const identifiers: readonly { readonly attribute: string; readonly naming: Namin
 ];
 
 /**
- * A map key one byte past what a B-tree entry holds as itself, grizzle's `keyTextBytes` beside no
- * other field: a key holds it by its image. A map key is a `matchedText`, whose bound,
- * PostgreSQL's regex limit (`matchedTextBytes`, a quarter of a gigabyte), no drawn key approaches.
+ * A map key one byte past what a B-tree entry holds of a text as itself, grizzle's `keyTextBytes`
+ * beside no other field, so no key could hold it as itself. A map key is a `matchedText`, which no
+ * key holds, bounded only by PostgreSQL's regex limit (`matchedTextBytes`, a quarter of a
+ * gigabyte), which no drawn key approaches, so the import admits it.
  */
 const longKey = "q".repeat(keyTextBytes([]) + 1);
 

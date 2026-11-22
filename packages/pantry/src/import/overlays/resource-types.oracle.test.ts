@@ -1,8 +1,8 @@
 /**
  * A resource's type as an optional part (the boundary class, option B): the host reads a type code
  * exactly where the type spells a handle (`resourceTypesOf`, the query `resourceTypes`' reading,
- * which no row stores), so the typed hrefs (`typedHrefsOf`, the query `TypedHref`'s rows) are its
- * href's, and their (target, type) pairs are the case's; the law
+ * which no row stores), so the typed paths (`typedPathsOf`, the query `TypedPath`'s rows) are its
+ * href's, every case's href naming an entry, and their (target, type) pairs are the case's; the law
  * oracle's verdict and the laws it finds broken over each case of reading 93's box are the stated
  * ones, the import's rows, judged on the host, are refused under the same rule, or by nothing
  * where the case breaks a rule over the query, which the host leaves to the database, and a type
@@ -18,7 +18,7 @@ import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Effect, Formatter, Option, Result } from "effect";
 import { composed } from "#pantry/grammar/compose.ts";
-import { resourceTypesOf, typedHrefsOf } from "#pantry/import/overlays/package.ts";
+import { resourceTypesOf, typedPathsOf } from "#pantry/import/overlays/package.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import { materializeSpec, specOf } from "#pantry/test/fixtures.ts";
@@ -153,12 +153,12 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             const types = resourceTypesOf(manifest.view);
             assert.strictEqual(types.size, typed, "a type code a typed one");
 
-            const typedHrefs = typedHrefsOf(inputs, types);
-            assert.strictEqual(typedHrefs.length, typed, "a typed href a typed resource's href");
+            const typedPaths = typedPathsOf(inputs, types);
+            assert.strictEqual(typedPaths.length, typed, "a typed path a typed resource's href");
             assert.sameMembers(
-              [...new Set(typedHrefs.map(({ target, type }) => JSON.stringify([target, type])))],
+              [...new Set(typedPaths.map(({ target, type }) => JSON.stringify([target, type])))],
               named.map((pair) => JSON.stringify(pair)),
-              "the typed hrefs' (target, type) pairs",
+              "the typed paths' (target, type) pairs",
             );
           }),
         testTimeoutMs,
@@ -171,7 +171,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
         // Oracle: spec reading 162, the specification as a checker: of the types a path's resources
         // name, the document is the one its root bears out, so the other type's href breaks
         // Document entry and RootOfType holds, whichever resource is listed first. The href breaks
-        // Document entry's rule over the query `TypedHref` (`src/qti/queries.ts`), which the host's
+        // Document entry's rule over the query `TypedPath` (`src/qti/queries.ts`), which the host's
         // judge leaves to the database, so the import's rows judged on the host break nothing.
         // Bound: simple's item path listed again under each other type RootOfType maps, before the
         // item's resource and after it.

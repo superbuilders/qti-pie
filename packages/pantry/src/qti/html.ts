@@ -37,8 +37,9 @@
  * attributes (`idAttributes` of `#pantry/qti/identity.ts`), which the key over them holds to one
  * per element, and the way back meets them at the `th` kind ({@link thIdAttributes}). Every overlay
  * is keyed by its element, `(package, path, start)`, and names another element of its document by
- * its position. Every copied text that takes part in a cross-row equality is of any length, a key,
- * a containment's target and a lookup holding it by its image (`#pantry/qti/limits.ts`). Every
+ * its position. Every copied text that takes part in a cross-row equality is of its type's bound in
+ * a key (`#pantry/qti/limits.ts`), so a key, a containment's target and a lookup hold it as itself.
+ * Every
  * check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written as
  * underscores.
  *
@@ -49,25 +50,20 @@
  * @see {@link https://html.spec.whatwg.org/multipage/media.html#the-track-element | HTML, the track element}
  * @see {@link https://html.spec.whatwg.org/multipage/tables.html#attr-tdth-headers | HTML, the headers attribute}
  */
-import {
-  accumulated,
-  check,
-  contained,
-  drawn,
-  key,
-  mirrors,
-  natural,
-  on,
-  relation,
-  select,
-} from "@bjornpagen/grizzle";
+import { check, contained, key, mirrors, natural, on, relation, select } from "@bjornpagen/grizzle";
 import { Attribute, attributesOf, carries } from "#pantry/qti/attributes.ts";
 import { thIdAttributes } from "#pantry/qti/identity.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { listTokens, tokenList, whitespaceTokens } from "#pantry/qti/token-list.ts";
+import {
+  listTokens,
+  tokenFields,
+  tokenList,
+  tokenTextDigest,
+  whitespaceTokens,
+} from "#pantry/qti/token-list.ts";
 import { cellKinds } from "#pantry/vocab/terms/html.ts";
-import { anyText } from "#pantry/grammar/install.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * The kinds of the media elements, whose `source` children carry `src` (reading 124).
@@ -96,20 +92,22 @@ export const TableScope = relation(
  * - **the attribute's element:** `package`, `path` and `start`;
  * - **drawn:** `tokens`, its {@link HeaderToken} count;
  * - **accumulated:** `tokenText`, the end of its tokens' concatenation, which "E1 derived" holds to
- *   the attribute's lexical form where it stands (`#pantry/qti/overlay-queries/html.ts`).
+ *   the attribute's lexical form where it stands (`#pantry/qti/overlay-queries/html.ts`);
+ * - **generated:** `tokenTextDigest`, its digest, the fold's end on the family's last axis.
  *
  * Its table is its cell's {@link TableScope}, which "Table headers" reads through a query.
  */
-export const CellHeaders = relation(
+export const CellHeaders = relation.generated(
   "CellHeaders",
   {
     package: PackageName,
     path: EntryPath,
     start: natural,
-    tokenText: accumulated(anyText, ""),
-    tokens: drawn(natural),
+    tokenText: tokenFields.piecesWas,
+    tokens: tokenFields.at,
   },
   ["package", "path", "start"],
+  (c) => tokenTextDigest(c),
 );
 
 /**
@@ -134,7 +132,7 @@ export const HeaderToken = listTokens("HeaderToken");
 export const TableHeader = relation(
   "TableHeader",
   {
-    id: anyText,
+    id: XmlId,
     owner: natural,
     package: PackageName,
     path: EntryPath,
@@ -233,7 +231,7 @@ const headerIds = attributesOf("id", ["th"]);
  *   ("DocumentId key"), which an ID held twice in a document already breaks.
  */
 export const htmlLawsByName = {
-  "E1 derived": [
+  "E1 derived": declared("E1 derived", [
     contained(on(TableScope, "package", "path", "start"), on(Node, "package", "path", "start")),
     mirrors(
       on(headersAttributes, "package", "path", "start"),
@@ -257,11 +255,13 @@ export const htmlLawsByName = {
       on(TableHeader, "package", "path", "start"),
       on(TableScope, "package", "path", "start"),
     ),
-  ],
-  "Media source src": [mediaSourceSrc],
-  "Picture source srcset": [pictureSourceSrcset],
-  "Table headers": [key(on(HeaderToken, "package", "path", "start", "token"))],
-  "Track srclang": [defaultTrackSrclang, subtitleTrackSrclang],
+  ]),
+  "Media source src": declared("Media source src", [mediaSourceSrc]),
+  "Picture source srcset": declared("Picture source srcset", [pictureSourceSrcset]),
+  "Table headers": declared("Table headers", [
+    key(on(HeaderToken, "package", "path", "start", "token")),
+  ]),
+  "Track srclang": declared("Track srclang", [defaultTrackSrclang, subtitleTrackSrclang]),
 } as const;
 
 /**

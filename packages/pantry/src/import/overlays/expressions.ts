@@ -24,7 +24,7 @@ import { spelledBaseTypeOf, typedDeclarationOf } from "#pantry/import/overlays/d
 import { attributeValueOf, namedBy, valueAt } from "#pantry/import/names.ts";
 import { piecesOf } from "#pantry/import/pieces.ts";
 import { charactersIn } from "#pantry/import/overlays/characters.ts";
-import type { ReferenceRows, TypedHrefRow } from "#pantry/import/overlays/package.ts";
+import type { ReferenceRows, TypedPathRow } from "#pantry/import/overlays/package.ts";
 import { itemRefPathsOf } from "#pantry/import/overlays/tests.ts";
 import type { InstanceMember, InstanceRoot, TestIds } from "#pantry/import/overlays/tests.ts";
 import { governorOf, lexicalOf } from "#pantry/import/fold.ts";
@@ -923,11 +923,11 @@ export interface AssembledExpressionInput {
 
 /**
  * A resource of the package as an item ref's target reads it: the two fields of a row of the query
- * `TypedHref` that `ItemRefTarget` joins an item ref's href on, `target`, the path the resource's
- * href is compared by, and its type, as the package builder reads them on the host
- * (`#pantry/import/overlays/package.ts` `typedHrefsOf`).
+ * `TypedPath` that `ItemRefTarget` joins an item ref's href on, `target`, the entry path the
+ * resource's href names, and its type, as the package builder reads them on the host
+ * (`#pantry/import/overlays/package.ts` `typedPathsOf`).
  */
-export type NamedResource = Pick<TypedHrefRow, "target" | "type">;
+export type NamedResource = Pick<TypedPathRow, "target" | "type">;
 
 /**
  * The rows a package's documents build together, one keyed set per relation: what each item ref

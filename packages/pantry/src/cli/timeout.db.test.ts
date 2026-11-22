@@ -263,7 +263,7 @@ interface Held {
 /**
  * What a plain SQL read finds stored under `name`: none where `qti.package` has no row of it, else
  * the path of every entry `qti.entry` holds for it and the digest `qti.media` states for each media
- * entry.
+ * entry, its 32 octets written in lowercase hex to compare with Node's.
  *
  * @param client - The test's session.
  * @param name - The package's name.
@@ -278,7 +278,11 @@ const storedUnder = Effect.fn("test.timeout.storedUnder")(function* storedUnder(
   }
 
   const entries = yield* sql(client, "SELECT path FROM qti.entry WHERE package = $1", [name]);
-  const media = yield* sql(client, "SELECT path, digest FROM qti.media WHERE package = $1", [name]);
+  const media = yield* sql(
+    client,
+    "SELECT path, encode(digest, 'hex') AS digest FROM qti.media WHERE package = $1",
+    [name],
+  );
 
   return Option.some<Held>({
     media: new Map(media.map((row) => [row["path"] ?? "", row["digest"] ?? ""] as const)),

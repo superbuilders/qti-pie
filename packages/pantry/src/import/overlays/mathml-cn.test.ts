@@ -9,7 +9,6 @@
  * reading of `cn` (§4.2.1: the parts a `type` implies, separated by `sep`; §2.1.7: whitespace
  * around character data is collapsed), never computed by the builder's own code.
  */
-import { keyTextBytes } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import { rowsOf } from "#pantry/import/overlays/mathml-cn.ts";
@@ -26,7 +25,7 @@ import type {
   XdmText,
   XdmWhitespace,
 } from "#pantry/model/xdm.ts";
-import { utf8Length } from "#pantry/qti/limits.ts";
+import { copiedLexicalBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { ownViewOf } from "#pantry/import/fold.ts";
 
 /**
@@ -376,10 +375,12 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     assert.sameMembers(keysOf(rows.MathCn), [keyAt(2), keyAt(6)]);
   });
 
-  it("copies a type longer than any B-tree entry holds as itself unchanged, a key holding it by its image", () => {
-    // The builder restates the tree; `CnAttribute.lexical` is of any length (reading 2), so the
-    // database holds the copy by its image and no length refuses it.
-    const long = "t".repeat(keyTextBytes([]) + 1);
+  it("copies a type a byte past the bound a key holds it to unchanged, for the database to refuse", () => {
+    // The builder restates the tree whatever its length; `CnAttribute.lexical` is a
+    // `CopiedLexical`, which a key holds as itself, of at most `copiedLexicalBytes`
+    // (`#pantry/qti/limits.ts`), so the database refuses the copy under key-text-bound, a stated
+    // limit of the representation (reading 2 bounds no type's spelling).
+    const long = "t".repeat(copiedLexicalBytes + 1);
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -393,8 +394,8 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     assert.strictEqual(copied?.lexical, long);
     assert.isAbove(
       utf8Length(copied?.lexical ?? ""),
-      keyTextBytes([]),
-      "the copy is past what a B-tree entry holds as itself",
+      copiedLexicalBytes,
+      "the copy is past the bound a key holds it to",
     );
     assert.sameMembers(keysOf(rows.MathCn), []);
   });

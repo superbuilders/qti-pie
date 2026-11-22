@@ -24,6 +24,7 @@
 import { check, derived, Num, query, Type, v } from "@bjornpagen/grizzle";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * The quotation punctuation a `q`'s four ends are refused for: the ASCII double quote, the single
@@ -145,9 +146,9 @@ const QuotationEnd = derived(
  * a `q`'s ends is a quotation mark.
  */
 export const quotationOverlayLawsByName = {
-  "Quotation punctuation": [
+  "Quotation punctuation": declared("Quotation punctuation", [
     check("Quotation_punctuation", QuotationEnd, (e) => e.not(e.in(e.end, quotationMarks))),
-  ],
+  ]),
 } as const;
 
 /**

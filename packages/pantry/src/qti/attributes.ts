@@ -95,6 +95,7 @@ import {
   closedId,
   contained,
   counted,
+  Crypto,
   doubleText,
   drawn,
   fin,
@@ -107,6 +108,7 @@ import {
   ordered,
   relation,
   select,
+  sha256,
   str,
   Text,
 } from "@bjornpagen/grizzle";
@@ -119,6 +121,7 @@ import {
   AttributeModelOf,
   AttributeName,
   AttributeSlot,
+  Chars,
   CountedSlot,
   DoubleBound,
   Governor,
@@ -136,10 +139,11 @@ import { namingText, referenceIdentities } from "#pantry/grammar/domains.ts";
 import { openClasses } from "#pantry/grammar/kinds.ts";
 import { handlePrefixes } from "#pantry/model/xdm.ts";
 import { NamespacePrefix, OpenElementName } from "#pantry/qti/chardata.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
-import { Chars, holdsCheckedText, Node } from "#pantry/qti/node.ts";
+import { EntryPath, PackageName, UriText, xmlNameBytes } from "#pantry/qti/limits.ts";
+import { holdsCheckedText, Node } from "#pantry/qti/node.ts";
 import { tokenFields, tokenPiece, whitespaceTokens } from "#pantry/qti/token-list.ts";
 import { dataName } from "#pantry/vocab/open.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * A lexical form that names something once collapsed, an NCName with XML whitespace around it
@@ -173,15 +177,16 @@ const ncStart =
 const ncChar = `\\-.0-9\\u{B7}\\u{300}-\\u{36F}\\u{203F}-\\u{2040}${ncStart}`;
 
 /**
- * An open attribute's local name: an NCName of any length, which XML puts no bound on (reading 94).
- * No ordered read orders by it, since an element's attributes are a set the model orders on the
- * host (`#pantry/model/assemble.ts`), so the key `(package, path, start, uri, local)` holds it by
- * its image where it would outgrow an entry. Its pattern is read under `su`, which reads an NCName
- * exactly as `u` does (it holds no `.`), so it is no other type's pattern: {@link EntityName} writes
- * the same NCName under `u`, and a refusal names each by its pattern. Exported for
- * `src/import/refusal.ts`, which names its pattern law.
+ * An open attribute's local name: an NCName of at most `xmlNameBytes` UTF-8 bytes
+ * (`#pantry/qti/limits.ts`), the bound of an XML name in a key, so the key `(package, path, start,
+ * uri, local)` holds it as itself; XML puts no bound on a name (reading 94), so a longer one is
+ * refused at import under "Key text bound". No ordered read orders by it, since an element's
+ * attributes are a set the model orders on the host (`#pantry/model/assemble.ts`). Its pattern is
+ * read under `su`, which reads an NCName exactly as `u` does (it holds no `.`), so it is no other
+ * type's pattern: {@link EntityName} writes the same NCName under `u`, and a refusal names each by
+ * its pattern. Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const OpenLocal = str.regex(`^[${ncStart}][${ncChar}]*$`, "su");
+export const OpenLocal = str.bytes(xmlNameBytes, str.regex(`^[${ncStart}][${ncChar}]*$`, "su"));
 
 /**
  * An entity's name inside an attribute's lexical form: an NCName, since no entity name holds a
@@ -204,7 +209,8 @@ export const EntityName = str.regex(`^[${ncStart}][${ncChar}]*$`);
  *   its element's governor);
  * - **drawn:** `idrefs`, the count of its `Idref` family;
  * - **accumulated** by grizzle: `kind` and `governor`, its element's, along the owner axis; and
- *   `idrefText`, the end of its `Idref` pieces' concatenation;
+ *   `idrefText`, the end of its `Idref` pieces' concatenation, of any length, which the family's
+ *   last axis carries by its digest, `idrefTextDigest`;
  * - **generated** by PostgreSQL: `value`, the lexical form normalized into its value (XML Schema Part
  *   2 §4.3.6), the domain read from its element's `governor` and its name as AL1 reads it, in the
  *   class of the member that holds the form: a union whose members change class (`LeadingMembers`)
@@ -264,19 +270,20 @@ export const Attribute = relation.generated(
         Logic.cond(Logic.eq(whiteSpace, "replace"), Text.replaceWhitespace(a.lexical), a.lexical),
       );
 
-    return {
-      value: generated(
-        Chars,
-        Logic.cond(
-          leading,
-          normalized(leadingClass),
-          Logic.cond(
-            ValueDomainOf.has(domain),
-            normalized(ValueDomainOf.at("whiteSpace", domain)),
-            a.lexical,
-          ),
-        ),
+    const value = Logic.cond(
+      leading,
+      normalized(leadingClass),
+      Logic.cond(
+        ValueDomainOf.has(domain),
+        normalized(ValueDomainOf.at("whiteSpace", domain)),
+        a.lexical,
       ),
+    );
+
+    return {
+      idrefTextDigest: generated(sha256, Crypto.sha256(a.idrefText)),
+      value: generated(Chars, value),
+      valueDigest: generated(sha256, Crypto.sha256(value)),
     };
   },
 );
@@ -308,7 +315,7 @@ export const OpenAttribute = relation(
     prefix: NamespacePrefix,
     slot: bits(AttributeSlot),
     start: natural,
-    uri: anyText,
+    uri: UriText,
   },
   ["package", "path", "start", "uri", "local"],
 );
@@ -376,7 +383,7 @@ export const OpenAttributeEntity = relation(
     package: PackageName,
     path: EntryPath,
     start: natural,
-    uri: anyText,
+    uri: UriText,
   },
   ["package", "path", "start", "uri", "local", "offset"],
 );
@@ -662,11 +669,11 @@ const textDomainOf = (n: NodeRow) => TextDomain.at("domain", n.governor);
  *   row holds the value: the check reads it from the lexical form it judges.
  */
 export const attributeLawsByName = {
-  "AL1 admission": [
+  "AL1 admission": declared("AL1 admission", [
     check("AL1_admission", Attribute, admitted),
     check("AL1_admission", OpenAttribute, openAdmitted),
-  ],
-  "AL1 owner": [
+  ]),
+  "AL1 owner": declared("AL1 owner", [
     contained(
       on(Attribute, "package", "path", "start", "kind", "governor"),
       on(Node, "package", "path", "start", "kind", "governor"),
@@ -675,22 +682,22 @@ export const attributeLawsByName = {
       on(OpenAttribute, "package", "path", "start", "kind", "governor"),
       on(Node, "package", "path", "start", "kind", "governor"),
     ),
-  ],
-  "AL2 count": [attributeFamily, openAttributeFamily],
-  "AL2 fold": [
+  ]),
+  "AL2 count": declared("AL2 count", [attributeFamily, openAttributeFamily]),
+  "AL2 fold": declared("AL2 fold", [
     fold(
       attributeFamily,
       Monoid.or,
       on(Attribute, "package", "path", "start", "slot"),
       on(Node, "package", "path", "start", "attrs"),
     ),
-  ],
-  "AL3 required": [
+  ]),
+  "AL3 required": declared("AL3 required", [
     check("AL3_required", Node, (n) =>
       n.eq(Bits.subset(Required.row(AttributeModelOf.at("model", n.governor)), n.attrs), true),
     ),
-  ],
-  "AL4 data name": [
+  ]),
+  "AL4 data name": declared("AL4 data name", [
     check("AL4_data_name", OpenAttribute, (o) =>
       o.and(
         o.or(o.ne(o.class, "data-*"), Text.matches(o.local, dataNamePattern)),
@@ -701,8 +708,8 @@ export const attributeLawsByName = {
         ),
       ),
     ),
-  ],
-  "AL4 declared data name": [
+  ]),
+  "AL4 declared data name": declared("AL4 declared data name", [
     check("AL4_declared_data_name", OpenAttribute, (o) =>
       o.or(
         o.ne(o.class, "data-*"),
@@ -719,8 +726,8 @@ export const attributeLawsByName = {
         ),
       ),
     ),
-  ],
-  "AL5 attribute count": [
+  ]),
+  "AL5 attribute count": declared("AL5 attribute count", [
     check("AL5_attribute_count", Node, (n) => {
       const model = AttributeModelOf.at("model", n.governor);
       // attrs ∩ counted, written attrs ∖ (attrs ∖ counted): the same set, in the algebra the host
@@ -737,8 +744,8 @@ export const attributeLawsByName = {
         ),
       );
     }),
-  ],
-  "Attribute prefix": [
+  ]),
+  "Attribute prefix": declared("Attribute prefix", [
     check("Attribute_prefix", Attribute, (a) =>
       a.or(
         a.and(a.in(a.name, xmlNames), a.eq(a.prefix, "xml")),
@@ -752,8 +759,8 @@ export const attributeLawsByName = {
         o.and(o.not(o.in(o.class, boundClasses)), o.eq(o.prefix, "")),
       ),
     ),
-  ],
-  "AttributeEntity owner": [
+  ]),
+  "AttributeEntity owner": declared("AttributeEntity owner", [
     contained(
       on(AttributeEntity, "package", "path", "start", "name"),
       on(Attribute, "package", "path", "start", "name"),
@@ -762,8 +769,8 @@ export const attributeLawsByName = {
       on(OpenAttributeEntity, "package", "path", "start", "uri", "local"),
       on(OpenAttribute, "package", "path", "start", "uri", "local"),
     ),
-  ],
-  "Double bound": [
+  ]),
+  "Double bound": declared("Double bound", [
     check("Double_bound", Attribute, (a) => {
       const domain = domainOf(a);
       const form = Text.collapse(a.lexical);
@@ -860,8 +867,8 @@ export const attributeLawsByName = {
         ),
       );
     }),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     idrefFamily,
     check("E1_derived", Attribute, (a) =>
       a.or(
@@ -884,12 +891,21 @@ export const attributeLawsByName = {
     fold(
       idrefFamily,
       Monoid.concat,
-      on(Idref, "package", "path", "start", "name", "piece", "piecesWas", "piecesAfter"),
-      on(Attribute, "package", "path", "start", "name", "idrefText"),
+      on(
+        Idref,
+        "package",
+        "path",
+        "start",
+        "name",
+        "piece",
+        "piecesWasDigest",
+        "piecesAfterDigest",
+      ),
+      on(Attribute, "package", "path", "start", "name", "idrefTextDigest"),
     ),
     whitespaceTokens(Idref),
-  ],
-  "Foreign attribute class": [
+  ]),
+  "Foreign attribute class": declared("Foreign attribute class", [
     check("Foreign_attribute_class", OpenAttribute, (o) =>
       o.and(
         o.or(
@@ -913,16 +929,16 @@ export const attributeLawsByName = {
       ),
       on(OpenElementName, "package", "path", "start", "namespace"),
     ),
-  ],
-  TextDomain: [
+  ]),
+  TextDomain: declared("TextDomain", [
     check("TextDomain", Node, (n) =>
       n.or(
         n.not(holdsCheckedText(n)),
         Text.matches(n.stringValue, ValueDomainOf.at("pattern", textDomainOf(n))),
       ),
     ),
-  ],
-  "value domain": [
+  ]),
+  "value domain": declared("value domain", [
     check("value_domain", Attribute, (a) =>
       a.or(
         a.not(admitted(a)),
@@ -937,7 +953,7 @@ export const attributeLawsByName = {
         Text.matches(o.lexical, ValueDomainOf.at("pattern", openDomainOf(o))),
       ),
     ),
-  ],
+  ]),
 } as const;
 
 /**

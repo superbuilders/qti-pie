@@ -206,7 +206,12 @@ type CheckLaw = Extract<Law, { readonly kind: "check" }>;
  * A law the table does not hold: a check of no law, which `Qti` does not state, so it has no
  * installed name.
  */
-const unownedLaw = { kind: "check", name: "not_a_law", relation: "Node" } as const satisfies Law;
+const unownedLaw = {
+  entry: { kind: "derived", name: "not_a_law", source: "a check Qti does not state" },
+  kind: "check",
+  name: "not_a_law",
+  relation: "Node",
+} as const satisfies Law;
 
 /**
  * A check as a refusal by a write statement carries it, which names no installed object. A check
@@ -295,6 +300,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
         const { ImportRefused } = yield* Effect.promise(() => import("#pantry/import/rules.ts"));
         const { rule, source } = lawTable["AL1 admission"];
         const law = {
+          entry: { kind: "declared", name: "AL1 admission", source },
           kind: "check",
           name: checkNameOf("AL1 admission"),
           relation: "Attribute",

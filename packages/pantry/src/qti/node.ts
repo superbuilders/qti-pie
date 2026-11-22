@@ -25,9 +25,11 @@
  *   `select(Node, start > 0)`, and its owner side, on the last axis, selects nothing
  *   (`analysis/theory/families.ts` `axisShapes`, `selectsMembers`). The owner axis's foreign key
  *   leaves the root out, whose copies hold their starts.
- * - A `relation.generated` term reads the caller's fields alone: a drawn or accumulated field is
- *   refused when the relation is built. So `ancestry`, which reads `parentAncestry`, is written by
- *   the host and proved by a row check, as `state` is (C5).
+ * - A generated field may read an accumulated one, which PostgreSQL computes after grizzle fills it:
+ *   the string value fold's running texts' digests are generated from the texts. `ancestry`, which
+ *   reads `parentAncestry`, is written by the host and proved by a row check, as `state` is (C5):
+ *   the document node's is its Document's context, from outside its tree (spec reading 117), and
+ *   grizzle pins a root's copies at their start, so no generation over the row gives it.
  * - A check is named by an identifier, so each is named by its oracle law with spaces written as
  *   underscores (`N1_sentinel` for "N1 sentinel"); no law name holds an underscore.
  */
@@ -38,9 +40,11 @@ import {
   check,
   closedId,
   contained,
+  Crypto,
   drawn,
   fin,
   fold,
+  generated,
   key,
   Logic,
   Monoid,
@@ -49,6 +53,7 @@ import {
   pred,
   relation,
   select,
+  sha256,
   str,
   Text,
   tree,
@@ -61,6 +66,7 @@ import {
   Banned,
   BarredOf,
   Capped,
+  Chars,
   CheckedText,
   ContentModelOf,
   CountedMax,
@@ -86,6 +92,7 @@ import {
 } from "#pantry/grammar/install.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * The first characters of an XML Namespaces NCName: XML 1.0's NameStartChar without the colon,
@@ -113,22 +120,6 @@ const prefixPattern = `^(?:[${ncNameStart}][${ncNameContinuation}]*)?$`;
  * `src/import/refusal.ts`, which names its pattern law.
  */
 export const Prefix = str.regex(prefixPattern);
-
-/**
- * A node's characters: any run of XML 1.0's Char, tabs, line feeds and carriage returns included.
- *
- * @see {@link https://www.w3.org/TR/xml/#NT-Char | XML 1.0, Char}
- */
-const charsPattern = "^[\\t\\n\\r\\u{20}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-\\u{10FFFF}]*$";
-
-/**
- * The text type of a node's characters, and of an attribute's lexical form, the record (U1,
- * `#pantry/qti/attributes.ts`): the value as attribute-value normalization leaves it, each
- * unexpanded entity reference kept as `&name;`, so any run of XML `Char`s. One declaration, so
- * grizzle analyzes the pattern once. Exported for `src/import/refusal.ts`, which names its pattern
- * law.
- */
-export const Chars = str.regex(charsPattern);
 
 /**
  * The type of a node's first or last character: one code point, or the empty string where the node
@@ -164,18 +155,20 @@ export const EndCharacter = str.regex("^.?$", "su");
  *   parent's own `parentKind`, so a member's string value can be selected by its grandparent, as
  *   {@link copiedLangStringText} is), `was` and `lastState`, and each fold's values: `elementsWas`,
  *   `elements` and `elementChildren`; `countedChildren` and `barredChildren`; `charsWas`,
- *   `charsAfter` and `stringValue`; and `attrs`, the end of the attribute family's fold (AL2).
+ *   `charsAfter` and `stringValue`; and `attrs`, the end of the attribute family's fold (AL2);
+ * - **generated** by PostgreSQL: `charsWasDigest`, `charsAfterDigest` and `stringValueDigest`, the
+ *   SHA-256 digests of the string value fold's running texts and end, which its axes carry in their
+ *   places ({@link stringValueFold}).
  *
  * Its document's type is no field of it: it is its `Document`'s alone (`#pantry/qti/chardata.ts`),
  * which a law reads by matching `Document` at the node's `(package, path)` (decision S3).
  *
  * Its fields are declared in key order, which the lint's `sort-keys` holds and which is column
- * order.
+ * order, the generated ones after the rest.
  */
-export const Node = relation(
+export const Node = relation.generated(
   "Node",
   {
-    // GRIZZLE-PENDING: Q13, a generated term over an accumulated field; then `ancestry` is generated.
     ancestry: bits(Flag),
     at: drawn(natural),
     attributes: drawn(natural),
@@ -216,6 +209,11 @@ export const Node = relation(
     was: accumulated(closedId(Position), "0"),
   },
   ["package", "path", "start"],
+  (n) => ({
+    charsAfterDigest: generated(sha256, Crypto.sha256(n.charsAfter)),
+    charsWasDigest: generated(sha256, Crypto.sha256(n.charsWas)),
+    stringValueDigest: generated(sha256, Crypto.sha256(n.stringValue)),
+  }),
 );
 
 /**
@@ -608,9 +606,13 @@ const barredFold = fold(
  * other element's children are stepped, so mixed content and text nothing reads store no running
  * prefixes.
  *
- * The running text rides the tree's predecessor and last axes, which hold it by its image where
- * their entry could outgrow PostgreSQL's `BTMaxItemSize` (grizzle's README: a `Monoid.concat`
- * fold's accumulators ride its axes by their images). `charsWas`, `charsAfter` and `stringValue`
+ * The running texts and the end may outgrow PostgreSQL's B-tree entry (`BTMaxItemSize`), so each
+ * rides the tree's axes by its SHA-256 digest, a generated field PostgreSQL stores beside it, which
+ * the fold names in its place: the predecessor axis pairs each member's `charsWasDigest` with its
+ * predecessor's `charsAfterDigest`, and the last axis the element's `stringValueDigest` with its
+ * last member's `charsAfterDigest` (grizzle's README, "Families": a running text of any length
+ * rides the axes by its digest). The texts stay the fold's values, which grizzle fills and the
+ * fold's CHECK and pins prove. `charsWas`, `charsAfter` and `stringValue`
  * are `matchedText` (`#pantry/qti/limits.ts`), the bound of a text a query reads by a pattern,
  * and a folded string value past its bound is refused by that type's pattern, by name: a stated
  * limit of the representation (spec reading 60). The step is the member's own `chars`, unbounded
@@ -622,8 +624,16 @@ const barredFold = fold(
 const stringValueFold = fold(
   nodeTree,
   Monoid.concat,
-  on(select(Node, inStringValue), "package", "path", "parent", "chars", "charsWas", "charsAfter"),
-  on(Node, "package", "path", "start", "stringValue"),
+  on(
+    select(Node, inStringValue),
+    "package",
+    "path",
+    "parent",
+    "chars",
+    "charsWasDigest",
+    "charsAfterDigest",
+  ),
+  on(Node, "package", "path", "start", "stringValueDigest"),
 );
 
 /**
@@ -677,7 +687,7 @@ const stringValueFold = fold(
  * over `OpenElementName`.
  */
 export const nodeLawsByName = {
-  "E1 derived": [
+  "E1 derived": declared("E1 derived", [
     check("E1_derived", Node, (n) =>
       n.and(
         n.or(n.eq(n.start, 0n), n.eq(n.ancestry, Bits.union(n.parentAncestry, Enters.row(n.kind)))),
@@ -704,8 +714,8 @@ export const nodeLawsByName = {
       on(Node, "package", "path", "start", "kind", "governor"),
     ),
     check("E1_derived", ElementType, (t) => t.eq(t.governor, typeGovernorOf(t.kind, t.type))),
-  ],
-  "Foreign simple content": [
+  ]),
+  "Foreign simple content": declared("Foreign simple content", [
     check("Foreign_simple_content", Node, (n) =>
       n.or(
         n.not(n.in(n.kind, openElementClasses)),
@@ -713,8 +723,8 @@ export const nodeLawsByName = {
         n.eq(n.elementChildren, 0n),
       ),
     ),
-  ],
-  "N1 sentinel": [
+  ]),
+  "N1 sentinel": declared("N1 sentinel", [
     check("N1_sentinel", Node, (n) =>
       n.or(
         n.and(member(n), n.ne(n.kind, "document")),
@@ -727,9 +737,9 @@ export const nodeLawsByName = {
         ),
       ),
     ),
-  ],
-  "N2 tree": [nodeTree],
-  "N5 Follow": [
+  ]),
+  "N2 tree": declared("N2 tree", [nodeTree]),
+  "N5 Follow": declared("N5 Follow", [
     check("N5_Follow", Node, (n) =>
       n.or(
         n.not(member(n)),
@@ -745,8 +755,8 @@ export const nodeLawsByName = {
         ),
       ),
     ),
-  ],
-  "N5 admitted": [
+  ]),
+  "N5 admitted": declared("N5 admitted", [
     check("N5_admitted", Node, (n) =>
       n.or(
         n.eq(n.start, 0n),
@@ -769,23 +779,23 @@ export const nodeLawsByName = {
         ),
       ),
     ),
-  ],
-  "N5 fold": [
+  ]),
+  "N5 fold": declared("N5 fold", [
     contained(
       on(members, "package", "path", "parent", pred("at"), "was"),
       on(members, "package", "path", "parent", "at", "state"),
     ),
     elementsFold,
-  ],
-  "N6 ancestry": [
+  ]),
+  "N6 ancestry": declared("N6 ancestry", [
     check("N6_ancestry", Node, (n) =>
       n.and(
         n.eq(Bits.disjoint(n.parentAncestry, Banned.row(n.kind)), true),
         n.eq(Bits.subset(Needs.row(n.kind), n.parentAncestry), true),
       ),
     ),
-  ],
-  "N7 Counted": [
+  ]),
+  "N7 Counted": declared("N7 Counted", [
     countedFold,
     check("N7_Counted", Node, (n) =>
       n.or(
@@ -801,16 +811,16 @@ export const nodeLawsByName = {
       ),
     ),
     key(on(cappedChildren, "package", "path", "parent", "state")),
-  ],
-  "N7 Last": [
+  ]),
+  "N7 Last": declared("N7 Last", [
     check("N7_Last", Node, (n) =>
       n.or(
         n.not(modeled(n)),
         n.eq(FollowSetOf.at("ends", ContentModelOf.at("model", n.kind), n.lastState), true),
       ),
     ),
-  ],
-  "N7 barred by": [
+  ]),
+  "N7 barred by": declared("N7 barred by", [
     barredFold,
     check("N7_barred_by", Node, (n) =>
       n.or(
@@ -820,14 +830,14 @@ export const nodeLawsByName = {
         n.eq(n.barredChildren, 0n),
       ),
     ),
-  ],
-  "N7 last slot": [
+  ]),
+  "N7 last slot": declared("N7 last slot", [
     contained(
       on(Node, "package", "path", "start", pred("children"), "lastState"),
       on(members, "package", "path", "parent", "at", "state"),
     ),
-  ],
-  "N8 nearest": [
+  ]),
+  "N8 nearest": declared("N8 nearest", [
     check("N8_nearest", Node, (n) =>
       n.or(
         n.eq(n.start, 0n),
@@ -845,8 +855,8 @@ export const nodeLawsByName = {
         ),
       ),
     ),
-  ],
-  "T3 first child": [
+  ]),
+  "T3 first child": declared("T3 first child", [
     contained(
       on(
         members,
@@ -875,14 +885,14 @@ export const nodeLawsByName = {
         "parentKind",
       ),
     ),
-  ],
-  "XsiType derived": [
+  ]),
+  "XsiType derived": declared("XsiType derived", [
     contained(
       on(select(Node, namedlyTyped), "package", "path", "start"),
       on(ElementType, "package", "path", "start"),
     ),
     contained(on(ElementType, "kind", "type"), on(XsiType, "kind", "type")),
-  ],
+  ]),
 } as const;
 
 /**

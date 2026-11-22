@@ -171,10 +171,11 @@ export interface LawNamer {
  * Build the namer of a law-name dictionary. A law is named as the level that states it states it:
  * the login's own law as it is, and the law of a level above the login's, the first law of an
  * `above` refusal, such as a LOM check (`QtiLom` of `#pantry/qti/lom.ts`) refusing a write of a
- * login over `Qti`, as that level's own law (grizzle's `AboveLaw.law`). A check is then
- * named by its own name ({@link lawOfCheck}), since grizzle names a check by the name its statement
- * declares, and every other law by the dictionary's entry of its id, which the outcome carries.
- * Nothing reads the schema.
+ * login over `Qti`, as that level's own law (grizzle's `AboveLaw.law`). A statement's law is then
+ * named by the catalog entry its statement declares (`#pantry/qti/law-entries.ts`), which the
+ * outcome carries; a check no module files is named by its own name ({@link lawOfCheck}); and
+ * every other law, one no statement states, by the dictionary's entry of its id. Nothing reads the
+ * schema.
  *
  * @param file - The dictionary.
  * @returns Its namer.
@@ -182,6 +183,10 @@ export interface LawNamer {
 export const namerFrom = (file: LawNamesFile): LawNamer => {
   const nameOf = ({ id, law }: Pick<RefusalLaw, "id" | "law">): Option.Option<LawName> => {
     const stated: OwnLaw = law.kind === "above" ? law.law : law;
+
+    if (stated.entry.kind === "declared") {
+      return lawNamed(stated.entry.name);
+    }
 
     return stated.kind === "check"
       ? lawOfCheck(stated.name)

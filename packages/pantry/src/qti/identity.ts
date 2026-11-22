@@ -101,8 +101,8 @@
  * name)` (`#pantry/qti/attributes.ts`), whose index over the selection's element serves the copy's
  * reverse probe, so no index holds `Attribute.lexical`. Every overlay is keyed by its element,
  * `(package, path, start)`, and names another element of its document by its position alone. Every
- * copied text that takes part in a cross-row equality is of any length, a key, a containment's
- * target and a lookup holding it by its image (`#pantry/qti/limits.ts`).
+ * copied text that takes part in a cross-row equality is of its type's bound in a key
+ * (`#pantry/qti/limits.ts`), so a key, a containment's target and a lookup hold it as itself.
  *
  * Every check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written
  * as underscores. The overlays' agreement with what the tree holds is "E1 derived" (rule
@@ -128,7 +128,6 @@ import {
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import {
-  anyText,
   Identity,
   NodeKind,
   TextDomain,
@@ -137,12 +136,19 @@ import {
 } from "#pantry/grammar/install.ts";
 import { Attribute, attributesOf, identityIn, Idref, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
 import { admitsHere, Node } from "#pantry/qti/node.ts";
 import { Instance } from "#pantry/qti/tests.ts";
-import { listTokens, tokenFields, tokenList, whitespaceTokens } from "#pantry/qti/token-list.ts";
+import {
+  listTokens,
+  tokenFields,
+  tokenList,
+  tokenTextDigest,
+  whitespaceTokens,
+} from "#pantry/qti/token-list.ts";
 import { idSpaceAttributes, ssmlReads } from "#pantry/vocab/terms/identity.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * One ID of a document, keyed by the element that carries it, `(package, path, start)`: XML Schema
@@ -186,9 +192,10 @@ export const DocumentId = relation(
  * (`#pantry/qti/overlay-queries/identity.ts`).
  *
  * - **drawn:** `tokens`, its {@link TextIdref} count;
- * - **accumulated:** `tokenText`, the end of its tokens' concatenation.
+ * - **accumulated:** `tokenText`, the end of its tokens' concatenation;
+ * - **generated:** `tokenTextDigest`, its digest, the fold's end on the family's last axis.
  */
-export const IdentityText = relation(
+export const IdentityText = relation.generated(
   "IdentityText",
   {
     package: PackageName,
@@ -198,6 +205,7 @@ export const IdentityText = relation(
     tokens: tokenFields.at,
   },
   ["package", "path", "start"],
+  (t) => tokenTextDigest(t),
 );
 
 /**
@@ -263,7 +271,7 @@ export const CatalogScope = relation(
  */
 export const IdrefTarget = relation(
   "IdrefTarget",
-  { assembled: pg.boolean, id: anyText, package: PackageName, path: EntryPath },
+  { assembled: pg.boolean, id: XmlId, package: PackageName, path: EntryPath },
   ["package", "path", "id"],
 );
 
@@ -286,7 +294,7 @@ export const ShareFragment = relation(
   "ShareFragment",
   {
     assembled: pg.boolean,
-    id: anyText,
+    id: XmlId,
     package: PackageName,
     path: EntryPath,
     placements: drawn(natural),
@@ -308,7 +316,7 @@ export const PlacedId = relation(
   {
     assembly: EntryPath,
     assemblyKind: closedId(NodeKind),
-    id: anyText,
+    id: XmlId,
     instance: natural,
     owner: natural,
     package: PackageName,
@@ -327,7 +335,7 @@ export const PlacedIdref = relation(
   "PlacedIdref",
   {
     assembly: EntryPath,
-    id: anyText,
+    id: XmlId,
     instance: natural,
     package: PackageName,
     path: EntryPath,
@@ -570,7 +578,7 @@ const itemLabels = select(LabelUse, (l) => l.eq(l.rootKind, itemKind));
  *   carries `tool-name` and `tool-version`.
  */
 export const identityLawsByName = {
-  "DocumentId key": [
+  "DocumentId key": declared("DocumentId key", [
     key(on(idAttributes, "package", "path", "start")),
     contained(
       on(idAttributes, "package", "path", "start"),
@@ -585,8 +593,8 @@ export const identityLawsByName = {
       on(DocumentId, "package", "path", "start", "owner"),
     ),
     contained(on(textIds, "package", "path", "start"), on(idTextNodes, "package", "path", "start")),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     contained(
       on(admittedIds, "package", "path", "start"),
       on(admittedNodes, "package", "path", "start"),
@@ -632,13 +640,13 @@ export const identityLawsByName = {
       on(SsmlScope, "package", "path", "start"),
     ),
     contained(on(SsmlScope, "package", "path", "start"), on(Node, "package", "path", "start")),
-  ],
-  "Idref target": [
+  ]),
+  "Idref target": declared("Idref target", [
     contained(on(Idref, "package", "path", "token"), on(IdrefTarget, "package", "path", "id")),
     contained(on(TextIdref, "package", "path", "token"), on(IdrefTarget, "package", "path", "id")),
     contained(on(ShareFragment, "package", "path", "id"), on(IdrefTarget, "package", "path", "id")),
-  ],
-  "Label tools": [
+  ]),
+  "Label tools": declared("Label tools", [
     contained(
       on(labelAttributes, "package", "path", "start"),
       on(LabelUse, "package", "path", "start"),
@@ -655,7 +663,7 @@ export const identityLawsByName = {
     key(on(toolVersions, "package", "path")),
     contained(on(itemLabels, "package", "path"), on(toolNames, "package", "path")),
     contained(on(itemLabels, "package", "path"), on(toolVersions, "package", "path")),
-  ],
+  ]),
 } as const;
 
 /**

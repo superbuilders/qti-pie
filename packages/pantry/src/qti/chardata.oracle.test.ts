@@ -55,7 +55,13 @@ import {
   XmlDecl,
   XmlStandalone,
 } from "#pantry/qti/chardata.ts";
-import { EntryPath, foreignNameBytes, utf8Length } from "#pantry/qti/limits.ts";
+import {
+  EntryPath,
+  entryPathBytes,
+  foreignNameBytes,
+  utf8Length,
+  xmlNameBytes,
+} from "#pantry/qti/limits.ts";
 import { Node, nodeTree } from "#pantry/qti/node.ts";
 import { caseHang, featuresOf, searchTimeout, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
@@ -457,21 +463,21 @@ const straddling = (bytes: number): readonly number[] =>
   });
 
 /**
- * The UTF-8 bytes an ordered index once held a name and a prefix to as themselves, which no index
- * holds any longer (no read orders by a name or a prefix): LIMITS6's local name (1,290), namespace
- * name (1,291) and prefix (2,588); and 64 KiB.
+ * The UTF-8 bytes a key holds a path and a declaration's prefix to (`entryPathBytes` and
+ * `xmlNameBytes`, `#pantry/qti/limits.ts`), and 64 KiB.
  */
-const formerBounds = [1290, 1291, 2588, 65_536] as const;
+const keyBounds = [entryPathBytes, xmlNameBytes, 65_536] as const;
 
 /**
  * The lengths the bounds box draws, in code points: the short ones, and each side of
- * {@link formerBounds}, over one-byte and four-byte characters, at each of which a path, a prefix
- * and a foreign name of its language are admitted, a foreign name being bounded only at
+ * {@link keyBounds}, over one-byte and four-byte characters, at each of which a path and a
+ * declaration's prefix of its language are admitted within its bound, and an element's prefix and
+ * a foreign name of its language at any of them, a foreign name being bounded only at
  * `foreignNameBytes`, half of the regex engine's bytes.
  */
 const boundLengths: readonly [number, ...number[]] = [
   0,
-  ...new Set([1, 2, ...formerBounds.flatMap(straddling)]),
+  ...new Set([1, 2, ...keyBounds.flatMap(straddling)]),
 ];
 
 /**
@@ -891,14 +897,15 @@ describe("qti/chardata.ts", () => {
   );
 
   it.effect(
-    "admits every value of each keyed text field's language past the bytes an ordered index once held a name and a prefix to, and at 64 KiB",
+    "admits every value of each keyed text field's language within its bound, a path's and a declaration prefix's, and every element prefix and foreign name of its language at 64 KiB",
     (ctx) =>
       // Oracle: the specification as a checker, each field's contract counted in UTF-8 bytes, which
-      // grizzle's `str.bytes` checks beside the pattern: `EntryPath` 1 code point or more, of any
-      // length, of any character but a leading "/"; a foreign namespace XML `Char`s and a foreign
-      // local name an NCName, each of at most `foreignNameBytes`; a namespace declaration's and an
-      // element's prefix empty or an NCName, of any length (Namespaces in XML 1.0, §4).
-      // Bound: exhaustive over the lengths each side of the four former bounds over one-byte and
+      // grizzle's `str.bytes` checks beside the pattern: `EntryPath` 1 code point or more, of at
+      // most `entryPathBytes`, of any character but a leading "/"; a foreign namespace XML `Char`s
+      // and a foreign local name an NCName, each of at most `foreignNameBytes`; a namespace
+      // declaration's prefix empty or an NCName of at most `xmlNameBytes`, and an element's of any
+      // length (Namespaces in XML 1.0, §4).
+      // Bound: exhaustive over the lengths each side of the three bounds over one-byte and
       // four-byte characters, × 5 first characters × 5 later characters.
       Effect.gen(function* bounds() {
         const limit = boundLengths.length * boundCharacters.length ** 2;
@@ -906,7 +913,7 @@ describe("qti/chardata.ts", () => {
           ctx,
           exhaust(
             {
-              box: "lengths 0, 1, 2 and each side of 1,290, 1,291, 2,588 and 65,536 bytes over one-byte and four-byte characters, over 5 characters",
+              box: "lengths 0, 1, 2 and each side of entryPathBytes, xmlNameBytes and 65,536 bytes over one-byte and four-byte characters, over 5 characters",
               caseHang,
               concurrency: searchWidth,
               coverage: requiredInSpace<"path admitted" | "path refused">([
@@ -924,11 +931,15 @@ describe("qti/chardata.ts", () => {
                   length === 0 ? [] : [first, ...Array.from({ length: length - 1 }, () => fill)];
                 const value = characters.join("");
                 const bytes = utf8Length(value);
-                const path = length >= 1 && first !== "/";
+                const path = length >= 1 && first !== "/" && bytes <= entryPathBytes;
                 const name = characters.every(isBoxNameChar);
                 c.note(path ? "path admitted" : "path refused");
 
-                assert.strictEqual(patternOf(EntryPath).test(value), path, "path");
+                assert.strictEqual(
+                  patternOf(EntryPath).test(value) && bytes <= entryPathBytes,
+                  path,
+                  "path",
+                );
                 assert.strictEqual(
                   patternOf(OpenElementName.fields.namespace).test(value) &&
                     bytes <= foreignNameBytes,
@@ -941,8 +952,8 @@ describe("qti/chardata.ts", () => {
                   "foreign local name",
                 );
                 assert.strictEqual(
-                  patternOf(Namespace.fields.prefix).test(value),
-                  length === 0 || name,
+                  patternOf(Namespace.fields.prefix).test(value) && bytes <= xmlNameBytes,
+                  (length === 0 || name) && bytes <= xmlNameBytes,
                   "declaration prefix",
                 );
                 assert.strictEqual(

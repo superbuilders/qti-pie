@@ -1,10 +1,11 @@
 /**
- * The LOM level, `QtiLom`: the typed LOM of each package as derived relations over the tree, and
- * the two laws LOM itself states of a record's leaves, so the database refuses a record whose
+ * The LOM level, `QtiLom`: the typed LOM of each package as derived relations over the tree, the
+ * two laws LOM itself states of a record's leaves, so the database refuses a record whose
  * vocabulary term claims LOM's own vocabulary and is none of its tokens, or whose contribute's
- * entity is no vCard 3.0. It stores nothing: every typed LOM fact is a view over `Node` and its
- * folded `stringValue` (`copiedTextKinds` and `copiedLangStringText` of `#pantry/qti/node.ts`),
- * never an overlay that copies it (S5), and the importer writes no row for it.
+ * entity is no vCard 3.0, and the bound of the texts its views key ("Key text bound"). It stores
+ * nothing: every typed LOM fact is a view over `Node` and its folded `stringValue`
+ * (`copiedTextKinds` and `copiedLangStringText` of `#pantry/qti/node.ts`), never an overlay that
+ * copies it (S5), and the importer writes no row for it.
  *
  * **Nothing valid is refused.** QTI asks no package to state a LOM record, and every element of one
  * is optional: "All data elements are optional" (IEEE 1484.12.1-2002 §4.2). A QTI database is an
@@ -25,6 +26,10 @@
  *   are LOM 2.2's ({@link LifeCycleStatus}), 2.3.1's and 3.2.1's ({@link ContributeRole},
  *   {@link metaMetadataRoles}), 7.1's with QTI 3.0 Metadata §2.7.7.1's `precludes`
  *   ({@link RelationKind}), and 9.1's ({@link ClassificationPurpose}).
+ * - **Key text bound**, a stated limit of the representation, no law of LOM: every catalog, entry,
+ *   taxon source and taxon id a view keys ({@link LomKeyText}) is at most `keyMatchedTextBytes`
+ *   UTF-8 bytes (`#pantry/qti/limits.ts`), what a B-tree entry leaves it in the keys that hold it,
+ *   so each view keys it as itself, a `KeyMatchedText`; a package with a longer one is refused.
  * - **LOM vCard** (LOM 2.3.2 and 3.2.2, "vCard, as defined by IMC vCard 3.0 (RFC 2425, RFC 2426)"):
  *   every contribute's entity is a vCard 3.0, its `BEGIN:VCARD` and `END:VCARD` around a
  *   `VERSION:3.0`, an `N` and an `FN`, the properties RFC 2426 says "MUST be present" (§3.1.1,
@@ -81,7 +86,8 @@ import { RecordNode } from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { manifestIdentifiers, resourceIdentifiers } from "#pantry/qti/overlay-queries/package.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
-import { matchedText } from "#pantry/qti/limits.ts";
+import { keyedMatchedText, keyMatchedTextBytes, matchedText } from "#pantry/qti/limits.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * LOM 2.2's status vocabulary: "draft", "final", "revised", "unavailable". A deletion version is
@@ -344,7 +350,7 @@ const formattedNameLine = Text.pattern(
 
 /**
  * The identifiers the manifest's record lists in its general category, each its `catalog` and its
- * `entry`: an identifier that writes no catalog or no entry names nothing here.
+ * `entry`, with their nodes: an identifier that writes no catalog or no entry names nothing here.
  */
 const generalIdentifiers = query(QtiLomVocabulary).rule((r) => {
   const general = v(Node, "general");
@@ -373,6 +379,7 @@ const generalIdentifiers = query(QtiLomVocabulary).rule((r) => {
       package: general.package,
       parent: identifier.start,
       path: manifestPath,
+      start: catalog.start,
       stringValue: catalog.stringValue,
     })
     .match(Node, {
@@ -380,13 +387,23 @@ const generalIdentifiers = query(QtiLomVocabulary).rule((r) => {
       package: general.package,
       parent: identifier.start,
       path: manifestPath,
+      start: entry.start,
       stringValue: entry.stringValue,
     })
-    .find({ catalog: catalog.stringValue, entry: entry.stringValue, package: general.package });
+    .find({
+      catalog: catalog.stringValue,
+      catalogNode: catalog.start,
+      entry: entry.stringValue,
+      entryNode: entry.start,
+      package: general.package,
+    });
 });
 
 /**
- * Each package's lesson: the general identifier whose entry is its manifest's `identifier`.
+ * Each package's lesson: the general identifier whose entry is its manifest's `identifier`, its
+ * catalog and entry as a key holds them, each a `KeyMatchedText` cast under grizzle's byte guard,
+ * whose other arm, the empty text, never stands in a committed state: "Key text bound" refuses a
+ * longer one at import ({@link LomKeyText}).
  */
 const lessons = query(QtiLomVocabulary).rule((r) => {
   const { catalog, entry, package: pkg } = v(generalIdentifiers, "identifier");
@@ -394,7 +411,11 @@ const lessons = query(QtiLomVocabulary).rule((r) => {
   return r
     .match(generalIdentifiers, { catalog, entry, package: pkg })
     .match(manifestIdentifiers, { package: pkg, value: entry })
-    .find({ catalog, entry, package: pkg });
+    .find({
+      catalog: keyedMatchedText(catalog),
+      entry: keyedMatchedText(entry),
+      package: pkg,
+    });
 });
 
 /**
@@ -461,6 +482,7 @@ const relations = query(QtiLomVocabulary).rule((r) => {
       package: relation.package,
       parent: identifier.start,
       path: manifestPath,
+      start: catalog.start,
       stringValue: catalog.stringValue,
     })
     .match(Node, {
@@ -468,11 +490,14 @@ const relations = query(QtiLomVocabulary).rule((r) => {
       package: relation.package,
       parent: identifier.start,
       path: manifestPath,
+      start: entry.start,
       stringValue: entry.stringValue,
     })
     .find({
       catalog: catalog.stringValue,
+      catalogNode: catalog.start,
       entry: entry.stringValue,
+      entryNode: entry.start,
       kind: value.stringValue,
       package: relation.package,
       relation: relation.start,
@@ -497,9 +522,10 @@ const versionsOf = query(QtiLomVocabulary).rule((r) => {
 const supersessions = query(QtiLomVocabulary).rule((r) => {
   const { entry: earlier, package: pkg } = v(versionsOf, "version");
 
-  return r
-    .match(versionsOf, { catalog: packageScheme, entry: earlier, package: pkg })
-    .find({ earlier, package: pkg });
+  return r.match(versionsOf, { catalog: packageScheme, entry: earlier, package: pkg }).find({
+    earlier: keyedMatchedText(earlier),
+    package: pkg,
+  });
 });
 
 /**
@@ -666,6 +692,7 @@ const taxa = query(QtiLomVocabulary).rule((r) => {
       package: classification.package,
       parent: source.start,
       path: manifestPath,
+      start: sourceString.start,
       stringValue: sourceString.stringValue,
     })
     .match(Node, {
@@ -680,16 +707,74 @@ const taxa = query(QtiLomVocabulary).rule((r) => {
       package: classification.package,
       parent: taxon.start,
       path: manifestPath,
+      start: id.start,
       stringValue: id.stringValue,
     })
     .find({
       id: id.stringValue,
+      idNode: id.start,
       package: classification.package,
       purpose: value.stringValue,
       source: sourceString.stringValue,
+      sourceNode: sourceString.start,
       taxon: taxon.start,
     });
 });
+
+/**
+ * Each LOM text of the manifest's record a key holds, by its node: a general identifier's and a
+ * relation's catalog and entry, a taxon path's source and a taxon's id, as
+ * {@link generalIdentifiers}, {@link relations} and {@link taxa} read them. "Key text bound" holds
+ * each within {@link keyMatchedTextBytes}, which no LOM specification bounds, so a package with a
+ * longer one is refused at its import, a stated limit of the representation, and every view that
+ * keys one reads it as itself, cast under grizzle's byte guard.
+ */
+export const LomKeyText = derived(
+  "LomKeyText",
+  query(QtiLomVocabulary)
+    .rule((r) => {
+      const { catalog, catalogNode, package: pkg } = v(generalIdentifiers, "identifier");
+
+      return r
+        .match(generalIdentifiers, { catalog, catalogNode, package: pkg })
+        .find({ node: catalogNode, package: pkg, text: catalog });
+    })
+    .rule((r) => {
+      const { entry, entryNode, package: pkg } = v(generalIdentifiers, "identifier");
+
+      return r
+        .match(generalIdentifiers, { entry, entryNode, package: pkg })
+        .find({ node: entryNode, package: pkg, text: entry });
+    })
+    .rule((r) => {
+      const { catalog, catalogNode, package: pkg } = v(relations, "relation");
+
+      return r
+        .match(relations, { catalog, catalogNode, package: pkg })
+        .find({ node: catalogNode, package: pkg, text: catalog });
+    })
+    .rule((r) => {
+      const { entry, entryNode, package: pkg } = v(relations, "relation");
+
+      return r
+        .match(relations, { entry, entryNode, package: pkg })
+        .find({ node: entryNode, package: pkg, text: entry });
+    })
+    .rule((r) => {
+      const { package: pkg, source, sourceNode } = v(taxa, "taxon");
+
+      return r
+        .match(taxa, { package: pkg, source, sourceNode })
+        .find({ node: sourceNode, package: pkg, text: source });
+    })
+    .rule((r) => {
+      const { id, idNode, package: pkg } = v(taxa, "taxon");
+
+      return r
+        .match(taxa, { id, idNode, package: pkg })
+        .find({ node: idNode, package: pkg, text: id });
+    }),
+);
 
 /**
  * Each identity a package states: a lesson per general identifier whose entry is the manifest's
@@ -784,7 +869,13 @@ export const PackageRelation = derived(
     return r
       .match(relations, { catalog, entry, kind: text, package: pkg, relation })
       .match(RelationKindText, { term: kind, text })
-      .find({ catalog, entry, kind, package: pkg, relation });
+      .find({
+        catalog: keyedMatchedText(catalog),
+        entry: keyedMatchedText(entry),
+        kind,
+        package: pkg,
+        relation,
+      });
   }),
 );
 
@@ -802,7 +893,12 @@ export const PackageClassification = derived(
     return r
       .match(taxa, { id, package: pkg, purpose: text, source })
       .match(ClassificationPurposeText, { term: purpose, text })
-      .find({ id, package: pkg, purpose, source });
+      .find({
+        id: keyedMatchedText(id),
+        package: pkg,
+        purpose,
+        source: keyedMatchedText(source),
+      });
   }),
 );
 
@@ -833,7 +929,12 @@ export const TaxonEntry = derived(
         path: manifestPath,
         stringValue: string.stringValue,
       })
-      .find({ entry: string.stringValue, id, package: pkg, source });
+      .find({
+        entry: string.stringValue,
+        id: keyedMatchedText(id),
+        package: pkg,
+        source: keyedMatchedText(source),
+      });
   }),
 );
 
@@ -956,7 +1057,10 @@ export const ResourceDescription = derived(
  * The level's laws by name, the module's header giving each.
  */
 export const lomLawsByName = {
-  "LOM vCard": [
+  "Key text bound": declared("Key text bound", [
+    check("Key_text_bound", LomKeyText, (t) => t.le(Text.octetLength(t.text), keyMatchedTextBytes)),
+  ]),
+  "LOM vCard": declared("LOM vCard", [
     check("LOM_vCard", RecordNode, (n) =>
       n.or(
         n.ne(n.kind, "lom:entity"),
@@ -968,8 +1072,8 @@ export const lomLawsByName = {
         ),
       ),
     ),
-  ],
-  "LOM vocabulary": [
+  ]),
+  "LOM vocabulary": declared("LOM vocabulary", [
     check("LOM_vocabulary", LomTerm, (t) =>
       t.or(
         t.and(t.eq(t.parentKind, "lom:status"), t.in(t.stringValue, LifeCycleStatus.handles)),
@@ -984,7 +1088,7 @@ export const lomLawsByName = {
         ),
       ),
     ),
-  ],
+  ]),
 } as const;
 
 /**
@@ -992,6 +1096,7 @@ export const lomLawsByName = {
  */
 export const lomRelations = [
   LomTerm,
+  LomKeyText,
   Lesson,
   Supersedes,
   Head,

@@ -21,15 +21,17 @@ operator ruling. A new reading lands here by pull request, and a package that ne
      (`matchedText`, `matchedTextBytes`, grizzle's `regexTextMaxBytes`, the longest text PostgreSQL's regex engine
      reads): an element's string value (`Node.stringValue`, which every `qti-value`, `qti-base-value`, LOM string and
      text reference copies), a map key (`MapKey.key`), a lookup table's value (`LookupValue.value`), a mastery value
-     and a normal bound, and an interaction attribute's value. An `aria-valuemin` or `aria-valuemax` of an element that
+     and a normal bound. An `aria-valuemin` or `aria-valuemax` of an element that
      writes both, where it is an `xs:decimal`, is at most 16,384 bytes (`parsedDecimalBytes`, grizzle's
      `decimalTextMaxBytes`, what `Text.parseDecimal` reads), past which a decimal may name a value PostgreSQL's
-     numeric does not hold. An open attribute's local name, its namespace name and a namespace prefix hold the bytes the indexes their ordered reads read them by leave them (reading 133). Every other
-     text is of any length: a key holds it by its image, its SHA-256, and a lookup, a rule's probe and a seek over the
-     texts it fixes by equality by their md5 (grizzle LIMITS5 and LIMITS6), so a package's name, an entry's path (no
-     index orders by one: a package's entries are read as a set and ordered on the host), an identifier, an ID,
-     an IDREF, an href, a target and a `srcset` value meet no bound, and the served AlphaTest item whose string
-     correct response is 433 bytes is admitted.
+     numeric does not hold. A text a key holds is at most what the widest key it stands in leaves it, one bound per
+     kind of text (reading 133, amended 2026-11-21; `src/qti/limits.ts`): a package's name 255 bytes, an entry's path
+     790, a QTI identifier 503, an `xs:ID` and a whitespace list's token 795, a namespace name 792, an XML name (a
+     prefix, an open attribute's local name) 793, a LOM key text and a reading's number 777, a base value's text 1,501,
+     a `data-ssml` member's name 1,592 and an attribute's lexical form an overlay copies into a key 1,601 (an
+     interaction's attribute, an `m:cn`'s `type` or `base`, a rounding's `figures`, collapsed or not). An href, a
+     target that names no entry and a `srcset` value meet no bound, and the served AlphaTest item whose string correct
+     response is 433 bytes is admitted.
    - **Element depth** (`element-depth`): at most 256 elements are open at once, the bound `@qti-pie/crust`'s reader
      keeps for pantry and plate alike (`defaultElementDepth`, as in `xmllint`). XML and QTI set no depth; the bound
      protects the recursive walks over a read tree, and nesting that deep is outlandish and absent from the official
@@ -2888,7 +2890,18 @@ against it. A reading that is not an information-model-over-XSD case says which 
      64 KiB. The served AlphaTest item whose string correct response is 433 bytes (one of 82,352, measured 2026-11-20
      on production Silver) is admitted. (Restated 2026-11-20 by PANTRY-CONFORM on LIMITS6; earlier versions bounded
      every key text at 428 bytes and a package's name and an entry's path at 425, and LIMITS6's first consumer patch every
-     interaction attribute at 16,384.)
+     interaction attribute at 16,384.) (Amended 2026-11-21, superseding the images: grizzle hashes no key behind its
+     author's back (REPRKEY, format train A) and refuses a key whose entry a text could make outgrow `BTMaxItemSize`, so
+     each kind of text a key holds has one byte bound, what the widest key it stands in leaves it beside a package's name
+     and the bounds before it, by grizzle's `keyTextBytes` (`src/qti/limits.ts`, each a `derived` limit naming its
+     binding key): a package's name 255 bytes (`nameMaxBytes`, Linux's `NAME_MAX`, since every producer writes a package
+     as a directory of its name), an entry's path 790, a QTI identifier 503, an `xs:ID` and a whitespace list's token 795,
+     a namespace name 792, an XML name 793, a LOM key text and a reading's number 777 (`LomKeyText` in
+     `src/qti/lom.ts`), a base value's text 1,501, a `data-ssml` member's name 1,592 and an attribute's lexical form an
+     overlay copies into a key 1,601. A longer one is valid QTI the store cannot hold, refused at import under
+     `key-text-bound`. The texts no bound fits, an attribute's value in the keys over a selection of it and the folded
+     running texts of the string value and the whitespace lists, take an explicit SHA-256 digest key instead, which
+     waits on grizzle's digest keys. No md5 remains.)
 
 134. **An item's or a test's languages are listed by its records' general categories, compared as language tags.** The
      QTI 3.0 Metadata binding says "There must be one value for each of the languages referred to by the language

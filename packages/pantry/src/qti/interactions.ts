@@ -143,7 +143,7 @@ import {
 import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
 import { namePattern } from "#pantry/qti/declarations.ts";
-import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
+import { CopiedLexical, EntryPath, PackageName, QtiIdentifier } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Instance, itemInstances } from "#pantry/qti/tests.ts";
 
@@ -160,6 +160,7 @@ import {
   referringRoots,
 } from "#pantry/vocab/terms/interactions.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * A `NodeKind` handle.
@@ -270,8 +271,9 @@ export const templateVariableKind = "qti-template-variable" satisfies Kind;
  * whatever the form: a value with whitespace inside is held as its type's whiteSpace reads it, and
  * is no value of its type, which its value domain refuses alone.
  *
- * Copied text is `matchedText` (`#pantry/qti/limits.ts`), the longest a query reads by a pattern:
- * a key holds it at any length by its image. A parse that reads a value bounds its own operand
+ * The lexical form and its collapse are `CopiedLexical` (`#pantry/qti/limits.ts`), the bound of an
+ * attribute's form a key holds, so every index over `value` holds it as itself. A parse that reads
+ * a value bounds its own operand
  * where it reads it ("Aria value range", `#pantry/qti/overlay-queries/interaction.ts`), so no
  * identifier O3 reads is held to a decimal's bound.
  */
@@ -279,7 +281,7 @@ export const InteractionAttribute = relation.generated(
   "InteractionAttribute",
   {
     kind: closedId(NodeKind),
-    lexical: matchedText,
+    lexical: CopiedLexical,
     name: closedId(AttributeName),
     package: PackageName,
     path: EntryPath,
@@ -288,7 +290,7 @@ export const InteractionAttribute = relation.generated(
   },
   ["package", "path", "start", "name"],
   (v) => ({
-    value: generated(matchedText, Text.collapse(v.lexical)),
+    value: generated(CopiedLexical, Text.collapse(v.lexical)),
   }),
 );
 
@@ -334,7 +336,7 @@ export const BoundVariable = relation(
   {
     adaptive: pg.boolean,
     attribute: closedId(AttributeName),
-    identifier: anyText,
+    identifier: QtiIdentifier,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -358,7 +360,7 @@ export const BindingName = relation(
   "BindingName",
   {
     attribute: closedId(AttributeName),
-    identifier: anyText,
+    identifier: QtiIdentifier,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -386,7 +388,7 @@ export const PlacedBinding = relation(
     adaptive: pg.boolean,
     assembly: EntryPath,
     attribute: closedId(AttributeName),
-    identifier: anyText,
+    identifier: QtiIdentifier,
     instance: natural,
     package: PackageName,
     path: EntryPath,
@@ -408,7 +410,7 @@ export const PlacedChoice = relation(
   "PlacedChoice",
   {
     assembly: EntryPath,
-    identifier: anyText,
+    identifier: QtiIdentifier,
     instance: natural,
     package: PackageName,
     path: EntryPath,
@@ -425,7 +427,7 @@ export const PlacedHottext = relation(
   "PlacedHottext",
   {
     assembly: EntryPath,
-    identifier: anyText,
+    identifier: QtiIdentifier,
     instance: natural,
     package: PackageName,
     path: EntryPath,
@@ -455,7 +457,7 @@ const placedBindingFamily = counted(
 export const Choice = relation(
   "Choice",
   {
-    identifier: anyText,
+    identifier: QtiIdentifier,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -561,7 +563,7 @@ const elementForms = select(PciModuleForm, (f) => f.eq(f.element, true));
 export const Hottext = relation(
   "Hottext",
   {
-    identifier: anyText,
+    identifier: QtiIdentifier,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -686,7 +688,7 @@ export const ItemMode = relation(
 const referenceFields = {
   assemblyKind: closedId(NodeKind),
   attribute: closedId(AttributeName),
-  identifier: anyText,
+  identifier: QtiIdentifier,
   kind: closedId(NodeKind),
   package: PackageName,
   path: EntryPath,
@@ -750,7 +752,7 @@ export const ContextRef = relation("ContextRef", referenceFields, [
  */
 const fragmentNameFields = {
   attribute: closedId(AttributeName),
-  identifier: anyText,
+  identifier: QtiIdentifier,
   kind: closedId(NodeKind),
   package: PackageName,
   path: EntryPath,
@@ -891,7 +893,7 @@ const fragmentReferenceFields = {
   assembly: EntryPath,
   assemblyKind: closedId(NodeKind),
   attribute: closedId(AttributeName),
-  identifier: anyText,
+  identifier: QtiIdentifier,
   instance: natural,
   kind: closedId(NodeKind),
   package: PackageName,
@@ -1463,8 +1465,11 @@ const onContext = on(Document, "package", "path", "contextPath", "contextNearest
  *   each a rule over a query (`#pantry/qti/overlay-queries/reference.ts`).
  */
 export const interactionLawsByName = {
-  ...pipe(contentReferences, Rec.map(contentReferenceLaws)),
-  "Adaptive feedback": [
+  ...pipe(
+    contentReferences,
+    Rec.map((reference, name) => declared(name, contentReferenceLaws(reference))),
+  ),
+  "Adaptive feedback": declared("Adaptive feedback", [
     contained(
       on(
         select(BoundVariable, (r) =>
@@ -1487,16 +1492,16 @@ export const interactionLawsByName = {
       ),
       on(outsideFeedback, "package", "path", "start"),
     ),
-  ],
-  "Binding unique": [
+  ]),
+  "Binding unique": declared("Binding unique", [
     key(on(BoundVariable, "package", "path", "identifier")),
     key(on(PlacedBinding, "package", "assembly", "identifier")),
-  ],
-  "Choice identifier key": [
+  ]),
+  "Choice identifier key": declared("Choice identifier key", [
     key(on(Hottext, "package", "path", "identifier")),
     key(on(PlacedHottext, "package", "assembly", "identifier")),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     contained(
       on(o3Attributes, "package", "path", "start", "name", "kind", "lexical"),
       on(InteractionAttribute, "package", "path", "start", "name", "kind", "lexical"),
@@ -1777,8 +1782,8 @@ export const interactionLawsByName = {
       on(FragmentContextRef, "package", "assembly", "instance", "path", "assemblyKind"),
       on(FragmentScope, "package", "assembly", "instance", "document", "assemblyKind"),
     ),
-  ],
-  "N8 nearest": [
+  ]),
+  "N8 nearest": declared("N8 nearest", [
     contained(
       on(Choice, "package", "path", "start"),
       on(ChoiceInteraction, "package", "path", "start"),
@@ -1794,7 +1799,7 @@ export const interactionLawsByName = {
       onContext,
     ),
     choiceFamily,
-  ],
+  ]),
 } as const;
 
 /**

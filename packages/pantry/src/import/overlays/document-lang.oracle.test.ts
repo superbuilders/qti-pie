@@ -272,7 +272,7 @@ const lowerAscii = (text: string): string =>
  * (`namingGenerals`, `#pantry/qti/queries.ts`): a category of a `lom:lom` of a resource's
  * `cp:metadata`, its resource of an item's or a test's type, its `type` attribute as written (an
  * `xs:string` enumeration, each handle spelled as its lexical form), and the document a resource
- * lists at the path its href is compared by.
+ * lists at the entry path its href names (its `ResourceHrefPath`).
  *
  * @param rowsOf - The rows of a relation.
  * @returns Each category's document, `(package, path)`, by the category's element, as key texts.
@@ -296,7 +296,7 @@ const describingOf = (
   );
   const listed = new Set(rowsOf("ResourceDocument").map((row) => keyAt(row, "package", "path")));
   const documents = new Map(
-    rowsOf("ResourceHref").flatMap((row) => {
+    rowsOf("ResourceHrefPath").flatMap((row) => {
       const document = keyAt(row, "package", "target");
 
       return typed.has(keyAt(row, "package", "path", "start")) && listed.has(document)

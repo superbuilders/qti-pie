@@ -17,7 +17,7 @@ import { Option, Schema } from "effect";
 import type { LawName } from "#pantry/import/refusal.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
 import { Qti } from "#pantry/qti/schema.ts";
-import { schemaLawNameOf } from "#pantry/test/law-namer.ts";
+import { schemaLawNameOf, schemaLawOf } from "#pantry/test/law-namer.ts";
 
 /**
  * A key law over plain fields: its name, its relation, its fields, in order, and the rows it keys:
@@ -134,21 +134,24 @@ const keyLaws: readonly KeyLaw[] = Qti.statements.flatMap((statement) =>
       const [first, ...rest] = terms;
 
       return Option.match(
-        schemaLawNameOf({
-          kind: "key",
-          side: {
-            relation,
-            selection: {
-              conjuncts: Option.toArray(where).map(({ field, value }) => ({
-                kind: "compare" as const,
-                left: termOf(field),
-                op: "eq" as const,
-                right: { kind: "literal" as const, value },
-              })),
+        Option.flatMap(
+          schemaLawOf({
+            kind: "key",
+            side: {
+              relation,
+              selection: {
+                conjuncts: Option.toArray(where).map(({ field, value }) => ({
+                  kind: "compare" as const,
+                  left: termOf(field),
+                  op: "eq" as const,
+                  right: { kind: "literal" as const, value },
+                })),
+              },
+              terms: [termOf(first), ...rest.map(termOf)],
             },
-            terms: [termOf(first), ...rest.map(termOf)],
-          },
-        }),
+          }),
+          schemaLawNameOf,
+        ),
         {
           onNone: () => [],
           onSome: (law) => [{ fields: terms, law, relation, where }],

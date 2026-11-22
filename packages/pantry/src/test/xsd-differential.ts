@@ -1003,7 +1003,7 @@ export const recorded: readonly Recorded[] = [
     reason: {
       _tag: "specification",
       source:
-        "https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Value (§7.46, Value, normative: 'The base-type is defined by the 'base-type' attribute of the declaration') and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.13, BaseTypeEnum, normative, of identifier: 'The set of identifier values is the same as the set of values defined by the identifier class.')",
+        "https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Value (§7.46, Value, normative: 'The base-type is defined by the 'base-type' attribute of the declaration') and https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_BaseTypeEnum (§8.14, BaseTypeEnum, normative, of identifier: 'The set of identifier values is the same as the set of values defined by the identifier class.')",
       why: "a qti-value's text is a lexical form of its declaration's base type; the XSD types qti-value's text as any string",
     },
     rule: "typed-copy",
@@ -1737,7 +1737,7 @@ export const generatedRecorded: readonly Recorded[] = [
     reason: {
       _tag: "specification",
       source:
-        "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_CardinalityEnum (§8.16, CardinalityEnum, normative, of single: 'A cardinality of single i.e. a single value.'; of record: 'a set of independent values each identified by its own identifier and having its own base-type')",
+        "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_CardinalityEnum (§8.17, CardinalityEnum, normative, of single: 'A cardinality of single i.e. a single value.'; of record: 'a set of independent values each identified by its own identifier and having its own base-type')",
       why: "a single variable's value set holds one value, and each value of a record's value set is a field, with its field-identifier and its base-type both; the XSD admits any number of qti-value children, each with either attribute or none, under any declaration, and pantry admits either attribute on a value of any other cardinality, where it names and types nothing (§7.46.1, §7.46.2)",
     },
     rule: "value-cardinality",

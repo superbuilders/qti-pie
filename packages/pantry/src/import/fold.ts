@@ -258,8 +258,9 @@ export const foldAt = (folds: Folds, start: bigint): Folded => {
  * @throws {Error} When a node comes before its parent, which `flatten`'s document order rules out:
  *   a defect of the caller, never of the document.
  */
-// GRIZZLE-PENDING: Q11, Q13: folds stepped by a closed relation, and a generated term over an
-// accumulated field, let the database draw state, ancestry and nearest, and this host fold goes.
+// GRIZZLE-PENDING: Q11, folds stepped by a closed relation, lets the database draw state. ancestry
+// and nearest stay the host's: a document node's are its Document's context, from outside its tree
+// (spec reading 117), and grizzle pins a root's copies at their start.
 export const foldOf = (nodes: readonly NodeRow<Composed>[], context: DocumentContext): Folds => {
   const folded = new Map<bigint, { readonly held: Held; readonly under: Under }>();
 

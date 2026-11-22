@@ -240,7 +240,7 @@ export const hostlessLaws = {
   "Entry kind":
     "its rows are the package's entries, each of the kind the importer reads its file as (src/import/record.ts): a document where it shreds one, which is that Document row's, and media, with the digest of the bytes it read, everywhere else; the host writes no such row, and a package's text can make no entry's kind disagree with the documents the importer reads from it",
   "Manifest overlay":
-    "its rows (ResourceHref, File) are each href's resolution, at its element's node, and the manifest's identifier is its attribute's value, the query manifestIdentifiers (plan §1.6, C18); the host writes no such row, and a package's text can make no row disagree with the attributes it stands at",
+    "its rows (ResourceHref, File, each beside the arm its scope names: ResourceHrefPath and FilePath in the package, ResourceHrefOutside and FileOutside outside it) are each href's resolution, at its element's node, and the manifest's identifier is its attribute's value, the query manifestIdentifiers (plan §1.6, C18); the host writes no such row, and a package's text can make no row disagree with the attributes it stands at",
   "Mapping overlay":
     "its rows (MapKey and LookupValue) are copies the importer writes of each map entry's map-key and each lookup table's typed attribute values (plan §1.7 O5, C18); the host writes no such row, and a package's text can make no copy disagree with what it copies",
   "Package key":

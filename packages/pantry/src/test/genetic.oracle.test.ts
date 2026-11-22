@@ -46,6 +46,7 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, Option } from "effect";
 import { sameLaw } from "@bjornpagen/grizzle";
 import { grammar } from "#pantry/grammar/install.ts";
+import { xmlIdBytes } from "#pantry/qti/limits.ts";
 import { lawTable } from "#pantry/vocab/laws.ts";
 import { corpusOf } from "#pantry/test/gen/genetic/corpus.ts";
 import { residualsOf } from "#pantry/test/gen/genetic/engine.ts";
@@ -59,6 +60,7 @@ import {
   movedBy,
   recordsClassOf,
   recordsPlainClassOf,
+  classLawOf,
   sameSignature,
   shownDisagreement,
   shownSignature,
@@ -166,7 +168,7 @@ const disagreementOf = (signature: Signature): Disagreement => {
     }
     case "import-only-law": {
       return {
-        broken: signature.law,
+        broken: classLawOf(signature.law),
         kind: signature.kind,
         law: signature.law.kind,
         rule: "",
@@ -226,20 +228,21 @@ const nameOf = (bytes: number): string => `K${"x".repeat(bytes - 1)}`;
 
 /**
  * The manifests whose identifierref the database's fold copies into `Attribute.idrefText`, a field
- * the import never writes: one byte past the key-text bound (`keyTextBytes`, 2,587) on a cp:variant
- * and on a cp:dependency, and at the bound on the variant.
+ * the import never writes, of any length, beside its token, `Idref.token`, an `xs:ID` a key holds
+ * (`xmlIdBytes`, `#pantry/qti/limits.ts`), which the import writes: one byte past that bound on a
+ * cp:variant and on a cp:dependency, and at the bound on the variant.
  */
 const filledCases = [
   {
-    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(2588)}"/>`),
+    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(xmlIdBytes + 1)}"/>`),
     name: "a cp:variant's identifierref past the bound",
   },
   {
-    manifest: filledManifest(`<dependency identifierref="${nameOf(2588)}"/>`),
+    manifest: filledManifest(`<dependency identifierref="${nameOf(xmlIdBytes + 1)}"/>`),
     name: "a cp:dependency's identifierref past the bound",
   },
   {
-    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(2587)}"/>`),
+    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(xmlIdBytes)}"/>`),
     name: "a cp:variant's identifierref at the bound",
   },
 ] as const;
@@ -274,7 +277,8 @@ const canShow = (signature: Signature): boolean => {
   switch (signature.kind) {
     case "import-only-law": {
       return judgedLaws.some(
-        (law) => law.kind === signature.law.kind && sameLaw(law, signature.law),
+        (law) =>
+          law.kind === signature.law.kind && sameLaw(classLawOf(law), classLawOf(signature.law)),
       );
     }
     case "oracle-only-law": {

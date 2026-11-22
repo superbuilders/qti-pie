@@ -33,12 +33,14 @@ import {
 } from "#pantry/qti/identity.ts";
 import { AssembledCatalog } from "#pantry/qti/catalog.ts";
 import { PlacedShareTarget, ShareTarget } from "#pantry/qti/mathml-share.ts";
-import { attributeValues, IdValue, QtiViews, SsmlValue } from "#pantry/qti/names.ts";
+import { attributeValues, IdText, IdValue, QtiViews, SsmlValue } from "#pantry/qti/names.ts";
+import { xmlIdBytes } from "#pantry/qti/limits.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
 import { instanceAnchors } from "#pantry/qti/overlay-queries/tests.ts";
 import { Instance, Site } from "#pantry/qti/tests.ts";
 import { includeKind } from "#pantry/vocab/terms/tests.ts";
 import { anyText } from "#pantry/grammar/install.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * Each SSML scope beside its element's kind and parent, by the element's place.
@@ -216,12 +218,12 @@ const shareSrcs = attributeValues("src", ["m:share"]);
  * reads.
  */
 const shareSources = query(QtiBase).rule((r) => {
-  const { package: pkg, path, start, value } = v(shareSrcs, "src");
+  const { package: pkg, path, start, value, valueDigest } = v(shareSrcs, "src");
 
   return r
-    .match(shareSrcs, { package: pkg, path, start, value })
+    .match(shareSrcs, { package: pkg, path, start, value, valueDigest })
     .where(r.and(r.eq(Text.startsWith(value, "#"), true), r.ne(value, "#")))
-    .find({ package: pkg, path, start, value });
+    .find({ package: pkg, path, start, value, valueDigest });
 });
 
 /**
@@ -238,12 +240,12 @@ const ShareFragmentValue = derived(
   "ShareFragmentValue",
   query(QtiBase).rule((r) => {
     const { id, package: pkg, path, start } = v(ShareFragment, "share");
-    const { value } = v(shareSources, "src");
+    const { value, valueDigest } = v(shareSources, "src");
 
     return r
       .match(ShareFragment, { id, package: pkg, path, start })
-      .match(shareSources, { package: pkg, path, start, value })
-      .find({ id, package: pkg, path, start, value });
+      .match(shareSources, { package: pkg, path, start, value, valueDigest })
+      .find({ id, package: pkg, path, start, value, valueDigest });
   }),
 );
 
@@ -256,13 +258,28 @@ const ShareFragmentValue = derived(
 const TrimmedMark = derived(
   "TrimmedMark",
   query(QtiViews).rule((r) => {
-    const { package: pkg, path, start: fragment, value } = v(SsmlValue, "trim");
+    const { package: pkg, path, start: fragment, value, valueDigest } = v(SsmlValue, "trim");
     const { start } = v(SsmlValue, "mark");
 
     return r
-      .match(SsmlValue, { kind: "ssml:speak", package: pkg, path, start: fragment, value })
-      .match(SsmlValue, { fragment, kind: "ssml:mark", package: pkg, path, start, value })
-      .find({ fragment, package: pkg, path, start, value });
+      .match(SsmlValue, {
+        kind: "ssml:speak",
+        package: pkg,
+        path,
+        start: fragment,
+        value,
+        valueDigest,
+      })
+      .match(SsmlValue, {
+        fragment,
+        kind: "ssml:mark",
+        package: pkg,
+        path,
+        start,
+        value,
+        valueDigest,
+      })
+      .find({ fragment, package: pkg, path, start, value, valueDigest });
   }),
 );
 
@@ -319,12 +336,12 @@ const inheritedCatalogScopes = select(CatalogScopeNode, (s) =>
  *   `speak` being its own fragment ({@link TrimmedMark}). A mark name may otherwise repeat.
  */
 export const identityOverlayLawsByName = {
-  "DocumentId key": [
+  "DocumentId key": declared("DocumentId key", [
     key(on(IdBinding, "package", "path", "id")),
     key(on(AnchoredId, "package", "assembly", "anchor", "id")),
     key(on(CopiedId, "package", "assembly", "id")),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     contained(
       on(PlacedId, "package", "path", "start", "id", "owner"),
       on(IdValue, "package", "path", "start", "id", "owner"),
@@ -386,8 +403,8 @@ export const identityOverlayLawsByName = {
       on(inheritedScopes, "package", "path", "parent", "fragment"),
       on(SsmlScope, "package", "path", "start", "fragment"),
     ),
-  ],
-  "Idref target": [
+  ]),
+  "Idref target": declared("Idref target", [
     contained(
       on(unassembledTargets, "package", "path", "id"),
       on(IdBinding, "package", "path", "id"),
@@ -396,20 +413,23 @@ export const identityOverlayLawsByName = {
       on(JudgedPlacedIdref, "package", "assembly", "id"),
       on(AssembledId, "package", "assembly", "id"),
     ),
-  ],
-  "SSML lexicon reference": [
+  ]),
+  "Key text bound": declared("Key text bound", [
+    check("Key_text_bound", IdText, (t) => t.le(Text.octetLength(t.text), xmlIdBytes)),
+  ]),
+  "SSML lexicon reference": declared("SSML lexicon reference", [
     contained(
       on(lookupRefs, "package", "path", "fragment", "value"),
       on(lexiconIds, "package", "path", "fragment", "value"),
     ),
-  ],
-  "SSML trim mark": [
+  ]),
+  "SSML trim mark": declared("SSML trim mark", [
     contained(
       on(speakTrims, "package", "path", "start", "value"),
       on(TrimmedMark, "package", "path", "fragment", "value"),
     ),
     key(on(TrimmedMark, "package", "path", "fragment", "value")),
-  ],
+  ]),
 } as const;
 
 /**

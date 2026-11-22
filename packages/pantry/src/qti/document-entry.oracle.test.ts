@@ -3,15 +3,16 @@
  * document is an entry: "Document entry" (`entry-kind`), as spec reading 93 and the readings' href
  * resolution state ("refused where a law needs it to name an entry (a document-typed resource's
  * href, "Document entry")"). The law oracle raises it for a document-typed href, and the database
- * judges it over the query `TypedHref`. The containment that holds a document-typed href to a
- * document of its type (`#pantry/qti/queries.ts`, `documentHrefs` into `ResourceDocument`) is that
+ * judges it over the queries `TypedHref`, its scope, and `TypedPath`, its entry path. The
+ * containment that holds a document-typed href to a document of its type
+ * (`#pantry/qti/queries.ts`, `documentHrefs` into `ResourceDocument`) is that
  * law's, never `RootOfType`'s, whose breach is a document whose (type, root kind) no row of
  * `RootOfType` pairs. GEN-A's differential found the import naming a listed resource with no entry
  * `RootOfType`, a law the oracle does not raise there.
  *
  * Oracle: a second implementation, the law oracle (`#pantry/test/oracle.ts` `judge`), against the
  * laws the import's rows break on the host (`#pantry/test/gen/genetic/judge.ts` `judgeOne`).
- * "Document entry" over a document-typed href is a rule over a query (`TypedHref`,
+ * "Document entry" over a document-typed href is a rule over a query (`TypedHref` and `TypedPath`,
  * `#pantry/qti/queries.ts`), which the host judge leaves to the database, so the oracle's side
  * alone is held to it here; neither side raises `RootOfType`.
  *

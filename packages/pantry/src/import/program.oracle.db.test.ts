@@ -585,7 +585,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             ]),
             (dir) => applyEdited(dir),
           ),
-        laws: [containedIn("ResourceHref", "ResourceFileTarget")],
+        laws: [containedIn("ResourceHrefPath", "ResourceFilePath")],
         name: "a resource href its own files do not list (href-listed, Q5.06)",
       },
       {
@@ -598,9 +598,9 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
             ]),
             (dir) => applyEdited(dir),
           ),
-        // "Document entry" over the query `TypedHref` (`qti/queries.ts`): the document a typed href
-        // names is one the package lists; and the listed file's own entry.
-        laws: [containedIn("TypedHref", "ResourceDocument"), containedIn("File", "Entry")],
+        // "Document entry" over the query `TypedPath` (`qti/queries.ts`): the document a typed href
+        // names in the package is one the package lists; and the listed file's own entry.
+        laws: [containedIn("TypedPath", "ResourceDocument"), containedIn("FilePath", "Entry")],
         name: "a document href no entry holds (entry-kind, Q5.06)",
       },
       {

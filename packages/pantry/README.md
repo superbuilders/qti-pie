@@ -132,16 +132,21 @@ application serves the file by.
 
 ## Limits
 
-A key holds a text of any length: grizzle installs a key, a containment's target and a family's axes whose
-B-tree entry a text would outgrow over the text's image, its SHA-256 digest, and every lookup, rule probe and seek over
-the texts it fixes by equality whose entry they would outgrow over their md5, so none bounds a package's name or any
-text a store compares by equality. A text a query reads by a pattern keeps only PostgreSQL's regex limit
-(`matchedTextBytes`, grizzle's `regexTextMaxBytes`): a LOM text, a node's string value, a map key, a lookup value, an
-interaction attribute's value. A decimal a query parses keeps the parse's (`parsedDecimalBytes`, grizzle's
-`decimalTextMaxBytes`): an ARIA bound of a pair, which "Aria value range" parses under its own byte guard and "Key text
-bound" refuses past it. The texts an ordered read reads in their own order keep the bytes that read's index leaves
-them as themselves (`src/qti/limits.ts`): the names and prefixes a node's open attributes and namespaces are read in.
-An entry's path is of any length: a package's entries are read as a set and ordered on the host.
+A key holds each of its texts as itself: grizzle hashes no key behind its author's back, and refuses a schema
+whose key, containment target or family axis a text could make outgrow PostgreSQL's B-tree entry (`BTMaxItemSize`,
+2,704 bytes). So each kind of text a key holds has one byte bound, what the widest key it stands in leaves it beside a
+package's name and the bounds before it, each derived by grizzle's `keyTextBytes` and documented where it is declared
+(`src/qti/limits.ts`): a package's name 255 bytes (`nameMaxBytes`, Linux's `NAME_MAX`, since every producer writes a
+package as a directory of its name), an entry's path 790, a QTI identifier 503, an `xs:ID` 795, a namespace name 792,
+an XML name 793, a LOM term's text and a reading's number 777, a base value's text 1,501, a `data-ssml` member's name
+1,592 and an attribute's lexical form an overlay copies into a key 1,601 (an interaction's attribute, an `m:cn`'s
+`type` or `base`, a rounding's `figures`, collapsed or not). A longer text is
+valid QTI the store cannot hold: the import is refused under `key-text-bound`, which names the field. A text a query
+reads by a pattern keeps PostgreSQL's regex limit (`matchedTextBytes`, grizzle's `regexTextMaxBytes`): a node's string
+value, a map key, a lookup value. A decimal a query parses keeps the parse's
+(`parsedDecimalBytes`, grizzle's `decimalTextMaxBytes`): an ARIA bound of a pair, which "Aria value range" parses under
+its own byte guard and "Key text bound" refuses past it. No ordered read orders by a name, a prefix or a path: the host
+orders them.
 
 ## Development
 

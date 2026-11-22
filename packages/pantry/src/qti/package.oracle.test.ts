@@ -5,7 +5,7 @@
  * listing's paths, one entry per path, each a document or media with the digest of its bytes.
  */
 import { NodeChildProcessSpawner, NodeFileSystem, NodePath } from "@effect/platform-node";
-import { ChangeSet, schema } from "@bjornpagen/grizzle";
+import { ChangeSet, schema, Sha256 } from "@bjornpagen/grizzle";
 import type { Addition } from "@bjornpagen/grizzle";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn, exhaust, explore } from "@bjornpagen/testing/explore";
@@ -257,13 +257,21 @@ const packagePath = Brand.nominal<PackagePath>();
 
 /**
  * The SHA-256 of bytes as lowercase hex, by Node's own hash: the second implementation the media
- * rows' digests are held to.
+ * rows' digests, written in hex ({@link hexOf}), are held to.
  *
  * @param content - The bytes.
  * @returns Their digest.
  */
 const sha256Of = (content: Uint8Array): string =>
   createHash("sha256").update(content).digest("hex");
+
+/**
+ * A digest's 32 octets as lowercase hex, the form {@link sha256Of} compares in.
+ *
+ * @param digest - The digest.
+ * @returns Its hex.
+ */
+const hexOf = (digest: Sha256): string => digest.toHex();
 
 /**
  * A listing as the record builder takes it: the manifest's path a document's, and every other file
@@ -280,7 +288,7 @@ const splitOf = (files: readonly PackageFile[]) => ({
       : [
           {
             bytes: content,
-            digest: sha256Of(content),
+            digest: Sha256.ofBytes(content),
             path: packagePath(path),
           } satisfies MediaFile,
         ],
@@ -423,7 +431,7 @@ describe("qti/package.ts", () => {
                 [...record.entries.values()].map(({ kind, path: at }) => [at, kind]),
               );
               const media = new Map(
-                [...record.media.values()].map(({ digest, path: at }) => [at, digest]),
+                [...record.media.values()].map(({ digest, path: at }) => [at, hexOf(digest)]),
               );
 
               c.note(sizeOf(files));
@@ -502,7 +510,7 @@ layer(TestLayer, { excludeTestServices: true })(
               fixture,
             );
             for (const { bytes: content, digest, path } of fromDirectory.media) {
-              assert.strictEqual(digest, sha256Of(content), `${fixture}: ${path}`);
+              assert.strictEqual(hexOf(digest), sha256Of(content), `${fixture}: ${path}`);
             }
           }
         }),

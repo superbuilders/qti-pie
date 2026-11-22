@@ -72,6 +72,7 @@ import { placedDocuments } from "#pantry/qti/overlay-queries/expression.ts";
 import { readDeclarations } from "#pantry/qti/overlay-queries/readings.ts";
 import { expressionKinds, ruleKindHandles } from "#pantry/vocab/terms/expression-types.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * The names each content reference may name in a document, by the document, the name, and the
@@ -779,8 +780,11 @@ const referableLaws = ({ own, placed }: ContentReferenceOf) => [
  *   is braced, a string value (reading R15-k).
  */
 export const referenceOverlayLawsByName = {
-  ...pipe(contentReferences, Rec.map(referableLaws)),
-  "Binding declared": [
+  ...pipe(
+    contentReferences,
+    Rec.map((reference, name) => declared(name, referableLaws(reference))),
+  ),
+  "Binding declared": declared("Binding declared", [
     contained(
       on(BoundVariable, "package", "path", "identifier"),
       on(responseNames, "package", "path", "identifier"),
@@ -789,8 +793,8 @@ export const referenceOverlayLawsByName = {
       on(PlacedBinding, "package", "assembly", "identifier"),
       on(responseNames, "package", "path", "identifier"),
     ),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     // A reference's form is its split put back together, braced exactly where its element's kind
     // spells its attribute's references braced (`VariableReference`), the split a name between
     // whitespace or braces (`#pantry/qti/expressions.ts`).
@@ -886,19 +890,19 @@ export const referenceOverlayLawsByName = {
         n.eq(n.elementCardinality, n.cardinality),
       ),
     ),
-  ],
-  "Feedback outcome type": [
+  ]),
+  "Feedback outcome type": declared("Feedback outcome type", [
     check("Feedback_outcome_type", FeedbackRefCardinality, (f) =>
       f.in(f.cardinality, feedbackCardinalities),
     ),
     check("Feedback_outcome_type", FeedbackRefBaseType, (f) => f.eq(f.baseType, "identifier")),
-  ],
-  "Lookup type": [
+  ]),
+  "Lookup type": declared("Lookup type", [
     // A lookup names no built-in outcome, which has no declaration and no table (spec reading
     // 197).
     check("Lookup_type", PlacedVariableRefNode, looksUpNoBuiltIn),
-  ],
-  "Mapped response": [
+  ]),
+  "Mapped response": declared("Mapped response", [
     // A reference never names a built-in response, which declares no table (reading 166).
     check("Mapped_response", PlacedVariableRefNode, mapsNoBuiltIn),
     // A declared map response maps a response, and a map response point a response of points
@@ -913,8 +917,8 @@ export const referenceOverlayLawsByName = {
         ),
       ),
     ),
-  ],
-  "Reference type": [
+  ]),
+  "Reference type": declared("Reference type", [
     check("Reference_type", PlacedVariableRefDeclaration, (d) =>
       d.or(
         d.eq(d.attribute, "identifier"),
@@ -933,8 +937,8 @@ export const referenceOverlayLawsByName = {
         ),
       ),
     ),
-  ],
-  "Template reads": [
+  ]),
+  "Template reads": declared("Template reads", [
     // A template expression reads no built-in variable but the context.
     check("Template_reads", PlacedVariableRefNode, (n) =>
       n.or(
@@ -951,16 +955,16 @@ export const referenceOverlayLawsByName = {
         d.not(d.in(d.declarationKind, ["qti-outcome-declaration", "qti-response-declaration"])),
       ),
     ),
-  ],
-  "Template variable type": [
+  ]),
+  "Template variable type": declared("Template variable type", [
     check("Template_variable_type", TemplateRefCardinality, (t) =>
       t.or(t.eq(t.kind, templateVariableKind), t.in(t.cardinality, feedbackCardinalities)),
     ),
     check("Template_variable_type", TemplateRefBaseType, (t) =>
       t.or(t.eq(t.kind, templateVariableKind), t.eq(t.baseType, "identifier")),
     ),
-  ],
-  "Variable declared": [
+  ]),
+  "Variable declared": declared("Variable declared", [
     contained(
       on(
         select(PlacedVariableRef, (ref) => ref.eq(ref.resolution, "declared")),
@@ -973,8 +977,8 @@ export const referenceOverlayLawsByName = {
     // An item's unresolved reference is braced, a string value (reading R15-k), its own and a
     // fragment's and a located template's alike (§4.6.1, §6.9.40).
     check("Variable_declared", PlacedVariableRefNode, resolvedUnlessBraced),
-  ],
-  "Variable kind": [
+  ]),
+  "Variable kind": declared("Variable kind", [
     // A reference by `identifier` to a built-in names one its element may.
     check("Variable_kind", PlacedVariableRefNode, namesAllowedBuiltIn),
     contained(
@@ -986,7 +990,7 @@ export const referenceOverlayLawsByName = {
       ),
       on(ReferenceDeclaration, "kind", "attribute", "declaration"),
     ),
-  ],
+  ]),
 } as const;
 
 /**

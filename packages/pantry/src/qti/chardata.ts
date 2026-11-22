@@ -46,6 +46,7 @@ import {
 } from "@bjornpagen/grizzle";
 import { uriReference } from "@qti-pie/crust/uri.ts";
 import {
+  Chars,
   DocumentType,
   Flag,
   interactionKinds,
@@ -55,9 +56,10 @@ import {
   openElementClasses,
   TypeName,
 } from "#pantry/grammar/install.ts";
-import { EntryPath, foreignNameBytes, PackageName } from "#pantry/qti/limits.ts";
-import { Chars, Node } from "#pantry/qti/node.ts";
+import { EntryPath, foreignNameBytes, PackageName, xmlNameBytes } from "#pantry/qti/limits.ts";
+import { Node } from "#pantry/qti/node.ts";
 import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * XML 1.0's `Char` as the body of a class: tab, line feed, carriage return and every scalar from
@@ -234,16 +236,21 @@ export const XmlStandalone = closed.ordered("XmlStandalone", ["yes", "no"]);
 
 /**
  * A namespace declaration's prefix as written: an NCName, or empty for a default declaration
- * (`xmlns="…"`), of any length. Namespaces in XML 1.0 makes a prefix an NCName (§4), which XML puts
- * no bound on (reading 94), and no ordered read orders by one: an element's declarations are a
- * set, which the model orders by prefix on the host (`#pantry/model/assemble.ts`), so the key
- * `Namespace(package, path, start, prefix)` holds it by its image where it would outgrow an entry.
+ * (`xmlns="…"`), of at most `xmlNameBytes` UTF-8 bytes (`#pantry/qti/limits.ts`), the bound of an
+ * XML name in a key, so the key `Namespace(package, path, start, prefix)` holds it as itself.
+ * Namespaces in XML 1.0 makes a prefix an NCName (§4), which XML puts no bound on (reading 94), so
+ * a longer one is refused at import under "Key text bound"; no ordered read orders by one: an
+ * element's declarations are a set, which the model orders by prefix on the host
+ * (`#pantry/model/assemble.ts`).
  *
  * @see {@link https://www.w3.org/TR/xml-names/#ns-decl | Namespaces in XML 1.0, §3 Declaring Namespaces}
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const NamespacePrefix = str.regex(`^(?:[${ncStart}][${ncChar}]*)?$`);
+export const NamespacePrefix = str.bytes(
+  xmlNameBytes,
+  str.regex(`^(?:[${ncStart}][${ncChar}]*)?$`),
+);
 
 /**
  * A namespace declaration's value as read, after attribute-value normalization: an RFC 3986
@@ -568,7 +575,7 @@ const documentNodes = select(Node, (n) => n.and(n.eq(n.kind, "document"), n.eq(n
  * the name, "OpenElementName canonical", "XsiType available" and "Strictly held".
  */
 export const chardataLawsByName = {
-  Document: [
+  Document: declared("Document", [
     mirrors(on(Document, "package", "path"), on(documentNodes, "package", "path")),
     contained(
       on(rootElements, "package", "path", "kind"),
@@ -577,8 +584,8 @@ export const chardataLawsByName = {
     contained(on(XmlDecl, "package", "path"), on(Document, "package", "path")),
     contained(on(EncodingDecl, "package", "path"), on(XmlDecl, "package", "path")),
     contained(on(SdDecl, "package", "path"), on(XmlDecl, "package", "path")),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     contained(
       on(
         Document,
@@ -636,19 +643,19 @@ export const chardataLawsByName = {
       ),
       on(OpenElementType, "package", "path", "start"),
     ),
-  ],
-  "Foreign element class": [
+  ]),
+  "Foreign element class": declared("Foreign element class", [
     check("Foreign_element_class", Node, (n) =>
       n.or(n.ne(n.kind, "no-namespace-element"), n.eq(n.prefix, "")),
     ),
-  ],
-  "MathML foreign element": [
+  ]),
+  "MathML foreign element": declared("MathML foreign element", [
     check("MathML_foreign_element", OpenElementName, (o) => o.ne(o.namespace, mathmlNamespace)),
-  ],
-  "Namespace family": [
+  ]),
+  "Namespace family": declared("Namespace family", [
     contained(on(Namespace, "package", "path", "start"), on(Node, "package", "path", "start")),
-  ],
-  OpenElementName: [
+  ]),
+  OpenElementName: declared("OpenElementName", [
     contained(
       on(OpenElementName, "package", "path", "start"),
       on(Node, "package", "path", "start"),
@@ -662,8 +669,8 @@ export const chardataLawsByName = {
       ),
       on(OpenElementName, "package", "path", "start"),
     ),
-  ],
-  "comment arm": [
+  ]),
+  "comment arm": declared("comment arm", [
     mirrors(
       on(Comment, "package", "path", "start"),
       on(
@@ -673,8 +680,8 @@ export const chardataLawsByName = {
         "start",
       ),
     ),
-  ],
-  "doctype arm": [
+  ]),
+  "doctype arm": declared("doctype arm", [
     mirrors(
       on(Doctype, "package", "path", "start"),
       on(
@@ -684,13 +691,13 @@ export const chardataLawsByName = {
         "start",
       ),
     ),
-  ],
-  "entityRef arm": [
+  ]),
+  "entityRef arm": declared("entityRef arm", [
     check("entityRef_arm", Node, (n) =>
       n.or(n.ne(n.kind, "entityRef"), Text.matches(n.chars, entityRefChars)),
     ),
-  ],
-  "pi arm": [
+  ]),
+  "pi arm": declared("pi arm", [
     mirrors(
       on(Pi, "package", "path", "start"),
       on(
@@ -700,13 +707,13 @@ export const chardataLawsByName = {
         "start",
       ),
     ),
-  ],
-  "text arm": [
+  ]),
+  "text arm": declared("text arm", [
     check("text_arm", Node, (n) => n.or(n.ne(n.kind, "text"), Text.matches(n.chars, textChars))),
-  ],
-  "ws arm": [
+  ]),
+  "ws arm": declared("ws arm", [
     check("ws_arm", Node, (n) => n.or(n.ne(n.kind, "ws"), Text.matches(n.chars, whitespaceChars))),
-  ],
+  ]),
 } as const;
 
 /**

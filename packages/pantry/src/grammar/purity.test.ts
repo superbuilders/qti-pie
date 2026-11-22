@@ -372,7 +372,7 @@ describe("the test helpers", () => {
         "test/oracle-laws.ts",
         [
           'import type { Interaction } from "#pantry/qti/interactions.ts";',
-          'import { keyTextBytes } from "#pantry/qti/limits.ts";',
+          'import { entryPathBytes } from "#pantry/qti/limits.ts";',
           'import { lawTable } from "#pantry/vocab/laws.ts";',
           'import { dataSsmlFaultIn } from "#pantry/vocab/data-ssml.ts";',
           'const { itemInstances } = await import("#pantry/qti/tests.ts");',

@@ -39,6 +39,7 @@ import {
   test,
   withItem,
 } from "#pantry/test/probe.ts";
+import { uriBytes, xmlNameBytes } from "#pantry/qti/limits.ts";
 import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { grammar } from "#pantry/grammar/install.ts";
@@ -998,25 +999,59 @@ describe("each law, on a package that breaks it", () => {
 });
 
 /**
- * The UTF-8 bytes the long-names case writes a name, a namespace name and a prefix at: one past
- * each bound an ordered index once held them to as themselves (LIMITS6's local name, 1,290 bytes;
- * namespace name, 1,291; prefix, 2,588), which no index holds any longer, and 64 KiB.
+ * The UTF-8 bytes of each name the long-names case writes ({@link longNamed}): its paragraph's
+ * prefix and the declaration binding it, its `data-*` attribute's local name and a foreign
+ * attribute's local name, each an XML name a key holds; the foreign attribute's namespace name, a
+ * URI a key holds; and a foreign element's local name and namespace name, which no key holds.
  */
-const longNameBytes = [1291, 1292, 2589, 65_536] as const;
+interface NameBytes {
+  readonly attributeNamespace: number;
+  readonly dataLocal: number;
+  readonly elementName: number;
+  readonly foreignLocal: number;
+  readonly prefix: number;
+}
 
 /**
- * The base item's edits that write each name at `bytes` UTF-8 bytes, in ASCII: the paragraph's
- * element prefix and the declaration that binds it, a `data-*` attribute's local name, and, in a
- * custom interaction bound to a string response of its own, a foreign element's local name and
- * namespace name, with a foreign attribute whose local name and namespace name are as long.
+ * The names at their bounds (`#pantry/qti/limits.ts`): each XML name a key holds at
+ * `xmlNameBytes`, the foreign attribute's namespace name at `uriBytes`, and a foreign element's
+ * names, which no key holds, at 64 KiB.
+ */
+const atNameBounds: NameBytes = {
+  attributeNamespace: uriBytes,
+  dataLocal: xmlNameBytes,
+  elementName: 65_536,
+  foreignLocal: xmlNameBytes,
+  prefix: xmlNameBytes,
+};
+
+/**
+ * Each name a key holds one byte past its bound, the others at theirs, with the field the oracle
+ * names it by.
+ */
+const pastNameBounds: readonly { readonly bytes: NameBytes; readonly field: string }[] = [
+  { bytes: { ...atNameBounds, prefix: xmlNameBytes + 1 }, field: "Namespace.prefix" },
+  { bytes: { ...atNameBounds, dataLocal: xmlNameBytes + 1 }, field: "OpenAttribute.local" },
+  { bytes: { ...atNameBounds, foreignLocal: xmlNameBytes + 1 }, field: "OpenAttribute.local" },
+  { bytes: { ...atNameBounds, attributeNamespace: uriBytes + 1 }, field: "OpenAttribute.uri" },
+];
+
+/**
+ * The base item's edits that write each name at the bytes `bytes` gives it, in ASCII: the
+ * paragraph's element prefix and the declaration that binds it, a `data-*` attribute's local name,
+ * and, in a custom interaction bound to a string response of its own, a foreign element's local
+ * name and namespace name, with a foreign attribute of its own local name and namespace name.
  *
- * @param bytes - The bytes, at least 5.
+ * @param bytes - The bytes of each name, each at least 6.
  * @returns The edits, in order.
  */
-const longNamed = (bytes: number): readonly (readonly [string, string])[] => {
-  const prefix = `p${"a".repeat(bytes - 1)}`;
-  const local = `l${"a".repeat(bytes - 1)}`;
-  const namespace = `urn:${"a".repeat(bytes - 4)}`;
+const longNamed = (bytes: NameBytes): readonly (readonly [string, string])[] => {
+  const prefix = `p${"a".repeat(bytes.prefix - 1)}`;
+  const data = `data-${"a".repeat(bytes.dataLocal - 5)}`;
+  const elementName = `e${"a".repeat(bytes.elementName - 1)}`;
+  const elementNamespace = `urn:${"a".repeat(bytes.elementName - 4)}`;
+  const local = `l${"a".repeat(bytes.foreignLocal - 1)}`;
+  const attributeNamespace = `urn:${"b".repeat(bytes.attributeNamespace - 4)}`;
 
   return [
     [
@@ -1025,9 +1060,24 @@ const longNamed = (bytes: number): readonly (readonly [string, string])[] => {
     ],
     [
       '<p id="intro">Pick one.</p>',
-      `<${prefix}:p xmlns:${prefix}="${asi}" id="intro" data-${"a".repeat(bytes - 5)}="v">Pick one.</${prefix}:p><qti-custom-interaction response-identifier="WIDGET"><w:${local} xmlns:w="${namespace}" xmlns:f="${namespace}f" f:${local}="v">W</w:${local}></qti-custom-interaction>`,
+      `<${prefix}:p xmlns:${prefix}="${asi}" id="intro" ${data}="v">Pick one.</${prefix}:p><qti-custom-interaction response-identifier="WIDGET"><w:${elementName} xmlns:w="${elementNamespace}" xmlns:f="${attributeNamespace}" f:${local}="v">W</w:${elementName}></qti-custom-interaction>`,
     ],
   ];
+};
+
+/**
+ * The base item with every name of {@link longNamed} at its bytes.
+ *
+ * @param bytes - The bytes of each name.
+ * @returns The item's text.
+ */
+const namedItemOf = (bytes: NameBytes): string => {
+  let text = item;
+  for (const [passage, replacement] of longNamed(bytes)) {
+    text = edit(text, passage, replacement);
+  }
+
+  return text;
 };
 
 describe("open names and attribute entity references", () => {
@@ -1056,21 +1106,31 @@ describe("open names and attribute entity references", () => {
   );
 
   it.effect(
-    "a prefix, an open attribute's names and a foreign element's are of any length: one byte past the bytes an ordered index once held each to, and 64 KiB, break no law",
+    "a prefix and an open attribute's names at the bounds a key holds them to, and a foreign element's names at 64 KiB, break no law; each a byte past its bound breaks Key text bound alone, at its field",
     () =>
       // Oracle: Namespaces in XML 1.0 §4 and XML 1.0, which put no bound on a prefix or a name
-      // (reading 94); a foreign element's names are bounded only at `foreignNameBytes`, half of the
-      // regex engine's bytes, far past these. Bound: the four lengths.
+      // (reading 94), and the stated limit of the representation: each a key holds is held to its
+      // type's bound (`#pantry/qti/limits.ts`), and a foreign element's names, which no key holds,
+      // only at `foreignNameBytes`, half of the regex engine's bytes, far past these. Bound: every
+      // name at its bound, and each a key holds a byte past it.
       Effect.gen(function* longNames() {
-        for (const bytes of longNameBytes) {
-          let text = item;
-          for (const [passage, replacement] of longNamed(bytes)) {
-            text = edit(text, passage, replacement);
-          }
+        const atBounds = breachesOf(
+          yield* judged({ ...base, "item.xml": namedItemOf(atNameBounds) }),
+        );
 
-          const breaches = breachesOf(yield* judged({ ...base, "item.xml": text }));
+        assert.deepStrictEqual(atBounds, [], `every name at its bound: ${shown(atBounds)}`);
+        for (const { bytes, field } of pastNameBounds) {
+          const breaches = breachesOf(yield* judged({ ...base, "item.xml": namedItemOf(bytes) }));
 
-          assert.deepStrictEqual(breaches, [], `${String(bytes)} bytes: ${shown(breaches)}`);
+          assert.deepStrictEqual(
+            [...new Set(breaches.map(({ law }) => law))],
+            ["Key text bound"],
+            `${field}: ${shown(breaches)}`,
+          );
+          assert.isTrue(
+            breaches.some(({ keys }) => keys["field"] === field),
+            `${field}: ${shown(breaches)}`,
+          );
         }
       }),
   );

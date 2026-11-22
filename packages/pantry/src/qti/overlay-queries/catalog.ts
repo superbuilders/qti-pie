@@ -15,6 +15,7 @@ import { Document } from "#pantry/qti/chardata.ts";
 import { attributeValues, IdValue } from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Instance } from "#pantry/qti/tests.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * Every card's `support`, by the card's place, its `value` the form as written: no form either
@@ -130,9 +131,13 @@ const PlacedReference = derived(
  * its ID's ({@link IdValue}).
  */
 export const catalogOverlayLawsByName = {
-  "Card default entry": [key(on(CardDefault, "package", "path", "card"))],
-  "Card support": [key(on(CatalogSupport, "package", "path", "catalog", "support"))],
-  "Catalog reference": [
+  "Card default entry": declared("Card default entry", [
+    key(on(CardDefault, "package", "path", "card")),
+  ]),
+  "Card support": declared("Card support", [
+    key(on(CatalogSupport, "package", "path", "catalog", "support")),
+  ]),
+  "Catalog reference": declared("Catalog reference", [
     contained(
       on(UnassembledReference, "package", "path", "token"),
       on(CatalogId, "package", "path", "id"),
@@ -141,13 +146,13 @@ export const catalogOverlayLawsByName = {
       on(PlacedReference, "package", "assembly", "token"),
       on(AssembledCatalog, "package", "assembly", "id"),
     ),
-  ],
-  "E1 derived": [
+  ]),
+  "E1 derived": declared("E1 derived", [
     contained(
       on(CatalogId, "package", "path", "start", "id", "owner"),
       on(IdValue, "package", "path", "start", "id", "owner"),
     ),
-  ],
+  ]),
 } as const;
 
 /**

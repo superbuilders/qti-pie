@@ -77,6 +77,7 @@ import {
   sectionRefKind,
   testKind,
 } from "#pantry/vocab/terms/tests.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * The built-in variables of a root's processing, by name (`BuiltInVariable`, reading 29).
@@ -1612,7 +1613,7 @@ const AssembledReplaceable = derived("AssembledReplaceable", assembledReplaceabl
  *   replacement can repeat in its placement, and its variable one its item names.
  */
 export const readingLawsByName = {
-  "E1 derived": [
+  "E1 derived": declared("E1 derived", [
     // A placed reference is read exactly where its one reading types it, and is typed as its
     // variable (spec reading 167): a declaration's type is stated over `readDeclarations`
     // (overlay-queries/reference.ts), an item built-in's and a scope's duration's here.
@@ -1681,8 +1682,8 @@ export const readingLawsByName = {
       on(LinkReading, "package", "assembly", "scopeInstance", "scopePath", "scope"),
       on(LinkScope, "package", "assembly", "instance", "path", "start"),
     ),
-  ],
-  "Mapped response": [
+  ]),
+  "Mapped response": declared("Mapped response", [
     contained(
       on(PrefixedMapResponse, "package", "scopePath", "scope", "variable"),
       on(
@@ -1703,26 +1704,28 @@ export const readingLawsByName = {
         "variable",
       ),
     ),
-  ],
-  "Prefixed reference": [key(on(TestReading, "package", "assembly", "path", "start", "attribute"))],
-  "Variable declared": [
+  ]),
+  "Prefixed reference": declared("Prefixed reference", [
+    key(on(TestReading, "package", "assembly", "path", "start", "attribute")),
+  ]),
+  "Variable declared": declared("Variable declared", [
     contained(
       on(PlacedTestReference, "package", "assembly", "path", "start", "attribute"),
       on(TestReading, "package", "assembly", "path", "start", "attribute"),
     ),
-  ],
-  "Variable kind": [
+  ]),
+  "Variable kind": declared("Variable kind", [
     contained(
       on(PrefixedDeclaration, "kind", "attribute", "declarationKind"),
       on(ReferenceDeclaration, "kind", "attribute", "declaration"),
     ),
-  ],
-  "Weighted variable": [
+  ]),
+  "Weighted variable": declared("Weighted variable", [
     contained(
       on(PlacedWeightedVariable, "package", "assembly", "path", "start"),
       on(ItemScopedReading, "package", "assembly", "path", "start"),
     ),
-  ],
+  ]),
 } as const;
 
 /**

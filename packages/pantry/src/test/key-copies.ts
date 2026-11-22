@@ -3,31 +3,35 @@
  * statements rather than listed by hand, for the law oracle's "Key text bound"
  * (`#pantry/test/oracle.ts` `keyTexts`).
  *
- * A text the database holds in a field of type `matchedText` (`#pantry/qti/limits.ts`) is refused
- * past its bound by that type, so the oracle must count exactly the document texts some statement
- * writes into such a field. Three statement shapes can, each over a document relation the oracle
- * has rows for, `Attribute` or `Node`:
+ * A text the database holds in a field of a key text type ({@link keyTextBounds}: `matchedText`,
+ * and each bounded type a key holds, of `#pantry/qti/limits.ts` and the modules beside it) is
+ * refused past that type's bound, so the oracle must count exactly the document texts some
+ * statement writes into such a field from a field of a wider bound, each at the narrower field's
+ * bound. Three statement shapes can, each over a document relation the oracle has rows for,
+ * `Attribute` or `Node`:
  *
- * - **A containment** (`contained`, either way of a `mirrors`) whose source side pairs a field of no
- *   `matchedText` type with a `matchedText` field of its target: every source row its selection
- *   holds is copied, as an outcome declaration's `mastery-value` is into `MasteryValue.lexical`.
- * - **A check** that equates a field of no `matchedText` type with a `matchedText` field of the same
- *   row where the rest of the check leaves no other way to hold, which the schema states nowhere
- *   now: an IDREF attribute's `idrefText`, which `E1_derived` equates with its lexical form, is of
- *   any length.
- * - **A fold** of `Monoid.concat` into a `matchedText` accumulator over the document tree: an owner's
- *   end is held where any member its step selects steps, as a checked or copied element's string
- *   value is.
+ * - **A containment** (`contained`, either way of a `mirrors`) whose source side pairs a field with a
+ *   field of its target of a narrower bound: every source row its selection holds is copied, as an
+ *   outcome declaration's `mastery-value` is into `MasteryValue.lexical`, and an `m:cn`'s `type`
+ *   into `CnAttribute.lexical`.
+ * - **A check** that equates two fields of one row of two bounds where the rest of the check leaves
+ *   no other way to hold, which the schema states nowhere now: an IDREF attribute's `idrefText`,
+ *   which `E1_derived` equates with its lexical form, is of any length.
+ * - **A fold** of `Monoid.concat` into an accumulator of a key text type over the document tree: an
+ *   owner's end is held where any member its step selects steps, as a checked or copied element's
+ *   string value is.
  *
- * A copy out of a `matchedText` field is bounded where that field is written, so only these first
- * hops are listed. Each selection and check is read from the predicate grizzle keeps for it and
- * evaluated on the host in SQL's three-valued logic (`#pantry/test/predicates.ts`, which reads no
- * schema of its own), over the fields the oracle knows of a row ({@link attributeFields},
- * {@link nodeFields}).
+ * A copy out of a field of a key text type into one of its bound or a wider one is bounded where
+ * the first field is written, so only these narrowing hops are listed. A key text the host writes
+ * from a document's text, and no statement copies, is the oracle's to read where it stands
+ * (`keyTexts`): a document's path, a prefix, an open attribute's names, an IDREF's tokens. Each
+ * selection and check is read from the predicate grizzle keeps for it and evaluated on the host in
+ * SQL's three-valued logic (`#pantry/test/predicates.ts`, which reads no schema of its own), over
+ * the fields the oracle knows of a row ({@link attributeFields}, {@link nodeFields}).
  */
 // GRIZZLE-PENDING: Q10. The key copies are read from the statements' kept predicates; the
 // installation map would list which fields of `matchedText` type each law writes.
-import type { Law, LawSide, Statement } from "@bjornpagen/grizzle";
+import type { Law, LawSide, StatedLaw, Statement } from "@bjornpagen/grizzle";
 import { Array as Arr, Option, Predicate, Result, Schema } from "effect";
 import {
   closedOf,
@@ -42,8 +46,52 @@ import {
   termOf,
 } from "#pantry/test/predicates.ts";
 import type { Row, StoredSide, StoredStatement, Term } from "#pantry/test/predicates.ts";
+import {
+  CopiedLexical,
+  copiedLexicalBytes,
+  EntryPath,
+  entryPathBytes,
+  identifierBytes,
+  KeyMatchedText,
+  keyMatchedTextBytes,
+  LiteralText,
+  literalTextBytes,
+  matchedText,
+  matchedTextBytes,
+  QtiIdentifier,
+  SsmlMemberText,
+  ssmlMemberBytes,
+  UriText,
+  uriBytes,
+  XmlId,
+  xmlIdBytes,
+  xmlNameBytes,
+} from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
-import { matchedText } from "#pantry/qti/limits.ts";
+
+/**
+ * The bound of each key text type, by the type's identity, the one object its module exports and
+ * its relations type their fields by: the UTF-8 bytes its `str.bytes` admits, stated beside the
+ * type in `#pantry/qti/limits.ts`. An XML name's two types, a namespace prefix and an open
+ * attribute's local name, are declared beside their relations, and read here off the composed
+ * schema's fields, so the oracle reads no module of statements beyond the schema. A field of any
+ * other type holds a text a key holds by no bound of its own, an XML production's `Char*` among
+ * them. The oracle reads no bound from grizzle (`#pantry/grammar/purity.test.ts`), so the bounds
+ * are the declared constants, listed once here.
+ */
+export const keyTextBounds: ReadonlyMap<unknown, number> = new Map<unknown, number>([
+  [matchedText, matchedTextBytes],
+  [EntryPath, entryPathBytes],
+  [QtiIdentifier, identifierBytes],
+  [XmlId, xmlIdBytes],
+  [KeyMatchedText, keyMatchedTextBytes],
+  [UriText, uriBytes],
+  [LiteralText, literalTextBytes],
+  [SsmlMemberText, ssmlMemberBytes],
+  [CopiedLexical, copiedLexicalBytes],
+  [Qti.relations.Namespace.fields.prefix, xmlNameBytes],
+  [Qti.relations.OpenAttribute.fields.local, xmlNameBytes],
+]);
 
 /**
  * The fields of an `Attribute` row the oracle knows before the database writes it: its owner's
@@ -149,7 +197,11 @@ type CopiedBy = "check" | "contained" | "fold";
 interface Copy {
   readonly by: CopiedBy;
   /**
-   * The `matchedText` field that holds the text, `Relation.field`.
+   * The bound of the field that holds the text, its type's ({@link keyTextBounds}).
+   */
+  readonly bound: number;
+  /**
+   * The field of a key text type that holds the text, `Relation.field`.
    */
   readonly field: string;
   /**
@@ -222,10 +274,10 @@ const sideText = (side: LawSide): string =>
  * its selections left out, so two statements that differ by their selections alone share it and
  * {@link Copy}'s `statement` tells them apart.
  *
- * @param law - The law.
+ * @param law - The law, as the schema states it or as a statement's sides spell it.
  * @returns Its identity.
  */
-export const identityOf = (law: Law): string => {
+export const identityOf = (law: Law | StatedLaw): string => {
   if (law.kind === "contained") {
     return `contained ${sideText(law.from)} in ${sideText(law.to)}`;
   }
@@ -245,32 +297,46 @@ const StoredRelationSchema = Schema.Struct({
 });
 
 /**
- * Every field of the composed schema whose type is `matchedText`, as `Relation.field`, and whether
- * the database fills it: grizzle keeps an accumulator's type at its `field` and a generated field's
- * at its `type`, and the import writes neither.
+ * Every field of the composed schema of a key text type, as `Relation.field`, with its type's bound
+ * and whether the database fills it: grizzle keeps an accumulator's type at its `field` and a
+ * generated field's at its `type`, and the import writes neither.
  */
-const keyTextFieldFills: readonly { readonly field: string; readonly filled: boolean }[] =
-  Object.values(Qti.relations).flatMap((member) =>
-    Option.match(Schema.decodeUnknownOption(StoredRelationSchema)(member), {
-      onNone: () => [],
-      onSome: ({ fields, name }) =>
-        Object.entries(fields).flatMap(([field, type]) => {
-          const filled =
-            (Predicate.hasProperty(type, "field") && type.field === matchedText) ||
-            (Predicate.hasProperty(type, "type") && type.type === matchedText);
+const keyTextFieldFills: readonly {
+  readonly bound: number;
+  readonly field: string;
+  readonly filled: boolean;
+}[] = Object.values(Qti.relations).flatMap((member) =>
+  Option.match(Schema.decodeUnknownOption(StoredRelationSchema)(member), {
+    onNone: () => [],
+    onSome: ({ fields, name }) =>
+      Object.entries(fields).flatMap(([field, type]) => {
+        const filledBy = [
+          ...(Predicate.hasProperty(type, "field") ? [type.field] : []),
+          ...(Predicate.hasProperty(type, "type") ? [type.type] : []),
+        ].flatMap((held) => Option.toArray(Option.fromUndefinedOr(keyTextBounds.get(held))));
+        const own = keyTextBounds.get(type);
+        const bound = own ?? filledBy[0];
 
-          return type === matchedText || filled ? [{ field: `${name}.${field}`, filled }] : [];
-        }),
-    }),
-  );
+        return bound === undefined
+          ? []
+          : [{ bound, field: `${name}.${field}`, filled: own === undefined }];
+      }),
+  }),
+);
 
 /**
- * Every field of the composed schema whose type is `matchedText`, an accumulator or a generated
- * field of it included, as `Relation.field`.
+ * The bound of each field of the composed schema of a key text type, an accumulator or a generated
+ * field of one included, by `Relation.field`.
  */
-export const keyTextFields: ReadonlySet<string> = new Set(
-  keyTextFieldFills.map(({ field }) => field),
+export const keyTextFieldBounds: ReadonlyMap<string, number> = new Map(
+  keyTextFieldFills.map(({ bound, field }) => [field, bound]),
 );
+
+/**
+ * Every field of the composed schema of a key text type, an accumulator or a generated field of one
+ * included, as `Relation.field`.
+ */
+export const keyTextFields: ReadonlySet<string> = new Set(keyTextFieldBounds.keys());
 
 /**
  * The fields of {@link keyTextFields} the database fills, an accumulator's or a generated field's,
@@ -281,14 +347,15 @@ export const filledKeyTextFields: ReadonlySet<string> = new Set(
 );
 
 /**
- * Whether a relation's field is of type `matchedText`.
+ * The bound of a relation's field: its type's where it is of a key text type, else no bound,
+ * `Infinity`.
  *
  * @param relation - The relation's name.
  * @param field - The field's name.
- * @returns Whether it is in {@link keyTextFields}.
+ * @returns Its bound in UTF-8 bytes.
  */
-const holdsKeyText = (relation: string, field: string): boolean =>
-  keyTextFields.has(`${relation}.${field}`);
+const boundOf = (relation: string, field: string): number =>
+  keyTextFieldBounds.get(`${relation}.${field}`) ?? Number.POSITIVE_INFINITY;
 
 /**
  * A copy the derivation could not read: one that holds a field the oracle does not know of its row,
@@ -304,6 +371,7 @@ interface UnreadCopy {
  * A copy before it is checked against the fields the oracle knows.
  */
 interface Drafted {
+  readonly bound: number;
   readonly by: CopiedBy;
   readonly field: string;
   readonly law: string;
@@ -339,6 +407,7 @@ const checked = (draft: Drafted): Result.Result<KeyCopy, UnreadCopy> => {
   }
 
   const copy = {
+    bound: draft.bound,
     by: draft.by,
     field: draft.field,
     holds: draft.test,
@@ -357,7 +426,7 @@ const checked = (draft: Drafted): Result.Result<KeyCopy, UnreadCopy> => {
 
 /**
  * Draft the copies one containment's direction makes of a document's text into a key text: each
- * pair of terms whose source field is no key text and whose target field is.
+ * pair of terms whose target field is of a narrower bound than its source field.
  *
  * @param from - The side whose tuples are contained.
  * @param to - The side they are among.
@@ -381,10 +450,12 @@ const containedCopies = (
 
   return fieldsOf(from).flatMap((reads, at): readonly Drafted[] => {
     const held = targets[at] ?? "";
+    const bound = boundOf(target, held);
 
-    return holdsKeyText(target, held) && !holdsKeyText(name, reads)
+    return bound < boundOf(name, reads)
       ? [
           {
+            bound,
             by: "contained",
             field: `${target}.${held}`,
             law,
@@ -400,7 +471,7 @@ const containedCopies = (
 };
 
 /**
- * Draft the copy a fold makes: a `Monoid.concat` fold into a `matchedText` accumulator of a
+ * Draft the copy a fold makes: a `Monoid.concat` fold into an accumulator of a key text type of a
  * document relation whose members are its own rows holds its owner's end where a member it steps
  * steps.
  *
@@ -416,9 +487,10 @@ const foldCopies = (
   const owner = sourceOf(fold.end).name;
   const held = fieldsOf(fold.end).at(-1) ?? "";
   const { name } = step;
+  const bound = boundOf(owner, held);
   if (
     fold.monoid.name !== "concat" ||
-    !holdsKeyText(owner, held) ||
+    !Number.isFinite(bound) ||
     !isDocumentRelation(name) ||
     owner !== name
   ) {
@@ -427,6 +499,7 @@ const foldCopies = (
 
   return [
     {
+      bound,
       by: "fold",
       field: `${owner}.${held}`,
       law: identityOf({
@@ -446,12 +519,11 @@ const foldCopies = (
 };
 
 /**
- * Read the equation a term states between a field of no `matchedText` type and a `matchedText`
- * field of one relation's row.
+ * Read the equation a term states between two fields of one relation's row of two bounds.
  *
  * @param relation - The row's relation.
  * @param term - The term.
- * @returns The `matchedText` field and the field it equals, none for any other term.
+ * @returns The field of the narrower bound and the field it equals, none for any other term.
  */
 const equationOf = (
   relation: string,
@@ -467,19 +539,20 @@ const equationOf = (
   }
 
   const [left, right] = [term.left.field, term.right.field];
-  if (holdsKeyText(relation, left) === holdsKeyText(relation, right)) {
+  const [leftBound, rightBound] = [boundOf(relation, left), boundOf(relation, right)];
+  if (leftBound === rightBound) {
     return Option.none();
   }
 
   return Option.some(
-    holdsKeyText(relation, left) ? { held: left, reads: right } : { held: right, reads: left },
+    leftBound < rightBound ? { held: left, reads: right } : { held: right, reads: left },
   );
 };
 
 /**
- * Draft the copies a check makes on a document relation: each equation of a field of no
- * `matchedText` type with a `matchedText` field of the same row, which the row must hold where the
- * rest of the check leaves it no other way to.
+ * Draft the copies a check makes on a document relation: each equation of two fields of the same
+ * row of two bounds, which the row must hold where the rest of the check leaves it no other way
+ * to, at the narrower field's bound.
  *
  * @param check - The check.
  * @param statement - The statement's place among the schema's.
@@ -501,6 +574,7 @@ const checkCopies = (
   );
 
   return equations.map(({ held, reads }) => ({
+    bound: boundOf(name, held),
     by: "check",
     field: `${name}.${held}`,
     law: `check ${check.desc.name} on ${name}: ${reads} = ${held}`,

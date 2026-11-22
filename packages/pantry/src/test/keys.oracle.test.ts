@@ -4,16 +4,17 @@
  *
  * - **The list is the schema's.** `#pantry/test/key-copies.ts` reads its copies from the schema's
  *   statements. This file holds them, statement by statement and field by field, to the laws the
- *   law table states (`src/test/law-namer.ts` `statedLaws`), to every `matchedText` field of the
- *   document relations, and to the copies whose source is no document row.
- * - **The verdict is the schema's.** Generated packages carry key texts of generated lengths in 1-,
- *   2-, 3- and 4-byte scripts, past the old interim bound and past what one B-tree entry holds of a
- *   text as itself, which a key holds by its image (LIMITS6). The oracle refuses one under "Key
- *   text bound" exactly where the import's rows hold a text `matchedText` does not admit, every field
- *   it names is one of those rows' fields, and every rule the database would refuse it under is one
- *   the oracle names: one cause, one rule, `key-text-bound` at both seats. The one bound a key text
- *   meets, the regex engine's `matchedTextBytes`, is past every text a package here writes, and an
- *   entry path is of any length (no index orders by one), so every package here is admitted.
+ *   law table states (`src/test/law-namer.ts` `statedLaws`), to every field of a key text type of
+ *   the document relations, and to the copies whose source is no document row.
+ * - **The verdict is the schema's.** Generated packages carry texts of generated lengths in 1-, 2-, 3.
+ *   and 4-byte scripts. A text a key holds is of a key text type (`#pantry/qti/limits.ts`), each
+ *   bounded by what one B-tree entry leaves it in the widest key it stands in, so each place is
+ *   written at its narrowest field's bound and one character past it; a text no key holds, or one a
+ *   key holds as `matchedText`, is written past the old interim bound, past what one B-tree entry
+ *   holds of a text as itself, and at 64 KiB. The oracle refuses a package under "Key text bound"
+ *   exactly where the import's rows hold a text its field's type does not admit, every field it
+ *   names is one of those rows' fields, and every rule the database would refuse it under is one
+ *   the oracle names: one cause, one rule, `key-text-bound` at both seats.
  */
 import { keyTextBytes } from "@bjornpagen/grizzle";
 import type { LawSide } from "@bjornpagen/grizzle";
@@ -28,21 +29,47 @@ import { completeShrink } from "@bjornpagen/testing/shrink";
 import { keep, swarm, swarmChoice } from "@bjornpagen/testing/swarm";
 import type { Swarm } from "@bjornpagen/testing/swarm";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Array as Arr, Duration, Effect, Formatter, Option, pipe, Predicate, Schema } from "effect";
-import { anyText, grammar } from "#pantry/grammar/install.ts";
+import {
+  Array as Arr,
+  Duration,
+  Effect,
+  Formatter,
+  Function as Fn,
+  Option,
+  pipe,
+  Predicate,
+  Schema,
+} from "effect";
+import { collapse } from "#pantry/grammar/domains.ts";
+import { grammar } from "#pantry/grammar/install.ts";
 import { readProgram, rowCountsOf } from "#pantry/import/program.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
 import { readEntries } from "#pantry/package/read.ts";
-import { EntryPath, matchedTextBytes, utf8Length } from "#pantry/qti/limits.ts";
+import { declarationKinds } from "#pantry/qti/declarations.ts";
+import {
+  entryPathBytes,
+  identifierBytes,
+  matchedTextBytes,
+  utf8Length,
+  xmlIdBytes,
+} from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { evaluatorFor, previewRowsOf, withGenerated } from "#pantry/test/host-judge.ts";
 import type { HeldRow } from "#pantry/test/host-judge.ts";
-import { identityOf, keyCopies, keyTextFields } from "#pantry/test/key-copies.ts";
+import { containmentsOf } from "#pantry/test/judged-laws.ts";
+import {
+  identityOf,
+  keyCopies,
+  keyTextBounds,
+  keyTextFieldBounds,
+  keyTextFields,
+} from "#pantry/test/key-copies.ts";
 import { judge, ruleOf } from "#pantry/test/oracle.ts";
 import { schemaRuleOfLaw, statedLaws } from "#pantry/test/law-namer.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
+import { manifestPath } from "#pantry/vocab/terms/package.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -56,14 +83,14 @@ const testTimeoutMs = 1_800_000;
 const documentRelations: ReadonlySet<string> = new Set(["Attribute", "Node"]);
 
 /**
- * Whether a relation's field is of type `matchedText`.
+ * The bound of a relation's field: its key text type's, else no bound, `Infinity`.
  *
  * @param relation - The relation's name.
  * @param field - The field's name.
- * @returns Whether it is.
+ * @returns Its bound in UTF-8 bytes.
  */
-const isKeyText = (relation: string, field: string): boolean =>
-  keyTextFields.has(`${relation}.${field}`);
+const boundAt = (relation: string, field: string): number =>
+  keyTextFieldBounds.get(`${relation}.${field}`) ?? Number.POSITIVE_INFINITY;
 
 /**
  * A stored relation of the schema as grizzle keeps it, for its fields' names.
@@ -75,34 +102,59 @@ const FieldsRead = Schema.Struct({
 });
 
 /**
- * Every stored field of the composed schema whose type is `EntryPath`, as `Relation.field`: an
- * entry's path in its package, a document's own `path` and a reference's resolved `target`, each
- * of any length (`#pantry/qti/limits.ts`), held to `EntryPath`'s pattern alone.
+ * A pattern as grizzle keeps it on a text type: its source and its flags.
  */
-const entryPathFields: ReadonlySet<string> = new Set(
+const PatternRead = Schema.Struct({ flags: Schema.String, source: Schema.String });
+
+/**
+ * A text type as grizzle keeps it, for its patterns.
+ */
+const TextTypeRead = Schema.Struct({ patterns: Schema.Array(PatternRead) });
+
+/**
+ * Every stored field of the composed schema of a key text type ({@link keyTextBounds}), as
+ * `Relation.field`, with the patterns its type holds a text to, each read as grizzle installs it:
+ * a written field's own type's, an accumulator's at its `field`, a generated field's at its `type`.
+ */
+const keyTextPatterns: ReadonlyMap<string, readonly RegExp[]> = new Map(
   Object.values(Qti.relations).flatMap((member) =>
     Option.match(Schema.decodeUnknownOption(FieldsRead)(member), {
       onNone: () => [],
       onSome: ({ fields, name }) =>
         Object.entries(fields).flatMap(([field, type]) =>
-          type === EntryPath ? [`${name}.${field}`] : [],
+          [
+            type,
+            ...(Predicate.hasProperty(type, "field") ? [type.field] : []),
+            ...(Predicate.hasProperty(type, "type") ? [type.type] : []),
+          ]
+            .filter((held) => keyTextBounds.has(held))
+            .slice(0, 1)
+            .flatMap((held) =>
+              Option.toArray(Schema.decodeUnknownOption(TextTypeRead)(held)).map(
+                ({ patterns }) =>
+                  [
+                    `${name}.${field}`,
+                    patterns.map(({ flags, source }) => new RegExp(source, flags)),
+                  ] as const,
+              ),
+            ),
         ),
     }),
   ),
 );
 
 /**
- * The copies the law table states: each containment of `statedLaws` that pairs a field of no
- * `matchedText` type of its source with a `matchedText` field of its target, and each
- * `Monoid.concat` fold over a relation's own rows into a `matchedText` accumulator of it, as `law →
- * Relation.field` for the field it holds, with whether its source is a document relation.
+ * The copies the law table states: each containment of `statedLaws` that pairs a field of its
+ * source with a field of its target of a narrower bound, and each `Monoid.concat` fold over a
+ * relation's own rows into an accumulator of a key text type of it, as `law → Relation.field` for
+ * the field it holds, with whether its source is a document relation.
  */
 const statedCopies = statedLaws().flatMap(([law]) => {
   if (law.kind === "contained") {
     return law.from.terms.flatMap((term, at) => {
       const held = law.to.terms[at]?.field ?? "";
 
-      return isKeyText(law.to.relation, held) && !isKeyText(law.from.relation, term.field)
+      return boundAt(law.to.relation, held) < boundAt(law.from.relation, term.field)
         ? [
             {
               copy: `${identityOf(law)} → ${law.to.relation}.${held}`,
@@ -118,7 +170,7 @@ const statedCopies = statedLaws().flatMap(([law]) => {
 
   return law.kind === "fold" &&
     law.monoid === "concat" &&
-    isKeyText(law.end.relation, held) &&
+    Number.isFinite(boundAt(law.end.relation, held)) &&
     law.step.relation === law.end.relation
     ? [
         {
@@ -238,9 +290,15 @@ describe("the oracle's key-text list", () => {
     }
   });
 
-  it("holds every anyText field of a document relation by a copy, or as a prefix of a held fold's end", () => {
-    // Oracle: the schema's field types: every matchedText field of Attribute and Node is the field of a
-    // copy, or a running accumulator of a concat fold whose end a copy holds.
+  it("holds every key text field of a document relation by a copy, as a prefix of a held fold's end, or where the oracle reads it", () => {
+    // Oracle: the schema's field types: every field of a key text type of Attribute and Node is the
+    // field of a copy, a running accumulator of a concat fold whose end a copy holds, or a text the
+    // host writes that the oracle reads where it stands: a document's path, which every entry's is
+    // (`Entry.path`, the package's), its nearest interaction's document's and that one's copy on
+    // the owner axis, each an entry's path, and an attribute's prefix, a namespace declaration's
+    // (`#pantry/test/oracle.ts` `keyTexts`); or a running text or the end of the string value's
+    // fold, which its axes and `UsageValue`'s containment carry by their digests (node.ts,
+    // metadata.ts), so no key holds it.
     // Bound: the document relations' fields.
     const held = new Set(keyCopies.map(({ field }) => field));
     const prefixes = new Set(
@@ -255,8 +313,17 @@ describe("the oracle's key-text list", () => {
     );
 
     assert.deepStrictEqual(
-      documentFields.filter((field) => !held.has(field) && !prefixes.has(field)),
-      [],
+      documentFields.filter((field) => !held.has(field) && !prefixes.has(field)).toSorted(),
+      [
+        "Attribute.path",
+        "Attribute.prefix",
+        "Node.charsAfter",
+        "Node.charsWas",
+        "Node.nearestPath",
+        "Node.parentNearestPath",
+        "Node.path",
+        "Node.stringValue",
+      ],
     );
     assert.deepStrictEqual(
       keyCopies
@@ -264,43 +331,66 @@ describe("the oracle's key-text list", () => {
         .map(({ field, reads, source }) => `${source}.${reads} = ${field}`)
         .toSorted(),
       // No check equates a document field with a bounded text on one row: an IDREF's tokens'
-      // concatenation, `Attribute.idrefText`, is of any length, a key holding it by its image
-      // (attributes.ts). A member's characters are its string value's step itself (node.ts), held
-      // by the fold's bounded accumulators.
+      // concatenation, `Attribute.idrefText`, is of any length, held in no key of its own
+      // (attributes.ts), each token held as `Idref.token`. A member's characters are its string
+      // value's step itself (node.ts), held by the fold's accumulators, whose digests its axes
+      // carry.
       [],
     );
   });
 
-  it("leaves out only the copies whose source is no document row, each bounded where it is written", () => {
-    // Oracle: the law table's copies into a matchedText field from a relation the oracle has no
-    // rows of, each bounded by its own type where its row is written: `LeastCountNode.least` and
+  it("lists every copy whose source is no document row: each bounded where it is written, or read by the oracle where its text stands", () => {
+    // Oracle: the law table's copies into a field of a narrower bound from a relation the oracle
+    // has no rows of. Bounded where its row is written: `LeastCountNode.least` and
     // `MostCountNode.most` are a written count's `LeastCount.least` and `MostCount.most`, which
-    // the import writes where it writes its count's row (overlay-queries/interaction.ts); and
-    // `UsageValue.text` and `UsageValueBaseType.text` are a usage value's string value, which the
-    // import writes from its node and bounds where it writes the node's fold (metadata.ts). A
-    // float map key's typed value is the query `MapKeyFloat` over `MapKeyType`, and a resource's
-    // document's path meets a typed href in a rule over the query `TypedHref`, so neither copies
-    // a text. R26's `DescribedLang.value` and `DescribedAssembledLang.value`, cast into any text
-    // (identity.ts), `RequiredSsmlProperty.name`, a catalog's and an assembled catalog's `id`, a
-    // reference's token and an SSML property's name are of any length, a key holding each by its
-    // image, so no copy into them is listed. An item ref's item is an `EntryPath`, no
-    // `matchedText`, so no copy into it is listed, and an item's identifier is its attribute's
-    // `value` (`ObjectIdentifier`, queries.ts), no `matchedText`, so `NamedItemRef.identifier`'s
-    // copy into it is no key text's.
+    // the import writes where it writes its count's row (overlay-queries/interaction.ts); an
+    // `m:cn`'s `typeLexical` and `baseLexical` are its attributes' lexical forms, which
+    // `CnAttribute.lexical` holds as `cnAttributes` copies them (mathml-cn.ts). A derived
+    // relation's column is a codec to grizzle, its bound unread, so a copy from one is listed
+    // where its column is a stored field of the target's own type read unchanged: a reference's
+    // token (`PlacedReference`, `UnassembledReference`), an `Idref`'s `token`; a placed reference
+    // site's identifier, its `VariableRef.identifier`; and a required SSML property's name, a
+    // literal of its rule (queries.ts). A copy into an entry path holds an entry's path, which
+    // `Entry.path` bounds where the import writes its entry, so none is listed: a file's target in
+    // the package is an entry path already (`FilePath.target`), so "File exists" narrows no bound.
+    // Read by the oracle where its
+    // text stands (`#pantry/test/oracle.ts` `keyTexts`): an interaction's binding, a choice's and a
+    // hottext's identifier, each its attribute's collapsed value, which `InteractionAttribute`
+    // copies. The rest of `InteractionAttribute.value`'s copies into an identifier, a content
+    // reference's and a fragment's names, are the oracle's to read where they stand.
     // Bound: every law the schema states that is no check.
     assert.deepStrictEqual(
       [
         ...new Set(
           statedCopies
             .filter(({ document }) => !document)
-            .map(({ copy, source }) => `${source} → ${copy.split(" → ")[1] ?? ""}`),
+            .map(({ copy, source }) => ({ held: copy.split(" → ")[1] ?? "", source }))
+            .filter(({ held }) => keyTextFieldBounds.get(held) !== entryPathBytes)
+            .map(({ held, source }) => `${source} → ${held}`),
         ),
       ].toSorted(),
       [
+        "CnCount.typeLexical → CnAttribute.lexical",
+        "InteractionAttribute.value → BindingName.identifier",
+        "InteractionAttribute.value → BoundVariable.identifier",
+        "InteractionAttribute.value → Choice.identifier",
+        "InteractionAttribute.value → ContextRef.identifier",
+        "InteractionAttribute.value → FeedbackRef.identifier",
+        "InteractionAttribute.value → FragmentContextName.identifier",
+        "InteractionAttribute.value → FragmentFeedbackName.identifier",
+        "InteractionAttribute.value → FragmentPrintedName.identifier",
+        "InteractionAttribute.value → FragmentTemplateName.identifier",
+        "InteractionAttribute.value → Hottext.identifier",
+        "InteractionAttribute.value → PrintedVariableRef.identifier",
+        "InteractionAttribute.value → TemplateRef.identifier",
         "LeastCountNode.least → InteractionAttribute.value",
+        "MathCn.baseLexical → CnAttribute.lexical",
+        "MathCn.typeLexical → CnAttribute.lexical",
         "MostCountNode.most → InteractionAttribute.value",
-        "UsageValue.text → Node.stringValue",
-        "UsageValueBaseType.text → Node.stringValue",
+        "PlacedReference.token → AssembledCatalog.id",
+        "PlacedReferenceSite.identifier → PlacedVariableRef.identifier",
+        "RequiredSsmlProperty.name → DataSsmlProperty.name",
+        "UnassembledReference.token → CatalogId.id",
       ],
     );
   });
@@ -312,17 +402,20 @@ describe("the oracle's key-text list", () => {
  * - `p id`: a paragraph's `id`, an ID, whose value `IdValue` reads where it stands and no key text
  *   holds;
  * - `idref`: a span's `id` and the paragraph's `aria-describedby` that names it, an IDREFS whose
- *   tokens' text is `Attribute.idrefText`;
+ *   token is `Idref.token`, an `xs:ID` a key holds, and whose tokens' text is
+ *   `Attribute.idrefText`;
  * - `item identifier`, `item title`: the item's root's attributes' `value`, `ObjectIdentifier`'s and
  *   `objectTitles`';
  * - `xml:lang`: a paragraph's, whose value `LangValue` reads where it stands and no key text holds;
- * - `response identifier`: the response's declaration and its interaction's `response-identifier`;
- * - `choice identifier`: a choice's and the correct response's value, a copied string value;
+ * - `response identifier`: the response's declaration and its interaction's `response-identifier`,
+ *   each a QTI identifier a key holds (`DeclaredIdentifierText`, `BindingName.identifier`);
+ * - `choice identifier`: a choice's, a QTI identifier a key holds (`Choice.identifier`), and the
+ *   correct response's value, a copied string value;
  * - `map key`: a map entry's `map-key`, `MapKey.key`;
  * - `string value`: a string outcome's default value, a copied string value;
  * - `resource identifier`, `manifest identifier`: the manifest's `xs:ID`s, whose values
- *   `resourceIdentifiers` and `manifestIdentifiers` read where they stand
- *   (`#pantry/qti/overlay-queries/package.ts`);
+ *   `resourceIdentifiers` and `manifestIdentifiers` key, each held within an `xs:ID`'s bound
+ *   (`ManifestIdText`, `#pantry/qti/overlay-queries/package.ts`);
  * - `free attribute`, `free text`: a `data-*` attribute and a paragraph's text, which no key holds.
  */
 const sites = [
@@ -410,33 +503,16 @@ interface Drawn {
 type Sketch = Readonly<Partial<Record<Site, Drawn>>>;
 
 /**
- * `matchedText`'s pattern, read as grizzle installs it: its one `str.regex` pattern.
- */
-const keyTextPattern = new RegExp(anyText.patterns[0].source, anyText.patterns[0].flags);
-
-/**
- * Decide whether the schema's type admits a text as a key text, as grizzle's `str.bytes` domain
- * checks it: at most `matchedTextBytes` UTF-8 bytes, then `matchedText`'s pattern.
+ * Decide whether a field's key text type admits a text, as grizzle's `str.bytes` domain checks it:
+ * at most the type's bound in UTF-8 bytes, then each of its patterns.
  *
+ * @param field - The field, `Relation.field`, of a key text type.
  * @param text - The text.
- * @returns Whether `matchedText` admits it.
+ * @returns Whether its type admits it.
  */
-const admitsKeyText = (text: string): boolean =>
-  utf8Length(text) <= matchedTextBytes && keyTextPattern.test(text);
-
-/**
- * `EntryPath`'s pattern, read as grizzle installs it: its one `str.regex` pattern.
- */
-const entryPathPattern = new RegExp(EntryPath.patterns[0].source, EntryPath.patterns[0].flags);
-
-/**
- * Decide whether the schema's type admits a text as an entry path, as grizzle's `str.bytes` domain
- * checks it: `EntryPath`'s pattern, of any length.
- *
- * @param text - The text.
- * @returns Whether `EntryPath` admits it.
- */
-const admitsEntryPath = (text: string): boolean => entryPathPattern.test(text);
+const admitsAt = (field: string, text: string): boolean =>
+  utf8Length(text) <= (keyTextFieldBounds.get(field) ?? Number.POSITIVE_INFINITY) &&
+  (keyTextPatterns.get(field) ?? []).every((pattern) => pattern.test(text));
 
 /**
  * Write a drawn text: its place's letter, then its script's character, `count` characters in all.
@@ -450,17 +526,45 @@ const textOf = (letter: string, { count, script }: Drawn): string =>
 
 /**
  * The most UTF-8 bytes one B-tree entry holds of a text as itself, beside no other field (grizzle's
- * `keyTextBytes`): a key over a longer text holds it by its image.
+ * `keyTextBytes`): no key can hold a longer text as itself, so a text past it is one no key text
+ * type of `#pantry/qti/limits.ts` admits, only `matchedText` and a text no key holds.
  */
 const entryBytes = keyTextBytes([]);
 
 /**
- * The UTF-8 bytes the cases write a text at, each past a bound a key once held a text to: 433, the
- * longest single value a production item holds (SV-LIMIT-01), past the 428 bytes LIMITS5 held it
- * to; one past {@link entryBytes}, so a key holds it by its image; and 64 KiB. None is near
- * `matchedTextBytes`, the bound a key text still meets.
+ * The UTF-8 bytes the cases write a text a key text type does not bound at, each past a bound a key
+ * once held a text to: 433, the longest single value a production item holds (SV-LIMIT-01), past
+ * the 428 bytes LIMITS5 held it to; one past {@link entryBytes}, past what any key holds of a text
+ * as itself; and 64 KiB. None is near `matchedTextBytes`, the bound a matched text meets.
  */
 const longBytes = [433, entryBytes + 1, 65_536] as const;
+
+/**
+ * The bound of the narrowest key text each place's text is held to, where one is: an IDREF token's
+ * (`Idref.token`) and the manifest's and a resource's `identifier` (`ManifestIdText`), each an
+ * `xs:ID`'s bound; and a response declaration's and its interaction's binding's identifier
+ * (`DeclaredIdentifierText`, `BindingName.identifier`) and a choice's (`Choice.identifier`), each a
+ * QTI identifier's. A place with no bound here writes its text into no key, or into `matchedText`
+ * alone.
+ */
+const siteBounds: Readonly<Partial<Record<Site, number>>> = {
+  "choice identifier": identifierBytes,
+  idref: xmlIdBytes,
+  "manifest identifier": xmlIdBytes,
+  "resource identifier": xmlIdBytes,
+  "response identifier": identifierBytes,
+};
+
+/**
+ * The most characters of a script a drawn text holds within a number of UTF-8 bytes, its leading
+ * ASCII letter counted.
+ *
+ * @param script - The script.
+ * @param bytes - The bytes, at least 1.
+ * @returns The count.
+ */
+const withinOf = (script: Script, bytes: number): number =>
+  1 + Math.floor((bytes - 1) / utf8Length(glyphs[script]));
 
 /**
  * The fewest characters of a script a drawn text holds to reach a number of UTF-8 bytes, its
@@ -472,6 +576,29 @@ const longBytes = [433, entryBytes + 1, 65_536] as const;
  */
 const countOf = (script: Script, bytes: number): number =>
   1 + Math.ceil((bytes - 1) / utf8Length(glyphs[script]));
+
+/**
+ * The counts of a script a place's text is drawn at: for a place {@link siteBounds} bounds, the most
+ * within its bound and one more, past it; for any other, each of {@link longBytes}.
+ *
+ * @param site - The place.
+ * @param script - The script.
+ * @returns The counts.
+ */
+const countsAt = (site: Site, script: Script): readonly number[] =>
+  Option.match(Option.fromUndefinedOr(siteBounds[site]), {
+    onNone: () => longBytes.map((bytes) => countOf(script, bytes)),
+    onSome: (bound) => [withinOf(script, bound), withinOf(script, bound) + 1],
+  });
+
+/**
+ * The most UTF-8 bytes a place's text is written at before it is past its limit: its bound
+ * ({@link siteBounds}), else what one B-tree entry holds of a text as itself.
+ *
+ * @param site - The place.
+ * @returns The bytes.
+ */
+const limitAt = (site: Site): number => siteBounds[site] ?? entryBytes;
 
 /**
  * Write a language tag of exactly `count` ASCII characters, `xs:language`'s form: `a`, then `aa`
@@ -537,7 +664,7 @@ const packageOf = (sketch: Sketch): ReadonlyMap<string, Uint8Array> => {
 };
 
 /**
- * The fields of a row that hold a key text or an entry path its type does not admit.
+ * The fields of a row of a key text type that hold a text their type does not admit.
  *
  * @param relation - The row's relation.
  * @param row - The row.
@@ -546,19 +673,129 @@ const packageOf = (sketch: Sketch): ReadonlyMap<string, Uint8Array> => {
 const pastBound = (relation: string, row: HeldRow): readonly string[] =>
   Object.entries(row).flatMap(([field, value]) =>
     Predicate.isString(value) &&
-    ((isKeyText(relation, field) && !admitsKeyText(value)) ||
-      (entryPathFields.has(`${relation}.${field}`) && !admitsEntryPath(value)))
+    keyTextFields.has(`${relation}.${field}`) &&
+    !admitsAt(`${relation}.${field}`, value)
       ? [`${relation}.${field}`]
       : [],
   );
 
 /**
- * Collect the key texts and entry paths a package's rows hold that the schema's type does not
- * admit, by `Relation.field`: each `matchedText` and `EntryPath` field of each row the import's
- * write stores, each fold's end and each copy at the value the write draws, and each generated one
- * at the value grizzle's evaluator gives it (`#pantry/test/host-judge.ts` `withGenerated`). A row
+ * The attribute values a check holds within a key text's bound where a view keys them, by the
+ * derived relation the check is over: each declaration's `identifier` (`DeclaredIdentifierText`,
+ * names.ts) and each test's (`TestIdentifierText`, overlay-queries/tests.ts), each a QTI
+ * identifier; and in the manifest its own and each resource's `identifier` and each dependency's
+ * `identifierref` (`ManifestIdText`, overlay-queries/package.ts), each an `xs:ID`. Each reads its
+ * attribute's `value` as the database generates it.
+ */
+const checkedValues: readonly {
+  readonly bound: number;
+  readonly field: string;
+  readonly kinds: readonly string[];
+  readonly manifest: boolean;
+  readonly name: string;
+}[] = [
+  {
+    bound: identifierBytes,
+    field: "DeclaredIdentifierText.text",
+    kinds: declarationKinds,
+    manifest: false,
+    name: "identifier",
+  },
+  {
+    bound: identifierBytes,
+    field: "TestIdentifierText.text",
+    kinds: ["qti-assessment-test"],
+    manifest: false,
+    name: "identifier",
+  },
+  {
+    bound: xmlIdBytes,
+    field: "ManifestIdText.text",
+    kinds: ["cp:manifest", "cp:resource"],
+    manifest: true,
+    name: "identifier",
+  },
+  {
+    bound: xmlIdBytes,
+    field: "ManifestIdText.text",
+    kinds: ["cp:dependency"],
+    manifest: true,
+    name: "identifierref",
+  },
+];
+
+/**
+ * The derived relations whose "Key text bound" check an `Attribute` row's value breaks
+ * ({@link checkedValues}).
+ *
+ * @param row - The row, its generated fields filled.
+ * @returns Each check's field, as `Relation.text`.
+ */
+const checkedPastBound = (row: HeldRow): readonly string[] =>
+  checkedValues.flatMap(({ bound, field, kinds, manifest, name }) =>
+    Predicate.isString(row["value"]) &&
+    row["name"] === name &&
+    kinds.some((kind) => kind === row["kind"]) &&
+    (!manifest || row["path"] === manifestPath) &&
+    utf8Length(row["value"]) > bound
+      ? [field]
+      : [],
+  );
+
+/**
+ * The schema's own selections of the rows that hold a document's IDs, each the source of its
+ * "DocumentId key" containment into `DocumentId` (`#pantry/qti/identity.ts`): `idAttributes`, the
+ * ID-typed attributes, and `idTextNodes`, the elements whose text is an `xs:ID`, each judged on a
+ * row by grizzle's evaluator. Read on first use, since reading the schema's statements compiles its
+ * law model.
+ */
+const idHoldersOf = Fn.memoize((schema: typeof Qti) => {
+  const holderOf = (from: "Attribute" | "Node") => {
+    const held = containmentsOf(schema, from).filter(({ to }) => to === "DocumentId");
+    assert.lengthOf(held, 1, `${from}: its containments into DocumentId`);
+
+    return Option.getOrThrow(Arr.head(held));
+  };
+
+  return { Attribute: holderOf("Attribute"), Node: holderOf("Node") };
+});
+
+/**
+ * The ID a row gives `IdText` (`#pantry/qti/names.ts`), whose "Key text bound" check holds each
+ * within `xmlIdBytes`: an ID-typed attribute's `value`, and an ID-typed element's string value
+ * collapsed, each where the schema's own selection takes the row ({@link idHoldersOf}).
+ *
+ * @param relation - The row's relation.
+ * @param row - The row.
+ * @param generated - The row with its generated fields filled.
+ * @returns `IdText.text` where the row's ID is past the bound, else none.
+ */
+const idTextPastBound = (
+  relation: string,
+  row: HeldRow,
+  generated: () => HeldRow,
+): readonly string[] => {
+  const holders = idHoldersOf(Qti);
+  const ids: readonly unknown[] = [
+    ...(relation === "Attribute" && holders.Attribute.selected(row) ? [generated()["value"]] : []),
+    ...(relation === "Node" && holders.Node.selected(row) && Predicate.isString(row["stringValue"])
+      ? [collapse(row["stringValue"])]
+      : []),
+  ];
+
+  return ids.some((id) => Predicate.isString(id) && utf8Length(id) > xmlIdBytes)
+    ? ["IdText.text"]
+    : [];
+};
+
+/**
+ * Collect the key texts a package's rows hold that the schema's type does not admit, by
+ * `Relation.field`: each field of a key text type of each row the import's write stores, each
+ * fold's end and each copy at the value the write draws, and each generated one at the value
+ * grizzle's evaluator gives it (`#pantry/test/host-judge.ts` `withGenerated`). A row
  * whose written text is past the bound is one the database refuses by that field's domain, so its
- * generated texts are left unread.
+ * generated texts are left unread, but for an attribute's value, which a "Key text bound" check
+ * over a derived relation reads ({@link checkedPastBound}).
  *
  * @param inputs - The import's rows.
  * @returns The fields that hold a text past the bound.
@@ -571,9 +808,17 @@ const refusedFields = (inputs: PackageInputs): ReadonlySet<string> => {
       const held: readonly HeldRow[] = rows[relation.name];
       for (const row of held) {
         const written = pastBound(relation.name, row);
-        for (const field of written.length > 0
-          ? written
-          : pastBound(relation.name, withGenerated(evaluatorFor(Qti), relation, row))) {
+        const generated = () => withGenerated(evaluatorFor(Qti), relation, row);
+        for (const field of written.length > 0 ? written : pastBound(relation.name, generated())) {
+          refused.add(field);
+        }
+        if (relation.name === "Attribute") {
+          for (const field of checkedPastBound(generated())) {
+            refused.add(field);
+          }
+        }
+
+        for (const field of idTextPastBound(relation.name, row, generated)) {
           refused.add(field);
         }
       }
@@ -584,13 +829,14 @@ const refusedFields = (inputs: PackageInputs): ReadonlySet<string> => {
 };
 
 /**
- * A situation a search must reach: a place drawn past what an index entry holds of a text as
- * itself ({@link entryBytes}), in a script, a text no key holds drawn past it, another law the
- * package breaks, and the verdict.
+ * A situation a search must reach: a place drawn past its limit ({@link limitAt}), its key text
+ * type's bound or, for a text no key bounds, what an index entry holds of a text as itself, in a
+ * script, a text no key holds drawn past what an index entry holds, another law the package
+ * breaks, and the verdict.
  */
 type Situation =
-  | `${Script} past an index entry`
-  | `${Site} past an index entry`
+  | `${Script} past its limit`
+  | `${Site} past its limit`
   | "a free text past an index entry"
   | "accepted"
   | "another law broken too"
@@ -598,7 +844,7 @@ type Situation =
 
 /**
  * The relations an import writes fewer rows of for a package than for its twin ({@link twinOf}):
- * each a copy an overlay leaves out because its text is past `matchedText`, which the copy's
+ * each a copy an overlay leaves out because its text is past its field's bound, which the copy's
  * containment then refuses for the row it lacks. The twin differs from the package in its texts'
  * lengths alone, so a row an overlay leaves out of both, a name's that names nothing (reading
  * 152), is no copy the bound left out.
@@ -619,7 +865,7 @@ const leftOut = (
 
 /**
  * The rules the database refuses a package's import under for its key texts, read from its rows:
- * `key-text-bound` where a written `matchedText` field holds a text past the bound, which the
+ * `key-text-bound` where a written field of a key text type holds a text past its bound, which the
  * type's own check refuses, and for a copy left out of a relation, the rule of each containment the
  * law table states into that relation, which then finds no row.
  *
@@ -685,9 +931,10 @@ const twinRows = (sketch: Sketch) =>
 
 /**
  * Judge one package's entries both ways: the oracle's "Key text bound" breaches against the
- * database's refusal of the same texts as the import's rows give it, a `matchedText` field written
- * past what the schema's type admits, or a copy left out of a relation its containment reads; and
- * the rule each would refuse it under ({@link databaseRules}) against the rules the oracle names.
+ * database's refusal of the same texts as the import's rows give it, a field of a key text type
+ * written past what the schema's type admits, or a copy left out of a relation its containment
+ * reads; and the rule each would refuse it under ({@link databaseRules}) against the rules the
+ * oracle names.
  *
  * @param entries - The package's entries.
  * @param literal - The package as a failure names it.
@@ -754,12 +1001,14 @@ const judged = (sketch: Sketch, note: (situation: Situation) => void) =>
   Effect.gen(function* judgedCase() {
     for (const site of sites) {
       const held = sketch[site];
-      if (held !== undefined && utf8Length(textAt(sketch, site, "")) > entryBytes) {
-        note(`${site} past an index entry`);
-        note(`${held.script} past an index entry`);
-        if (freeSites.has(site)) {
-          note("a free text past an index entry");
-        }
+      const bytes = utf8Length(textAt(sketch, site, ""));
+      if (held !== undefined && bytes > limitAt(site)) {
+        note(`${site} past its limit`);
+        note(`${held.script} past its limit`);
+      }
+
+      if (held !== undefined && freeSites.has(site) && bytes > entryBytes) {
+        note("a free text past an index entry");
       }
     }
 
@@ -835,16 +1084,25 @@ const basedOf = (n: number): ReadonlyMap<string, Uint8Array> =>
   ]);
 
 /**
- * The reference cases: an include whose href resolves through its document's folder to an
- * in-package path of each of {@link longBytes} and 8 bytes more, the `ReferencePath.target` the
- * import writes it into an `EntryPath` of any length; and a resource's and a file's href resolved
- * through an `xml:base` to each length and 2 bytes more, whose `target` is a key text a key holds
- * at any length.
+ * The reference cases, each with whether a key text past its bound refuses it: an include whose
+ * href resolves through its document's folder to an in-package path of `entryPathBytes` and of one
+ * byte more, the `ReferencePath.target` the import writes it into an `EntryPath`; and a resource's
+ * and a file's href resolved through an `xml:base` to each of {@link longBytes} and 2 bytes more,
+ * their arms' `target`s (`ResourceHrefPath`, `FilePath`) `EntryPath`s too, refused past
+ * `entryPathBytes`.
  */
-const referenceCases = longBytes.flatMap((n) => [
-  { entries: includeOf(n), literal: `an include resolved to ${n + 8} bytes` },
-  { entries: basedOf(n), literal: `a based resource of ${n + 2} bytes` },
-]);
+const referenceCases = [
+  ...[entryPathBytes - 8, entryPathBytes - 7].map((n) => ({
+    entries: includeOf(n),
+    literal: `an include resolved to ${n + 8} bytes`,
+    refused: n + 8 > entryPathBytes,
+  })),
+  ...longBytes.map((n) => ({
+    entries: basedOf(n),
+    literal: `a based resource of ${n + 2} bytes`,
+    refused: n + 2 > entryPathBytes,
+  })),
+];
 
 /**
  * A package whose one item writes `body` in its body and `after` after it, each place a held value
@@ -874,10 +1132,10 @@ const heldItemOf = (body: string, after = ""): ReadonlyMap<string, Uint8Array> =
 /**
  * The values the import writes into a key text that a rule over a query holds, and no statement
  * over `Attribute` copies: a `th`'s `id` (`TableHeader.id`), a catalog's `id` (`CatalogId.id`), a
- * share's fragment (`ShareFragment.id`) and an ID of a document in an assembly, here an item that
- * holds an include (`PlacedId.id`); and an element's text typed `xs:ID`, whose `IdValue` casts its
- * collapsed string value into a key text, which its string value already is (`Node.stringValue`).
- * Each is an NCName of `n` ASCII bytes.
+ * share's fragment (`ShareFragment.id`), an ID of a document in an assembly, here an item that
+ * holds an include (`PlacedId.id`), and an element's text typed `xs:ID`, each an `xs:ID` of at most
+ * `xmlIdBytes`, as every ID of a document is (`IdText`, which `IdValue` keys). Each is an NCName of
+ * `n` ASCII bytes, and the oracle reads each where it stands, as an ID of its document.
  */
 const heldPlaces = [
   {
@@ -915,41 +1173,49 @@ const heldPlaces = [
 ] as const;
 
 /**
- * The held value cases: each place at each of {@link longBytes}.
+ * The held value cases, each place at `xmlIdBytes` and one byte past it, with whether its text is
+ * past the bound.
  */
 const heldCases = heldPlaces.flatMap(({ entriesOf, place }) =>
-  longBytes.map((n) => ({ entries: entriesOf(n), literal: `${place} of ${n} bytes` })),
+  [xmlIdBytes, xmlIdBytes + 1].map((n) => ({
+    entries: entriesOf(n),
+    literal: `${place} of ${n} bytes`,
+    refused: n > xmlIdBytes,
+  })),
 );
 
 /**
- * A reference's token at each of {@link longBytes}: an item whose `data-catalog-idref` holds one
- * token, an NCName of `n` ASCII bytes, beside a catalog of another `id`, so the token names nothing
- * and every row that holds it is the import's own write of it.
+ * A reference's token at `xmlIdBytes` and one byte past it: an item whose `data-catalog-idref`
+ * holds one token, an NCName of `n` ASCII bytes, beside a catalog of another `id`, so the token
+ * names nothing and every row that holds it is the import's own write of it, its `Idref` token an
+ * `xs:ID`'s bound.
  */
-const catalogTokenCases = longBytes.map((n) => ({
+const catalogTokenCases = [xmlIdBytes, xmlIdBytes + 1].map((n) => ({
   entries: heldItemOf(
     `<p data-catalog-idref="${segmentOf(n)}">Hi</p>`,
     `<qti-catalog-info><qti-catalog id="C"><qti-card support="spoken"><qti-html-content>Hi</qti-html-content></qti-card></qti-catalog></qti-catalog-info>`,
   ),
   literal: `a data-catalog-idref token of ${n} bytes`,
+  refused: n > xmlIdBytes,
 }));
 
 /**
  * The box: the package with every place short; then each place alone, in each script, at each of
- * {@link longBytes} (a language tag in ASCII alone).
+ * its counts ({@link countsAt}: its bound and one past it, or each of {@link longBytes}; a language
+ * tag in ASCII alone).
  */
 const boxCases: Arr.NonEmptyReadonlyArray<Sketch> = [
   {},
   ...sites.flatMap((site) =>
     (site === "xml:lang" ? (["1-byte"] as const) : scripts).flatMap((script) =>
-      longBytes.map((bytes): Sketch => ({ [site]: { count: countOf(script, bytes), script } })),
+      countsAt(site, script).map((count): Sketch => ({ [site]: { count, script } })),
     ),
   ),
 ];
 
 /**
  * Draw a package by its own swarm: the places it lengthens, each in a script the case's swarm
- * weighs, at one character or at one of {@link longBytes}.
+ * weighs, at one character or at one of its counts ({@link countsAt}).
  */
 const swarmedSketch: Gen<{ readonly sketch: Sketch; readonly swarm: Swarm<Script | Site> }> = (
   source,
@@ -960,7 +1226,7 @@ const swarmedSketch: Gen<{ readonly sketch: Sketch; readonly swarm: Swarm<Script
     if (source.draw(keep(drawnSwarm, site))) {
       const script = site === "xml:lang" ? "1-byte" : source.draw(swarmChoice(drawnSwarm, scripts));
       sketch[site] = {
-        count: source.draw(element([1, ...longBytes.map((bytes) => countOf(script, bytes))])),
+        count: source.draw(element([1, ...countsAt(site, script)])),
         script,
       };
     }
@@ -976,29 +1242,32 @@ layer(NodeServices.layer, { excludeTestServices: true })(
       "refuses each package of the box under Key text bound exactly where its import's rows hold a text its field's type does not admit, under the rule the database names",
       (ctx) =>
         // Oracle: a differential, the import's rows (readProgram, every overlay's copy and every
-        // concat fold's end) under the schema's own matchedText type, against the oracle's breaches.
-        // Bound: every place alone at each of the three long lengths in each of four scripts, and
-        // the package with every place short.
+        // concat fold's end) under the schema's own key text types, against the oracle's breaches.
+        // Bound: every place alone, at its bound and one character past it or at each of the three
+        // long lengths, in each of four scripts, and the package with every place short.
         Effect.gen(function* box() {
           const exhausted = yield* searched(
             ctx,
             exhaust(
               {
-                box: "each place alone at 433 bytes, past an index entry and at 64 KiB, in 1-, 2-, 3- and 4-byte scripts",
+                box: "each place alone at its bound and one character past it, or at 433 bytes, past an index entry and at 64 KiB, in 1-, 2-, 3- and 4-byte scripts",
                 caseHang: Duration.seconds(120),
                 concurrency: 1,
                 coverage: requiredInSpace<Situation>([
-                  "1-byte past an index entry",
-                  "2-byte past an index entry",
-                  "3-byte past an index entry",
-                  "4-byte past an index entry",
+                  "1-byte past its limit",
+                  "2-byte past its limit",
+                  "3-byte past its limit",
+                  "4-byte past its limit",
                   "a free text past an index entry",
                   "accepted",
-                  "idref past an index entry",
-                  "map key past an index entry",
-                  "p id past an index entry",
-                  "response identifier past an index entry",
-                  "xml:lang past an index entry",
+                  "choice identifier past its limit",
+                  "idref past its limit",
+                  "manifest identifier past its limit",
+                  "map key past its limit",
+                  "p id past its limit",
+                  "refused",
+                  "response identifier past its limit",
+                  "xml:lang past its limit",
                 ]),
                 generator: element(boxCases),
                 literal: Formatter.format,
@@ -1024,7 +1293,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
       "refuses each swarmed package under Key text bound exactly where its import's rows hold a text its field's type does not admit, under the rule the database names",
       (ctx) =>
         // Oracle: as the box's. Bound: each case under its own swarm of the 13 places and 4 scripts,
-        // each place at one character or at one of the three long lengths; 60 runs.
+        // each place at one character or at one of its counts; 60 runs.
         searched(
           ctx,
           explore(
@@ -1057,59 +1326,60 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     );
 
     test.effect(
-      "admits a reference whose in-package path resolves to any length, an include's entry path and a resource's or a file's target alike",
+      "refuses a reference whose in-package path resolves past entryPathBytes, an include's, a resource's or a file's, and admits one at it",
       () =>
         // Oracle: as the box's, the import's rows under the schema's own types: an include's resolved
-        // path is an `EntryPath` and a resource's and a file's target a key text, each of any
-        // length, a key holding it by its image and no index ordering by it (LIMITS6). Bound: an
-        // include and a based resource and file at each of the three long lengths.
+        // path is an `EntryPath`, held in a key of at most `entryPathBytes`, and so is a resource's
+        // and a file's href resolved in the package, its arm's `target` (`ResourceHrefPath`,
+        // `FilePath`). Bound: an include resolved to the bound and a byte past it, and a based
+        // resource and file at each of the three long lengths, the first within the bound.
         Effect.gen(function* eachReferenceCase() {
-          for (const { entries, literal } of referenceCases) {
+          for (const { entries, literal, refused: past } of referenceCases) {
             const { breaches, refused } = yield* judgedEntries(entries, literal, Option.none());
             const bound = breaches.filter(({ law }) => law === "Key text bound");
 
-            assert.deepStrictEqual([...refused].toSorted(), [], `${literal}: the import's rows`);
-            assert.strictEqual(bound.length, 0, `${literal}: the oracle's Key text bound`);
+            assert.strictEqual(refused.size > 0, past, `${literal}: the import's rows`);
+            assert.strictEqual(bound.length > 0, past, `${literal}: the oracle's Key text bound`);
           }
         }),
       { timeout: testTimeoutMs },
     );
 
     test.effect(
-      "admits a th's id, a catalog's id, a share's fragment, an assembled document's ID and an ID text of any length, each held by its image, on the import's rows and in the oracle",
+      "refuses a th's id, a catalog's id, a share's fragment, an assembled document's ID and an ID text past xmlIdBytes and admits each at it, on the import's rows and in the oracle",
       () =>
-        // Oracle: QTI bounds no ID (`xs:ID`) and no URI's fragment, and the import's rows under
-        // the schema's own types, each of these a `matchedText` a key holds by its image (LIMITS6):
-        // each value a rule over a query holds (`TableHeader.id`, `CatalogId.id` and `PlacedId.id`
-        // to `IdValue`, `ShareFragment.id` to its `src`'s value), and an element's ID text, its
-        // `Node.stringValue`. Bound: each place at each of the three long lengths.
+        // Oracle: QTI bounds no ID (`xs:ID`) and no URI's fragment, and the import's rows under the
+        // schema's own types: each value a key holds (`TableHeader.id`, `CatalogId.id`,
+        // `ShareFragment.id` and `PlacedId.id`) is an `XmlId`, of at most `xmlIdBytes`, and so is
+        // every ID of a document, an attribute's or an element's text, which `IdValue` keys and
+        // "Key text bound" holds over `IdText`. Bound: each place at its bound and a byte past it.
         Effect.gen(function* eachHeldCase() {
-          for (const { entries, literal } of heldCases) {
+          for (const { entries, literal, refused: past } of heldCases) {
             const { breaches, refused } = yield* judgedEntries(entries, literal, Option.none());
             const bound = breaches.filter(({ law }) => law === "Key text bound");
 
-            assert.deepStrictEqual([...refused].toSorted(), [], `${literal}: the import's rows`);
-            assert.strictEqual(bound.length, 0, `${literal}: the oracle's Key text bound`);
+            assert.strictEqual(refused.size > 0, past, `${literal}: the import's rows`);
+            assert.strictEqual(bound.length > 0, past, `${literal}: the oracle's Key text bound`);
           }
         }),
       { timeout: testTimeoutMs },
     );
 
     test.effect(
-      "admits a data-catalog-idref token of any length: its Idref token, its pieces' end and its IDREF target are each held by its image",
+      "refuses a data-catalog-idref token past xmlIdBytes and admits one at it: its Idref token is an xs:ID a key holds",
       () =>
         // Oracle: QTI bounds no IDREF, and the import's rows under the schema's own types: a
-        // reference's token is its `Idref` piece's (`Idref.token`, beside the pieces' running end,
-        // `Idref.piecesAfter`, the pieces' fold end on its attribute, `Attribute.idrefText`, and its
-        // document's `IdrefTarget.id`), each a `matchedText` a key holds by its image (LIMITS6).
-        // Bound: one token at each of the three long lengths.
+        // reference's token is its `Idref` piece's (`Idref.token`, an `XmlId`, and its document's
+        // `IdrefTarget.id`), each held in a key of at most `xmlIdBytes`; the pieces' running end,
+        // `Idref.piecesAfter`, and their fold end on its attribute, `Attribute.idrefText`, are of any
+        // length. Bound: one token at the bound and one a byte past it.
         Effect.gen(function* eachReferenceToken() {
-          for (const { entries, literal } of catalogTokenCases) {
+          for (const { entries, literal, refused: past } of catalogTokenCases) {
             const { breaches, refused } = yield* judgedEntries(entries, literal, Option.none());
             const bound = breaches.filter(({ law }) => law === "Key text bound");
 
-            assert.deepStrictEqual([...refused].toSorted(), [], `${literal}: the import's rows`);
-            assert.strictEqual(bound.length, 0, `${literal}: the oracle's Key text bound`);
+            assert.strictEqual(refused.size > 0, past, `${literal}: the import's rows`);
+            assert.strictEqual(bound.length > 0, past, `${literal}: the oracle's Key text bound`);
           }
         }),
       { timeout: testTimeoutMs },
@@ -1117,14 +1387,24 @@ layer(NodeServices.layer, { excludeTestServices: true })(
   },
 );
 
-it("writes every long text the cases draw within the bound a key text meets, and past the one a B-tree entry holds", () => {
-  // Oracle: the schema's own types, `matchedText`'s pattern and bound and grizzle's entry bound.
-  // Bound: the four scripts at each of the three long lengths.
+it("writes every text the cases draw at its place's bound within it and one character past it outside it, and every long text within the bound a matched text meets and past what a B-tree entry holds", () => {
+  // Oracle: the declared bounds of `#pantry/qti/limits.ts` and grizzle's entry bound.
+  // Bound: the four scripts at each place's counts.
   for (const script of scripts) {
+    for (const site of sites) {
+      const bound = siteBounds[site];
+      if (bound !== undefined) {
+        const [within = 1, past = 1] = countsAt(site, script);
+
+        assert.isAtMost(utf8Length(textOf("a", { count: within, script })), bound, site);
+        assert.isAbove(utf8Length(textOf("a", { count: past, script })), bound, site);
+      }
+    }
+
     for (const bytes of longBytes) {
       const text = textOf("a", { count: countOf(script, bytes), script });
 
-      assert.isTrue(admitsKeyText(text), `${script} at ${bytes} bytes`);
+      assert.isAtMost(utf8Length(text), matchedTextBytes, `${script} at ${bytes} bytes`);
       assert.isAtLeast(utf8Length(text), bytes, `${script} at ${bytes} bytes`);
     }
 
@@ -1134,5 +1414,5 @@ it("writes every long text the cases draw within the bound a key text meets, and
     );
   }
 
-  assert.isBelow(longBytes.at(-1) ?? 0, matchedTextBytes);
+  assert.isAbove(entryBytes, entryPathBytes);
 });

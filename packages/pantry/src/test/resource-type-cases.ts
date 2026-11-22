@@ -50,8 +50,8 @@ const resource = (identifier: string, type: string, href: string): Edit => ({
 /**
  * One case of the box: its edits of `simple`; the laws the law oracle finds broken; the verdict,
  * the specification's, which the oracle and PostgreSQL each give; the (target, type) pairs the
- * typed resources name, the query `TypedHref`'s; and `byQuery`, whether the one law the case breaks
- * is a rule over that query, which the host's judge leaves to the database
+ * typed resources name in the package, the query `TypedPath`'s; and `byQuery`, whether the one law
+ * the case breaks is a rule over that query, which the host's judge leaves to the database
  * (`#pantry/test/predicates.ts` `readsDerived`), so the import's rows judged on the host break
  * nothing.
  */

@@ -512,7 +512,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     93,
     {
       owner:
-        "P2 and P3 over the query `TypedHref` (`src/qti/queries.ts`): a document-typed resource names the document at its href, and every document but the manifest is one a resource names; the importer reads documents through `namedDocuments` (`src/import/overlays/package.ts`)",
+        "P2 and P3 over the queries `TypedHref` and `TypedPath` (`src/qti/queries.ts`): a document-typed resource's href resolves in the package and names the document at its entry path, and every document but the manifest is one a resource names; the importer reads documents through `namedDocuments` (`src/import/overlays/package.ts`)",
       status: "G",
     },
   ],
@@ -584,7 +584,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     102,
     {
       owner:
-        "P's resolution at import (`src/import/overlays/package.ts` `resolveIn`, `baseIn`, `hrefResolverOf`; RFC 3986 §2.1 and §5.2, each value read by its whitespace class, `xml:base` and the manifest's Base resolved, dot segments removed, segments percent-decoded); `HrefScope` on `File`, `ResourceHref` and `Reference`, read through the queries `EntryFileTarget` and `ResourceFileTarget` (`src/qti/overlay-queries/package.ts`), their resolved `path`, `Reference` `lead ‖ target ‖ params ‖ trail` and its scope's written-form implications (`E1_derived`), `resolvedPathPattern` (`E1_derived`), href-listed over (scope, path), `Document_entry` on a document-typed href, the stated limit `Href_form` (`scope <> unresolved`, a reference's and a `srcset` candidate's), and a `srcset`'s image candidates, `Srcset`, `SrcsetCandidate` and `CandidatePath`, split by `srcsetCandidatesOf` (`src/import/pieces.ts`) and proved by their concatenation fold (`src/qti/package.ts`) against the attribute's form (`SrcsetForm`, `src/qti/overlay-queries/package.ts`); the oracle's own resolver `src/test/resolution.ts`, its candidate reading `oracleSrcsetOf`, and its Href form, Href listed, Document entry and File exists",
+        "P's resolution at import (`src/import/overlays/package.ts` `resolveIn`, `baseIn`, `hrefResolverOf`; RFC 3986 §2.1 and §5.2, each value read by its whitespace class, `xml:base` and the manifest's Base resolved, dot segments removed, segments percent-decoded); `HrefScope` on `File`, `ResourceHref` and `Reference`, each of the first two beside the arm its scope names (`FilePath` and `ResourceHrefPath`, an entry path; `FileOutside` and `ResourceHrefOutside`, the path as written and its `targetDigest`; grizzle's `alternatives` under Manifest overlay), read through the queries `EntryFileTarget`, `ResourceFilePath`, `ResourceFileOutside` and `ResourceFileDocument` (`src/qti/overlay-queries/package.ts`), their resolved `path`, `Reference` `lead ‖ target ‖ params ‖ trail` and its scope's written-form implications (`E1_derived`), `resolvedPathPattern` (`E1_derived`), href-listed over each arm (entry paths, outside paths by digest then text, same-document headers), `Document_entry` on a document-typed href, the stated limit `Href_form` (`scope <> unresolved`, a reference's and a `srcset` candidate's), and a `srcset`'s image candidates, `Srcset`, `SrcsetCandidate` and `CandidatePath`, split by `srcsetCandidatesOf` (`src/import/pieces.ts`) and proved by their concatenation fold (`src/qti/package.ts`) against the attribute's form (`SrcsetForm`, `src/qti/overlay-queries/package.ts`); the oracle's own resolver `src/test/resolution.ts`, its candidate reading `oracleSrcsetOf`, and its Href form, Href listed, Document entry and File exists",
       status: "G",
     },
   ],
@@ -831,7 +831,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     133,
     {
       owner:
-        "S-ORACLE's `anyText` (`src/qti/limits.ts`: grizzle's `str.bytes(keyTextBytes, …)`, `keyTextBytes` 2,587, what grizzle's `keyTextBytes` leaves beside the widest key, held by `limits.test.ts`), the oracle's Key text bound (rule `key-text-bound`, measured in UTF-8 bytes) over the schema's key copies (`src/test/key-copies.ts`), held to the import's rows by `src/test/keys.oracle.test.ts`. The import writes every copy whatever its length, so the database refuses an over-long one under `key-text-bound`, the oracle's rule",
+        "the key text types of `src/qti/limits.ts`, each a `str.bytes` bound of what one B-tree entry leaves the text in the widest key it stands in (a path's `entryPathBytes`, a QTI identifier's `identifierBytes`, an `xs:ID`'s `xmlIdBytes` and the rest, each derived beside its type), the oracle's Key text bound (rule `key-text-bound`, measured in UTF-8 bytes) over the schema's key copies and the texts the host writes where they stand (`src/test/key-copies.ts`, `src/test/oracle.ts` `keyTexts`), held to the import's rows by `src/test/keys.oracle.test.ts`. The import writes every text whatever its length, so the database refuses an over-long one under `key-text-bound`, the oracle's rule",
       status: "G",
     },
   ],

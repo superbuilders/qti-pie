@@ -2,15 +2,16 @@
  * The schema's own naming of its laws, which the committed law-name dictionary
  * (`#pantry/vocab/law-names.json`) is generated from and held to: a check by its name, a primary
  * key by its relation, a generated field by its relation and field, a contract by its name, a
- * pattern by its field's type, and a statement's law by the group its module files the statement
- * under, matched by grizzle's `sameLaw` over the schema's law model (`lawsByStatement`), with the
- * installed name of each check the schema states (`constraintNamesOf`). Each compiles `Qti`'s law
- * model, which takes seconds, so production never runs it: `#pantry/import/refusal.ts` names a
- * refusal from the dictionary alone, a check by its name and every other law by its id.
+ * pattern by its field's type, and a statement's law by the catalog entry its statement declares
+ * (`#pantry/qti/law-entries.ts`), with the installed name of each check the schema states
+ * (`constraintNamesOf`). Each compiles `Qti`'s law model, which takes seconds, so production never
+ * runs it: `#pantry/import/refusal.ts` names a refusal from the law's entry and the dictionary
+ * alone, a statement's law by its entry, a check by its name and every other law by its id.
  */
 import { constraintNamesOf, lawsByStatement, lawsOf, sameLaw } from "@bjornpagen/grizzle";
-import type { AnySchema, Law, RegexText, Statement } from "@bjornpagen/grizzle";
+import type { AnySchema, Law, RegexText, StatedLaw, Statement } from "@bjornpagen/grizzle";
 import { Array as Arr, Function as Fn, Match, Option, pipe, Schema } from "effect";
+import { Chars } from "#pantry/grammar/install.ts";
 import { attributeLawsByName, EntityName, OpenLocal } from "#pantry/qti/attributes.ts";
 import { Affix, expressionLawsByName, placedRelations } from "#pantry/qti/expressions.ts";
 import {
@@ -27,11 +28,22 @@ import {
   PiTarget,
   XmlVersion,
 } from "#pantry/qti/chardata.ts";
-import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
+import {
+  CopiedLexical,
+  EntryPath,
+  KeyMatchedText,
+  LiteralText,
+  matchedText,
+  PackageName,
+  QtiIdentifier,
+  SsmlMemberText,
+  UriText,
+  XmlId,
+} from "#pantry/qti/limits.ts";
 import { interactionLawsByName, interactionRelations } from "#pantry/qti/interactions.ts";
 import { mappingLawsByName } from "#pantry/qti/mapping.ts";
 import { metadataLawsByName, metadataRelations } from "#pantry/qti/metadata.ts";
-import { Chars, EndCharacter, nodeLawsByName, Prefix } from "#pantry/qti/node.ts";
+import { EndCharacter, nodeLawsByName, Prefix } from "#pantry/qti/node.ts";
 import { catalogLawsByName, catalogRelations } from "#pantry/qti/catalog.ts";
 import { dataSsmlLawsByName, dataSsmlRelations } from "#pantry/qti/data-ssml.ts";
 import { htmlLawsByName, htmlRelations } from "#pantry/qti/html.ts";
@@ -41,7 +53,6 @@ import { operatorLawsByName, operatorRelations } from "#pantry/qti/operators.ts"
 import {
   HrefParams,
   packageLawsByName,
-  Sha256Hex,
   SrcsetCandidateUrl,
   SrcsetDescriptor,
   SrcsetGap,
@@ -146,6 +157,9 @@ export const namedBy = (
  * - An attribute's `value` is its lexical form collapsed, replaced or kept as the class of the
  *   domain's member that holds it says, a cond whose every arm is a written text, never NULL: E1
  *   derived.
+ * - A text's digest (an attribute's `valueDigest`, an outside href's `targetDigest`, a concat fold's
+ *   running texts' and end's, a usage value's `textDigest`) is the SHA-256 of a text the row holds,
+ *   never NULL: E1 derived.
  */
 export const generatedNames: readonly (readonly [string, LawName])[] = [
   ...namedBy(
@@ -167,6 +181,35 @@ export const generatedNames: readonly (readonly [string, LawName])[] = [
     "OpenElementName.expanded",
     "ResourceDocument.documentType",
     "LiteralTyped.baseType",
+  ),
+  ...namedBy(
+    "E1 derived",
+    "Attribute.valueDigest",
+    "FileOutside.targetDigest",
+    "ResourceHrefOutside.targetDigest",
+  ),
+  ...namedBy(
+    "E1 derived",
+    "Node.charsWasDigest",
+    "Node.charsAfterDigest",
+    "Node.stringValueDigest",
+    "Attribute.idrefTextDigest",
+    "Idref.piecesWasDigest",
+    "Idref.piecesAfterDigest",
+    "TextIdref.piecesWasDigest",
+    "TextIdref.piecesAfterDigest",
+    "IdentityText.tokenTextDigest",
+    "HeaderToken.piecesWasDigest",
+    "HeaderToken.piecesAfterDigest",
+    "CellHeaders.tokenTextDigest",
+    "ToleranceToken.piecesWasDigest",
+    "ToleranceToken.piecesAfterDigest",
+    "Tolerance.tokenTextDigest",
+    "SrcsetCandidate.piecesWasDigest",
+    "SrcsetCandidate.piecesAfterDigest",
+    "Srcset.tokenTextDigest",
+    "UsageValue.textDigest",
+    "UsageValueBaseType.textDigest",
   ),
 ];
 
@@ -260,7 +303,15 @@ export const keyNames: readonly (readonly [string, LawName])[] = [
   ...namedBy("Package key", "Package"),
   ...namedBy("Entry family", "Entry"),
   ...namedBy("Entry kind", "Media"),
-  ...namedBy("Manifest overlay", "File", "ResourceHref"),
+  ...namedBy(
+    "Manifest overlay",
+    "File",
+    "FileOutside",
+    "FilePath",
+    "ResourceHref",
+    "ResourceHrefOutside",
+    "ResourceHrefPath",
+  ),
   ...namedBy("E1 derived", "ResourceDocument"),
   ...namedBy(
     "Reference overlay",
@@ -319,7 +370,7 @@ const Fielded = Schema.Struct({ fields: Schema.Record(Schema.String, Schema.Unkn
  */
 export const patternTypeOf = (
   relations: AnySchema["relations"],
-  { field, relation }: LawOf<"pattern">,
+  { field, relation }: Extract<StatedLaw, { readonly kind: "pattern" }>,
 ): Option.Option<unknown> =>
   pipe(
     Schema.decodeUnknownOption(Fielded)(relations[relation]),
@@ -349,7 +400,7 @@ export const patternTypeOf = (
 export const patternNameIn = (
   relations: AnySchema["relations"],
   names: ReadonlyMap<RegexText<string>, LawName>,
-  law: LawOf<"pattern">,
+  law: Extract<StatedLaw, { readonly kind: "pattern" }>,
 ): Option.Option<LawName> => {
   const byType: ReadonlyMap<unknown, LawName> = names;
 
@@ -364,20 +415,22 @@ export const patternNameIn = (
  * field's pattern law is named by its type's row ({@link patternNameIn}), in the classes of the
  * orchestrator's ruling of 2026-11-06:
  *
- * - A bound on a text is "Key text bound", a stated limit. `matchedText`, a map key's, a lookup
- *   value's and an interaction attribute's copy, the most a query's match reads, holds any text; a
- *   foreign element's names, whose expanded name a query matches, and the paths also carry a
- *   production no package the reader accepts breaks, so their refusal means the bound alone. A
- *   foreign local name is an NCName because crust reads with saxes's `xmlns` on, which refuses a
- *   name that is no QName (Namespaces in XML 1.0, §4); a foreign namespace name is `Char`s because
- *   crust reads no other; an entry path begins with no `/` because the directory reader lists paths
- *   relative to the package root and `zip.ts` refuses an absolute name; and a `srcset` candidate's
- *   URL is the host's own split of the value (`srcsetCandidatesOf`), so its bound alone can refuse
- *   it;
+ * - A bound on a text is "Key text bound", a stated limit. `matchedText`, a map key's and a lookup
+ *   value's, the most a query's match reads, holds any text; every key text type of
+ *   `#pantry/qti/limits.ts` (a path, a QTI identifier, an `xs:ID`, a key's matched text, a URI, a
+ *   base value's text, a `data-ssml` member's name, a rounding's figures, an attribute's lexical
+ *   form an overlay copies into a key) holds any text of at most its bytes; a foreign element's
+ *   names, whose expanded name a query matches, the paths, a namespace prefix and an open
+ *   attribute's local name also carry a production no package the reader accepts breaks, so their
+ *   refusal means the bound alone. A foreign local name, a prefix and an open attribute's local
+ *   name are NCNames because crust reads with saxes's `xmlns` on, which refuses a name that is no
+ *   QName (Namespaces in XML 1.0, §4); a foreign namespace name is `Char`s because crust reads no
+ *   other; an entry path begins with no `/` because the directory reader lists paths relative to
+ *   the package root and `zip.ts` refuses an absolute name; and a `srcset` candidate's URL is the
+ *   host's own split of the value (`srcsetCandidatesOf`), so its bound alone can refuse it;
  * - An unbounded XML production (a node's or an attribute's `Char*`, a comment, an instruction, a
- *   doctype, an encoding name, a version number, an NCName, among them a prefix and an open
- *   attribute's local name, each of any length) is "XML production", which crust refuses before any
- *   row exists;
+ *   doctype, an encoding name, a version number, an element's prefix and an entity's name, each of
+ *   any length) is "XML production", which crust refuses before any row exists;
  * - A namespace declaration's value is "Namespace name": an RFC 3986 URI reference (reading 131),
  *   which crust does not check, so the domain is the law;
  * - The whitespace around an IDREF token is the host's own split, "E1 derived", as is every other
@@ -396,6 +449,15 @@ export const textLaws: ReadonlyMap<RegexText<string>, LawName> = new Map<
   [ForeignLocal, "Key text bound"],
   [ExpandedName, "Key text bound"],
   [EntryPath, "Key text bound"],
+  [QtiIdentifier, "Key text bound"],
+  [XmlId, "Key text bound"],
+  [KeyMatchedText, "Key text bound"],
+  [UriText, "Key text bound"],
+  [LiteralText, "Key text bound"],
+  [SsmlMemberText, "Key text bound"],
+  [CopiedLexical, "Key text bound"],
+  [NamespacePrefix, "Key text bound"],
+  [OpenLocal, "Key text bound"],
   [SrcsetCandidateUrl, "Key text bound"],
   [matchedText, "Key text bound"],
   [PackageName, "Package key"],
@@ -409,18 +471,12 @@ export const textLaws: ReadonlyMap<RegexText<string>, LawName> = new Map<
   [XmlVersion, "XML production"],
   [EntityName, "XML production"],
   [Prefix, "XML production"],
-  [NamespacePrefix, "XML production"],
-  [OpenLocal, "XML production"],
   [Space, "E1 derived"],
   [Affix, "E1 derived"],
   [HrefParams, "E1 derived"],
   [EndCharacter, "E1 derived"],
   [SrcsetGap, "E1 derived"],
   [SrcsetDescriptor, "E1 derived"],
-  // A media entry's `digest` is the SHA-256 the importer computed from the bytes it read, written
-  // in this very language, so no import breaks it; it is named by the law of the media rows it is
-  // a field of, "Entry kind".
-  [Sha256Hex, "Entry kind"],
 ]);
 
 /**
@@ -484,26 +540,13 @@ export const databaseJudgedLawNames: ReadonlySet<string> = new Set<string>(
 );
 
 /**
- * The name of the law each statement of {@link namedLaws} states, by the statement: the very value
- * a module declares and `Qti` lists, which grizzle's `lawsByStatement` looks its laws up by.
- */
-const nameOfStatement: ReadonlyMap<Statement, LawName> = new Map(
-  namedLaws.flatMap((byName) =>
-    groupsOf(byName).flatMap(([name, statements]) =>
-      statements.map((statement) => [statement, name] as const),
-    ),
-  ),
-);
-
-/**
  * Each statement of a schema beside its laws, as grizzle's `lawsByStatement` names them: each law
  * one `lawsOf` lists, in `lawsOf`'s order, a mirrors' two containments and an alternatives law's
  * each its statement's.
  *
  * Grizzle compiles a schema's law model once, on the first read of its laws, and
  * `lawsByStatement`'s lookup reads each statement's laws by the canonical text its value holds, so
- * a call compiles nothing past that first read: the laws this module names by their statements
- * ({@link statementNamesOf}) and the laws the tests' host judges read
+ * a call compiles nothing past that first read: the laws the tests' host judges read
  * (`#pantry/test/host-judge.ts`, `src/test/judged-laws.ts`, `src/test/gen/genetic/host-laws.ts`)
  * read one law model per process. Loading this module compiles none.
  */
@@ -512,36 +555,6 @@ export const statementLawsOf = (schema: typeof Qti) => {
 
   return schema.statements.map((statement) => ({ laws: lawsOfStatement(statement), statement }));
 };
-
-/**
- * The laws a schema's statements state that are no check, each with the name its module groups the
- * statement under ({@link nameOfStatement}), filed by {@link bucketOf}: each statement's laws as
- * grizzle's `lawsByStatement` gives them ({@link statementLawsOf}), a mirrors' two containments and
- * an alternatives law's each its statement's. A check is named by its own name, so its law is left
- * out; a statement no module groups names none of its laws, which `law-names.test.ts` refuses.
- *
- * Memoized by the schema's identity.
- *
- * @param schema - The schema, `Qti`.
- * @returns Its statements' laws, with their names, by bucket.
- */
-const statementNamesOf = Fn.memoize(
-  (schema: typeof Qti): ReadonlyMap<string, Arr.NonEmptyReadonlyArray<readonly [Law, LawName]>> =>
-    new Map(
-      Object.entries(
-        Arr.groupBy(
-          statementLawsOf(schema).flatMap(({ laws, statement }) =>
-            Option.match(Option.fromUndefinedOr(nameOfStatement.get(statement)), {
-              onNone: () => [],
-              onSome: (name) =>
-                laws.flatMap((law) => (law.kind === "check" ? [] : [[law, name] as const])),
-            }),
-          ),
-          ([law]) => bucketOf(law),
-        ),
-      ),
-    ),
-);
 
 /**
  * The tables keyed by an outcome's own fields, each a map: {@link keyNames} by relation,
@@ -554,50 +567,53 @@ const byKey = {
 };
 
 /**
+ * Name a law by the catalog entry its statement declares (`#pantry/qti/law-entries.ts`): a level
+ * above's law by its own law's.
+ *
+ * @param law - The law, as an outcome names it.
+ * @returns Its name, none for a law whose entry grizzle derives.
+ */
+const declaredNameOf = (law: Law): Option.Option<LawName> => {
+  const { entry } = law.kind === "above" ? law.law : law;
+
+  return entry.kind === "declared"
+    ? Option.fromUndefinedOr(lawNames.find((name) => name === entry.name))
+    : Option.none();
+};
+
+/**
  * Name the laws a schema states, each by its own fields: a check by its name ({@link lawOfCheck}),
  * a primary key by its relation, a generated field by its relation and field, a contract by its
  * name ({@link byKey}), a pattern by its field's type ({@link patternNameIn} over
- * {@link textLaws}); and a statement's law by the group its module files the statement under, the
- * law of its bucket ({@link statementNamesOf}) that grizzle's `sameLaw` holds it to be. grizzle's
- * `lawsOf` lists every law an outcome over the schema names (README, "Errors and outcomes"), so a
- * law's own fields find its row, and only a statement's law is matched whole.
- *
- * Only a statement's law reads the statements' laws, whose first read compiles the schema's law
- * model: naming any other law compiles nothing. Naming a law is a lookup in its bucket of the
- * statements' laws, which {@link statementNamesOf} builds once per schema, so a law read again is
- * named again, as cheaply. A level above the schema states none of the schema's laws (grizzle
- * `999facc6`'s `above`), so it is named by none.
+ * {@link textLaws}); and a statement's law, a check among them, by the catalog entry its
+ * statement declares (`#pantry/qti/law-entries.ts`), which the law carries, as it carries it in
+ * every outcome that names it. grizzle's `lawsOf` lists every law an outcome over the schema names
+ * (README, "Errors and outcomes"), so a law's own fields find its row. A level above the schema
+ * states none of the schema's laws (grizzle `999facc6`'s `above`), so it is named by none.
  *
  * @param schema - The schema, `Qti`.
  * @returns The namer: a law's name, or none for a law no row of the tables states.
  */
-const namerOf = (schema: typeof Qti) => {
-  const stated = (law: Law): Option.Option<LawName> =>
-    pipe(
-      Option.fromUndefinedOr(statementNamesOf(schema).get(bucketOf(law))),
-      Option.flatMap(Arr.findFirst(([held]) => sameLaw(held, law))),
-      Option.map(([, name]) => name),
-    );
-
-  return (law: Law): Option.Option<LawName> =>
+const namerOf =
+  (schema: typeof Qti) =>
+  (law: Law): Option.Option<LawName> =>
     Match.value(law).pipe(
       Match.discriminatorsExhaustive("kind")({
-        above: stated,
-        check: ({ name }) => lawOfCheck(name),
-        contained: stated,
+        above: declaredNameOf,
+        check: (check) => Option.orElse(declaredNameOf(check), () => lawOfCheck(check.name)),
+        contained: declaredNameOf,
         contract: ({ contract }) => Option.fromUndefinedOr(byKey.contract.get(contract)),
-        coverage: stated,
-        family: stated,
-        fold: stated,
+        coverage: declaredNameOf,
+        family: declaredNameOf,
+        fold: declaredNameOf,
         generated: ({ field, relation }) =>
           Option.fromUndefinedOr(byKey.generated.get(`${relation}.${field}`)),
-        key: stated,
+        key: declaredNameOf,
         pattern: (pattern) => patternNameIn(schema.relations, textLaws, pattern),
         primaryKey: ({ relation }) => Option.fromUndefinedOr(byKey.primaryKey.get(relation)),
-        tree: stated,
+        tree: declaredNameOf,
       }),
     );
-};
 
 /**
  * Every law a schema states, as grizzle's `lawsOf` lists them, each once and in its canonical
@@ -707,6 +723,33 @@ export const installedNameOf = (schema: typeof Qti, law: LawOf<"check">): Option
  * @returns Its name, or none for a law no row of the tables states.
  */
 export const schemaLawNameOf = (law: Law): Option.Option<LawName> => namerOf(Qti)(law);
+
+/**
+ * The law `Qti` states that a law's shape spells, as grizzle's `lawsOf` names it, its catalog entry
+ * included: the one grizzle's `sameLaw` holds to be the shape read with that law's own entry, since
+ * a shape, a test's or a statement's spelling of the law, carries none.
+ *
+ * @param spelled - The law as its sides spell it.
+ * @returns The stated law, or none where `Qti` states no such law.
+ */
+export const schemaLawOf = (spelled: StatedLaw): Option.Option<Law> =>
+  Arr.findFirst(
+    schemaLawsOf(Qti),
+    (law) => law.kind !== "above" && sameLaw(law, { ...spelled, entry: law.entry }),
+  );
+
+/**
+ * A law no statement of `Qti` states, planted by a test, with an entry of grizzle's derived kind,
+ * as a law no author names carries: named by its kind, and sourced by what the test plants it for.
+ *
+ * @param spelled - The law as its sides spell it.
+ * @param source - What the test plants it for.
+ * @returns The law.
+ */
+export const plantedLaw = (spelled: StatedLaw, source: string): Law => ({
+  ...spelled,
+  entry: { kind: "derived", name: spelled.kind, source },
+});
 
 /**
  * Read the rule the law table gives a law, by the schema's own naming ({@link schemaLawNameOf}).

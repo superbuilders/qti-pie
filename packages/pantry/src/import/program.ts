@@ -17,9 +17,9 @@
  * (`#pantry/qti/schema.ts`, `#pantry/qti/logins.ts`), which are built when their modules are
  * evaluated.
  */
+import { Sha256 } from "@bjornpagen/grizzle";
 import { Effect } from "effect";
 import type { FileSystem, PlatformError } from "effect";
-import { Digest } from "effect/crypto";
 import { keyTextOf } from "#pantry/import/key-text.ts";
 import { overlayRowsOf, unionsOf } from "#pantry/import/overlays/index.ts";
 import { readPackage } from "#pantry/import/read.ts";
@@ -63,7 +63,7 @@ export interface ImportProgram {
  */
 export const programOf = Effect.fn("import.programOf")(function* programOf(
   pkg: QtiPackage,
-): Effect.fn.Return<ImportProgram, never, Digest.Digest> {
+): Effect.fn.Return<ImportProgram> {
   const placed = nodeIdsOf(pkg.name, [pkg.manifest, ...pkg.documents], pkg.files.keys());
   const overlays = yield* Effect.orDie(Effect.fromResult(overlayRowsOf(placed)));
   const layers = placed.map(documentRowsOf);
@@ -74,21 +74,19 @@ export const programOf = Effect.fn("import.programOf")(function* programOf(
     ),
   );
   const documents = new Set([pkg.manifest.path, ...pkg.documents.map(({ path }) => path)]);
-  const digest = yield* Digest.Digest;
   // A `File` holds its bytes in a Blob, which gives them only as a promise; one held in memory
-  // never rejects.
+  // never rejects. Each file's digest is grizzle's SHA-256 of its bytes, as PostgreSQL's computes it.
   const media = yield* Effect.all(
     [...pkg.files]
       .filter(([path]) => !documents.has(path))
       .map(([path, file]) =>
-        Effect.promise(() => file.bytes()).pipe(
-          Effect.flatMap((bytes) =>
-            Effect.map(digest.digestHex(Digest.sha256, bytes), (hex) => ({
-              bytes,
-              digest: hex,
-              path,
-            })),
-          ),
+        Effect.map(
+          Effect.promise(() => file.bytes()),
+          (bytes) => ({
+            bytes,
+            digest: Sha256.ofBytes(bytes),
+            path,
+          }),
         ),
       ),
     { concurrency: "unbounded" },
@@ -114,7 +112,7 @@ export const programOf = Effect.fn("import.programOf")(function* programOf(
     media: record.mediaFiles,
     package: pkg.name,
   };
-}, Effect.provide(Digest.layerWebCrypto));
+});
 
 /**
  * The rows one package is written as, in the shape the import's write program takes them

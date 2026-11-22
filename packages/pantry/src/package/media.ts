@@ -11,12 +11,17 @@
  * is the caller's: the QTI install's is its media CDN, which its publisher fills itself; this
  * package's command line uses a folder ({@link directoryMediaStore}, {@link localMediaStore}), and
  * a test one held in memory ({@link memoryMediaStore}).
+ *
+ * A digest is grizzle's `Sha256`, the 32 octets of the SHA-256: a store writes it as 64 lowercase
+ * hexadecimal digits only where it names a file outside the program, its key, and an error writes
+ * it so in its message.
  */
+import type { Sha256 } from "@bjornpagen/grizzle";
 import { Config, Context, Effect, FileSystem, Layer, Option, Path, Schema } from "effect";
 
 /**
  * The store holds no file under a digest a `Media` row states: the bytes were never put there, or
- * were taken away.
+ * were taken away. `digest` is the digest in hexadecimal, as the message writes it.
  */
 export class MediaMissing extends Schema.TaggedError<MediaMissing>()("MediaMissing", {
   digest: Schema.String,
@@ -32,7 +37,7 @@ export class MediaMissing extends Schema.TaggedError<MediaMissing>()("MediaMissi
 
 /**
  * The store could not take a file's bytes under their digest, so the package that names them is
- * not written.
+ * not written. `digest` is the digest in hexadecimal, as the message writes it.
  */
 export class MediaUnstored extends Schema.TaggedError<MediaUnstored>()("MediaUnstored", {
   digest: Schema.String,
@@ -53,34 +58,40 @@ export class MediaUnstored extends Schema.TaggedError<MediaUnstored>()("MediaUns
 export class MediaStore extends Context.Service<
   MediaStore,
   {
-    readonly get: (digest: string) => Effect.Effect<Uint8Array, MediaMissing>;
-    readonly put: (digest: string, bytes: Uint8Array) => Effect.Effect<void, MediaUnstored>;
+    readonly get: (digest: Sha256) => Effect.Effect<Uint8Array, MediaMissing>;
+    readonly put: (digest: Sha256, bytes: Uint8Array) => Effect.Effect<void, MediaUnstored>;
   }
 >()("pantry/package/MediaStore") {}
 
 /**
  * A store held in memory, empty when the layer is built: a test's, which reads back what its own
- * imports put.
+ * imports put, each file under its digest's hexadecimal, a `Map`'s key by value.
  */
 export const memoryMediaStore = Layer.sync(MediaStore, () => {
   const held = new Map<string, Uint8Array>();
 
   return {
     get: (digest) =>
-      Option.match(Option.fromNullishOr(held.get(digest)), {
+      Option.match(Option.fromNullishOr(held.get(digest.toHex())), {
         onNone: () =>
-          Effect.fail(new MediaMissing({ digest, reason: "no import into this store put it" })),
+          Effect.fail(
+            new MediaMissing({
+              digest: digest.toHex(),
+              reason: "no import into this store put it",
+            }),
+          ),
         onSome: Effect.succeed,
       }),
     put: (digest, bytes) =>
       Effect.sync(() => {
-        held.set(digest, bytes);
+        held.set(digest.toHex(), bytes);
       }),
   };
 });
 
 /**
- * A store in a folder: each file at `<root>/sha256/<digest>`, the key the media CDN gives it
+ * A store in a folder: each file at `<root>/sha256/<hex>`, its digest's 64 lowercase hexadecimal
+ * digits, the key the media CDN gives it
  * (`cdnKeyOf` of `@edullm/qti-database/cdn`). A put writes the bytes to a file of its own in the
  * same folder and renames it into place, so the digest's path holds the whole file or none, and a
  * file already there is kept as it is.
@@ -95,35 +106,43 @@ export const directoryMediaStore = (root: string) =>
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const folder = path.join(root, "sha256");
-      const fileOf = (digest: string) => path.join(folder, digest);
 
       return {
-        get: (digest) =>
-          fs
-            .readFile(fileOf(digest))
-            .pipe(
-              Effect.mapError(
-                (failure) =>
-                  new MediaMissing({ digest, reason: `${fileOf(digest)}: ${failure.message}` }),
-              ),
+        get: (digest) => {
+          const file = path.join(folder, digest.toHex());
+
+          return fs.readFile(file).pipe(
+            Effect.mapError(
+              (failure) =>
+                new MediaMissing({
+                  digest: digest.toHex(),
+                  reason: `${file}: ${failure.message}`,
+                }),
             ),
-        put: (digest, bytes) =>
-          Effect.gen(function* putsFile() {
-            if (yield* fs.exists(fileOf(digest))) {
+          );
+        },
+        put: (digest, bytes) => {
+          const hex = digest.toHex();
+          const file = path.join(folder, hex);
+
+          return Effect.gen(function* putsFile() {
+            if (yield* fs.exists(file)) {
               return;
             }
 
             yield* fs.makeDirectory(folder, { recursive: true });
 
-            const staged = yield* fs.makeTempFile({ directory: folder, prefix: `${digest}.` });
+            const staged = yield* fs.makeTempFile({ directory: folder, prefix: `${hex}.` });
 
             yield* fs.writeFile(staged, bytes);
-            yield* fs.rename(staged, fileOf(digest));
+            yield* fs.rename(staged, file);
           }).pipe(
             Effect.mapError(
-              (failure) => new MediaUnstored({ digest, reason: `${folder}: ${failure.message}` }),
+              (failure) =>
+                new MediaUnstored({ digest: hex, reason: `${folder}: ${failure.message}` }),
             ),
-          ),
+          );
+        },
       };
     }),
   );

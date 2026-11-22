@@ -70,7 +70,7 @@ import { Attribute } from "#pantry/qti/attributes.ts";
 import type { SelectedKinds } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { matchedTextBytes } from "#pantry/qti/limits.ts";
+import { keyedIdentifier, keyedXmlId, matchedTextBytes } from "#pantry/qti/limits.ts";
 import { CatalogScope, DocumentId, SsmlScope } from "#pantry/qti/identity.ts";
 import { normalMinimumDefault } from "#pantry/vocab/terms/declarations.ts";
 import { idSpaceAttributes, ssmlReads } from "#pantry/vocab/terms/identity.ts";
@@ -162,12 +162,20 @@ export const attributeValues = (
 ) =>
   query(QtiBase).rule((r) => {
     const attribute = attributeTerms();
-    const { kind, package: pkg, path, start, value } = attribute;
+    const { kind, package: pkg, path, start, value, valueDigest } = attribute;
 
     return r
-      .match(Attribute, { kind, name: attribute.name, package: pkg, path, start, value })
+      .match(Attribute, {
+        kind,
+        name: attribute.name,
+        package: pkg,
+        path,
+        start,
+        value,
+        valueDigest,
+      })
       .where(namedIn(attribute, name, kinds))
-      .find({ kind, package: pkg, path, start, value });
+      .find({ kind, package: pkg, path, start, value, valueDigest });
   });
 
 /**
@@ -337,11 +345,11 @@ export const attributeCodes = <L extends Lexical>(
   const attributes = attributeValues(name, kinds);
 
   return query(QtiBase).rule((r) => {
-    const { kind, package: pkg, path, start, value } = v(attributes, "attribute");
+    const { kind, package: pkg, path, start, value, valueDigest } = v(attributes, "attribute");
     const { code } = v(lexical, "lexical");
 
     return r
-      .match(attributes, { kind, package: pkg, path, start, value })
+      .match(attributes, { kind, package: pkg, path, start, value, valueDigest })
       .match(lexical, { code, lexical: value })
       .find({ code, kind, package: pkg, path, start });
   });
@@ -595,10 +603,28 @@ const declarationBaseTypes = valueBasesOf("base-type", declarationKinds);
 export const DeclarationBaseType = derived("DeclarationBaseType", declarationBaseTypes);
 
 /**
+ * Each declaration's `identifier` as written, by the declaration's place: the texts the name views
+ * key ({@link declaredNames}), which "Key text bound" holds within `identifierBytes`.
+ */
+export const DeclaredIdentifierText = derived(
+  "DeclaredIdentifierText",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start, value } = v(declarationIdentifiers, "name");
+
+    return r
+      .match(declarationIdentifiers, { package: pkg, path, start, value })
+      .find({ package: pkg, path, start, text: value });
+  }),
+);
+
+/**
  * Each declared name beside its declaration, by the declaration's place: its `identifier`'s value
- * ({@link declarationIdentifiers}), and its kind, `declarationKind`, its element's kind as a
- * `DeclarationKind`, `Declares` of it, the one place a declaration's kind is derived (decision S3).
- * Every name view matches it, so the join is stated here once.
+ * ({@link declarationIdentifiers}), as a key holds it, a `QtiIdentifier` cast under grizzle's byte
+ * guard, whose other arm, the empty text, never stands in a committed state ("Key text bound"
+ * refuses a longer one at import over {@link DeclaredIdentifierText}), and its kind,
+ * `declarationKind`, its element's kind as a `DeclarationKind`, `Declares` of it, the one place a
+ * declaration's kind is derived (decision S3). Every name view matches it, so the join is stated
+ * here once.
  */
 const declaredNames = query(QtiBase).rule((r) => {
   const { kind, package: pkg, path, start, value: identifier } = v(declarationIdentifiers, "name");
@@ -607,7 +633,13 @@ const declaredNames = query(QtiBase).rule((r) => {
   return r
     .match(declarationIdentifiers, { kind, package: pkg, path, start, value: identifier })
     .match(Declares, { declaration: declarationKind, kind })
-    .find({ declarationKind, identifier, package: pkg, path, start });
+    .find({
+      declarationKind,
+      identifier: keyedIdentifier(identifier),
+      package: pkg,
+      path,
+      start,
+    });
 });
 
 /**
@@ -699,14 +731,14 @@ export const SsmlValue = derived(
   "SsmlValue",
   query(QtiBase).rule((r) => {
     const attribute = attributeTerms();
-    const { kind, name, package: pkg, path, start, value } = attribute;
+    const { kind, name, package: pkg, path, start, value, valueDigest } = attribute;
     const { fragment } = v(SsmlScope, "scope");
 
     return r
-      .match(Attribute, { kind, name, package: pkg, path, start, value })
+      .match(Attribute, { kind, name, package: pkg, path, start, value, valueDigest })
       .match(SsmlScope, { fragment, package: pkg, path, start })
       .where(Logic.or(...ssmlReads.map(([read, kinds]) => namedIn(attribute, read, kinds))))
-      .find({ fragment, kind, package: pkg, path, start, value });
+      .find({ fragment, kind, package: pkg, path, start, value, valueDigest });
   }),
 );
 
@@ -725,7 +757,10 @@ export const SsmlValue = derived(
  * Every ID has a row, whatever its form: its value domain (AL1) or TextDomain refuses a form that
  * is no NCName once collapsed where it is written (spec readings 152 and 156). The document's
  * ID/IDREF table (`IdBinding`), a placed ID's, a `th`'s `TableHeader`'s and a catalog's
- * `CatalogId`'s value each read it (`#pantry/qti/overlay-queries/`), so it is a view.
+ * `CatalogId`'s value each read it (`#pantry/qti/overlay-queries/`), so it is a view. Its `id` is
+ * an `XmlId`, cast under grizzle's byte guard, whose other arm, the empty text, never stands in a
+ * committed state ("Key text bound" over {@link IdText} refuses a longer ID at import), so a lookup
+ * by an ID's value compares bounded text indexed as itself.
  */
 export const IdValue = derived(
   "IdValue",
@@ -739,7 +774,14 @@ export const IdValue = derived(
         .match(Attribute, { governor, kind, name, package: pkg, path, start, value })
         .match(DocumentId, { admitted, owner: start, package: pkg, path, start })
         .where(idTypedIn(attribute))
-        .find({ admitted, id: value, owner: start, package: pkg, path, start });
+        .find({
+          admitted,
+          id: keyedXmlId(value),
+          owner: start,
+          package: pkg,
+          path,
+          start,
+        });
     })
     .rule((r) => {
       const { admitted, owner, package: pkg, path, start } = v(DocumentId, "id");
@@ -751,12 +793,42 @@ export const IdValue = derived(
         .where(r.ne(owner, start))
         .find({
           admitted,
-          id: Text.collapse(stringValue),
+          id: keyedXmlId(Text.collapse(stringValue)),
           owner,
           package: pkg,
           path,
           start,
         });
+    }),
+);
+
+/**
+ * Each document's IDs as written, by the element that carries each: the texts {@link IdValue}
+ * keys as `XmlId`s, an ID-typed attribute's `value` and an ID-typed element's
+ * string value collapsed, which "Key text bound" holds within `xmlIdBytes`.
+ */
+export const IdText = derived(
+  "IdText",
+  query(QtiBase)
+    .rule((r) => {
+      const attribute = attributeTerms();
+      const { governor, kind, name, package: pkg, path, start, value } = attribute;
+
+      return r
+        .match(Attribute, { governor, kind, name, package: pkg, path, start, value })
+        .match(DocumentId, { owner: start, package: pkg, path, start })
+        .where(idTypedIn(attribute))
+        .find({ package: pkg, path, start, text: value });
+    })
+    .rule((r) => {
+      const { owner, package: pkg, path, start } = v(DocumentId, "id");
+      const { stringValue } = v(Node, "node");
+
+      return r
+        .match(DocumentId, { owner, package: pkg, path, start })
+        .match(Node, { package: pkg, path, start, stringValue })
+        .where(r.ne(owner, start))
+        .find({ package: pkg, path, start, text: Text.collapse(stringValue) });
     }),
 );
 
@@ -889,6 +961,8 @@ export const LocatedTemplate = derived(
  * The shared views, each carrying its own name.
  */
 export const viewRelations = [
+  DeclaredIdentifierText,
+  IdText,
   DeclarationBaseType,
   DeclarationCardinality,
   DeclarationName,
