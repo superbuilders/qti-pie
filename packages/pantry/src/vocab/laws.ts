@@ -208,7 +208,7 @@ export const lawTable = {
   "AL4 open name key": {
     rule: "attribute-admission",
     source:
-      "fin.md D2 and Namespaces in XML 1.0 §6.3: an open-class attribute keeps its exact name, its expanded name its element's at most once, OpenAttribute's key (package, path, start, uriDigest, local), its namespace name by its SHA-256 since none is bounded; reading 13",
+      "fin.md D2 and Namespaces in XML 1.0 §6.3: an open-class attribute keeps its exact name, its expanded name its element's at most once, OpenAttribute's key (package, path, start, uriDigest, localDigest), its namespace name and local name by their SHA-256s since neither is bounded; reading 13",
   },
   "AL4 open names": {
     rule: "attribute-admission",
@@ -681,7 +681,7 @@ export const lawTable = {
   "Namespace family": {
     rule: "reachability",
     source:
-      "Namespaces in XML 1.0 §3 and the XML Infoset's [namespace attributes], a set: an element declares each prefix at most once, Namespace's key (package, path, start, prefix) (fin.md §5.2)",
+      "Namespaces in XML 1.0 §3 and the XML Infoset's [namespace attributes], a set: an element declares each prefix at most once, Namespace's key (package, path, start, prefixDigest), its prefix by its SHA-256 since none is bounded (fin.md §5.2)",
   },
   "Namespace name": {
     rule: "namespace-name",

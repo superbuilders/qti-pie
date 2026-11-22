@@ -242,29 +242,11 @@ export const keyedMatchedText = (text: TextTerm) =>
  *   it, until the ledger keys it by a digest (pin+2, with its other response keys)
  * @derivation held at the bound it took when `OpenAttributeEntity`'s key `(package, path, start,
  *   uri, local, offset)` held a namespace name beside a name of {@link nameMaxBytes}, a path of
- *   {@link entryPathBytes} and a local name of {@link xmlNameBytes}, which the ledger's URI response
+ *   {@link entryPathBytes} and a local name of at most 793 bytes, which the ledger's URI response
  *   keys fit
  * @from nameMaxBytes, entryPathBytes
  */
 export const uriBytes = 792;
-
-/**
- * The most UTF-8 bytes an XML name holds in a key, a local name or a namespace prefix: what
- * `OpenAttribute`'s key "AL4 open name key" leaves it beside a namespace name's SHA-256, held at
- * the bound it took beside a URI of {@link uriBytes}.
- *
- * @limitKind derived
- * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
- * @unit UTF-8 bytes
- * @scope one local name or prefix in any key or index grizzle builds over it
- * @constraint Namespaces in XML puts no bound on a name; a longer one is refused at import
- * @derivation grizzle's `keyTextBytes` over `OpenAttribute`'s key `(package, path, start,
- *   uriDigest, local)`, a name of {@link nameMaxBytes}, a path of {@link entryPathBytes} and a
- *   SHA-256 leaving it more; a prefix's own key, `Namespace`'s, would leave it more too, and takes
- *   the one bound of XML names
- * @from nameMaxBytes, entryPathBytes
- */
-export const xmlNameBytes = 793;
 
 /**
  * The most UTF-8 bytes a base value's text holds: what one B-tree entry leaves it in the ledger's

@@ -39,7 +39,6 @@ import {
   test,
   withItem,
 } from "#pantry/test/probe.ts";
-import { xmlNameBytes } from "#pantry/qti/limits.ts";
 import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { grammar } from "#pantry/grammar/install.ts";
@@ -1000,10 +999,9 @@ describe("each law, on a package that breaks it", () => {
 
 /**
  * The UTF-8 bytes of each name the long-names case writes ({@link longNamed}): its paragraph's
- * prefix and the declaration binding it, its `data-*` attribute's local name and a foreign
- * attribute's local name, each an XML name a key holds; and the foreign attribute's namespace name
- * and a foreign element's local name and namespace name, which no key holds as themselves (the
- * attribute's namespace name is held by its SHA-256).
+ * prefix and the declaration binding it, its `data-*` attribute's local name, a foreign attribute's
+ * local name and namespace name, and a foreign element's local name and namespace name: none held
+ * in a key as itself (a prefix and an open attribute's names are held by their SHA-256s).
  */
 interface NameBytes {
   readonly attributeNamespace: number;
@@ -1014,27 +1012,15 @@ interface NameBytes {
 }
 
 /**
- * The names at their bounds (`#pantry/qti/limits.ts`): each XML name a key holds at
- * `xmlNameBytes`, and the foreign attribute's namespace name and a foreign element's names, which
- * no key holds as themselves, at 64 KiB.
+ * Every name at 64 KiB, far past any bound a key could hold a name to as itself.
  */
-const atNameBounds: NameBytes = {
+const longNameBytes: NameBytes = {
   attributeNamespace: 65_536,
-  dataLocal: xmlNameBytes,
+  dataLocal: 65_536,
   elementName: 65_536,
-  foreignLocal: xmlNameBytes,
-  prefix: xmlNameBytes,
+  foreignLocal: 65_536,
+  prefix: 65_536,
 };
-
-/**
- * Each name a key holds one byte past its bound, the others at theirs, with the field the oracle
- * names it by.
- */
-const pastNameBounds: readonly { readonly bytes: NameBytes; readonly field: string }[] = [
-  { bytes: { ...atNameBounds, prefix: xmlNameBytes + 1 }, field: "Namespace.prefix" },
-  { bytes: { ...atNameBounds, dataLocal: xmlNameBytes + 1 }, field: "OpenAttribute.local" },
-  { bytes: { ...atNameBounds, foreignLocal: xmlNameBytes + 1 }, field: "OpenAttribute.local" },
-];
 
 /**
  * The base item's edits that write each name at the bytes `bytes` gives it, in ASCII: the
@@ -1106,32 +1092,18 @@ describe("open names and attribute entity references", () => {
   );
 
   it.effect(
-    "a prefix and an open attribute's names at the bounds a key holds them to, and a foreign element's names at 64 KiB, break no law; each a byte past its bound breaks Key text bound alone, at its field",
+    "a prefix, an open attribute's names and a foreign element's names, each at 64 KiB, break no law",
     () =>
       // Oracle: Namespaces in XML 1.0 §4 and XML 1.0, which put no bound on a prefix or a name
-      // (reading 94), and the stated limit of the representation: each a key holds is held to its
-      // type's bound (`#pantry/qti/limits.ts`), and a foreign element's names, which no key holds,
-      // only at `foreignNameBytes`, half of the regex engine's bytes, far past these. Bound: every
-      // name at its bound, and each a key holds a byte past it.
+      // (reading 94): a key holds a prefix and an open attribute's names by their SHA-256s, and a
+      // foreign element's names in none, so each is read only at `foreignNameBytes`, half of the
+      // regex engine's bytes, far past these. Bound: every name at 64 KiB.
       Effect.gen(function* longNames() {
-        const atBounds = breachesOf(
-          yield* judged({ ...base, "item.xml": namedItemOf(atNameBounds) }),
+        const breaches = breachesOf(
+          yield* judged({ ...base, "item.xml": namedItemOf(longNameBytes) }),
         );
 
-        assert.deepStrictEqual(atBounds, [], `every name at its bound: ${shown(atBounds)}`);
-        for (const { bytes, field } of pastNameBounds) {
-          const breaches = breachesOf(yield* judged({ ...base, "item.xml": namedItemOf(bytes) }));
-
-          assert.deepStrictEqual(
-            [...new Set(breaches.map(({ law }) => law))],
-            ["Key text bound"],
-            `${field}: ${shown(breaches)}`,
-          );
-          assert.isTrue(
-            breaches.some(({ keys }) => keys["field"] === field),
-            `${field}: ${shown(breaches)}`,
-          );
-        }
+        assert.deepStrictEqual(breaches, [], `every name at 64 KiB: ${shown(breaches)}`);
       }),
   );
 });

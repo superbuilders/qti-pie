@@ -128,7 +128,6 @@ import {
   matchedTextBytes,
   parsedDecimalBytes,
   utf8Length,
-  xmlNameBytes,
 } from "#pantry/qti/limits.ts";
 import {
   admittedOf as admittedChildrenOf,
@@ -3080,11 +3079,9 @@ const checkedIdentifiers: readonly {
  *   copied), at the narrower field's bound;
  * - Every value the import writes into a `matchedText` field that a rule over a query holds
  *   ({@link heldValuesOf});
- * - The texts the host writes from the document where they stand, each at its type's bound: each
- *   namespace declaration's prefix and each closed and open attribute's (`Namespace.prefix`,
- *   `Attribute.prefix`, `OpenAttribute.prefix`, `xmlNameBytes`), each open attribute's local name
- *   (`OpenAttribute.local`, `xmlNameBytes`; its namespace name is held by its SHA-256, of any
- *   length), each choice's and hottext's identifier (`Choice.identifier`, `Hottext.identifier`,
+ * - The texts the host writes from the document where they stand, each at its type's bound (a
+ *   namespace prefix and an open attribute's names are held by their SHA-256s, of any length): each
+ *   choice's and hottext's identifier (`Choice.identifier`, `Hottext.identifier`,
  *   `identifierBytes`), each interaction's binding that names a variable
  *   (`BindingName.identifier`), and each identifier a check holds where a view keys it
  *   ({@link checkedIdentifiers});
@@ -3143,22 +3140,6 @@ const keyTexts = (
         value,
       })),
     ),
-    ...view.rows.namespaces.map(({ prefix, start }) => ({
-      bound: xmlNameBytes,
-      field: "Namespace.prefix",
-      node: start,
-      value: prefix,
-    })),
-    ...view.rows.attributes.map(({ prefix, start }) => ({
-      bound: xmlNameBytes,
-      field: "Attribute.prefix",
-      node: start,
-      value: prefix,
-    })),
-    ...view.rows.openAttributes.flatMap(({ local, prefix, start }) => [
-      { bound: xmlNameBytes, field: "OpenAttribute.prefix", node: start, value: prefix },
-      { bound: xmlNameBytes, field: "OpenAttribute.local", node: start, value: local },
-    ]),
     ...view.members.flatMap((node) => [
       ...(choiceClasses.has(node.kind)
         ? Option.toArray(valueOf(view, node.start, "identifier")).map((lexical) => ({

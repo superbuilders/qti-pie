@@ -5,7 +5,7 @@
  * whose B-tree entry a text could outgrow (`UnrepresentableKey`). A key the ledger or the QTI
  * database binds a bound by (the identifier's, the base value's) is held where it is declared.
  */
-import { keyTextBytes, natural, pg, sha256 } from "@bjornpagen/grizzle";
+import { keyTextBytes, natural, pg } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import {
   EntryPath,
@@ -15,7 +15,6 @@ import {
   keyMatchedTextBytes,
   literalTextBytes,
   PackageName,
-  xmlNameBytes,
 } from "#pantry/qti/limits.ts";
 
 /**
@@ -42,11 +41,6 @@ describe("qti/key-bounds", () => {
     // The QTI database's History (catalog, entry, package, earlier), two LOM texts beside two
     // package names.
     assert.isAtMost(keyMatchedTextBytes, keyTextBytes([KeyMatchedText, PackageName, PackageName]));
-    // OpenAttribute's key "AL4 open name key" (package, path, start, uriDigest, local), its local
-    // name beside its namespace name's SHA-256.
-    assert.isAtMost(xmlNameBytes, keyTextBytes([PackageName, EntryPath, natural, sha256]));
-    // Namespace's key (package, path, start, prefix).
-    assert.isAtMost(xmlNameBytes, keyTextBytes([PackageName, EntryPath, natural]));
     // Literal's reference target (package, path, start, text, baseType).
     assert.isAtMost(literalTextBytes, keyTextBytes([PackageName, EntryPath, natural, code]));
   });

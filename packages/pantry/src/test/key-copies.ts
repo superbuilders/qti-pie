@@ -24,7 +24,7 @@
  * A copy out of a field of a key text type into one of its bound or a wider one is bounded where
  * the first field is written, so only these narrowing hops are listed. A key text the host writes
  * from a document's text, and no statement copies, is the oracle's to read where it stands
- * (`keyTexts`): a document's path, a prefix, an open attribute's names, an IDREF's tokens. Each
+ * (`keyTexts`): a document's path, an IDREF's tokens. Each
  * selection and check is read from the predicate grizzle keeps for it and evaluated on the host in
  * SQL's three-valued logic (`#pantry/test/predicates.ts`, which reads no schema of its own), over
  * the fields the oracle knows of a row ({@link attributeFields}, {@link nodeFields}).
@@ -57,18 +57,15 @@ import {
   matchedText,
   matchedTextBytes,
   QtiIdentifier,
-  xmlNameBytes,
 } from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 
 /**
  * The bound of each key text type, by the type's identity, the one object its module exports and
  * its relations type their fields by: the UTF-8 bytes its `str.bytes` admits, stated beside the
- * type in `#pantry/qti/limits.ts`. An XML name's two types, a namespace prefix and an open
- * attribute's local name, are declared beside their relations, and read here off the composed
- * schema's fields, so the oracle reads no module of statements beyond the schema. A field of any
- * other type holds a text a key holds by no bound of its own, an XML production's `Char*` among
- * them. The oracle reads no bound from grizzle (`#pantry/grammar/purity.test.ts`), so the bounds
+ * type in `#pantry/qti/limits.ts`. A field of any other type holds a text a key holds by no bound
+ * of its own, an XML production's `Char*` and every text a key holds by its SHA-256 among them. The
+ * oracle reads no bound from grizzle (`#pantry/grammar/purity.test.ts`), so the bounds
  * are the declared constants, listed once here.
  */
 export const keyTextBounds: ReadonlyMap<unknown, number> = new Map<unknown, number>([
@@ -77,8 +74,6 @@ export const keyTextBounds: ReadonlyMap<unknown, number> = new Map<unknown, numb
   [QtiIdentifier, identifierBytes],
   [KeyMatchedText, keyMatchedTextBytes],
   [LiteralText, literalTextBytes],
-  [Qti.relations.Namespace.fields.prefix, xmlNameBytes],
-  [Qti.relations.OpenAttribute.fields.local, xmlNameBytes],
 ]);
 
 /**

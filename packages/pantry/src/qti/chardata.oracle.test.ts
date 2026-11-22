@@ -55,13 +55,7 @@ import {
   XmlDecl,
   XmlStandalone,
 } from "#pantry/qti/chardata.ts";
-import {
-  EntryPath,
-  entryPathBytes,
-  foreignNameBytes,
-  utf8Length,
-  xmlNameBytes,
-} from "#pantry/qti/limits.ts";
+import { EntryPath, entryPathBytes, foreignNameBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { Node, nodeTree } from "#pantry/qti/node.ts";
 import { caseHang, featuresOf, searchTimeout, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
@@ -463,10 +457,9 @@ const straddling = (bytes: number): readonly number[] =>
   });
 
 /**
- * The UTF-8 bytes a key holds a path and a declaration's prefix to (`entryPathBytes` and
- * `xmlNameBytes`, `#pantry/qti/limits.ts`), and 64 KiB.
+ * The UTF-8 bytes a key holds a path to (`entryPathBytes`, `#pantry/qti/limits.ts`), and 64 KiB.
  */
-const keyBounds = [entryPathBytes, xmlNameBytes, 65_536] as const;
+const keyBounds = [entryPathBytes, 65_536] as const;
 
 /**
  * The lengths the bounds box draws, in code points: the short ones, and each side of
@@ -897,15 +890,15 @@ describe("qti/chardata.ts", () => {
   );
 
   it.effect(
-    "admits every value of each keyed text field's language within its bound, a path's and a declaration prefix's, and every element prefix and foreign name of its language at 64 KiB",
+    "admits every value of each keyed text field's language within its bound, a path's, and every declaration prefix, element prefix and foreign name of its language at 64 KiB",
     (ctx) =>
       // Oracle: the specification as a checker, each field's contract counted in UTF-8 bytes, which
       // grizzle's `str.bytes` checks beside the pattern: `EntryPath` 1 code point or more, of at
       // most `entryPathBytes`, of any character but a leading "/"; a foreign namespace XML `Char`s
       // and a foreign local name an NCName, each of at most `foreignNameBytes`; a namespace
-      // declaration's prefix empty or an NCName of at most `xmlNameBytes`, and an element's of any
-      // length (Namespaces in XML 1.0, §4).
-      // Bound: exhaustive over the lengths each side of the three bounds over one-byte and
+      // declaration's prefix and an element's empty or an NCName of any length (Namespaces in XML
+      // 1.0, §4), the declaration's keyed by its SHA-256.
+      // Bound: exhaustive over the lengths each side of the two bounds over one-byte and
       // four-byte characters, × 5 first characters × 5 later characters.
       Effect.gen(function* bounds() {
         const limit = boundLengths.length * boundCharacters.length ** 2;
@@ -913,7 +906,7 @@ describe("qti/chardata.ts", () => {
           ctx,
           exhaust(
             {
-              box: "lengths 0, 1, 2 and each side of entryPathBytes, xmlNameBytes and 65,536 bytes over one-byte and four-byte characters, over 5 characters",
+              box: "lengths 0, 1, 2 and each side of entryPathBytes and 65,536 bytes over one-byte and four-byte characters, over 5 characters",
               caseHang,
               concurrency: searchWidth,
               coverage: requiredInSpace<"path admitted" | "path refused">([
@@ -952,8 +945,8 @@ describe("qti/chardata.ts", () => {
                   "foreign local name",
                 );
                 assert.strictEqual(
-                  patternOf(Namespace.fields.prefix).test(value) && bytes <= xmlNameBytes,
-                  (length === 0 || name) && bytes <= xmlNameBytes,
+                  patternOf(Namespace.fields.prefix).test(value),
+                  length === 0 || name,
                   "declaration prefix",
                 );
                 assert.strictEqual(

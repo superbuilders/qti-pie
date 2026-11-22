@@ -141,7 +141,7 @@ import { namingText, referenceIdentities } from "#pantry/grammar/domains.ts";
 import { openClasses } from "#pantry/grammar/kinds.ts";
 import { handlePrefixes } from "#pantry/model/xdm.ts";
 import { NamespacePrefix, OpenElementName } from "#pantry/qti/chardata.ts";
-import { EntryPath, PackageName, xmlNameBytes } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { holdsCheckedText, Node } from "#pantry/qti/node.ts";
 import { tokenFields, tokenPiece, whitespaceTokens } from "#pantry/qti/token-list.ts";
 import { dataName } from "#pantry/vocab/open.ts";
@@ -180,18 +180,16 @@ const ncStart =
 const ncChar = `\\-.0-9\\u{B7}\\u{300}-\\u{36F}\\u{203F}-\\u{2040}${ncStart}`;
 
 /**
- * An open attribute's local name: an NCName of at most `xmlNameBytes` UTF-8 bytes
- * (`#pantry/qti/limits.ts`), the bound of an XML name in a key, so the key `(package, path, start,
- * uri, local)` holds it as itself; XML puts no bound on a name (reading 94), so a longer one is
- * refused at import under "Key text bound". No ordered read orders by it, since an element's
- * attributes are a set the model orders on the host (`#pantry/model/assemble.ts`). Its pattern is
- * read under `su`, which reads an NCName exactly as `u` does (it holds no `.`), so it is no other
- * type's pattern: {@link EntityName} writes the same NCName under `u`, and a refusal names each by
- * its pattern. Exported for `src/import/refusal.ts`, which names its pattern law.
+ * An open attribute's local name: an NCName of any length, since XML puts no bound on a name
+ * (reading 94), so {@link OpenAttribute} keys it by its SHA-256 and no key holds it as itself. No
+ * ordered read orders by it, since an element's attributes are a set the model orders on the host
+ * (`#pantry/model/assemble.ts`). Its pattern is read under `su`, which reads an NCName exactly as
+ * `u` does (it holds no `.`), as {@link EntityName} writes the same NCName under `u`. Exported for
+ * `src/import/refusal.ts`, which names its pattern law.
  */
 export const OpenLocal = law(
-  entryOf("Key text bound"),
-  str.bytes(xmlNameBytes, str.regex(`^[${ncStart}][${ncChar}]*$`, "su")),
+  entryOf("XML production"),
+  str.regex(`^[${ncStart}][${ncChar}]*$`, "su"),
 );
 
 /**
@@ -306,16 +304,16 @@ export const Attribute = law(
  * One attribute of an open class on an element (fin.md D2, C14), keyed by its element and its place
  * among the element's open attributes as written, `at`, from 0: an open class's handle names many
  * attributes (`data-a` and `data-b` share `data-*`), so the written name is its identity, which
- * "AL4 open name key" holds once on its element by `(uriDigest, local)`, the namespace name's
- * SHA-256 beside the local name, since Namespaces in XML and RFC 3986 bound no namespace name and
- * no key holds one as itself.
+ * "AL4 open name key" holds once on its element by `(uriDigest, localDigest)`, the namespace name's
+ * and the local name's SHA-256s, since Namespaces in XML, XML and RFC 3986 bound neither and no key
+ * holds one as itself.
  *
  * - **the host's:** `package`, `path` and `start`, its element's key; `at`, its place; `class`, the
  *   open class its name falls in; `local` and `uri`, its local name and namespace name as written
- *   (an empty namespace for `data-*` and `no-namespace`), the namespace name of any length;
- *   `prefix`, `lexical` and `slot`, as a closed attribute's; and `elementNamespace`, its element's
- *   namespace name, which the class is read against;
- * - **generated:** `uriDigest`, the namespace name's SHA-256;
+ *   (an empty namespace for `data-*` and `no-namespace`), each of any length; `prefix`, `lexical`
+ *   and `slot`, as a closed attribute's; and `elementNamespace`, its element's namespace name,
+ *   which the class is read against;
+ * - **generated:** `uriDigest` and `localDigest`, the namespace name's and the local name's SHA-256s;
  * - **accumulated** along the owner axis: its element's `kind` and `governor`, by which
  *   `AL4_declared_data_name` reads its attribute model.
  */
@@ -339,7 +337,10 @@ export const OpenAttribute = law(
       uri: Chars,
     },
     ["package", "path", "start", "at"],
-    (o) => ({ uriDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(o.uri))) }),
+    (o) => ({
+      localDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(o.local))),
+      uriDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(o.uri))),
+    }),
   ),
 );
 
@@ -760,7 +761,7 @@ export const attributeLawsByName = {
     ),
   ]),
   "AL4 open name key": declared("AL4 open name key", [
-    key(on(OpenAttribute, "package", "path", "start", "uriDigest", "local")),
+    key(on(OpenAttribute, "package", "path", "start", "uriDigest", "localDigest")),
   ]),
   "AL5 attribute count": declared("AL5 attribute count", [
     check("AL5_attribute_count", Node, (n) => {

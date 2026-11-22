@@ -381,6 +381,26 @@ const openPlacesOf = (
 };
 
 /**
+ * Each namespace declaration with its place among its element's declarations as `flatten` writes
+ * them, from 0: `Namespace.at`, its key beside its element's.
+ *
+ * @param declarations - The document's namespace declarations, in `flatten`'s order.
+ * @returns Each one, with its place.
+ */
+const declarationPlacesOf = <D extends { readonly start: bigint }>(
+  declarations: readonly D[],
+): readonly (D & { readonly place: bigint })[] => {
+  const counted = new Map<bigint, bigint>();
+
+  return declarations.map((declaration) => {
+    const place = counted.get(declaration.start) ?? 0n;
+    counted.set(declaration.start, place + 1n);
+
+    return { ...declaration, place };
+  });
+};
+
+/**
  * Read an open attribute's place ({@link openPlacesOf}).
  *
  * @param places - The document's open attributes' places.
@@ -692,9 +712,9 @@ export const documentRowsOf = (document: {
     ),
     EncodingDecl: ofDocument(rows.encodingDecls),
     Namespace: new Map(
-      rows.namespaces.map(({ prefix, start, uri }) => [
-        keyTextOf(pkg, path, start, prefix),
-        { ...at, prefix, start, uri },
+      declarationPlacesOf(rows.namespaces).map(({ place, prefix, start, uri }) => [
+        keyTextOf(pkg, path, start, place),
+        { ...at, at: place, prefix, start, uri },
       ]),
     ),
     OpenAttribute: new Map(

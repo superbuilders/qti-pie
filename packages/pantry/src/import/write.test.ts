@@ -874,7 +874,7 @@ describe("the written types", () => {
       entity: true,
       offset: true,
     } as const satisfies Record<keyof Inserted<"OpenAttributeEntity">, true>;
-    const namespace = { ...keyed, prefix: true, uri: true } as const satisfies Record<
+    const namespace = { ...keyed, at: true, prefix: true, uri: true } as const satisfies Record<
       keyof Inserted<"Namespace">,
       true
     >;

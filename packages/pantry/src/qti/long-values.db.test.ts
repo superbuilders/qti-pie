@@ -7,12 +7,10 @@
  * itself (grizzle's `keyTextBytes`), so that no key could hold it as itself, and at 64 KiB. It
  * imports the item whole, then exports it byte for byte as it was read.
  *
- * Every other text here is a key text of a bounded type (`#pantry/qti/limits.ts`), which every key
- * holds as itself: an entry's path at most `entryPathBytes`, and a namespace prefix and an open
- * attribute's local name at most `xmlNameBytes`. An item at each bound is imported and exported
- * byte for byte, and one byte past any of them is refused under the stated limit `key-text-bound`.
- * An open attribute's namespace name is held by its SHA-256 and a foreign element's own names in no
- * key, so they stay of any length the regex engine reads (`foreignNameBytes`).
+ * Its names are held in no key as themselves: a namespace prefix and an open attribute's local name
+ * and namespace name by their SHA-256s, and a foreign element's own names in no key, so each stays
+ * of any length the regex engine reads (`foreignNameBytes`). An item whose names are each 64 KiB is
+ * imported and exported byte for byte.
  */
 import { keyTextBytes } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";
@@ -24,7 +22,7 @@ import { comparePackage } from "#pantry/export/compare.ts";
 import { exportPackage } from "#pantry/export/package.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
 import { memoryMediaStore } from "#pantry/package/media.ts";
-import { entryPathBytes, utf8Length, xmlNameBytes } from "#pantry/qti/limits.ts";
+import { entryPathBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { hasLease } from "#pantry/test/settings.ts";
@@ -88,9 +86,9 @@ const packageOf = (answer: string, path = "item.xml"): ReadonlyMap<string, Uint8
 
 /**
  * The UTF-8 bytes of each name of an item ({@link namedPackageOf}): its paragraph's prefix and the
- * declaration binding it, its `data-*` attribute's local name, and a foreign attribute's local
- * name, each an XML name a key holds; and the foreign attribute's namespace name and a foreign
- * element's local name and namespace name, which no key holds as themselves.
+ * declaration binding it, its `data-*` attribute's local name, a foreign attribute's local name and
+ * namespace name, and a foreign element's local name and namespace name, none held in a key as
+ * itself.
  */
 interface NameBytes {
   readonly attributeNamespace: number;
@@ -101,33 +99,15 @@ interface NameBytes {
 }
 
 /**
- * The names at their bounds: each XML name a key holds at `xmlNameBytes`, and the foreign
- * attribute's namespace name and a foreign element's names, which no key holds as themselves, at 64
- * KiB.
+ * Every name at 64 KiB, far past any bound a key could hold a name to as itself.
  */
-const atBounds: NameBytes = {
+const longNameBytes: NameBytes = {
   attributeNamespace: 65_536,
-  dataLocal: xmlNameBytes,
+  dataLocal: 65_536,
   elementName: 65_536,
-  foreignLocal: xmlNameBytes,
-  prefix: xmlNameBytes,
+  foreignLocal: 65_536,
+  prefix: 65_536,
 };
-
-/**
- * Each name a key holds one byte past its bound, the others at theirs, with the field of the row
- * that holds it.
- */
-const pastBounds: readonly { readonly bytes: NameBytes; readonly name: string }[] = [
-  { bytes: { ...atBounds, prefix: xmlNameBytes + 1 }, name: "a prefix (Namespace.prefix)" },
-  {
-    bytes: { ...atBounds, dataLocal: xmlNameBytes + 1 },
-    name: "a data-* attribute's local name (OpenAttribute.local)",
-  },
-  {
-    bytes: { ...atBounds, foreignLocal: xmlNameBytes + 1 },
-    name: "a foreign attribute's local name (OpenAttribute.local)",
-  },
-];
 
 /**
  * A package of one item whose names are each as many UTF-8 bytes as `bytes` gives, in ASCII: its
@@ -241,19 +221,18 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
     );
 
     it.effect(
-      "imports an item whose prefix and open attribute names are at the bounds a key holds them to, and whose foreign element's names are 64 KiB, and exports it as it was read",
+      "imports an item whose prefix, open attribute names and foreign element's names are each 64 KiB, and exports it as it was read",
       () =>
         // Oracle: as above, PostgreSQL and the exporter's comparison: Namespaces in XML 1.0 §4 and
-        // XML 1.0 put no bound on a prefix or a name (reading 94), so each a key holds is held to
-        // its type's bound, and a name no key holds is of any length. Bound: one item, every name
-        // a key holds at its bound.
-        Effect.gen(function* namesAtBounds() {
+        // XML 1.0 put no bound on a prefix or a name (reading 94), so a key holds each by its
+        // SHA-256 or holds none. Bound: one item, every name at 64 KiB.
+        Effect.gen(function* longNames() {
           const fs = yield* FileSystem.FileSystem;
-          const dir = yield* scopedPackage(namedPackageOf(atBounds));
+          const dir = yield* scopedPackage(namedPackageOf(longNameBytes));
           const target = yield* fs.makeTempDirectoryScoped();
           const imported = yield* importDir(dir);
 
-          assert.include(["accepted", "unchanged"], imported.outcome, "every name at its bound");
+          assert.include(["accepted", "unchanged"], imported.outcome, "every name at 64 KiB");
           yield* exportPackage(imported.package, target);
           assert.deepStrictEqual(
             (yield* comparePackage(dir, target)).filter(
@@ -262,28 +241,6 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
             [],
             "the export differs from its source",
           );
-        }).pipe(Effect.scoped),
-    );
-
-    it.effect(
-      "refuses an item whose prefix, data-* local name or foreign attribute's local name is a byte past the bound a key holds it to, under key-text-bound",
-      () =>
-        // Oracle: PostgreSQL, the domains `NamespacePrefix` and `OpenLocal` declare
-        // (`#pantry/qti/limits.ts`). Bound: each name a key holds a byte past its bound, the
-        // others at theirs.
-        Effect.gen(function* namesPastBounds() {
-          for (const { bytes, name } of pastBounds) {
-            const refused = yield* Effect.flip(
-              importDir(yield* scopedPackage(namedPackageOf(bytes))),
-            );
-
-            const rules: readonly string[] =
-              refused instanceof ImportRefused
-                ? refused.rules
-                : ["_tag" in refused ? refused._tag : refused.kind];
-
-            assert.include(rules, "key-text-bound", name);
-          }
         }).pipe(Effect.scoped),
     );
   });

@@ -81,21 +81,6 @@ export const checkNamed =
     law.kind === "check" && law.relation === relation && law.name === name;
 
 /**
- * Pick a relation's primary key by its relation and its fields, in order: grizzle names it a law
- * of its own, `primaryKey`, never a `key` over the relation's side.
- *
- * @param relation - The relation.
- * @param fields - The primary key's fields.
- * @returns The predicate.
- */
-export const primaryKeyOf =
-  (relation: string, ...fields: readonly string[]) =>
-  (law: Law): boolean =>
-    law.kind === "primaryKey" &&
-    law.relation === relation &&
-    law.fields.join(" ") === fields.join(" ");
-
-/**
  * Pick a key by its relation and the fields it reads, in order.
  *
  * @param relation - The relation.

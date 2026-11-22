@@ -53,7 +53,6 @@ import {
   checkNamed,
   keyOn,
   packageStored,
-  primaryKeyOf,
   rejectedBy,
 } from "#pantry/test/apply-edited.ts";
 
@@ -646,17 +645,25 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
               }
 
               // The same prefix on the same element again, bound to another name: a second row
-              // of the keyed set under a key text of its own, so the facts hold both.
+              // at a place past every declaration of the element, under a key text of its own,
+              // so the facts hold both and only the prefix's key, by its SHA-256, is broken.
+              let after = declared.at + 1n;
+              for (const { at, start } of inputs.Namespace.values()) {
+                if (start === declared.start && at >= after) {
+                  after = at + 1n;
+                }
+              }
+
               return {
                 ...inputs,
                 Namespace: new Map([
                   ...inputs.Namespace,
-                  ["twice", { ...declared, uri: `${declared.uri}/twice` }],
+                  ["twice", { ...declared, at: after, uri: `${declared.uri}/twice` }],
                 ]),
               };
             }),
           ),
-        laws: [primaryKeyOf("Namespace", "package", "path", "start", "prefix")],
+        laws: [keyOn("Namespace", "package", "path", "start", "prefixDigest")],
         name: "one prefix declared twice on an element (Namespace family, Q5.04)",
       },
       {

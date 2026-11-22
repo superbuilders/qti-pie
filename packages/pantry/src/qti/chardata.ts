@@ -33,14 +33,17 @@ import {
   closed,
   closedId,
   contained,
+  Crypto,
   drawn,
   generated,
+  key,
   law,
   mirrors,
   on,
   pg,
   relation,
   select,
+  sha256,
   str,
   Text,
 } from "@bjornpagen/grizzle";
@@ -57,7 +60,7 @@ import {
   nonElementKinds,
   openElementClasses,
 } from "#pantry/grammar/install.ts";
-import { EntryPath, foreignNameBytes, PackageName, xmlNameBytes } from "#pantry/qti/limits.ts";
+import { EntryPath, foreignNameBytes, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
@@ -250,20 +253,18 @@ export const XmlStandalone = closed.ordered("XmlStandalone", ["yes", "no"]);
 
 /**
  * A namespace declaration's prefix as written: an NCName, or empty for a default declaration
- * (`xmlns="…"`), of at most `xmlNameBytes` UTF-8 bytes (`#pantry/qti/limits.ts`), the bound of an
- * XML name in a key, so the key `Namespace(package, path, start, prefix)` holds it as itself.
- * Namespaces in XML 1.0 makes a prefix an NCName (§4), which XML puts no bound on (reading 94), so
- * a longer one is refused at import under "Key text bound"; no ordered read orders by one: an
- * element's declarations are a set, which the model orders by prefix on the host
- * (`#pantry/model/assemble.ts`).
+ * (`xmlns="…"`), of any length: Namespaces in XML 1.0 makes a prefix an NCName (§4), which XML puts
+ * no bound on (reading 94), so {@link Namespace} keys it by its SHA-256 and no key holds it as
+ * itself. No ordered read orders by one: an element's declarations are a set, which the model
+ * orders by prefix on the host (`#pantry/model/assemble.ts`).
  *
  * @see {@link https://www.w3.org/TR/xml-names/#ns-decl | Namespaces in XML 1.0, §3 Declaring Namespaces}
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
 export const NamespacePrefix = law(
-  entryOf("Key text bound"),
-  str.bytes(xmlNameBytes, str.regex(`^(?:[${ncStart}][${ncChar}]*)?$`)),
+  entryOf("XML production"),
+  str.regex(`^(?:[${ncStart}][${ncChar}]*)?$`),
 );
 
 /**
@@ -481,24 +482,30 @@ export const SdDecl = law(
 );
 
 /**
- * A namespace declaration on an element (`XdmNamespace`), keyed by its element and its prefix, a
- * set, since an element's namespace attributes are one (Infoset [namespace attributes]) and a
- * prefix is declared once on an element (Namespaces in XML 1.0, §3: an element's attributes are
- * distinct by name). Its element is its node ("Namespace family"); no law reads how many an element
- * holds, so no count of them is stored.
+ * A namespace declaration on an element (`XdmNamespace`), keyed by its element and its place among
+ * the element's declarations as written, `at`, from 0: a set, since an element's namespace
+ * attributes are one (Infoset [namespace attributes]), and a prefix is declared once on an element
+ * (Namespaces in XML 1.0, §3: an element's attributes are distinct by name), which "Namespace
+ * family" holds by `prefixDigest`, the prefix's SHA-256, since no bound limits a prefix. Its
+ * element is its node ("Namespace family"); no law reads how many an element holds, so no count of
+ * them is stored.
  */
 export const Namespace = law(
   entryOf("Namespace family"),
-  relation(
+  relation.generated(
     "Namespace",
     {
+      at: natural,
       package: PackageName,
       path: EntryPath,
       prefix: NamespacePrefix,
       start: natural,
       uri: NamespaceUri,
     },
-    ["package", "path", "start", "prefix"],
+    ["package", "path", "start", "at"],
+    (n) => ({
+      prefixDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(n.prefix))),
+    }),
   ),
 );
 
@@ -705,6 +712,7 @@ export const chardataLawsByName = {
   ]),
   "Namespace family": declared("Namespace family", [
     contained(on(Namespace, "package", "path", "start"), on(Node, "package", "path", "start")),
+    key(on(Namespace, "package", "path", "start", "prefixDigest")),
   ]),
   OpenElementName: declared("OpenElementName", [
     contained(

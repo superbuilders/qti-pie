@@ -283,8 +283,8 @@ describe("the oracle's key-text list", () => {
     // field of a copy, a running accumulator of a concat fold whose end a copy holds, or a text the
     // host writes that the oracle reads where it stands: a document's path, which every entry's is
     // (`Entry.path`, the package's), its nearest interaction's document's and that one's copy on
-    // the owner axis, each an entry's path, and an attribute's prefix, a namespace declaration's
-    // (`#pantry/test/oracle.ts` `keyTexts`); or a running text or the end of the string value's
+    // the owner axis, each an entry's path (`#pantry/test/oracle.ts` `keyTexts`); or a running
+    // text or the end of the string value's
     // fold, which its axes and `UsageValue`'s containment carry by their digests (node.ts,
     // metadata.ts), so no key holds it.
     // Bound: the document relations' fields.
@@ -304,7 +304,6 @@ describe("the oracle's key-text list", () => {
       documentFields.filter((field) => !held.has(field) && !prefixes.has(field)).toSorted(),
       [
         "Attribute.path",
-        "Attribute.prefix",
         "Node.charsAfter",
         "Node.charsWas",
         "Node.nearestPath",

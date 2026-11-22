@@ -372,8 +372,8 @@ const openAttributesOf = (node: NodeInput) =>
 /**
  * Build an element's namespace declarations, a set keyed by prefix, delivered in no order.
  * Namespaces in XML gives an element's declarations no order, so no index orders by a prefix: the
- * model orders them on the host (`#pantry/model/assemble.ts`), and the key holds a prefix as
- * itself, within its type's bound (`#pantry/qti/limits.ts`).
+ * model orders them on the host (`#pantry/model/assemble.ts`), and a key holds a prefix by its
+ * SHA-256 alone, so a prefix is of any length.
  *
  * @param node - The element's key.
  * @returns The declarations' prefixes and URIs.
