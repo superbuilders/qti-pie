@@ -95,6 +95,7 @@ const plateClientModules = [
   "packages/plate/src/form/encoding.ts",
   "packages/plate/src/interactions/eliminated.ts",
   "packages/plate/src/interactions/pair.ts",
+  "packages/plate/src/interactions/xhtml-text.ts",
   "packages/plate/src/model/regex.ts",
   "packages/plate/src/model/values.ts",
   "packages/plate/src/model/whitespace.ts",
