@@ -11,7 +11,7 @@
     "fixtures:oxlint": "node tools/classes-live-in-styles.fixtures.ts",
     "oxlint": "oxlint --type-aware --disable-nested-config",
     "test:specimen-db": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run --config suites/vitest.config.ts",
-    "trunk": "pnpm -r --include-workspace-root --filter '!./vendor/**' run typecheck && pnpm run oxlint && pnpm run fixtures:oxlint && oxfmt --check && pnpm --dir packages/ledger run generate:check && pnpm --dir packages/pantry run grizzle:check && pnpm -r --filter './packages/**' run test"
+    "trunk": "pnpm -r --include-workspace-root --filter '!./vendor/**' run typecheck && pnpm run oxlint && pnpm run fixtures:oxlint && oxfmt --check && pnpm --dir packages/ledger run generate:check && pnpm --dir packages/pantry run grizzle:check && TEST_SEED=2219874524 pnpm -r --filter './packages/**' run test"
   },
   "devDependencies": {
     "@bjornpagen/devtools": "workspace:*",
