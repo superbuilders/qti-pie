@@ -29,18 +29,7 @@ import { completeShrink } from "@bjornpagen/testing/shrink";
 import { keep, swarm, swarmChoice } from "@bjornpagen/testing/swarm";
 import type { Swarm } from "@bjornpagen/testing/swarm";
 import { searched } from "@bjornpagen/testing/vitest";
-import {
-  Array as Arr,
-  Duration,
-  Effect,
-  Formatter,
-  Function as Fn,
-  Option,
-  pipe,
-  Predicate,
-  Schema,
-} from "effect";
-import { collapse } from "#pantry/grammar/domains.ts";
+import { Array as Arr, Duration, Effect, Formatter, Option, pipe, Predicate, Schema } from "effect";
 import { grammar } from "#pantry/grammar/install.ts";
 import { readProgram, rowCountsOf } from "#pantry/import/program.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
@@ -51,13 +40,11 @@ import {
   identifierBytes,
   matchedTextBytes,
   utf8Length,
-  xmlIdBytes,
 } from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { evaluatorFor, previewRowsOf, withGenerated } from "#pantry/test/host-judge.ts";
 import type { HeldRow } from "#pantry/test/host-judge.ts";
-import { containmentsOf } from "#pantry/test/judged-laws.ts";
 import {
   identityOf,
   keyCopies,
@@ -346,11 +333,11 @@ describe("the oracle's key-text list", () => {
     // `MostCountNode.most` are a written count's `LeastCount.least` and `MostCount.most`, which
     // the import writes where it writes its count's row (overlay-queries/interaction.ts). An
     // `m:cn`'s `typeLexical` and `baseLexical` are held to its attributes' lexical forms by their
-    // SHA-256s (mathml-cn.ts), no copy of a text into a narrower field. A derived
+    // SHA-256s (mathml-cn.ts), and a reference's token to its catalog's id by theirs
+    // (overlay-queries/catalog.ts), no copy of a text into a narrower field. A derived
     // relation's column is a codec to grizzle, its bound unread, so a copy from one is listed
-    // where its column is a stored field of the target's own type read unchanged: a reference's
-    // token (`PlacedReference`, `UnassembledReference`), an `Idref`'s `token`; a placed reference
-    // site's identifier, its `VariableRef.identifier`; and a required SSML property's name, a
+    // where its column is a stored field of the target's own type read unchanged: a placed
+    // reference site's identifier, its `VariableRef.identifier`; and a required SSML property's name, a
     // literal of its rule (queries.ts). A copy into an entry path holds an entry's path, which
     // `Entry.path` bounds where the import writes its entry, so none is listed: a file's target in
     // the package is an entry path already (`FilePath.target`), so "File exists" narrows no bound.
@@ -385,10 +372,8 @@ describe("the oracle's key-text list", () => {
         "InteractionAttribute.value → TemplateRef.identifier",
         "LeastCountNode.least → InteractionAttribute.value",
         "MostCountNode.most → InteractionAttribute.value",
-        "PlacedReference.token → AssembledCatalog.id",
         "PlacedReferenceSite.identifier → PlacedVariableRef.identifier",
         "RequiredSsmlProperty.name → DataSsmlProperty.name",
-        "UnassembledReference.token → CatalogId.id",
       ],
     );
   });
@@ -412,8 +397,7 @@ describe("the oracle's key-text list", () => {
  * - `map key`: a map entry's `map-key`, `MapKey.key`;
  * - `string value`: a string outcome's default value, a copied string value;
  * - `resource identifier`, `manifest identifier`: the manifest's `xs:ID`s, whose values
- *   `resourceIdentifiers` and `manifestIdentifiers` key, each held within an `xs:ID`'s bound
- *   (`ManifestIdText`, `#pantry/qti/overlay-queries/package.ts`);
+ *   `resourceIdentifiers` and `manifestIdentifiers` read as written, of any length;
  * - `free attribute`, `free text`: a `data-*` attribute and a paragraph's text, which no key holds.
  */
 const sites = [
@@ -538,18 +522,15 @@ const entryBytes = keyTextBytes([]);
 const longBytes = [433, entryBytes + 1, 65_536] as const;
 
 /**
- * The bound of the narrowest key text each place's text is held to, where one is: an IDREF token's
- * (`Idref.token`) and the manifest's and a resource's `identifier` (`ManifestIdText`), each an
- * `xs:ID`'s bound; and a response declaration's and its interaction's binding's identifier
+ * The bound of the narrowest key text each place's text is held to, where one is: a response
+ * declaration's and its interaction's binding's identifier
  * (`DeclaredIdentifierText`, `BindingName.identifier`) and a choice's (`Choice.identifier`), each a
  * QTI identifier's. A place with no bound here writes its text into no key, or into `matchedText`
- * alone.
+ * alone: an IDREF token and the manifest's and a resource's `identifier`, each an `xs:ID`, which
+ * a key holds by its SHA-256.
  */
 const siteBounds: Readonly<Partial<Record<Site, number>>> = {
   "choice identifier": identifierBytes,
-  idref: xmlIdBytes,
-  "manifest identifier": xmlIdBytes,
-  "resource identifier": xmlIdBytes,
   "response identifier": identifierBytes,
 };
 
@@ -681,9 +662,7 @@ const pastBound = (relation: string, row: HeldRow): readonly string[] =>
  * The attribute values a check holds within a key text's bound where a view keys them, by the
  * derived relation the check is over: each declaration's `identifier` (`DeclaredIdentifierText`,
  * names.ts) and each test's (`TestIdentifierText`, overlay-queries/tests.ts), each a QTI
- * identifier; and in the manifest its own and each resource's `identifier` and each dependency's
- * `identifierref` (`ManifestIdText`, overlay-queries/package.ts), each an `xs:ID`. Each reads its
- * attribute's `value` as the database generates it.
+ * identifier. Each reads its attribute's `value` as the database generates it.
  */
 const checkedValues: readonly {
   readonly bound: number;
@@ -706,20 +685,6 @@ const checkedValues: readonly {
     manifest: false,
     name: "identifier",
   },
-  {
-    bound: xmlIdBytes,
-    field: "ManifestIdText.text",
-    kinds: ["cp:manifest", "cp:resource"],
-    manifest: true,
-    name: "identifier",
-  },
-  {
-    bound: xmlIdBytes,
-    field: "ManifestIdText.text",
-    kinds: ["cp:dependency"],
-    manifest: true,
-    name: "identifierref",
-  },
 ];
 
 /**
@@ -739,52 +704,6 @@ const checkedPastBound = (row: HeldRow): readonly string[] =>
       ? [field]
       : [],
   );
-
-/**
- * The schema's own selections of the rows that hold a document's IDs, each the source of its
- * "DocumentId key" containment into `DocumentId` (`#pantry/qti/identity.ts`): `idAttributes`, the
- * ID-typed attributes, and `idTextNodes`, the elements whose text is an `xs:ID`, each judged on a
- * row by grizzle's evaluator. Read on first use, since reading the schema's statements compiles its
- * law model.
- */
-const idHoldersOf = Fn.memoize((schema: typeof Qti) => {
-  const holderOf = (from: "Attribute" | "Node") => {
-    const held = containmentsOf(schema, from).filter(({ to }) => to === "DocumentId");
-    assert.lengthOf(held, 1, `${from}: its containments into DocumentId`);
-
-    return Option.getOrThrow(Arr.head(held));
-  };
-
-  return { Attribute: holderOf("Attribute"), Node: holderOf("Node") };
-});
-
-/**
- * The ID a row gives `IdText` (`#pantry/qti/names.ts`), whose "Key text bound" check holds each
- * within `xmlIdBytes`: an ID-typed attribute's `value`, and an ID-typed element's string value
- * collapsed, each where the schema's own selection takes the row ({@link idHoldersOf}).
- *
- * @param relation - The row's relation.
- * @param row - The row.
- * @param generated - The row with its generated fields filled.
- * @returns `IdText.text` where the row's ID is past the bound, else none.
- */
-const idTextPastBound = (
-  relation: string,
-  row: HeldRow,
-  generated: () => HeldRow,
-): readonly string[] => {
-  const holders = idHoldersOf(Qti);
-  const ids: readonly unknown[] = [
-    ...(relation === "Attribute" && holders.Attribute.selected(row) ? [generated()["value"]] : []),
-    ...(relation === "Node" && holders.Node.selected(row) && Predicate.isString(row["stringValue"])
-      ? [collapse(row["stringValue"])]
-      : []),
-  ];
-
-  return ids.some((id) => Predicate.isString(id) && utf8Length(id) > xmlIdBytes)
-    ? ["IdText.text"]
-    : [];
-};
 
 /**
  * Collect the key texts a package's rows hold that the schema's type does not admit, by
@@ -814,10 +733,6 @@ const refusedFields = (inputs: PackageInputs): ReadonlySet<string> => {
           for (const field of checkedPastBound(generated())) {
             refused.add(field);
           }
-        }
-
-        for (const field of idTextPastBound(relation.name, row, generated)) {
-          refused.add(field);
         }
       }
     }
@@ -1131,9 +1046,9 @@ const heldItemOf = (body: string, after = ""): ReadonlyMap<string, Uint8Array> =
  * The values the import writes into a key text that a rule over a query holds, and no statement
  * over `Attribute` copies: a `th`'s `id` (`TableHeader.id`), a catalog's `id` (`CatalogId.id`), a
  * share's fragment (`ShareFragment.id`), an ID of a document in an assembly, here an item that
- * holds an include (`PlacedId.id`), and an element's text typed `xs:ID`, each an `xs:ID` of at most
- * `xmlIdBytes`, as every ID of a document is (`IdText`, which `IdValue` keys). Each is an NCName of
- * `n` ASCII bytes, and the oracle reads each where it stands, as an ID of its document.
+ * holds an include (`PlacedId.id`), and an element's text typed `xs:ID`, each an `xs:ID` of any
+ * length, which a key holds by its SHA-256, as every ID of a document is. Each is an NCName of `n`
+ * ASCII bytes, and the oracle reads each where it stands, as an ID of its document.
  */
 const heldPlaces = [
   {
@@ -1171,31 +1086,25 @@ const heldPlaces = [
 ] as const;
 
 /**
- * The held value cases, each place at `xmlIdBytes` and one byte past it, with whether its text is
- * past the bound.
+ * The held value cases, each place at a byte past what one B-tree entry holds of a text as itself.
  */
-const heldCases = heldPlaces.flatMap(({ entriesOf, place }) =>
-  [xmlIdBytes, xmlIdBytes + 1].map((n) => ({
-    entries: entriesOf(n),
-    literal: `${place} of ${n} bytes`,
-    refused: n > xmlIdBytes,
-  })),
-);
+const heldCases = heldPlaces.map(({ entriesOf, place }) => ({
+  entries: entriesOf(entryBytes + 1),
+  literal: `${place} of ${String(entryBytes + 1)} bytes`,
+}));
 
 /**
- * A reference's token at `xmlIdBytes` and one byte past it: an item whose `data-catalog-idref`
- * holds one token, an NCName of `n` ASCII bytes, beside a catalog of another `id`, so the token
- * names nothing and every row that holds it is the import's own write of it, its `Idref` token an
- * `xs:ID`'s bound.
+ * A reference's token a byte past what one B-tree entry holds of a text as itself: an item whose
+ * `data-catalog-idref` holds one token, an NCName of that many ASCII bytes, beside a catalog of
+ * that `id`, so the token resolves and every row that holds it is the import's own write of it.
  */
-const catalogTokenCases = [xmlIdBytes, xmlIdBytes + 1].map((n) => ({
+const catalogToken = {
   entries: heldItemOf(
-    `<p data-catalog-idref="${segmentOf(n)}">Hi</p>`,
-    `<qti-catalog-info><qti-catalog id="C"><qti-card support="spoken"><qti-html-content>Hi</qti-html-content></qti-card></qti-catalog></qti-catalog-info>`,
+    `<p data-catalog-idref="${segmentOf(entryBytes + 1)}">Hi</p>`,
+    `<qti-catalog-info><qti-catalog id="${segmentOf(entryBytes + 1)}"><qti-card support="spoken"><qti-html-content>Hi</qti-html-content></qti-card></qti-catalog></qti-catalog-info>`,
   ),
-  literal: `a data-catalog-idref token of ${n} bytes`,
-  refused: n > xmlIdBytes,
-}));
+  literal: `a data-catalog-idref token of ${String(entryBytes + 1)} bytes`,
+};
 
 /**
  * The box: the package with every place short; then each place alone, in each script, at each of
@@ -1344,41 +1253,39 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     );
 
     test.effect(
-      "refuses a th's id, a catalog's id, a share's fragment, an assembled document's ID and an ID text past xmlIdBytes and admits each at it, on the import's rows and in the oracle",
+      "admits a th's id, a catalog's id, a share's fragment, an assembled document's ID and an ID text past any B-tree entry, on the import's rows and in the oracle",
       () =>
-        // Oracle: QTI bounds no ID (`xs:ID`) and no URI's fragment, and the import's rows under the
-        // schema's own types: each value a key holds (`TableHeader.id`, `CatalogId.id`,
-        // `ShareFragment.id` and `PlacedId.id`) is an `XmlId`, of at most `xmlIdBytes`, and so is
-        // every ID of a document, an attribute's or an element's text, which `IdValue` keys and
-        // "Key text bound" holds over `IdText`. Bound: each place at its bound and a byte past it.
+        // Oracle: QTI bounds no ID (`xs:ID`) and no URI's fragment (XML Schema Part 2 §3.3.8), so
+        // each value a key holds (`TableHeader.id`, `CatalogId.id`, `ShareFragment.id`,
+        // `PlacedId.id`) and every ID of a document is held whole, a key holding it by its
+        // SHA-256, and none is refused for its length. Bound: each place a byte past what one
+        // B-tree entry holds of a text as itself.
         Effect.gen(function* eachHeldCase() {
-          for (const { entries, literal, refused: past } of heldCases) {
+          for (const { entries, literal } of heldCases) {
             const { breaches, refused } = yield* judgedEntries(entries, literal, Option.none());
             const bound = breaches.filter(({ law }) => law === "Key text bound");
 
-            assert.strictEqual(refused.size > 0, past, `${literal}: the import's rows`);
-            assert.strictEqual(bound.length > 0, past, `${literal}: the oracle's Key text bound`);
+            assert.deepStrictEqual([...refused], [], `${literal}: the import's rows`);
+            assert.deepStrictEqual(bound, [], `${literal}: the oracle's Key text bound`);
           }
         }),
       { timeout: testTimeoutMs },
     );
 
     test.effect(
-      "refuses a data-catalog-idref token past xmlIdBytes and admits one at it: its Idref token is an xs:ID a key holds",
+      "admits a data-catalog-idref token past any B-tree entry: its Idref token is an xs:ID a key holds by its digest",
       () =>
-        // Oracle: QTI bounds no IDREF, and the import's rows under the schema's own types: a
-        // reference's token is its `Idref` piece's (`Idref.token`, an `XmlId`, and its document's
-        // `IdrefTarget.id`), each held in a key of at most `xmlIdBytes`; the pieces' running end,
-        // `Idref.piecesAfter`, and their fold end on its attribute, `Attribute.idrefText`, are of any
-        // length. Bound: one token at the bound and one a byte past it.
+        // Oracle: QTI bounds no IDREF (XML Schema Part 2 §3.3.9), so a reference's token
+        // (`Idref.token`, and its document's `IdrefTarget.id`) is held whole, a key holding it by
+        // its SHA-256 (`tokenDigest`, `idDigest`), and the pieces' running end and their fold end
+        // are of any length. Bound: one token a byte past what one B-tree entry holds.
         Effect.gen(function* eachReferenceToken() {
-          for (const { entries, literal, refused: past } of catalogTokenCases) {
-            const { breaches, refused } = yield* judgedEntries(entries, literal, Option.none());
-            const bound = breaches.filter(({ law }) => law === "Key text bound");
+          const { entries, literal } = catalogToken;
+          const { breaches, refused } = yield* judgedEntries(entries, literal, Option.none());
+          const bound = breaches.filter(({ law }) => law === "Key text bound");
 
-            assert.strictEqual(refused.size > 0, past, `${literal}: the import's rows`);
-            assert.strictEqual(bound.length > 0, past, `${literal}: the oracle's Key text bound`);
-          }
+          assert.deepStrictEqual([...refused], [], `${literal}: the import's rows`);
+          assert.deepStrictEqual(bound, [], `${literal}: the oracle's Key text bound`);
         }),
       { timeout: testTimeoutMs },
     );

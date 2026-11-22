@@ -114,9 +114,11 @@
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646#section-2.1.1 | RFC 5646, §2.1.1 Formatting of Language Tags}
  */
 import {
+  check,
   closedId,
   contained,
   counted,
+  Crypto,
   drawn,
   fin,
   key,
@@ -125,6 +127,7 @@ import {
   pg,
   relation,
   select,
+  sha256,
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import {
@@ -137,7 +140,7 @@ import {
 } from "#pantry/grammar/install.ts";
 import { Attribute, attributesOf, identityIn, Idref, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { admitsHere, Node } from "#pantry/qti/node.ts";
 import { Instance } from "#pantry/qti/tests.ts";
 import {
@@ -282,16 +285,23 @@ export const CatalogScope = law(
 
 /**
  * An id a document's IDREF tokens name, a projection keyed by its heading (spec reading 117): every
- * `Idref` and `TextIdref` token's value, with its document's `assembled`. A document in no
- * assembly resolves each in its own IDs; one in an assembly, in its assembly's, once per instance
- * ({@link PlacedIdref}). Its rows count as `Document.idrefTargets`.
+ * `Idref` and `TextIdref` token's value, of any length, keyed by its SHA-256, `idDigest`, which the
+ * import writes and "E1 derived" holds to the value, with its document's `assembled`. A document in
+ * no assembly resolves each in its own IDs; one in an assembly, in its assembly's, once per
+ * instance ({@link PlacedIdref}). Its rows count as `Document.idrefTargets`.
  */
 export const IdrefTarget = law(
   entryOf("E1 derived"),
   relation(
     "IdrefTarget",
-    { assembled: pg.boolean, id: XmlId, package: PackageName, path: EntryPath },
-    ["package", "path", "id"],
+    {
+      assembled: pg.boolean,
+      id: matchedText,
+      idDigest: sha256,
+      package: PackageName,
+      path: EntryPath,
+    },
+    ["package", "path", "idDigest"],
   ),
 );
 
@@ -305,6 +315,10 @@ export const IdrefTarget = law(
  * after the `#` are rules over a query that reads the attribute's `value` where it stands
  * (`ShareSource`, `#pantry/qti/overlay-queries/identity.ts`).
  *
+ * `idDigest`, the id's SHA-256, which the import writes and "E1 derived" holds to it, is what its
+ * placements' family and "Idref target" carry, since the id has no bound and PostgreSQL may not
+ * cascade a generated column into a family's axis.
+ *
  * Two fields are not the share's own: `assembled`, its document's `assembled` (as
  * {@link IdrefTarget}'s is), which tells a document in no assembly, whose share resolves in its own
  * IDs, from one in an assembly, whose share resolves once per instance; and `placements`, the count
@@ -316,7 +330,8 @@ export const ShareFragment = law(
     "ShareFragment",
     {
       assembled: pg.boolean,
-      id: XmlId,
+      id: matchedText,
+      idDigest: sha256,
       package: PackageName,
       path: EntryPath,
       placements: drawn(natural),
@@ -341,7 +356,7 @@ export const PlacedId = law(
     {
       assembly: EntryPath,
       assemblyKind: closedId(NodeKind),
-      id: XmlId,
+      id: matchedText,
       instance: natural,
       owner: natural,
       package: PackageName,
@@ -353,9 +368,10 @@ export const PlacedId = law(
 );
 
 /**
- * One id an instance's document's IDREFs name (spec reading 117), keyed by the instance and the id:
- * an {@link IdrefTarget} of the instance's document, `path`, which resolves among its assembly's
- * IDs ("Idref target").
+ * One id an instance's document's IDREFs name (spec reading 117), keyed by the instance and the
+ * id's SHA-256, `idDigest`, which the import writes and "E1 derived" holds to the id: an
+ * {@link IdrefTarget} of the instance's document, `path`, which resolves among its assembly's IDs
+ * ("Idref target").
  */
 export const PlacedIdref = law(
   entryOf("E1 derived"),
@@ -363,12 +379,13 @@ export const PlacedIdref = law(
     "PlacedIdref",
     {
       assembly: EntryPath,
-      id: XmlId,
+      id: matchedText,
+      idDigest: sha256,
       instance: natural,
       package: PackageName,
       path: EntryPath,
     },
-    ["package", "assembly", "instance", "id"],
+    ["package", "assembly", "instance", "idDigest"],
   ),
 );
 
@@ -658,7 +675,13 @@ export const identityLawsByName = {
       on(PlacedIdref, "package", "assembly", "instance", "path"),
       on(Instance, "package", "assembly", "start", "document"),
     ),
-    contained(on(PlacedIdref, "package", "path", "id"), on(IdrefTarget, "package", "path", "id")),
+    contained(
+      on(PlacedIdref, "package", "path", "idDigest"),
+      on(IdrefTarget, "package", "path", "idDigest"),
+    ),
+    check("E1_derived", IdrefTarget, (t) => t.eq(t.idDigest, Crypto.sha256(t.id))),
+    check("E1_derived", PlacedIdref, (t) => t.eq(t.idDigest, Crypto.sha256(t.id))),
+    check("E1_derived", ShareFragment, (t) => t.eq(t.idDigest, Crypto.sha256(t.id))),
     contained(
       on(langAttributes, "package", "path", "start"),
       on(CatalogScope, "package", "path", "start"),
@@ -671,9 +694,18 @@ export const identityLawsByName = {
     contained(on(SsmlScope, "package", "path", "start"), on(Node, "package", "path", "start")),
   ]),
   "Idref target": declared("Idref target", [
-    contained(on(Idref, "package", "path", "token"), on(IdrefTarget, "package", "path", "id")),
-    contained(on(TextIdref, "package", "path", "token"), on(IdrefTarget, "package", "path", "id")),
-    contained(on(ShareFragment, "package", "path", "id"), on(IdrefTarget, "package", "path", "id")),
+    contained(
+      on(Idref, "package", "path", "tokenDigest"),
+      on(IdrefTarget, "package", "path", "idDigest"),
+    ),
+    contained(
+      on(TextIdref, "package", "path", "tokenDigest"),
+      on(IdrefTarget, "package", "path", "idDigest"),
+    ),
+    contained(
+      on(ShareFragment, "package", "path", "idDigest"),
+      on(IdrefTarget, "package", "path", "idDigest"),
+    ),
   ]),
   "Label tools": declared("Label tools", [
     contained(

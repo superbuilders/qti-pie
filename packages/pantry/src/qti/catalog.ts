@@ -49,9 +49,19 @@
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Card | QTI 3.0 information model, §5.26 Card}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_CardEntry | QTI 3.0 information model, §5.27 CardEntry}
  */
-import { check, contained, key, law, on, relation } from "@bjornpagen/grizzle";
+import {
+  check,
+  contained,
+  Crypto,
+  generated,
+  key,
+  law,
+  on,
+  relation,
+  sha256,
+} from "@bjornpagen/grizzle";
 import { attributesOf } from "#pantry/qti/attributes.ts";
-import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
 import { natural } from "#pantry/grammar/install.ts";
@@ -63,16 +73,17 @@ import { natural } from "#pantry/grammar/install.ts";
  */
 export const CatalogId = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "CatalogId",
     {
-      id: XmlId,
+      id: matchedText,
       owner: natural,
       package: PackageName,
       path: EntryPath,
       start: natural,
     },
     ["package", "path", "start"],
+    (c) => ({ idDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(c.id))) }),
   ),
 );
 
@@ -87,12 +98,13 @@ export const AssembledCatalog = law(
     "AssembledCatalog",
     {
       assembly: EntryPath,
-      id: XmlId,
+      id: matchedText,
+      idDigest: sha256,
       owner: natural,
       package: PackageName,
       path: EntryPath,
     },
-    ["package", "assembly", "id"],
+    ["package", "assembly", "idDigest"],
   ),
 );
 
@@ -113,16 +125,18 @@ const catalogIdAttributes = attributesOf("id", ["qti-catalog"]);
  * a node's parent and the last a document's assembly and instances, so they are rules over a query
  * (`#pantry/qti/overlay-queries/catalog.ts`):
  *
- * - **DocumentId key:** {@link CatalogId}'s `(package, path, id)`, which an ID held twice in a
- *   document already breaks and which the containment of "Catalog reference" needs of its target;
- *   the attribute selection the copy reads is keyed by `Attribute`'s key, its name fixed;
+ * - **DocumentId key:** {@link CatalogId}'s `(package, path, idDigest)`, its id by its SHA-256, which
+ *   an ID held twice in a document already breaks and which the containment of "Catalog reference"
+ *   needs of its target; the attribute selection the copy reads is keyed by `Attribute`'s key, its
+ *   name fixed;
  * - **E1 derived:** a catalog's `id` owned by the catalog itself, its value its ID's, a rule over a
  *   query over `IdValue` (`#pantry/qti/overlay-queries/catalog.ts`); and each
  *   {@link AssembledCatalog} a binding of the query `AssembledId` owned by a catalog.
  */
 export const catalogLawsByName = {
-  "DocumentId key": declared("DocumentId key", [key(on(CatalogId, "package", "path", "id"))]),
+  "DocumentId key": declared("DocumentId key", [key(on(CatalogId, "package", "path", "idDigest"))]),
   "E1 derived": declared("E1 derived", [
+    check("E1_derived", AssembledCatalog, (c) => c.eq(c.idDigest, Crypto.sha256(c.id))),
     contained(
       on(catalogIdAttributes, "package", "path", "start"),
       on(CatalogId, "package", "path", "start"),

@@ -14,7 +14,7 @@ import { Effect, Option, Result } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { composed } from "#pantry/grammar/compose.ts";
 import type { DocumentContext } from "#pantry/import/context.ts";
-import { keyTextOf } from "#pantry/import/key-text.ts";
+import { keyTextOf, textDigestOf } from "#pantry/import/key-text.ts";
 import { placedCatalogRowsOf, rowsOf } from "#pantry/import/overlays/catalog.ts";
 import { shredGrammarOf } from "#pantry/model/composed.ts";
 import type { Composed } from "#pantry/model/composed.ts";
@@ -219,7 +219,16 @@ describe("import/overlays/catalog.ts, placedCatalogRowsOf", () => {
 
     assert.deepStrictEqual(
       [...rows.AssembledCatalog.values()],
-      [{ assembly, id: "C", owner: catalogStart, package: pkg, path: item }],
+      [
+        {
+          assembly,
+          id: "C",
+          idDigest: textDigestOf("C"),
+          owner: catalogStart,
+          package: pkg,
+          path: item,
+        },
+      ],
     );
   });
 

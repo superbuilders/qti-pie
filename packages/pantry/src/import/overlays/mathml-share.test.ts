@@ -39,6 +39,7 @@ import type {
   XdmDocument,
 } from "#pantry/model/xdm.ts";
 import { splicingParents } from "#pantry/vocab/terms/tests.ts";
+import { textDigestOf } from "#pantry/import/key-text.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower test states: a hang guard.
@@ -760,6 +761,7 @@ describe("import/overlays/mathml-share.ts, the shares of an assembled document (
       assembly: itemPath,
       assemblyKind: "qti-assessment-item",
       id: "x",
+      idDigest: textDigestOf("x"),
       instance: 1n,
       package: ids.package,
       path: fragmentPath,

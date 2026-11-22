@@ -6,7 +6,7 @@
  * holds; and a reference resolves in its document, or under each instance of it in its assembly,
  * which only `Document` and `Instance` hold.
  */
-import { contained, derived, key, on, query, v } from "@bjornpagen/grizzle";
+import { contained, Crypto, derived, key, on, query, v } from "@bjornpagen/grizzle";
 import { booleanTrue } from "#pantry/grammar/domains.ts";
 import { Idref } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
@@ -97,7 +97,7 @@ const UnassembledReference = derived(
     return r
       .match(catalogReferences, { package: pkg, path, token })
       .match(Document, { assembled: false, package: pkg, path })
-      .find({ package: pkg, path, token });
+      .find({ package: pkg, path, token, tokenDigest: Crypto.sha256(token) });
   }),
 );
 
@@ -118,7 +118,7 @@ const PlacedReference = derived(
     return r
       .match(Instance, { assembly, document, package: pkg })
       .match(catalogReferences, { package: pkg, path: document, token })
-      .find({ assembly, package: pkg, token });
+      .find({ assembly, package: pkg, token, tokenDigest: Crypto.sha256(token) });
   }),
 );
 
@@ -139,12 +139,12 @@ export const catalogOverlayLawsByName = {
   ]),
   "Catalog reference": declared("Catalog reference", [
     contained(
-      on(UnassembledReference, "package", "path", "token"),
-      on(CatalogId, "package", "path", "id"),
+      on(UnassembledReference, "package", "path", "tokenDigest"),
+      on(CatalogId, "package", "path", "idDigest"),
     ),
     contained(
-      on(PlacedReference, "package", "assembly", "token"),
-      on(AssembledCatalog, "package", "assembly", "id"),
+      on(PlacedReference, "package", "assembly", "tokenDigest"),
+      on(AssembledCatalog, "package", "assembly", "idDigest"),
     ),
   ]),
   "E1 derived": declared("E1 derived", [

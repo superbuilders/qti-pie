@@ -55,10 +55,23 @@
  *
  * @see {@link https://www.w3.org/TR/MathML3/chapter4.html#contm.share | MathML 3 §4.2.7, share}
  */
-import { closedId, contained, counted, fin, law, on, relation, select } from "@bjornpagen/grizzle";
+import {
+  check,
+  closedId,
+  contained,
+  counted,
+  Crypto,
+  fin,
+  generated,
+  law,
+  on,
+  relation,
+  select,
+  sha256,
+} from "@bjornpagen/grizzle";
 import { NodeKind, natural } from "#pantry/grammar/install.ts";
 import { ShareFragment } from "#pantry/qti/identity.ts";
-import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Instance, AssembledDocument } from "#pantry/qti/tests.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
@@ -94,16 +107,17 @@ export const MathRank = law(
  */
 export const ShareTarget = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "ShareTarget",
     {
-      id: XmlId,
+      id: matchedText,
       package: PackageName,
       path: EntryPath,
       start: natural,
       targetStart: natural,
     },
     ["package", "path", "start"],
+    (t) => ({ idDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(t.id))) }),
   ),
 );
 
@@ -157,7 +171,8 @@ export const PlacedShareTarget = law(
     {
       assembly: EntryPath,
       assemblyKind: closedId(NodeKind),
-      id: XmlId,
+      id: matchedText,
+      idDigest: sha256,
       instance: natural,
       package: PackageName,
       path: EntryPath,
@@ -189,8 +204,8 @@ const unassembledShares = select(ShareFragment, (f) => f.eq(f.assembled, false))
  * a document that law accepts has its target, the one the cycle check reads.
  */
 export const shareResolution = contained(
-  on(unassembledShares, "package", "path", "start", "id"),
-  on(ShareTarget, "package", "path", "start", "id"),
+  on(unassembledShares, "package", "path", "start", "idDigest"),
+  on(ShareTarget, "package", "path", "start", "idDigest"),
 );
 
 /**
@@ -246,9 +261,10 @@ export const shareLaws = [
   ),
 
   contained(
-    on(PlacedShareTarget, "package", "path", "start", "id"),
-    on(ShareFragment, "package", "path", "start", "id"),
+    on(PlacedShareTarget, "package", "path", "start", "idDigest"),
+    on(ShareFragment, "package", "path", "start", "idDigest"),
   ),
+  check("E1_derived", PlacedShareTarget, (t) => t.eq(t.idDigest, Crypto.sha256(t.id))),
   contained(
     on(PlacedShareTarget, "package", "assembly", "instance", "path", "assemblyKind"),
     on(Instance, "package", "assembly", "start", "document", "assemblyKind"),

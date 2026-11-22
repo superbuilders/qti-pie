@@ -36,6 +36,7 @@ import { searchTimeout } from "#pantry/test/gen/xdm.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { evaluatorFor, manifestAttribute, withGenerated } from "#pantry/test/host-judge.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
+import { textDigestOf } from "#pantry/import/key-text.ts";
 
 /**
  * Collapse a text as XML Schema's whiteSpace `collapse` does: each run of tabs, line feeds,
@@ -1320,7 +1321,16 @@ describe("import/overlays/identity.ts, a share's same-document fragment (P7)", (
 
     assert.deepStrictEqual(
       [...rows.ShareFragment.values()],
-      [{ assembled: false, id: "a", package: ids.package, path: ids.path, start: 2n }],
+      [
+        {
+          assembled: false,
+          id: "a",
+          idDigest: textDigestOf("a"),
+          package: ids.package,
+          path: ids.path,
+          start: 2n,
+        },
+      ],
     );
     assert.deepStrictEqual(
       [...rows.IdrefTarget.values()].map(({ assembled, id }) => [assembled, id]),

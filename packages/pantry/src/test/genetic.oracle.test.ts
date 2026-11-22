@@ -46,7 +46,6 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, Option } from "effect";
 import { sameLaw } from "@bjornpagen/grizzle";
 import { grammar } from "#pantry/grammar/install.ts";
-import { xmlIdBytes } from "#pantry/qti/limits.ts";
 import { lawTable } from "#pantry/vocab/laws.ts";
 import { corpusOf } from "#pantry/test/gen/genetic/corpus.ts";
 import { residualsOf } from "#pantry/test/gen/genetic/engine.ts";
@@ -227,23 +226,30 @@ const filledManifest = (child: string): string =>
 const nameOf = (bytes: number): string => `K${"x".repeat(bytes - 1)}`;
 
 /**
+ * /**
+ * PostgreSQL 19's limit on one B-tree entry (BTMaxItemSize at 8 kB blocks), past which no key
+ * could hold a text as itself.
+ */
+const btreeEntryBytes = 2704;
+
+/**
  * The manifests whose identifierref the database's fold copies into `Attribute.idrefText`, a field
- * the import never writes, of any length, beside its token, `Idref.token`, an `xs:ID` a key holds
- * (`xmlIdBytes`, `#pantry/qti/limits.ts`), which the import writes: one byte past that bound on a
- * cp:variant and on a cp:dependency, and at the bound on the variant.
+ * the import never writes, of any length, beside its token, `Idref.token`, an `xs:ID` of any
+ * length a key holds by its SHA-256 (`tokenDigest`), which the import writes: one byte past a
+ * B-tree entry on a cp:variant and on a cp:dependency, and a short one on the variant.
  */
 const filledCases = [
   {
-    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(xmlIdBytes + 1)}"/>`),
-    name: "a cp:variant's identifierref past the bound",
+    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(btreeEntryBytes + 1)}"/>`),
+    name: "a cp:variant's identifierref past a B-tree entry",
   },
   {
-    manifest: filledManifest(`<dependency identifierref="${nameOf(xmlIdBytes + 1)}"/>`),
-    name: "a cp:dependency's identifierref past the bound",
+    manifest: filledManifest(`<dependency identifierref="${nameOf(btreeEntryBytes + 1)}"/>`),
+    name: "a cp:dependency's identifierref past a B-tree entry",
   },
   {
-    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(xmlIdBytes)}"/>`),
-    name: "a cp:variant's identifierref at the bound",
+    manifest: filledManifest(`<cpx:variant identifierref="${nameOf(8)}"/>`),
+    name: "a cp:variant's short identifierref",
   },
 ] as const;
 

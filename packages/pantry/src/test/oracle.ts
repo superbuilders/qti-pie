@@ -129,7 +129,6 @@ import {
   parsedDecimalBytes,
   uriBytes,
   utf8Length,
-  xmlIdBytes,
   xmlNameBytes,
 } from "#pantry/qti/limits.ts";
 import {
@@ -2528,7 +2527,7 @@ interface IdForm {
  * text whose governor reads it in an `ID` domain (C50), attributes first, each in document order.
  * The database holds each one's value, whatever its form, as its document's `IdValue`, in no key,
  * and its placed copies in an assembly (`PlacedId.id`) and a `th`'s and a catalog's own
- * (`TableHeader.id`, `CatalogId.id`), each an `xs:ID` a key holds, of at most `xmlIdBytes`.
+ * (`TableHeader.id`, `CatalogId.id`), each of any length, a key holding it by its SHA-256.
  *
  * @param view - The document.
  * @param laws - The grammar's tables.
@@ -3046,9 +3045,7 @@ const bindingNames = ["response-identifier", "string-identifier"] as const;
  * The identifiers a check holds within a key text's bound where a view keys them, each an
  * attribute's value, collapsed: each declaration's `identifier` (`DeclaredIdentifierText`,
  * `#pantry/qti/names.ts`) and each test's (`TestIdentifierText`,
- * `#pantry/qti/overlay-queries/tests.ts`), each a QTI identifier; and in the manifest, its own and
- * each resource's `identifier` and each dependency's `identifierref` (`ManifestIdText`,
- * `#pantry/qti/overlay-queries/package.ts`), each an `xs:ID`'s.
+ * `#pantry/qti/overlay-queries/tests.ts`), each a QTI identifier.
  */
 const checkedIdentifiers: readonly {
   readonly bound: number;
@@ -3071,31 +3068,7 @@ const checkedIdentifiers: readonly {
     manifest: false,
     name: "identifier",
   },
-  {
-    bound: xmlIdBytes,
-    field: "ManifestIdText.text",
-    holds: (_laws, kind) => kind === "cp:manifest" || kind === "cp:resource",
-    manifest: true,
-    name: "identifier",
-  },
-  {
-    bound: xmlIdBytes,
-    field: "ManifestIdText.text",
-    holds: (_laws, kind) => kind === "cp:dependency",
-    manifest: true,
-    name: "identifierref",
-  },
 ];
-
-/**
- * The relation that holds an element's own ID attribute, by the element's kind: a `th`'s, held as
- * `TableHeader.id` (`#pantry/qti/html.ts`), and a catalog's, as `CatalogId.id`
- * (`#pantry/qti/catalog.ts`), each its ID's value collapsed.
- */
-const idHoldersByKind: ReadonlyMap<string, string> = new Map([
-  ["qti-catalog", "CatalogId.id"],
-  ["th", "TableHeader.id"],
-]);
 
 /**
  * Collect the texts of a document the schema holds in a key, each with the field that holds it, its
@@ -3112,12 +3085,8 @@ const idHoldersByKind: ReadonlyMap<string, string> = new Map([
  *   namespace declaration's prefix and each closed and open attribute's (`Namespace.prefix`,
  *   `Attribute.prefix`, `OpenAttribute.prefix`, `xmlNameBytes`), each open attribute's local name
  *   (`OpenAttribute.local`, `xmlNameBytes`) and namespace name (`OpenAttribute.uri`, `uriBytes`),
- *   each IDREF token of an attribute or of an element's text (`Idref.token`, `TextIdref.token`,
- *   `xmlIdBytes`), each `m:share`'s same-document fragment (`ShareFragment.id`), every ID of the
- *   document, an ID-typed attribute's value or element's text collapsed (`IdText.text`, the one
- *   `IdValue` keys), a `th`'s and a catalog's as their own rows hold it too (`TableHeader.id`,
- *   `CatalogId.id`), each choice's and hottext's identifier (`Choice.identifier`,
- *   `Hottext.identifier`, `identifierBytes`), each interaction's binding that names a variable
+ *   each choice's and hottext's identifier (`Choice.identifier`, `Hottext.identifier`,
+ *   `identifierBytes`), each interaction's binding that names a variable
  *   (`BindingName.identifier`), and each identifier a check holds where a view keys it
  *   ({@link checkedIdentifiers});
  * - As a parse's operand, each ARIA bound of an element that writes both that is an `xs:decimal`
@@ -3192,34 +3161,6 @@ const keyTexts = (
       { bound: xmlNameBytes, field: "OpenAttribute.local", node: start, value: local },
       { bound: uriBytes, field: "OpenAttribute.uri", node: start, value: uri },
     ]),
-    ...view.rows.attributes.flatMap((attribute) => [
-      ...(Option.exists(compiledOf(laws, attribute), (held) => isIdref(held.domain))
-        ? tokensOf(attribute.lexical).map((token) => ({
-            bound: xmlIdBytes,
-            field: "Idref.token",
-            node: attribute.start,
-            value: token,
-          }))
-        : []),
-      ...(attribute.kind === "m:share" && attribute.name === "src"
-        ? Option.toArray(fragmentOfSrc(collapsed(attribute.lexical))).map((id) => ({
-            bound: xmlIdBytes,
-            field: "ShareFragment.id",
-            node: attribute.start,
-            value: id,
-          }))
-        : []),
-    ]),
-    ...view.rows.nodes.flatMap((node) =>
-      Option.exists(checkedTextOf(laws, node), ({ domain }) => isIdref(domain))
-        ? tokensOf(node.stringValue).map((token) => ({
-            bound: xmlIdBytes,
-            field: "TextIdref.token",
-            node: node.start,
-            value: token,
-          }))
-        : [],
-    ),
     ...view.members.flatMap((node) => [
       ...(choiceClasses.has(node.kind)
         ? Option.toArray(valueOf(view, node.start, "identifier")).map((lexical) => ({
@@ -3256,16 +3197,6 @@ const keyTexts = (
           })),
         ),
     ),
-    ...idFormsOf(view, laws).flatMap(({ id, node, owner }) => {
-      const holder = idHoldersByKind.get(view.byStart.get(node)?.kind ?? "");
-
-      return [
-        { bound: xmlIdBytes, field: "IdText.text", node, value: id },
-        ...(holder !== undefined && owner === node
-          ? [{ bound: xmlIdBytes, field: holder, node, value: id }]
-          : []),
-      ];
-    }),
     ...view.rows.attributes.flatMap((attribute) =>
       heldValuesOf(attribute).map((held) => ({
         bound: matchedTextBytes,

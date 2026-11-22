@@ -61,8 +61,6 @@ import {
   ssmlMemberBytes,
   UriText,
   uriBytes,
-  XmlId,
-  xmlIdBytes,
   xmlNameBytes,
 } from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
@@ -81,7 +79,6 @@ export const keyTextBounds: ReadonlyMap<unknown, number> = new Map<unknown, numb
   [matchedText, matchedTextBytes],
   [EntryPath, entryPathBytes],
   [QtiIdentifier, identifierBytes],
-  [XmlId, xmlIdBytes],
   [KeyMatchedText, keyMatchedTextBytes],
   [UriText, uriBytes],
   [LiteralText, literalTextBytes],

@@ -175,46 +175,6 @@ export const keyedIdentifier = (identifier: TextTerm) =>
   );
 
 /**
- * The most UTF-8 bytes an XML ID (`xs:ID`) holds in a key: what one B-tree entry leaves it in
- * `PlacedId`'s lookup, beside two paths.
- *
- * @limitKind derived
- * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
- * @unit UTF-8 bytes
- * @scope one `xs:ID` in any key or index grizzle builds over it
- * @constraint XML Schema puts no bound on an `xs:ID`; a longer one is refused at import
- * @derivation grizzle's `keyTextBytes` over `PlacedId`'s lookup `(package, assembly, id, owner,
- *   path, instance)`, an ID beside a name of {@link nameMaxBytes} and two paths of
- *   {@link entryPathBytes}
- * @from nameMaxBytes, entryPathBytes
- */
-export const xmlIdBytes = 795;
-
-/**
- * An `xs:ID` as a key holds it, of at most {@link xmlIdBytes} UTF-8 bytes.
- */
-export const XmlId = law(entryOf("Key text bound"), str.bytes(xmlIdBytes, Chars));
-
-/**
- * Cast an `xs:ID` a view keys into {@link XmlId}, under grizzle's byte guard. The guard's other arm,
- * the empty text, is unreachable in every committed state: each view that keys one states "Key text
- * bound" over the very texts it casts (`IdText` of `#pantry/qti/names.ts` for every ID of a
- * document, attribute or text, which `IdValue` keys; `ManifestIdText` of
- * `#pantry/qti/overlay-queries/package.ts` for the manifest's and its resources' identifiers and
- * its dependencies' `identifierref`s), which refuses at its import a package that holds one past
- * {@link xmlIdBytes}, by name.
- *
- * @param id - The ID, an attribute's value or an element's text collapsed, as the view reads it.
- * @returns It, as a key holds it.
- */
-export const keyedXmlId = (id: TextTerm) =>
-  Logic.when(
-    Num.within(Text.octetLength(id), 0, xmlIdBytes),
-    () => Type.cast(id, XmlId),
-    Type.literal(XmlId, ""),
-  );
-
-/**
  * The most UTF-8 bytes a matched text a key holds: a LOM term's catalog, entry, source or id, and a
  * numbered reading's number, what one B-tree entry leaves it in `NumberedReading`'s key beside two
  * paths.

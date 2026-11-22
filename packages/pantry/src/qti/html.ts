@@ -53,7 +53,7 @@
 import { check, contained, key, law, mirrors, on, relation, select } from "@bjornpagen/grizzle";
 import { Attribute, attributesOf, carries } from "#pantry/qti/attributes.ts";
 import { thIdAttributes } from "#pantry/qti/identity.ts";
-import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import {
   listTokens,
@@ -142,7 +142,7 @@ export const TableHeader = law(
   relation(
     "TableHeader",
     {
-      id: XmlId,
+      id: matchedText,
       owner: natural,
       package: PackageName,
       path: EntryPath,
@@ -270,7 +270,7 @@ export const htmlLawsByName = {
   "Media source src": declared("Media source src", [mediaSourceSrc]),
   "Picture source srcset": declared("Picture source srcset", [pictureSourceSrcset]),
   "Table headers": declared("Table headers", [
-    key(on(HeaderToken, "package", "path", "start", "token")),
+    key(on(HeaderToken, "package", "path", "start", "tokenDigest")),
   ]),
   "Track srclang": declared("Track srclang", [defaultTrackSrclang, subtitleTrackSrclang]),
 } as const;

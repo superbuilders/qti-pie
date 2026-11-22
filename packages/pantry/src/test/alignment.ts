@@ -831,7 +831,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     133,
     {
       owner:
-        "the key text types of `src/qti/limits.ts`, each a `str.bytes` bound of what one B-tree entry leaves the text in the widest key it stands in (a path's `entryPathBytes`, a QTI identifier's `identifierBytes`, an `xs:ID`'s `xmlIdBytes` and the rest, each derived beside its type), the oracle's Key text bound (rule `key-text-bound`, measured in UTF-8 bytes) over the schema's key copies and the texts the host writes where they stand (`src/test/key-copies.ts`, `src/test/oracle.ts` `keyTexts`), held to the import's rows by `src/test/keys.oracle.test.ts`. The import writes every text whatever its length, so the database refuses an over-long one under `key-text-bound`, the oracle's rule",
+        "the key text types of `src/qti/limits.ts`, each a `str.bytes` bound of what one B-tree entry leaves the text in the widest key it stands in (a path's `entryPathBytes`, a QTI identifier's `identifierBytes` and the rest, each derived beside its type), the oracle's Key text bound (rule `key-text-bound`, measured in UTF-8 bytes) over the schema's key copies and the texts the host writes where they stand (`src/test/key-copies.ts`, `src/test/oracle.ts` `keyTexts`), held to the import's rows by `src/test/keys.oracle.test.ts`. The import writes every text whatever its length, so the database refuses an over-long one under `key-text-bound`, the oracle's rule",
       status: "G",
     },
   ],

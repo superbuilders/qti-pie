@@ -12,7 +12,6 @@
 import { check, contained, derived, on, query, select, Text, Type, v } from "@bjornpagen/grizzle";
 import { ReferenceAttribute } from "#pantry/grammar/install.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
-import { keyedXmlId, xmlIdBytes } from "#pantry/qti/limits.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { attributeValues } from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
@@ -56,9 +55,8 @@ const manifestIdTexts = {
  * judged, and no pattern here restates the domain, an NCName once collapsed (spec readings 152 and
  * 156).
  *
- * Its `value` is an `XmlId`, cast under grizzle's byte guard: "Key text bound" holds every such
- * value within `xmlIdBytes` at import ({@link ManifestIdText}), so the guard's other arm, the empty
- * text, never stands in a committed state.
+ * Its `value` is the value as written, of any length, since neither IMS Content Packaging nor XML
+ * Schema bounds an identifier: no key holds it as itself.
  *
  * @param attributes - The attributes, of one name on the elements of one kind
  *   ({@link manifestIdTexts}).
@@ -74,46 +72,9 @@ const manifestValuesOf = (attributes: (typeof manifestIdTexts)[keyof typeof mani
       .find({
         package: pkg,
         start,
-        value: keyedXmlId(value),
+        value,
       });
   });
-
-/**
- * The manifest's `xs:ID` and `xs:IDREF` texts its {@link manifestValuesOf} views key, by their
- * attribute's element: the manifest's and each resource's `identifier` and each dependency's
- * `identifierref`, as written. "Key text bound" holds each within `xmlIdBytes`
- * (`#pantry/qti/limits.ts`), so a package with a longer one is refused at its import, and each view
- * casts its value into an `XmlId` under grizzle's byte guard, whose other arm, the empty text,
- * never stands in a committed state.
- */
-const ManifestIdText = derived(
-  "ManifestIdText",
-  query(QtiBase)
-    .rule((r) => {
-      const { package: pkg, path, start, value } = v(manifestIdTexts.manifest, "manifest");
-
-      return r
-        .match(manifestIdTexts.manifest, { package: pkg, path, start, value })
-        .where(r.eq(path, manifestPath))
-        .find({ package: pkg, start, text: value });
-    })
-    .rule((r) => {
-      const { package: pkg, path, start, value } = v(manifestIdTexts.resource, "resource");
-
-      return r
-        .match(manifestIdTexts.resource, { package: pkg, path, start, value })
-        .where(r.eq(path, manifestPath))
-        .find({ package: pkg, start, text: value });
-    })
-    .rule((r) => {
-      const { package: pkg, path, start, value } = v(manifestIdTexts.dependency, "dependency");
-
-      return r
-        .match(manifestIdTexts.dependency, { package: pkg, path, start, value })
-        .where(r.eq(path, manifestPath))
-        .find({ package: pkg, start, text: value });
-    }),
-);
 
 /**
  * The manifest's identifier ({@link manifestValuesOf}), one per package: the manifest is its
@@ -303,9 +264,6 @@ export const packageOverlayLawsByName = {
       on(ResourceFileDocument, "package", "path", "resource"),
     ),
   ]),
-  "Key text bound": declared("Key text bound", [
-    check("Key_text_bound", ManifestIdText, (t) => t.le(Text.octetLength(t.text), xmlIdBytes)),
-  ]),
   "Self dependency": declared("Self dependency", [
     check("Self_dependency", DependencyResolved, (d) => d.ne(d.target, d.resource)),
   ]),
@@ -318,7 +276,6 @@ export const packageOverlayRelations = [
   Dependency,
   DependencyResolved,
   EntryFileTarget,
-  ManifestIdText,
   ResourceFileDocument,
   ResourceFileOutside,
   ResourceFilePath,

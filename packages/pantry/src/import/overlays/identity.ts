@@ -25,7 +25,7 @@ import {
   toolLabelKinds,
   ValueIdentity,
 } from "#pantry/grammar/install.ts";
-import { keyTextOf } from "#pantry/import/key-text.ts";
+import { keyTextOf, textDigestOf } from "#pantry/import/key-text.ts";
 import { attributeValueOf } from "#pantry/import/names.ts";
 import { stringValuesOf } from "#pantry/import/overlays/metadata.ts";
 import { tokensOf } from "#pantry/import/pieces.ts";
@@ -327,6 +327,7 @@ const shareFragmentsOf = (
         ...place,
         assembled,
         id: value.slice(1),
+        idDigest: textDigestOf(value.slice(1)),
         start,
       });
     }
@@ -549,7 +550,7 @@ export const rowsOf = (view: DocumentView, ids: IdentityIds): IdentityRows => {
     IdrefTarget: new Map(
       targets.map((id) => [
         keyTextOf(place.package, place.path, id),
-        { ...place, assembled: ids.assembled, id },
+        { ...place, assembled: ids.assembled, id, idDigest: textDigestOf(id) },
       ]),
     ),
     ShareFragment: shares,
@@ -771,6 +772,7 @@ export const placedIdRowsOf = (input: {
     placedTargets.set(keyTextOf(placement.package, assembly, instance, id), {
       assembly,
       id,
+      idDigest: textDigestOf(id),
       instance,
       package: placement.package,
       path,

@@ -16,7 +16,6 @@ import {
   ssmlMemberBytes,
   UriText,
   uriBytes,
-  xmlIdBytes,
   xmlNameBytes,
 } from "#pantry/qti/limits.ts";
 import { OpenLocal } from "#pantry/qti/attributes.ts";
@@ -35,11 +34,6 @@ describe("qti/key-bounds", () => {
     assert.isAtMost(
       entryPathBytes,
       keyTextBytes([PackageName, code, EntryPath, natural, EntryPath, natural]),
-    );
-    // PlacedId's lookup (package, assembly, id, owner, path, instance).
-    assert.isAtMost(
-      xmlIdBytes,
-      keyTextBytes([PackageName, EntryPath, natural, EntryPath, natural]),
     );
     // NumberedReading's key (package, assembly, path, start, attribute, scopeInstance, scope,
     // number).

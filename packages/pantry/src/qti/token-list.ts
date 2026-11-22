@@ -52,7 +52,7 @@ import {
   str,
   Text,
 } from "@bjornpagen/grizzle";
-import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { anyText, natural } from "#pantry/grammar/install.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
 
@@ -94,7 +94,7 @@ export const tokenFields = {
   before: Space,
   piecesAfter: accumulated(anyText, ""),
   piecesWas: accumulated(anyText, ""),
-  token: XmlId,
+  token: matchedText,
 } as const;
 
 /**
@@ -156,6 +156,7 @@ export const tokenPiece = (
     generated(anyText, Text.concat(Text.concat(t.before, t.token), t.after)),
   ),
   ...piecesDigests(t),
+  tokenDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(t.token))),
 });
 
 /**

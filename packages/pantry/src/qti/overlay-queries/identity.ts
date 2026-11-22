@@ -33,8 +33,7 @@ import {
 } from "#pantry/qti/identity.ts";
 import { AssembledCatalog } from "#pantry/qti/catalog.ts";
 import { PlacedShareTarget, ShareTarget } from "#pantry/qti/mathml-share.ts";
-import { attributeValues, IdText, IdValue, QtiViews, SsmlValue } from "#pantry/qti/names.ts";
-import { xmlIdBytes } from "#pantry/qti/limits.ts";
+import { attributeValues, IdValue, QtiViews, SsmlValue } from "#pantry/qti/names.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
 import { instanceAnchors } from "#pantry/qti/overlay-queries/tests.ts";
 import { Instance, Site } from "#pantry/qti/tests.ts";
@@ -413,9 +412,6 @@ export const identityOverlayLawsByName = {
       on(JudgedPlacedIdref, "package", "assembly", "id"),
       on(AssembledId, "package", "assembly", "id"),
     ),
-  ]),
-  "Key text bound": declared("Key text bound", [
-    check("Key_text_bound", IdText, (t) => t.le(Text.octetLength(t.text), xmlIdBytes)),
   ]),
   "SSML lexicon reference": declared("SSML lexicon reference", [
     contained(

@@ -16,7 +16,7 @@
 import type { Addition } from "@bjornpagen/grizzle";
 import { governorOf } from "#pantry/import/fold.ts";
 import type { DocumentView } from "#pantry/import/fold.ts";
-import { keyTextOf } from "#pantry/import/key-text.ts";
+import { keyTextOf, textDigestOf } from "#pantry/import/key-text.ts";
 import { attributeValueOf } from "#pantry/import/names.ts";
 import type { AssembledCatalog, CatalogId } from "#pantry/qti/catalog.ts";
 import type { PlacedId } from "#pantry/qti/identity.ts";
@@ -109,7 +109,14 @@ export const placedCatalogRowsOf = (input: {
   const bound = new Map<string, Addition<typeof AssembledCatalog>>();
   for (const { assembly, id, owner, package: pkg, path } of input.assembledIds) {
     if (catalogElements.has(keyTextOf(pkg, path, owner))) {
-      bound.set(keyTextOf(pkg, assembly, id), { assembly, id, owner, package: pkg, path });
+      bound.set(keyTextOf(pkg, assembly, id), {
+        assembly,
+        id,
+        idDigest: textDigestOf(id),
+        owner,
+        package: pkg,
+        path,
+      });
     }
   }
 

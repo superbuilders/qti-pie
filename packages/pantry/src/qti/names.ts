@@ -70,7 +70,7 @@ import { Attribute } from "#pantry/qti/attributes.ts";
 import type { SelectedKinds } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { keyedIdentifier, keyedXmlId, matchedTextBytes } from "#pantry/qti/limits.ts";
+import { keyedIdentifier, matchedTextBytes } from "#pantry/qti/limits.ts";
 import { CatalogScope, DocumentId, SsmlScope } from "#pantry/qti/identity.ts";
 import { normalMinimumDefault } from "#pantry/vocab/terms/declarations.ts";
 import { idSpaceAttributes, ssmlReads } from "#pantry/vocab/terms/identity.ts";
@@ -758,9 +758,8 @@ export const SsmlValue = derived(
  * is no NCName once collapsed where it is written (spec readings 152 and 156). The document's
  * ID/IDREF table (`IdBinding`), a placed ID's, a `th`'s `TableHeader`'s and a catalog's
  * `CatalogId`'s value each read it (`#pantry/qti/overlay-queries/`), so it is a view. Its `id` is
- * an `XmlId`, cast under grizzle's byte guard, whose other arm, the empty text, never stands in a
- * committed state ("Key text bound" over {@link IdText} refuses a longer ID at import), so a lookup
- * by an ID's value compares bounded text indexed as itself.
+ * the value as written, of any length, since XML Schema bounds no `xs:ID`: a stored relation that
+ * keys one keys it by its SHA-256 (`idDigest`, `tokenDigest`), so no ID is refused for its length.
  */
 export const IdValue = derived(
   "IdValue",
@@ -776,7 +775,7 @@ export const IdValue = derived(
         .where(idTypedIn(attribute))
         .find({
           admitted,
-          id: keyedXmlId(value),
+          id: value,
           owner: start,
           package: pkg,
           path,
@@ -793,42 +792,12 @@ export const IdValue = derived(
         .where(r.ne(owner, start))
         .find({
           admitted,
-          id: keyedXmlId(Text.collapse(stringValue)),
+          id: Text.collapse(stringValue),
           owner,
           package: pkg,
           path,
           start,
         });
-    }),
-);
-
-/**
- * Each document's IDs as written, by the element that carries each: the texts {@link IdValue}
- * keys as `XmlId`s, an ID-typed attribute's `value` and an ID-typed element's
- * string value collapsed, which "Key text bound" holds within `xmlIdBytes`.
- */
-export const IdText = derived(
-  "IdText",
-  query(QtiBase)
-    .rule((r) => {
-      const attribute = attributeTerms();
-      const { governor, kind, name, package: pkg, path, start, value } = attribute;
-
-      return r
-        .match(Attribute, { governor, kind, name, package: pkg, path, start, value })
-        .match(DocumentId, { owner: start, package: pkg, path, start })
-        .where(idTypedIn(attribute))
-        .find({ package: pkg, path, start, text: value });
-    })
-    .rule((r) => {
-      const { owner, package: pkg, path, start } = v(DocumentId, "id");
-      const { stringValue } = v(Node, "node");
-
-      return r
-        .match(DocumentId, { owner, package: pkg, path, start })
-        .match(Node, { package: pkg, path, start, stringValue })
-        .where(r.ne(owner, start))
-        .find({ package: pkg, path, start, text: Text.collapse(stringValue) });
     }),
 );
 
@@ -962,7 +931,6 @@ export const LocatedTemplate = derived(
  */
 export const viewRelations = [
   DeclaredIdentifierText,
-  IdText,
   DeclarationBaseType,
   DeclarationCardinality,
   DeclarationName,

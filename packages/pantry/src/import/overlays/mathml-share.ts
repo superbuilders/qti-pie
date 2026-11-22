@@ -640,6 +640,7 @@ export const placedShareRowsOf = (input: {
         assembly,
         assemblyKind,
         id: share.id,
+        idDigest: share.idDigest,
         instance: seat.instance,
         package: root.package,
         path: seat.document,
