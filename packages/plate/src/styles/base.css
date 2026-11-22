@@ -187,6 +187,67 @@
     overflow-x: auto;
   }
 
+  /* == a formula == */
+
+  /*
+   * A formula (`plate-math`): MathJax's drawing of it and its MathML. The drawing stands on the
+   * line's baseline as MathJax's `vertical-align` would stand it, with no style on the element:
+   * its box (`plate-math-box`) is an inline block whose first line holds an empty svg as tall as
+   * the formula reaches above its baseline (`plate-math-height`), and whose second, a block, an
+   * empty svg as deep as it reaches below (`plate-math-depth`), so the box's baseline is the
+   * formula's and its foot the formula's foot; the drawing (`plate-math-drawing`) stands over the
+   * box from that foot. The line height is nought inside the box, as MathJax's CHTML container
+   * sets it, so the box holds the formula's extent and no more. Each svg's display and alignment
+   * are set here, so a host's reset of every svg (Tailwind's preflight makes them blocks) leaves
+   * them as they must be. A display formula stands on a line of its own, centred, as MathJax's
+   * display container stands it. The MathML beside the drawing is hidden from the eye only, so a
+   * screen reader voices and brailles it; the drawing is hidden from assistive technology.
+   */
+  [data-slot="plate-math"][data-display="block"] {
+    display: block;
+    text-align: center;
+  }
+
+  [data-slot="plate-math-box"] {
+    display: inline-block;
+    position: relative;
+    direction: ltr;
+    line-height: 0;
+    text-indent: 0;
+    vertical-align: baseline;
+  }
+
+  [data-slot="plate-math-height"] {
+    display: inline;
+    vertical-align: baseline;
+  }
+
+  [data-slot="plate-math-depth"] {
+    display: block;
+  }
+
+  [data-slot="plate-math-drawing"] {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    min-width: 1px;
+    min-height: 1px;
+    overflow: visible;
+  }
+
+  [data-slot="plate-math"] > math {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   /* == prompt, feedback, rubric == */
 
   /*

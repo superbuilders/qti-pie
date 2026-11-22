@@ -245,14 +245,11 @@
   }
 
   /*
-   * MathML: the browser's math font at the text's size, and a display equation on its own line,
-   * scrolling sideways rather than widening the item when it is long.
+   * A formula: MathJax draws it at the text's x-height, so it needs no size of its own; a display
+   * formula stands apart from the text around it and scrolls sideways rather than widening the
+   * item when it is long.
    */
-  :where([data-slot="plate-item"]) :where(math) {
-    font-size: 1.05em;
-  }
-
-  :where([data-slot="plate-item"]) :where(math[display="block"]) {
+  :where([data-slot="plate-item"]) :where([data-slot="plate-math"][data-display="block"]) {
     margin-block: 0.75em;
     max-width: 100%;
     overflow-x: auto;

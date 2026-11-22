@@ -27,7 +27,8 @@
     "@qti-pie/crust": "workspace:*",
     "@ui-sdk/core": "catalog:",
     "@ui-sdk/react": "catalog:",
-    "effect": "catalog:"
+    "effect": "catalog:",
+    "mathjax-full": "catalog:"
   },
   "devDependencies": {
     "@bjornpagen/devtools": "workspace:*",

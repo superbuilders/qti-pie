@@ -183,3 +183,22 @@ export class UnrenderedNode extends Data.TaggedError("UnrenderedNode")<{
     return `The server shell met ${this.detail}, which it cannot render: a module landed without the shell's view of its container, or a walk of an interaction's own content met one. Give the module its container view, as #plate/ui/item/interactions/position-object.tsx gives Position Object's, dispatched from renderContainer in #plate/ui/item/interactions/index.tsx.`;
   }
 }
+
+/**
+ * MathJax's SVG output gave a formula's container something other than its `svg`, which the
+ * drawing reads (`#plate/ui/item/contents/mathjax.ts`): MathJax broke its contract, which no item
+ * can cause, so the page dies loudly rather than show a formula with nothing drawn.
+ */
+export class UndrawnFormula extends Data.TaggedError("UndrawnFormula")<{
+  /**
+   * What the container held first, as MathJax's adaptor names a node's kind (`#text`).
+   */
+  readonly found: string;
+}> {
+  /**
+   * What MathJax gave where its `svg` belongs.
+   */
+  override get message(): string {
+    return `MathJax's SVG output gave a formula's container ${JSON.stringify(this.found)} where its svg belongs, so the server shell drew none of it.`;
+  }
+}

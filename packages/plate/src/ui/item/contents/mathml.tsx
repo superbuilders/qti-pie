@@ -33,6 +33,8 @@ import { mathmlNamespace } from "#plate/document/source.ts";
 import { addressUrl, classifyUrl, missingPathOf, urlContextOf } from "#plate/model/url.ts";
 import type { KeptUrl, UrlContext } from "#plate/model/url.ts";
 import type { ContentWalk } from "#plate/ui/item/content.tsx";
+import { draw } from "#plate/ui/item/contents/mathjax.ts";
+import type { Drawn, DrawnElement } from "#plate/ui/item/contents/mathjax.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
 import { authoredId, authoredIdrefs } from "#plate/ui/item/ids.ts";
 import type { RedactedNode } from "#plate/model/item.ts";
@@ -90,37 +92,35 @@ const keptUrl = (context: UrlContext, value: string): Option.Option<KeptUrl> => 
 };
 
 /**
- * Write one of a MathML element's attributes as React writes it.
+ * Write one of a MathML element's attributes as plate writes it, under its MathML name.
  *
  * @param local The element's local name.
  * @param attribute The attribute, by the name the HTML parser reads it under.
  * @param addressing The instance, the item's location and the assets.
- * @returns The prop and its value, none when the attribute is dropped: `class` as `className`, an
- *   `id` and an `xref` scoped (an `xref` that names no id is dropped), a fetched URL as its address
- *   (one whose file `assets` gives no address is dropped: the shell refuses such an item before it
- *   writes any of it, through {@link missingInMath}), and any other as written.
+ * @returns The attribute and its value, none when it is dropped: an `id` and an `xref` scoped (an
+ *   `xref` that names no id is dropped), a fetched URL as its address (one whose file `assets`
+ *   gives no address is dropped: the shell refuses such an item before it writes any of it,
+ *   through {@link missingInMath}), and any other as written.
  */
-const propFor = (
+const writtenAttribute = (
   local: string,
   { name, value }: MathAttribute,
   addressing: Addressing,
-): readonly (readonly [string, string])[] => {
-  if (name === "class") {
-    return [["className", value]];
-  }
-
+): readonly MathAttribute[] => {
   if (name === "id") {
-    return addressing.writing === "copy" ? [] : [["id", authoredId(addressing.instance, value)]];
+    return addressing.writing === "copy"
+      ? []
+      : [{ name, value: authoredId(addressing.instance, value) }];
   }
 
   if (name === "xref") {
     const id = authoredIdrefs(addressing.instance, value);
 
-    return id === undefined ? [] : [[name, id]];
+    return id === undefined ? [] : [{ name, value: id }];
   }
 
   return Option.match(fetchedContext(local, name), {
-    onNone: () => [[name, value]],
+    onNone: () => [{ name, value }],
     onSome: (context) =>
       Option.match(
         Option.flatMap(keptUrl(context, value), (url) =>
@@ -132,14 +132,32 @@ const propFor = (
             ),
           ),
         ),
-        { onNone: () => [], onSome: (address) => [[name, address]] },
+        { onNone: () => [], onSome: (address) => [{ name, value: address }] },
       ),
   });
 };
 
 /**
- * Write a MathML element's attributes as the props React writes them from: each MathML 3 admits on
- * it ({@link admits}), through {@link propFor}, in document order.
+ * Write a MathML element's attributes as plate writes them: each MathML 3 admits on it
+ * ({@link admits}), through {@link writtenAttribute}, in document order.
+ *
+ * @param local The element's local name.
+ * @param attributes Its attributes.
+ * @param addressing The instance, the item's location and the assets.
+ * @returns The attributes, under their MathML names.
+ */
+const writtenAttributes = (
+  local: string,
+  attributes: readonly MathAttribute[],
+  addressing: Addressing,
+): readonly MathAttribute[] =>
+  attributes
+    .filter(({ name }) => admits(local, name))
+    .flatMap((attribute) => writtenAttribute(local, attribute, addressing));
+
+/**
+ * Write a MathML element's attributes as the props React writes them from
+ * ({@link writtenAttributes}), `class` as `className`.
  *
  * @param local The element's local name.
  * @param attributes Its attributes.
@@ -152,9 +170,71 @@ const propsOf = (
   addressing: Addressing,
 ): Readonly<Record<string, string>> =>
   Object.fromEntries(
-    attributes
-      .filter(({ name }) => admits(local, name))
-      .flatMap((attribute) => propFor(local, attribute, addressing)),
+    writtenAttributes(local, attributes, addressing).map(({ name, value }) => [
+      name === "class" ? "className" : name,
+      value,
+    ]),
+  );
+
+/**
+ * Write a MathML tree as MathJax draws it: each element with the attributes plate writes on it
+ * ({@link writtenAttributes}), and each `annotation-xml` with its attributes and no content, which
+ * MathJax never draws.
+ *
+ * @param element The tree: a `math` element's payload, or an element below it.
+ * @param addressing The instance, the item's location and the assets.
+ * @returns The tree, as the drawing reads it.
+ */
+const formulaOf = (
+  element: MathElement<RedactedNode>,
+  addressing: Addressing,
+): MathElement<never> => ({
+  attributes: writtenAttributes(element.local, element.attributes, addressing),
+  children: element.children.map((child): MathChild<never> => {
+    switch (child.kind) {
+      case "annotation-xml": {
+        return {
+          attributes: writtenAttributes(child.kind, child.attributes, addressing),
+          content: [],
+          kind: "annotation-xml",
+        };
+      }
+      case "element": {
+        return formulaOf(child, addressing);
+      }
+      case "text": {
+        return child;
+      }
+      default: {
+        return child satisfies never;
+      }
+    }
+  }),
+  kind: "element",
+  local: element.local,
+});
+
+/**
+ * Write a drawn element's attributes as the props React writes them from.
+ *
+ * @param element The element.
+ * @returns The props.
+ */
+const drawnProps = (element: DrawnElement): Readonly<Record<string, string>> =>
+  Object.fromEntries(element.attributes.map(({ name, value }) => [name, value]));
+
+/**
+ * Write a drawing's nodes as server React elements: each element with its attributes under the
+ * names React writes them by, text as itself.
+ *
+ * @param nodes The nodes.
+ * @returns The nodes, in order, each keyed by its index.
+ */
+const drawnNodes = (nodes: readonly Drawn[]): readonly ReactNode[] =>
+  nodes.map((node, index): ReactNode =>
+    node.kind === "text"
+      ? node.text
+      : createElement(node.name, { ...drawnProps(node), key: index }, drawnNodes(node.children)),
   );
 
 /**
@@ -195,19 +275,66 @@ const childrenOf = (
   });
 
 /**
- * Render a `math` element's content node: the `math` element with its attributes, its
- * descendants by their MathML local names, and each `annotation-xml`'s content as the body's.
+ * Render a `math` element's content node: `plate-math`, a `span`, holding the formula as MathJax
+ * draws it ({@link draw}) and the `math` element as plate writes it, for assistive technology.
+ *
+ * The parts:
+ *
+ * - `plate-math`, the root, `data-display="block"` for a display formula, which the base sheet lays
+ *   out on a line of its own, centred, as MathJax lays out its display container;
+ * - `plate-math-box`, an inline block as wide as the formula whose baseline is the formula's: its
+ *   first line holds `plate-math-height`, an empty `svg` as tall as the formula reaches above its
+ *   baseline, standing on it, and below that line stands `plate-math-depth`, an empty `svg` as deep
+ *   as the formula reaches below it;
+ * - `plate-math-drawing`, MathJax's `svg`, hidden from assistive technology, which the base sheet
+ *   lays over the box from its foot, so the formula's baseline is the box's and the line's, as
+ *   MathJax's `vertical-align` would place it, with no `style` written;
+ * - The `math` element with its attributes, its descendants by their MathML local names, and each
+ *   `annotation-xml`'s content as the body's, which the base sheet hides from the eye only, so a
+ *   screen reader voices and brailles the MathML the author wrote.
  *
  * @param node The node, as the MathML module's `copy` gives it.
  * @param walk Its key, the walk where it stands and the way to write what it holds.
- * @returns The `math` element.
+ * @returns The formula.
  */
-export const content = (node: MathContent, walk: ContentWalk): ReactNode =>
-  createElement(
-    "math",
-    { ...propsOf("math", node.payload.attributes, walk.walk.addressing), key: walk.key },
-    childrenOf(node.payload.children, walk),
+export const content = (node: MathContent, walk: ContentWalk): ReactNode => {
+  const { addressing } = walk.walk;
+  const formula = draw(formulaOf(node.payload, addressing));
+
+  return createElement(
+    "span",
+    {
+      "data-display": formula.display ? "block" : undefined,
+      "data-slot": "plate-math",
+      key: walk.key,
+    },
+    createElement(
+      "span",
+      { "data-slot": "plate-math-box" },
+      createElement("svg", {
+        "data-slot": "plate-math-height",
+        height: formula.height,
+        width: formula.width,
+      }),
+      createElement("svg", { "data-slot": "plate-math-depth", height: formula.depth, width: "0" }),
+      createElement(
+        "svg",
+        {
+          ...drawnProps(formula.drawing),
+          "aria-hidden": "true",
+          "data-slot": "plate-math-drawing",
+          focusable: "false",
+        },
+        drawnNodes(formula.drawing.children),
+      ),
+    ),
+    createElement(
+      "math",
+      propsOf("math", node.payload.attributes, addressing),
+      childrenOf(node.payload.children, walk),
+    ),
   );
+};
 
 /**
  * Give the element a child of a tree is for the URL check: an element as itself, an
