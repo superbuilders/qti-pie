@@ -28,8 +28,30 @@ import { hintOf } from "#plate/ui/item/interactions/facts.ts";
 import { controlNameOf, labelsOf, ownName, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import type { Marking } from "#plate/ui/item/interactions/marks.ts";
+import { mathEntryClass } from "#plate/math-entry/field.ts";
+import { MathAnswer } from "#plate/ui/item/interactions/math-answer.tsx";
 import { textEntryKeys } from "#plate/ui/text-entry/labels.ts";
+import { MathEntry } from "#plate/ui/text-entry/math-entry.tsx";
 import { TextEntry } from "#plate/ui/text-entry/text-entry.tsx";
+
+/**
+ * Tell whether the class an interaction's root carries holds a token among its classes.
+ *
+ * @param className The class the root carries, none when the author wrote none.
+ * @param token The class sought.
+ * @returns Whether the root's class holds it.
+ */
+const holds = (className: Option.Option<string>, token: string): boolean =>
+  Option.exists(className, (classes) => classes.split(/[\t\n\f\r ]+/u).includes(token));
+
+/**
+ * Tell whether the author marked a Text Entry for the math entry: its class, as the interaction's
+ * root carries it, holds plate's {@link mathEntryClass} among its tokens.
+ *
+ * @param className The class the root carries, none when the author wrote none.
+ * @returns Whether the Text Entry is answered in a math field.
+ */
+const isMathEntry = (className: Option.Option<string>): boolean => holds(className, mathEntryClass);
 
 /**
  * Render a Text Entry's island.
@@ -44,20 +66,29 @@ import { TextEntry } from "#plate/ui/text-entry/text-entry.tsx";
 export const island = (
   { model, payload: node }: Paired<"text-entry">,
   context: IslandContext,
-): ReactNode => (
-  <TextEntry
-    base={node.base}
-    baseType={node.baseType}
-    expectedLength={hintOf(node.expectedLength)}
-    keypad={context.textEntryKeypad}
-    labels={labelsOf(textEntryKeys, context.locale, { pattern: model.patternMaskMessage })}
-    name={node.formName}
-    naming={controlNameOf(undefined, node, ownName(model, context), context)}
-    patternMask={Option.getOrUndefined(model.patternMask)}
-    placeholder={Option.getOrUndefined(node.placeholder)}
-    root={rootOf(model, context)}
-  />
-);
+): ReactNode =>
+  isMathEntry(context.className) ? (
+    <MathEntry
+      base={node.base}
+      baseType={node.baseType}
+      name={node.formName}
+      naming={controlNameOf(undefined, node, ownName(model, context), context)}
+      root={rootOf(model, context)}
+    />
+  ) : (
+    <TextEntry
+      base={node.base}
+      baseType={node.baseType}
+      expectedLength={hintOf(node.expectedLength)}
+      keypad={context.textEntryKeypad}
+      labels={labelsOf(textEntryKeys, context.locale, { pattern: model.patternMaskMessage })}
+      name={node.formName}
+      naming={controlNameOf(undefined, node, ownName(model, context), context)}
+      patternMask={Option.getOrUndefined(model.patternMask)}
+      placeholder={Option.getOrUndefined(node.placeholder)}
+      root={rootOf(model, context)}
+    />
+  );
 
 /**
  * Mark the value a Text Entry's review shows, by the marks the host handed for its response
@@ -102,6 +133,7 @@ const shownMarkOf = (
  */
 export const review = (paired: Paired<"text-entry">, context: ReviewContext): ReactNode => {
   const { model, payload: node } = paired;
+  const naming = controlNameOf(undefined, node, ownName(model, context), context);
 
   return (
     <ControlReview
@@ -110,14 +142,20 @@ export const review = (paired: Paired<"text-entry">, context: ReviewContext): Re
       root={rootOf(model, context)}
       slot="plate-text-entry"
     >
-      <input
-        {...controlNameOf(undefined, node, ownName(model, context), context)}
-        data-slot="input"
-        readOnly
-        size={hintOf(node.expectedLength)}
-        type="text"
-        value={node.restore}
-      />
+      {isMathEntry(context.className) ? (
+        <span {...naming} data-slot="plate-math-entry" role="group">
+          <MathAnswer latex={node.restore} />
+        </span>
+      ) : (
+        <input
+          {...naming}
+          data-slot="input"
+          readOnly
+          size={hintOf(node.expectedLength)}
+          type="text"
+          value={node.restore}
+        />
+      )}
     </ControlReview>
   );
 };

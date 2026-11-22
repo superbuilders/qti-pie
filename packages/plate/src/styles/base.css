@@ -54,6 +54,15 @@
  */
 @layer ui-sdk, plate;
 
+/*
+ * MathLive's fonts, for the math entry's field (`#plate/ui/text-entry/math-entry.tsx`): its own
+ * sheet's `@font-face` rules, which name its font files beside it, so the host's build serves them
+ * from the host's origin. A browser loads a face only once text of the page uses it, so a page with
+ * no math entry loads none. The field loads no font itself: the island tells MathLive the fonts are
+ * the page's.
+ */
+@import "mathlive/fonts.css" layer(plate);
+
 @layer plate {
   /* == tokens == */
 
@@ -614,6 +623,43 @@
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * A math entry's field (`plate-math-entry-field`, MathLive's `math-field`), standing in its place
+   * in the sentence: as tall as a control inside a sentence, in an edge at 3:1, in the text's
+   * colour. It offers no menu, as AlphaTest's field offered none: its menu's toggle is not drawn.
+   * Its keyboard's keys are at least a target's size, AlphaTest's 70 px, which MathLive reads from
+   * `--keycap-height` on the keyboard it draws at the end of the page's body.
+   */
+  [data-slot="plate-math-entry"] {
+    display: inline-flex;
+    vertical-align: middle;
+  }
+
+  :where([data-slot="plate-math-entry"]) [data-slot="plate-math-entry-field"] {
+    min-block-size: var(--plate-control-size);
+    min-inline-size: 6rem;
+    max-inline-size: 100%;
+    border: 2px solid var(--ui-input);
+    font-size: inherit;
+  }
+
+  [data-slot="plate-math-entry-field"]::part(menu-toggle) {
+    display: none;
+  }
+
+  :where(:root) {
+    --keycap-height: max(var(--plate-target-size), 70px);
+  }
+
+  /*
+   * A math entry's answer in a review, the formula as MathML, inside the Control's mark.
+   */
+  [data-slot="plate-math-entry-answer"] {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--plate-control-size);
   }
 
   /* == end attempt == */

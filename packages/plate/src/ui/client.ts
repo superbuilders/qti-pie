@@ -33,6 +33,10 @@ export type { MatchProps } from "#plate/ui/match/match.tsx";
 
 export type { MatchLabels } from "#plate/ui/match/labels.ts";
 
+export { MathEntry } from "#plate/ui/text-entry/math-entry.tsx";
+
+export type { MathEntryProps } from "#plate/ui/text-entry/math-entry.tsx";
+
 export { Order } from "#plate/ui/order/order.tsx";
 
 export type { OrderProps } from "#plate/ui/order/order.tsx";
