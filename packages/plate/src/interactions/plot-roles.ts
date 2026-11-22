@@ -28,9 +28,10 @@ export const floorOf = (classes: Option.Option<string>): TargetFloor =>
 /**
  * What a Graphic Gap Match's plot draws, by its root's class: `line` or `segment` through each gap
  * text's two placements (R6), a `box-plot` from its statistics (R8), a `number-line`'s dots (R7),
- * or nothing beyond the interaction, `plain`.
+ * a `dot-plot`'s placed choices stacked up its columns (M44), or nothing beyond the interaction,
+ * `plain`.
  */
-export type PlotKind = "box-plot" | "line" | "number-line" | "plain" | "segment";
+export type PlotKind = "box-plot" | "dot-plot" | "line" | "number-line" | "plain" | "segment";
 
 /**
  * Each plot's class on the root.
@@ -40,6 +41,7 @@ const plotClasses: readonly (readonly [RendererClass, Exclude<PlotKind, "plain">
   ["plate-graph-segment", "segment"],
   ["plate-box-plot", "box-plot"],
   ["plate-number-line-graph", "number-line"],
+  ["plate-dot-plot", "dot-plot"],
 ];
 
 /**

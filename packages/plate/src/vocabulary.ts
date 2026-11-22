@@ -358,6 +358,13 @@ export const rendererClasses = {
    */
   "plate-box-plot": "a box plot drawn from its statistics",
   /**
+   * On a `qti-graphic-gap-match-interaction` whose hotspots are a line plot's columns, one over
+   * each tick: the choices a column holds stand stacked up from its bottom, each in a step of its
+   * height over its `match-max`, as AlphaTest's line plot stacked its Xs up from the axis, and a
+   * column draws no outline at rest, filled or not (`stepsOf` in `#plate/graphic/plot.ts`, M44).
+   */
+  "plate-dot-plot": "a line plot whose columns stack their choices",
+  /**
    * On a `qti-graphic-gap-match-interaction`: a line drawn through the two hotspots each gap text
    * is placed on, out to the edges of the plot the hotspots tile, as AlphaTest's line graphs drew
    * one through two clicks (`#plate/graphic/plot.ts`, R6).

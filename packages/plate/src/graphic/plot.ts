@@ -19,6 +19,7 @@ import type {
   Statistic,
 } from "#plate/interactions/plot-roles.ts";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
+import type { Limit } from "#plate/placement/limit.ts";
 import type { Pairs } from "#plate/placement/machine.ts";
 import { boundsOf, drawingOf, interiorOf } from "#plate/graphic/geometry.ts";
 import type { Box, GraphicArea, ImagePoint } from "#plate/graphic/geometry.ts";
@@ -421,6 +422,7 @@ export const figuresOf = (
     case "number-line": {
       return pointsOf(choices, stands, placements, shade);
     }
+    case "dot-plot":
     case "plain": {
       return [];
     }
@@ -428,4 +430,42 @@ export const figuresOf = (
       return kind satisfies never;
     }
   }
+};
+
+/**
+ * Give the steps a dot plot's column stands the choices it holds in (`plate-dot-plot`, M44): up
+ * from the bottom of the column's box, as AlphaTest's line plot stacked its Xs up from the axis,
+ * each step the box's height over the column's `match-max`, the most it holds, so a full column
+ * reaches its top; and the box's height over the choices it holds where it has no limit. Each
+ * step is a `rect` across the column's box, in the image's pixels, the first at its bottom, for the
+ * choice placed first; the island and the review draw each choice in its own step as they draw a
+ * hotspot's choices in its area (`#plate/ui/graphic-gap-match/placed.tsx`).
+ *
+ * @param column The column's area.
+ * @param capacity The column's `match-max`.
+ * @param held How many choices it holds.
+ * @param size The image's size, the pixel space of the column's coordinates.
+ * @returns A step for each choice it holds, bottom first; none for a column that holds no point.
+ */
+export const stepsOf = (
+  column: GraphicArea,
+  capacity: Limit,
+  held: number,
+  size: ImageSize,
+): readonly GraphicArea[] => {
+  const drawing = drawingOf(column, size);
+
+  if (drawing === undefined) {
+    return [];
+  }
+
+  const box = boundsOf(drawing);
+  const step = (box.bottom - box.top) / (capacity.kind === "at-most" ? capacity.n : held);
+
+  return Array.from({ length: held }, (_, at): GraphicArea => ({
+    coords: [box.left, box.bottom - (at + 1) * step, box.right, box.bottom - at * step].map(
+      (value) => ({ percent: false, value }),
+    ),
+    geometry: "rect",
+  }));
 };

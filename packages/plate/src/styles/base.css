@@ -2302,6 +2302,23 @@
   }
 
   /*
+   * `plate-dot-plot` (plate's vocabulary, M44): a line plot's columns draw no outline at rest,
+   * filled or not, as AlphaTest's line plot drew none: a filled column shows its choices stacked up
+   * from its bottom, so no ring need say it holds them. A column's outline shows while a dragged
+   * choice is over it or it would refuse it, while its row's control has keyboard focus, and where a
+   * review marks it.
+   */
+  :where([data-slot="plate-graphic-gap-match"].plate-dot-plot)
+    [data-slot="plate-graphic-mark"]:not(
+      [data-focus-visible],
+      [data-mark],
+      :has(> [data-slot="plate-placement-target"]:is([data-over], [data-refuses]))
+    )
+    > [data-tone] {
+    stroke: transparent;
+  }
+
+  /*
    * A lattice's list of its cells below the picture leaves the eye, as AlphaTest showed nothing
    * under its graphs, and stays in the page, the way UI SDK hides a native input: a screen reader
    * reads every cell by its name and the keyboard reaches each, its focus shown on its cell on the

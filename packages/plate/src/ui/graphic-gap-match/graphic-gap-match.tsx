@@ -45,7 +45,7 @@ import type { PlotChoice, ShadeLink } from "#plate/graphic/plot.ts";
 import type { PlotKind, ShadeDirection, Statistic } from "#plate/interactions/plot-roles.ts";
 import type { GraphicGapMatchLabels } from "#plate/ui/graphic-gap-match/labels.ts";
 import type { ChoiceMeasure } from "#plate/ui/graphic-gap-match/fit.ts";
-import { PlacedChoices } from "#plate/ui/graphic-gap-match/placed.tsx";
+import { PlacedChoices, placedOnPlot } from "#plate/ui/graphic-gap-match/placed.tsx";
 import type { PlacedIn } from "#plate/ui/graphic-gap-match/placed.tsx";
 import { DrawnArea, GraphicMark } from "#plate/ui/graphic/drawn.tsx";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
@@ -222,21 +222,22 @@ const boardOf = (
 
 /**
  * Lay the placements out by hotspot, for the image: each hotspot with the choices it holds, in the
- * order placed, a repeat as often as it repeats. A placement of a choice the island does not show
- * draws nothing.
+ * order placed, a repeat as often as it repeats, and the most it holds. A placement of a choice the
+ * island does not show draws nothing.
  *
  * @param hotspots The hotspots.
  * @param gapChoices The gap choices, by identifier.
  * @param placements The placements.
- * @returns Each hotspot and its choices.
+ * @returns Each hotspot, its choices and its `match-max`.
  */
 const placedOf = (
   hotspots: readonly GraphicGapHotspot[],
   gapChoices: ReadonlyMap<string, GapChoice>,
   placements: Pairs,
-): readonly PlacedIn[] =>
+): readonly (PlacedIn & { readonly capacity: Limit })[] =>
   hotspots.map((hotspot) => ({
     area: hotspot,
+    capacity: hotspot.matchMax,
     choices: placements.flatMap(({ chip, target }, index) => {
       const choice = gapChoices.get(chip);
 
@@ -256,16 +257,27 @@ const placedOf = (
 
 /**
  * Draw the choices each hotspot holds on the image, the same on the server and in the browser, the
- * page's width choosing which stand there. It reads the stage's image size and floor width, so it
- * renders only inside the stage's pins.
+ * page's width choosing which stand there, each alone in its step of its column on a dot plot
+ * ({@link placedOnPlot}). It reads the stage's image size and floor width, so it renders only
+ * inside the stage's pins.
  *
- * @param props.placed The hotspots and the choices each holds.
+ * @param props.placed The hotspots, the choices each holds and its `match-max`.
+ * @param props.plot The plot.
  * @returns The drawn choices.
  */
-const StagePlaced = (props: { readonly placed: readonly PlacedIn[] }) => {
+const StagePlaced = (props: {
+  readonly placed: readonly (PlacedIn & { readonly capacity: Limit })[];
+  readonly plot: PlotKind;
+}) => {
   const { floor, size } = useGraphicStage();
 
-  return <PlacedChoices floor={floor} placed={props.placed} size={size} />;
+  return (
+    <PlacedChoices
+      floor={floor}
+      placed={placedOnPlot(props.plot, props.placed, size)}
+      size={size}
+    />
+  );
 };
 
 /**
@@ -483,7 +495,7 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
                 plot={plot}
                 shade={toward}
               />
-              <StagePlaced placed={placedOf(hotspots, choices, placements)} />
+              <StagePlaced placed={placedOf(hotspots, choices, placements)} plot={plot} />
             </>
           }
           naming={naming}

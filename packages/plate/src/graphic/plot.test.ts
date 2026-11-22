@@ -13,7 +13,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import type { GraphicArea } from "#plate/graphic/geometry.ts";
-import { figuresOf, shadeDirectionOf } from "#plate/graphic/plot.ts";
+import { figuresOf, shadeDirectionOf, stepsOf } from "#plate/graphic/plot.ts";
 import { smallestTargetOf, stageScaleOf } from "#plate/graphic/scale.ts";
 import {
   floorOf,
@@ -105,8 +105,9 @@ describe("a Graphic Gap Match's lattice", () => {
  * The plot's kills: a line left unextended, a line clipped wrong, two plot classes still drawing, a
  * whisker capped at the wrong end, a given statistic ignored, the box plot drawn on its line, a
  * dot's style ignored, the ray run from the wrong dot or the wrong way, an unanswered shading read
- * as right, the shading's choices swapped, two statistic classes still naming one, and open and
- * closed swapped.
+ * as right, a dot plot stacked from the top, its steps sized by what it holds, its class misread,
+ * the shading's choices swapped, two statistic classes still naming one, and open and closed
+ * swapped.
  */
 const plotKills: readonly Kill[] = [
   {
@@ -183,6 +184,24 @@ const plotKills: readonly Kill[] = [
     why: "two statistic classes still name the first",
   },
   {
+    file: "src/graphic/plot.ts",
+    original: "[box.left, box.bottom - (at + 1) * step, box.right, box.bottom - at * step]",
+    replacement: "[box.left, box.top + at * step, box.right, box.top + (at + 1) * step]",
+    why: "a dot plot's column stacks down from its top",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original: '(capacity.kind === "at-most" ? capacity.n : held)',
+    replacement: "held",
+    why: "a dot plot's steps share the column among what it holds, not its match-max",
+  },
+  {
+    file: "src/interactions/plot-roles.ts",
+    original: '["plate-dot-plot", "dot-plot"],',
+    replacement: '["plate-dot-plots", "dot-plot"],',
+    why: "the dot plot's class is read under another name",
+  },
+  {
     file: "src/interactions/plot-roles.ts",
     original: 'Option.some(open ? "open" : "closed")',
     replacement: 'Option.some(open ? "closed" : "open")',
@@ -197,13 +216,13 @@ const plotKills: readonly Kill[] = [
 const plotScript = [
   'import { Option } from "effect";',
   'import { plotKindOf, pointStyleOf, shadeOf, statisticOf } from "#plate/interactions/plot-roles.ts";',
-  'import { figuresOf, shadeDirectionOf } from "#plate/graphic/plot.ts";',
+  'import { figuresOf, shadeDirectionOf, stepsOf } from "#plate/graphic/plot.ts";',
   'import { walkPlot } from "#plate/test/plot-rules.ts";',
-  "process.stdout.write(JSON.stringify({ found: walkPlot({ figuresOf, none: Option.none(), plotKindOf, pointStyleOf, shadeDirectionOf, shadeOf, some: Option.some, statisticOf, value: Option.getOrUndefined }) ?? null }));",
+  "process.stdout.write(JSON.stringify({ found: walkPlot({ figuresOf, none: Option.none(), plotKindOf, pointStyleOf, shadeDirectionOf, shadeOf, some: Option.some, statisticOf, stepsOf, value: Option.getOrUndefined }) ?? null }));",
 ].join("\n");
 
 describe("a Graphic Gap Match's plot", () => {
-  it("draws the lines, the box plot and the dots of every case of its box as AlphaTest drew them, and reads plate's classes as whole tokens", () => {
+  it("draws the lines, the box plot and the dots of every case of its box, and stacks a dot plot's columns, as AlphaTest drew them, and reads plate's classes as whole tokens", () => {
     const found = walkPlot({
       figuresOf,
       none: Option.none(),
@@ -213,6 +232,7 @@ describe("a Graphic Gap Match's plot", () => {
       shadeOf,
       some: Option.some,
       statisticOf,
+      stepsOf,
       value: Option.getOrUndefined,
     });
 

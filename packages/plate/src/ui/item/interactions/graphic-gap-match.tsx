@@ -31,7 +31,7 @@ import { PlotMarks, PlotPins } from "#plate/ui/graphic-gap-match/figures.tsx";
 import { GraphicGapMatch } from "#plate/ui/graphic-gap-match/graphic-gap-match.tsx";
 import type { GraphicGapHotspot } from "#plate/ui/graphic-gap-match/graphic-gap-match.tsx";
 import { graphicGapMatchKeys } from "#plate/ui/graphic-gap-match/labels.ts";
-import { PlacedChoices } from "#plate/ui/graphic-gap-match/placed.tsx";
+import { PlacedChoices, placedOnPlot } from "#plate/ui/graphic-gap-match/placed.tsx";
 import { GraphicMark } from "#plate/ui/graphic/drawn.tsx";
 import { StageFrame, reviewStageOf } from "#plate/ui/graphic/frame.tsx";
 import { paintedOf } from "#plate/graphic/geometry.ts";
@@ -245,22 +245,17 @@ export const review = (
   const measures = new Map(
     node.choices.map((choice) => [choice.identifier, measureOf(choice, locale)]),
   );
+  const plot = plotKindOf(context.className);
   const shading = shadingOf(context);
   const shade =
     shading === undefined
       ? undefined
       : shadeDirectionOf(shading.link, pickedIn(context.values.get(shading.response)));
   const figuresAt = (size: ImageSize) =>
-    figuresOf(
-      plotKindOf(context.className),
-      node.choices.map(plotChoiceOf),
-      hotspots,
-      node.pairs,
-      size,
-      shade,
-    );
+    figuresOf(plot, node.choices.map(plotChoiceOf), hotspots, node.pairs, size, shade);
   const placed = hotspots.map((hotspot) => ({
     area: hotspot,
+    capacity: hotspot.matchMax,
     choices: (byHotspot.get(hotspot.identifier) ?? []).flatMap((chip, at) => {
       const content = contents.get(chip.identifier);
       const key = `${chip.identifier} ${String(at)}`;
@@ -316,7 +311,11 @@ export const review = (
             <>
               <HotspotArrows hotspots={hotspots} size={size} />
               <PlotPins figures={figuresAt(size)} size={size} />
-              <PlacedChoices floor={floorWidthOf(size, scale)} placed={placed} size={size} />
+              <PlacedChoices
+                floor={floorWidthOf(size, scale)}
+                placed={placedOnPlot(plot, placed, size)}
+                size={size}
+              />
             </>
           )}
           stage={reviewStageOf(hotspots, node.size, floorOf(context.className))}

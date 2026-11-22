@@ -46,8 +46,12 @@
  *
  * @module
  */
+import { Array as Arr } from "effect";
 import type { ReactNode } from "react";
+import { stepsOf } from "#plate/graphic/plot.ts";
+import type { PlotKind } from "#plate/interactions/plot-roles.ts";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
+import type { Limit } from "#plate/placement/limit.ts";
 import type { AnswerMark } from "#plate/ui/item/interactions/marks.ts";
 import { placedBoxOf } from "#plate/ui/graphic-gap-match/box.ts";
 import { bandsOf } from "#plate/ui/graphic-gap-match/fit.ts";
@@ -75,6 +79,31 @@ export interface PlacedIn {
   readonly choices: readonly PlacedChoice[];
   readonly identifier: string;
 }
+
+/**
+ * Lay out where the image draws a plot's placed choices: on a dot plot, each alone in its step of
+ * its column, bottom first, the first placed lowest (`stepsOf` in `#plate/graphic/plot.ts`); on
+ * every other plot, each hotspot's together in its area, as placed.
+ *
+ * @param plot The plot.
+ * @param placed The hotspots, the choices each holds and the most it holds, its `match-max`.
+ * @param size The image's size, the pixel space of the areas' coordinates.
+ * @returns The areas the choices are drawn in, each with its choices.
+ */
+export const placedOnPlot = (
+  plot: PlotKind,
+  placed: readonly (PlacedIn & { readonly capacity: Limit })[],
+  size: ImageSize,
+): readonly PlacedIn[] =>
+  plot === "dot-plot"
+    ? placed.flatMap(({ area, capacity, choices, identifier }) =>
+        Arr.zipWith(stepsOf(area, capacity, choices.length, size), choices, (step, choice) => ({
+          area: step,
+          choices: [choice],
+          identifier: `${identifier} ${choice.key}`,
+        })),
+      )
+    : placed;
 
 /**
  * Draw a band's cards: the `svg` their layout stands in, at its natural size, the layout's at the

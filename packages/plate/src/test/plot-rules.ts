@@ -8,6 +8,11 @@
  * token `plate-lattice` keeps WCAG 2.5.8's 24 px target; every other one keeps 2.5.5's 44 px; a
  * stage's least scale makes its smallest tap region exactly that wide.
  *
+ * The dot plot's rule (M44, AlphaTest's line plot, GraphicHotspotInteraction.tsx 377 and 619): a
+ * column's choices stand in equal steps up from the bottom of its box, the first placed lowest,
+ * each step the box's height over the column's `match-max`, or over the choices it holds where it
+ * has no limit.
+ *
  * @module
  */
 import type { Option } from "effect";
@@ -129,7 +134,21 @@ export interface PlotSubject {
   readonly shadeOf: (classes: Option.Option<string>) => Option.Option<string>;
   readonly some: (value: string) => Option.Option<string>;
   readonly statisticOf: (classes: Option.Option<string>) => Option.Option<string>;
+  readonly stepsOf: (
+    column: StepArea,
+    capacity: { readonly kind: "none" } | { readonly kind: "at-most"; readonly n: number },
+    held: number,
+    size: { readonly height: number; readonly width: number },
+  ) => readonly StepArea[];
   readonly value: (option: Option.Option<string>) => string | undefined;
+}
+
+/**
+ * An area as a dot plot's steps read and give it: its geometry and its coordinates.
+ */
+interface StepArea {
+  readonly coords: readonly { readonly percent: boolean; readonly value: number }[];
+  readonly geometry: "circle" | "default" | "ellipse" | "poly" | "rect";
 }
 
 /**
@@ -427,7 +446,10 @@ const plotCases: readonly (readonly [string | undefined, string])[] = [
   ["plate-graph-segment", "segment"],
   ["plate-box-plot plate-lattice", "box-plot"],
   ["qti-x plate-number-line-graph", "number-line"],
+  ["plate-lattice plate-dot-plot", "dot-plot"],
   ["plate-graph-line plate-graph-segment", "plain"],
+  ["plate-dot-plot plate-box-plot", "plain"],
+  ["plate-dot-plots", "plain"],
   ["plate-box-plot plate-number-line-graph", "plain"],
   ["plate-lattice", "plain"],
   ["plate-graph-lines", "plain"],
@@ -699,14 +721,93 @@ const plotCasesOf = (): readonly PlotCase[] => {
 };
 
 /**
- * Walk the plot's readers ({@link walkReaders}) and every case of its box ({@link plotCasesOf}),
- * and give the first disagreement between plate and the rules.
+ * Dot plot columns, each with the box the rule reads from it, in the image's pixels: a `rect`
+ * written from its top left, one written from its bottom right, one in percentages of a 400 by 300
+ * image, and a `poly` whose box is its vertices'.
+ */
+const columns: readonly (readonly [
+  StepArea,
+  { readonly bottom: number; readonly left: number; readonly right: number; readonly top: number },
+])[] = [
+  [
+    { coords: [100, 40, 140, 300].map((value) => ({ percent: false, value })), geometry: "rect" },
+    { bottom: 300, left: 100, right: 140, top: 40 },
+  ],
+  [
+    { coords: [260, 290, 220, 50].map((value) => ({ percent: false, value })), geometry: "rect" },
+    { bottom: 290, left: 220, right: 260, top: 50 },
+  ],
+  [
+    { coords: [10, 10, 20, 90].map((value) => ({ percent: true, value })), geometry: "rect" },
+    { bottom: 270, left: 40, right: 80, top: 30 },
+  ],
+  [
+    {
+      coords: [300, 60, 340, 60, 340, 280, 300, 280].map((value) => ({ percent: false, value })),
+      geometry: "poly",
+    },
+    { bottom: 280, left: 300, right: 340, top: 60 },
+  ],
+];
+
+/**
+ * Walk every column of {@link columns} at every `match-max` from 1 to 6 holding from none to that
+ * many, and with no limit holding from none to four, and give the first whose steps differ from
+ * the rule's.
+ *
+ * @param subject The program's modules.
+ * @returns The disagreement, undefined where every case agrees.
+ */
+const walkSteps = (subject: PlotSubject): string | undefined => {
+  const limits = [
+    ...[1, 2, 3, 4, 5, 6].map((n) => ({ capacity: { kind: "at-most", n } as const, most: n })),
+    { capacity: { kind: "none" } as const, most: 4 },
+  ];
+
+  for (const [column, box] of columns) {
+    for (const { capacity, most } of limits) {
+      for (let held = 0; held <= most; held += 1) {
+        const per = (box.bottom - box.top) / (capacity.kind === "at-most" ? capacity.n : held);
+        const rule = Array.from({ length: held }, (_, place) => [
+          box.left,
+          box.bottom - (place + 1) * per,
+          box.right,
+          box.bottom - place * per,
+        ]);
+        const steps = subject.stepsOf(column, capacity, held, { height: 300, width: 400 });
+        const agrees =
+          steps.length === rule.length &&
+          steps.every(
+            (step, place) =>
+              step.geometry === "rect" &&
+              step.coords.length === 4 &&
+              step.coords.every(
+                (coordinate, index) =>
+                  !coordinate.percent &&
+                  Math.abs(coordinate.value - (rule[place]?.[index] ?? Number.NaN)) < 1e-9,
+              ),
+          );
+
+        if (!agrees) {
+          return `a ${column.geometry} column of ${JSON.stringify(capacity)} holding ${String(held)} stands them in ${JSON.stringify(steps)}, not ${JSON.stringify(rule)}`;
+        }
+      }
+    }
+  }
+
+  return undefined;
+};
+
+/**
+ * Walk the plot's readers ({@link walkReaders}), a dot plot's steps ({@link walkSteps}) and every
+ * case of its box ({@link plotCasesOf}), and give the first disagreement between plate and the
+ * rules.
  *
  * @param subject The program's modules.
  * @returns The disagreement, undefined where every case agrees.
  */
 export const walkPlot = (subject: PlotSubject): string | undefined => {
-  const readers = walkReaders(subject);
+  const readers = walkReaders(subject) ?? walkSteps(subject);
 
   if (readers !== undefined) {
     return readers;
