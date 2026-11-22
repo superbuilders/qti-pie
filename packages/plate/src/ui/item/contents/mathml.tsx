@@ -178,8 +178,11 @@ const propsOf = (
 
 /**
  * Write a MathML tree as MathJax draws it: each element with the attributes plate writes on it
- * ({@link writtenAttributes}), and each `annotation-xml` with its attributes and no content, which
- * MathJax never draws.
+ * ({@link writtenAttributes}) and its `style`, and each `annotation-xml` with its attributes and no
+ * content, which MathJax never draws. MathJax reads a `style` as it reads `mathcolor` and
+ * `mathbackground`, drawing its colour, border and background as the drawing's SVG attributes, as
+ * AlphaTest's player drew a coloured digit or `\fcolorbox`'s frame; the page itself carries no
+ * author style, so the MathML beside the drawing is written without it.
  *
  * @param element The tree: a `math` element's payload, or an element below it.
  * @param addressing The instance, the item's location and the assets.
@@ -189,7 +192,10 @@ const formulaOf = (
   element: MathElement<RedactedNode>,
   addressing: Addressing,
 ): MathElement<never> => ({
-  attributes: writtenAttributes(element.local, element.attributes, addressing),
+  attributes: [
+    ...writtenAttributes(element.local, element.attributes, addressing),
+    ...element.attributes.filter(({ name }) => name === "style"),
+  ],
   children: element.children.map((child): MathChild<never> => {
     switch (child.kind) {
       case "annotation-xml": {

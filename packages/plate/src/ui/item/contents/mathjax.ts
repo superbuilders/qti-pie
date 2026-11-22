@@ -129,6 +129,7 @@ const drawnElements: ReadonlySet<string> = new Set([
  * React writes it under: the presentation attributes in camel case, the rest as SVG spells them.
  */
 export const drawnAttributes: ReadonlyMap<string, string> = new Map([
+  ["color", "color"],
   ["cx", "cx"],
   ["cy", "cy"],
   ["d", "d"],
@@ -308,7 +309,8 @@ const sheetRules: readonly SheetRule[] = [
 
 /**
  * Read the declarations of an element's `style` attribute, as MathJax writes it
- * (`stroke-width: 40; ...`).
+ * (`stroke-width: 40; color: #0000FF !important`), each value without its `!important`, which is
+ * CSS's priority and no part of the value a presentation attribute takes.
  *
  * @param element The element.
  * @returns Each declaration's property and value, in order.
@@ -319,7 +321,15 @@ const styleOf = (element: LiteElement): readonly (readonly [string, string])[] =
 
     return colon === -1
       ? []
-      : [[declaration.slice(0, colon).trim(), declaration.slice(colon + 1).trim()] as const];
+      : [
+          [
+            declaration.slice(0, colon).trim(),
+            declaration
+              .slice(colon + 1)
+              .replace(/!\s*important\s*$/iu, "")
+              .trim(),
+          ] as const,
+        ];
   });
 
 /**
@@ -434,11 +444,26 @@ const bordered = (attributes: readonly MathAttribute[]): boolean =>
  * `annotation-xml` with no content; inside an `menclose` of notation `box` when it carries
  * `qti-bordered` ({@link bordered}), an ordinary atom as TeX's `\boxed` is (MathJax's own
  * `data-mjx-texclass`, which its MathML input reads), so the operators beside it keep TeX's spaces.
+ * An `maction` is written as the child its `selection` names (MathML 3 §3.7.1, from 1, the first
+ * by default), which is what a page with no script shows: MathJax's SVG output wires a toggle's or
+ * a tooltip's action to the DOM it draws in, which the lite DOM has none of; an empty `mrow` where
+ * it names none.
  *
  * @param element The element.
  * @returns Its MathML.
  */
 const elementText = (element: MathElement<unknown>): string => {
+  if (element.local === "maction") {
+    const selection = Number(
+      element.attributes.find(({ name }) => name === "selection")?.value ?? "1",
+    );
+    const selected = element.children.filter(
+      (child): child is MathElement<unknown> => child.kind === "element",
+    )[selection - 1];
+
+    return selected === undefined ? "<mrow></mrow>" : elementText(selected);
+  }
+
   const attributes = element.attributes
     .filter(({ name }) => !undrawnAttributes.has(name))
     .map(attributeText)

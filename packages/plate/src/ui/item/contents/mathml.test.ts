@@ -20,7 +20,9 @@
  *   its text, as the author wrote it;
  * - **bordered:** each element carrying `qti-bordered` is drawn inside a box, one more rectangle in
  *   the drawing than the same formula without the class;
- * - **settled:** drawing a formula again writes the same HTML.
+ * - **settled:** drawing a formula again writes the same HTML;
+ * - **coloured:** each colour a drawn element's `style` states (AlphaTest's coloured digits) is
+ *   drawn, as the drawing's `color`.
  *
  * Kills: each mutant of the shell's output, a way the writing could break, is refused by the
  * property it breaks, so a pass is a pass of properties that see these breaks.
@@ -196,6 +198,12 @@ const token = (chance: Chance): Child =>
       ]),
     () => el("mtext", none, [tx(chance.pick(["cats", " ", "¢", "▢", "＄5", "km/h"]))]),
     () => el("mspace", [["width", chance.pick(["0.167em", "1em", "2ex"])]], []),
+    () =>
+      el(
+        "mn",
+        [["style", chance.pick(["color:#0000FF !important;", "color:#FF8000 !important;"])]],
+        [tx("5")],
+      ),
   ])();
 
 /**
@@ -281,6 +289,15 @@ const part = (chance: Chance, depth: number): Child => {
     () => el("mphantom", none, row()),
     () => el("mn", [["mathcolor", "red"]], [tx("4")]),
     () => table(chance, inner),
+    () =>
+      el(
+        "maction",
+        [
+          ["actiontype", "toggle"],
+          ["selection", chance.pick(["1", "2"])],
+        ],
+        [inner(), inner()],
+      ),
   ])();
 };
 
@@ -759,27 +776,108 @@ const unbordered = (children: readonly Child[]): readonly Child[] =>
   );
 
 /**
- * Count the elements carrying `qti-bordered` in a tree that MathJax draws: none inside an
- * `mphantom`, which takes its content's room and draws none of it.
+ * The children of an element that MathJax draws: none of an `mphantom`, which takes its content's
+ * room and draws none of it; only the selected one of an `maction`; all of any other.
+ *
+ * @param element The element.
+ * @returns The children it draws.
+ */
+const drawnChildren = (element: Extract<Child, { readonly kind: "element" }>): readonly Child[] => {
+  if (element.local === "mphantom") {
+    return [];
+  }
+
+  if (element.local === "maction") {
+    const selection = Number(
+      element.attributes.find(({ name }) => name === "selection")?.value ?? "1",
+    );
+    const selected = element.children.filter((child) => child.kind === "element")[selection - 1];
+
+    return selected === undefined ? [] : [selected];
+  }
+
+  return element.children;
+};
+
+/**
+ * The elements of a tree MathJax draws, in document order ({@link drawnChildren}).
+ *
+ * @param children The children.
+ * @returns The elements drawn.
+ */
+const drawnElements = (
+  children: readonly Child[],
+): readonly Extract<Child, { readonly kind: "element" }>[] =>
+  children.flatMap((child) =>
+    child.kind === "element" ? [child, ...drawnElements(drawnChildren(child))] : [],
+  );
+
+/**
+ * Count the elements carrying `qti-bordered` that MathJax draws in a tree.
  *
  * @param children The children.
  * @returns How many carry it.
  */
-const borderedCount = (children: readonly Child[]): number => {
-  let count = 0;
+const borderedCount = (children: readonly Child[]): number =>
+  drawnElements(children).filter((element) =>
+    element.attributes.some(({ name, value }) => name === "class" && value === "qti-bordered"),
+  ).length;
 
-  for (const child of children) {
-    if (child.kind === "element" && child.local !== "mphantom") {
-      const carries = child.attributes.some(
-        ({ name, value }) => name === "class" && value === "qti-bordered",
-      );
+/**
+ * A colour a formula's `style` states, as the drawing writes it: the value of its `color`
+ * declaration, without `!important`.
+ *
+ * @param element An element of the formula.
+ * @returns The colour, none when its style states none.
+ */
+const styledColour = (element: Extract<Child, { readonly kind: "element" }>): readonly string[] =>
+  (element.attributes.find(({ name }) => name === "style")?.value ?? "")
+    .split(";")
+    .flatMap((declaration) => {
+      const [property, value] = declaration.split(":");
 
-      count += (carries ? 1 : 0) + borderedCount(child.children);
-    }
-  }
+      return property?.trim() === "color" && value !== undefined
+        ? [value.replace(/!\s*important\s*$/iu, "").trim()]
+        : [];
+    });
 
-  return count;
+/**
+ * Each colour a drawn element's `style` states is drawn: the drawing carries it as a `color`.
+ *
+ * @param check The formula and its writing.
+ * @returns What broke.
+ */
+const coloured = ({ formula, page }: Case): Verdict => {
+  const drawing = slotted(page, "plate-math-drawing");
+  const colours = new Set(
+    drawing === undefined
+      ? []
+      : elementsOf(drawing, (element) => attr(element, "color") !== undefined).map(
+          (element) => attr(element, "color") ?? "",
+        ),
+  );
+
+  return drawnElements(formula.children)
+    .flatMap(styledColour)
+    .flatMap((colour) => (colours.has(colour) ? [] : [`the colour ${colour} is not drawn`]));
 };
+
+/**
+ * Remove every `style` from a tree.
+ *
+ * @param children The children.
+ * @returns The children, their styles gone.
+ */
+const unstyledTree = (children: readonly Child[]): readonly Child[] =>
+  children.map((child) =>
+    child.kind === "element"
+      ? {
+          ...child,
+          attributes: child.attributes.filter(({ name }) => name !== "style"),
+          children: unstyledTree(child.children),
+        }
+      : child,
+  );
 
 /**
  * Count the rectangles a page draws.
@@ -830,6 +928,7 @@ const properties: ReadonlyMap<string, (check: Case) => Verdict> = new Map([
   ["voiced", voiced],
   ["bordered", bordered],
   ["settled", settled],
+  ["coloured", coloured],
 ]);
 
 /**
@@ -919,6 +1018,11 @@ const mutants: readonly (readonly [name: string, property: string, writer: Write
     "a group's transform dropped",
     "drawn",
     rewriting((html) => html.replace(/ transform="translate\([^"]*\)"/u, "")),
+  ],
+  [
+    "the formula's style left out of what MathJax reads",
+    "coloured",
+    (formula) => written({ ...formula, children: unstyledTree(formula.children) }),
   ],
   [
     "qti-bordered drawn as no box",
