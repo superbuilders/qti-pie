@@ -377,24 +377,31 @@ const isSharedVocabulary = (name: string): boolean =>
  * review markup set (a slider's bound and direction, a slider review value's place along its scale,
  * a placement's pairing, a bank chip a review shows as missing, a marker's index and tone, a media
  * island's playing, an End Attempt's pending post, a PCI island's loading and failure), and the
- * states of UI SDK's components that `styles/base.css` and `styles/theme.css` select. The
- * `data-qti-` prefix is {@link reservedDataPrefix}, not a member, and plate writes no name under
- * it.
+ * states of UI SDK's components that `styles/base.css` and `styles/theme.css` select, and a
+ * formula's: `data-display` on its root, and the names plate writes into the MathML it hands
+ * MathJax (`data-mjx-texclass`, a slot's `data-plate-slot`) or reads in the SVG MathJax draws
+ * (`data-mml-node`, `data-c`, `data-line`, `data-frame`, `data-table`, `data-background`),
+ * `#plate/ui/item/contents/mathjax.ts`. The `data-qti-` prefix is {@link reservedDataPrefix}, not
+ * a member, and plate writes no name under it.
  */
 const reservedDataNames: ReadonlySet<string> = new Set([
   "data-area",
+  "data-background",
   "data-bound",
+  "data-c",
   "data-calculator-type",
   "data-checked",
   "data-copies",
   "data-credit",
   "data-disabled",
+  "data-display",
   "data-dragging",
   "data-empty",
   "data-failed",
   "data-focus-visible",
   "data-format",
   "data-fraction",
+  "data-frame",
   "data-full",
   "data-highlighted",
   "data-hotspot-list",
@@ -405,6 +412,7 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-keypad-key",
   "data-keypad-layout",
   "data-keyword-emphasis",
+  "data-line",
   "data-loading",
   "data-major-increment",
   "data-major-unit",
@@ -414,6 +422,8 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-minor-increment",
   "data-minor-unit",
   "data-missed",
+  "data-mjx-texclass",
+  "data-mml-node",
   "data-mode",
   "data-open",
   "data-orientation",
@@ -423,6 +433,7 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-picked",
   "data-placed",
   "data-placeholder",
+  "data-plate-slot",
   "data-playing",
   "data-position",
   "data-pressed",
@@ -432,6 +443,7 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-slot",
   "data-support",
   "data-system",
+  "data-table",
   "data-tone",
   "data-unchecked",
   "data-unnamed",

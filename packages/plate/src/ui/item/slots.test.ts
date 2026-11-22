@@ -56,7 +56,7 @@ const addressing = {
  * @returns The island.
  */
 const island = (response: string, kind: string): ReturnType<typeof createElement> =>
-  createElement("input", { "data-kind": kind, name: response, readOnly: true });
+  createElement("input", { "data-mode": kind, name: response, readOnly: true });
 
 /**
  * A body walk whose seam renders each interaction as {@link island}.

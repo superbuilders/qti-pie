@@ -1039,7 +1039,7 @@ const mutants: readonly (readonly [name: string, property: string, writer: Write
 
       return written(formula).replace(
         'data-slot="plate-math-drawing"',
-        `data-slot="plate-math-drawing" data-cache="MJX-${String(drawings)}"`,
+        `data-slot="plate-math-drawing" data-index="MJX-${String(drawings)}"`,
       );
     },
   ],
