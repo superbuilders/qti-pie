@@ -18,7 +18,7 @@ create type p3.out_directed_pair as (identifier text collate pg_catalog.pg_c_utf
   source text collate pg_catalog.pg_c_utf8, target text collate pg_catalog.pg_c_utf8);
 create type p3.out_point as (identifier text collate pg_catalog.pg_c_utf8, place integer, x numeric(825, 0),
   y numeric(825, 0));
-create type p3.out_file as (content_type text collate pg_catalog.pg_c_utf8, digest text collate pg_catalog.pg_c_utf8,
+create type p3.out_file as (content_type text collate pg_catalog.pg_c_utf8, digest bytea,
   identifier text collate pg_catalog.pg_c_utf8, place integer);
 create type p3.out_file_name as (identifier text collate pg_catalog.pg_c_utf8, name text collate pg_catalog.pg_c_utf8,
   place integer);
@@ -37,7 +37,7 @@ create type p3.out_field_directed_pair as (field text collate pg_catalog.pg_c_ut
   identifier text collate pg_catalog.pg_c_utf8, source text collate pg_catalog.pg_c_utf8, target text collate pg_catalog.pg_c_utf8);
 create type p3.out_field_point as (field text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8,
   x numeric(825, 0), y numeric(825, 0));
-create type p3.out_field_file as (content_type text collate pg_catalog.pg_c_utf8, digest text collate pg_catalog.pg_c_utf8,
+create type p3.out_field_file as (content_type text collate pg_catalog.pg_c_utf8, digest bytea,
   field text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8);
 create type p3.out_field_file_name as (field text collate pg_catalog.pg_c_utf8,
   identifier text collate pg_catalog.pg_c_utf8, name text collate pg_catalog.pg_c_utf8);
@@ -65,14 +65,14 @@ create function p3.outcomes_of(st p3.run_state) returns p3.out_values language s
     array(select row((x).field, identifier, (x).b)::out_field_boolean from s where card = 'record' and (x).base = 'boolean' order by identifier, (x).field),
     array(select row((x).field, identifier, (x).t, (x).u)::out_field_directed_pair from s where card = 'record' and (x).base = 'directedPair' order by identifier, (x).field),
     array(select row((x).field, identifier, (x).w)::out_field_file_name from s where card = 'record' and (x).base = 'file' and (x).w is not null order by identifier, (x).field),
-    array(select row((x).u, (x).t, (x).field, identifier)::out_field_file from s where card = 'record' and (x).base = 'file' order by identifier, (x).field),
+    array(select row((x).u, (x).d, (x).field, identifier)::out_field_file from s where card = 'record' and (x).base = 'file' order by identifier, (x).field),
     array(select row((x).base, (x).field, identifier, (x).f)::out_field_float from s where card = 'record' and (x).base in ('float', 'duration') order by identifier, (x).field),
     array(select row((x).field, identifier, (x).n)::out_field_integer from s where card = 'record' and (x).base = 'integer' order by identifier, (x).field),
     array(select row((x).field, (x).u, identifier, (x).t)::out_field_pair from s where card = 'record' and (x).base = 'pair' order by identifier, (x).field),
     array(select row((x).field, identifier, (x).n, (x).m)::out_field_point from s where card = 'record' and (x).base = 'point' order by identifier, (x).field),
     array(select row((x).base, (x).field, identifier, (x).t)::out_field_text from s where card = 'record' and (x).base in ('identifier', 'string', 'uri') order by identifier, (x).field),
     array(select row(identifier, (x).w, place)::out_file_name from s where card <> 'record' and (x).base = 'file' and (x).w is not null order by identifier, place),
-    array(select row((x).u, (x).t, identifier, place)::out_file from s where card <> 'record' and (x).base = 'file' order by identifier, place),
+    array(select row((x).u, (x).d, identifier, place)::out_file from s where card <> 'record' and (x).base = 'file' order by identifier, place),
     array(select row((x).base, identifier, place, (x).f)::out_float from s where card <> 'record' and (x).base in ('float', 'duration') order by identifier, place),
     st.flow,
     array(select row(identifier, place, (x).n)::out_integer from s where card <> 'record' and (x).base = 'integer' order by identifier, place),
@@ -96,7 +96,7 @@ create type p3.in_boolean as (holds text collate pg_catalog.pg_c_utf8, identifie
 create type p3.in_pair as (greatest text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, least text collate pg_catalog.pg_c_utf8, place integer);
 create type p3.in_directed_pair as (holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, place integer, source text collate pg_catalog.pg_c_utf8, target text collate pg_catalog.pg_c_utf8);
 create type p3.in_point as (holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, place integer, x numeric(825, 0), y numeric(825, 0));
-create type p3.in_file as (content_type text collate pg_catalog.pg_c_utf8, digest text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, place integer);
+create type p3.in_file as (content_type text collate pg_catalog.pg_c_utf8, digest bytea, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, place integer);
 create type p3.in_file_name as (holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, name text collate pg_catalog.pg_c_utf8, place integer);
 create type p3.in_field_text as (base text collate pg_catalog.pg_c_utf8, field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, value text collate pg_catalog.pg_c_utf8);
 create type p3.in_field_integer as (field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, value numeric(825, 0));
@@ -105,7 +105,7 @@ create type p3.in_field_boolean as (field text collate pg_catalog.pg_c_utf8, hol
 create type p3.in_field_pair as (field text collate pg_catalog.pg_c_utf8, greatest text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, least text collate pg_catalog.pg_c_utf8);
 create type p3.in_field_directed_pair as (field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, source text collate pg_catalog.pg_c_utf8, target text collate pg_catalog.pg_c_utf8);
 create type p3.in_field_point as (field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, x numeric(825, 0), y numeric(825, 0));
-create type p3.in_field_file as (content_type text collate pg_catalog.pg_c_utf8, digest text collate pg_catalog.pg_c_utf8, field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8);
+create type p3.in_field_file as (content_type text collate pg_catalog.pg_c_utf8, digest bytea, field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8);
 create type p3.in_field_file_name as (field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, name text collate pg_catalog.pg_c_utf8);
 -- An item's variables, flat, by base type: one row of each heading's array, the shape p3.out_values is.
 create type p3.in_values as (bases p3.in_base[], booleans p3.in_boolean[], directed_pairs p3.in_directed_pair[], field_booleans p3.in_field_boolean[], field_directed_pairs p3.in_field_directed_pair[], field_file_names p3.in_field_file_name[], field_files p3.in_field_file[], field_floats p3.in_field_float[], field_integers p3.in_field_integer[], field_pairs p3.in_field_pair[], field_points p3.in_field_point[], field_texts p3.in_field_text[], file_names p3.in_file_name[], files p3.in_file[], floats p3.in_float[], integers p3.in_integer[], pairs p3.in_pair[], points p3.in_point[], texts p3.in_text[], vars p3.in_var[]);

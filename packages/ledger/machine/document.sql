@@ -346,11 +346,11 @@ $$;
 -- no single, is one value with NULL alone. Never a comparison QTI defines (`match` compares a float by value).
 create function p3.held_identical(a p3.single[], b p3.single[], card text) returns boolean language sql immutable as $$
   with x as (
-    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base,
+    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base, z.d,
       case when z.f = 'NaN' then '\x7ff8000000000000'::bytea else float8send(z.f) end as f, z.field, z.m, z.n, z.t, z.u, z.w
     from unnest(a) with ordinality z
   ), y as (
-    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base,
+    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base, z.d,
       case when z.f = 'NaN' then '\x7ff8000000000000'::bytea else float8send(z.f) end as f, z.field, z.m, z.n, z.t, z.u, z.w
     from unnest(b) with ordinality z
   )
@@ -387,14 +387,14 @@ returns p3.doc_values language sql immutable as $$
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).b)::doc_field_boolean from s where card = 'record' and (x).base = 'boolean'),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (x).t, (run).stage, (x).u)::doc_field_directed_pair from s where card = 'record' and (x).base = 'directedPair'),
     array(select row((run).child, (x).field, holds, identifier, (x).w, (run).package, (run).path, (run).stage)::doc_field_file_name from s where card = 'record' and (x).base = 'file' and (x).w is not null),
-    array(select row((run).child, (x).u, (x).t, (x).field, holds, identifier, (run).package, (run).path, (run).stage)::doc_field_file from s where card = 'record' and (x).base = 'file'),
+    array(select row((run).child, (x).u, (x).d, (x).field, holds, identifier, (run).package, (run).path, (run).stage)::doc_field_file from s where card = 'record' and (x).base = 'file'),
     array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).f)::doc_field_float from s where card = 'record' and (x).base in ('float', 'duration')),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n)::doc_field_integer from s where card = 'record' and (x).base = 'integer'),
     array(select row((run).child, (x).field, (x).u, holds, identifier, (x).t, (run).package, (run).path, (run).stage)::doc_field_pair from s where card = 'record' and (x).base = 'pair'),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n, (x).m)::doc_field_point from s where card = 'record' and (x).base = 'point'),
     array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).t)::doc_field_text from s where card = 'record' and (x).base in ('identifier', 'string', 'uri')),
     array(select row((run).child, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::doc_file_name from s where card <> 'record' and (x).base = 'file' and (x).w is not null),
-    array(select row((run).child, (x).u, (x).t, holds, identifier, (run).package, (run).path, place, (run).stage)::doc_file from s where card <> 'record' and (x).base = 'file'),
+    array(select row((run).child, (x).u, (x).d, holds, identifier, (run).package, (run).path, place, (run).stage)::doc_file from s where card <> 'record' and (x).base = 'file'),
     array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::doc_float from s where card <> 'record' and (x).base in ('float', 'duration')),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::doc_integer from s where card <> 'record' and (x).base = 'integer'),
     array(select row((run).child, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::doc_pair from s where card <> 'record' and (x).base = 'pair'),
@@ -618,9 +618,9 @@ end $$;
 create function p3.copies(count bigint) returns setof p3.copy language sql immutable as $$
   select k from generate_series(0::bigint, count - 1) k
 $$;
--- HMAC-SHA-256 (RFC 2104) of a message under a key, both UTF-8, as 64 lowercase hex digits: plate's keyedDigest, the
--- hash every seed a decision derives takes.
-create function p3.keyed_digest(key text, message text) returns text language plpgsql immutable as $$
+-- HMAC-SHA-256 (RFC 2104) of a message under a key, both UTF-8, its 32 raw bytes: plate's keyedDigest, the hash every
+-- seed a decision derives takes.
+create function p3.keyed_digest(key text, message text) returns bytea language plpgsql immutable as $$
 declare k bytea := convert_to(key, 'UTF8'); ipad bytea := ''; opad bytea := ''; j int;
 begin
   k := case when length(k) > 64 then sha256(k) else k end;
@@ -629,13 +629,20 @@ begin
     ipad := ipad || set_byte('\x00'::bytea, 0, get_byte(k, j) # 54);
     opad := opad || set_byte('\x00'::bytea, 0, get_byte(k, j) # 92);
   end loop;
-  return encode(sha256(opad || sha256(ipad || convert_to(message, 'UTF8'))), 'hex');
+  return sha256(opad || sha256(ipad || convert_to(message, 'UTF8')));
 end $$;
 -- The seed an item's template and response processing draw under, from its decision's seed, a v4 uuid in its canonical
 -- lowercase text (plate's itemSeeds: keyedDigest(decision, ["processing", package, identifier]), its fields joined by
 -- U+001F).
-create function p3.processing_seed(decision uuid, identifier text, package text) returns text language sql immutable as $$
+create function p3.processing_seed(decision uuid, identifier text, package text) returns bytea language sql immutable as $$
   select keyed_digest(key => decision::text, message => 'processing' || chr(31) || package || chr(31) || identifier)
+$$;
+-- The key an item's draw stream is made under, from its processing seed (32 raw bytes, the ledger's SessionSeed): the
+-- seed's 64 lowercase hex digits, which `word` reads as UTF-8. That text is plate's protocol, the key its itemSeeds hand
+-- its draw stream, and every draw a session recorded was made under it, so it is spelled here, once, and never changes:
+-- history is never drawn again under another key.
+create function p3.seed_stream_key(seed bytea) returns text language sql immutable as $$
+  select encode(seed, 'hex')
 $$;
 -- The labels an item's draws are made under (plate's labels): `served␟response␟<numAttempts>` for response processing,
 -- `served␟template␟<identifier>` for template processing.

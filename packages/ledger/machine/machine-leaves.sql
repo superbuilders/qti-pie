@@ -1,10 +1,10 @@
 -- P3's machine: QTI 3.0.1's response and template processing as declared functions, over the typed program and inputs
 -- (machine-types.sql). Each function reads only its arguments: no table, no text to re-parse. Ported from the proven
--- prototype g3 to what a grizzle declared function admits: every argument and result
--- a value of a base type or a heading's row type (one row, or rows as an array), no scalar array, no bytes, no
--- geometric type, and its body naming row types and functions unqualified. Written callees first. The installation
--- makes each SECURITY DEFINER under a NOLOGIN owner with no table privilege and pins its search_path,
--- as grizzle installs a declared function.
+-- prototype g3 to what a grizzle declared function admits: every argument and result a value of a base type or a
+-- heading's row type (one row, or rows as an array), no scalar array, no bytes but a SHA-256's 32 (grizzle's sha256: a
+-- file's content digest, a processing seed), no geometric type, and its body naming row types and functions
+-- unqualified. Written callees first. The installation makes each SECURITY DEFINER under a NOLOGIN owner with no table
+-- privilege and pins its search_path, as grizzle installs a declared function.
 
 -- Singles, one constructor per base type, the only way a single is made: each sets exactly the columns its base type
 -- names and raises on a value missing, so no single holds a column another base type's, or lacks its own.
@@ -13,44 +13,44 @@
 create function p3.s_text(base text, t text) returns p3.single language plpgsql immutable as $$
 begin
   if base not in ('identifier', 'string', 'uri') or t is null or t = '' then raise exception 'no % single of text %', base, t; end if;
-  return row(null, base, null, null, null, null, t, null, null)::single;
+  return row(null, base, null, null, null, null, null, t, null, null)::single;
 end $$;
 create function p3.s_int(n numeric) returns p3.single language plpgsql immutable as $$
 begin
   if n is null or n <> trunc(n) then raise exception 'no integer single of %', n; end if;
-  return row(null, 'integer', null, null, null, n, null, null, null)::single;
+  return row(null, 'integer', null, null, null, null, n, null, null, null)::single;
 end $$;
 create function p3.s_float(base text, f float8) returns p3.single language plpgsql immutable as $$
 begin
   if base not in ('float', 'duration') or f is null then raise exception 'no % single of %', base, f; end if;
-  return row(null, base, f, null, null, null, null, null, null)::single;
+  return row(null, base, null, f, null, null, null, null, null, null)::single;
 end $$;
 create function p3.s_bool(b boolean) returns p3.single language plpgsql immutable as $$
 begin
   if b is null then raise exception 'no boolean single of NULL'; end if;
-  return row(b, 'boolean', null, null, null, null, null, null, null)::single;
+  return row(b, 'boolean', null, null, null, null, null, null, null, null)::single;
 end $$;
 -- A pair as (least, greatest), so "either order" is the coordinate, not a comparison.
 create function p3.s_pair(a text, b text) returns p3.single language plpgsql immutable as $$
 begin
   if a is null or b is null then raise exception 'no pair single of % %', a, b; end if;
-  return row(null, 'pair', null, null, null, null, least(a, b), greatest(a, b), null)::single;
+  return row(null, 'pair', null, null, null, null, null, least(a, b), greatest(a, b), null)::single;
 end $$;
 create function p3.s_dpair(a text, b text) returns p3.single language plpgsql immutable as $$
 begin
   if a is null or b is null then raise exception 'no directedPair single of % %', a, b; end if;
-  return row(null, 'directedPair', null, null, null, null, a, b, null)::single;
+  return row(null, 'directedPair', null, null, null, null, null, a, b, null)::single;
 end $$;
--- A file: its SHA-256 content digest, its identity, its content type, and its filename where it has one.
-create function p3.s_file(content_type text, digest text, filename text) returns p3.single language plpgsql immutable as $$
+-- A file: its SHA-256 content digest, 32 raw bytes, its identity, its content type, and its filename where it has one.
+create function p3.s_file(content_type text, digest bytea, filename text) returns p3.single language plpgsql immutable as $$
 begin
   if digest is null or content_type is null then raise exception 'no file single of % %', digest, content_type; end if;
-  return row(null, 'file', null, null, null, null, digest, content_type, filename)::single;
+  return row(null, 'file', digest, null, null, null, null, null, content_type, filename)::single;
 end $$;
 create function p3.s_point(x numeric, y numeric) returns p3.single language plpgsql immutable as $$
 begin
   if x is null or y is null or x <> trunc(x) or y <> trunc(y) then raise exception 'no point single of % %', x, y; end if;
-  return row(null, 'point', null, null, y, x, null, null, null)::single;
+  return row(null, 'point', null, null, null, y, x, null, null, null)::single;
 end $$;
 -- A record's field: a single named by it, and the same single read out of its record, its field gone.
 create function p3.s_field(field text, s p3.single) returns p3.single language plpgsql immutable as $$
@@ -140,11 +140,11 @@ create function p3.same(a p3.single, b p3.single) returns boolean language sql i
     when 'identifier' then a.t = b.t
     when 'string' then a.t = b.t
     when 'uri' then a.t = b.t
-    when 'file' then a.t = b.t end
+    when 'file' then a.d = b.d end
 $$;
 -- The singles of a value with no field, as rows a multiset operation compares by equality.
 create function p3.bag(v p3.single[]) returns setof p3.bag_row language sql immutable as
-$$ select s.b, s.base, s.f, s.m, s.n, s.t, case when s.base = 'file' then null else s.u end from unnest(v) s $$;
+$$ select s.b, s.base, s.d, s.f, s.m, s.n, s.t, case when s.base = 'file' then null else s.u end from unnest(v) s $$;
 create function p3.has_nan(v p3.single[]) returns boolean language sql immutable as
 $$ select exists (select 1 from unnest(v) s where s.f = 'NaN') $$;
 -- Whether two values match, as plate's match: one cardinality and length; a multiple as a multiset, an ordered or
@@ -321,13 +321,18 @@ begin
   return (get_byte(tag, o)::bigint << 24) | (get_byte(tag, o + 1) << 16) | (get_byte(tag, o + 2) << 8) | get_byte(tag, o + 3);
 end $$;
 -- Draw a whole number below count from the stream at a position (plate's drawBelow): the fewest words that hold
--- count - 1's bits, reduced to them, redrawn while it is count or more; and the position after it.
+-- count - 1's bits, reduced to them, redrawn while it is count or more; and the position after it. The draw is a
+-- rejection loop with no bound of its own (each round keeps its word with probability over a half), so its working
+-- values are declared NOT NULL: the largest whole number it may keep, count - 1, and each word sum. A NULL count, or a
+-- NULL seed, label or position where a word is read, is a broken contract: evaluate never draws below a NULL (it gives
+-- v_null() for an empty container or a NULL bound), and the assignment raises rather than the loop never ending.
 create function p3.draw_below(count numeric, drawn int, label text, seed text) returns p3.drawing language plpgsql immutable as $$
-declare bits int := 0; whole numeric; k int; result numeric; span numeric := 1;
+declare largest numeric not null := count - 1; bits int := 0; whole numeric not null := 0; k int; result numeric not null := 0;
+  span numeric := 1;
 begin
-  if count <= 1 then return row(drawn, 0)::drawing; end if;
+  if largest <= 0 then return row(drawn, 0)::drawing; end if;
   -- The bit length of count - 1, exactly: the least bits with 2^bits > count - 1.
-  while span <= count - 1 loop span := span * 2; bits := bits + 1; end loop;
+  while span <= largest loop span := span * 2; bits := bits + 1; end loop;
   loop
     whole := 0;
     for k in 1 .. (bits + 31) / 32 loop
@@ -335,7 +340,7 @@ begin
       drawn := drawn + 1;
     end loop;
     result := mod(whole, fdlibm_ipow(b => 2, e => bits));
-    exit when result < count;
+    exit when result <= largest;
   end loop;
   return row(drawn, result)::drawing;
 end $$;
@@ -438,7 +443,7 @@ $$;
 -- (-0 is 0), and a NaN is never another's equal.
 create function p3.distinct_singles(v p3.single[]) returns setof p3.single language sql immutable as $$
   select unfielded(s => v[d.k])
-  from (select k, row_number() over (partition by (v[k]).base, (v[k]).t, case when (v[k]).base = 'file' then null else (v[k]).u end,
+  from (select k, row_number() over (partition by (v[k]).base, (v[k]).d, (v[k]).t, case when (v[k]).base = 'file' then null else (v[k]).u end,
           (v[k]).n, (v[k]).m, (v[k]).f, (v[k]).b order by k) as first
         from generate_subscripts(v, 1) k) d
   where d.first = 1 or (v[d.k]).f = 'NaN'

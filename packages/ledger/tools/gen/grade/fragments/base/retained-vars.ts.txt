@@ -20,7 +20,7 @@
 					stage,
 					holds: Type.literal(DocVar.fields.holds, "value"),
 					kind: Type.literal(DocVar.fields.kind, "outcome"),
-					identifier: Type.cast(identifier, DocVar.fields.identifier),
+					identifier,
 					card
 				})
 		})
@@ -43,7 +43,7 @@
 					stage,
 					holds: Type.literal(DocVar.fields.holds, "value"),
 					kind: Type.literal(DocVar.fields.kind, "outcome"),
-					identifier: Type.cast(identifier, DocVar.fields.identifier),
+					identifier,
 					card: Type.literal(DocVar.fields.card, "record")
 				})
 		})

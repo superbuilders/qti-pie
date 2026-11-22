@@ -5,8 +5,20 @@
  * @qti-pie/ledger generate`); edit the SQL and generate again, and `generate:check` refuses any
  * other edit.
  */
-import { closed, closedId, fn, natural, pg, row, rows, str, uuid } from "@bjornpagen/grizzle";
+import {
+  closed,
+  closedId,
+  fn,
+  natural,
+  pg,
+  row,
+  rows,
+  sha256,
+  str,
+  uuid,
+} from "@bjornpagen/grizzle";
 import { admissionCodes } from "@qti-pie/plate/admission-codes";
+import { QtiIdentifier } from "@qti-pie/pantry/qti/limits.ts";
 import { CreditKind } from "#ledger/credit.ts";
 import { anyText, LearnerId, someText } from "#ledger/keys.ts";
 import { QtiInteger } from "#ledger/scalars.ts";
@@ -64,6 +76,7 @@ const Holds = str.regex("^(correct|default|value)$");
  * Which bound of a tolerance band a comparison reads.
  */
 const BoundSide = str.regex("^(lower|upper)$");
+
 /**
  * The registered custom operators' classes, the Registry level's roster (document.sql's
  * custom_class_of).
@@ -71,22 +84,26 @@ const BoundSide = str.regex("^(lower|upper)$");
 const CustomOperatorClass = str.regex(
   "^(markup-text|math-canonical|normalize-space|numeral-normal|phrase-distance|quantity|read-number|rubric-score|tex-normal|tokenize|translate|unit-near|when-present)$",
 );
+
 /**
  * The roles a class reads the registry's tables in (tools/gen/grading/machine.ts).
  */
 const TableRole = str.regex(
   "^(competitors|contrast-words|glue-words|ie-plurals|letter-units|never-plural|operation-words|plurals|stop-words|typo-targets|unit-spellings|unit-words|verbs)$",
 );
+
 /**
  * Math-canonical's token kinds (tools/gen/grading/machine.ts).
  */
 const MathTokenKind = str.regex("^(fn|joiner|name|num|op|rel|sqrt)$");
+
 /**
  * Math-canonical's node kinds (tools/gen/grading/machine.ts).
  */
 const MathNodeKind = str.regex(
   "^(abs|div|fact|fn|frac|mixed|name|neg|num|pct|pow|prod|rel|root|sum|tuple)$",
 );
+
 /**
  * Math-canonical's parse modes (tools/gen/grading/machine.ts).
  */
@@ -110,14 +127,6 @@ const BoundKind = str.regex("^(maximum|minimum)$");
  * 7.39.3).
  */
 const CategoryFilter = str.regex("^(exclude|include)$");
-
-/**
- * XML 1.0's characters, pantry's `Chars`: a declared identifier as pantry holds it, which a ledger
- * key holds within its byte share.
- */
-const XmlChars = str.regex(
-  "^[\\t\\n\\r\\u{20}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-\\u{10FFFF}]*$",
-);
 
 /**
  * A review's mark on a part of a response (AttemptMark, marks.sql): right, wrong, or a correct
@@ -351,6 +360,7 @@ const AdmissionNumberName = str.regex("^(width|height|bound|step)$");
 export const Single = rows({
   b: pg.boolean,
   base: BaseType,
+  d: sha256,
   f: pg["double precision"],
   field: anyText,
   m: QtiInteger,
@@ -762,6 +772,7 @@ export const Numbers = rows({
 export const BagRow = rows({
   b: pg.boolean,
   base: BaseType,
+  d: sha256,
   f: pg["double precision"],
   m: QtiInteger,
   n: QtiInteger,
@@ -830,7 +841,7 @@ export const OutPoint = rows({
 
 export const OutFile = rows({
   content_type: anyText,
-  digest: anyText,
+  digest: sha256,
   identifier: anyText,
   place: pg.integer,
 });
@@ -890,7 +901,7 @@ export const OutFieldPoint = rows({
 
 export const OutFieldFile = rows({
   content_type: anyText,
-  digest: anyText,
+  digest: sha256,
   field: anyText,
   identifier: anyText,
 });
@@ -991,7 +1002,7 @@ export const InPoint = rows({
 
 export const InFile = rows({
   content_type: anyText,
-  digest: anyText,
+  digest: sha256,
   holds: Holds,
   identifier: anyText,
   place: pg.integer,
@@ -1060,7 +1071,7 @@ export const InFieldPoint = rows({
 
 export const InFieldFile = rows({
   content_type: anyText,
-  digest: anyText,
+  digest: sha256,
   field: anyText,
   holds: Holds,
   identifier: anyText,
@@ -1173,7 +1184,7 @@ export const InMemberPoint = rows({
 
 export const InMemberFile = rows({
   content_type: anyText,
-  digest: anyText,
+  digest: sha256,
   holds: Holds,
   identifier: anyText,
   place: pg.integer,
@@ -1251,7 +1262,7 @@ export const InMemberFieldPoint = rows({
 
 export const InMemberFieldFile = rows({
   content_type: anyText,
-  digest: anyText,
+  digest: sha256,
   field: anyText,
   holds: Holds,
   identifier: anyText,
@@ -1341,7 +1352,7 @@ export const DocVar = rows({
   card: Cardinality,
   child: LearnerId,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   kind: VariableKind,
   package: anyText,
   path: anyText,
@@ -1351,7 +1362,7 @@ export const DocVar = rows({
 export const DocBase = rows({
   base: BaseType,
   child: LearnerId,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   stage: pg.bigint,
@@ -1361,7 +1372,7 @@ export const DocText = rows({
   base: BaseType,
   child: LearnerId,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   place: natural,
@@ -1372,7 +1383,7 @@ export const DocText = rows({
 export const DocInteger = rows({
   child: LearnerId,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   place: natural,
@@ -1384,7 +1395,7 @@ export const DocFloat = rows({
   base: BaseType,
   child: LearnerId,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   place: natural,
@@ -1395,7 +1406,7 @@ export const DocFloat = rows({
 export const DocBoolean = rows({
   child: LearnerId,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   place: natural,
@@ -1407,7 +1418,7 @@ export const DocPair = rows({
   child: LearnerId,
   greatest: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   least: anyText,
   package: anyText,
   path: anyText,
@@ -1418,7 +1429,7 @@ export const DocPair = rows({
 export const DocDirectedPair = rows({
   child: LearnerId,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   place: natural,
@@ -1430,7 +1441,7 @@ export const DocDirectedPair = rows({
 export const DocPoint = rows({
   child: LearnerId,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   place: natural,
@@ -1442,9 +1453,9 @@ export const DocPoint = rows({
 export const DocFile = rows({
   child: LearnerId,
   content_type: anyText,
-  digest: anyText,
+  digest: sha256,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   place: natural,
@@ -1454,7 +1465,7 @@ export const DocFile = rows({
 export const DocFileName = rows({
   child: LearnerId,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   name: anyText,
   package: anyText,
   path: anyText,
@@ -1467,7 +1478,7 @@ export const DocFieldText = rows({
   child: LearnerId,
   field: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   stage: pg.bigint,
@@ -1478,7 +1489,7 @@ export const DocFieldInteger = rows({
   child: LearnerId,
   field: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   stage: pg.bigint,
@@ -1490,7 +1501,7 @@ export const DocFieldFloat = rows({
   child: LearnerId,
   field: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   stage: pg.bigint,
@@ -1501,7 +1512,7 @@ export const DocFieldBoolean = rows({
   child: LearnerId,
   field: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   stage: pg.bigint,
@@ -1513,7 +1524,7 @@ export const DocFieldPair = rows({
   field: anyText,
   greatest: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   least: anyText,
   package: anyText,
   path: anyText,
@@ -1524,7 +1535,7 @@ export const DocFieldDirectedPair = rows({
   child: LearnerId,
   field: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   source: anyText,
@@ -1536,7 +1547,7 @@ export const DocFieldPoint = rows({
   child: LearnerId,
   field: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   stage: pg.bigint,
@@ -1547,10 +1558,10 @@ export const DocFieldPoint = rows({
 export const DocFieldFile = rows({
   child: LearnerId,
   content_type: anyText,
-  digest: anyText,
+  digest: sha256,
   field: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   package: anyText,
   path: anyText,
   stage: pg.bigint,
@@ -1560,7 +1571,7 @@ export const DocFieldFileName = rows({
   child: LearnerId,
   field: anyText,
   holds: Holds,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   name: anyText,
   package: anyText,
   path: anyText,
@@ -1687,7 +1698,7 @@ export const MarkText = rows({
   base: BaseType,
   child: LearnerId,
   copies: pg.bigint,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   mark: AnswerMark,
   package: anyText,
   path: anyText,
@@ -1699,7 +1710,7 @@ export const MarkText = rows({
 export const MarkInteger = rows({
   child: LearnerId,
   copies: pg.bigint,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   mark: AnswerMark,
   package: anyText,
   path: anyText,
@@ -1712,7 +1723,7 @@ export const MarkFloat = rows({
   base: BaseType,
   child: LearnerId,
   copies: pg.bigint,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   mark: AnswerMark,
   package: anyText,
   path: anyText,
@@ -1724,7 +1735,7 @@ export const MarkFloat = rows({
 export const MarkBoolean = rows({
   child: LearnerId,
   copies: pg.bigint,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   mark: AnswerMark,
   package: anyText,
   path: anyText,
@@ -1737,7 +1748,7 @@ export const MarkPair = rows({
   child: LearnerId,
   copies: pg.bigint,
   greatest: anyText,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   least: anyText,
   mark: AnswerMark,
   package: anyText,
@@ -1749,7 +1760,7 @@ export const MarkPair = rows({
 export const MarkDirectedPair = rows({
   child: LearnerId,
   copies: pg.bigint,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   mark: AnswerMark,
   package: anyText,
   path: anyText,
@@ -1762,7 +1773,7 @@ export const MarkDirectedPair = rows({
 export const MarkPoint = rows({
   child: LearnerId,
   copies: pg.bigint,
-  identifier: XmlChars,
+  identifier: QtiIdentifier,
   mark: AnswerMark,
   package: anyText,
   path: anyText,
@@ -1776,8 +1787,8 @@ export const MarkFile = rows({
   child: LearnerId,
   content_type: anyText,
   copies: pg.bigint,
-  digest: anyText,
-  identifier: XmlChars,
+  digest: sha256,
+  identifier: QtiIdentifier,
   mark: AnswerMark,
   package: anyText,
   path: anyText,
@@ -1836,7 +1847,7 @@ export const AdmissionReason = rows({
   ord: pg.bigint,
   package: anyText,
   path: anyText,
-  response: XmlChars,
+  response: QtiIdentifier,
   stage: pg.bigint,
 });
 
@@ -1875,7 +1886,7 @@ export const AdmissionHidden = rows({
   child: LearnerId,
   package: anyText,
   path: anyText,
-  response: XmlChars,
+  response: QtiIdentifier,
   stage: pg.bigint,
 });
 
@@ -1899,6 +1910,7 @@ export const fdlibmBits = fn("fdlibmBits", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: pg.bigint,
   volatility: "immutable",
 });
@@ -1910,6 +1922,7 @@ export const fdlibmHi = fn("fdlibmHi", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: pg.integer,
   volatility: "immutable",
 });
@@ -1921,6 +1934,7 @@ export const fdlibmLo = fn("fdlibmLo", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: pg.bigint,
   volatility: "immutable",
 });
@@ -1932,6 +1946,7 @@ export const fdlibmPow2 = fn("fdlibmPow2", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -1950,6 +1965,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -1968,6 +1984,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "strict",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -1986,6 +2003,7 @@ exception when numeric_value_out_of_range then
 end `,
   calls: [fdlibmIpow],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -2025,6 +2043,7 @@ begin
 end `,
   calls: [fdlibmBits, fdlibmIpow, fdlibmRoundScaled],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -2053,6 +2072,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -2196,6 +2216,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -2314,6 +2335,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -2653,6 +2675,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -2795,6 +2818,7 @@ begin
 end `,
   calls: [fdlibmKernelSin, fdlibmKernelCos, fdlibmKernelTan],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -3477,6 +3501,7 @@ begin
 end `,
   calls: [fdlibmFmaWide, fdlibmTrigLarge],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -4159,6 +4184,7 @@ begin
 end `,
   calls: [fdlibmFmaWide, fdlibmTrigLarge],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -4841,6 +4867,7 @@ begin
 end `,
   calls: [fdlibmFmaWide, fdlibmTrigLarge],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -5224,6 +5251,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -5456,6 +5484,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -5692,6 +5721,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -6410,6 +6440,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -6556,6 +6587,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -6785,6 +6817,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -7015,6 +7048,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -7286,6 +7320,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -7793,6 +7828,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -8435,6 +8471,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -8893,6 +8930,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9273,6 +9311,7 @@ begin
 end `,
   calls: [fdlibmFmaWide],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9282,10 +9321,11 @@ export const sText = fn("sText", {
   body: fn.body`
 begin
   if base not in ('identifier', 'string', 'uri') or t is null or t = '' then raise exception 'no % single of text %', base, t; end if;
-  return row(null, base, null, null, null, null, t, null, null)::${Single};
+  return row(null, base, null, null, null, null, null, t, null, null)::${Single};
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -9295,10 +9335,11 @@ export const sInt = fn("sInt", {
   body: fn.body`
 begin
   if n is null or n <> trunc(n) then raise exception 'no integer single of %', n; end if;
-  return row(null, 'integer', null, null, null, n, null, null, null)::${Single};
+  return row(null, 'integer', null, null, null, null, n, null, null, null)::${Single};
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -9308,10 +9349,11 @@ export const sFloat = fn("sFloat", {
   body: fn.body`
 begin
   if base not in ('float', 'duration') or f is null then raise exception 'no % single of %', base, f; end if;
-  return row(null, base, f, null, null, null, null, null, null)::${Single};
+  return row(null, base, null, f, null, null, null, null, null, null)::${Single};
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -9321,10 +9363,11 @@ export const sBool = fn("sBool", {
   body: fn.body`
 begin
   if b is null then raise exception 'no boolean single of NULL'; end if;
-  return row(b, 'boolean', null, null, null, null, null, null, null)::${Single};
+  return row(b, 'boolean', null, null, null, null, null, null, null, null)::${Single};
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -9334,10 +9377,11 @@ export const sPair = fn("sPair", {
   body: fn.body`
 begin
   if a is null or b is null then raise exception 'no pair single of % %', a, b; end if;
-  return row(null, 'pair', null, null, null, null, least(a, b), greatest(a, b), null)::${Single};
+  return row(null, 'pair', null, null, null, null, null, least(a, b), greatest(a, b), null)::${Single};
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -9347,23 +9391,25 @@ export const sDpair = fn("sDpair", {
   body: fn.body`
 begin
   if a is null or b is null then raise exception 'no directedPair single of % %', a, b; end if;
-  return row(null, 'directedPair', null, null, null, null, a, b, null)::${Single};
+  return row(null, 'directedPair', null, null, null, null, null, a, b, null)::${Single};
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
 
 export const sFile = fn("sFile", {
-  args: { content_type: anyText, digest: anyText, filename: anyText },
+  args: { content_type: anyText, digest: sha256, filename: anyText },
   body: fn.body`
 begin
   if digest is null or content_type is null then raise exception 'no file single of % %', digest, content_type; end if;
-  return row(null, 'file', null, null, null, null, digest, content_type, filename)::${Single};
+  return row(null, 'file', digest, null, null, null, null, null, content_type, filename)::${Single};
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -9373,10 +9419,11 @@ export const sPoint = fn("sPoint", {
   body: fn.body`
 begin
   if x is null or y is null or x <> trunc(x) or y <> trunc(y) then raise exception 'no point single of % %', x, y; end if;
-  return row(null, 'point', null, null, y, x, null, null, null)::${Single};
+  return row(null, 'point', null, null, null, y, x, null, null, null)::${Single};
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -9391,6 +9438,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -9404,6 +9452,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -9413,6 +9462,7 @@ export const vSingle = fn("vSingle", {
   body: fn.body` select row('single', array[s])::${Val} `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -9422,6 +9472,7 @@ export const vNull = fn("vNull", {
   body: fn.body` select row('single', '{}')::${Val} `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -9431,6 +9482,7 @@ export const vBool = fn("vBool", {
   body: fn.body` select row('single', case when b is null then '{}'::${Single}[] else array[s_bool(b => b)] end)::${Val} `,
   calls: [sBool],
   language: "sql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -9440,6 +9492,7 @@ export const isNull = fn("isNull", {
   body: fn.body` select cardinality(v.vals) = 0 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -9451,6 +9504,7 @@ export const truth = fn("truth", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -9469,6 +9523,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Dyadic),
   volatility: "immutable",
 });
@@ -9485,6 +9540,7 @@ begin
 end `,
   calls: [fdlibmIpow, dyadicOf],
   language: "plpgsql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -9502,6 +9558,7 @@ export const ieee = fn("ieee", {
 `,
   calls: [fdlibmIpow],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9513,6 +9570,7 @@ export const number = fn("number", {
 `,
   calls: [exact],
   language: "sql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -9524,6 +9582,7 @@ export const floatOf = fn("floatOf", {
 `,
   calls: [ieee],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9536,6 +9595,7 @@ export const magnitude = fn("magnitude", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg.integer,
   volatility: "immutable",
 });
@@ -9554,19 +9614,21 @@ export const same = fn("same", {
     when 'identifier' then a.t = b.t
     when 'string' then a.t = b.t
     when 'uri' then a.t = b.t
-    when 'file' then a.t = b.t end
+    when 'file' then a.d = b.d end
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
 
 export const bag = fn("bag", {
   args: { v: Single },
-  body: fn.body` select s.b, s.base, s.f, s.m, s.n, s.t, case when s.base = 'file' then null else s.u end from unnest(v) s `,
+  body: fn.body` select s.b, s.base, s.d, s.f, s.m, s.n, s.t, case when s.base = 'file' then null else s.u end from unnest(v) s `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: BagRow,
   volatility: "immutable",
 });
@@ -9576,6 +9638,7 @@ export const hasNan = fn("hasNan", {
   body: fn.body` select exists (select 1 from unnest(v) s where s.f = 'NaN') `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -9594,6 +9657,7 @@ export const matches = fn("matches", {
 `,
   calls: [same, bag, hasNan],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -9610,6 +9674,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: Child,
   volatility: "immutable",
 });
@@ -9626,6 +9691,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Var),
   volatility: "immutable",
 });
@@ -9637,6 +9703,7 @@ export const valueOf = fn("valueOf", {
 `,
   calls: [lookup],
   language: "sql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -9659,6 +9726,7 @@ begin
 end `,
   calls: [sFloat, ieee],
   language: "plpgsql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -9668,6 +9736,7 @@ export const ident = fn("ident", {
   body: fn.body` select p.identifier from unnest(prog.idents) p where p.start = s `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -9680,6 +9749,7 @@ export const resolveInt = fn("resolveInt", {
 `,
   calls: [lookup],
   language: "sql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -9693,6 +9763,7 @@ export const resolveFloat = fn("resolveFloat", {
 `,
   calls: [floatOf],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9707,6 +9778,7 @@ export const fAdd = fn("fAdd", {
 `,
   calls: [exact, ieee],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9716,6 +9788,7 @@ export const fSub = fn("fSub", {
   body: fn.body` select f_add(a => a, b => -b) `,
   calls: [fAdd],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9732,6 +9805,7 @@ exception when numeric_value_out_of_range then
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9751,6 +9825,7 @@ exception when numeric_value_out_of_range then
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9763,6 +9838,7 @@ export const fMin = fn("fMin", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9775,6 +9851,7 @@ export const fMax = fn("fMax", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -9790,6 +9867,7 @@ exception when numeric_value_out_of_range then
 end `,
   calls: [sInt, vSingle],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -9801,6 +9879,7 @@ export const numbered = fn("numbered", {
 `,
   calls: [vNull],
   language: "sql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -9812,6 +9891,7 @@ export const integerOf = fn("integerOf", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -9837,6 +9917,7 @@ begin
 end `,
   calls: [exact, magnitude],
   language: "plpgsql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -9848,6 +9929,7 @@ export const roundToPlaces = fn("roundToPlaces", {
 `,
   calls: [sFloat, vSingle, rounded],
   language: "sql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -9868,6 +9950,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg.bigint,
   volatility: "immutable",
 });
@@ -9875,11 +9958,12 @@ end `,
 export const drawBelow = fn("drawBelow", {
   args: { count: exactNumber, drawn: pg.integer, label: anyText, seed: anyText },
   body: fn.body`
-declare bits int := 0; whole numeric; k int; result numeric; span numeric := 1;
+declare largest numeric not null := count - 1; bits int := 0; whole numeric not null := 0; k int; result numeric not null := 0;
+  span numeric := 1;
 begin
-  if count <= 1 then return row(drawn, 0)::${Drawing}; end if;
+  if largest <= 0 then return row(drawn, 0)::${Drawing}; end if;
   -- The bit length of count - 1, exactly: the least bits with 2^bits > count - 1.
-  while span <= count - 1 loop span := span * 2; bits := bits + 1; end loop;
+  while span <= largest loop span := span * 2; bits := bits + 1; end loop;
   loop
     whole := 0;
     for k in 1 .. (bits + 31) / 32 loop
@@ -9887,12 +9971,13 @@ begin
       drawn := drawn + 1;
     end loop;
     result := mod(whole, fdlibm_ipow(b => 2, e => bits));
-    exit when result < count;
+    exit when result <= largest;
   end loop;
   return row(drawn, result)::${Drawing};
 end `,
   calls: [fdlibmIpow, word],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Drawing),
   volatility: "immutable",
 });
@@ -9907,6 +9992,7 @@ export const edges = fn("edges", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: Edge,
   volatility: "immutable",
 });
@@ -9943,6 +10029,7 @@ begin
 end `,
   calls: [exact, edges],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -9954,6 +10041,7 @@ export const reciprocal = fn("reciprocal", {
 `,
   calls: [fDiv],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -10012,6 +10100,7 @@ end `,
     reciprocal,
   ],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -10021,6 +10110,7 @@ export const jsPow = fn("jsPow", {
   body: fn.body` select fdlibm_pow(x => x, y => y) `,
   calls: [fdlibmPow],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -10039,6 +10129,7 @@ export const membersOf = fn("membersOf", {
 `,
   calls: [sFloat, floatOf],
   language: "sql",
+  nullInput: "called",
   returns: Numbers,
   volatility: "immutable",
 });
@@ -10047,7 +10138,7 @@ export const distinctSingles = fn("distinctSingles", {
   args: { v: Single },
   body: fn.body`
   select unfielded(s => v[d.k])
-  from (select k, row_number() over (partition by (v[k]).base, (v[k]).t, case when (v[k]).base = 'file' then null else (v[k]).u end,
+  from (select k, row_number() over (partition by (v[k]).base, (v[k]).d, (v[k]).t, case when (v[k]).base = 'file' then null else (v[k]).u end,
           (v[k]).n, (v[k]).m, (v[k]).f, (v[k]).b order by k) as first
         from generate_subscripts(v, 1) k) d
   where d.first = 1 or (v[d.k]).f = 'NaN'
@@ -10055,6 +10146,7 @@ export const distinctSingles = fn("distinctSingles", {
 `,
   calls: [unfielded],
   language: "sql",
+  nullInput: "called",
   returns: Single,
   volatility: "immutable",
 });
@@ -10066,6 +10158,7 @@ export const pastDouble = fn("pastDouble", {
 `,
   calls: [ieee],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -10085,6 +10178,7 @@ export const exactSum = fn("exactSum", {
 `,
   calls: [exact, ieee],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -10096,6 +10190,7 @@ export const floatResult = fn("floatResult", {
 `,
   calls: [sFloat, vSingle, vNull, ieee],
   language: "sql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -10110,6 +10205,7 @@ begin
 end `,
   calls: [bounded],
   language: "plpgsql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -10124,6 +10220,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -10138,6 +10235,7 @@ begin
 end `,
   calls: [bounded],
   language: "plpgsql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -10167,6 +10265,7 @@ begin
 end `,
   calls: [sInt, sFloat, vSingle, vNull, isNull, exact, floatOf, numbered, jsMath],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -10195,6 +10294,7 @@ begin
 end `,
   calls: [sFloat, vSingle, vNull, floatOf, fAdd, fSub, fMul, fDiv],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -10229,6 +10329,7 @@ begin
 end `,
   calls: [exact, number, floatOf, fAdd, fSub, fMul, fDiv],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg.integer,
   volatility: "immutable",
 });
@@ -10256,6 +10357,7 @@ begin
 end `,
   calls: [vBool, isNull, number, boundOrder],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -10376,6 +10478,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -10394,6 +10497,7 @@ export const xsdEscapeSet = fn("xsdEscapeSet", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -10526,6 +10630,7 @@ export const xsdPropertySet = fn("xsdPropertySet", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -10829,6 +10934,7 @@ begin
 end `,
   calls: [xsdEscapeSet, xsdPropertySet],
   language: "plpgsql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11316,6 +11422,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11327,6 +11434,7 @@ export const xsdRun = fn("xsdRun", {
 `,
   calls: [xsdWalk],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -11338,6 +11446,7 @@ export const xsdMatchEnd = fn("xsdMatchEnd", {
 `,
   calls: [xsdWalk],
   language: "sql",
+  nullInput: "called",
   returns: pg.integer,
   volatility: "immutable",
 });
@@ -11349,6 +11458,7 @@ export const xsdSeparators = fn("xsdSeparators", {
 `,
   calls: [xsdWalk],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11360,6 +11470,7 @@ export const xsdMatches = fn("xsdMatches", {
 `,
   calls: [xsdCompile, xsdRun],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -11371,6 +11482,7 @@ export const normalizeSpace = fn("normalizeSpace", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11383,6 +11495,7 @@ export const markupText = fn("markupText", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11394,6 +11507,7 @@ export const whenPresent = fn("whenPresent", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -11420,6 +11534,7 @@ begin
 end `,
   calls: [ieee],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -11454,6 +11569,7 @@ begin
 end `,
   calls: [exact, ieee, magnitude],
   language: "plpgsql",
+  nullInput: "strict",
   returns: row(Segment),
   volatility: "immutable",
 });
@@ -11474,6 +11590,7 @@ begin
 end `,
   calls: [shortestDigits],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11488,6 +11605,7 @@ export const withoutTrailingZeros = fn("withoutTrailingZeros", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11524,6 +11642,7 @@ begin
 end `,
   calls: [xsdCompile, xsdRun],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11546,6 +11665,7 @@ begin
 end `,
   calls: [xsdCompile, xsdRun, withoutTrailingZeros, loneFractionsUnwrapped],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11569,6 +11689,7 @@ begin
 end `,
   calls: [xsdCompile, xsdRun, xsdSeparators],
   language: "plpgsql",
+  nullInput: "strict",
   returns: Segment,
   volatility: "immutable",
 });
@@ -11580,6 +11701,7 @@ export const translated = fn("translated", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11592,6 +11714,7 @@ export const texOneToken = fn("texOneToken", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -11603,6 +11726,7 @@ export const texOneName = fn("texOneName", {
 `,
   calls: [texOneToken],
   language: "sql",
+  nullInput: "strict",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -11639,6 +11763,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Argument),
   volatility: "immutable",
 });
@@ -11683,6 +11808,7 @@ begin
 end `,
   calls: [texArgument],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11704,6 +11830,7 @@ begin
 end `,
   calls: [texOneToken],
   language: "plpgsql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11749,6 +11876,7 @@ begin
 end `,
   calls: [texArgument],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11761,6 +11889,7 @@ export const texPart = fn("texPart", {
 `,
   calls: [texOneName],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11773,6 +11902,7 @@ export const termStartsAt = fn("termStartsAt", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -11823,6 +11953,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg.integer,
   volatility: "immutable",
 });
@@ -11845,6 +11976,7 @@ begin
 end `,
   calls: [xsdCompile, xsdRun, termStartsAt, integerNumeralStart],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11869,6 +12001,7 @@ begin
 end `,
   calls: [texArgument, texPart, texPlace],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11886,6 +12019,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11904,6 +12038,7 @@ begin
 end `,
   calls: [texPlace],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11938,6 +12073,7 @@ begin
 end `,
   calls: [xsdCompile, xsdRun],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -11990,6 +12126,7 @@ begin
 end `,
   calls: [texBraced, texScripts, texEmpty, texFractions, texRelations, texVulgar, texEdges],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12008,6 +12145,7 @@ begin
 end `,
   calls: [texPass],
   language: "plpgsql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12019,6 +12157,7 @@ export const greekLetter = fn("greekLetter", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12030,6 +12169,7 @@ export const mathNumeral = fn("mathNumeral", {
 `,
   calls: [numeralText],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12050,6 +12190,7 @@ export const numeralSpaces = fn("numeralSpaces", {
 `,
   calls: [termStartsAt, integerNumeralStart],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12065,6 +12206,7 @@ export const mathPoints = fn("mathPoints", {
 `,
   calls: [xsdCompile, xsdRun],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12125,6 +12267,7 @@ begin
 end `,
   calls: [greekLetter, mathPoints],
   language: "plpgsql",
+  nullInput: "strict",
   returns: row(MathTokenList),
   volatility: "immutable",
 });
@@ -12139,14 +12282,16 @@ export const mathRational = fn("mathRational", {
     whole_part: exactNumber,
   },
   body: fn.body`
-  select case when reduce then '(q ' || div(r.p, gcd(r.p, r.q))::text || ' ' || div(r.q, gcd(r.p, r.q))::text || ')'
+  select case when kind = 'frac' and reduce then '(q ' || div(r.p, gcd(r.p, r.q))::text || ' ' || div(r.q, gcd(r.p, r.q))::text || ')'
     when kind = 'frac' then '(/ ' || numerator::text || ' ' || denominator::text || ')'
-    else '(mixed ' || case when negative then '-' else '' end || whole_part::text || ' ' || numerator::text || ' ' || denominator::text || ')' end
-  from (select case when kind = 'frac' then numerator else (whole_part * denominator + numerator) * case when negative then -1 else 1 end end
-      * sign(denominator) as p, abs(denominator) as q) r
+    else '(mixed ' || case when negative then '-' else '' end || whole_part::text || ' ' || case when reduce
+      then div(numerator, gcd(numerator, denominator))::text || ' ' || div(denominator, gcd(numerator, denominator))::text
+      else numerator::text || ' ' || denominator::text end || ')' end
+  from (select numerator * sign(denominator) as p, abs(denominator) as q) r
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12162,6 +12307,7 @@ export const mathSigned = fn("mathSigned", {
 `,
   calls: [mathNumeral, mathRational],
   language: "sql",
+  nullInput: "called",
   returns: row(MathNode),
   volatility: "immutable",
 });
@@ -12174,6 +12320,7 @@ export const mathFlat = fn("mathFlat", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: row(MathNode),
   volatility: "immutable",
 });
@@ -12187,6 +12334,7 @@ export const mathScriptToken = fn("mathScriptToken", {
 `,
   calls: [readNumber, mathNumeral],
   language: "sql",
+  nullInput: "called",
   returns: row(MathNode),
   volatility: "immutable",
 });
@@ -12212,6 +12360,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12232,6 +12381,7 @@ export const kept = fn("kept", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: Member,
   volatility: "immutable",
 });
@@ -12480,6 +12630,7 @@ end `,
     kept,
   ],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(MathNode),
   volatility: "immutable",
 });
@@ -12533,6 +12684,7 @@ begin
 end `,
   calls: [mathClause, mathExpr],
   language: "plpgsql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12544,6 +12696,7 @@ export const dollarEdges = fn("dollarEdges", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12555,6 +12708,7 @@ export const danglingSign = fn("danglingSign", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12576,6 +12730,7 @@ export const mathCanonical = fn("mathCanonical", {
     danglingSign,
   ],
   language: "sql",
+  nullInput: "strict",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12604,6 +12759,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "strict",
   returns: pg.integer,
   volatility: "immutable",
 });
@@ -12622,6 +12778,7 @@ export const typoDistance = fn("typoDistance", {
 `,
   calls: [editDistance],
   language: "sql",
+  nullInput: "strict",
   returns: pg.integer,
   volatility: "immutable",
 });
@@ -12633,6 +12790,7 @@ export const pairValue = fn("pairValue", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12646,6 +12804,7 @@ export const unitOf = fn("unitOf", {
 `,
   calls: [fold, pairValue],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12665,6 +12824,7 @@ begin
 end `,
   calls: [normalizeSpace, readNumber, unitOf],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Quantity),
   volatility: "immutable",
 });
@@ -12678,6 +12838,7 @@ export const glued = fn("glued", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -12720,6 +12881,7 @@ begin
 end `,
   calls: [fold, editDistance, typoDistance, pairValue, glued],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Near),
   volatility: "immutable",
 });
@@ -12735,6 +12897,7 @@ export const nounSingular = fn("nounSingular", {
 `,
   calls: [pairValue],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -12748,6 +12911,7 @@ export const phraseWords = fn("phraseWords", {
 `,
   calls: [fold],
   language: "sql",
+  nullInput: "strict",
   returns: Segment,
   volatility: "immutable",
 });
@@ -12767,6 +12931,7 @@ export const nounOwn = fn("nounOwn", {
 `,
   calls: [pairValue, nounSingular],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -12822,6 +12987,7 @@ begin
 end `,
   calls: [fold, editDistance, typoDistance, pairValue, nounSingular, nounOwn],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg.integer,
   volatility: "immutable",
 });
@@ -12872,6 +13038,7 @@ begin
 end `,
   calls: [fold, nounSingular, phraseWords, nounTypo],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg.integer,
   volatility: "immutable",
 });
@@ -12883,6 +13050,7 @@ export const stringVal = fn("stringVal", {
 `,
   calls: [sText],
   language: "sql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -12897,6 +13065,7 @@ export const boundPairs = fn("boundPairs", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: Pair,
   volatility: "immutable",
 });
@@ -12910,6 +13079,7 @@ export const boundWords = fn("boundWords", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: Segment,
   volatility: "immutable",
 });
@@ -12921,6 +13091,7 @@ export const literalParts = fn("literalParts", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: Segment,
   volatility: "immutable",
 });
@@ -12999,6 +13170,7 @@ end `,
     literalParts,
   ],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -13008,6 +13180,7 @@ export const cased = fn("cased", {
   body: fn.body` select case when p.case_sensitive then t else fold(t => t) end `,
   calls: [fold],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -13021,6 +13194,7 @@ export const textHolds = fn("textHolds", {
 `,
   calls: [cased],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -13044,6 +13218,7 @@ begin
 end `,
   calls: [sFloat, same, fMin, fMax, distinctSingles, exactSum, fold],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -13056,6 +13231,7 @@ export const pointArea = fn("pointArea", {
 `,
   calls: [ieee, holds],
   language: "sql",
+  nullInput: "called",
   returns: AreaEntry,
   volatility: "immutable",
 });
@@ -13078,6 +13254,7 @@ begin
 end `,
   calls: [sFloat, fMin, fMax, distinctSingles, exactSum, pointArea],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -13110,6 +13287,7 @@ begin
 end `,
   calls: [exact],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -13126,6 +13304,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: exactNumber,
   volatility: "immutable",
 });
@@ -13138,6 +13317,7 @@ export const declaredResponses = fn("declaredResponses", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: MemberVar,
   volatility: "immutable",
 });
@@ -13154,6 +13334,7 @@ export const responded = fn("responded", {
 `,
   calls: [matches, declaredResponses],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -13171,6 +13352,7 @@ export const judged = fn("judged", {
 `,
   calls: [matches, declaredResponses],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -13189,6 +13371,7 @@ begin
 end `,
   calls: [attempts, responded, judged],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -13200,6 +13383,7 @@ export const counted = fn("counted", {
 `,
   calls: [sInt, vSingle, kept, counts],
   language: "sql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -13217,6 +13401,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: MemberVar,
   volatility: "immutable",
 });
@@ -13228,6 +13413,7 @@ export const weightOf = fn("weightOf", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -13256,6 +13442,7 @@ begin
 end `,
   calls: [sFloat, ident, fMul, kept, named, weightOf],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -13267,6 +13454,7 @@ export const weighted = fn("weighted", {
 `,
   calls: [sFloat, floatOf, fMul],
   language: "sql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -13301,6 +13489,7 @@ begin
 end `,
   calls: [sFloat, floatOf, ident, kept, named, weightOf, weighted],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -13322,6 +13511,7 @@ begin
 end `,
   calls: [named],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(MemberVar),
   volatility: "immutable",
 });
@@ -13338,6 +13528,7 @@ begin
 end `,
   calls: [valueOf, ident, weightOf, weighted, prefixed],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Val),
   volatility: "immutable",
 });
@@ -13726,6 +13917,7 @@ end `,
     readVariable,
   ],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Evaluation),
   volatility: "immutable",
 });
@@ -13787,6 +13979,7 @@ begin
 end `,
   calls: [truth, kids, assign, ident, lookedUp, evaluate],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(RunState),
   volatility: "immutable",
 });
@@ -13806,6 +13999,7 @@ export const responseProcessing = fn("responseProcessing", {
 `,
   calls: [runRules],
   language: "sql",
+  nullInput: "called",
   returns: row(RunState),
   volatility: "immutable",
 });
@@ -13832,6 +14026,7 @@ begin
 end `,
   calls: [runRules],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(RunState),
   volatility: "immutable",
 });
@@ -13848,6 +14043,7 @@ export const initial = fn("initial", {
 `,
   calls: [sInt, sFloat],
   language: "sql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -13867,6 +14063,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -13891,6 +14088,7 @@ export const outcomeProcessing = fn("outcomeProcessing", {
 `,
   calls: [runRules, initial, boundContexts],
   language: "sql",
+  nullInput: "called",
   returns: row(RunState),
   volatility: "immutable",
 });
@@ -13909,14 +14107,14 @@ export const outcomesOf = fn("outcomesOf", {
     array(select row((x).field, identifier, (x).b)::${OutFieldBoolean} from s where card = 'record' and (x).base = 'boolean' order by identifier, (x).field),
     array(select row((x).field, identifier, (x).t, (x).u)::${OutFieldDirectedPair} from s where card = 'record' and (x).base = 'directedPair' order by identifier, (x).field),
     array(select row((x).field, identifier, (x).w)::${OutFieldFileName} from s where card = 'record' and (x).base = 'file' and (x).w is not null order by identifier, (x).field),
-    array(select row((x).u, (x).t, (x).field, identifier)::${OutFieldFile} from s where card = 'record' and (x).base = 'file' order by identifier, (x).field),
+    array(select row((x).u, (x).d, (x).field, identifier)::${OutFieldFile} from s where card = 'record' and (x).base = 'file' order by identifier, (x).field),
     array(select row((x).base, (x).field, identifier, (x).f)::${OutFieldFloat} from s where card = 'record' and (x).base in ('float', 'duration') order by identifier, (x).field),
     array(select row((x).field, identifier, (x).n)::${OutFieldInteger} from s where card = 'record' and (x).base = 'integer' order by identifier, (x).field),
     array(select row((x).field, (x).u, identifier, (x).t)::${OutFieldPair} from s where card = 'record' and (x).base = 'pair' order by identifier, (x).field),
     array(select row((x).field, identifier, (x).n, (x).m)::${OutFieldPoint} from s where card = 'record' and (x).base = 'point' order by identifier, (x).field),
     array(select row((x).base, (x).field, identifier, (x).t)::${OutFieldText} from s where card = 'record' and (x).base in ('identifier', 'string', 'uri') order by identifier, (x).field),
     array(select row(identifier, (x).w, place)::${OutFileName} from s where card <> 'record' and (x).base = 'file' and (x).w is not null order by identifier, place),
-    array(select row((x).u, (x).t, identifier, place)::${OutFile} from s where card <> 'record' and (x).base = 'file' order by identifier, place),
+    array(select row((x).u, (x).d, identifier, place)::${OutFile} from s where card <> 'record' and (x).base = 'file' order by identifier, place),
     array(select row((x).base, identifier, place, (x).f)::${OutFloat} from s where card <> 'record' and (x).base in ('float', 'duration') order by identifier, place),
     st.flow,
     array(select row(identifier, place, (x).n)::${OutInteger} from s where card <> 'record' and (x).base = 'integer' order by identifier, place),
@@ -13926,6 +14124,7 @@ export const outcomesOf = fn("outcomesOf", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: row(OutValues),
   volatility: "immutable",
 });
@@ -13976,6 +14175,7 @@ export const varsIn = fn("varsIn", {
 `,
   calls: [sText, sInt, sFloat, sBool, sPair, sDpair, sFile, sPoint, sField],
   language: "sql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -14026,6 +14226,7 @@ export const memberVarsOf = fn("memberVarsOf", {
 `,
   calls: [sText, sInt, sFloat, sBool, sPair, sDpair, sFile, sPoint, sField],
   language: "sql",
+  nullInput: "called",
   returns: MemberVar,
   volatility: "immutable",
 });
@@ -14041,6 +14242,7 @@ export const credit = fn("credit", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: CreditValue,
   volatility: "immutable",
 });
@@ -14050,6 +14252,7 @@ export const trimXml = fn("trimXml", {
   body: fn.body` select btrim(t, E' \\t\\n\\r') `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -14077,6 +14280,7 @@ begin
 end `,
   calls: [sText, sInt, sFloat, sBool, sPair, sDpair, sPoint],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -14089,6 +14293,7 @@ export const xmlSingle = fn("xmlSingle", {
 `,
   calls: [trimXml, parse],
   language: "sql",
+  nullInput: "called",
   returns: row(Single),
   volatility: "immutable",
 });
@@ -14098,6 +14303,7 @@ export const xsBoolean = fn("xsBoolean", {
   body: fn.body` select case when t is null then dflt else trim_xml(t => t) in ('true', '1') end `,
   calls: [trimXml],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -14110,6 +14316,7 @@ export const intRefOf = fn("intRefOf", {
 `,
   calls: [trimXml],
   language: "sql",
+  nullInput: "called",
   returns: row(IntRef),
   volatility: "immutable",
 });
@@ -14122,6 +14329,7 @@ export const floatRefOf = fn("floatRefOf", {
 `,
   calls: [trimXml, parse],
   language: "sql",
+  nullInput: "called",
   returns: row(FloatRef),
   volatility: "immutable",
 });
@@ -14143,6 +14351,7 @@ begin
 end `,
   calls: [trimXml],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Area),
   volatility: "immutable",
 });
@@ -14155,6 +14364,7 @@ export const customClassOf = fn("customClassOf", {
 `,
   calls: [trimXml],
   language: "sql",
+  nullInput: "called",
   returns: CustomOperatorClass,
   volatility: "immutable",
 });
@@ -14277,6 +14487,7 @@ export const programOf = fn("programOf", {
 `,
   calls: [xsdCompile, trimXml, xmlSingle, xsBoolean, intRefOf, floatRefOf, areaOf, customClassOf],
   language: "sql",
+  nullInput: "called",
   returns: row(Program),
   volatility: "immutable",
 });
@@ -14342,6 +14553,7 @@ export const inputsOf = fn("inputsOf", {
 `,
   calls: [trimXml, parse, xmlSingle, xsBoolean, areaOf],
   language: "sql",
+  nullInput: "called",
   returns: row(Inputs),
   volatility: "immutable",
 });
@@ -14379,6 +14591,7 @@ export const declared = fn("declared", {
 `,
   calls: [sField, trimXml, xmlSingle],
   language: "sql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -14388,6 +14601,7 @@ export const qtiContext = fn("qtiContext", {
   body: fn.body` select row(null, 'record', 'QTI_CONTEXT', '{}')::${Var} `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: row(Var),
   volatility: "immutable",
 });
@@ -14399,6 +14613,7 @@ export const builtinResponses = fn("builtinResponses", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -14410,6 +14625,7 @@ export const builtinOutcomes = fn("builtinOutcomes", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -14426,6 +14642,7 @@ export const varKinds = fn("varKinds", {
 `,
   calls: [trimXml],
   language: "sql",
+  nullInput: "called",
   returns: VarKind,
   volatility: "immutable",
 });
@@ -14438,6 +14655,7 @@ export const overridden = fn("overridden", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -14495,6 +14713,7 @@ export const valuesOf = fn("valuesOf", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: row(InValues),
   volatility: "immutable",
 });
@@ -14503,11 +14722,11 @@ export const heldIdentical = fn("heldIdentical", {
   args: { a: Single, b: Single, card: Cardinality },
   body: fn.body`
   with x as (
-    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base,
+    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base, z.d,
       case when z.f = 'NaN' then '\\x7ff8000000000000'::bytea else float8send(z.f) end as f, z.field, z.m, z.n, z.t, z.u, z.w
     from unnest(a) with ordinality z
   ), y as (
-    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base,
+    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base, z.d,
       case when z.f = 'NaN' then '\\x7ff8000000000000'::bytea else float8send(z.f) end as f, z.field, z.m, z.n, z.t, z.u, z.w
     from unnest(b) with ordinality z
   )
@@ -14515,6 +14734,7 @@ export const heldIdentical = fn("heldIdentical", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -14543,14 +14763,14 @@ export const docValuesOf = fn("docValuesOf", {
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).b)::${DocFieldBoolean} from s where card = 'record' and (x).base = 'boolean'),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (x).t, (run).stage, (x).u)::${DocFieldDirectedPair} from s where card = 'record' and (x).base = 'directedPair'),
     array(select row((run).child, (x).field, holds, identifier, (x).w, (run).package, (run).path, (run).stage)::${DocFieldFileName} from s where card = 'record' and (x).base = 'file' and (x).w is not null),
-    array(select row((run).child, (x).u, (x).t, (x).field, holds, identifier, (run).package, (run).path, (run).stage)::${DocFieldFile} from s where card = 'record' and (x).base = 'file'),
+    array(select row((run).child, (x).u, (x).d, (x).field, holds, identifier, (run).package, (run).path, (run).stage)::${DocFieldFile} from s where card = 'record' and (x).base = 'file'),
     array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).f)::${DocFieldFloat} from s where card = 'record' and (x).base in ('float', 'duration')),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n)::${DocFieldInteger} from s where card = 'record' and (x).base = 'integer'),
     array(select row((run).child, (x).field, (x).u, holds, identifier, (x).t, (run).package, (run).path, (run).stage)::${DocFieldPair} from s where card = 'record' and (x).base = 'pair'),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n, (x).m)::${DocFieldPoint} from s where card = 'record' and (x).base = 'point'),
     array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).t)::${DocFieldText} from s where card = 'record' and (x).base in ('identifier', 'string', 'uri')),
     array(select row((run).child, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::${DocFileName} from s where card <> 'record' and (x).base = 'file' and (x).w is not null),
-    array(select row((run).child, (x).u, (x).t, holds, identifier, (run).package, (run).path, place, (run).stage)::${DocFile} from s where card <> 'record' and (x).base = 'file'),
+    array(select row((run).child, (x).u, (x).d, holds, identifier, (run).package, (run).path, place, (run).stage)::${DocFile} from s where card <> 'record' and (x).base = 'file'),
     array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::${DocFloat} from s where card <> 'record' and (x).base in ('float', 'duration')),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::${DocInteger} from s where card <> 'record' and (x).base = 'integer'),
     array(select row((run).child, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::${DocPair} from s where card <> 'record' and (x).base = 'pair'),
@@ -14561,6 +14781,7 @@ export const docValuesOf = fn("docValuesOf", {
 `,
   calls: [heldIdentical],
   language: "sql",
+  nullInput: "called",
   returns: row(DocValues),
   volatility: "immutable",
 });
@@ -14577,6 +14798,7 @@ export const docValuesJoined = fn("docValuesJoined", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: row(DocValues),
   volatility: "immutable",
 });
@@ -14592,6 +14814,7 @@ export const noDocValues = fn("noDocValues", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: row(DocValues),
   volatility: "immutable",
 });
@@ -14613,6 +14836,7 @@ export const defaultsOf = fn("defaultsOf", {
 `,
   calls: [varsIn, declared, builtinResponses, builtinOutcomes, overridden],
   language: "sql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -14641,6 +14865,7 @@ export const startOf = fn("startOf", {
 `,
   calls: [sText, initial, varsIn, declared, qtiContext, overridden, defaultsOf],
   language: "sql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -14660,6 +14885,7 @@ export const correctOf = fn("correctOf", {
 `,
   calls: [varsIn, declared, builtinResponses, overridden],
   language: "sql",
+  nullInput: "called",
   returns: Var,
   volatility: "immutable",
 });
@@ -14688,6 +14914,7 @@ begin
 end `,
   calls: [responseProcessing, defaultsOf, startOf, correctOf],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(RunState),
   volatility: "immutable",
 });
@@ -14719,6 +14946,7 @@ begin
 end `,
   calls: [templateProcessing, varsIn, declared, qtiContext, overridden, defaultsOf, correctOf],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(RunState),
   volatility: "immutable",
 });
@@ -14740,6 +14968,7 @@ export const repliesOf = fn("repliesOf", {
 `,
   calls: [sText, sFloat],
   language: "sql",
+  nullInput: "called",
   returns: Reply,
   volatility: "immutable",
 });
@@ -14759,6 +14988,7 @@ begin
 end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(Inputs),
   volatility: "immutable",
 });
@@ -14836,6 +15066,7 @@ end `,
     withRegistry,
   ],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(DocValues),
   volatility: "immutable",
 });
@@ -14913,6 +15144,7 @@ end `,
     withRegistry,
   ],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(DocValues),
   volatility: "immutable",
 });
@@ -14924,6 +15156,7 @@ export const copies = fn("copies", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: Copy,
   volatility: "immutable",
 });
@@ -14939,11 +15172,12 @@ begin
     ipad := ipad || set_byte('\\x00'::bytea, 0, get_byte(k, j) # 54);
     opad := opad || set_byte('\\x00'::bytea, 0, get_byte(k, j) # 92);
   end loop;
-  return encode(sha256(opad || sha256(ipad || convert_to(message, 'UTF8'))), 'hex');
+  return sha256(opad || sha256(ipad || convert_to(message, 'UTF8')));
 end `,
   calls: [],
   language: "plpgsql",
-  returns: anyText,
+  nullInput: "called",
+  returns: sha256,
   volatility: "immutable",
 });
 
@@ -14954,6 +15188,19 @@ export const processingSeed = fn("processingSeed", {
 `,
   calls: [keyedDigest],
   language: "sql",
+  nullInput: "called",
+  returns: sha256,
+  volatility: "immutable",
+});
+
+export const seedStreamKey = fn("seedStreamKey", {
+  args: { seed: sha256 },
+  body: fn.body`
+  select encode(seed, 'hex')
+`,
+  calls: [],
+  language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -14965,6 +15212,7 @@ export const responseLabel = fn("responseLabel", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -14976,6 +15224,7 @@ export const templateLabel = fn("templateLabel", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -14987,6 +15236,7 @@ export const sittingSeed = fn("sittingSeed", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -14999,6 +15249,7 @@ export const memberState = fn("memberState", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: MemberVar,
   volatility: "immutable",
 });
@@ -15121,6 +15372,7 @@ end `,
     memberState,
   ],
   language: "plpgsql",
+  nullInput: "called",
   returns: row(DocValues),
   volatility: "immutable",
 });
@@ -15133,11 +15385,11 @@ export const bagMarks = fn("bagMarks", {
   ), c as (
     select k, correct[k] as x, case when card = 'ordered' then k - 1 else 0 end::bigint as place from generate_subscripts(correct, 1) k
   ), gn as (
-    select g.*, row_number() over (partition by g.place, b.base, b.t, b.u, b.n, b.m, b.f, b.b order by g.k) as nth,
+    select g.*, row_number() over (partition by g.place, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b order by g.k) as nth,
       (select count(*) from c where c.place = g.place and same(a => c.x, b => g.x)) as held
     from g, lateral bag(v => array[g.x]) b
   ), cn as (
-    select c.*, row_number() over (partition by c.place, b.base, b.t, b.u, b.n, b.m, b.f, b.b order by c.k) as nth,
+    select c.*, row_number() over (partition by c.place, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b order by c.k) as nth,
       (select count(*) from c o where o.place = c.place and same(a => o.x, b => c.x)) as held,
       (select count(*) from g where g.place = c.place and same(a => g.x, b => c.x)) as taken
     from c, lateral bag(v => array[c.x]) b
@@ -15148,10 +15400,11 @@ export const bagMarks = fn("bagMarks", {
   )
   select count(*), id, m.mark, m.place, (array_agg(m.x order by m.k))[1]
   from m, lateral bag(v => array[m.x]) b
-  group by m.place, m.mark, b.base, b.t, b.u, b.n, b.m, b.f, b.b
+  group by m.place, m.mark, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b
 `,
   calls: [same, bag],
   language: "sql",
+  nullInput: "called",
   returns: Marked,
   volatility: "immutable",
 });
@@ -15182,6 +15435,7 @@ export const areaMarks = fn("areaMarks", {
 `,
   calls: [pointArea],
   language: "sql",
+  nullInput: "called",
   returns: Marked,
   volatility: "immutable",
 });
@@ -15236,7 +15490,7 @@ export const attemptMarksOf = fn("attemptMarksOf", {
       from m where (m.value).base = 'boolean'),
     array(select row(m.child, m.copies, m.identifier, m.mark, m.package, m.path, m.place, (m.value).t, m.stage, (m.value).u)::${MarkDirectedPair}
       from m where (m.value).base = 'directedPair'),
-    array(select row(m.child, (m.value).u, m.copies, (m.value).t, m.identifier, m.mark, m.package, m.path, m.place, m.stage)::${MarkFile}
+    array(select row(m.child, (m.value).u, m.copies, (m.value).d, m.identifier, m.mark, m.package, m.path, m.place, m.stage)::${MarkFile}
       from m where (m.value).base = 'file'),
     array(select row((m.value).base, m.child, m.copies, m.identifier, m.mark, m.package, m.path, m.place, m.stage, (m.value).f)::${MarkFloat}
       from m where (m.value).base in ('float', 'duration')),
@@ -15252,6 +15506,7 @@ export const attemptMarksOf = fn("attemptMarksOf", {
 `,
   calls: [varsIn, inputsOf, declared, overridden, valuesOf, bagMarks, areaMarks],
   language: "sql",
+  nullInput: "called",
   returns: row(MarkValues),
   volatility: "immutable",
 });
@@ -15262,6 +15517,7 @@ export const admissionDefect = fn("admissionDefect", {
 begin raise exception 'admission: no branch for %', what; end `,
   calls: [],
   language: "plpgsql",
+  nullInput: "called",
   returns: pg.boolean,
   volatility: "immutable",
 });
@@ -15273,6 +15529,7 @@ export const admissionTokens = fn("admissionTokens", {
 `,
   calls: [trimXml],
   language: "sql",
+  nullInput: "called",
   returns: AdmissionToken,
   volatility: "immutable",
 });
@@ -15286,6 +15543,7 @@ export const admissionPixels = fn("admissionPixels", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -15297,6 +15555,7 @@ export const admissionRound = fn("admissionRound", {
 `,
   calls: [],
   language: "sql",
+  nullInput: "called",
   returns: pg["double precision"],
   volatility: "immutable",
 });
@@ -15341,6 +15600,7 @@ begin
 end `,
   calls: [exact, magnitude],
   language: "plpgsql",
+  nullInput: "called",
   returns: anyText,
   volatility: "immutable",
 });
@@ -16219,6 +16479,7 @@ export const admissionOne = fn("admissionOne", {
     floatText,
   ],
   language: "sql",
+  nullInput: "called",
   returns: row(Admission),
   volatility: "immutable",
 });
@@ -16278,6 +16539,7 @@ export const admissionOf = fn("admissionOf", {
 `,
   calls: [varsIn, valuesOf, startOf, admissionOne],
   language: "sql",
+  nullInput: "called",
   returns: row(Admission),
   volatility: "immutable",
 });
@@ -16508,6 +16770,7 @@ export const gradingFunctions = [
   copies,
   keyedDigest,
   processingSeed,
+  seedStreamKey,
   responseLabel,
   templateLabel,
   sittingSeed,

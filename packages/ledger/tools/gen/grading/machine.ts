@@ -169,41 +169,41 @@ const tokens = new Map([
   ["doc_var.kind", "VariableKind"],
   ["var_kind.kind", "VariableKind"],
   ["test_member_bound.bound", "BoundKind"],
-  ["doc_var.identifier", "XmlChars"],
-  ["doc_base.identifier", "XmlChars"],
-  ["doc_text.identifier", "XmlChars"],
-  ["doc_integer.identifier", "XmlChars"],
-  ["doc_float.identifier", "XmlChars"],
-  ["doc_boolean.identifier", "XmlChars"],
-  ["doc_pair.identifier", "XmlChars"],
-  ["doc_directed_pair.identifier", "XmlChars"],
-  ["doc_point.identifier", "XmlChars"],
-  ["doc_file.identifier", "XmlChars"],
-  ["doc_file_name.identifier", "XmlChars"],
-  ["doc_field_text.identifier", "XmlChars"],
-  ["doc_field_integer.identifier", "XmlChars"],
-  ["doc_field_float.identifier", "XmlChars"],
-  ["doc_field_boolean.identifier", "XmlChars"],
-  ["doc_field_pair.identifier", "XmlChars"],
-  ["doc_field_directed_pair.identifier", "XmlChars"],
-  ["doc_field_point.identifier", "XmlChars"],
-  ["doc_field_file.identifier", "XmlChars"],
-  ["doc_field_file_name.identifier", "XmlChars"],
-  ["mark_text.identifier", "XmlChars"],
-  ["mark_integer.identifier", "XmlChars"],
-  ["mark_float.identifier", "XmlChars"],
-  ["mark_boolean.identifier", "XmlChars"],
-  ["mark_pair.identifier", "XmlChars"],
-  ["mark_directed_pair.identifier", "XmlChars"],
-  ["mark_point.identifier", "XmlChars"],
-  ["mark_file.identifier", "XmlChars"],
+  ["doc_var.identifier", "QtiIdentifier"],
+  ["doc_base.identifier", "QtiIdentifier"],
+  ["doc_text.identifier", "QtiIdentifier"],
+  ["doc_integer.identifier", "QtiIdentifier"],
+  ["doc_float.identifier", "QtiIdentifier"],
+  ["doc_boolean.identifier", "QtiIdentifier"],
+  ["doc_pair.identifier", "QtiIdentifier"],
+  ["doc_directed_pair.identifier", "QtiIdentifier"],
+  ["doc_point.identifier", "QtiIdentifier"],
+  ["doc_file.identifier", "QtiIdentifier"],
+  ["doc_file_name.identifier", "QtiIdentifier"],
+  ["doc_field_text.identifier", "QtiIdentifier"],
+  ["doc_field_integer.identifier", "QtiIdentifier"],
+  ["doc_field_float.identifier", "QtiIdentifier"],
+  ["doc_field_boolean.identifier", "QtiIdentifier"],
+  ["doc_field_pair.identifier", "QtiIdentifier"],
+  ["doc_field_directed_pair.identifier", "QtiIdentifier"],
+  ["doc_field_point.identifier", "QtiIdentifier"],
+  ["doc_field_file.identifier", "QtiIdentifier"],
+  ["doc_field_file_name.identifier", "QtiIdentifier"],
+  ["mark_text.identifier", "QtiIdentifier"],
+  ["mark_integer.identifier", "QtiIdentifier"],
+  ["mark_float.identifier", "QtiIdentifier"],
+  ["mark_boolean.identifier", "QtiIdentifier"],
+  ["mark_pair.identifier", "QtiIdentifier"],
+  ["mark_directed_pair.identifier", "QtiIdentifier"],
+  ["mark_point.identifier", "QtiIdentifier"],
+  ["mark_file.identifier", "QtiIdentifier"],
   ["mark", "AnswerMark"],
   ["body_attribute.name", "AdmittedAttribute"],
-  ["admission_reason.response", "XmlChars"],
+  ["admission_reason.response", "QtiIdentifier"],
   ["admission_word.name", "AdmissionWordName"],
   ["admission_count.name", "AdmissionCountName"],
   ["admission_number.name", "AdmissionNumberName"],
-  ["admission_hidden.response", "XmlChars"],
+  ["admission_hidden.response", "QtiIdentifier"],
   // A text single's value: s_text refuses the empty text, which QTI reads as NULL (info, isNull), so every heading
   // that carries one states it non-empty, as the ledger's leaves do.
   ["out_text.value", "someText"],
@@ -588,6 +588,11 @@ interface Declared {
   readonly body: string;
   readonly args: readonly Argument[];
   readonly returns: string;
+  /**
+   * Its null input as the SQL states it: `strict` where the declaration reads `immutable strict`
+   * (PostgreSQL's STRICT: NULL for any NULL argument, the body never run), else `called`.
+   */
+  readonly nullInput: "called" | "strict";
 }
 
 /**
@@ -685,6 +690,9 @@ const scalar = (t: string): string => {
   const named = new Map([
     ["bigint", "pg.bigint"],
     ["boolean", "pg.boolean"],
+    // Every bytes value the machine takes or gives is a SHA-256 output, 32 raw bytes: a file's content digest and a
+    // processing seed (machine-leaves.sql's header).
+    ["bytea", "sha256"],
     ["float8", 'pg["double precision"]'],
     ["int", "pg.integer"],
     ["integer", "pg.integer"],
@@ -860,7 +868,7 @@ const argumentOf = (text: string): Argument => {
 const declaredFunctions = (fnSql: string): Declared[] =>
   [
     ...fnSql.matchAll(
-      /create function p3\.(?<name>\w+)\((?<args>[^)]*)\)\s*returns\s+(?<returns>[\w.[\] ]+?)\s+language (?<language>sql|plpgsql) immutable as\s*(?<quote>\$\w*\$)(?<body>[\s\S]*?)\k<quote>;/gu,
+      /create function p3\.(?<name>\w+)\((?<args>[^)]*)\)\s*returns\s+(?<returns>[\w.[\] ]+?)\s+language (?<language>sql|plpgsql) immutable(?<strict> strict)? as\s*(?<quote>\$\w*\$)(?<body>[\s\S]*?)\k<quote>;/gu,
     ),
   ].map((m) => {
     const args = m.groups?.["args"] ?? "";
@@ -869,6 +877,7 @@ const declaredFunctions = (fnSql: string): Declared[] =>
       body: m.groups?.["body"] ?? "",
       language: m.groups?.["language"] ?? "",
       name: m.groups?.["name"] ?? "",
+      nullInput: m.groups?.["strict"] === undefined ? ("called" as const) : ("strict" as const),
       returns: m.groups?.["returns"] ?? "",
     };
     inKeyOrder(
@@ -985,8 +994,9 @@ export const machineModules = (): MachineModules => {
  * from the SQL of its machine/ (\`pnpm --filter @qti-pie/ledger generate\`); edit the SQL and generate again, and
  * \`generate:check\` refuses any other edit.
  */`,
-    `import { closed, closedId, fn, natural, pg, row, rows, str, uuid } from "@bjornpagen/grizzle"`,
+    `import { closed, closedId, fn, natural, pg, row, rows, sha256, str, uuid } from "@bjornpagen/grizzle"`,
     `import { admissionCodes } from "@qti-pie/plate/admission-codes"`,
+    `import { QtiIdentifier } from "@qti-pie/pantry/qti/limits.ts"`,
     `import { CreditKind } from "#ledger/credit.ts"`,
     `import { anyText, LearnerId, someText } from "#ledger/keys.ts"`,
     `import { QtiInteger } from "#ledger/scalars.ts"`,
@@ -1024,14 +1034,19 @@ const Holds = str.regex("^(correct|default|value)$")
 
 /** Which bound of a tolerance band a comparison reads. */
 const BoundSide = str.regex("^(lower|upper)$")
+
 /** The registered custom operators' classes, the Registry level's roster (document.sql's custom_class_of). */
 const CustomOperatorClass = str.regex("^(${CustomOperatorClass.toSorted().join("|")})$")
+
 /** The roles a class reads the registry's tables in (tools/gen/grading/machine.ts). */
 const TableRole = str.regex("^(${TableRole.toSorted().join("|")})$")
+
 /** math-canonical's token kinds (tools/gen/grading/machine.ts). */
 const MathTokenKind = str.regex("^(${MathTokenKind.toSorted().join("|")})$")
+
 /** math-canonical's node kinds (tools/gen/grading/machine.ts). */
 const MathNodeKind = str.regex("^(${MathNodeKind.toSorted().join("|")})$")
+
 /** math-canonical's parse modes (tools/gen/grading/machine.ts). */
 const MathParseMode = str.regex("^(${MathParseMode.toSorted().join("|")})$")
 
@@ -1045,10 +1060,6 @@ const BoundKind = str.regex("^(maximum|minimum)$")
 
 /** Which category filter of a test-level expression a category belongs to (Tables 7.39.2 and 7.39.3). */
 const CategoryFilter = str.regex("^(exclude|include)$")
-
-/** XML 1.0's characters, pantry's \`Chars\`: a declared identifier as pantry holds it, which a ledger key holds within its
- * byte share. */
-const XmlChars = str.regex("^[\\\\t\\\\n\\\\r\\\\u{20}-\\\\u{D7FF}\\\\u{E000}-\\\\u{FFFD}\\\\u{10000}-\\\\u{10FFFF}]*$")
 
 /** A review's mark on a part of a response (AttemptMark, marks.sql): right, wrong, or a correct value missed. */
 const AnswerMark = str.regex("^(missed|right|wrong)$")
@@ -1175,6 +1186,7 @@ const AdmissionNumberName = str.regex("^(${admissionNumbers.join("|")})$")`,
 	body: fn.body\`${raw(typed(f.body, typeNames))}\`,
 \tcalls: [${calls.join(", ")}],
 \tlanguage: "${f.language}",
+\tnullInput: "${f.nullInput}",
 \treturns: ${sigType(f.returns, f.name)},
 \tvolatility: "immutable"
 })`,

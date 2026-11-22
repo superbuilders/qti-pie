@@ -310,7 +310,7 @@ export const valueRules = (head: string): string[] => {
 ${copy}\t\t\treturn r
 \t\t\t\t.match(attempt, { child, package: pkg, path, n, stage, at })
 \t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, ${lvars}${extra} })${copyMatch}
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: Type.cast(variable, DocText.fields.identifier), ${place}${base}, ${vals} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, ${place}${base}, ${vals} })
 \t\t})`);
     }
     // the session's template values, correct responses and defaults
@@ -327,7 +327,7 @@ ${copy}\t\t\treturn r
 \t\t\t\t.match(attempt, { child, package: pkg, path, n })
 \t\t\t\t.match(fields.ItemSession, { child, package: pkg, path, n, stage })
 \t\t\t\t.match(${rel}, { child, stage, package: pkg, path, kind: "${kind}", variable, ${lvars}${extra} })${copyMatch}
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "${holds}"), identifier: Type.cast(variable, DocText.fields.identifier), ${place}${base}, ${vals} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "${holds}"), identifier: variable, ${place}${base}, ${vals} })
 \t\t})`);
       }
     }
@@ -345,7 +345,7 @@ ${copy}\t\t\treturn r
 \t\t\t\t.match(attempt, { child, package: pkg, path, n, stage, at })
 \t\t\t\t.match(fields.SnapshotRecord, { child, package: pkg, path, n, at, variable, field })
 \t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, field, ${lvars} })
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: Type.cast(variable, DocText.fields.identifier), field${base}, ${fieldCols(t, head)} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, field${base}, ${fieldCols(t, head)} })
 \t\t})`);
   }
 
@@ -378,7 +378,7 @@ ${copy}\t\t\treturn r
 \t\t\t\t.match(retained, { child, package: pkg, path, n, stage, previous: at })
 \t\t\t\t.match(fields.ItemVariable, { package: pkg, path, identifier: variable, declarationKind: "qti-outcome-declaration" })
 \t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, ${lvars}${extra} })${copyMatch}
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: Type.cast(variable, DocText.fields.identifier), ${place}${base}, ${vals} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, ${place}${base}, ${vals} })
 \t\t})`);
     }
   }
@@ -395,7 +395,7 @@ ${copy}\t\t\treturn r
 \t\t\t\t.match(fields.ItemRecordVariable, { package: pkg, path, identifier: variable, declarationKind: "qti-outcome-declaration" })
 \t\t\t\t.match(fields.SnapshotRecord, { child, package: pkg, path, n, at, variable, field })
 \t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, field, ${lvars} })
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: Type.cast(variable, DocText.fields.identifier), field${base}, ${fieldCols(t, head)} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, field${base}, ${fieldCols(t, head)} })
 \t\t})`);
   }
 
@@ -563,7 +563,7 @@ export const outcomeMember = (
 \t\t\tconst { child, package: pkg, path, n, at, identifier, place, ${cvars} } = v(bag, "copy")
 \t\t\treturn r
 \t\t\t\t.match(bag, { child, package: pkg, path, n, at, identifier, place, ${cvars} })
-\t\t\t\t.find({ child, package: pkg, path, n, at, variable: Type.cast(identifier, VariableName)${key}, ${lfind}${group} })
+\t\t\t\t.find({ child, package: pkg, path, n, at, variable: identifier${key}, ${lfind}${group} })
 \t\t})
 \t)`;
   }
@@ -581,7 +581,7 @@ export const outcomeMember = (
 \t\t\t\t.match(out.vars, { child, package: pkg, path, stage, holds: "value", kind: "outcome", identifier, card: "${card}" })
 \t\t\t\t.match(out.${head}, { child, package: pkg, path, stage, holds: "value", identifier, ${pos}${base}, ${vmatch} })${nameMatch}
 \t\t\t\t.where(r.ne(identifier, "completionStatus"))
-\t\t\t\t.find({ child, package: pkg, path, n, at, variable: Type.cast(identifier, VariableName)${key}, ${lfind}${group} })
+\t\t\t\t.find({ child, package: pkg, path, n, at, variable: identifier${key}, ${lfind}${group} })
 \t\t})
 \t)`;
 };
@@ -607,7 +607,7 @@ const recordHeaderMember = (t: BaseTypeName): string => {
 \t\t\t\t.match(attempt, { child, package: pkg, path, n, stage, at })
 \t\t\t\t.match(out.vars, { child, package: pkg, path, stage, holds: "value", kind: "outcome", identifier, card: "record" })
 \t\t\t\t.match(out.${head}, { child, package: pkg, path, stage, holds: "value", identifier, field${base} })
-\t\t\t\t.find({ child, package: pkg, path, n, at, variable: Type.cast(identifier, VariableName), field, baseType: BaseType.handle("${TOKEN[t]}") })
+\t\t\t\t.find({ child, package: pkg, path, n, at, variable: identifier, field, baseType: BaseType.handle("${TOKEN[t]}") })
 \t\t})`;
 };
 
@@ -870,7 +870,6 @@ ${TYPES.map((t) => outcomeMember("Record", t)).join("\n")}`;
     readersReturn,
     tables,
     sitting,
-    fragment("base/members-pre"),
     fragment("base/post-head"),
     ...graded,
     records,

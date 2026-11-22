@@ -51,7 +51,7 @@
  * @module
  */
 import type { Facts, NaturalDomain, Term } from "@bjornpagen/grizzle";
-import { Fn, Num, param, query, Type, v } from "@bjornpagen/grizzle";
+import { Fn, Num, param, query, Sha256, Type, v } from "@bjornpagen/grizzle";
 import type { deliveryOf } from "#ledger/delivery.ts";
 import {
   copies,
@@ -73,6 +73,7 @@ import {
   ProgramNode,
   responseLabel,
   responseProcessingOf,
+  seedStreamKey,
   TableBinding,
   TableEntry,
   TableValue,
@@ -184,7 +185,7 @@ const startReadsOf = (delivery: DeliveryLevel) => {
       label: Fn.call(responseLabel, { attempts: 1n }),
       package: pkg,
       path,
-      seed,
+      seed: Fn.call(seedStreamKey, { seed }),
       stage,
     });
   });
@@ -3947,7 +3948,7 @@ const startReadsOf = (delivery: DeliveryLevel) => {
     r.where(r.or()).find({
       child: Type.literal(DocFieldFile.fields.child, "x"),
       content_type: Type.literal(DocFieldFile.fields.content_type, ""),
-      digest: Type.literal(DocFieldFile.fields.digest, ""),
+      digest: Type.literal(DocFieldFile.fields.digest, Sha256.ofBytes(new Uint8Array(0))),
       field: Type.literal(DocFieldFile.fields.field, ""),
       holds: Type.literal(DocFieldFile.fields.holds, "value"),
       identifier: Type.literal(DocFieldFile.fields.identifier, "RESPONSE"),

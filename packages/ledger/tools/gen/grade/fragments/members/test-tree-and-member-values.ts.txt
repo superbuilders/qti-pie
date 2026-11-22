@@ -242,7 +242,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           card,
           child,
           holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.cast(identifier, DocVar.fields.identifier),
+          identifier,
           kind: Type.literal(DocVar.fields.kind, "response"),
           package: pkg,
           path,
@@ -265,7 +265,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           card: Type.literal(DocVar.fields.card, "record"),
           child,
           holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.cast(identifier, DocVar.fields.identifier),
+          identifier,
           kind: Type.literal(DocVar.fields.kind, "response"),
           package: pkg,
           path,
@@ -291,7 +291,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           card,
           child,
           holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.cast(identifier, DocVar.fields.identifier),
+          identifier,
           kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
@@ -314,7 +314,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           card: Type.literal(DocVar.fields.card, "record"),
           child,
           holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.cast(identifier, DocVar.fields.identifier),
+          identifier,
           kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
@@ -355,7 +355,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           path,
         })
         .match(fields.BaseTypeToken, { baseType, token: base })
-        .find({ base, child, identifier: Type.cast(identifier, DocBase.fields.identifier), package: pkg, path, stage });
+        .find({ base, child, identifier, package: pkg, path, stage });
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(processed, "processed");
@@ -372,7 +372,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           path,
         })
         .match(fields.BaseTypeToken, { baseType, token: base })
-        .find({ base, child, identifier: Type.cast(identifier, DocBase.fields.identifier), package: pkg, path, stage });
+        .find({ base, child, identifier, package: pkg, path, stage });
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(processed, "processed");

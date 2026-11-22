@@ -94,8 +94,8 @@ const statusText = (status: string): string => `(r) => {
  * The grading module's import as the base stage leaves it, and as the members stage needs it.
  */
 const GRADING_IMPORT = [
-  'import {\n  copies,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocVar,\n  responseLabel,\n  responseProcessingOf,\n} from "#ledger/grading.ts";',
-  'import {\n  copies,\n  DocBase,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocVar,\n  responseLabel,\n  responseProcessingOf,\n} from "#ledger/grading.ts";',
+  'import {\n  copies,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocVar,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
+  'import {\n  copies,\n  DocBase,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocVar,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
 ] as const;
 
 /**

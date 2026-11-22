@@ -5,10 +5,10 @@
  *
  * Its facts are the level's own relations (`#ledger/ledger.ts`), never a table of this file's:
  * every sidecar of each response cardinality (`Snapshot<Cardinality>…`), in the order the level
- * declares them, and the fields each holds beyond Save's key, in their declared order. So a sidecar
- * added, removed or reshaped there is regenerated here. The shared runner, `tools/gen/main.ts`,
- * writes the target (`pnpm generate`) and refuses a committed file that differs from it
- * (`pnpm generate:check`).
+ * declares them, and the fields each holds beyond Save's key that an insert writes, in their
+ * declared order. So a sidecar added, removed or reshaped there is regenerated here. The shared
+ * runner, `tools/gen/main.ts`, writes the target (`pnpm generate`) and refuses a committed file
+ * that differs from it (`pnpm generate:check`).
  *
  * The level loads `src/grading.ts`, a generated file, which loads plate's `admission-codes.ts`,
  * another: so `generate` imports the level when it runs, after their generators (`reads`), never
@@ -31,7 +31,9 @@ const cardinalities = [
 
 /**
  * One snapshot sidecar the finish copies: its relation's name and the fields it holds beyond its
- * snapshot's key, the values the copy carries over.
+ * snapshot's key, the values the copy carries over. A field that states under `writing` that
+ * PostgreSQL or grizzle writes it (a multiple of strings' `valueDigest`) is no insert's: the copy's
+ * row gets it as every row of its relation does.
  */
 interface Sidecar {
   readonly name: string;
@@ -50,7 +52,9 @@ const sidecarsOf = (ledger: LedgerLevel): readonly Sidecar[] => {
       ? [
           {
             name: relation.name,
-            values: Object.keys(relation.fields).filter((field) => !snapshotKey.includes(field)),
+            values: Object.entries(relation.fields)
+              .filter(([field, type]) => !snapshotKey.includes(field) && !("writing" in type))
+              .map(([field]) => field),
           },
         ]
       : [],

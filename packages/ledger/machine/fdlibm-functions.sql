@@ -21,24 +21,24 @@
 -- generator in the repository can read.
 
 -- The bits of a double, as the signed 64-bit integer that holds them.
-create function p3.fdlibm_bits(x float8) returns bigint language sql immutable as $$
+create function p3.fdlibm_bits(x float8) returns bigint language sql immutable strict as $$
   select int8(float8send(x))
 $$;
 -- GET_HIGH_WORD: the sign, exponent and top 20 significand bits, as an int32_t.
-create function p3.fdlibm_hi(x float8) returns int language sql immutable as $$
+create function p3.fdlibm_hi(x float8) returns int language sql immutable strict as $$
   select (int8(float8send(x)) >> 32)::int
 $$;
 -- GET_LOW_WORD: the low 32 significand bits, as a uint32_t.
-create function p3.fdlibm_lo(x float8) returns bigint language sql immutable as $$
+create function p3.fdlibm_lo(x float8) returns bigint language sql immutable strict as $$
   select (int8(float8send(x)) & 4294967295)
 $$;
 -- 2^k for an integer k in [-1074, 1023]: a product of two powers of two, exact since the result is a double.
-create function p3.fdlibm_pow2(k int) returns float8 language sql immutable as $$
+create function p3.fdlibm_pow2(k int) returns float8 language sql immutable strict as $$
   select (case when (k) >= -1022 then (('{2.2250738585072014e-308,4.1045368012983762e-289,7.571533991467358e-270,1.3967014978599092e-250,2.5764595078388533e-231,4.7527289157379e-212,8.767237396033612e-193,1.617269844780878e-173,2.983336292480083e-154,5.503284107318959e-135,1.0151767349262597e-115,1.8726705418768793e-96,3.454467422037778e-77,6.372367644529809e-58,1.1754943508222875e-38,2.168404344971009e-19,4,73786976294838210000,1.361129467683754e+39,2.5108406941546723e+58,4.631683569492648e+77,8.54394814368364e+96,1.5760802478557792e+116,2.9073548971824276e+135,5.363123171977039e+154,9.893216058924181e+173,1.824976247048878e+193,3.366486976990959e+212,6.210072369202836e+231,1.1455561567389984e+251,2.113178124542661e+270,3.89812560456e+289}'::float8[])[(((k) + 1022) >> 6) + 1] * ('{1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,16384,32768,65536,131072,262144,524288,1048576,2097152,4194304,8388608,16777216,33554432,67108864,134217728,268435456,536870912,1073741824,2147483648,4294967296,8589934592,17179869184,34359738368,68719476736,137438953472,274877906944,549755813888,1099511627776,2199023255552,4398046511104,8796093022208,17592186044416,35184372088832,70368744177664,140737488355328,281474976710656,562949953421312,1125899906842624,2251799813685248,4503599627370496,9007199254740992,18014398509481984,36028797018963970,72057594037927940,144115188075855870,288230376151711740,576460752303423500,1152921504606847000,2305843009213694000,4611686018427388000,9223372036854776000}'::float8[])[(((k) + 1022) & 63) + 1]) else 2.2250738585072014e-308 * ('{0.5,0.25,0.125,0.0625,0.03125,0.015625,0.0078125,0.00390625,0.001953125,0.0009765625,0.00048828125,0.000244140625,0.0001220703125,0.00006103515625,0.000030517578125,0.0000152587890625,0.00000762939453125,0.000003814697265625,0.0000019073486328125,9.5367431640625e-7,4.76837158203125e-7,2.384185791015625e-7,1.1920928955078125e-7,5.960464477539063e-8,2.9802322387695312e-8,1.4901161193847656e-8,7.450580596923828e-9,3.725290298461914e-9,1.862645149230957e-9,9.313225746154785e-10,4.656612873077393e-10,2.3283064365386963e-10,1.1641532182693481e-10,5.820766091346741e-11,2.9103830456733704e-11,1.4551915228366852e-11,7.275957614183426e-12,3.637978807091713e-12,1.8189894035458565e-12,9.094947017729282e-13,4.547473508864641e-13,2.2737367544323206e-13,1.1368683772161603e-13,5.684341886080802e-14,2.842170943040401e-14,1.4210854715202004e-14,7.105427357601002e-15,3.552713678800501e-15,1.7763568394002505e-15,8.881784197001252e-16,4.440892098500626e-16,2.220446049250313e-16}'::float8[])[-1022 - (k)] end)
 $$;
 -- The double whose bits are b (PostgreSQL has float8send but no SQL-callable inverse): its significand times a power
 -- of two, exact; NaN for every NaN pattern.
-create function p3.fdlibm_from_bits(b bigint) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_from_bits(b bigint) returns float8 language plpgsql immutable strict as $$
 declare m bigint := b & 9223372036854775807; r float8;
 begin
   if m < 4503599627370496 then r := m::float8 * 4.9406564584124654e-324;
@@ -50,7 +50,7 @@ begin
 end $$;
 
 -- b^e for integers b > 0 and e >= 0, exactly.
-create function p3.fdlibm_ipow(b int, e int) returns numeric language plpgsql immutable as $$
+create function p3.fdlibm_ipow(b int, e int) returns numeric language plpgsql immutable strict as $$
 declare r numeric := 1; f numeric := b; n int := e;
 begin
   while n > 0 loop
@@ -62,7 +62,7 @@ begin
 end $$;
 -- n · 2^k rounded to the nearest double, ties to even, through float8 input's strtod (correctly rounded): the exact
 -- decimal n · 5^-k · 10^k for k < 0. strtod's range error is an infinity, or a zero of n's sign.
-create function p3.fdlibm_round_scaled(k int, n numeric) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_round_scaled(k int, n numeric) returns float8 language plpgsql immutable strict as $$
 begin
   if k >= 0 then return (n * fdlibm_ipow(b => 2, e => k))::text::float8; end if;
   return ((n * fdlibm_ipow(b => 5, e => -k))::text || 'e' || k)::float8;
@@ -74,7 +74,7 @@ exception when numeric_value_out_of_range then
 end $$;
 -- fma for what its fast path excludes: NaN, infinities, zero products, and operands whose product could leave
 -- Dekker's exact range; finite ones as integers times a common power of two, exactly, rounded once.
-create function p3.fdlibm_fma_wide(a float8, b float8, c float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_fma_wide(a float8, b float8, c float8) returns float8 language plpgsql immutable strict as $$
 declare ba bigint; bb bigint; bc bigint; ma numeric; mb numeric; mc numeric; ka int; kb int; kc int; k int; n numeric;
 begin
   if a = 'NaN' or b = 'NaN' or c = 'NaN' then return 'NaN'; end if;
@@ -109,7 +109,7 @@ end $$;
 -- most 1e288, Dekker's exact product p + e, TwoSum of c + p, and Boldo and Melquiond's emulation: s + v, the error w
 -- of v deciding a tie of s + v toward its side; a zero product is IEEE's a × b + c, the rest fdlibm_fma_wide. The
 -- functions below hold it inline.
-create function p3.fdlibm_fma(a float8, b float8, c float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_fma(a float8, b float8, c float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; r float8;
 begin
   if abs(a) >= 1e-144 and abs(a) <= 1e144 and abs(b) >= 1e-144 and abs(b) <= 1e144 and abs(c) <= 1e288 then
@@ -132,7 +132,7 @@ end $$;
 
 -- V8's __kernel_sin: sin(x + y) on [-π/4, π/4], y the tail of x, iy = 0 when y is 0. 0.5 × y is exact (a tail of
 -- rem_pio2 is 0 or far above the subnormals), so its fused and unfused forms agree.
-create function p3.fdlibm_kernel_sin(iy int, x float8, y float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_kernel_sin(iy int, x float8, y float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; k_ix int; k_hx int; k_x float8; k_y float8; k_z float8; k_v float8; k_r float8; k_u float8; k_q float8; k_w float8; k_a float8; k_t float8; k_s float8;
  res float8;
 begin
@@ -268,7 +268,7 @@ begin
   return res;
 end $$;
 -- V8's __kernel_cos: cos(x + y) on [-π/4, π/4]. 0.5 × z is exact (z >= 2^-54), so its fused and unfused forms agree.
-create function p3.fdlibm_kernel_cos(x float8, y float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_kernel_cos(x float8, y float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; k_ix int; k_hx int; k_x float8; k_y float8; k_z float8; k_v float8; k_r float8; k_u float8; k_q float8; k_w float8; k_a float8; k_t float8; k_s float8;
  res float8;
 begin
@@ -379,7 +379,7 @@ begin
   return res;
 end $$;
 -- V8's __kernel_tan: tan(x + y) on [-π/4, π/4] for iy = 1, -1 / tan(x + y) for iy = -1. 2 × a here is exact.
-create function p3.fdlibm_kernel_tan(iy int, x float8, y float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_kernel_tan(iy int, x float8, y float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; k_ix int; k_hx int; k_x float8; k_y float8; k_z float8; k_v float8; k_r float8; k_u float8; k_q float8; k_w float8; k_a float8; k_t float8; k_s float8;
  res float8;
 begin
@@ -714,7 +714,7 @@ end $$;
 -- V8's sin, cos and tan (op 0, 1, 2) for |x| above 2^19·π/2: __ieee754_rem_pio2's large case and __kernel_rem_pio2
 -- (prec 2), then the kernel of n mod 4. Its contracted products (24-bit chunks of x, 2/π and π/2, and 2^24 × fw) are
 -- exact, so their fused and unfused forms agree.
-create function p3.fdlibm_trig_large(op int, x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_trig_large(op int, x float8) returns float8 language plpgsql immutable strict as $$
 declare
   hx int := (int8(float8send(x)) >> 32)::int; ix int := hx & 2147483647;
   e0 int; z float8; nx int := 3; jk int := 4; jp int := 4; jx int; jv int; jz int; q0 int; carry int; n int; ih int;
@@ -850,7 +850,7 @@ begin
 end $$;
 -- V8's sin (ieee754.cc; Math.sin), with __ieee754_rem_pio2's reduction up to 2^19·π/2 and the kernels
 -- inline. fn × pio2_1 is exact (20 by 31 bits), so its fused and unfused forms agree.
-create function p3.fdlibm_sin(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_sin(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; k_ix int; k_hx int; k_x float8; k_y float8; k_z float8; k_v float8; k_r float8; k_u float8; k_q float8; k_w float8; k_a float8; k_t float8; k_s float8;
  hx int := (int8(float8send(x)) >> 32)::int; ix int := hx & 2147483647; z float8; w float8; t float8; r float8; fn float8; y0 float8; y1 float8; n int; j int; i int; u float8; res float8; kiy int;
 begin
@@ -1527,7 +1527,7 @@ end $$;
 
 -- V8's cos (ieee754.cc; Math.cos), with __ieee754_rem_pio2's reduction up to 2^19·π/2 and the kernels
 -- inline. fn × pio2_1 is exact (20 by 31 bits), so its fused and unfused forms agree.
-create function p3.fdlibm_cos(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_cos(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; k_ix int; k_hx int; k_x float8; k_y float8; k_z float8; k_v float8; k_r float8; k_u float8; k_q float8; k_w float8; k_a float8; k_t float8; k_s float8;
  hx int := (int8(float8send(x)) >> 32)::int; ix int := hx & 2147483647; z float8; w float8; t float8; r float8; fn float8; y0 float8; y1 float8; n int; j int; i int; u float8; res float8; kiy int;
 begin
@@ -2204,7 +2204,7 @@ end $$;
 
 -- V8's tan (ieee754.cc; Math.tan), with __ieee754_rem_pio2's reduction up to 2^19·π/2 and the kernels
 -- inline. fn × pio2_1 is exact (20 by 31 bits), so its fused and unfused forms agree.
-create function p3.fdlibm_tan(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_tan(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; k_ix int; k_hx int; k_x float8; k_y float8; k_z float8; k_v float8; k_r float8; k_u float8; k_q float8; k_w float8; k_a float8; k_t float8; k_s float8;
  hx int := (int8(float8send(x)) >> 32)::int; ix int := hx & 2147483647; z float8; w float8; t float8; r float8; fn float8; y0 float8; y1 float8; n int; j int; i int; u float8; res float8; kiy int;
 begin
@@ -2881,7 +2881,7 @@ end $$;
 
 
 -- V8's asin (ieee754.cc; Math.asin). Products by 2 here are exact, so fused and unfused agree.
-create function p3.fdlibm_asin(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_asin(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; hx int := (int8(float8send(x)) >> 32)::int; ix int := hx & 2147483647; t float8; w float8; p float8; q float8; c float8; r float8; s float8; u float8;
 begin
   if ix >= 0x3FF00000 then
@@ -3257,7 +3257,7 @@ begin
   return case when hx > 0 then t else -t end;
 end $$;
 -- V8's acos (ieee754.cc; Math.acos). Products by 2 here are exact, so fused and unfused agree.
-create function p3.fdlibm_acos(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_acos(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; hx int := (int8(float8send(x)) >> 32)::int; ix int := hx & 2147483647; z float8; p float8; q float8; r float8; w float8; s float8; c float8; df float8; u float8;
 begin
   if ix >= 0x3FF00000 then
@@ -3482,7 +3482,7 @@ begin
   return 2 * (df + w);
 end $$;
 -- V8's atan (ieee754.cc; Math.atan). 2 × x - 1 is exact on [7/16, 11/16).
-create function p3.fdlibm_atan(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_atan(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; a_x float8; a_hx int; a_ix int; a_id int; a_w float8; a_s1 float8; a_s2 float8; a_z float8; a_u float8;
  res float8;
 begin
@@ -3711,7 +3711,7 @@ begin
   return res;
 end $$;
 -- V8's atan2 (ieee754.cc; Math.atan2(y, x)). y / x that underflows is the zero or subnormal IEEE gives.
-create function p3.fdlibm_atan2(x float8, y float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_atan2(x float8, y float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; a_x float8; a_hx int; a_ix int; a_id int; a_w float8; a_s1 float8; a_s2 float8; a_z float8; a_u float8;
  hx int := (int8(float8send(x)) >> 32)::int; ix int := hx & 2147483647; lx bigint := (int8(float8send(x)) & 4294967295); hy int := (int8(float8send(y)) >> 32)::int; iy int := hy & 2147483647; ly bigint := (int8(float8send(y)) & 4294967295); m int; k int; z float8;
 begin
@@ -4423,7 +4423,7 @@ begin
 end $$;
 
 -- V8's exp (ieee754.cc; Math.exp). t × ln2HI is exact (11 by 32 bits), so its fused and unfused forms agree.
-create function p3.fdlibm_exp(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_exp(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; e_x float8; e_hx int; e_xsb int; e_hi float8; e_lo float8; e_k int; e_t float8; e_c float8; e_y float8; e_u float8;
  res float8;
 begin
@@ -4563,7 +4563,7 @@ begin
 end $$;
 -- V8's expm1 (ieee754.cc), which sinh, cosh and tanh call. 0.5 × and 2 × a value and t × ln2_hi (11 by 32 bits) are
 -- exact here, so their fused and unfused forms agree.
-create function p3.fdlibm_expm1(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_expm1(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; m_x float8; m_hx int; m_xsb boolean; m_k int; m_hi float8; m_lo float8; m_c float8; m_t float8; m_e float8; m_hxs float8; m_hfx float8; m_r1 float8; m_y float8; m_u float8;
  res float8;
 begin
@@ -4786,7 +4786,7 @@ begin
 end $$;
 -- V8's log (ieee754.cc; Math.log). Setting x's exponent is an exact scaling by a power of two; dk × ln2_hi is exact
 -- (11 by 32 bits), so its fused and unfused forms agree.
-create function p3.fdlibm_log(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_log(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; l_x float8; l_hx int; l_k int; l_i int; l_j int; l_f float8; l_s float8; l_z float8; l_w float8; l_r float8; l_t1 float8; l_t2 float8; l_hfsq float8; l_dk float8; l_u float8;
  res float8;
 begin
@@ -5010,7 +5010,7 @@ begin
 end $$;
 -- V8's log10 (ieee754.cc; Math.log10). Setting x's exponent is an exact scaling by a power of two; y × log10_2hi is
 -- exact (11 by 40 bits), so its fused and unfused forms agree.
-create function p3.fdlibm_log10(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_log10(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; l_x float8; l_hx int; l_k int; l_i int; l_j int; l_f float8; l_s float8; l_z float8; l_w float8; l_r float8; l_t1 float8; l_t2 float8; l_hfsq float8; l_dk float8; l_u float8;
  lg float8; hx int := (int8(float8send(x)) >> 32)::int; lx bigint := (int8(float8send(x)) & 4294967295); k int := 0; i int; y float8; u float8;
 begin
@@ -5275,7 +5275,7 @@ begin
 end $$;
 
 -- V8's sinh (ieee754.cc; Math.sinh). 2 × t is exact.
-create function p3.fdlibm_sinh(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_sinh(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; m_x float8; m_hx int; m_xsb boolean; m_k int; m_hi float8; m_lo float8; m_c float8; m_t float8; m_e float8; m_hxs float8; m_hfx float8; m_r1 float8; m_y float8; m_u float8;
  e_x float8; e_hx int; e_xsb int; e_hi float8; e_lo float8; e_k int; e_t float8; e_c float8; e_y float8; e_u float8;
  h float8 := case when x < 0 then -0.5 else 0.5 end; ax float8 := abs(x); t float8; w float8;
@@ -5775,7 +5775,7 @@ begin
   return case when x < 0 then '-Infinity'::float8 else 'Infinity'::float8 end;
 end $$;
 -- V8's cosh (ieee754.cc; Math.cosh). 0.5 × t is exact.
-create function p3.fdlibm_cosh(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_cosh(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; m_x float8; m_hx int; m_xsb boolean; m_k int; m_hi float8; m_lo float8; m_c float8; m_t float8; m_e float8; m_hxs float8; m_hfx float8; m_r1 float8; m_y float8; m_u float8;
  e_x float8; e_hx int; e_xsb int; e_hi float8; e_lo float8; e_k int; e_t float8; e_c float8; e_y float8; e_u float8;
  ix int := (int8(float8send(x)) >> 32)::int & 2147483647; t float8; w float8;
@@ -6410,7 +6410,7 @@ begin
   return 'Infinity';
 end $$;
 -- V8's tanh (ieee754.cc; Math.tanh).
-create function p3.fdlibm_tanh(x float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_tanh(x float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8; m_x float8; m_hx int; m_xsb boolean; m_k int; m_hi float8; m_lo float8; m_c float8; m_t float8; m_e float8; m_hxs float8; m_hfx float8; m_r1 float8; m_y float8; m_u float8;
  jx int := (int8(float8send(x)) >> 32)::int; ix int := jx & 2147483647; t float8; z float8;
 begin
@@ -6870,7 +6870,7 @@ end $$;
 -- halves of 26 and 27 bits gives two exact products and an exact sum); fma(r, ar, -ar2) and fma(y, hi, -ehi) are the
 -- rounding errors of products, exact by Dekker's method (|y| < 2^63, and log(x) is 0 or above 2^-60). The scale
 -- 2^(k/128) is the table's 2^(j/128) times an exact power of two, and z of log_inline is x scaled by one.
-create function p3.fdlibm_pow(x float8, y float8) returns float8 language plpgsql immutable as $$
+create function p3.fdlibm_pow(x float8, y float8) returns float8 language plpgsql immutable strict as $$
 declare f_a float8; f_b float8; f_c float8; f_p float8; f_ah float8; f_bh float8; f_e float8; f_s float8; f_tl float8; f_w float8;
   ix bigint; iy bigint; topx int; topy int; sign_bias boolean := false; yint int; x2 float8; xs float8; kz int := 0;
   tmp bigint; i int; k int; z float8; kd float8; r float8; t1 float8; t2 float8; lo1 float8; lo2 float8;

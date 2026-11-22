@@ -28,6 +28,7 @@
  * @module
  */
 import { floatBits } from "@bjornpagen/grizzle";
+import type { Sha256 } from "@bjornpagen/grizzle";
 import type { ItemRecord, RecordValue, Responses, ResponseValue, Value } from "@qti-pie/plate";
 import type { AnswerMark, Credit, PartMark } from "@qti-pie/plate/ui";
 import { Effect, Option, Order, Schema } from "effect";
@@ -56,7 +57,7 @@ interface Columns {
   readonly boolean: { readonly value: boolean };
   readonly directedPair: { readonly source: string; readonly target: string };
   readonly duration: { readonly value: number };
-  readonly file: { readonly digest: string; readonly name: string; readonly type: string };
+  readonly file: { readonly digest: Sha256; readonly name: string; readonly type: string };
   readonly float: { readonly value: number };
   readonly identifier: { readonly value: string };
   readonly integer: { readonly value: LedgerInteger };
@@ -474,7 +475,7 @@ type MarkRow<C> = C & {
 export interface MarkRows {
   readonly boolean: readonly MarkRow<Columns["boolean"]>[];
   readonly directedPair: readonly MarkRow<Columns["directedPair"]>[];
-  readonly file: readonly MarkRow<{ readonly contentType: string; readonly digest: string }>[];
+  readonly file: readonly MarkRow<{ readonly contentType: string; readonly digest: Sha256 }>[];
   readonly float: readonly MarkRow<{ readonly baseType: string; readonly value: number }>[];
   readonly integer: readonly MarkRow<Columns["integer"]>[];
   readonly pair: readonly MarkRow<Columns["pair"]>[];

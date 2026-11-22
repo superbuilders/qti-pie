@@ -10,7 +10,7 @@
 
 -- P1 normalize-space: XPath F&O 3.1 fn:normalize-space over Unicode's White_Space, its leading and trailing runs
 -- removed and each inner run one U+0020.
-create function p3.normalize_space(t text) returns text language sql immutable as $$
+create function p3.normalize_space(t text) returns text language sql immutable strict as $$
   select nullif(regexp_replace(regexp_replace(t, '^[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+|[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$', '', 'g'), '[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', 'g'), '')
 $$;
 
@@ -18,7 +18,7 @@ $$;
 -- lead ruled it: every `<…>` tag deleted, then exactly five entities decoded, in this order: &quot; &apos; &lt; &gt;
 -- &amp; (so `&amp;lt;` is `&lt;`); `&nbsp;` is not decoded. The converter writes an essay's operand as
 -- normalize-space(markup-text(RESPONSE)), so an answer of markup alone is NULL: no request, SCORE 0.
-create function p3.markup_text(t text) returns text language sql immutable as $$
+create function p3.markup_text(t text) returns text language sql immutable strict as $$
   select nullif(replace(replace(replace(replace(replace(regexp_replace(t, '<[^>]*>', '', 'g'), '&quot;', '"'), '&apos;', ''''),
     '&lt;', '<'), '&gt;', '>'), '&amp;', '&'), '')
 $$;
@@ -41,7 +41,7 @@ $$;
 -- it to the nearest double. The first 800 significant digits and a sticky digit for any non-zero one past them decide
 -- the rounding exactly (no decimal a double's rounding turns on has more than 767), and a leading digit past 10^309 or
 -- below 10^-400 is an infinity or a zero, so numeric's own range is never reached.
-create function p3.read_number(t text) returns float8 language plpgsql immutable as $$
+create function p3.read_number(t text) returns float8 language plpgsql immutable strict as $$
 declare s text := btrim(t, E' \t\n\r'); m text[]; digits text; e numeric; lead numeric; neg boolean;
 begin
   m := regexp_match(s, '^([+-]?)([0-9]*)(?:[.]([0-9]*))?(?:[Ee]([+-]?[0-9]+))?$');
@@ -64,7 +64,7 @@ end $$;
 -- the fewest significant digits k whose decimal reads back as the double, the one nearest its exact value where two
 -- do, the even one where both are as near. Its digits and the decimal exponent n of the point (the value is
 -- 0.digits × 10^n), from the double's exact value (p3.exact) and the machine's reader (p3.ieee); no float arithmetic.
-create function p3.shortest_digits(f float8) returns p3.segment language plpgsql immutable as $$
+create function p3.shortest_digits(f float8) returns p3.segment language plpgsql immutable strict as $$
 declare x numeric := abs(exact(f => f)); e int; d int; scale int; lo numeric; hi numeric; lo_ok boolean; hi_ok boolean; step numeric;
   chosen numeric; ds text;
 begin
@@ -93,7 +93,7 @@ end $$;
 -- A double as ECMAScript's Number::toString writes it (String(x)): NaN, Infinity and -Infinity by name, a zero of
 -- either sign as 0, else the shortest digits: as an integer with zeros where the point lies at 21 or fewer places, as
 -- a decimal from 10^-6, else as d.ddde±n.
-create function p3.numeral_text(f float8) returns text language plpgsql immutable as $$
+create function p3.numeral_text(f float8) returns text language plpgsql immutable strict as $$
 declare sd segment; k int; n int; sign text := case when f < 0 then '-' else '' end;
 begin
   if f = 'NaN' then return 'NaN'; elsif f = 'Infinity' then return 'Infinity'; elsif f = '-Infinity' then return '-Infinity';
@@ -109,7 +109,7 @@ end $$;
 -- P3 numeral-normal, its three steps in order. Step 1, every decimal numeral without its trailing fractional zeros, and its point where none is
 -- left: the pattern (?<![\d.])(\d+)\.(\d*?)0+(?![\d.]) read as each maximal run of digits and points that is digits,
 -- one point and digits ending in 0 (6.50t is 6.5t, 3.00 is 3; 10.05, .50 and 8.0.09 stay).
-create function p3.without_trailing_zeros(t text) returns text language sql immutable as $$
+create function p3.without_trailing_zeros(t text) returns text language sql immutable strict as $$
   select coalesce(string_agg(case when r[1] ~ '^[0-9]+[.][0-9]*0$'
       then split_part(r[1], '.', 1) || coalesce(nullif('.' || rtrim(split_part(r[1], '.', 2), '0'), '.'), '')
       else r[1] end, '' order by o), '')
@@ -120,7 +120,7 @@ $$;
 -- `_`, `!` or `%` touches them on the outside, white space skipped; repeated, so a fraction wrapped twice loses both.
 -- Each round judges every such pair on the text as it stood at the round's start, as T-6 wrote it for G and A2 and A3
 -- read it back (`x*(1/2)` is `x*1/2`; `(1/2)/3`, `2(1/2)` and `(1/2)^2` keep theirs).
-create function p3.lone_fractions_unwrapped(input text) returns text language plpgsql immutable as $$
+create function p3.lone_fractions_unwrapped(input text) returns text language plpgsql immutable strict as $$
 declare s text := input; nxt text; part text := '([0-9]+(?:[.][0-9]+)?|[^\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000/])'; letter text := xsd_compile(p => '\p{L}');
 begin
   if strpos(s, '/') = 0 or strpos(s, '(') = 0 then return s; end if;
@@ -155,7 +155,7 @@ end $$;
 -- numerator is not zero, the pattern (?<=(^|[^0-9.])[0-9]+)\s+(?=0*[1-9][0-9]*/[0-9]) (V-24: 2 1/2 is not 21/2; `1 0 1/2`
 -- is `10 1/2`, `1 0/3` is `10/3`, `1.5 1/2` is `1.51/2`: composable-operators.md b0c29ba3, COMP's bucket (c)); a pair of
 -- parentheses enclosing the whole text, with none inside, is deleted, repeatedly.
-create function p3.numeral_normal(input text) returns text language plpgsql immutable as $$
+create function p3.numeral_normal(input text) returns text language plpgsql immutable strict as $$
 declare t text := lone_fractions_unwrapped(input => without_trailing_zeros(t => input));
 begin
   if t ~ '[0-9]' and not xsd_run(program => xsd_compile(p => '[\s\S]*\p{L}[\s\S]*'), v => t) and t !~ '[][]' then
@@ -177,7 +177,7 @@ end $$;
 -- §2.1 P5, GRADING-CLASS's ruling), as start,end pairs of code-point offsets. The pieces between them in order; none
 -- where any piece is empty, since an ordered container holds no NULL. A separator that matches the empty string is
 -- refused at admission (F&O FORX0003): meeting one is a defect, which aborts.
-create function p3.tokenized(separator text, t text) returns setof p3.segment language plpgsql immutable as $$
+create function p3.tokenized(separator text, t text) returns setof p3.segment language plpgsql immutable strict as $$
 declare program text := xsd_compile(p => separator); spans integer[]; pieces text[] := '{}'; at integer := 0; k integer := 1;
 begin
   if xsd_run(program => program, v => '') then
@@ -211,12 +211,12 @@ $$;
 
 -- One TeX token, as G reads an unbraced argument: one digit, one ASCII letter, one Greek letter (Α-Ρ, Σ-Ω, α-ω and
 -- the variants ϑ ϕ ϖ ϱ ϵ) or one Greek command (T-5).
-create function p3.tex_one_token(t text) returns boolean language sql immutable as $$
+create function p3.tex_one_token(t text) returns boolean language sql immutable strict as $$
   select t ~ '^[0-9]$' or t ~ '^[A-Za-z]$' or t ~ '^[\u0391-\u03a1\u03a3-\u03a9\u03b1-\u03c9\u03d1\u03d5\u03d6\u03f1\u03f5]$'
     or t ~ '^\\(alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|omicron|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega)$'
 $$;
 -- One numeral or one name (T-6): a numeral may run to several digits, since `/` delimits it.
-create function p3.tex_one_name(t text) returns boolean language sql immutable as $$
+create function p3.tex_one_name(t text) returns boolean language sql immutable strict as $$
   select t ~ '^[0-9]+([.][0-9]+)?$' or tex_one_token(t => t)
 $$;
 -- TeX's reading of one macro argument from `i`: white space skipped, then a balanced brace group (a backslash escaping
@@ -253,7 +253,7 @@ begin
 end $$;
 -- T-5's argument bracing: the first `\frac` or `\sqrt` (an index `[n]` kept) whose arguments are not written braced
 -- and side by side, so written; the spaces between them dropped. One rewrite a pass.
-create function p3.tex_braced(s text) returns text language plpgsql immutable as $$
+create function p3.tex_braced(s text) returns text language plpgsql immutable strict as $$
 declare pos integer; nth integer := 1; a argument; b argument; canonical text; idx text; j integer; k integer; closing integer;
 begin
   loop
@@ -307,7 +307,7 @@ end $$;
 -- T-9 empty templates: `\frac{}{}`, then `\sqrt{}` and `\sqrt[]{}`, then `^{}` and `_{}` are deleted; then any other
 -- `{}` unless it follows `\`, `^` or `_`, or is a brace argument of a `\frac` or `\sqrt` (deleted only with its
 -- command).
-create function p3.tex_empty(input text) returns text language plpgsql immutable as $$
+create function p3.tex_empty(input text) returns text language plpgsql immutable strict as $$
 declare s text := regexp_replace(regexp_replace(replace(input, '\frac{}{}', ''), '\\sqrt(?:\[\])?\{\}', '', 'g'), '[\^_]\{\}', '', 'g');
   keep integer[] := '{}'; pos integer; nth integer; a argument; b argument; j integer; closing integer; built text; cs text[];
 begin
@@ -346,14 +346,14 @@ begin
 end $$;
 -- A fraction's part as T-6 writes it: its content less white space at either end, parenthesised unless it is one
 -- numeral or one name.
-create function p3.tex_part(t text) returns text language sql immutable as $$
+create function p3.tex_part(t text) returns text language sql immutable strict as $$
   select case when tex_one_name(t => x) then x else '(' || x || ')' end
   from (select regexp_replace(t, '^[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+|[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$', '', 'g') as x) y
 $$;
 -- Whether a term may start at `at` (the place of its first character), judged on the text before it, white space
 -- skipped: the text's start, an opening bracket, `+`, `-`, `±`, `=`, a relation (a sign, or P2's `\le`, `\ge`, `\ne`) or
 -- `,`. T-6's mixed number and G's take this one condition (composable-operators.md 1ec56b1b, COMP's bucket (c)).
-create function p3.term_starts_at(at integer, s text) returns boolean language sql immutable as $$
+create function p3.term_starts_at(at integer, s text) returns boolean language sql immutable strict as $$
   select b = '' or b ~ '[([{+\-±=<>≤≥≠,]$' or b ~ '\\(?:le|ge|ne)$'
   from (select regexp_replace(left(s, at - 1), '[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$', '') as b) x
 $$;
@@ -363,7 +363,7 @@ $$;
 -- where the digits there are no such numeral's end, or a decimal's fraction (a `.` before the numeral). `1,000` is one
 -- numeral; `3,2` is `3`, a list comma, then `2`; `1 ,000` is `1`, white space, `,000`. Read over the maximal run of
 -- digits, commas and white space that ends at `last` and the few characters after it, so its cost is the run's.
-create function p3.integer_numeral_start(last integer, s text) returns integer language plpgsql immutable as $$
+create function p3.integer_numeral_start(last integer, s text) returns integer language plpgsql immutable strict as $$
 declare tail text := substring(left(s, last) from '[0-9,\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]*$'); cs text[]; n integer; masked boolean[]; i integer;
   j integer; r integer; w text[]; wm boolean[]; after text := substr(s, last + 1, 5); stop integer; pos integer := 1;
   q integer; first_place integer;
@@ -412,7 +412,7 @@ end $$;
 -- them), any other digit (`1.50\frac12X` is `1.50(1/2)X`, `A2\frac12` is `A2(1/2)`), a closing bracket, `*`, `/`, `÷`,
 -- `^`, `_`, `!` or `%`, or before a digit, `^`, `_`, `!` or `%` (`x*\frac12` is `x*(1/2)`, `\frac12 3` is `(1/2) 3`);
 -- (3) otherwise a/b. Rule (1)'s condition is G's mixed number's (composable-operators.md 1ec56b1b).
-create function p3.tex_place(ends_at integer, fraction text, pos integer, s text) returns text language plpgsql immutable as $$
+create function p3.tex_place(ends_at integer, fraction text, pos integer, s text) returns text language plpgsql immutable strict as $$
 declare head text := left(s, pos - 1); tail text := substr(s, ends_at); kept text := regexp_replace(head, '[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$', '');
   before text := right(kept, 1); after text := left(regexp_replace(tail, '^[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ''), 1); numeral integer;
 begin
@@ -428,7 +428,7 @@ begin
 end $$;
 -- T-6: the first innermost `\frac{a}{b}` (written braced, as T-5 writes it, and holding no `\frac`) as a/b, a
 -- compound part parenthesised, placed by tex_place. One rewrite a pass.
-create function p3.tex_fractions(s text) returns text language plpgsql immutable as $$
+create function p3.tex_fractions(s text) returns text language plpgsql immutable strict as $$
 declare pos integer; nth integer := 1; a argument; b argument;
 begin
   loop
@@ -457,7 +457,7 @@ begin
 end $$;
 -- T-6's vulgar fractions: each of U+00BC-U+00BE and U+2150-U+215E as a/b, left to right, each placed by tex_place on
 -- the text as it stands at its turn.
-create function p3.tex_vulgar(input text) returns text language plpgsql immutable as $$
+create function p3.tex_vulgar(input text) returns text language plpgsql immutable strict as $$
 declare s text := input; pos integer;
 begin
   loop
@@ -472,7 +472,7 @@ end $$;
 -- (\p{N}), read by the machine's XSD matcher, White_Space, `+-*/÷=<>^_!%|±.,:;'′"″°$€£¢`, a
 -- `\` before an ASCII letter, and paired brackets, which pair by nesting whatever their kinds (`[1,6)` pairs; the `]` of
 -- `10]` does not).
-create function p3.tex_edges(s text) returns text language plpgsql immutable as $$
+create function p3.tex_edges(s text) returns text language plpgsql immutable strict as $$
 declare cs text[] := regexp_split_to_array(s, ''); n integer := cardinality(cs); paired boolean[]; stack integer[] := '{}'; sp integer := 0;
   lo integer := 1; hi integer; kept text; letter_or_number text := xsd_compile(p => '[\p{L}\p{M}\p{N}]');
 begin
@@ -505,7 +505,7 @@ end $$;
 -- arguments; T-7 spacing; T-6 fractions (the vulgar fraction characters first), placed by tex_place; T-8 answer
 -- punctuation (V-25: a leading `=`, an `e.g.` frame, a final `.`, `,` or `;`); T-10 edge junk (V-28). GRADING-CLASS's
 -- rulings of composable-operators.md 215a88ee §5 item 7 among them.
-create function p3.tex_pass(s text) returns text language plpgsql immutable as $$
+create function p3.tex_pass(s text) returns text language plpgsql immutable strict as $$
 declare t text := s;
 begin
   t := replace(replace(replace(t, '\\', '\'), '\%', '%'), '\$', '$');
@@ -550,7 +550,7 @@ begin
   return tex_edges(s => regexp_replace(t, '[.,;]$', ''));
 end $$;
 -- P2 tex-normal: the passes' fixpoint; NULL for an empty result.
-create function p3.tex_normal(input text) returns text language plpgsql immutable as $$
+create function p3.tex_normal(input text) returns text language plpgsql immutable strict as $$
 declare t text := input; nxt text;
 begin
   loop
@@ -576,7 +576,7 @@ create function p3.greek_letter(command text) returns text language sql immutabl
   select v.letter from (values ('alpha', U&'\03B1'), ('beta', U&'\03B2'), ('gamma', U&'\03B3'), ('delta', U&'\03B4'), ('epsilon', U&'\03B5'), ('varepsilon', U&'\03B5'), ('zeta', U&'\03B6'), ('eta', U&'\03B7'), ('theta', U&'\03B8'), ('vartheta', U&'\03B8'), ('iota', U&'\03B9'), ('kappa', U&'\03BA'), ('lambda', U&'\03BB'), ('mu', U&'\03BC'), ('nu', U&'\03BD'), ('xi', U&'\03BE'), ('omicron', U&'\03BF'), ('pi', U&'\03C0'), ('varpi', U&'\03C0'), ('rho', U&'\03C1'), ('varrho', U&'\03C1'), ('sigma', U&'\03C3'), ('varsigma', U&'\03C2'), ('tau', U&'\03C4'), ('upsilon', U&'\03C5'), ('phi', U&'\03C6'), ('varphi', U&'\03C6'), ('chi', U&'\03C7'), ('psi', U&'\03C8'), ('omega', U&'\03C9'), ('Gamma', U&'\0393'), ('Delta', U&'\0394'), ('Theta', U&'\0398'), ('Lambda', U&'\039B'), ('Xi', U&'\039E'), ('Pi', U&'\03A0'), ('Sigma', U&'\03A3'), ('Upsilon', U&'\03A5'), ('Phi', U&'\03A6'), ('Psi', U&'\03A8'), ('Omega', U&'\03A9')) v(command, letter) where v.command = greek_letter.command
 $$;
 -- A numeral as a canonical form prints it: ECMAScript's String(x), but -0 as -0.
-create function p3.math_numeral(f float8) returns text language sql immutable as $$
+create function p3.math_numeral(f float8) returns text language sql immutable strict as $$
   select case when f = 0 and float8send(f) <> float8send(0::float8) then '-0' else numeral_text(f => f) end
 $$;
 -- G's numerals (composable-operators.md 1ec56b1b, COMP's bucket (c)): white space inside a numeral is a slip (V-24
@@ -585,7 +585,7 @@ $$;
 -- that starts a term (integer_numeral_start, term_starts_at: white space between its digits is inside it), before a
 -- fraction of two integer numerals whose numerator is not zero and with nothing bound after it (b0c29ba3: `1 0 1/2` is
 -- 10½, `1 0/3` is 10/3). Each run is judged on the text as written; a run between two points stays.
-create function p3.numeral_spaces(t text) returns text language sql immutable as $$
+create function p3.numeral_spaces(t text) returns text language sql immutable strict as $$
   select case when t !~ '[0-9.][\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+[0-9.]' then t else (
     select string_agg(case when x.piece !~ '^[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]' or x.before_char !~ '^[0-9.]$' or x.after_char !~ '^[0-9.]$'
         or (x.before_char = '.' and x.after_char = '.') then x.piece
@@ -601,7 +601,7 @@ $$;
 -- (\p{L}, read by the machine's XSD matcher), a closing bracket or `.`; every other `.` is `*`, which G admits only
 -- between two operands (`t.4` is t·4, as AlphaTest reads it). Each `.` is judged on the text as written; an ASCII
 -- character is a letter exactly when it is one of [A-Za-z], so only another is read by the XSD matcher.
-create function p3.math_points(t text) returns text language sql immutable as $$
+create function p3.math_points(t text) returns text language sql immutable strict as $$
   select case when strpos(t, '.') = 0 then t else (
     select string_agg(case when x.c = '.' and not (coalesce(a.cs[x.o + 1] ~ '^[0-9]$', false)
         and not (x.o > 1 and (strpos(')]}.', a.cs[x.o - 1]) > 0 or a.cs[x.o - 1] ~ '^[A-Za-z]$'
@@ -616,7 +616,7 @@ $$;
 -- a function, a relation command, or a sizing command, skipped) or `\ ` (skipped); any other single character (a
 -- Greek letter, a relation, an operator). Right after `^` or `_`, a numeral is one TeX token, its first digit, and the
 -- rest of it is read again on its own after it.
-create function p3.math_tokens(t text) returns p3.math_token_list language plpgsql immutable as $$
+create function p3.math_tokens(t text) returns p3.math_token_list language plpgsql immutable strict as $$
 declare lx text; kinds text[] := '{}'; vs text[] := '{}'; raws text[] := '{}'; after_script boolean := false; nm text; tail math_token_list;
 begin
   for lx in select x.m[1] from regexp_matches(math_points(t => t),
@@ -668,14 +668,17 @@ begin
   end loop;
   return row(array(select row(x.k, x.r, x.v)::math_token from unnest(kinds, vs, raws) with ordinality x(k, v, r, o) order by x.o))::math_token_list;
 end $$;
--- C6 (V-27): a rational's print. With reduce, its reduced p/q (q > 0, gcd 1) as (q p q), a fraction's and a mixed
--- number's alike; without, a fraction as written, (/ a b), and a mixed number as (mixed w a b) or (mixed -w a b).
+-- C6 (V-27, as Bjorn's card 10 a amends it): a rational's print. A fraction and a mixed number each reduce within
+-- their own form, and the two never meet. With reduce, a fraction as (q p q), its reduced p/q (q > 0, gcd 1) with its
+-- sign in p, and a mixed number as its own node, (mixed w p q) or (mixed -w p q), the sign over the whole and p/q
+-- reduced; without, each as written: (/ a b), and (mixed w a b) or (mixed -w a b).
 create function p3.math_rational(denominator numeric, kind text, negative boolean, numerator numeric, reduce boolean, whole_part numeric) returns text language sql immutable as $$
-  select case when reduce then '(q ' || div(r.p, gcd(r.p, r.q))::text || ' ' || div(r.q, gcd(r.p, r.q))::text || ')'
+  select case when kind = 'frac' and reduce then '(q ' || div(r.p, gcd(r.p, r.q))::text || ' ' || div(r.q, gcd(r.p, r.q))::text || ')'
     when kind = 'frac' then '(/ ' || numerator::text || ' ' || denominator::text || ')'
-    else '(mixed ' || case when negative then '-' else '' end || whole_part::text || ' ' || numerator::text || ' ' || denominator::text || ')' end
-  from (select case when kind = 'frac' then numerator else (whole_part * denominator + numerator) * case when negative then -1 else 1 end end
-      * sign(denominator) as p, abs(denominator) as q) r
+    else '(mixed ' || case when negative then '-' else '' end || whole_part::text || ' ' || case when reduce
+      then div(numerator, gcd(numerator, denominator))::text || ' ' || div(denominator, gcd(numerator, denominator))::text
+      else numerator::text || ' ' || denominator::text end || ')' end
+  from (select numerator * sign(denominator) as p, abs(denominator) as q) r
 $$;
 -- A sign applied to a term: a numeral takes it into its value, a fraction into its numerator, a mixed number whole;
 -- anything else is negated whole.
@@ -1002,14 +1005,14 @@ end $$;
 -- G's `$` at an edge (composable-operators.md b0c29ba3): a `$` at the start of the text after white space and one
 -- optional sign, and a `$` at its end before white space and one optional sign, are read as nothing (`$(x^2+1)` is
 -- `(x^2+1)`, `-$5x` is −5x), as AlphaTest's parser skipped them. A `$` inside stays, and G reads no expression with it.
-create function p3.dollar_edges(t text) returns text language sql immutable as $$
+create function p3.dollar_edges(t text) returns text language sql immutable strict as $$
   select regexp_replace(regexp_replace(t, '^([\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]*[+-]?[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]*)[$]', '\1'), '[$]([\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]*[+-]?[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]*)$', '\1')
 $$;
 -- G's dangling sign (composable-operators.md §2.2 P7): the run of `+` and `-` at the end, white space skipped, is
 -- deleted, as AlphaTest's parser read it (`2-` is 2, `(x+2)-` is x+2, `2--` and `2-+` are 2). It is G's and not P2's,
 -- so a text box keeps it (`A-`, `A--`, `Na+`); a leading sign is never touched, and an empty group `()` stays
 -- significant.
-create function p3.dangling_sign(t text) returns text language sql immutable as $$
+create function p3.dangling_sign(t text) returns text language sql immutable strict as $$
   select regexp_replace(t, '(?:[+-][\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]*)+$', '')
 $$;
 -- P7 math-canonical(text, reduce): G and C over tex-normal of the text, NULL where it does not parse; `reduce` is C6's
@@ -1017,7 +1020,7 @@ $$;
 -- it (composable-operators.md 14cf8cd5 §2.2 P7): its edge `$` (dollar_edges), a dangling sign (dangling_sign), its
 -- numerals' white space (numeral_spaces), then P3's step 1, the one body (without_trailing_zeros), so `x^2.0` is x²,
 -- `v_0.0` is v₀ and `2 .0` is 2.
-create function p3.math_canonical(input text, reduce boolean) returns text language sql immutable as $$
+create function p3.math_canonical(input text, reduce boolean) returns text language sql immutable strict as $$
   select math_text(toks => (x.l).tokens, reduce => reduce)
   from (select math_tokens(t => without_trailing_zeros(t => numeral_spaces(t => dangling_sign(t => dollar_edges(t => tex_normal(input => input)))))) as l) x
   where x.l is not null
@@ -1034,7 +1037,7 @@ $$;
 
 -- Optimal string alignment distance (Damerau-Levenshtein restricted to adjacent swaps, each one change): `bound` + 1
 -- once past `bound`.
-create function p3.edit_distance(a text, b text, bound integer) returns integer language plpgsql immutable as $$
+create function p3.edit_distance(a text, b text, bound integer) returns integer language plpgsql immutable strict as $$
 declare la integer := char_length(a); lb integer := char_length(b); prev2 integer[] := '{}'; prev integer[];
   cur integer[]; best integer; v integer;
 begin
@@ -1057,7 +1060,7 @@ end $$;
 -- typo(w, t), the roster's one typo policy: NULL where w has fewer than 3 letters or another first letter than t;
 -- the allowance is 0 below 4 letters of t, 1 for 4 to 8 and 2 for 9 or more; NULL where the OSA distance passes it,
 -- or where t has 4 letters and w is no permutation of t; else the distance.
-create function p3.typo_distance(target text, typed text) returns integer language sql immutable as $$
+create function p3.typo_distance(target text, typed text) returns integer language sql immutable strict as $$
   select case when char_length(typed) < 3 or left(typed, 1) <> left(target, 1) then null
     when d > allowance then null
     when char_length(target) = 4 and not (char_length(typed) = char_length(target)
@@ -1157,7 +1160,7 @@ $$;
 -- A phrase's words, each folded, in order: a measure (digits with an optional fraction, one hyphen, letters: 5-pound)
 -- is one word, every other word a maximal run of ASCII letters, white space and hyphens separating them; none where the
 -- phrase holds anything else, a digit outside a measure among it.
-create function p3.phrase_words(t text) returns setof p3.segment language sql immutable as $$
+create function p3.phrase_words(t text) returns setof p3.segment language sql immutable strict as $$
   with lexeme as (select x.m[1] as w, x.o from regexp_matches(t, '[0-9]+(?:[.][0-9]+)?-[A-Za-z]+|[A-Za-z]+|[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000-]+|.', 'g') with ordinality x(m, o))
   select (row_number() over (order by l.o))::integer, fold(t => l.w) from lexeme l
   where l.w ~ '^[0-9A-Za-z]' and not exists (select from lexeme e where e.w !~ '^([0-9]+([.][0-9]+)?-[A-Za-z]+|[A-Za-z]+|[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000-]+)$')

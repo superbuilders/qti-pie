@@ -174,7 +174,7 @@ export const savedCopiesOf = (delivery: DeliveryLevel) => {
       query(delivery).rule((r) => {
         const savedAt = closingSaves.bind({ sittings: r.relation("sittings", sittingHeading) });
         const { at, child, package: pkg, path, n } = v(savedAt, "closingSave");
-        const { variable, least, greatest } = v(SnapshotSinglePair, "saved");
+        const { variable, greatest, least } = v(SnapshotSinglePair, "saved");
 
         return r
           .match(savedAt, { at, child, n, package: pkg, path })
@@ -392,7 +392,7 @@ export const savedCopiesOf = (delivery: DeliveryLevel) => {
       query(delivery).rule((r) => {
         const savedAt = closingSaves.bind({ sittings: r.relation("sittings", sittingHeading) });
         const { at, child, package: pkg, path, n } = v(savedAt, "closingSave");
-        const { variable, least, greatest, count } = v(SnapshotMultiplePair, "saved");
+        const { variable, greatest, least, count } = v(SnapshotMultiplePair, "saved");
 
         return r
           .match(savedAt, { at, child, n, package: pkg, path })
@@ -613,7 +613,7 @@ export const savedCopiesOf = (delivery: DeliveryLevel) => {
       query(delivery).rule((r) => {
         const savedAt = closingSaves.bind({ sittings: r.relation("sittings", sittingHeading) });
         const { at, child, package: pkg, path, n } = v(savedAt, "closingSave");
-        const { variable, place, least, greatest } = v(SnapshotOrderedPair, "saved");
+        const { variable, place, greatest, least } = v(SnapshotOrderedPair, "saved");
 
         return r
           .match(savedAt, { at, child, n, package: pkg, path })
@@ -837,7 +837,7 @@ export const savedCopiesOf = (delivery: DeliveryLevel) => {
       query(delivery).rule((r) => {
         const savedAt = closingSaves.bind({ sittings: r.relation("sittings", sittingHeading) });
         const { at, child, package: pkg, path, n } = v(savedAt, "closingSave");
-        const { variable, field, least, greatest } = v(SnapshotRecordPair, "saved");
+        const { variable, field, greatest, least } = v(SnapshotRecordPair, "saved");
 
         return r
           .match(savedAt, { at, child, n, package: pkg, path })

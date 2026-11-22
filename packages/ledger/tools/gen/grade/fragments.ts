@@ -21,7 +21,6 @@ const FRAGMENTS = [
   "base/grade-arguments-head",
   "base/grade-attempt-head",
   "base/latest-readers",
-  "base/members-pre",
   "base/num-attempts",
   "base/post-head",
   "base/post-tail",

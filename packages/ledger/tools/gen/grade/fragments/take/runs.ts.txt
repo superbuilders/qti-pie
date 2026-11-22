@@ -11,6 +11,6 @@ const runsOf = (session: GradedSession) =>
 			.match(taken, { child, package: pkg, path, stage })
 			.match(fields.SessionSeed, { child, stage, package: pkg, path, seed })
 			.match(fields.ObjectIdentifier, { package: pkg, path, value: identifier })
-			.find({ child, package: pkg, path, stage, seed, label: Fn.call(templateLabel, { identifier }) })
+			.find({ child, package: pkg, path, stage, seed: Fn.call(seedStreamKey, { seed }), label: Fn.call(templateLabel, { identifier }) })
 	})
 

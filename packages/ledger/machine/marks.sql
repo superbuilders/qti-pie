@@ -67,7 +67,7 @@ create type p3.mark_point as (child text collate pg_catalog.pg_c_utf8, copies bi
   package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, place bigint, stage bigint,
   x numeric(825, 0), y numeric(825, 0));
 create type p3.mark_file as (child text collate pg_catalog.pg_c_utf8, content_type text collate pg_catalog.pg_c_utf8,
-  copies bigint, digest text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8,
+  copies bigint, digest bytea, identifier text collate pg_catalog.pg_c_utf8,
   mark text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8,
   path text collate pg_catalog.pg_c_utf8, place bigint, stage bigint);
 -- Every mark of a call's attempts, by base type: a field of rows alone, so a statement reads each as a source (FNNEST,
@@ -92,11 +92,11 @@ language sql immutable as $$
   ), c as (
     select k, correct[k] as x, case when card = 'ordered' then k - 1 else 0 end::bigint as place from generate_subscripts(correct, 1) k
   ), gn as (
-    select g.*, row_number() over (partition by g.place, b.base, b.t, b.u, b.n, b.m, b.f, b.b order by g.k) as nth,
+    select g.*, row_number() over (partition by g.place, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b order by g.k) as nth,
       (select count(*) from c where c.place = g.place and same(a => c.x, b => g.x)) as held
     from g, lateral bag(v => array[g.x]) b
   ), cn as (
-    select c.*, row_number() over (partition by c.place, b.base, b.t, b.u, b.n, b.m, b.f, b.b order by c.k) as nth,
+    select c.*, row_number() over (partition by c.place, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b order by c.k) as nth,
       (select count(*) from c o where o.place = c.place and same(a => o.x, b => c.x)) as held,
       (select count(*) from g where g.place = c.place and same(a => g.x, b => c.x)) as taken
     from c, lateral bag(v => array[c.x]) b
@@ -107,7 +107,7 @@ language sql immutable as $$
   )
   select count(*), id, m.mark, m.place, (array_agg(m.x order by m.k))[1]
   from m, lateral bag(v => array[m.x]) b
-  group by m.place, m.mark, b.base, b.t, b.u, b.n, b.m, b.f, b.b
+  group by m.place, m.mark, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b
 $$;
 
 -- The marks of one point response by area (Decision 6): each distinct point, least first, in its area (point_area);
@@ -178,7 +178,7 @@ returns p3.mark_values language sql immutable as $$
       from m where (m.value).base = 'boolean'),
     array(select row(m.child, m.copies, m.identifier, m.mark, m.package, m.path, m.place, (m.value).t, m.stage, (m.value).u)::mark_directed_pair
       from m where (m.value).base = 'directedPair'),
-    array(select row(m.child, (m.value).u, m.copies, (m.value).t, m.identifier, m.mark, m.package, m.path, m.place, m.stage)::mark_file
+    array(select row(m.child, (m.value).u, m.copies, (m.value).d, m.identifier, m.mark, m.package, m.path, m.place, m.stage)::mark_file
       from m where (m.value).base = 'file'),
     array(select row((m.value).base, m.child, m.copies, m.identifier, m.mark, m.package, m.path, m.place, m.stage, (m.value).f)::mark_float
       from m where (m.value).base in ('float', 'duration')),

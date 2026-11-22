@@ -10,9 +10,9 @@ create schema p3;
 -- One QTI single, typed. SQL has no sum type, so each base type's own columns hold it and the rest are NULL; one
 -- constructor per base type is the only way one is made. identifier, string, uri: t. pair: (t, u) as (least,
 -- greatest), so "either order" is the coordinate, not a comparison. directedPair: (t, u). integer: n (exact). point:
--- (n, m). float, duration: f. boolean: b. file: t its SHA-256 content digest, its identity, u its content type, w its
--- filename where it has one. A record's single also names its field.
-create type p3.single as (b boolean, base text collate pg_catalog.pg_c_utf8,
+-- (n, m). float, duration: f. boolean: b. file: d its SHA-256 content digest, 32 raw bytes, its identity, u its content
+-- type, w its filename where it has one. A record's single also names its field.
+create type p3.single as (b boolean, base text collate pg_catalog.pg_c_utf8, d bytea,
   f float8, field text collate pg_catalog.pg_c_utf8, m numeric(825, 0),
   n numeric(825, 0), t text collate pg_catalog.pg_c_utf8, u text collate pg_catalog.pg_c_utf8, w text collate pg_catalog.pg_c_utf8);
 -- A value: its cardinality and its singles. NULL is no single, at any cardinality.
@@ -157,7 +157,7 @@ create type p3.drawing as (drawn integer, result numeric(825, 0));
 -- The numbers of an operation's operands (plate's membersOf): all integers, or all integers and floats read as floats.
 create type p3.numbers as (integers boolean, vals p3.single[]);
 -- A single as a multiset operation compares it: by equality of its columns, a file by its digest.
-create type p3.bag_row as (b boolean, base text collate pg_catalog.pg_c_utf8,
+create type p3.bag_row as (b boolean, base text collate pg_catalog.pg_c_utf8, d bytea,
   f float8, m numeric(825, 0), n numeric(825, 0), t text collate pg_catalog.pg_c_utf8, u text collate pg_catalog.pg_c_utf8);
 -- A finite double as the dyadic rational it is: significand · 2^exponent, the significand an integer of at most 53
 -- bits with the double's sign, so every comparison and sum of doubles is integer arithmetic (IEEE 754 §3.4).

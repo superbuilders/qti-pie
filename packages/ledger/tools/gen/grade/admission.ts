@@ -525,11 +525,6 @@ export const ${variant.call} = (delivery: DeliveryLevel) => {
   const args = ${variant.fn}(delivery);
 
   /**
-   * A variable as the ledger keys it.
-   */
-  const VariableName = fields.Attribute.fields.value.type;
-
-  /**
    * The call's parameters that name the answered item session, as a rule reads them.
    */
 ${variant.keyIn}
@@ -562,7 +557,7 @@ ${binds.join(",\n")},
     const { response } = v(hidden, "hidden");
 
     return r.match(hidden, { response }).find({
-      variable: Type.cast(response, VariableName),
+      variable: response,
     });
   });
 `;

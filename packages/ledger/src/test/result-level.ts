@@ -435,7 +435,7 @@ const takenIdentifiersOf = query(ResultLevel).rule((r) => {
 /**
  * The ledger's evaluator write, `recordEvaluations` { replies, feedbacks, declines }, each grading
  * and settling the sitting its rows name in the strata after it, and its read-back of what still
- * waits for a person.
+ * waits for a person, which the suite's workload puts over its role as every application does.
  */
 const evaluations = evaluationProgramsOf(ResultLevel);
 
@@ -746,7 +746,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       maximaOf,
       operandsOf,
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
-      recordEvaluations: evaluations.recordEvaluations,
+      recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),
       saveTestItem: sittingPrograms.saveTestItem.bind({ sittings: namedSitting }),
       sittingFacts,
       snapshotBooleansOf,

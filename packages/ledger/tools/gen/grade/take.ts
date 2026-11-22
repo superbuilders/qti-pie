@@ -266,7 +266,7 @@ const headerRule = ([kind, holds, kinds]: SetKind): string => {
 \t\t\t\t.match(taken, { child, package: pkg, path, stage })
 \t\t\t\t.match(out.vars, { child, package: pkg, path, stage, holds: "${holds}", ${kv}identifier, card })
 \t\t\t\t.where(${where})
-\t\t\t\t.find({ child, stage, package: pkg, path, kind: SessionValueKind.handle("${kind}"), variable: Type.cast(identifier, VariableName) })
+\t\t\t\t.find({ child, stage, package: pkg, path, kind: SessionValueKind.handle("${kind}"), variable: identifier })
 \t\t})`;
 };
 
@@ -365,10 +365,7 @@ const takeValues = (fragment: Fragments): string => {
   const out = [
     fragment("take/values-head"),
     indented(`${fragment("base/sitting")}\n`, "\t"),
-    `\t/** A variable as the ledger keys it. */
-\tconst VariableName = fields.Attribute.fields.value.type
-
-\t/** The arguments of the take's run, bound to the call's sitting. */
+    `\t/** The arguments of the take's run, bound to the call's sitting. */
 \tconst args = takeArgumentsOf(delivery)
 \tconst boundTaken = args.taken.bind(bySession(gradedSitting))
 
@@ -395,7 +392,7 @@ ${SETS.map(headerRule).join("\n")}
 /**
  * The end of the grading module's import, as the stages before leave it.
  */
-const GRADING_IMPORT_END = '  responseProcessingOf,\n} from "#ledger/grading.ts";\n';
+const GRADING_IMPORT_END = '  seedStreamKey,\n} from "#ledger/grading.ts";\n';
 
 /**
  * The ledger module's import, as the stages before leave it.
@@ -421,7 +418,7 @@ export const takeStage = (stage: string, fragment: Fragments): string => {
     replaceFirst(
       src,
       GRADING_IMPORT_END,
-      '  responseProcessingOf,\n  templateLabel,\n  templateProcessingOf,\n} from "#ledger/grading.ts";\n',
+      '  seedStreamKey,\n  templateLabel,\n  templateProcessingOf,\n} from "#ledger/grading.ts";\n',
     ),
     LEDGER_IMPORT,
     'import { CompletionStatus, SessionValueKind } from "#ledger/ledger.ts";\n',

@@ -225,7 +225,7 @@ const runsOf = (session: GradedSession) =>
 			.match(attempt, { child, package: pkg, path, n, stage, at })
 			.match(ordinal, { child, package: pkg, path, stage, attempts })
 			.match(fields.SessionSeed, { child, stage, package: pkg, path, seed })
-			.find({ child, package: pkg, path, stage, seed, label: Fn.call(responseLabel, { attempts }) })
+			.find({ child, package: pkg, path, stage, seed: Fn.call(seedStreamKey, { seed }), label: Fn.call(responseLabel, { attempts }) })
 	})
 
 /** The variables the attempt's run is given: each declared response, numAttempts, and each value the session's
@@ -254,7 +254,7 @@ const varsOf = (session: GradedSession) =>
 					stage,
 					holds: Type.literal(DocVar.fields.holds, "value"),
 					kind: Type.literal(DocVar.fields.kind, "response"),
-					identifier: Type.cast(identifier, DocVar.fields.identifier),
+					identifier,
 					card
 				})
 		})
@@ -277,7 +277,7 @@ const varsOf = (session: GradedSession) =>
 					stage,
 					holds: Type.literal(DocVar.fields.holds, "value"),
 					kind: Type.literal(DocVar.fields.kind, "response"),
-					identifier: Type.cast(identifier, DocVar.fields.identifier),
+					identifier,
 					card: Type.literal(DocVar.fields.card, "record")
 				})
 		})
@@ -335,7 +335,7 @@ const varsOf = (session: GradedSession) =>
 					stage,
 					holds: Type.literal(DocVar.fields.holds, "value"),
 					kind,
-					identifier: Type.cast(variable, DocVar.fields.identifier),
+					identifier: variable,
 					card
 				})
 		})
@@ -361,7 +361,7 @@ const varsOf = (session: GradedSession) =>
 					stage,
 					holds: Type.literal(DocVar.fields.holds, "correct"),
 					kind,
-					identifier: Type.cast(variable, DocVar.fields.identifier),
+					identifier: variable,
 					card
 				})
 		})
@@ -387,7 +387,7 @@ const varsOf = (session: GradedSession) =>
 					stage,
 					holds: Type.literal(DocVar.fields.holds, "default"),
 					kind,
-					identifier: Type.cast(variable, DocVar.fields.identifier),
+					identifier: variable,
 					card
 				})
 		})

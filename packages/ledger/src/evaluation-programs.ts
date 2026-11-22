@@ -60,6 +60,16 @@ import { sittingOfSessionOf } from "#ledger/sitting-queries.ts";
 
 /**
  * The evaluator's write over a delivery level, `recordEvaluations`, and its read-back `awaiting`.
+ * `recordEvaluations` is the one program, over the level, which an application puts over the role
+ * that runs it with grizzle's `ChangeSet.over(role, recordEvaluations)`, any role over the level
+ * (a full role extends its base): edullm's evaluator login in its workload,
+ * `ChangeSet.over(Evaluator, recordEvaluations)`, and a den step through the app role, generic in
+ * it, `through(<W extends RoleOver<DeliveryLevel>>(role: W) => ChangeSet.over(role,
+ * recordEvaluations), {})`, den's facts unioned with it in one transaction. It names no
+ * parameter but its three row lists and reads no clock: every instant it writes (an evaluation's
+ * `evaluated`, a test outcome run's `at`, a final sitting's `at`) is a clock the insert that adds
+ * its row stamps, so a den step binds no clock. A role that runs it inserts what it records and
+ * what the grading and settling write (this module's header).
  *
  * @param delivery The delivery level, the installation's composition of qti-pie's levels.
  * @returns The write, sequenced with the grading and settling of every sitting its rows name, and

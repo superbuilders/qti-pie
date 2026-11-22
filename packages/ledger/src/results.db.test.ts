@@ -69,8 +69,9 @@
  * `allow-late-submission`). Every program reads back its sitting's standing, which the table holds
  * after each move.
  */
-import { factsDecoder } from "@bjornpagen/grizzle";
-import { Db, DbLayer, LiveSource, served, settled } from "@bjornpagen/grizzle/runtime";
+import { factsDecoder, Sha256 } from "@bjornpagen/grizzle";
+import type { BrokenLaws } from "@bjornpagen/grizzle";
+import { Db, DbLayer, LiveSource, served } from "@bjornpagen/grizzle/runtime";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
 import type { Gen } from "@bjornpagen/testing/gen";
@@ -99,7 +100,6 @@ import {
   Ref,
   Result,
   Schema,
-  String as Str,
 } from "effect";
 import { DeclineReason } from "#ledger/evaluations.ts";
 import { operatorTagPrefix } from "#ledger/registry/operators.ts";
@@ -1002,9 +1002,7 @@ const published = Effect.gen(function* publish() {
   const read = yield* readPackage(dir, PACKAGE);
   const rows = yield* importRowsOf(read);
   const db = yield* Db.open(suite.roles.result_runner, {});
-  const outcome = yield* settled(
-    db.workload.publish.once({ facts: { insert: rows.insert }, params: {} }),
-  );
+  const outcome = yield* db.workload.publish.once({ facts: { insert: rows.insert }, params: {} });
   assert.include(["accepted", "unchanged"], outcome.kind, `${PACKAGE}: published`);
 });
 
@@ -1034,9 +1032,32 @@ const SEED = "result-suite";
 const SCORER = "user_ledgerscorer";
 
 /**
- * A request's SHA-256, one per evaluation of a case: 64 hexadecimal digits.
+ * A request's SHA-256, one per evaluation of a case: the digest of the operator's place, 32 raw
+ * bytes.
  */
-const requestOf = (operator: bigint) => Str.padStart(64, "0")(String(operator));
+const requestOf = (operator: bigint) => Sha256.ofBytes(new TextEncoder().encode(String(operator)));
+
+/**
+ * Every law a refusal names, in whichever list its arm carries it: a refusal by the suite's own
+ * levels' laws (`every`, `first`, `some`) names them in `laws`, and one by a level above in
+ * `above`, beside its own levels' where it judged them broken (`own` every), each arm narrowed by
+ * its kind. Which arm a qti-pie law refuses in under the suite's composition is grizzle's to state,
+ * so the table finds its law in any of them.
+ *
+ * @param refused The refusal.
+ * @returns The laws it names.
+ */
+const refusedLawsOf = (refused: BrokenLaws) => {
+  if (refused.kind !== "above") {
+    return refused.laws;
+  }
+
+  if (refused.own === "every") {
+    return [...refused.above, ...refused.laws];
+  }
+
+  return refused.above;
+};
 
 /**
  * One run of a case: a fresh child's item session of the essay and its attempt with its response,
@@ -1061,42 +1082,40 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
     const db = yield* Db.open(suite.roles.result_runner, {});
     const key = { child, n: 0n, package: PACKAGE, path: ESSAY };
     const stage = 1n;
-    yield* settled(
-      db.workload.facts.once({
-        facts: {
-          insert: {
-            Attempt: rowsOf("Attempt", [key]),
-            ItemSession: rowsOf("ItemSession", [{ ...key, stage }]),
-            ProcessedAttempt: rowsOf(
-              "ProcessedAttempt",
-              c.history ? [{ ...key, completionStatus: "completed" }] : [],
-            ),
-            ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
-            SessionSeed: rowsOf("SessionSeed", [
-              { child, package: PACKAGE, path: ESSAY, seed: SEED, stage },
-            ]),
-            SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
-            SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
-            SnapshotSingleFloat: rowsOf(
-              "SnapshotSingleFloat",
-              c.history
-                ? [
-                    { ...key, value: essayMaximum, variable: "SCORE" },
-                    { ...key, value: essayMaximum, variable: "MAXSCORE" },
-                  ]
-                : [],
-            ),
-            SnapshotSingleString: rowsOf(
-              "SnapshotSingleString",
-              c.answered ? [{ ...key, value: c.response, variable: "RESPONSE" }] : [],
-            ),
-          },
+    yield* db.workload.facts.once({
+      facts: {
+        insert: {
+          Attempt: rowsOf("Attempt", [key]),
+          ItemSession: rowsOf("ItemSession", [{ ...key, stage }]),
+          ProcessedAttempt: rowsOf(
+            "ProcessedAttempt",
+            c.history ? [{ ...key, completionStatus: "completed" }] : [],
+          ),
+          ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
+          SessionSeed: rowsOf("SessionSeed", [
+            { child, package: PACKAGE, path: ESSAY, seed: SEED, stage },
+          ]),
+          SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
+          SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
+          SnapshotSingleFloat: rowsOf(
+            "SnapshotSingleFloat",
+            c.history
+              ? [
+                  { ...key, value: essayMaximum, variable: "SCORE" },
+                  { ...key, value: essayMaximum, variable: "MAXSCORE" },
+                ]
+              : [],
+          ),
+          SnapshotSingleString: rowsOf(
+            "SnapshotSingleString",
+            c.answered ? [{ ...key, value: c.response, variable: "RESPONSE" }] : [],
+          ),
         },
-        params: {},
-      }),
-    );
+      },
+      params: {},
+    });
     if (!c.history) {
-      yield* settled(db.workload.grade.once({ facts: {}, params: key }));
+      yield* db.workload.grade.once({ facts: {}, params: key });
     }
 
     const atChild = { facts: {}, params: { child } };
@@ -1149,12 +1168,12 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
                       },
               });
             })();
-      const written = yield* Effect.result(settled(call));
+      const written = yield* Effect.result(call);
       if (want.kind === "refused") {
         assert.isTrue(
           Result.isFailure(written) &&
             written.failure.kind === "refused" &&
-            Formatter.format(written.failure.refused.laws).includes(want.law),
+            Formatter.format(refusedLawsOf(written.failure.refused)).includes(want.law),
           `${label}: refused by ${want.law}, got ${Formatter.format(written)}`,
         );
 
@@ -1333,28 +1352,26 @@ const holdTake = (c: TakeCase, child: string, note: (situation: TakeSituation) =
     const { suite } = yield* SuiteLogin;
     const db = yield* Db.open(suite.roles.result_runner, {});
     const stage = 1n;
-    yield* settled(
-      db.workload.facts.once({
-        facts: {
-          insert: {
-            Attempt: rowsOf("Attempt", []),
-            ItemSession: rowsOf("ItemSession", [
-              { child, n: 0n, package: PACKAGE, path: TAKE, stage },
-            ]),
-            ProcessedAttempt: rowsOf("ProcessedAttempt", []),
-            ResponseSnapshot: rowsOf("ResponseSnapshot", []),
-            SessionSeed: rowsOf("SessionSeed", [
-              { child, package: PACKAGE, path: TAKE, seed: c.seed, stage },
-            ]),
-            SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
-            SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
-            SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
-            SnapshotSingleString: rowsOf("SnapshotSingleString", []),
-          },
+    yield* db.workload.facts.once({
+      facts: {
+        insert: {
+          Attempt: rowsOf("Attempt", []),
+          ItemSession: rowsOf("ItemSession", [
+            { child, n: 0n, package: PACKAGE, path: TAKE, stage },
+          ]),
+          ProcessedAttempt: rowsOf("ProcessedAttempt", []),
+          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
+          SessionSeed: rowsOf("SessionSeed", [
+            { child, package: PACKAGE, path: TAKE, seed: c.seed, stage },
+          ]),
+          SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
+          SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
+          SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
+          SnapshotSingleString: rowsOf("SnapshotSingleString", []),
         },
-        params: {},
-      }),
-    );
+      },
+      params: {},
+    });
 
     const atChild = { facts: {}, params: { child } };
     const atSession = { facts: {}, params: { child, n: 0n, package: PACKAGE, path: TAKE } };
@@ -1380,7 +1397,7 @@ const holdTake = (c: TakeCase, child: string, note: (situation: TakeSituation) =
         : "T odd: FEEDBACK's default not set, nothing stored",
     );
 
-    const taken = yield* settled(db.workload.take.once(atSession));
+    const taken = yield* db.workload.take.once(atSession);
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the take writes what its run set`);
 
     const want = takeExpectedOf(t);
@@ -1501,30 +1518,28 @@ const holdOperators = (
     const db = yield* Db.open(suite.roles.result_runner, {});
     const key = { child, n: 0n, package: PACKAGE, path: OPERATORS };
     const stage = 1n;
-    yield* settled(
-      db.workload.facts.once({
-        facts: {
-          insert: {
-            Attempt: rowsOf("Attempt", [key]),
-            ItemSession: rowsOf("ItemSession", [{ ...key, stage }]),
-            ProcessedAttempt: rowsOf("ProcessedAttempt", []),
-            ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
-            SessionSeed: rowsOf("SessionSeed", [
-              { child, package: PACKAGE, path: OPERATORS, seed: SEED, stage },
-            ]),
-            SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
-            SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
-            SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
-            SnapshotSingleString: rowsOf("SnapshotSingleString", [
-              { ...key, value: mathAnswers[c.math], variable: "MATH" },
-              { ...key, value: phraseAnswers[c.phrase], variable: "PHRASE" },
-            ]),
-          },
+    yield* db.workload.facts.once({
+      facts: {
+        insert: {
+          Attempt: rowsOf("Attempt", [key]),
+          ItemSession: rowsOf("ItemSession", [{ ...key, stage }]),
+          ProcessedAttempt: rowsOf("ProcessedAttempt", []),
+          ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
+          SessionSeed: rowsOf("SessionSeed", [
+            { child, package: PACKAGE, path: OPERATORS, seed: SEED, stage },
+          ]),
+          SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
+          SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
+          SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
+          SnapshotSingleString: rowsOf("SnapshotSingleString", [
+            { ...key, value: mathAnswers[c.math], variable: "MATH" },
+            { ...key, value: phraseAnswers[c.phrase], variable: "PHRASE" },
+          ]),
         },
-        params: {},
-      }),
-    );
-    yield* settled(db.workload.grade.once({ facts: {}, params: key }));
+      },
+      params: {},
+    });
+    yield* db.workload.grade.once({ facts: {}, params: key });
 
     const atChild = { facts: {}, params: { child } };
     const statusRows = yield* db.workload.statusesOf.once(atChild);
@@ -1584,33 +1599,31 @@ const holdDrawCase = (c: DrawCase, child: string, note: (situation: DrawSituatio
     for (const [k, ending] of c.endings.entries()) {
       const { drawn, ticked } = responsesOf(ending);
       const first = k === 0;
-      yield* settled(
-        db.workload.facts.once({
-          facts: {
-            insert: {
-              Attempt: rowsOf("Attempt", [key]),
-              ItemSession: rowsOf("ItemSession", first ? [{ ...key, stage }] : []),
-              ProcessedAttempt: rowsOf("ProcessedAttempt", []),
-              ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
-              SessionSeed: rowsOf(
-                "SessionSeed",
-                first ? [{ child, package: PACKAGE, path, seed: SEED, stage }] : [],
-              ),
-              SnapshotMultipleIdentifier: rowsOf(
-                "SnapshotMultipleIdentifier",
-                ticked.map((value) => ({ ...key, count: 1n, value, variable: "RESPONSE" })),
-              ),
-              SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", [
-                { ...key, value: drawn, variable: "DRAWN" },
-              ]),
-              SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
-              SnapshotSingleString: rowsOf("SnapshotSingleString", []),
-            },
+      yield* db.workload.facts.once({
+        facts: {
+          insert: {
+            Attempt: rowsOf("Attempt", [key]),
+            ItemSession: rowsOf("ItemSession", first ? [{ ...key, stage }] : []),
+            ProcessedAttempt: rowsOf("ProcessedAttempt", []),
+            ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
+            SessionSeed: rowsOf(
+              "SessionSeed",
+              first ? [{ child, package: PACKAGE, path, seed: SEED, stage }] : [],
+            ),
+            SnapshotMultipleIdentifier: rowsOf(
+              "SnapshotMultipleIdentifier",
+              ticked.map((value) => ({ ...key, count: 1n, value, variable: "RESPONSE" })),
+            ),
+            SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", [
+              { ...key, value: drawn, variable: "DRAWN" },
+            ]),
+            SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
+            SnapshotSingleString: rowsOf("SnapshotSingleString", []),
           },
-          params: {},
-        }),
-      );
-      yield* settled(db.workload.grade.once({ facts: {}, params: key }));
+        },
+        params: {},
+      });
+      yield* db.workload.grade.once({ facts: {}, params: key });
 
       const completions = Arr.sort(
         Arr.fromIterable(yield* db.workload.completionsOf.once(atChild)),
@@ -1794,28 +1807,24 @@ const holdResponse = (
       { path: SHORT, seed: "member" },
       { path: OTHER, seed: "saved" },
     ] as const;
-    const taken = yield* settled(
-      db.workload.sittingFacts.once({
-        facts: {
-          insert: {
-            Attempt: rowsOf("Attempt", []),
-            ItemSession: rowsOf(
-              "ItemSession",
-              members.map(({ path }) => ({ ...sitting, n: 0n, package: PACKAGE, path })),
-            ),
-            ResponseSnapshot: rowsOf("ResponseSnapshot", []),
-            SessionSeed: rowsOf(
-              "SessionSeed",
-              members.map(({ path, seed }) => ({ ...sitting, package: PACKAGE, path, seed })),
-            ),
-            TestSession: rowsOf("TestSession", [
-              { ...sitting, package: PACKAGE, path: timing.test },
-            ]),
-          },
+    const taken = yield* db.workload.sittingFacts.once({
+      facts: {
+        insert: {
+          Attempt: rowsOf("Attempt", []),
+          ItemSession: rowsOf(
+            "ItemSession",
+            members.map(({ path }) => ({ ...sitting, n: 0n, package: PACKAGE, path })),
+          ),
+          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
+          SessionSeed: rowsOf(
+            "SessionSeed",
+            members.map(({ path, seed }) => ({ ...sitting, package: PACKAGE, path, seed })),
+          ),
+          TestSession: rowsOf("TestSession", [{ ...sitting, package: PACKAGE, path: timing.test }]),
         },
-        params: {},
-      }),
-    );
+      },
+      params: {},
+    });
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as a take writes it`);
 
     const began =
@@ -1823,13 +1832,11 @@ const holdResponse = (
         ? 0n
         : yield* Effect.gen(function* enter() {
             const entered = Option.isSome(timing.remaining)
-              ? yield* settled(
-                  db.workload.enterTimedTest.once({
-                    facts: {},
-                    params: { ...sitting, remaining: timing.remaining.value },
-                  }),
-                )
-              : yield* settled(db.workload.enterTest.once({ facts: {}, params: sitting }));
+              ? yield* db.workload.enterTimedTest.once({
+                  facts: {},
+                  params: { ...sitting, remaining: timing.remaining.value },
+                })
+              : yield* db.workload.enterTest.once({ facts: {}, params: sitting });
             assert.deepStrictEqual<unknown>(
               { kind: entered.kind, standing: standingsOf(entered.reads) },
               { kind: "accepted", standing: ["open"] },
@@ -1841,9 +1848,7 @@ const holdResponse = (
           });
 
     if (c.when === "suspended") {
-      const suspended = yield* settled(
-        db.workload.suspendTest.once({ facts: {}, params: sitting }),
-      );
+      const suspended = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
       assert.deepStrictEqual<unknown>(
         { kind: suspended.kind, standing: standingsOf(suspended.reads) },
         { kind: "accepted", standing: ["suspended"] },
@@ -1854,23 +1859,21 @@ const holdResponse = (
 
     if (c.when === "ended") {
       const attempt = { child, n: 0n, package: PACKAGE, path: SHORT };
-      const attempted = yield* settled(
-        db.workload.sittingFacts.once({
-          facts: {
-            insert: {
-              Attempt: rowsOf("Attempt", [attempt]),
-              ItemSession: rowsOf("ItemSession", []),
-              ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...attempt, kind: "attempt" }]),
-              SessionSeed: rowsOf("SessionSeed", []),
-              TestSession: rowsOf("TestSession", []),
-            },
+      const attempted = yield* db.workload.sittingFacts.once({
+        facts: {
+          insert: {
+            Attempt: rowsOf("Attempt", [attempt]),
+            ItemSession: rowsOf("ItemSession", []),
+            ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...attempt, kind: "attempt" }]),
+            SessionSeed: rowsOf("SessionSeed", []),
+            TestSession: rowsOf("TestSession", []),
           },
-          params: {},
-        }),
-      );
+        },
+        params: {},
+      });
       assert.strictEqual(attempted.kind, "accepted", `${c.name}: the member's attempt`);
 
-      const ended = yield* settled(db.workload.endTest.once({ facts: {}, params: sitting }));
+      const ended = yield* db.workload.endTest.once({ facts: {}, params: sitting });
       assert.deepStrictEqual<unknown>(
         { kind: ended.kind, standing: standingsOf(ended.reads) },
         { kind: "accepted", standing: ["ended"] },
@@ -1878,7 +1881,7 @@ const holdResponse = (
       );
       note("standing: ended");
 
-      const again = yield* settled(db.workload.suspendTest.once({ facts: {}, params: sitting }));
+      const again = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
       assert.deepStrictEqual<unknown>(
         { kind: again.kind, standing: standingsOf(again.reads) },
         { kind: "unchanged", standing: ["ended"] },
@@ -1890,19 +1893,17 @@ const holdResponse = (
     const values = yield* responseParamsOf({});
     const given = c.when === "unstarted" ? 1n : began + timing.given;
     const saved = yield* Effect.result(
-      settled(
-        db.workload.saveTestItem.once({
-          facts: {},
-          params: { ...sitting, given, item: SAVED, ...values },
-        }),
-      ),
+      db.workload.saveTestItem.once({
+        facts: {},
+        params: { ...sitting, given, item: SAVED, ...values },
+      }),
     );
     const want = responseExpectedOf(c);
     if (want.kind === "refused") {
       assert.isTrue(
         Result.isFailure(saved) &&
           saved.failure.kind === "refused" &&
-          Formatter.format(saved.failure.refused.laws).includes(want.law),
+          Formatter.format(refusedLawsOf(saved.failure.refused)).includes(want.law),
         `${c.name}: refused by ${want.law}, got ${Formatter.format(saved)}`,
       );
       note(

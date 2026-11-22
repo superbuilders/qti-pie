@@ -13,6 +13,7 @@
  *
  * @module
  */
+import type { Sha256 } from "@bjornpagen/grizzle";
 import { documentXml } from "@qti-pie/pantry/export/render.ts";
 import { MediaStore } from "@qti-pie/pantry/package/media.ts";
 import {
@@ -54,12 +55,13 @@ import type { Judged, StartRows } from "#ledger/served-values.ts";
 /**
  * What an application serves differently, which every opening of an item names: the address a page
  * loads a package file from, by the SHA-256 of its bytes (edullm's media CDN, metis's
- * `/media/<digest>`), and the page every Portable Custom Interaction's frame loads, plate's frame
- * page (`@qti-pie/plate/ui/pci-frame`) where the application serves it. The server reads a file's
- * bytes from the application's `MediaStore`, never at its address.
+ * `/media/<digest>`), the 32 raw bytes, which the host renders in its address as it writes it,
+ * and the page every Portable Custom Interaction's frame loads, plate's frame page
+ * (`@qti-pie/plate/ui/pci-frame`) where the application serves it. The server reads a file's bytes
+ * from the application's `MediaStore`, never at its address.
  */
 export interface Host {
-  readonly mediaUrlOf: (digest: string) => string;
+  readonly mediaUrlOf: (digest: Sha256) => string;
   readonly pciFrame: string;
 }
 
@@ -166,7 +168,7 @@ export type DocumentRows = Parameters<typeof documentXml>[1];
  */
 export interface DocumentRead {
   readonly document: DocumentRows;
-  readonly files: readonly { readonly digest: string; readonly path: string }[];
+  readonly files: readonly { readonly digest: Sha256; readonly path: string }[];
   readonly package: string;
   readonly path: string;
   readonly withheld: readonly { readonly path: string }[];
@@ -249,9 +251,9 @@ const configurationsOf = (modules: PciModules): readonly string[] => {
  */
 const configurationText = Effect.fn("qti.item.pci.configuration")(function* configurationText(
   path: string,
-  digest: string,
+  digest: Sha256,
 ) {
-  yield* Effect.annotateCurrentSpan({ digest, path });
+  yield* Effect.annotateCurrentSpan({ digest: digest.toHex(), path });
 
   const store = yield* MediaStore;
   const bytes = yield* Effect.orDie(store.get(digest));
@@ -276,7 +278,7 @@ const configurationText = Effect.fn("qti.item.pci.configuration")(function* conf
 const servedAt = (
   host: Host,
   item: string,
-  digests: ReadonlyMap<string, string>,
+  digests: ReadonlyMap<string, Sha256>,
   location: string,
 ): Option.Option<string> =>
   packagePathOf(item, location).pipe(

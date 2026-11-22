@@ -20,9 +20,9 @@
  *   of max-attempts is ignored as the number of attempts is limited by the value of the
  *   completion-status built-in outcome variable" (Table 7.19.1).
  */
-import { derived, query, v } from "@bjornpagen/grizzle"
-import { booleanFalse } from "@qti-pie/pantry/grammar/domains.ts"
-import type { LedgerLevel } from "#ledger/delivery.ts"
+import { derived, query, v } from "@bjornpagen/grizzle";
+import { booleanFalse } from "@qti-pie/pantry/grammar/domains.ts";
+import type { LedgerLevel } from "#ledger/delivery.ts";
 
 /**
  * The responses an End Attempt binds whose `count-attempt` is false, by their item's package and
@@ -36,31 +36,33 @@ import type { LedgerLevel } from "#ledger/delivery.ts"
  * @returns The query.
  */
 export const uncountingResponsesOf = (ledger: LedgerLevel) => {
-	const { Attribute, BoundVariable, Node } = ledger.relations
-	return query(ledger).rule((r) => {
-		const { package: pkg, path, start, identifier } = v(BoundVariable, "endAttempt")
-		const { value: countAttempt } = v(Attribute, "countAttempt")
-		return r
-			.match(Node, { package: pkg, path, start, kind: "qti-end-attempt-interaction" })
-			.match(BoundVariable, {
-				package: pkg,
-				path,
-				start,
-				attribute: "response-identifier",
-				identifier
-			})
-			.match(Attribute, {
-				package: pkg,
-				path,
-				start,
-				kind: "qti-end-attempt-interaction",
-				name: "count-attempt",
-				value: countAttempt
-			})
-			.where(r.in(countAttempt, booleanFalse))
-			.find({ package: pkg, path, identifier })
-	})
-}
+  const { Attribute, BoundVariable, Node } = ledger.relations;
+
+  return query(ledger).rule((r) => {
+    const { package: pkg, path, start, identifier } = v(BoundVariable, "endAttempt");
+    const { value: countAttempt } = v(Attribute, "countAttempt");
+
+    return r
+      .match(Node, { kind: "qti-end-attempt-interaction", package: pkg, path, start })
+      .match(BoundVariable, {
+        attribute: "response-identifier",
+        identifier,
+        package: pkg,
+        path,
+        start,
+      })
+      .match(Attribute, {
+        kind: "qti-end-attempt-interaction",
+        name: "count-attempt",
+        package: pkg,
+        path,
+        start,
+        value: countAttempt,
+      })
+      .where(r.in(countAttempt, booleanFalse))
+      .find({ identifier, package: pkg, path });
+  });
+};
 
 /**
  * Each stored attempt the built-in `numAttempts` counts, as a plain query: every attempt but one
@@ -71,35 +73,37 @@ export const uncountingResponsesOf = (ledger: LedgerLevel) => {
  * @returns The query.
  */
 export const countedAttemptsOf = (ledger: LedgerLevel) => {
-	const { Attempt, SnapshotSingleBoolean } = ledger.relations
-	const uncountingResponses = uncountingResponsesOf(ledger)
+  const { Attempt, SnapshotSingleBoolean } = ledger.relations;
+  const uncountingResponses = uncountingResponsesOf(ledger);
 
-	const uncountedAttempts = query(ledger).rule((r) => {
-		const { child, package: pkg, path, n, at } = v(Attempt, "uncounted")
-		const { identifier } = v(uncountingResponses, "uncounting")
-		return r
-			.match(Attempt, { child, package: pkg, path, n, at })
-			.match(uncountingResponses, { package: pkg, path, identifier })
-			.match(SnapshotSingleBoolean, {
-				child,
-				package: pkg,
-				path,
-				n,
-				at,
-				variable: identifier,
-				value: true
-			})
-			.find({ child, package: pkg, path, n, at })
-	})
+  const uncountedAttempts = query(ledger).rule((r) => {
+    const { child, package: pkg, path, n, at } = v(Attempt, "uncounted");
+    const { identifier } = v(uncountingResponses, "uncounting");
 
-	return query(ledger).rule((r) => {
-		const { child, package: pkg, path, n, at } = v(Attempt, "counted")
-		return r
-			.match(Attempt, { child, package: pkg, path, n, at })
-			.where(r.not(uncountedAttempts, { child, package: pkg, path, n, at }))
-			.find({ child, package: pkg, path, n, at })
-	})
-}
+    return r
+      .match(Attempt, { at, child, n, package: pkg, path })
+      .match(uncountingResponses, { identifier, package: pkg, path })
+      .match(SnapshotSingleBoolean, {
+        at,
+        child,
+        n,
+        package: pkg,
+        path,
+        value: true,
+        variable: identifier,
+      })
+      .find({ at, child, n, package: pkg, path });
+  });
+
+  return query(ledger).rule((r) => {
+    const { child, package: pkg, path, n, at } = v(Attempt, "counted");
+
+    return r
+      .match(Attempt, { at, child, n, package: pkg, path })
+      .where(r.not(uncountedAttempts, { at, child, n, package: pkg, path }))
+      .find({ at, child, n, package: pkg, path });
+  });
+};
 
 /**
  * The Delivery level's relations of an item session's attempts over the ledger `ledger`, for the
@@ -109,28 +113,29 @@ export const countedAttemptsOf = (ledger: LedgerLevel) => {
  * @returns The derived relations.
  */
 export const sessionAttemptsOf = (ledger: LedgerLevel) => {
-	const { ItemMode, ProcessedAttempt } = ledger.relations
+  const { ItemMode, ProcessedAttempt } = ledger.relations;
 
-	/**
-	 * Each attempt the built-in `numAttempts` counts: every attempt but those ended through a hint
-	 * that counts none.
-	 */
-	const CountedAttempt = derived("CountedAttempt", countedAttemptsOf(ledger))
+  /**
+   * Each attempt the built-in `numAttempts` counts: every attempt but those ended through a hint
+   * that counts none.
+   */
+  const CountedAttempt = derived("CountedAttempt", countedAttemptsOf(ledger));
 
-	/**
-	 * Each item session of an adaptive item one of whose attempts' response processing set
-	 * `completionStatus` to `completed` (the ledger's `ProcessedAttempt`).
-	 */
-	const CompletedSession = derived(
-		"CompletedSession",
-		query(ledger).rule((r) => {
-			const { child, package: pkg, path, n } = v(ProcessedAttempt, "completing")
-			return r
-				.match(ProcessedAttempt, { child, package: pkg, path, n, completionStatus: "completed" })
-				.match(ItemMode, { package: pkg, path, adaptive: true })
-				.find({ child, package: pkg, path, n })
-		})
-	)
+  /**
+   * Each item session of an adaptive item one of whose attempts' response processing set
+   * `completionStatus` to `completed` (the ledger's `ProcessedAttempt`).
+   */
+  const CompletedSession = derived(
+    "CompletedSession",
+    query(ledger).rule((r) => {
+      const { child, package: pkg, path, n } = v(ProcessedAttempt, "completing");
 
-	return [CountedAttempt, CompletedSession] as const
-}
+      return r
+        .match(ProcessedAttempt, { child, completionStatus: "completed", n, package: pkg, path })
+        .match(ItemMode, { adaptive: true, package: pkg, path })
+        .find({ child, n, package: pkg, path });
+    }),
+  );
+
+  return [CountedAttempt, CompletedSession] as const;
+};

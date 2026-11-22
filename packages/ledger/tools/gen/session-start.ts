@@ -458,7 +458,7 @@ const emptySources: readonly (readonly [string, string, readonly (readonly [stri
       "DocFieldFile",
       [
         ["content_type", '""'],
-        ["digest", '""'],
+        ["digest", "Sha256.ofBytes(new Uint8Array(0))"],
         ["field", '""'],
         ["holds", '"value"'],
         ["identifier", '"RESPONSE"'],
@@ -836,7 +836,7 @@ const source = () =>
  * @module
  */
 import type { Facts, NaturalDomain, Term } from "@bjornpagen/grizzle";
-import { Fn, Num, param, query, Type, v } from "@bjornpagen/grizzle";
+import { Fn, Num, param, query, Sha256, Type, v } from "@bjornpagen/grizzle";
 import type { deliveryOf } from "#ledger/delivery.ts";
 import {
   copies,
@@ -858,6 +858,7 @@ import {
   ProgramNode,
   responseLabel,
   responseProcessingOf,
+  seedStreamKey,
   TableBinding,
   TableEntry,
   TableValue,
@@ -966,7 +967,14 @@ const startReadsOf = (delivery: DeliveryLevel) => {
 
     return r
       .match(session, { child, package: pkg, path, seed, stage })
-      .find({ child, label: Fn.call(responseLabel, { attempts: 1n }), package: pkg, path, seed, stage });
+      .find({
+        child,
+        label: Fn.call(responseLabel, { attempts: 1n }),
+        package: pkg,
+        path,
+        seed: Fn.call(seedStreamKey, { seed }),
+        stage,
+      });
   });
 
   /**
