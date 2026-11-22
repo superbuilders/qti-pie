@@ -17,6 +17,7 @@ import {
   xmllintC14n,
 } from "#pantry/xml/oracle.ts";
 import type { XsdMessage, XsdVerdict } from "#pantry/xml/oracle.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The search budget of the report property.
@@ -205,33 +206,36 @@ const verdictsIn = (report: Drawn): readonly XsdVerdict[] =>
   });
 
 describe("xmllint's report, read back", () => {
-  it.effect("a report written from verdicts reads back as exactly those verdicts", (ctx) =>
-    searched(
-      ctx,
-      explore(
-        {
-          ...budget,
-          draw: drawn(drawnReport),
-          oracle: {
-            kind: "universal",
-            name: "verdictsOf ∘ reportText = the drawn verdicts, each written as xmllint writes it",
+  it.effect(
+    "a report written from verdicts reads back as exactly those verdicts",
+    (ctx) =>
+      searched(
+        ctx,
+        explore(
+          {
+            ...budget,
+            draw: drawn(drawnReport),
+            oracle: {
+              kind: "universal",
+              name: "verdictsOf ∘ reportText = the drawn verdicts, each written as xmllint writes it",
+            },
+            runs: 400,
+            suite: "xml/oracle/report",
           },
-          runs: 400,
-          suite: "xml/oracle/report",
-        },
-        (report) =>
-          verdictsOf(
-            report.files.map(({ path }) => path),
-            reportText(report),
-          ).pipe(
-            Effect.tap((verdicts) =>
-              Effect.sync(() => {
-                assert.deepStrictEqual(verdicts, verdictsIn(report));
-              }),
+          (report) =>
+            verdictsOf(
+              report.files.map(({ path }) => path),
+              reportText(report),
+            ).pipe(
+              Effect.tap((verdicts) =>
+                Effect.sync(() => {
+                  assert.deepStrictEqual(verdicts, verdictsIn(report));
+                }),
+              ),
             ),
-          ),
+        ),
       ),
-    ),
+    searchTimeout,
   );
 
   it.effect(

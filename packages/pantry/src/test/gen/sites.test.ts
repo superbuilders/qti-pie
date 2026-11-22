@@ -42,12 +42,7 @@ import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { ruleOfLaw } from "#pantry/import/refusal.ts";
 import { includeTargetBreachesOf } from "#pantry/test/placed-includes.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 2_400_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The rules a site's laws or an absent file refuse a package under: the include's target, the
@@ -337,6 +332,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("test/gen/sites.ts", (i
           judged,
         ),
       ),
-    { timeout: testTimeoutMs },
+    searchTimeout,
   );
 });

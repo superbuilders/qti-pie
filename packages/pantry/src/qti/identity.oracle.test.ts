@@ -16,6 +16,7 @@ import type { PackageFile } from "#pantry/package/read.ts";
 import { judge, lawsOf } from "#pantry/test/oracle.ts";
 import { collapsed } from "#pantry/test/oracle-view.ts";
 import { packageOf } from "#pantry/test/probe.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * How long building a schema over every relation of the schema may take: a hang guard.
@@ -86,7 +87,7 @@ type LabelSituation =
   | "unnamed tool"
   | "root label, unnamed tool";
 
-describe("test/oracle.ts, Label tools", { timeout: buildTimeout }, () => {
+describe("test/oracle.ts, Label tools", { timeout: searchTimeout }, () => {
   it.effect(
     "breaks once at each labelled element, the paragraph and the root, exactly when its root lacks tool-name or tool-version",
     (ctx) =>
@@ -208,7 +209,7 @@ type TypedSituation =
 
 describe(
   "test/oracle.ts, DocumentId key and Idref target over typed texts (C50)",
-  { timeout: buildTimeout },
+  { timeout: searchTimeout },
   () => {
     it.effect(
       "breaks DocumentId key exactly where one id is purported by two parents, and Idref target exactly where a text's IDREF names no id",
@@ -387,7 +388,7 @@ type DocumentLangSituation =
   | "listed in another case"
   | "listed padded";
 
-describe("test/oracle.ts, Document lang (R26)", { timeout: buildTimeout }, () => {
+describe("test/oracle.ts, Document lang (R26)", { timeout: searchTimeout }, () => {
   it.effect(
     "breaks once, at the item, exactly when its xml:lang states a language that a general category of its resource's record does not list",
     (ctx) =>
@@ -594,7 +595,7 @@ type SsmlLawSituation =
 
 describe(
   "test/oracle.ts, SSML trim mark and SSML lexicon reference (reading 3)",
-  { timeout: buildTimeout },
+  { timeout: searchTimeout },
   () => {
     it.effect(
       "breaks SSML trim mark exactly where a startmark names a mark its own speak defines other than once, names compared collapsed, and SSML lexicon reference exactly where a lookup's lexicon is in another speak",

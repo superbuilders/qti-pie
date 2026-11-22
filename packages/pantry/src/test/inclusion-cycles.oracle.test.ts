@@ -35,12 +35,7 @@ import { lawNameOf } from "#pantry/import/refusal.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 240_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every law the host judges, read once.
@@ -200,7 +195,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             ),
           );
         }),
-      testTimeoutMs,
+      searchTimeout,
     );
   },
 );

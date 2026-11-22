@@ -50,6 +50,7 @@ import { lawTable } from "#pantry/vocab/laws.ts";
 import type { LawName } from "#pantry/test/oracle.ts";
 import { lawNameOf, rulesOf } from "#pantry/import/refusal.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every law the host judges, read once.
@@ -511,100 +512,102 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     for (const part of parts) {
       const ofPart = cases.filter((held) => partOf(held) === part);
 
-      it.effect(`over a ${part}`, (ctx) =>
-        // Oracle: the specification as a checker by hand (`expectedOf`): the information model's
-        // tables 4.5.3 and 7.46.1 to 7.46.2, XML Schema 1.1 Part 2 §4.3.6, and reading 9. Bound:
-        // a single or a record declaration's base type in 3 states, a value's field identifier in
-        // 2 and its base type in 3 under a single or a record set with an integer text or not, and
-        // an outcome's mastery value, normal minimum and normal maximum each unwritten, in order,
-        // out of order or no double: 78 packages, exhausted, one part of the box to a case, so
-        // the project's hang guard bounds one part's search and never the box's whole.
-        searched(
-          ctx,
-          exhaust(
-            {
-              box: `a ${part}, each attribute written, unwritten or spelling nothing`,
-              caseHang: Duration.minutes(2),
-              concurrency: 1,
-              coverage: requiredInSpace<Situation>(situationsAt(part)),
-              generator: int(0, ofPart.length - 1),
-              literal: (at) => Formatter.format(ofPart[at]),
-              oracle: {
-                kind: "specification",
-                name: "the information model's base-type, field and scale characteristics, by hand",
+      it.effect(
+        `over a ${part}`,
+        (ctx) =>
+          // Oracle: the specification as a checker by hand (`expectedOf`): the information model's
+          // tables 4.5.3 and 7.46.1 to 7.46.2, XML Schema 1.1 Part 2 §4.3.6, and reading 9. Bound:
+          // a single or a record declaration's base type in 3 states, a value's field identifier in
+          // 2 and its base type in 3 under a single or a record set with an integer text or not, and
+          // an outcome's mastery value, normal minimum and normal maximum each unwritten, in order,
+          // out of order or no double: 78 packages, exhausted, one part of the box to a case.
+          searched(
+            ctx,
+            exhaust(
+              {
+                box: `a ${part}, each attribute written, unwritten or spelling nothing`,
+                caseHang: Duration.minutes(2),
+                concurrency: 1,
+                coverage: requiredInSpace<Situation>(situationsAt(part)),
+                generator: int(0, ofPart.length - 1),
+                literal: (at) => Formatter.format(ofPart[at]),
+                oracle: {
+                  kind: "specification",
+                  name: "the information model's base-type, field and scale characteristics, by hand",
+                },
+                suite: `test/unwritten-declaration-attributes/${part.replaceAll(" ", "-")}`,
               },
-              suite: `test/unwritten-declaration-attributes/${part.replaceAll(" ", "-")}`,
-            },
-            (at, c) =>
-              Effect.scoped(
-                Effect.gen(function* oneCase() {
-                  const drawn = ofPart[at];
-                  assert.isDefined(drawn, `no case ${String(at)}`);
-                  if (drawn === undefined) {
-                    return;
-                  }
+              (at, c) =>
+                Effect.scoped(
+                  Effect.gen(function* oneCase() {
+                    const drawn = ofPart[at];
+                    assert.isDefined(drawn, `no case ${String(at)}`);
+                    if (drawn === undefined) {
+                      return;
+                    }
 
-                  const label = Formatter.format(drawn);
-                  const expected = expectedOf(drawn);
-                  c.note(reachedBy(expected));
-                  if (drawn.kind === "scale" && drawn.mastery !== undefined) {
-                    c.note("pair");
-                  }
+                    const label = Formatter.format(drawn);
+                    const expected = expectedOf(drawn);
+                    c.note(reachedBy(expected));
+                    if (drawn.kind === "scale" && drawn.mastery !== undefined) {
+                      c.note("pair");
+                    }
 
-                  const entries = packageOf(drawn);
-                  const judgment = yield* judge(filesOf(entries), grammar, laws);
-                  assert.strictEqual(judgment._tag, "Judged", `${label}: the codec refuses it`);
+                    const entries = packageOf(drawn);
+                    const judgment = yield* judge(filesOf(entries), grammar, laws);
+                    assert.strictEqual(judgment._tag, "Judged", `${label}: the codec refuses it`);
 
-                  const breaches = judgment._tag === "Judged" ? judgment.breaches : [];
-                  assert.deepStrictEqual(
-                    [...new Set(breaches.map(({ law }) => law))].toSorted(),
-                    [...expected].toSorted(),
-                    `${label}: the law oracle:\n${breaches.map((breach) => `  ${shownBreach(breach, grammar)}`).join("\n")}`,
-                  );
+                    const breaches = judgment._tag === "Judged" ? judgment.breaches : [];
+                    assert.deepStrictEqual(
+                      [...new Set(breaches.map(({ law }) => law))].toSorted(),
+                      [...expected].toSorted(),
+                      `${label}: the law oracle:\n${breaches.map((breach) => `  ${shownBreach(breach, grammar)}`).join("\n")}`,
+                    );
 
-                  const { inputs } = yield* readProgram(yield* scopedPackage(entries), "scoped");
-                  assertRows(drawn, inputs, label);
+                    const { inputs } = yield* readProgram(yield* scopedPackage(entries), "scoped");
+                    assertRows(drawn, inputs, label);
 
-                  // The host judges every law, and its refusal is named by the rule the catalog's
-                  // precedence puts first, as the database's is. A declaration whose base type
-                  // spells nothing has no base type alone, so its value domain is the one law it
-                  // breaks (spec reading 158).
-                  const rows = previewRowsOf(inputs);
-                  const { broken } = judgeHost(rows, hostLaws);
-                  // The declaration and mapping overlays' rules over a query are the database's alone,
-                  // restated here.
-                  const queried = declarationQueryLawsOf(rows);
-                  const brokenNames = [
-                    ...broken.map(({ law }) =>
-                      Option.getOrElse(lawNameOf(law), () => Formatter.format(law)),
-                    ),
-                    ...queried,
-                  ];
-                  const shown =
-                    broken.map(({ law }) => Formatter.format(law)).join("; ") || "no law";
-                  assert.sameMembers(
-                    [...new Set(brokenNames)],
-                    [...expected],
-                    `${label}: the import's rows break ${shown}`,
-                  );
+                    // The host judges every law, and its refusal is named by the rule the catalog's
+                    // precedence puts first, as the database's is. A declaration whose base type
+                    // spells nothing has no base type alone, so its value domain is the one law it
+                    // breaks (spec reading 158).
+                    const rows = previewRowsOf(inputs);
+                    const { broken } = judgeHost(rows, hostLaws);
+                    // The declaration and mapping overlays' rules over a query are the database's alone,
+                    // restated here.
+                    const queried = declarationQueryLawsOf(rows);
+                    const brokenNames = [
+                      ...broken.map(({ law }) =>
+                        Option.getOrElse(lawNameOf(law), () => Formatter.format(law)),
+                      ),
+                      ...queried,
+                    ];
+                    const shown =
+                      broken.map(({ law }) => Formatter.format(law)).join("; ") || "no law";
+                    assert.sameMembers(
+                      [...new Set(brokenNames)],
+                      [...expected],
+                      `${label}: the import's rows break ${shown}`,
+                    );
 
-                  const brokenLaws = broken.map(({ law }) => law);
-                  const rule = Arr.isReadonlyArrayNonEmpty(brokenLaws)
-                    ? Arr.head(rulesOf(brokenLaws))
-                    : Option.map(Arr.head(queried), (name) => lawTable[name].rule);
-                  const rules = [...expected].map((law) => ruleOf(law));
+                    const brokenLaws = broken.map(({ law }) => law);
+                    const rule = Arr.isReadonlyArrayNonEmpty(brokenLaws)
+                      ? Arr.head(rulesOf(brokenLaws))
+                      : Option.map(Arr.head(queried), (name) => lawTable[name].rule);
+                    const rules = [...expected].map((law) => ruleOf(law));
 
-                  assert.isTrue(
-                    Option.match(rule, {
-                      onNone: () => expected.size === 0,
-                      onSome: (named) => rules.includes(named),
-                    }),
-                    `${label}: the import's refusal names ${Option.getOrElse(rule, () => "none")}, the specification ${rules.join(", ") || "none"}`,
-                  );
-                }),
-              ),
+                    assert.isTrue(
+                      Option.match(rule, {
+                        onNone: () => expected.size === 0,
+                        onSome: (named) => rules.includes(named),
+                      }),
+                      `${label}: the import's refusal names ${Option.getOrElse(rule, () => "none")}, the specification ${rules.join(", ") || "none"}`,
+                    );
+                  }),
+                ),
+            ),
           ),
-        ),
+        searchTimeout,
       );
     }
   },

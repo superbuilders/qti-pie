@@ -17,9 +17,8 @@ import { grammar } from "#pantry/grammar/install.ts";
 import { foldGrammarOf, shredGrammarOf } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
-import { searchTimeout } from "#pantry/test/gen/xdm.ts";
 import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's tables, read from the composed grammar once.
@@ -76,7 +75,7 @@ const mappingBreachesOf = (text: string) =>
       .map(({ keys, law }) => `${law} ${JSON.stringify(keys)}`);
   });
 
-describe("qti/mapping.ts, the oracle's mapping laws", { timeout: searchTimeout }, () => {
+describe("qti/mapping.ts, the oracle's mapping laws", () => {
   it.effect(
     "admits a repeated key, as written, in another case or as another spelling of one value, and refuses a typed value no lexical form of its base type spells",
     () =>

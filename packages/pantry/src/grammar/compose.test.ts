@@ -24,7 +24,7 @@ import type { Domain } from "#pantry/vocab/inventory/types.ts";
 import { coveredElements } from "#pantry/vocab/inventory/extensions.ts";
 import { asiNamespace } from "#pantry/vocab/namespaces.ts";
 import { admittedOf } from "#pantry/test/indexes.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -518,7 +518,7 @@ describe("spec reading 90, through the codec", () => {
           ),
         );
       }),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -638,6 +638,6 @@ describe("spec reading 109, wild IDs", () => {
           ),
         );
       }),
-    testTimeoutMs,
+    searchTimeout,
   );
 });

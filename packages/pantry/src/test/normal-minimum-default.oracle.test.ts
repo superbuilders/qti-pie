@@ -37,6 +37,7 @@ import type { LawName } from "#pantry/test/oracle.ts";
 import { lawNameOf, rulesOf } from "#pantry/import/refusal.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { lawTable } from "#pantry/vocab/laws.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every law the host judges, read once.
@@ -278,6 +279,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ),
           ),
         ),
+      searchTimeout,
     );
   },
 );

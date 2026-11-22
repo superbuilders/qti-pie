@@ -58,6 +58,7 @@ import { ruleOfLaw } from "#pantry/import/refusal.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -1192,7 +1193,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
           assert.strictEqual(exhausted.cases, boxCases.length);
         }),
-      { timeout: testTimeoutMs },
+      searchTimeout,
     );
 
     test.effect(
@@ -1228,7 +1229,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               }),
           ),
         ),
-      { timeout: testTimeoutMs },
+      searchTimeout,
     );
 
     test.effect(

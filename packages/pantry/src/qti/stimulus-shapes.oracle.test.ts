@@ -34,6 +34,7 @@ import { lawNamesOf } from "#pantry/test/host-law-names.ts";
 import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { asi, manifestOf } from "#pantry/test/probe.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * One item of a case: its path, its identifier and the `href` of each stimulus ref it writes, by
@@ -329,6 +330,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ),
           ),
         ),
+      searchTimeout,
     );
   },
 );

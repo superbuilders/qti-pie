@@ -71,7 +71,7 @@ import type {
 } from "#pantry/test/gen/grammar.ts";
 import { relaxNgModels, semanticsContexp } from "#pantry/test/gen/relaxng.ts";
 import type { MathClasses } from "#pantry/test/gen/relaxng.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
 
 /**
@@ -2153,7 +2153,7 @@ describe("spec reading 40 in ssml:speak", () => {
           ),
         );
       }).pipe(Effect.provide(XsdOracleLayer)),
-    xsdTimeout,
+    searchTimeout,
   );
 });
 
@@ -2561,6 +2561,7 @@ describe("the document node's content model (R5)", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(

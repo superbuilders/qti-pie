@@ -24,14 +24,9 @@ import {
   xlinkNamespace,
   xsiNamespace,
 } from "#pantry/vocab/namespaces.ts";
-import {
-  caseHang,
-  closedElements,
-  editElement,
-  searchTimeout,
-  xdmDocument,
-} from "#pantry/test/gen/xdm.ts";
+import { caseHang, closedElements, editElement, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import { rowSetOf } from "#pantry/test/row-sets.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar every property draws its trees over, and reads and writes them through.

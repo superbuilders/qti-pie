@@ -33,7 +33,7 @@ import type { ClosedName, XdmChild, XdmClosedElement, XdmDocument } from "#pantr
 import { hottextInteraction } from "#pantry/qti/interactions.ts";
 import { integerOf } from "#pantry/test/oracle-view.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 import { choiceKinds, hottextKind } from "#pantry/vocab/terms/interactions.ts";
 
 /**
@@ -439,6 +439,7 @@ describe("import/overlays/interactions.ts, choices", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 
@@ -667,6 +668,7 @@ describe("import/overlays/interactions.ts, counts", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 
@@ -853,6 +855,7 @@ describe("import/overlays/interactions.ts, fragment references", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 
@@ -1246,5 +1249,6 @@ describe("import/overlays/interactions.ts, content reference declarations", () =
             }),
         ),
       ),
+    searchTimeout,
   );
 });

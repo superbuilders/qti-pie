@@ -46,6 +46,7 @@ import { filesOf } from "#pantry/test/oracle-complete/mutation.ts";
 import { judge, ruleOf, shownBreach } from "#pantry/test/oracle.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nodePlacesOf } from "#pantry/test/places.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every (site, state) of the scope, by its number: the first declaration of each kind in each
@@ -148,6 +149,6 @@ describe("declarations whose cardinality or base type spells nothing (spec readi
           holds,
         ),
       ),
-    1_800_000,
+    searchTimeout,
   );
 });

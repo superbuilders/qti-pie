@@ -38,6 +38,7 @@ import {
 } from "#pantry/test/gen/relaxng.ts";
 import { admittedOf } from "#pantry/test/indexes.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The names a spec reading takes out of a parent's model where the XSD declares them, each as
@@ -124,12 +125,6 @@ const setOf = (root: SourcePath) => {
       )
     : Effect.succeed(held);
 };
-
-/**
- * How long one of the two compose searches may take, each 120 or 40 toy grammars composed in turn:
- * a hang guard.
- */
-const searchTimeout = 60_000;
 
 /**
  * The character data XML Schema Part 1 §3.4.4 lets stand between an element's children, by its

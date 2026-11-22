@@ -21,12 +21,7 @@ import { encode } from "@qti-pie/crust/encode.ts";
 import { EncodeError } from "@qti-pie/crust/errors.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { OracleLayer, xmllintC14n } from "#pantry/xml/oracle.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 300_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 const TestLayer = OracleLayer.pipe(
   Layer.provideMerge(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
@@ -518,6 +513,6 @@ describe("crust's reader as pantry uses it", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    { timeout: testTimeoutMs },
+    searchTimeout,
   );
 });

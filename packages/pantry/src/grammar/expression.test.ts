@@ -31,6 +31,7 @@ import {
 } from "#pantry/test/gen/grammar.ts";
 import type { Particle } from "#pantry/test/gen/grammar.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -614,6 +615,7 @@ describe("OperatorArity's occurrence arithmetic against a naive count set", () =
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 

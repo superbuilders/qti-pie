@@ -67,7 +67,7 @@ import { readPinned } from "#pantry/test/spec-cache/read.ts";
 import { builtinDomainOf } from "#pantry/vocab/derive/domains.ts";
 import type { Domain, Facet } from "#pantry/vocab/inventory/types.ts";
 import { OracleLayer, xmllintValidate } from "#pantry/xml/oracle.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -641,7 +641,7 @@ describe("The whitespace fold", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it("refuses to fold the collapsed languages of three patterns in which two spaces that do not merge may stand together, folds five in which none may, and compiles three whose every word begins or ends with a space to the empty language", () => {
@@ -1035,7 +1035,7 @@ describe("Integer intervals", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it("read the bounds of the wide built-ins exactly at their edges: int, long, unsignedLong", () => {
@@ -1515,7 +1515,7 @@ describe("Length facets", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 });
 
@@ -1695,7 +1695,7 @@ describe("xs:boolean", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it("is read in grammar/domains.ts alone: no other module spells a truth of its own", () => {

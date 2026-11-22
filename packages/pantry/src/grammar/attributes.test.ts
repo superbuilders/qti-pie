@@ -59,6 +59,7 @@ import {
 } from "#pantry/vocab/inventory/attributes.ts";
 import { coveredElements } from "#pantry/vocab/inventory/extensions.ts";
 import type { Domain } from "#pantry/vocab/inventory/types.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -1382,7 +1383,7 @@ describe("The spec readings", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it("read 9: an h1's role is heading, tab or presentation, and every other kind's ARIA role keeps each role the XSD lists, every declarer against every listed role and the near misses", () => {
@@ -1625,7 +1626,7 @@ describe("The spec readings", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(

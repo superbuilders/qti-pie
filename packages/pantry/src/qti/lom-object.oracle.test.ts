@@ -33,12 +33,7 @@ import { genomeOf } from "#pantry/test/gen/genetic/genome.ts";
 import { judgeOne } from "#pantry/test/gen/genetic/judge.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The document's identifier and title, which a record's entry and string match or don't.
@@ -218,7 +213,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
   },
 );

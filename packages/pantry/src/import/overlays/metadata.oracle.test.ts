@@ -27,9 +27,10 @@ import { shred } from "#pantry/model/shred.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import type { PackageFile } from "#pantry/package/read.ts";
 import { judge, lawsOf } from "#pantry/test/oracle.ts";
-import { caseHang, searchTimeout } from "#pantry/test/gen/xdm.ts";
+import { caseHang } from "#pantry/test/gen/xdm.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { flatDocumentOf, ownViewOf } from "#pantry/import/fold.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The fixtures the global setup materializes: `metaData` among them.
@@ -904,5 +905,6 @@ describe("import/overlays/metadata.ts, usage values", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });

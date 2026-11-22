@@ -42,7 +42,7 @@ import {
 } from "#pantry/test/operator-spec.ts";
 import type { RoundingKind } from "#pantry/test/operator-spec.ts";
 import { equalRoundedMode } from "#pantry/vocab/terms/operators.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Where every document of these cases stands: one item of one package, the place every row holds.
@@ -58,11 +58,6 @@ const asi = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
  * The grammar shred reads each document by.
  */
 const shredGrammar = shredGrammarOf(Result.getOrThrow(composed()));
-
-/**
- * How long a search over documents may take: a hang guard.
- */
-const searchTimeout = 180_000;
 
 /**
  * Shred an item whose response processing holds the rules.
@@ -157,6 +152,7 @@ describe("import/pieces.ts, tokensOf on a tolerance", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 

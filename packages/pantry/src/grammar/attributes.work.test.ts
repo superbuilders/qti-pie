@@ -34,6 +34,7 @@ import type {
 import type * as Domains from "#pantry/grammar/domains.ts";
 import type { CompiledDomain, Reading } from "#pantry/grammar/domains.ts";
 import type { Domain } from "#pantry/vocab/inventory/types.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -632,7 +633,7 @@ describe("the attribute grammar's domain work on toy declarations", () => {
           (draws, c) => toyCase(toyDeclarations(draws), c),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -670,7 +671,7 @@ describe("the attribute grammar's domain work on toy declarations", () => {
           (draws, c) => toyCase(toyDeclarations(draws), c),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 });
 
@@ -705,6 +706,6 @@ describe("the attribute grammar's domain work across two compositions", () => {
           ({ first, second }, c) => sharedCase(toyDeclarations(first), toyDeclarations(second), c),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 });

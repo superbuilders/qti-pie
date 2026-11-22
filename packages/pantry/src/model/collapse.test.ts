@@ -34,7 +34,7 @@ import { shred } from "#pantry/model/shred.ts";
 import { collapsed } from "#pantry/test/oracle-view.ts";
 import { oracleValueOf } from "#pantry/test/resolution.ts";
 import { xsiNamespace } from "#pantry/vocab/namespaces.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The characters the box draws on, each once.
@@ -234,6 +234,7 @@ describe("the host's collapse and the QName sites that read through it", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -288,5 +289,6 @@ describe("the host's collapse and the QName sites that read through it", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });

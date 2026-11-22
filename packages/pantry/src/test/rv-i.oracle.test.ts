@@ -36,6 +36,7 @@ import { documentBreaches, judge, ruleOf, shownBreach, verdictOf } from "#pantry
 import type { Breach, Judgment, LawName, OracleRule } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The QTI 3 ASI namespace, of every item element.
@@ -404,14 +405,9 @@ type DeclarationSituation =
   | "a body name refused"
   | "two names refused";
 
-/**
- * How long the declaration box may run: a hang guard.
- */
-const boxTimeout = 120_000;
-
 describe(
   "reading 131: the oracle's Namespace name over every declaration",
-  { timeout: boxTimeout },
+  { timeout: searchTimeout },
   () => {
     it.effect(
       "breaks Namespace name once at each declaration whose name is no URI reference, on the root and in the body alike, and nowhere else",

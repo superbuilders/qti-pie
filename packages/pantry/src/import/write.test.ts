@@ -70,11 +70,11 @@ import type { Node } from "#pantry/qti/node.ts";
 import type { Entry, Media } from "#pantry/qti/package.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { corpusPackage, materialize, materializeSpec } from "#pantry/test/fixtures.ts";
-import { caseHang, featuresOf, searchTimeout, xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { rowSetOf } from "#pantry/test/row-sets.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 const fixtures = inject("fixtures");
 
@@ -475,7 +475,7 @@ const withStray = (
 const statesOf = (nodes: readonly NodeMember[]): readonly string[] =>
   nodes.map(({ kind, state }) => `${kind} ${state}`);
 
-describe("rootInsertOf", { timeout: searchTimeout }, () => {
+describe("rootInsertOf", () => {
   it.effect(
     "writes character data its family's model does not admit at its predecessor's state, and leaves every other node's state as it was",
     () =>
@@ -574,6 +574,7 @@ describe("rootInsertOf", { timeout: searchTimeout }, () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -641,6 +642,7 @@ describe("rootInsertOf", { timeout: searchTimeout }, () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 
@@ -990,60 +992,65 @@ const situationOf = (conflict: Option.Option<string>, repeat: boolean): UnionSit
 };
 
 describe("unionOf", () => {
-  it.effect("is a keyed set: an equal repeat is one row, two rows at one key a conflict", (ctx) =>
-    // Oracle: a second implementation, a naive model that records each key's first row and the
-    // first key, in order, met with a row of another value.
-    // Bound: every list of up to 3 sets over 2 keys of 2 values, 1 + 9 + 81 + 729 = 820 cases.
-    searched(
-      ctx,
-      exhaust(
-        {
-          box: "every list of up to 3 keyed sets over the keys a and b, each absent or holding v=1 or v=2",
-          caseHang: Duration.seconds(10),
-          concurrency: searchWidth,
-          coverage: requiredInSpace<UnionSituation>(["conflict", "equal repeat", "disjoint"]),
-          generator: unionCases,
-          literal: (value) => Formatter.format(value),
-          oracle: { kind: "second-implementation", name: "the first-row model of a keyed union" },
-          suite: "import/overlays-union",
-        },
-        (sets, c) =>
-          Effect.sync(() => {
-            const first = new Map<string, number>();
-            let conflict: Option.Option<string> = Option.none();
-            let repeat = false;
-            for (const set of sets) {
-              for (const [key, { v }] of set) {
-                const held = first.get(key);
-                if (held === undefined) {
-                  first.set(key, v);
-                } else if (held === v) {
-                  repeat = true;
-                } else if (Option.isNone(conflict)) {
-                  conflict = Option.some(key);
+  it.effect(
+    "is a keyed set: an equal repeat is one row, two rows at one key a conflict",
+    (ctx) =>
+      // Oracle: a second implementation, a naive model that records each key's first row and the
+      // first key, in order, met with a row of another value.
+      // Bound: every list of up to 3 sets over 2 keys of 2 values, 1 + 9 + 81 + 729 = 820 cases.
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every list of up to 3 keyed sets over the keys a and b, each absent or holding v=1 or v=2",
+            caseHang: Duration.seconds(10),
+            concurrency: searchWidth,
+            coverage: requiredInSpace<UnionSituation>(["conflict", "equal repeat", "disjoint"]),
+            generator: unionCases,
+            literal: (value) => Formatter.format(value),
+            oracle: { kind: "second-implementation", name: "the first-row model of a keyed union" },
+            suite: "import/overlays-union",
+          },
+          (sets, c) =>
+            Effect.sync(() => {
+              const first = new Map<string, number>();
+              let conflict: Option.Option<string> = Option.none();
+              let repeat = false;
+              for (const set of sets) {
+                for (const [key, { v }] of set) {
+                  const held = first.get(key);
+                  if (held === undefined) {
+                    first.set(key, v);
+                  } else if (held === v) {
+                    repeat = true;
+                  } else if (Option.isNone(conflict)) {
+                    conflict = Option.some(key);
+                  }
                 }
               }
-            }
 
-            c.note(situationOf(conflict, repeat));
+              c.note(situationOf(conflict, repeat));
 
-            const union = unionOf("Case", sets);
-            Option.match(conflict, {
-              onNone: () => {
-                assert.isTrue(Result.isSuccess(union));
-                assert.deepStrictEqual(
-                  Result.isSuccess(union) ? [...union.success].map(([key, { v }]) => [key, v]) : [],
-                  [...first],
-                );
-              },
-              onSome: (key) => {
-                assert.isTrue(Result.isFailure(union));
-                assert.strictEqual(Result.isFailure(union) ? union.failure.key : undefined, key);
-              },
-            });
-          }),
+              const union = unionOf("Case", sets);
+              Option.match(conflict, {
+                onNone: () => {
+                  assert.isTrue(Result.isSuccess(union));
+                  assert.deepStrictEqual(
+                    Result.isSuccess(union)
+                      ? [...union.success].map(([key, { v }]) => [key, v])
+                      : [],
+                    [...first],
+                  );
+                },
+                onSome: (key) => {
+                  assert.isTrue(Result.isFailure(union));
+                  assert.strictEqual(Result.isFailure(union) ? union.failure.key : undefined, key);
+                },
+              });
+            }),
+        ),
       ),
-    ),
+    searchTimeout,
   );
 });
 
@@ -1100,6 +1107,7 @@ describe("tokensOf, on an IDREFS form", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 

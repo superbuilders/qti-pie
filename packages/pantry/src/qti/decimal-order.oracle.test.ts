@@ -44,10 +44,10 @@ import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
 import { parsedDecimalBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { AriaBounds } from "#pantry/qti/overlay-queries/interaction.ts";
-import { searchTimeout } from "#pantry/test/gen/xdm.ts";
 import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { brokenIn, evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * `Qti`'s rows as the host evaluates them, its ARIA range check among them.

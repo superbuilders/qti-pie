@@ -41,7 +41,7 @@ import type { Entry, PackageFile } from "#pantry/package/read.ts";
 import { packageBudget, readZip, writeZip, ZipRefusal } from "#pantry/package/zip.ts";
 import type { ZipBudget, ZipEntry } from "#pantry/package/zip.ts";
 import { materializeCorpus, materializeZip } from "#pantry/test/fixtures.ts";
-import { settings } from "#pantry/test/settings.ts";
+import { settings, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -1001,7 +1001,7 @@ describe("package/zip.ts readZip, and package/read.ts over a .zip", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    { timeout: testTimeoutMs },
+    searchTimeout,
   );
 });
 
@@ -1141,7 +1141,7 @@ describe("package/zip.ts readZip under a drawn budget", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    { timeout: testTimeoutMs },
+    searchTimeout,
   );
 });
 
@@ -1267,7 +1267,7 @@ describe("package/zip.ts writeZip", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    { timeout: testTimeoutMs },
+    searchTimeout,
   );
 });
 

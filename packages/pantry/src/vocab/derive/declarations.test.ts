@@ -18,7 +18,7 @@ import {
 import { Digest } from "effect/crypto";
 import { XML_NAMESPACE } from "@qti-pie/crust/tree.ts";
 import { constraintAdmits, probeText, probeValueOf } from "#pantry/test/gen/vocab.ts";
-import { searchWidth, settings } from "#pantry/test/settings.ts";
+import { searchWidth, settings, searchTimeout } from "#pantry/test/settings.ts";
 import { oxfmt } from "#pantry/test/oxfmt.ts";
 import {
   attributeDeclarationsOf,
@@ -472,7 +472,7 @@ describe.skipIf(!settings.corpusRequested)(
               ),
             );
           }),
-        hookTimeoutMs,
+        searchTimeout,
       );
     });
   },

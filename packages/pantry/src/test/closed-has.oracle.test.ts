@@ -50,7 +50,7 @@ import type { HeldRow } from "#pantry/test/host-judge.ts";
 import { evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
 import { admittedOf, indexesOf } from "#pantry/test/indexes.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * How long one case may run before the search stops it as hung: a family's or a triple's handful
@@ -421,6 +421,7 @@ describe("the closed relations read at a key the grammar may give no value", () 
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -512,5 +513,6 @@ describe("the closed relations read at a key the grammar may give no value", () 
             }),
         ),
       ),
+    searchTimeout,
   );
 });

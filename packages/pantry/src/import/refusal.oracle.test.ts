@@ -54,7 +54,7 @@ import { ZipRefusal } from "#pantry/package/zip.ts";
 import { ImportRefused, ImportRule, limitRules, ruleOfError } from "#pantry/import/rules.ts";
 import type { ReadRefusal, Rule } from "#pantry/import/rules.ts";
 import { plantedLaw, refusedOf, schemaLawsOf, statedLaws } from "#pantry/test/law-namer.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -1257,6 +1257,7 @@ describe("the rules of the laws one native object carries, in the precedence's o
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -1285,6 +1286,7 @@ describe("the rules of the laws one native object carries, in the precedence's o
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 

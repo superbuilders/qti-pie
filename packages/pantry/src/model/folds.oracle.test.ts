@@ -30,7 +30,6 @@ import type {
 } from "#pantry/model/xdm.ts";
 import {
   caseHang,
-  searchTimeout,
   admissibleVariants,
   closedElements,
   corrupt,
@@ -56,6 +55,7 @@ import type {
 import { documentBreaches, lawNames, lawsOf } from "#pantry/test/oracle.ts";
 import { admittedOf, ancestryIndexesOf } from "#pantry/test/indexes.ts";
 import type { LawName } from "#pantry/test/oracle.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar every property draws its trees over and folds them under.

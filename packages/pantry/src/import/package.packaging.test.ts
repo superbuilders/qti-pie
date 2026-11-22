@@ -18,15 +18,9 @@ import { importDir } from "#pantry/test/import-dir.ts";
 import { materialize } from "#pantry/test/fixtures.ts";
 import { importAgreesWithOracle, packagingFixtures } from "#pantry/test/oracle-verdict.ts";
 import { danglingIncludeName, materializeProcessing } from "#pantry/test/processing-fixtures.ts";
-import { hasLease } from "#pantry/test/settings.ts";
+import { hasLease, searchTimeout } from "#pantry/test/settings.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
 import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
-
-/**
- * The packaging search's timeout, in milliseconds: a hang guard past the describe's, which
- * `searched` reads as its deadline.
- */
-const searchTimeoutMs = 600_000;
 
 describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () => {
   layer(
@@ -71,7 +65,7 @@ describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () 
               }),
           ),
         ),
-      searchTimeoutMs,
+      searchTimeout,
     );
 
     it.effect(`refuses ${danglingIncludeName} by the law its dangling include breaks`, () =>

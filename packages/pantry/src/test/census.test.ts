@@ -9,6 +9,7 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, Formatter } from "effect";
 import { census } from "#pantry/test/census.ts";
 import type { Census, FunctionKind, LawFamily, MigrationFile } from "#pantry/test/census.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The census's zero targets (fin.md §13 and its exit, "the census is a test, and it meets §13's
@@ -429,51 +430,54 @@ const dropped = (name: string): MigrationFile => ({
 });
 
 describe("census", () => {
-  it.effect("reports for every generated migration the counts of the statements it holds", (ctx) =>
-    searched(
-      ctx,
-      explore(
-        {
-          caseHang: Duration.seconds(10),
-          concurrency: 1,
-          coverage: required<Statement["form"]>(
-            [
-              "enum",
-              "domain",
-              "table",
-              "foreignKey",
-              "function",
-              "law",
-              "policy",
-              "view",
-              "insert",
-            ],
-            { cases: 300, sense: notesOnly },
-          ),
-          draw: drawn(array(statementOf, { max: 12, min: 0 })),
-          kept: [],
-          literal: Formatter.format,
-          oracle: {
-            kind: "second-implementation",
-            name: "the statements' own counts (modelOf), and each target read off the statements (targetsOf)",
+  it.effect(
+    "reports for every generated migration the counts of the statements it holds",
+    (ctx) =>
+      searched(
+        ctx,
+        explore(
+          {
+            caseHang: Duration.seconds(10),
+            concurrency: 1,
+            coverage: required<Statement["form"]>(
+              [
+                "enum",
+                "domain",
+                "table",
+                "foreignKey",
+                "function",
+                "law",
+                "policy",
+                "view",
+                "insert",
+              ],
+              { cases: 300, sense: notesOnly },
+            ),
+            draw: drawn(array(statementOf, { max: 12, min: 0 })),
+            kept: [],
+            literal: Formatter.format,
+            oracle: {
+              kind: "second-implementation",
+              name: "the statements' own counts (modelOf), and each target read off the statements (targetsOf)",
+            },
+            runs: 300,
+            shrink: completeShrink,
+            steerEvery: 16,
+            suite: "pantry/test/census",
           },
-          runs: 300,
-          shrink: completeShrink,
-          steerEvery: 16,
-          suite: "pantry/test/census",
-        },
-        (statements, c) =>
-          Effect.sync(() => {
-            c.noteAll(statements.map((statement) => statement.form));
-            assert.deepStrictEqual(census(filesOf(statements)), modelOf(statements));
-            assert.deepStrictEqual(
-              metBy(census(filesOf(statements))),
-              targetsOf(statements),
-              "each census target holds exactly when the statements hold none of what it bars",
-            );
-          }),
+          (statements, c) =>
+            Effect.sync(() => {
+              c.noteAll(statements.map((statement) => statement.form));
+              assert.deepStrictEqual(census(filesOf(statements)), modelOf(statements));
+              assert.deepStrictEqual(
+                metBy(census(filesOf(statements))),
+                targetsOf(statements),
+                "each census target holds exactly when the statements hold none of what it bars",
+              );
+            }),
+        ),
       ),
-    ),
+    searchTimeout,
   );
 
   it("counts a function a later migration drops no more", () => {

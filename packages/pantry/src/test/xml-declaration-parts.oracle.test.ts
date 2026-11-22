@@ -34,6 +34,7 @@ import { filesOf } from "#pantry/test/oracle-complete/mutation.ts";
 import { judge, shownBreach } from "#pantry/test/oracle.ts";
 import type { Judgment } from "#pantry/test/oracle.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every law the host judges, read once.
@@ -458,5 +459,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("a document's XML decla
             ),
         ),
       ),
+    searchTimeout,
   );
 });

@@ -77,20 +77,8 @@ import {
 import type { Isolating } from "#pantry/test/gen/genetic/search.ts";
 import { lawNameOf } from "#pantry/import/refusal.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { settings } from "#pantry/test/settings.ts";
+import { settings, searchTimeout } from "#pantry/test/settings.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
-
-/**
- * The timeout, in milliseconds, of the search that runs only under `QTI_PIE_GENETIC=1`: a hang
- * guard.
- */
-const longTimeoutMs = 3_600_000;
 
 /**
  * The exploration's budget, which `QTI_PIE_GENETIC=1` runs: `runs` is the rotating stream's runs
@@ -493,7 +481,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
 
     it.effect(
@@ -541,7 +529,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
 
     it.effect(
@@ -687,7 +675,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
 
     it.effect.skipIf(!settings.geneticRequested)(
@@ -778,7 +766,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      longTimeoutMs,
+      searchTimeout,
     );
   },
 );

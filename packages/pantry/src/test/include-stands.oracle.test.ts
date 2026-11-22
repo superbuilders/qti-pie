@@ -39,6 +39,7 @@ import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
 import { databaseJudgedLawNames } from "#pantry/test/law-namer.ts";
 import { lawNameOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The include parents of the box: an item's body, where a paragraph may stand and a rule may not,
@@ -499,7 +500,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ),
           ),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
   },
 );

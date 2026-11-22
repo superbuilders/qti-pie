@@ -57,6 +57,7 @@ import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { nameOf as packageNameOf } from "#pantry/test/package-name.ts";
 import { recordDocumentTypes } from "#pantry/vocab/terms/metadata.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the installed grammar.
@@ -527,6 +528,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
+      searchTimeout,
     );
   },
 );

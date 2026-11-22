@@ -19,10 +19,11 @@ import { fold } from "#pantry/model/folds.ts";
 import type { FoldedRows } from "#pantry/model/folds.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import { shred } from "#pantry/model/shred.ts";
-import { caseHang, featuresOf, searchTimeout, xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
 import { asiNamespace, xsiNamespace, xsNamespace } from "#pantry/vocab/namespaces.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The installed `GoverningOf`, keyed `kind governs` by its rows: the second implementation

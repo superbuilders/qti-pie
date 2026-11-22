@@ -28,10 +28,11 @@ import type {
   XdmMisc,
   XdmVocabulary,
 } from "#pantry/model/xdm.ts";
-import { caseHang, featuresOf, searchTimeout, xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { Placed, XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { canonicalize } from "@qti-pie/crust/canonical.ts";
 import type { Child } from "@qti-pie/crust/tree.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -140,7 +141,7 @@ const distinct = (keys: readonly string[]): void => {
 const keyed = (...values: readonly (bigint | string)[]): string =>
   JSON.stringify(values.map(String));
 
-describe("flatten", { timeout: searchTimeout }, () => {
+describe("flatten", () => {
   it.effect(
     "writes each node's row where the generator's model of the tree places it, in document order",
     (ctx) =>
@@ -191,6 +192,7 @@ describe("flatten", { timeout: searchTimeout }, () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -268,6 +270,7 @@ describe("flatten", { timeout: searchTimeout }, () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -359,6 +362,7 @@ describe("flatten", { timeout: searchTimeout }, () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it("cannot hold what XML does not: an open class as a closed name, character data beside the root, a nameless foreign element, or a named closed one", () => {
@@ -449,7 +453,7 @@ const chainLength = (root: Child): number => {
   return length;
 };
 
-describe("the model's walks", { timeout: searchTimeout }, () => {
+describe("the model's walks", () => {
   it.effect(
     "flatten, assemble, fold and convert a tree 100,000 elements deep and one 100,000 children wide, without recursion, to the same canonical bytes",
     () =>

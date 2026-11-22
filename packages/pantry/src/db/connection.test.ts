@@ -48,13 +48,7 @@ import {
   primedLoginConnection,
 } from "#pantry/db/connection.ts";
 import type { PasswordCommandError } from "#pantry/db/connection.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard, never a budget. Measured 2026-11-07: 7.9 s at a load average of 75, under
- * V8 coverage, its slowest test.
- */
-const testTimeoutMs = 60_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The folder each run's scratch `HOME`, CA and secrets folders are made in, the package's
@@ -821,7 +815,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -904,6 +898,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
+    searchTimeout,
   );
 
   it.effect(
@@ -1021,6 +1016,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
+    searchTimeout,
   );
 
   it.effect(
@@ -1145,6 +1141,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
+    searchTimeout,
   );
 
   it.effect(
@@ -1274,6 +1271,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ),
         );
       }),
+    searchTimeout,
   );
 });
 
@@ -1354,7 +1352,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             ),
           );
         }),
-      testTimeoutMs,
+      searchTimeout,
     );
   },
 );

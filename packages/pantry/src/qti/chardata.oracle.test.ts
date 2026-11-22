@@ -57,12 +57,12 @@ import {
 } from "#pantry/qti/chardata.ts";
 import { EntryPath, entryPathBytes, foreignNameBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { Node, nodeTree } from "#pantry/qti/node.ts";
-import { caseHang, featuresOf, searchTimeout, xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { lawNames } from "#pantry/test/oracle.ts";
 import { isUriReference } from "#pantry/test/uri-reference.ts";
 import { mathmlNamespace, namespaceClassOf, namespaceNameOf } from "#pantry/vocab/namespaces.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 import { asi } from "#pantry/test/probe.ts";
 
 /**
@@ -426,11 +426,6 @@ const productionCases: Gen<ProductionCase> = (source) => {
 
   return { production, value: characters.join("") };
 };
-
-/**
- * How long an exhaustive box may run: a hang guard.
- */
-const boxTimeout = 120_000;
 
 /**
  * One case of the bounds box: a text of a length at or around a bound, its first character and the
@@ -810,7 +805,7 @@ describe("qti/chardata.ts", () => {
             }),
         ),
       ),
-    { timeout: searchTimeout },
+    searchTimeout,
   );
 
   it.effect(
@@ -886,7 +881,7 @@ describe("qti/chardata.ts", () => {
 
         assert.strictEqual(exhausted.cases, limit);
       }),
-    { timeout: boxTimeout },
+    searchTimeout,
   );
 
   it.effect(
@@ -960,7 +955,7 @@ describe("qti/chardata.ts", () => {
 
         assert.strictEqual(exhausted.cases, limit);
       }),
-    { timeout: boxTimeout },
+    searchTimeout,
   );
 
   it("refuses a colon in an entity reference's name at the reader and in its row, as Namespaces in XML 1.0 §7 does", () => {
@@ -1100,6 +1095,7 @@ describe("qti/chardata.ts", () => {
 
         assert.strictEqual(exhausted.cases, slotVariants.length);
       }),
+    searchTimeout,
   );
 });
 
@@ -1387,7 +1383,7 @@ describe("qti/chardata.ts, a namespace name is an RFC 3986 URI reference (readin
 
         assert.strictEqual(exhausted.cases, limit);
       }),
-    { timeout: boxTimeout },
+    searchTimeout,
   );
 
   it.effect(
@@ -1427,7 +1423,7 @@ describe("qti/chardata.ts, a namespace name is an RFC 3986 URI reference (readin
 
         assert.strictEqual(exhausted.cases, limit);
       }),
-    { timeout: boxTimeout },
+    searchTimeout,
   );
 
   it.effect(
@@ -1495,6 +1491,6 @@ describe("qti/chardata.ts, a namespace name is an RFC 3986 URI reference (readin
             }),
         ),
       ),
-    { timeout: searchTimeout },
+    searchTimeout,
   );
 });

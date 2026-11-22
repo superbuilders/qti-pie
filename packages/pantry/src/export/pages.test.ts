@@ -20,9 +20,10 @@ import { composed } from "#pantry/grammar/compose.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import { flatten } from "#pantry/model/xdm.ts";
 import type { FlatRows } from "#pantry/model/xdm.ts";
-import { caseHang, featuresOf, searchTimeout, xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { rowSetOf } from "#pantry/test/row-sets.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar every property draws its trees over.

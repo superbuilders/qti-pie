@@ -43,12 +43,7 @@ import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The fixtures the global setup materializes; `simple` is one the importer accepts today.
@@ -3154,7 +3149,7 @@ describe("the laws readings 18, 74, 85 and 92 state, over generated packages", (
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -3251,7 +3246,7 @@ describe("the laws readings 18, 74, 85 and 92 state, over generated packages", (
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -3333,7 +3328,7 @@ describe("the laws readings 18, 74, 85 and 92 state, over generated packages", (
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -3387,7 +3382,7 @@ describe("the laws readings 18, 74, 85 and 92 state, over generated packages", (
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -3490,7 +3485,7 @@ describe("the laws readings 18, 74, 85 and 92 state, over generated packages", (
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -3573,7 +3568,7 @@ describe("the laws readings 18, 74, 85 and 92 state, over generated packages", (
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -3729,7 +3724,7 @@ describe("the package hrefs reading 102 and IMS Content Packaging 1.2 state, ove
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 });
 
@@ -3853,7 +3848,7 @@ describe("the references reading 103's census names, over generated packages", (
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 });
 
@@ -3917,7 +3912,7 @@ describe("the stimulus refs the UP audit's B5 resolves, over generated packages"
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 });
 
@@ -4070,7 +4065,7 @@ describe("reading 117: an included fragment judged in place", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -4224,6 +4219,6 @@ describe("reading 117: an included fragment judged in place", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 });

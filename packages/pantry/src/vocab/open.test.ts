@@ -53,7 +53,7 @@ import {
 } from "#pantry/vocab/namespaces.ts";
 import { dataName, foreignRoots, openClassOf } from "#pantry/vocab/open.ts";
 import { fileScratchDirectory } from "#pantry/test/scratch.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
 
 /**
@@ -266,6 +266,7 @@ describe("vocab/open.ts", () => {
           "the box holds each local name under each namespace and host once",
         );
       }),
+    searchTimeout,
   );
 
   it("reads a data- name by the information model's pattern and prose: lower-case ASCII letters, digits, `_`, `.` and `-`", () => {
@@ -971,7 +972,7 @@ describe("vocab/open.ts against xmllint over the pinned XSDs", () => {
             ),
           );
         }),
-      hookTimeoutMs,
+      searchTimeout,
     );
 
     cached.effect(
@@ -1033,7 +1034,7 @@ describe("vocab/open.ts against xmllint over the pinned XSDs", () => {
             ),
           );
         }),
-      hookTimeoutMs,
+      searchTimeout,
     );
   });
 });
@@ -1286,7 +1287,7 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
           ),
         );
       }),
-    hookTimeoutMs,
+    searchTimeout,
   );
 });
 

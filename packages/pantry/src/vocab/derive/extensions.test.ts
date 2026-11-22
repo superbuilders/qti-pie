@@ -46,6 +46,7 @@ import { xsdDirectory } from "#pantry/vocab/derive/sources.ts";
 import { coveredElements } from "#pantry/vocab/inventory/extensions.ts";
 import { asiNamespace, mathmlNamespace } from "#pantry/vocab/namespaces.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The package folder, `packages/pantry`, which the committed leaf and oxfmt are relative to.
@@ -373,6 +374,7 @@ describe("coveredIn, over generated Schematron", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect("reads a rule over another vocabulary's element in that vocabulary's namespace", () =>

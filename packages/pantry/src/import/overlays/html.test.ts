@@ -27,7 +27,7 @@ import { shred } from "#pantry/model/shred.ts";
 import { flatten } from "#pantry/model/xdm.ts";
 import type { XdmDocument } from "#pantry/model/xdm.ts";
 import { flatDocumentOf, ownViewOf, viewOf } from "#pantry/import/fold.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Where every document of these tests stands in its package: an item of package `M`.
@@ -205,6 +205,7 @@ describe("import/pieces.ts, tokensOf on a headers value", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 
@@ -392,6 +393,7 @@ describe("import/overlays/html.ts, rowsOf", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -461,6 +463,7 @@ describe("import/overlays/html.ts, rowsOf", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect("gives a document with no table cell no row", () =>

@@ -50,6 +50,7 @@ import { breaksIncludeTarget, unplacedCausesOf } from "#pantry/test/placed-inclu
 import type { Cause } from "#pantry/test/placed-includes.ts";
 import { asi, manifestOf } from "#pantry/test/probe.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -299,6 +300,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("an include pantry cann
           );
         }).pipe(Effect.scoped),
       ),
-    600_000,
+    searchTimeout,
   );
 });

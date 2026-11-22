@@ -36,7 +36,6 @@ import {
   closedElements,
   editElement,
   featuresOf,
-  searchTimeout,
   xdmDocument,
 } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
@@ -57,6 +56,7 @@ import {
 } from "#pantry/vocab/inventory/attributes.ts";
 import { OracleLayer, xmllintC14n, xmllintValidate } from "#pantry/xml/oracle.ts";
 import type { XsdVerdict } from "#pantry/xml/oracle.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its

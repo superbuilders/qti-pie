@@ -25,6 +25,7 @@ import { judge } from "#pantry/test/oracle.ts";
 import type { Judgment } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The QTI 3 ASI namespace, of every item element.
@@ -272,5 +273,6 @@ describe("test/oracle.ts and the grammar's ancestry, an interaction inside templ
             }),
         ),
       ),
+    searchTimeout,
   );
 });

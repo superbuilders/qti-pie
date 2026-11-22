@@ -60,12 +60,7 @@ import { documentBreaches, judge, lawNames, ruleOf, shownBreach } from "#pantry/
 import type { Breach, LawName } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 300_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every mutation of each group's module, by its name there, each naming the law it breaks
@@ -350,7 +345,7 @@ describe("every law the oracle declares", () => {
             property(mutation),
           ),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
   }
 });
@@ -427,7 +422,7 @@ describe("a declaration that writes no cardinality", () => {
             }),
         ),
       ),
-    300_000,
+    searchTimeout,
   );
 });
 

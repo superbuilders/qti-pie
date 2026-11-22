@@ -31,23 +31,7 @@ import {
 import type { RoundingKind } from "#pantry/test/operator-spec.ts";
 import { judge, lawsOf, shownBreach } from "#pantry/test/oracle.ts";
 import type { Breach, Judgment, LawName } from "#pantry/test/oracle.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
-
-/**
- * How long building a schema over every relation of the schema may take: a hang guard.
- */
-const buildTimeout = 60_000;
-
-/**
- * How long a search over the patterns may take: a hang guard.
- */
-const searchTimeout = 180_000;
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Test a text against a pattern as PostgreSQL's `~` reads one of grizzle's admitted grammar: the
@@ -213,7 +197,7 @@ const valueCase: Gen<{ readonly form: ValueForm; readonly value: string }> = (so
   return { form, value: source.draw(VALUE_GENERATORS[form]) };
 };
 
-describe("qti/operators.ts, the database's patterns", { timeout: searchTimeout }, () => {
+describe("qti/operators.ts, the database's patterns", () => {
   it.effect(
     "reads every value of at most 4 characters over the box as the specification does: xs:double's space, and its positive part",
     (ctx) =>
@@ -248,6 +232,7 @@ describe("qti/operators.ts, the database's patterns", { timeout: searchTimeout }
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -281,6 +266,7 @@ describe("qti/operators.ts, the database's patterns", { timeout: searchTimeout }
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -325,6 +311,7 @@ describe("qti/operators.ts, the database's patterns", { timeout: searchTimeout }
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it("reads the signed 64-bit range's edges as the specification does", () => {
@@ -475,7 +462,7 @@ type RoundingSituation =
   | "variable"
   | "no mode";
 
-describe("test/oracle.ts, Rounding figures", { timeout: buildTimeout }, () => {
+describe("test/oracle.ts, Rounding figures", { timeout: searchTimeout }, () => {
   it.effect(
     "breaks once, at the operator, exactly where its integer figures is below its mode's least; a qti-round-to with no mode is AL3's",
     (ctx) =>
@@ -582,7 +569,7 @@ const toleranceCases: Gen<ToleranceCase> = (source) => ({
  */
 type ToleranceSituation = "missing" | "count" | "value" | "variable" | "accepted range";
 
-describe("test/oracle.ts, Equal tolerance", { timeout: buildTimeout }, () => {
+describe("test/oracle.ts, Equal tolerance", { timeout: searchTimeout }, () => {
   it.effect(
     "breaks once, at the qti-equal, exactly where a range has no tolerance or a tolerance is not one or two values each above 0",
     (ctx) =>
@@ -802,7 +789,7 @@ const operatorCase: Gen<OperatorCase> = (source) =>
     ],
   );
 
-describe("test/oracle.ts, the operator laws past the box", { timeout: testTimeoutMs }, () => {
+describe("test/oracle.ts, the operator laws past the box", { timeout: searchTimeout }, () => {
   it.effect(
     "refuses each operator a swarm draws under its law exactly where the specification does",
     (ctx) =>

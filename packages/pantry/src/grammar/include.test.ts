@@ -19,13 +19,7 @@ import {
   SymbolSetOf,
 } from "#pantry/grammar/install.ts";
 import { admittedOf, includeRowsOf, symbolRowsOf } from "#pantry/test/indexes.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * How long one search here may take: it walks 155 families of rows the module holds, so a minute
@@ -196,7 +190,7 @@ describe("IncludeRoot", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it("holds no family where only a wildcard admits an include, and the information model's classes where a particle does", () => {

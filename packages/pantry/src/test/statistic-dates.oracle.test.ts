@@ -22,12 +22,7 @@ import { materialize } from "#pantry/test/fixtures.ts";
 import { judge, verdictOf } from "#pantry/test/oracle.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 300_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The years of the box: the year 0000 xs:date has none of, the first and the last, a common and a
@@ -235,7 +230,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             ),
           );
         }),
-      testTimeoutMs,
+      searchTimeout,
     );
   },
 );

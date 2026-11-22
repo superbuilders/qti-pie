@@ -30,6 +30,7 @@ import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
 import { databaseJudgedLawNames } from "#pantry/test/law-namer.ts";
 import { lawNameOf } from "#pantry/import/refusal.ts";
 import { nameOf as packageNameOf } from "#pantry/test/package-name.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The reference the fragment makes: a printed variable's `identifier`, or a feedback inline's
@@ -266,7 +267,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               ),
           ),
         ),
-      600_000,
+      searchTimeout,
     );
   },
 );

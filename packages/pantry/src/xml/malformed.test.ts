@@ -18,8 +18,7 @@
  * verdicts are taken in batches of files, each error line attributed by the path it starts with.
  * A document the batch judges against crust is judged again alone, and that run's verdict stands.
  * Coverage requires every class to be refused by both readers and accepted by both. Each class is
- * a case of its own over the same seeds, so the hang guard bounds one class's documents and never
- * the box's whole.
+ * a case of its own over the same seeds.
  */
 import { NodeFileSystem, NodePath } from "@effect/platform-node";
 import { assert, describe, it } from "@effect/vitest";
@@ -46,6 +45,7 @@ import { lawfulDocuments } from "#pantry/test/gen/genetic/lawful.ts";
 import { xdmDocument } from "#pantry/test/gen/xdm.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { OracleLayer, xmllintRun } from "#pantry/xml/oracle.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The layer the oracle runs in: the process spawner, the file system and paths.
@@ -1036,11 +1036,6 @@ interface FaultCase {
   readonly fault: Fault;
   readonly seed: string;
 }
-
-/**
- * How long one class's search may take: a hang guard.
- */
-const searchTimeout = 120_000;
 
 /**
  * Write a case's document for a failure message: its text as UTF-8 reads it, quoted.

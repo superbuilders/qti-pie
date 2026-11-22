@@ -63,12 +63,13 @@ import { placedRowsOf, placingPackageOf, rowsOf } from "#pantry/import/overlays/
 import { foldGrammarOf, shredGrammarOf } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
-import { caseHang, searchTimeout } from "#pantry/test/gen/xdm.ts";
+import { caseHang } from "#pantry/test/gen/xdm.ts";
 import { typedOf } from "#pantry/test/oracle-laws/expressions.ts";
 import type { Type } from "#pantry/test/oracle-laws/expressions.ts";
 import { lawsOf, typedReadingOf } from "#pantry/test/oracle.ts";
 import { viewOf } from "#pantry/test/oracle-view.ts";
 import { asiNamespace } from "#pantry/vocab/namespaces.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the installed grammar.

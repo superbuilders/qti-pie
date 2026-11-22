@@ -60,7 +60,7 @@ import { comparedPath, oracleValueOf, resolve, resolveAttribute } from "#pantry/
 import { attributeDeclarations } from "#pantry/vocab/inventory/attributes.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { flatDocumentOf, ownViewOf } from "#pantry/import/fold.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The file system and processes the fixtures' materializer and `readEntries` need.
@@ -727,69 +727,72 @@ const unreadOf = (
 };
 
 describe("import/overlays/package.ts", () => {
-  it.effect("writes each overlay's rows as the walk of the manifest's tree names them", (ctx) =>
-    // Oracle: a second implementation, a direct walk of the XDM document that numbers its nodes in
-    // document order and reads each element's attributes, against the builder's read of the tree's
-    // flat rows; the type codes against `ResourceTypeLexical`.
-    // Bound: a manifest with or without its identifier, up to 3 resources of 3 types or none, each
-    // with its own identifier, another's, the manifest's or none, with or without one of 9 hrefs
-    // (3 with a query or a fragment, 4 that need resolving), listing up to 3 of 5 files and up to
-    // 2 dependencies, under 5 xml:base values on each of the manifest, its resources and each
-    // resource, 300 runs.
-    searched(
-      ctx,
-      explore(
-        {
-          caseHang: Duration.seconds(10),
-          concurrency: 1,
-          coverage: required<Situation>(
-            [
-              "no-href",
-              "unknown-type",
-              "file-twice",
-              "shared-file",
-              "href-params",
-              "self-dependency",
-              "href-resolved",
-              "manifest-base",
-              "resource-base",
-              "untyped",
-              "unnamed-manifest",
-              "unnamed-resource",
-              "manifest-id-clash",
-            ],
-            { cases: 200, sense: notesOnly },
-          ),
-          draw: drawn(manifests),
-          kept: [],
-          literal: Formatter.format,
-          oracle: {
-            kind: "second-implementation",
-            name: "a direct walk of the XDM tree, its hrefs by the oracle's RFC 3986 resolver",
+  it.effect(
+    "writes each overlay's rows as the walk of the manifest's tree names them",
+    (ctx) =>
+      // Oracle: a second implementation, a direct walk of the XDM document that numbers its nodes in
+      // document order and reads each element's attributes, against the builder's read of the tree's
+      // flat rows; the type codes against `ResourceTypeLexical`.
+      // Bound: a manifest with or without its identifier, up to 3 resources of 3 types or none, each
+      // with its own identifier, another's, the manifest's or none, with or without one of 9 hrefs
+      // (3 with a query or a fragment, 4 that need resolving), listing up to 3 of 5 files and up to
+      // 2 dependencies, under 5 xml:base values on each of the manifest, its resources and each
+      // resource, 300 runs.
+      searched(
+        ctx,
+        explore(
+          {
+            caseHang: Duration.seconds(10),
+            concurrency: 1,
+            coverage: required<Situation>(
+              [
+                "no-href",
+                "unknown-type",
+                "file-twice",
+                "shared-file",
+                "href-params",
+                "self-dependency",
+                "href-resolved",
+                "manifest-base",
+                "resource-base",
+                "untyped",
+                "unnamed-manifest",
+                "unnamed-resource",
+                "manifest-id-clash",
+              ],
+              { cases: 200, sense: notesOnly },
+            ),
+            draw: drawn(manifests),
+            kept: [],
+            literal: Formatter.format,
+            oracle: {
+              kind: "second-implementation",
+              name: "a direct walk of the XDM tree, its hrefs by the oracle's RFC 3986 resolver",
+            },
+            runs: 300,
+            shrink: completeShrink,
+            steerEvery: 16,
+            suite: "pantry/import/overlays-package",
           },
-          runs: 300,
-          shrink: completeShrink,
-          steerEvery: 16,
-          suite: "pantry/import/overlays-package",
-        },
-        (input, c) =>
-          Effect.sync(() => {
-            c.noteAll(situationsOf(input));
+          (input, c) =>
+            Effect.sync(() => {
+              c.noteAll(situationsOf(input));
 
-            const doc = treeOf(input);
-            const rows = rowsOf(ownViewOf(doc), ids);
+              const doc = treeOf(input);
+              const rows = rowsOf(ownViewOf(doc), ids);
 
-            assertRows(doc, rows, walk(doc), "generated");
-            for (const [at, { type }] of namedDocuments(
-              typedPathsOf(rows, resourceTypesOf(flatDocumentOf(doc))),
-            )
-              .values()
-              .map((named) => [named.path, named] as const)) {
-              assert.include(documentTypes, type, at);
-            }
-          }),
+              assertRows(doc, rows, walk(doc), "generated");
+              for (const [at, { type }] of namedDocuments(
+                typedPathsOf(rows, resourceTypesOf(flatDocumentOf(doc))),
+              )
+                .values()
+                .map((named) => [named.path, named] as const)) {
+                assert.include(documentTypes, type, at);
+              }
+            }),
+        ),
       ),
-    ),
+    searchTimeout,
   );
 
   it("gives the query UnreadTypeHref a row for a resource whose written type spells no handle, and none for a typed or untyped one", () => {
@@ -1282,6 +1285,7 @@ describe("import/overlays/package.ts, hrefs and references", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -1343,6 +1347,7 @@ describe("import/overlays/package.ts, hrefs and references", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it("writes a TextReference for each card file, calculator's or digital material's file and resource icon, resolved as an attribute is", () => {

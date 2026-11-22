@@ -8,12 +8,7 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, Formatter, Result } from "effect";
 import { anyUriPattern, patternFlags, translatePattern } from "#pantry/grammar/domains.ts";
 import { builtinDomainOf } from "#pantry/vocab/derive/domains.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 60_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The anyURI pattern as the schema reads it: {@link anyUriPattern} through the one translation of
@@ -571,7 +566,7 @@ describe("vocab/derive/domains.ts, xs:anyURI", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it("is the lexical pattern of the anyURI built-in's domain, which collapses its value", () => {

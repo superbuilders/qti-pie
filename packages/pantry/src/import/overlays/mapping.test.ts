@@ -20,8 +20,7 @@ import { rowsOf } from "#pantry/import/overlays/mapping.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import { closedName } from "#pantry/model/xdm.ts";
 import type { ClosedName, XdmChild, XdmClosedElement, XdmDocument } from "#pantry/model/xdm.ts";
-import { searchTimeout } from "#pantry/test/gen/xdm.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Where the generated document stands: one item of one package, the place every row holds.

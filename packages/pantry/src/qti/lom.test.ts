@@ -41,6 +41,7 @@ import { RecordNode } from "#pantry/qti/names.ts";
 import { previewRowsOf } from "#pantry/test/host-judge.ts";
 import { evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Grizzle's evaluator of the LOM level's rows.
@@ -603,6 +604,7 @@ describe("what a package may state", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 

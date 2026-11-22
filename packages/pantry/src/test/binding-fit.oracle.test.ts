@@ -69,12 +69,7 @@ import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { viewedDeclarationsOf } from "#pantry/test/declaration-queries.ts";
 import { nodePlacesOf, placeKey } from "#pantry/test/places.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Every law the host judges, read once.
@@ -345,7 +340,7 @@ describe("the bindings the fit laws judge", () => {
               }).pipe(Effect.scoped),
           ),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
   });
 });

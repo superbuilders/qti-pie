@@ -17,7 +17,7 @@ import * as install from "#pantry/grammar/install.ts";
 import { foreignKinds } from "#pantry/grammar/kinds.ts";
 import { valueDomainRoster } from "#pantry/grammar/value-domain-roster.ts";
 import { admittedOf, includeRowsOf, symbolRowsOf } from "#pantry/test/indexes.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar, the generators' rows every declaration is compared with.
@@ -380,11 +380,6 @@ const handlesOf = (name: string): readonly string[] =>
   Option.getOrThrow(Arr.findFirst(rosters, (held) => held.name === name)).handles;
 
 /**
- * How long each exhaustive search of every relation or family may run: a hang guard.
- */
-const searchTimeout = 120_000;
-
-/**
  * The empty set of row texts: a group no row is in.
  */
 const noRows: ReadonlySet<string> = new Set();
@@ -559,32 +554,28 @@ describe("the installed relations", () => {
     searchTimeout,
   );
 
-  it(
-    "give the host the generator's attribute rows, each (governor, name) once",
-    () => {
-      const fields = ["domain", "governor", "name", "position", "use"] as const;
-      const spelled = (rows: readonly object[]) =>
-        rowsOf(rows).map((row) =>
-          Object.fromEntries(
-            fields.flatMap((field) => {
-              const value = row[field];
+  it("give the host the generator's attribute rows, each (governor, name) once", () => {
+    const fields = ["domain", "governor", "name", "position", "use"] as const;
+    const spelled = (rows: readonly object[]) =>
+      rowsOf(rows).map((row) =>
+        Object.fromEntries(
+          fields.flatMap((field) => {
+            const value = row[field];
 
-              return value === undefined ? [] : [[field, value] as const];
-            }),
-          ),
-        );
-
-      assert.deepStrictEqual(
-        keyedSet("attributeRows", ["governor", "name"], spelled(install.attributeRows)),
-        keyedSet(
-          "the attribute generator",
-          ["governor", "name"],
-          spelled([...ownAttributes.values()].flat()),
+            return value === undefined ? [] : [[field, value] as const];
+          }),
         ),
       );
-    },
-    searchTimeout,
-  );
+
+    assert.deepStrictEqual(
+      keyedSet("attributeRows", ["governor", "name"], spelled(install.attributeRows)),
+      keyedSet(
+        "the attribute generator",
+        ["governor", "name"],
+        spelled([...ownAttributes.values()].flat()),
+      ),
+    );
+  });
 
   it("state Admission, ChildGrammar once, as each family's admission map, each distinct map once and held by a family, and read each (parent, child) at its position through its family's map", () => {
     // Oracle: rule 0, identical facts are one fact, over the content grammar's maps, which

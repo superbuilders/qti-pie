@@ -40,6 +40,7 @@ import { hostVerdictOf } from "#pantry/test/gen/genetic/host-laws.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { lawNameOf } from "#pantry/import/refusal.ts";
 import { nameOf as packageNameOf } from "#pantry/test/package-name.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * A `webcontent` resource of a case: its identifier, the file it lists, and whether it writes that
@@ -317,6 +318,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
+      searchTimeout,
     );
   },
 );

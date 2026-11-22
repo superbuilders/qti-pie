@@ -37,12 +37,7 @@ import type { Attribute, XmlDocument } from "@qti-pie/crust/tree.ts";
 import { writeXml } from "@qti-pie/crust/write.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { OracleLayer, xmllintC14n } from "#pantry/xml/oracle.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 300_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The layer the oracle runs in: the process spawner, the file system and paths.
@@ -364,6 +359,6 @@ describe("crust's reader on attribute defaults", () => {
           );
         }).pipe(Effect.scoped, Effect.provide(TestLayer)),
       ),
-    { timeout: testTimeoutMs },
+    searchTimeout,
   );
 });

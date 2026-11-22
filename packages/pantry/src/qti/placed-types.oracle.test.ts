@@ -56,11 +56,7 @@ import {
   sharedOf,
 } from "#pantry/test/placed-types.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-
-/**
- * The timeout, in milliseconds, that this file's test states: a hang guard.
- */
-const testTimeoutMs = 600_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -224,7 +220,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
   },
 );

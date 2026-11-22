@@ -20,6 +20,7 @@ import {
 } from "#pantry/grammar/closed.ts";
 import type { AnyField, AnyKeyField } from "#pantry/grammar/closed.ts";
 import { declaredRoster } from "#pantry/test/declared.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The search budget of every exploration here; each states its own coverage.
@@ -573,6 +574,7 @@ describe("closed relations against a naive tuple-set model", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 
@@ -691,6 +693,7 @@ describe("rosters and value fields", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -735,84 +738,88 @@ describe("rosters and value fields", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
-  it.effect("hold a column's distinct values in value order, for each primitive type", (ctx) =>
-    // Bound: up to 8 values of one of four types.
-    searched(
-      ctx,
-      explore(
-        {
-          ...budget,
-          coverage: required<
-            "empty" | "repeats" | "out of order" | "bigint" | "boolean" | "number" | "string"
-          >(["empty", "repeats", "out of order", "bigint", "boolean", "number", "string"], {
-            cases: 300,
-            sense: notesOnly,
-          }),
-          draw: drawn(columns),
-          oracle: {
-            kind: "second-implementation",
-            name: "a set of the column sorted by each type's own order: subtraction for numbers, Number() for booleans, code units for strings, bigints by sign of the difference",
+  it.effect(
+    "hold a column's distinct values in value order, for each primitive type",
+    (ctx) =>
+      // Bound: up to 8 values of one of four types.
+      searched(
+        ctx,
+        explore(
+          {
+            ...budget,
+            coverage: required<
+              "empty" | "repeats" | "out of order" | "bigint" | "boolean" | "number" | "string"
+            >(["empty", "repeats", "out of order", "bigint", "boolean", "number", "string"], {
+              cases: 300,
+              sense: notesOnly,
+            }),
+            draw: drawn(columns),
+            oracle: {
+              kind: "second-implementation",
+              name: "a set of the column sorted by each type's own order: subtraction for numbers, Number() for booleans, code units for strings, bigints by sign of the difference",
+            },
+            runs: 300,
+            suite: "grammar/closed/value-field",
           },
-          runs: 300,
-          suite: "grammar/closed/value-field",
-        },
-        (drawnColumn, c) =>
-          Effect.sync(() => {
-            const { column } = drawnColumn;
-            c.note(drawnColumn._tag);
+          (drawnColumn, c) =>
+            Effect.sync(() => {
+              const { column } = drawnColumn;
+              c.note(drawnColumn._tag);
 
-            if (column.length === 0) {
-              c.note("empty");
-            }
-
-            if (new Set<unknown>(column).size < column.length) {
-              c.note("repeats");
-            }
-
-            const [actual, expected] = ((): readonly [readonly unknown[], readonly unknown[]] => {
-              switch (drawnColumn._tag) {
-                case "bigint": {
-                  return [
-                    valueField("v", drawnColumn.column).values,
-                    [...new Set(drawnColumn.column)].toSorted((left, right) =>
-                      Number(left - right),
-                    ),
-                  ];
-                }
-                case "boolean": {
-                  return [
-                    valueField("v", drawnColumn.column).values,
-                    [...new Set(drawnColumn.column)].toSorted(
-                      (left, right) => Number(left) - Number(right),
-                    ),
-                  ];
-                }
-                case "number": {
-                  return [
-                    valueField("v", drawnColumn.column).values,
-                    [...new Set(drawnColumn.column)].toSorted((left, right) => left - right),
-                  ];
-                }
-                case "string": {
-                  return [
-                    valueField("v", drawnColumn.column).values,
-                    [...new Set(drawnColumn.column)].toSorted(byCodeUnits),
-                  ];
-                }
-                default: {
-                  return drawnColumn satisfies never;
-                }
+              if (column.length === 0) {
+                c.note("empty");
               }
-            })();
-            if (expected.some((value, at) => value !== [...new Set<unknown>(column)][at])) {
-              c.note("out of order");
-            }
 
-            assert.deepStrictEqual(actual, expected);
-          }),
+              if (new Set<unknown>(column).size < column.length) {
+                c.note("repeats");
+              }
+
+              const [actual, expected] = ((): readonly [readonly unknown[], readonly unknown[]] => {
+                switch (drawnColumn._tag) {
+                  case "bigint": {
+                    return [
+                      valueField("v", drawnColumn.column).values,
+                      [...new Set(drawnColumn.column)].toSorted((left, right) =>
+                        Number(left - right),
+                      ),
+                    ];
+                  }
+                  case "boolean": {
+                    return [
+                      valueField("v", drawnColumn.column).values,
+                      [...new Set(drawnColumn.column)].toSorted(
+                        (left, right) => Number(left) - Number(right),
+                      ),
+                    ];
+                  }
+                  case "number": {
+                    return [
+                      valueField("v", drawnColumn.column).values,
+                      [...new Set(drawnColumn.column)].toSorted((left, right) => left - right),
+                    ];
+                  }
+                  case "string": {
+                    return [
+                      valueField("v", drawnColumn.column).values,
+                      [...new Set(drawnColumn.column)].toSorted(byCodeUnits),
+                    ];
+                  }
+                  default: {
+                    return drawnColumn satisfies never;
+                  }
+                }
+              })();
+              if (expected.some((value, at) => value !== [...new Set<unknown>(column)][at])) {
+                c.note("out of order");
+              }
+
+              assert.deepStrictEqual(actual, expected);
+            }),
+        ),
       ),
-    ),
+    searchTimeout,
   );
 });

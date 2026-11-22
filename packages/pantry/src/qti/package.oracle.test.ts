@@ -38,13 +38,7 @@ import { qtiRelations } from "#pantry/qti/base.ts";
 import { composed } from "#pantry/grammar/compose.ts";
 import { materialize, materializeSpec, materializeZip, zipMembers } from "#pantry/test/fixtures.ts";
 import { judge as judgeByOracle, lawNames, lawsOf } from "#pantry/test/oracle.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 120_000;
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The file system and processes the fixtures' materializer and `readEntries` need.
@@ -393,7 +387,7 @@ describe("qti/package.ts", () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -455,6 +449,7 @@ describe("qti/package.ts", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it("types the entries as the inserts of a package, its entries and its media", () => {

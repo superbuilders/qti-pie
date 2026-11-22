@@ -28,6 +28,7 @@ import { readProgram } from "#pantry/import/program.ts";
 import { asi, breachesOf, judged, manifestOf, shown } from "#pantry/test/probe.ts";
 import { previewRowsOf } from "#pantry/test/host-judge.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The holders of a file of the box.
@@ -243,6 +244,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("a companion material's
           );
         }).pipe(Effect.scoped),
       ),
-    300_000,
+    searchTimeout,
   );
 });

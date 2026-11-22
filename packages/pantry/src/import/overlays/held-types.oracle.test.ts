@@ -41,11 +41,7 @@ import type { Signature } from "#pantry/test/gen/genetic/judge.ts";
 import { known } from "#pantry/test/gen/genetic/known.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-
-/**
- * The timeout, in milliseconds, this file's test states: a hang guard.
- */
-const testTimeoutMs = 300_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the installed grammar.
@@ -260,7 +256,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
   },
 );

@@ -31,7 +31,7 @@ import type {
   XdmDocument,
 } from "#pantry/model/xdm.ts";
 import { comparedPath, oracleValueOf, resolveAttribute } from "#pantry/test/resolution.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * An element's attributes, as (name, lexical) pairs in order.
@@ -281,41 +281,44 @@ const piecesAlphabet = [" ", "\t", "\n", "a", "b"] as const;
 const piecesTexts = array(element(piecesAlphabet), { max: 5, min: 0 });
 
 describe("import/overlays/tests.ts, pieces", () => {
-  it.effect("splits a lexical form into whitespace, its collapsed value and whitespace", (ctx) =>
-    // Oracle: a universal one, the round trip `lead ‖ value ‖ trail = lexical`, with XML Schema
-    // Part 2 §4.3.6's collapse as the specification of the value's ends.
-    // Bound: every text of at most 5 characters over space, tab, line feed, a and b, 3,906.
-    searched(
-      ctx,
-      exhaust(
-        {
-          box: "every text of at most 5 characters over space, tab, line feed, a and b",
-          caseHang: Duration.seconds(10),
-          concurrency: searchWidth,
-          coverage: requiredInSpace<"empty" | "padded" | "bare">(["empty", "padded", "bare"]),
-          generator: piecesTexts,
-          literal: (characters) => JSON.stringify(characters.join("")),
-          oracle: { kind: "universal", name: "the split's round trip, with collapse's ends" },
-          suite: "import/overlays-tests-pieces",
-        },
-        (characters: readonly string[], c) =>
-          Effect.sync(() => {
-            const lexical = characters.join("");
-            const { lead, trail, value } = piecesOf(lexical);
-            if (value === "") {
-              c.note("empty");
-            } else {
-              c.note(lexical === value ? "bare" : "padded");
-            }
+  it.effect(
+    "splits a lexical form into whitespace, its collapsed value and whitespace",
+    (ctx) =>
+      // Oracle: a universal one, the round trip `lead ‖ value ‖ trail = lexical`, with XML Schema
+      // Part 2 §4.3.6's collapse as the specification of the value's ends.
+      // Bound: every text of at most 5 characters over space, tab, line feed, a and b, 3,906.
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every text of at most 5 characters over space, tab, line feed, a and b",
+            caseHang: Duration.seconds(10),
+            concurrency: searchWidth,
+            coverage: requiredInSpace<"empty" | "padded" | "bare">(["empty", "padded", "bare"]),
+            generator: piecesTexts,
+            literal: (characters) => JSON.stringify(characters.join("")),
+            oracle: { kind: "universal", name: "the split's round trip, with collapse's ends" },
+            suite: "import/overlays-tests-pieces",
+          },
+          (characters: readonly string[], c) =>
+            Effect.sync(() => {
+              const lexical = characters.join("");
+              const { lead, trail, value } = piecesOf(lexical);
+              if (value === "") {
+                c.note("empty");
+              } else {
+                c.note(lexical === value ? "bare" : "padded");
+              }
 
-            assert.strictEqual(`${lead}${value}${trail}`, lexical);
-            assert.match(lead, /^[\t\n\r ]*$/u);
-            assert.match(trail, /^[\t\n\r ]*$/u);
-            assert.isTrue(value === "" || /^\S(?:.*\S)?$/su.test(value), JSON.stringify(value));
-            assert.strictEqual(value === "", /^[\t\n\r ]*$/u.test(lexical));
-          }),
+              assert.strictEqual(`${lead}${value}${trail}`, lexical);
+              assert.match(lead, /^[\t\n\r ]*$/u);
+              assert.match(trail, /^[\t\n\r ]*$/u);
+              assert.isTrue(value === "" || /^\S(?:.*\S)?$/su.test(value), JSON.stringify(value));
+              assert.strictEqual(value === "", /^[\t\n\r ]*$/u.test(lexical));
+            }),
+        ),
       ),
-    ),
+    searchTimeout,
   );
 });
 
@@ -504,6 +507,7 @@ describe("import/overlays/tests.ts, names", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it.effect(
@@ -664,5 +668,6 @@ describe("import/overlays/tests.ts, hrefs", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });

@@ -41,6 +41,7 @@ import { filesOf } from "#pantry/test/oracle-complete/mutation.ts";
 import { judge, lawsOf } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -230,6 +231,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("the manifest", (it) =>
           );
         }).pipe(Effect.scoped),
       ),
-    600_000,
+    searchTimeout,
   );
 });

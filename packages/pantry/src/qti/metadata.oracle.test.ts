@@ -35,7 +35,7 @@ import {
 import type { TermSketch, TypeSketch } from "#pantry/test/gen/lom-resource-type.ts";
 import { documentBreaches, judge, typedTextHolds } from "#pantry/test/oracle.ts";
 import { statisticKinds } from "#pantry/vocab/terms/metadata.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 
 /**
@@ -149,7 +149,7 @@ const dateCases: Gen<DateCase> = (source) => ({
  */
 type DateSituation = "valid" | "leap day" | "not a day" | "not the form";
 
-describe("a statistic's lastUpdated, the calendar AL1 judges", { timeout: testTimeoutMs }, () => {
+describe("a statistic's lastUpdated, the calendar AL1 judges", { timeout: searchTimeout }, () => {
   it.effect(
     "admits exactly DateDType's values: a day is lexicalForm(date) between whitespace",
     (ctx) =>
@@ -283,7 +283,7 @@ const usageTextSituation = (unjudged: boolean, admitted: boolean): UsageTextSitu
   return admitted ? "admitted" : "refused";
 };
 
-describe("qti/metadata.ts, the usage typed value", { timeout: testTimeoutMs }, () => {
+describe("qti/metadata.ts, the usage typed value", { timeout: searchTimeout }, () => {
   it.effect(
     "judges a usage value's text as the law oracle reads a typed value written as element content",
     (ctx) =>
@@ -484,7 +484,7 @@ const resourceTypeSituation = (type: TypeSketch, refused: boolean): ResourceType
     : "accepted, an allowed value";
 };
 
-describe("qti/metadata.ts, the learning resource type", { timeout: testTimeoutMs }, () => {
+describe("qti/metadata.ts, the learning resource type", { timeout: searchTimeout }, () => {
   it.effect(
     "refuses exactly the types of the LOM vocabulary whose value is exam or self assessment, as the specification, the database's laws over the rows and the law oracle each read them",
     (ctx) =>

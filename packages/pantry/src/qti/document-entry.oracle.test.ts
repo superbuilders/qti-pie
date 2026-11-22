@@ -40,12 +40,7 @@ import { genomeOf } from "#pantry/test/gen/genetic/genome.ts";
 import { judgeOne, shownDisagreement } from "#pantry/test/gen/genetic/judge.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -176,7 +171,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
           }).pipe(Effect.scoped),
         ),
-      testTimeoutMs,
+      searchTimeout,
     );
   },
 );

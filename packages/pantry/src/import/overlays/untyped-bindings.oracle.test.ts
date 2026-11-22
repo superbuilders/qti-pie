@@ -16,7 +16,7 @@
  *
  * Bound: an item whose response declaration `V` writes each of {@link cardinalities} and each of
  * {@link baseTypes}, bound at each of {@link sites}: 8 × 4 × 6 = 192 packages, exhausted, one site's
- * 32 to a case, so the project's hang guard bounds one site's search and never the box's whole.
+ * 32 to a case.
  */
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
@@ -33,6 +33,7 @@ import type { Signature } from "#pantry/test/gen/genetic/judge.ts";
 import { known } from "#pantry/test/gen/genetic/known.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The oracle's law tables over the composed grammar.
@@ -213,60 +214,63 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     for (const site of sites) {
       const atSite = cases.filter((held) => held.site === site);
 
-      it.effect(`bound by ${site.name}`, (ctx) =>
-        searched(
-          ctx,
-          Effect.gen(function* untypedBindingRuns() {
-            const directory = yield* scratchDirectory("untyped-bindings-");
-            const bench = { directory, grammar, laws };
+      it.effect(
+        `bound by ${site.name}`,
+        (ctx) =>
+          searched(
+            ctx,
+            Effect.gen(function* untypedBindingRuns() {
+              const directory = yield* scratchDirectory("untyped-bindings-");
+              const bench = { directory, grammar, laws };
 
-            return yield* exhaust(
-              {
-                box: `an item's response declaration, its cardinality unwritten, spelling no code or each code, its base type unwritten, bogus, identifier or string, bound by ${site.name}`,
-                caseHang: Duration.minutes(5),
-                concurrency: 1,
-                coverage: requiredInSpace<Noted>([
-                  "cardinality a code",
-                  "cardinality no code",
-                  "cardinality unwritten",
-                  `site ${site.name}`,
-                ]),
-                generator: int(0, atSite.length - 1),
-                literal: (at) => {
-                  const held = atSite[at];
+              return yield* exhaust(
+                {
+                  box: `an item's response declaration, its cardinality unwritten, spelling no code or each code, its base type unwritten, bogus, identifier or string, bound by ${site.name}`,
+                  caseHang: Duration.minutes(5),
+                  concurrency: 1,
+                  coverage: requiredInSpace<Noted>([
+                    "cardinality a code",
+                    "cardinality no code",
+                    "cardinality unwritten",
+                    `site ${site.name}`,
+                  ]),
+                  generator: int(0, atSite.length - 1),
+                  literal: (at) => {
+                    const held = atSite[at];
 
-                  return held === undefined ? String(at) : nameOf(held);
+                    return held === undefined ? String(at) : nameOf(held);
+                  },
+                  oracle: {
+                    kind: "second-implementation",
+                    name: "the law oracle against the laws the import's rows break on the host",
+                  },
+                  suite: suiteOf(site),
                 },
-                oracle: {
-                  kind: "second-implementation",
-                  name: "the law oracle against the laws the import's rows break on the host",
-                },
-                suite: suiteOf(site),
-              },
-              (at: number, c) =>
-                Effect.gen(function* untypedBindingCase() {
-                  const held = atSite[at];
-                  assert.isDefined(held, `no case ${String(at)}`);
-                  if (held === undefined) {
-                    return;
-                  }
+                (at: number, c) =>
+                  Effect.gen(function* untypedBindingCase() {
+                    const held = atSite[at];
+                    assert.isDefined(held, `no case ${String(at)}`);
+                    if (held === undefined) {
+                      return;
+                    }
 
-                  c.note(`cardinality ${held.cardinality.typing}`);
-                  c.note(`site ${held.site.name}`);
+                    c.note(`cardinality ${held.cardinality.typing}`);
+                    c.note(`site ${held.site.name}`);
 
-                  const judged = yield* judgeOne(yield* genomeOf(packageOf(held)), bench, at);
+                    const judged = yield* judgeOne(yield* genomeOf(packageOf(held)), bench, at);
 
-                  assert.deepStrictEqual(
-                    judged.disagreements
-                      .filter((disagreement) => !recordsClassOf(recorded, disagreement))
-                      .map(shownDisagreement),
-                    [],
-                    `${nameOf(held)}: the oracle ${judged.summary.oracle}; the import ${judged.summary.import}`,
-                  );
-                }),
-            );
-          }).pipe(Effect.scoped),
-        ),
+                    assert.deepStrictEqual(
+                      judged.disagreements
+                        .filter((disagreement) => !recordsClassOf(recorded, disagreement))
+                        .map(shownDisagreement),
+                      [],
+                      `${nameOf(held)}: the oracle ${judged.summary.oracle}; the import ${judged.summary.import}`,
+                    );
+                  }),
+              );
+            }).pipe(Effect.scoped),
+          ),
+        searchTimeout,
       );
     }
   },

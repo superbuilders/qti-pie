@@ -69,6 +69,7 @@ import {
 import type { Fault } from "#pantry/test/gen/references.ts";
 import { admittedOf } from "#pantry/test/indexes.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Index the reference relations this file reads by key, none of which a serving path does.
@@ -699,6 +700,7 @@ describe("references", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 });
 

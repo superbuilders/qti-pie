@@ -30,6 +30,7 @@ import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { nodePlacesOf, placeKey } from "#pantry/test/places.ts";
 import type { PlacedNode } from "#pantry/test/places.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The forms of the box, each with the value §3.3.20 gives it, none for a form outside
@@ -258,6 +259,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("a count's value", (it)
             ),
         ),
       ),
-    600_000,
+    searchTimeout,
   );
 });

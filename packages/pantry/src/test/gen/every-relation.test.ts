@@ -21,12 +21,7 @@ import {
 } from "#pantry/test/gen/every-relation.ts";
 import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 300_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The situations the box reaches: a count past its least.
@@ -103,6 +98,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("test/gen/every-relatio
             }).pipe(Effect.scoped),
         ),
       ),
-    { timeout: testTimeoutMs },
+    searchTimeout,
   );
 });

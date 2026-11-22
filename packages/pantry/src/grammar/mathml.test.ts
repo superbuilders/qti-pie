@@ -70,7 +70,7 @@ import {
 } from "#pantry/test/spec-cache/pins.ts";
 import { readPinned } from "#pantry/test/spec-cache/read.ts";
 import { xmllintValidate } from "#pantry/xml/oracle.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -415,7 +415,7 @@ describe("spec reading 2: MathML's notation types (MathML 3 §2.1.5.1)", () => {
           ),
         );
       }),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(

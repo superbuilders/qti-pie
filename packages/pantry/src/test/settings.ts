@@ -51,3 +51,13 @@ export const searchWidth = availableParallelism();
  * worker running such a helper holds its own.
  */
 export const processWidth = availableParallelism();
+
+/**
+ * Every search's Vitest timeout: none, which Vitest states as zero, so the testing library's bridge
+ * gives the search no deadline (`noDeadline` of `@bjornpagen/testing/explore`) and it judges its
+ * whole fixed set of cases, the run seed's, whatever the machine's load. The library's rule
+ * (`@bjornpagen/testing`'s `vitest/config.ts`): "A long search that keeps making progress must
+ * never fail on wall time; each case's hang guard is what catches a case that stops." Each search's
+ * `caseHang` is that guard; a test that runs no search keeps its project's hang guard.
+ */
+export const searchTimeout = 0;

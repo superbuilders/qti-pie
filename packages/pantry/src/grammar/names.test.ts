@@ -23,7 +23,7 @@ import {
 } from "#pantry/vocab/namespaces.ts";
 import { foreignRoots, schemaSets } from "#pantry/vocab/open.ts";
 import { admittedOf } from "#pantry/test/indexes.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar of production. It is composed once, when the module loads.
@@ -36,11 +36,6 @@ const grammar = await Effect.runPromise(Effect.fromResult(composed()));
  * hang.
  */
 const caseHang = Duration.minutes(1);
-
-/**
- * How long each search may run: a hang guard.
- */
-const searchTimeout = 120_000;
 
 /**
  * Whether a pattern of grizzle's grammar matches a text, as `Text.matches` reads it: some match

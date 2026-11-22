@@ -27,7 +27,6 @@ import type {
 } from "#pantry/model/xdm.ts";
 import {
   caseHang,
-  searchTimeout,
   corrupt,
   corruption,
   familiesOf,
@@ -46,7 +45,7 @@ import type {
   XdmFeature,
 } from "#pantry/test/gen/xdm.ts";
 import { rowSetOf } from "#pantry/test/row-sets.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar every property draws its trees over.

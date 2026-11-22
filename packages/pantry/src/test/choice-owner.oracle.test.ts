@@ -49,12 +49,7 @@ import { laws } from "#pantry/test/installed-laws.ts";
 import { filesOf } from "#pantry/test/oracle-complete/mutation.ts";
 import { judge, ruleOf, shownBreach } from "#pantry/test/oracle.ts";
 import { byPlace, nodePlacesOf, placeKey } from "#pantry/test/places.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * Hold one case to the oracle and its rows to the laws.
@@ -183,7 +178,7 @@ describe("choices and their interactions (lane NIL's audit, B5 and B6)", () => {
           },
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -213,6 +208,6 @@ describe("choices and their interactions (lane NIL's audit, B5 and B6)", () => {
           holds,
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 });

@@ -44,7 +44,7 @@ import { ElementType, EndCharacter, Node, nodeLaws } from "#pantry/qti/node.ts";
 import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
-import { caseHang, featuresOf, searchTimeout, xdmDocument } from "#pantry/test/gen/xdm.ts";
+import { caseHang, featuresOf, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
 import { choiceNode, judgedLaws, previewRowsOf } from "#pantry/test/host-judge.ts";
 import type { HeldRow } from "#pantry/test/host-judge.ts";
@@ -54,7 +54,7 @@ import { documentBreaches, lawNames, lawsOf, oracleRules, ruleOf } from "#pantry
 import type { LawName } from "#pantry/test/oracle.ts";
 import { asi, edit, item, itemResource, manifestOf, packageOf } from "#pantry/test/probe.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -571,7 +571,7 @@ describe("N5, content order", { timeout: searchTimeout }, () => {
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(

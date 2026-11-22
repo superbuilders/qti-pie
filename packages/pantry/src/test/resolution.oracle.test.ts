@@ -28,13 +28,7 @@ import type { WhiteSpaceClass } from "#pantry/grammar/domains.ts";
 import type { HrefResolution } from "#pantry/import/overlays/package.ts";
 import { oracleValueOf, resolve } from "#pantry/test/resolution.ts";
 import type { OracleResolution } from "#pantry/test/resolution.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 300_000;
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * One href as the importer resolves it: its document's path, the `xml:base` values in scope,
@@ -549,7 +543,7 @@ describe("import/overlays/package.ts resolveIn against test/resolution.ts", () =
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it.effect(
@@ -589,7 +583,7 @@ describe("import/overlays/package.ts resolveIn against test/resolution.ts", () =
             }),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 
   it("resolves the readings' own examples as reading 102 states them", () => {

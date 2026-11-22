@@ -8,6 +8,7 @@ import { flags, rowOf, step } from "#pantry/grammar/ancestry.ts";
 import { admits, ancestryIndexesOf } from "#pantry/test/indexes.ts";
 import type { Ancestry, Flag } from "#pantry/grammar/ancestry.ts";
 import { composed } from "#pantry/grammar/compose.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The composed grammar of production, failing the test that reads it when a generator refuses.
@@ -164,11 +165,6 @@ const flagged = [
   "m:math",
 ] as const;
 
-/**
- * How long the exhaustive path search may take: a hang guard.
- */
-const pathsTimeout = 60_000;
-
 describe("the ancestry grammar against the reference model", () => {
   it.effect(
     "admits exactly the paths the readings admit, every path of at most 3 flag-relevant kinds below the document node",
@@ -217,7 +213,7 @@ describe("the ancestry grammar against the reference model", () => {
             }),
         ),
       ),
-    pathsTimeout,
+    searchTimeout,
   );
 
   it.effect("states every kind's rows as the reference does, over the whole roster", () =>

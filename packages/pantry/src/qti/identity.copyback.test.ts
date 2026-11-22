@@ -41,7 +41,7 @@ import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { containmentsOf } from "#pantry/test/judged-laws.ts";
 import { manifestAttribute } from "#pantry/test/host-judge.ts";
 import type { Containment } from "#pantry/test/host-judge.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * One attribute row of the box, as both laws read it: its element's kind, governing type and
@@ -196,11 +196,6 @@ const situationsOf = (copyBack: CopyBack, row: AttributeCase): readonly Situatio
   return reached.flatMap(([situation, holds]) => (holds ? [situation] : []));
 };
 
-/**
- * The timeout, in milliseconds, of each copy-back's test here: a hang guard.
- */
-const testTimeoutMs = 120_000;
-
 describe("qti/identity.ts, the copy-backs restated over the ID-typed attributes", () => {
   for (const copyBack of copyBacks) {
     it.effect(
@@ -255,7 +250,7 @@ describe("qti/identity.ts, the copy-backs restated over the ID-typed attributes"
             ),
         });
       },
-      testTimeoutMs,
+      searchTimeout,
     );
   }
 });

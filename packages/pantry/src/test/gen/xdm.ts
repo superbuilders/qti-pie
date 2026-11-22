@@ -92,11 +92,6 @@ import type { OpenName } from "#pantry/vocab/open.ts";
 export const caseHang = Duration.seconds(30);
 
 /**
- * How long a test that searches generated trees may run: a hang guard.
- */
-export const searchTimeout = 300_000;
-
-/**
  * The kinds of node and the situations a case's swarm weighs: elements of a kind, foreign elements
  * under a wildcard, each kind of character data, closed attributes, open attribute names, two names
  * of one open class on one element (which share the class's position, so AL2's distinctness holds

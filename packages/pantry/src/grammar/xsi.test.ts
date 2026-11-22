@@ -26,7 +26,7 @@ import {
 import type { Content, Probe, ProbeDocument, XsdSet } from "#pantry/test/gen/grammar.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import { xsdCachePresent } from "#pantry/test/xsd-catalog.ts";
-import { searchWidth } from "#pantry/test/settings.ts";
+import { searchWidth, searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -142,6 +142,7 @@ describe("XsiType", () => {
             }),
         ),
       ),
+    searchTimeout,
   );
 
   it("names a derived type only where a schema set of its kind's documents holds it", () => {
@@ -518,6 +519,6 @@ describe("the TypeName spelling", () => {
           );
         }
       }),
-    testTimeoutMs,
+    searchTimeout,
   );
 });

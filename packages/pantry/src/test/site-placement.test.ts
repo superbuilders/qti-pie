@@ -26,12 +26,7 @@ import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
 import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
-
-/**
- * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
- * describe: a hang guard.
- */
-const testTimeoutMs = 600_000;
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * The places a site stands in, each with the parent kind its site has there: an include in an
@@ -210,6 +205,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("a site at every placem
             ),
         ),
       ),
-    testTimeoutMs,
+    searchTimeout,
   );
 });

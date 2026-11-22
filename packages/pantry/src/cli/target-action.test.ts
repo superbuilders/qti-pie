@@ -18,6 +18,7 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Duration, Effect, FileSystem, Formatter } from "effect";
 import { requireReplaceable } from "#pantry/cli/args.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
+import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
  * What a target may be: nothing, an empty directory, a directory with an entry, a file, a symlink
@@ -140,5 +141,6 @@ describe("a written target's action", () => {
           }),
         ),
       ),
+    searchTimeout,
   );
 });
