@@ -262,7 +262,9 @@
    * viewBox, so each slot's foreignObject (`plate-math-slot`), placed by percentages of the
    * formula's box, holds its interaction in the page's own pixels. The interaction fills its slot,
    * which MathJax sized and laid the formula out around, at the item's line height (the box's is
-   * nought), and what it shows past the slot, a keypad or a hint, shows over the text around.
+   * nought): a gap's target, its empty slot and the chip placed in it as well as a Text Entry's
+   * input, none held to the size it takes in a sentence, which would spill over the glyphs around.
+   * What it shows past the slot, a keypad or a hint, shows over the text around.
    */
   [data-slot="plate-math-slots"] {
     display: block;
@@ -285,7 +287,9 @@
     ) {
     display: flex;
     box-sizing: border-box;
+    min-inline-size: 0;
     inline-size: 100%;
+    min-block-size: 0;
     block-size: 100%;
     margin: 0;
   }
@@ -295,7 +299,9 @@
       [data-slot="field"],
       [data-slot="input"],
       [data-slot="select-trigger"],
-      [data-slot="plate-placement-target"]
+      [data-slot="plate-placement-target"],
+      [data-slot="plate-placement-slot"],
+      [data-slot="plate-placement-chip"]
     ) {
     box-sizing: border-box;
     flex: 1 1 auto;
