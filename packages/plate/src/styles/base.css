@@ -509,6 +509,28 @@
   }
 
   /*
+   * The trigger's face: what it shows, and every choice and its prompt hidden in the same grid
+   * cell, so the trigger is as wide as its widest choice from the start, as a native select is, and
+   * no pick changes its width or moves the sentence around it. The hidden copies give their width
+   * and no height, so the trigger is as tall as what it shows, and are never seen, pressed or read.
+   */
+  [data-slot="plate-inline-choice-face"] {
+    display: inline-grid;
+    align-items: center;
+    justify-items: start;
+  }
+
+  [data-slot="plate-inline-choice-face"] > * {
+    grid-area: 1 / 1;
+  }
+
+  [data-slot="plate-inline-choice-sizer"] {
+    block-size: 0;
+    overflow: clip;
+    visibility: hidden;
+  }
+
+  /*
    * The list, in the top layer under its trigger: as wide as the trigger or wider, no taller than
    * the room UI SDK measures, each option at least 56 px tall. Its `display` is the top layer's, so
    * a closed list stays closed.

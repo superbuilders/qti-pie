@@ -1400,8 +1400,8 @@
   /*
    * Input widths (1.2.2.1, 1.2.7.1): `qti-input-width-N` makes a Text Entry's input, or an Inline
    * Choice's trigger, about N characters wide, N from the class's name: the input that wide, over
-   * the `size` its expected length gives it; the trigger at least that wide, since it grows to show
-   * the choice picked. Neither is narrower than a 48 px target, nor wider than its line.
+   * the `size` its expected length gives it; the trigger at least that wide, since it is as wide as
+   * its widest choice. Neither is narrower than a 48 px target, nor wider than its line.
    */
   :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"]).qti-input-width-1 {
     --plate-input-width: 1;

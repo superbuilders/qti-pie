@@ -81,6 +81,10 @@ export interface InlineChoiceProps extends Pick<Authored<Named>, "root"> {
  * - UI SDK's `select-trigger`, a combobox button showing the `prompt` label, or the picked choice's
  *   content in UI SDK's `select-value`, so a child reads their pick in the sentence, as QTI asks.
  *   Without the select label, the server's name names it;
+ * - `plate-inline-choice-face`, in the trigger, holding the `select-value` and, hidden from the eye
+ *   and from assistive technology, one `plate-inline-choice-sizer` for the `prompt` label and one
+ *   per choice, all in one grid cell, so the trigger is as wide as its widest choice from the
+ *   start, as AlphaTest's native select was, and a pick never changes its width;
  * - UI SDK's `select-content`, the listbox, holding one `select-item` option per choice;
  * - UI SDK's `select-form-input`, the native input UI SDK keeps for form validation. It has no name,
  *   so it posts nothing, and UI SDK hides it with an inline `style`, which the page's content
@@ -137,13 +141,27 @@ export const InlineChoice = (props: InlineChoiceProps) => {
           {...(trigger.kind === "named" ? trigger.naming : {})}
           aria-required={required ? "true" : undefined}
         >
-          <SelectValue>
-            {(state) =>
-              state.placeholder
-                ? labels.prompt
-                : choices.find((choice) => choice.identifier === state.value)?.content
-            }
-          </SelectValue>
+          <span data-slot="plate-inline-choice-face">
+            <SelectValue>
+              {(state) =>
+                state.placeholder
+                  ? labels.prompt
+                  : choices.find((choice) => choice.identifier === state.value)?.content
+              }
+            </SelectValue>
+            <span aria-hidden="true" data-slot="plate-inline-choice-sizer">
+              {labels.prompt}
+            </span>
+            {choices.map((choice) => (
+              <span
+                key={choice.identifier}
+                aria-hidden="true"
+                data-slot="plate-inline-choice-sizer"
+              >
+                {choice.content}
+              </span>
+            ))}
+          </span>
         </SelectTrigger>
         <SelectContent render={<span />}>
           {choices.map((choice) => (
