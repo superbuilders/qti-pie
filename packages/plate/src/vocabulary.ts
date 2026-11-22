@@ -456,6 +456,7 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-disabled",
   "data-display",
   "data-dragging",
+  "data-eliminated",
   "data-empty",
   "data-failed",
   "data-focus-visible",

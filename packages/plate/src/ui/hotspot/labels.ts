@@ -16,13 +16,17 @@ import type { LabelKeys, Labels } from "#plate/ui/item/interactions/labels.ts";
 export const hotspotKeys = {
   ...graphicKeys,
   /**
+   * What an area the host has eliminated, a test's cross-out, is described by.
+   */
+  eliminated: "picksEliminated",
+  /**
    * Said and shown when a pick past `max-choices` is refused, with `{n}` for `max-choices`, which
    * the island fills. The server gives the author's `data-max-selections-message` here when the
    * interaction has one (QTI 3.0 information model 5.68.4), so a refusal reads the same on the
    * page as in the server's validation.
    */
   limit: "hotspotLimit",
-} as const satisfies LabelKeys<"limit" | "picture" | "scroll">;
+} as const satisfies LabelKeys<"eliminated" | "limit" | "picture" | "scroll">;
 
 /**
  * Every text a Hotspot writes for the child, as the server filled it.

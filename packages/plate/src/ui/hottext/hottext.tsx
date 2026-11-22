@@ -92,6 +92,7 @@ export const Hottext = (props: HottextProps) => {
   return (
     <PicksGroup
       before={<PromptPart prompt={prompt} />}
+      eliminated={labels.eliminated}
       limit={labels.limit}
       naming={naming}
       picks={picks}

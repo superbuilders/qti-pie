@@ -566,6 +566,26 @@
   }
 
   /*
+   * An option the host has eliminated, a test's cross-out: its words struck through and faded, its
+   * control disabled, so the child sees it ruled out and can still read it.
+   */
+  :is(
+    [data-slot="plate-choice-option"],
+    [data-slot="plate-hotspot-option"],
+    [data-slot="plate-hottext-choice"]
+  )[data-eliminated] {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  :is([data-slot="plate-choice-option"], [data-slot="plate-hotspot-option"])[data-eliminated]
+    > :is([data-slot="plate-choice-content"], [data-slot="plate-hotspot-label"]),
+  [data-slot="plate-hottext-choice"][data-eliminated] {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+  }
+
+  /*
    * A picture option: an option whose content is a picture and then its label. The picture is the
    * answer the child picks, so it stands on top at a size its detail can be read at, 16 lines tall
    * at most and never wider than its column, with its label under it and the control under that.

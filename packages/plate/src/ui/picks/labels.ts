@@ -14,10 +14,14 @@ import type { LabelKeys } from "#plate/ui/item/interactions/labels.ts";
  */
 export const picksKeys = {
   /**
+   * What an option the host has eliminated, a test's cross-out, is described by.
+   */
+  eliminated: "picksEliminated",
+  /**
    * Said and shown when a pick past `max-choices` is refused, with `{n}` for `max-choices`, which
    * the island fills. The author's `data-max-selections-message` stands in its place where the
    * interaction writes one (QTI 3.0 information model 5.30.6, 5.66.4), so a refusal reads the same
    * on the page as in the server's validation.
    */
   limit: "choiceLimit",
-} as const satisfies LabelKeys<"limit">;
+} as const satisfies LabelKeys<"eliminated" | "limit">;

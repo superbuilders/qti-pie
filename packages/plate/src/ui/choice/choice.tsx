@@ -140,6 +140,7 @@ export const Choice = (props: ChoiceProps) => {
           )}
         </>
       }
+      eliminated={labels.eliminated}
       limit={labels.limit}
       naming={naming}
       picks={picks}

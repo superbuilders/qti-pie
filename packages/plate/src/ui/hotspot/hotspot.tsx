@@ -204,6 +204,7 @@ export const Hotspot = (props: HotspotProps) => {
           />
         </>
       }
+      eliminated={labels.eliminated}
       limit={labels.limit}
       naming={naming}
       picks={picks}

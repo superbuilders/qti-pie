@@ -22,6 +22,7 @@ import { flag } from "#plate/ui/attributes.ts";
 import type { DataRoot, Named } from "#plate/ui/attributes.ts";
 import { PickOutsidePicksGroup } from "#plate/ui/defects.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
+import { useEliminated } from "#plate/ui/picks/eliminated.tsx";
 import type { Picks } from "#plate/ui/picks/picks.ts";
 import { useResponse } from "#plate/ui/responses.tsx";
 
@@ -42,11 +43,17 @@ export type PicksRoot = DataRoot & { readonly "data-slot": PicksSlot };
  * What a {@link PicksGroup} gives the parts inside it.
  */
 interface PicksValue {
+  /**
+   * The options the host has eliminated (`#plate/ui/picks/eliminated.tsx`), and what each of
+   * their controls is described by.
+   */
+  readonly eliminated: { readonly described: string; readonly identifiers: ReadonlySet<string> };
   readonly picked: ReadonlySet<string>;
   readonly picks: Picks;
   /**
    * Pick an option, or take a picked one back where the child picks several, as a press on the
-   * option's own control does, through the same refusal.
+   * option's own control does, through the same refusal; nothing for an eliminated option, whose
+   * control is disabled.
    *
    * @param identifier The option's identifier.
    */
@@ -89,14 +96,16 @@ export const usePicks = (): PicksValue => {
  *
  * A pick past the limit is cancelled through UI SDK's change details, before the group or the
  * response changes, then announced assertively and shown; every option stays enabled, so the child
- * can always take one back. The live regions are prepared on mount when the group has a limit,
- * since some screen readers read only a region that was there before its text changed. A response
- * of several posts each picked identifier once, in the order the group gives them, which a bag
- * does not read.
+ * can always take one back. An option the host has eliminated (`Eliminated`) is disabled instead,
+ * and described by `eliminated`: neither a press nor the arrow keys pick it. The live regions are
+ * prepared on mount when the group has a limit, since some screen readers read only a region that
+ * was there before its text changed. A response of several posts each picked identifier once, in
+ * the order the group gives them, which a bag does not read.
  *
  * @param props The group.
  * @param props.before What stands in the root before the group: the prompt, and a Hotspot's stage.
  * @param props.children The options, each a {@link PickOption}, wherever they stand inside.
+ * @param props.eliminated What an eliminated option's control is described by.
  * @param props.limit The text shown and said when a pick past the limit is refused, `{n}` the
  *   limit: plate's catalog's, or the author's `data-max-selections-message`.
  * @param props.naming The attributes that name the group.
@@ -110,6 +119,7 @@ export const usePicks = (): PicksValue => {
 export const PicksGroup = ({
   before,
   children,
+  eliminated,
   limit,
   naming,
   picks,
@@ -118,6 +128,7 @@ export const PicksGroup = ({
 }: Readonly<{
   before: ReactNode;
   children: ReactNode;
+  eliminated: string;
   limit: string;
   naming: Named;
   picks: Picks;
@@ -125,6 +136,7 @@ export const PicksGroup = ({
   root: PicksRoot;
 }>) => {
   const [texts, set] = useResponse(response);
+  const struck = useEliminated(response);
   const [refusal, setRefusal] = useState<string>();
   const limited = picks.kind === "at-most";
 
@@ -157,9 +169,14 @@ export const PicksGroup = ({
   };
 
   const value: PicksValue = {
+    eliminated: { described: eliminated, identifiers: struck },
     picked: new Set(texts),
     picks,
     press: (identifier) => {
+      if (struck.has(identifier)) {
+        return;
+      }
+
       if (picks.kind === "one") {
         set([identifier]);
 
@@ -209,9 +226,10 @@ export const PicksGroup = ({
 
 /**
  * Render one option of a picks group, where it stands inside the group: a `label`, with its
- * `slot` and `data-selected` while it is picked, around UI SDK's `radio` or `checkbox` with its
- * indicator and the option's content, so a press anywhere on it presses the control and the
- * content names it. The whole option is the hit target.
+ * `slot`, `data-selected` while it is picked and `data-eliminated` while the host has eliminated
+ * it, around UI SDK's `radio` or `checkbox` with its indicator and the option's content, so a press
+ * anywhere on it presses the control and the content names it. The whole option is the hit target.
+ * An eliminated option's control is disabled and described as eliminated.
  *
  * @param props The option.
  * @param props.children The option's content, inside the `label`, so it holds no `label` of its
@@ -240,21 +258,29 @@ export const PickOption = ({
   onFocus?: FocusEventHandler<HTMLLabelElement>;
   slot: "plate-choice-option" | "plate-hotspot-option" | "plate-hottext-choice";
 }>) => {
-  const { picked, picks } = usePicks();
+  const { eliminated, picked, picks } = usePicks();
+  const struck = eliminated.identifiers.has(identifier);
+  const described = struck ? eliminated.described : undefined;
 
   return (
     <label
       data-slot={slot}
+      data-eliminated={flag(struck)}
       data-selected={flag(picked.has(identifier))}
       onBlur={onBlur}
       onFocus={onFocus}
     >
       {picks.kind === "one" ? (
-        <Radio aria-label={label} value={identifier}>
+        <Radio aria-description={described} aria-label={label} disabled={struck} value={identifier}>
           <RadioIndicator />
         </Radio>
       ) : (
-        <Checkbox aria-label={label} value={identifier}>
+        <Checkbox
+          aria-description={described}
+          aria-label={label}
+          disabled={struck}
+          value={identifier}
+        >
           <CheckboxIndicator />
         </Checkbox>
       )}

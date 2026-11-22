@@ -40,7 +40,8 @@
  *
  * A Choice whose host asks for it (`picksInstruction`) writes `picksInstructionOne` under its
  * prompt where the child picks one, `picksInstructionMany` where more, and `picksInstructionReview`
- * in a review, AlphaTest's player's words.
+ * in a review, AlphaTest's player's words. An option a host has eliminated, a test's cross-out, is
+ * described by `picksEliminated`.
  *
  * Match, Gap Match and Order refuse a response past their own limits with the `match…`,
  * `gapMatch…` and `order…` keys that name a choice, a gap or a pair by its identifier (`{choice}`,
@@ -107,6 +108,7 @@ export const coreMessages = {
   orderSwapped: "{chip} is number {target}. {other} is number {from}.",
   orderSwappedBack: "{chip} is number {target}. {other} went back.",
   patternMismatch: "Enter an answer in the form this question asks for.",
+  picksEliminated: "Crossed out",
   picksInstructionMany: "Select all that apply:",
   picksInstructionOne: "Select your answer:",
   picksInstructionReview: "Your Answer:",

@@ -1,5 +1,6 @@
 /**
- * Plate's client entry: what a host's client components use to hold an item's responses, to hear of
+ * Plate's client entry: what a host's client components use to hold an item's responses and the
+ * options a test's cross-out has eliminated, to hear of
  * a Portable Custom Interaction that fails and to remember a test's read-aloud across its items,
  * and the interactions' islands with their props and labels types, which the server entry renders.
  * Every module it re-exports is a client module, or holds types and pure data only.
@@ -37,6 +38,10 @@ export { Order } from "#plate/ui/order/order.tsx";
 export type { OrderProps } from "#plate/ui/order/order.tsx";
 
 export type { OrderLabels } from "#plate/ui/order/labels.ts";
+
+export { Eliminated } from "#plate/ui/picks/eliminated.tsx";
+
+export type { EliminatedOption } from "#plate/ui/picks/eliminated.tsx";
 
 export type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 
