@@ -17,13 +17,13 @@
  *   catalog, "the audio as an alternative to the written text provided in the default content"
  *   (implementation guide §5.2.8.3). While the candidate answers, it is presented as read-aloud's
  *   control (`ReadAloud` in `#plate/ui/read-aloud/read-aloud.tsx`) beside each part that references
- *   its catalog where a control can stand ({@link readAloudOf}): after an element of the body at a
- *   flow position, after an interaction's prompt, and beside a choice: a Choice's, a Hot Text's in
- *   its line, a Match's group, a Graphic Gap Match's hotspot in its row, and every other choice
- *   beside its chip in the bank, never an Inline Choice's. It is never listed: a recording is heard
- *   beside what it reads, and a list of recordings apart from their text, or of links to them,
- *   presents nothing a candidate can follow. A review and a solution present it nowhere, since
- *   their page ships no island but a Media's replay.
+ *   its catalog where a control can stand ({@link readAloudOf}): before an element of the body at a
+ *   flow position, at the top of what it reads, after an interaction's prompt, and beside a choice:
+ *   a Choice's, a Hot Text's in its line, a Match's group, a Graphic Gap Match's hotspot in its
+ *   row, and every other choice beside its chip in the bank, never an Inline Choice's. It is never
+ *   listed: a recording is heard beside what it reads, and a list of recordings apart from their
+ *   text, or of links to them, presents nothing a candidate can follow. A review and a solution
+ *   present it nowhere, since their page ships no island but a Media's replay.
  * - **The listing**: every other kept card, and the glossary cards of a catalog no element of the
  *   body references (one referenced only from an interaction's own content, where a disclosure
  *   would sit inside a control), are listed after the body in `plate-catalog`, each card a

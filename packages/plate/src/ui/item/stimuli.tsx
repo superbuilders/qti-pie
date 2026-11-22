@@ -12,7 +12,7 @@
  * referenced/included/nested content (like a shared stimulus or rubric blocks) that may also
  * include catalogs and could be on the same delivery presentation screen", implementation guide
  * §3.7.10.2), presented as an item's are: a glossary card beside its term, read-aloud's control
- * after each block naming a spoken card that gives audio while the candidate answers, and every
+ * before each block naming a spoken card that gives audio while the candidate answers, and every
  * other kept card listed after the stimulus's body. Where it stands. "In this example it is left to
  * the delivery platform to determine the stimulus rendering location within the qti-item-body"
  * (guide §3.7.7): plate's is the stimulus pane, `plate-stimuli`, before the item's own content,

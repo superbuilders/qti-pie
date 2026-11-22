@@ -13,9 +13,10 @@
  *   `computer-read-aloud`, each part that names a catalog by `data-catalog-idref` has its one
  *   control, and nothing else does: "A catalog is referenced from a specific portion of the content
  *   body by a specific, unique identifier, which matches the catalog's identifier" (§5.28).
- * - RA3, beside what it reads: the stem's control follows the stem, the prompt's follows the prompt,
- *   and each choice's stands beside that choice's option, outside its `label`, which holds no
- *   labelable element but its own control (HTML, the `label` element's content model).
+ * - RA3, beside what it reads: the stem's control stands before the stem, at its top, as AlphaTest's
+ *   player put a question's control, the prompt's follows the prompt, and each choice's stands
+ *   beside that choice's option, outside its `label`, which holds no labelable element but its own
+ *   control (HTML, the `label` element's content model).
  * - RA4, the recording: each control's `audio` holds one `source` per audio file of its card's entry,
  *   the file's address in the configuration's `assets` and its `mime-type` (§7.15.1), so the
  *   browser plays the file the card names (§5.26.3).
@@ -255,10 +256,10 @@ describe("read-aloud", () => {
         const rows = [...document.querySelectorAll('[data-slot="plate-choice-row"]')];
 
         assert.isTrue(
-          stem?.nextElementSibling?.matches(readAloudPart),
-          "the stem's control follows it",
+          stem?.previousElementSibling?.matches(readAloudPart),
+          "the stem's control precedes it",
         );
-        assert.deepStrictEqual(sourcesOf(stem?.nextElementSibling ?? document.body), [
+        assert.deepStrictEqual(sourcesOf(stem?.previousElementSibling ?? document.body), [
           [addressOf(recordings.stem), "audio/mpeg"],
         ]);
         assert.isTrue(
@@ -317,7 +318,7 @@ describe("read-aloud", () => {
 
         assert.strictEqual(controlsOf(document).length, 3, "the prompt and the two choices");
         assert.isNotTrue(
-          stem?.nextElementSibling?.matches(readAloudPart),
+          stem?.previousElementSibling?.matches(readAloudPart),
           "the stem has no control",
         );
       }),

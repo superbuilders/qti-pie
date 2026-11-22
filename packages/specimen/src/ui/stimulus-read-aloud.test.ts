@@ -11,10 +11,10 @@
  *   (information model §5.29).
  * - SR2, the passage's own catalog: with the `spoken` support at the reading type
  *   `computer-read-aloud`, the paragraph that names the passage's catalog has one control, right
- *   after it in the passage's article, and the paragraph that names none has none: the stimulus's
- *   `qti-catalog-info` is "The alternative accessibility information that is to be associated with
- *   the content in the stimulus body" (§4.3.10), and "A catalog is referenced from a specific
- *   portion of the content body by a specific, unique identifier" (§5.28).
+ *   before it in the passage's article, at its top, and the paragraph that names none has none: the
+ *   stimulus's `qti-catalog-info` is "The alternative accessibility information that is to be
+ *   associated with the content in the stimulus body" (§4.3.10), and "A catalog is referenced from
+ *   a specific portion of the content body by a specific, unique identifier" (§5.28).
  * - SR3, the recording from the passage's own document: the control's `audio` holds the card's file
  *   at the address of the path its `qti-file-href` names from the stimulus's own directory (RFC
  *   3986 §5.2), `stimuli/audio/passage-1.mp3`, never from the item's (`items/`), with its
@@ -180,7 +180,7 @@ describe("read-aloud in a shared stimulus", () => {
   );
 
   it.effect(
-    "SR2-SR4: the paragraph that names the passage's catalog has one named control right after it, playing the file its card names from the passage's own folder",
+    "SR2-SR4: the paragraph that names the passage's catalog has one named control right before it, playing the file its card names from the passage's own folder",
     () =>
       Effect.map(passageOf("answering", true), ({ article, facts }) => {
         const controls = controlsIn(article);
@@ -189,11 +189,11 @@ describe("read-aloud in a shared stimulus", () => {
         const [control] = controls;
         assert.isDefined(control);
 
-        const before = control.previousElementSibling;
-        assert.strictEqual(before?.tagName.toLowerCase(), "p");
-        assert.include(before?.textContent ?? "", "Liang was standing in the hallway");
+        const after = control.nextElementSibling;
+        assert.strictEqual(after?.tagName.toLowerCase(), "p");
+        assert.include(after?.textContent ?? "", "Liang was standing in the hallway");
         assert.isNull(
-          control.nextElementSibling?.querySelector('[data-slot="plate-read-aloud"]') ?? null,
+          control.previousElementSibling?.querySelector('[data-slot="plate-read-aloud"]') ?? null,
         );
 
         const sources = [...control.querySelectorAll("audio > source")].map((source) => ({
