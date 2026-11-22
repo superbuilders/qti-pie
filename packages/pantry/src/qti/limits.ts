@@ -95,7 +95,11 @@ export const PackageName = law(
  * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
  * @unit UTF-8 bytes
  * @scope one entry path in any key or index grizzle builds over it
- * @constraint IMS Content Packaging puts no bound on a path; a longer one is refused at import
+ * @constraint IMS Content Packaging puts no bound on a path; a longer one is refused at import, a
+ *   known deviation, dated 2026-11-22, until EntryPath's own digest re-key, the pin after pin+2
+ *   (a `pathDigest` the import writes in every primary key, as `IdrefTarget.idDigest` is): the
+ *   longest real path is 88 bytes (363 exported packages and 2,813 converted AlphaTest packages,
+ *   2026-11-22), 11% of the bound
  * @derivation grizzle's `keyTextBytes` over `Instance`'s lookup `(package, assemblyKind, assembly,
  *   document, parent, siteDocument, site)`, three paths beside a name of {@link nameMaxBytes},
  *   two naturals and a code: the most each of the three paths can hold
@@ -107,9 +111,10 @@ export const entryPathBytes = 790;
  * A package entry's path, relative to the package root, as the package reader gives it: no leading
  * `/`, its segments `/`-separated, any other character allowed, of at most {@link entryPathBytes}
  * UTF-8 bytes, so every key holds it as itself. IMS Content Packaging puts no bound on an entry's
- * path, so a longer one is refused at import under "Key text bound", a stated limit of the
- * representation. No index orders by one (a package's entries are read as a set,
- * `#pantry/export/scan.ts` `entriesOf`, and ordered on the host).
+ * path, so a longer one is refused at import under "Key text bound": a known deviation from the
+ * specification until the path's digest re-key ({@link entryPathBytes}), not a limit of QTI. No
+ * index orders by one (a package's entries are read as a set, `#pantry/export/scan.ts`
+ * `entriesOf`, and ordered on the host).
  *
  * The reader refuses an absolute path, a backslash and a `..` segment (`#pantry/package/zip.ts`,
  * `#pantry/package/read.ts`); the pattern restates none of that. A file's identity in its package:
