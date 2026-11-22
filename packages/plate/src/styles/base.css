@@ -109,6 +109,20 @@
     --plate-inline-target-size: 2.75rem;
 
     /*
+     * A math entry's look a host themes, at AlphaTest's field's values (mastery-track-player
+     * 941a86a): a formula's scripts and a fraction's numerator and denominator at 0.9 of its text
+     * (`NumericEntry.tsx` lines 1076–1091); and its virtual keyboard a light grey board of white keys
+     * with black faces, white on hover (`src/styles/mathlive-styles.css` lines 7–13). MathLive reads
+     * its own properties, which a host's theme does not set: the math entry's rules map each from
+     * one of these.
+     */
+    --plate-math-script-scale: 0.9;
+    --plate-keyboard-background: #f0f0f0;
+    --plate-keycap-background: #fff;
+    --plate-keycap-text: #000;
+    --plate-keycap-text-hover: #fff;
+
+    /*
      * A Slider's thumb, half of which overhangs each end of its track, a vertical track's length,
      * and its width: a column, which its value fills from the lower bound.
      */
@@ -634,9 +648,11 @@
   /*
    * A math entry's field (`plate-math-entry-field`, MathLive's `math-field`), standing in its place
    * in the sentence: as tall as a control inside a sentence, in an edge at 3:1, in the text's
-   * colour. It offers no menu, as AlphaTest's field offered none: its menu's toggle is not drawn.
-   * Its keyboard's keys are at least a target's size, AlphaTest's 70 px, which MathLive reads from
-   * `--keycap-height` on the keyboard it draws at the end of the page's body.
+   * colour, its scripts and a fraction's parts at `--plate-math-script-scale` of its text. It offers
+   * no menu, as AlphaTest's field offered none: its menu's toggle is not drawn. Its keyboard, which
+   * MathLive draws at the end of the page's body and colours from the page's root, has keys at least
+   * a target's size, AlphaTest's 70 px (`--keycap-height`), in the `--plate-keyboard-background`
+   * and `--plate-keycap-*` tokens, so a host themes it on :root.
    */
   [data-slot="plate-math-entry"] {
     display: inline-flex;
@@ -649,6 +665,10 @@
     max-inline-size: 100%;
     border: 2px solid var(--ui-input);
     font-size: inherit;
+    --math-superscript-font-scale-factor: var(--plate-math-script-scale);
+    --math-subscript-font-scale-factor: var(--plate-math-script-scale);
+    --math-fraction-numerator-font-scale-factor: var(--plate-math-script-scale);
+    --math-fraction-denominator-font-scale-factor: var(--plate-math-script-scale);
   }
 
   [data-slot="plate-math-entry-field"]::part(menu-toggle) {
@@ -657,6 +677,10 @@
 
   :where(:root) {
     --keycap-height: max(var(--plate-target-size), 70px);
+    --keyboard-background: var(--plate-keyboard-background);
+    --keycap-background: var(--plate-keycap-background);
+    --keycap-text: var(--plate-keycap-text);
+    --keycap-text-hover: var(--plate-keycap-text-hover);
   }
 
   /*

@@ -858,8 +858,8 @@
   /*
    * A math entry's field: AlphaTest's field's look (mastery-track-player 941a86a,
    * `src/styles/mathlive-styles.css` and `NumericEntry.tsx` lines 1858–1873), 290 px wide, its text
-   * at 1.25rem, its scripts and a fraction's parts at 0.9 of it, in a rounded edge padded half a rem
-   * by one; and its virtual keyboard's, a light grey board of white keys with black faces.
+   * at 1.25rem, in a rounded edge padded half a rem by one. Its scripts' scale and its keyboard's
+   * colours are the base sheet's tokens, at AlphaTest's values.
    */
   :where([data-slot="plate-math-entry"]) [data-slot="plate-math-entry-field"] {
     inline-size: 18.125rem;
@@ -867,17 +867,6 @@
     border-radius: 0.5rem;
     font-size: 1.25rem;
     line-height: 1.2;
-    --math-superscript-font-scale-factor: 0.9;
-    --math-subscript-font-scale-factor: 0.9;
-    --math-fraction-numerator-font-scale-factor: 0.9;
-    --math-fraction-denominator-font-scale-factor: 0.9;
-  }
-
-  :where(:root) {
-    --keyboard-background: #f0f0f0;
-    --keycap-background: #fff;
-    --keycap-text: #000;
-    --keycap-text-hover: #fff;
   }
 
   [data-slot="plate-math-entry-answer"] {
