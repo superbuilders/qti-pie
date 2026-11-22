@@ -17,7 +17,7 @@
  */
 import { useMemo, useState } from "react";
 import type { Sequence, SequenceBoard } from "#plate/ui/placement/machine.ts";
-import { listPlacements, listResponse } from "#plate/ui/placement/order-list.ts";
+import { listPlacements, listResponse } from "#plate/placement/order-list.ts";
 import { useResponse } from "#plate/ui/responses.tsx";
 
 /**

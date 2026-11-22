@@ -27,7 +27,7 @@ import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interact
 import { markingOf, slotsOf } from "#plate/ui/item/interactions/marks.ts";
 import type { Slot } from "#plate/ui/item/interactions/marks.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
-import { chipName } from "#plate/ui/item/interactions/text.ts";
+import { chipName } from "#plate/content/text.ts";
 import { orderKeys } from "#plate/ui/order/labels.ts";
 import { Order } from "#plate/ui/order/order.tsx";
 import { carriesRendererClass } from "#plate/vocabulary.ts";

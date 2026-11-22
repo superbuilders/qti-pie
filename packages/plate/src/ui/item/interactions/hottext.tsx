@@ -31,9 +31,9 @@ import {
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import { picksKeys } from "#plate/ui/picks/labels.ts";
 import { marksOf } from "#plate/ui/picks/marks.ts";
-import { optionName } from "#plate/ui/picks/names.ts";
+import { optionName } from "#plate/interactions/option-names.ts";
 import { PickOption } from "#plate/ui/picks/picks-group.tsx";
-import { groupSlotOf, picksOf } from "#plate/ui/picks/picks.ts";
+import { groupSlotOf, picksOf } from "#plate/interactions/picks.ts";
 import { ReviewedPick } from "#plate/ui/picks/review.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";

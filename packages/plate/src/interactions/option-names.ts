@@ -8,8 +8,8 @@
 import { Option } from "effect";
 import type { Locale } from "#plate/messages.ts";
 import type { RedactedNode } from "#plate/model/item.ts";
-import { choiceText, holdsFormula, namesSomething } from "#plate/ui/item/interactions/text.ts";
-import type { Place } from "#plate/ui/item/interactions/text.ts";
+import { choiceText, holdsFormula, namesSomething } from "#plate/content/text.ts";
+import type { Place } from "#plate/content/text.ts";
 import { classTokensOf } from "#plate/vocabulary.ts";
 
 /**

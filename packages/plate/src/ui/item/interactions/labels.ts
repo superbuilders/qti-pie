@@ -21,7 +21,7 @@ import { elementsIn } from "#plate/ui/item/content.tsx";
 import type { ClassRoot, DataRoot, Named, NameAttributes } from "#plate/ui/attributes.ts";
 import type { IslandContext } from "#plate/ui/item/context.ts";
 import { authoredIdrefs } from "#plate/ui/item/ids.ts";
-import { namesSomething } from "#plate/ui/item/interactions/text.ts";
+import { namesSomething } from "#plate/content/text.ts";
 import { bodyAttributeOf } from "#plate/model/attributes.ts";
 import type { BodyAttribute, Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import type { Prompt, PromptContent } from "#plate/ui/prompt.tsx";
@@ -29,7 +29,7 @@ import type { ChoiceInteraction } from "#plate/interactions/choice.ts";
 import type { ExtendedTextInteraction } from "#plate/interactions/extended-text.ts";
 import type { InlineChoiceInteraction } from "#plate/interactions/inline-choice.ts";
 import type { TextEntryInteraction } from "#plate/interactions/text-entry.ts";
-import { asciiTokens } from "#plate/ui/whitespace.ts";
+import { asciiTokens } from "#plate/model/whitespace.ts";
 
 /**
  * Give the author's text where it is written and not blank, else the catalog's: a blank message

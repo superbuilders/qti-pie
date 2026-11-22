@@ -45,7 +45,7 @@ import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import type { picksKeys } from "#plate/ui/picks/labels.ts";
 import { PickOption, PicksGroup } from "#plate/ui/picks/picks-group.tsx";
-import type { Picks } from "#plate/ui/picks/picks.ts";
+import type { Picks } from "#plate/interactions/picks.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
@@ -62,8 +62,8 @@ export interface ChoiceProps extends Authored<Named> {
    * The choices in display order: the server's order, shuffled already when the interaction
    * shuffles. `content` is the choice's server-rendered content, inside the option's `label`, so it
    * holds no `label` of its own and no interactive element. `label` names the choice's control
-   * where its content names nothing, an image with no alternative text alone: "Choice n of
-   * count" (`optionName` in `#plate/ui/picks/names.ts`); none where the content names it.
+   * where its content names nothing, an image with no alternative text alone: "Choice n of count"
+   * (`optionName` in `#plate/interactions/option-names.ts`); none where the content names it.
    * `readAloud` is read-aloud's control for the catalog the choice references, absent where the
    * candidate hears none (`#plate/ui/read-aloud/read-aloud.tsx`).
    */
@@ -84,7 +84,7 @@ export interface ChoiceProps extends Authored<Named> {
   readonly orientation: "horizontal" | "vertical";
   /**
    * How many choices the child picks (QTI 3.0 information model 5.30.2), as the server reads it
-   * (`picksOf` in `#plate/ui/picks/picks.ts`): one as a radio group, where a pick replaces the
+   * (`picksOf` in `#plate/interactions/picks.ts`): one as a radio group, where a pick replaces the
    * last, else checkboxes, a pick past `max-choices` refused. The response is a bag: the island
    * posts each picked identifier once, which a bag does not read in any order.
    */

@@ -28,8 +28,8 @@ import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interact
 import { markingOf, pointMarksOf } from "#plate/ui/item/interactions/marks.ts";
 import { markPart, wordsOfMark } from "#plate/ui/item/interactions/words.tsx";
 import type { Words } from "#plate/ui/item/interactions/words.tsx";
-import { picksOf } from "#plate/ui/picks/picks.ts";
-import type { Picks } from "#plate/ui/picks/picks.ts";
+import { picksOf } from "#plate/interactions/picks.ts";
+import type { Picks } from "#plate/interactions/picks.ts";
 import { selectPointKeys } from "#plate/ui/select-point/labels.ts";
 import { Marker, selectPointScaleOf } from "#plate/ui/select-point/marker.tsx";
 import type { Point } from "#plate/ui/select-point/points.ts";

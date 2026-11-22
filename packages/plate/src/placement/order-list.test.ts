@@ -1,5 +1,5 @@
 /**
- * An order laid out as one numbered list (`#plate/ui/placement/order-list.ts`): over every
+ * An order laid out as one numbered list (`#plate/placement/order-list.ts`): over every
  * presented order of up to six choices and every move a sequence board can ask for on it (each swap
  * of two positions, a position emptied, a move that changes nothing), and every response a host can
  * hold (none, a full order, a partial one):
@@ -16,7 +16,7 @@
  */
 import { assert, describe, it } from "@effect/vitest";
 import type { Sequence } from "#plate/ui/placement/machine.ts";
-import { listPlacements, listResponse } from "#plate/ui/placement/order-list.ts";
+import { listPlacements, listResponse } from "#plate/placement/order-list.ts";
 
 /**
  * The two rules a list is held to.

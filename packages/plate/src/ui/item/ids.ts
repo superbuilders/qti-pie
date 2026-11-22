@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { asciiTokens } from "#plate/ui/whitespace.ts";
+import { asciiTokens } from "#plate/model/whitespace.ts";
 
 /**
  * Scope an id the author wrote by the item's instance.

@@ -29,7 +29,7 @@ import { GraphicStage } from "#plate/ui/graphic/stage.tsx";
 import type { StageArea } from "#plate/ui/graphic/stage.tsx";
 import type { HotspotLabels } from "#plate/ui/hotspot/labels.ts";
 import { PickOption, PicksGroup, usePicks } from "#plate/ui/picks/picks-group.tsx";
-import type { Picks } from "#plate/ui/picks/picks.ts";
+import type { Picks } from "#plate/interactions/picks.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
@@ -76,9 +76,10 @@ export interface HotspotProps extends Authored<Named> {
   readonly name: string;
   /**
    * How many hotspots the child picks, which the server reads from the bound response's cardinality
-   * and `max-choices` (5.68.2), as it reads a Choice's (`picksOf` in `#plate/ui/picks/picks.ts`): a
-   * pick on the image or in the list replaces the last for `one`, and otherwise a tap on a picked
-   * area takes it back. The response is a bag, which reads no order.
+   * and `max-choices` (5.68.2), as it reads a Choice's (`picksOf` in
+   * `#plate/interactions/picks.ts`): a pick on the image or in the list replaces the last for
+   * `one`, and otherwise a tap on a picked area takes it back. The response is a bag, which reads
+   * no order.
    *
    * `min-choices` is not a prop: it decides whether a submitted response is valid (5.68.1), which
    * the server judges, and a child is never stopped short of it.

@@ -13,12 +13,8 @@
  */
 import { createContext, use, useMemo } from "react";
 import type { ReactNode } from "react";
-
-/**
- * One eliminated option: the entry name its interaction's response posts under, from plate's
- * `entryName`, and the option's identifier.
- */
-export type EliminatedOption = readonly [name: string, identifier: string];
+import { eliminatedBy } from "#plate/interactions/eliminated.ts";
+import type { EliminatedOption } from "#plate/interactions/eliminated.ts";
 
 /**
  * The eliminated options by the entry name their response posts under.
@@ -51,15 +47,7 @@ export const Eliminated = ({
   value,
   children,
 }: Readonly<{ value: readonly EliminatedOption[]; children: ReactNode }>) => {
-  const byResponse = useMemo(() => {
-    const grouped = new Map<string, Set<string>>();
-
-    for (const [name, identifier] of value) {
-      grouped.set(name, (grouped.get(name) ?? new Set<string>()).add(identifier));
-    }
-
-    return grouped;
-  }, [value]);
+  const byResponse = useMemo(() => eliminatedBy(value), [value]);
 
   return <EliminatedContext value={byResponse}>{children}</EliminatedContext>;
 };

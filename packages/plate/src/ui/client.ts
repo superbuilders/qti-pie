@@ -41,7 +41,7 @@ export type { OrderLabels } from "#plate/ui/order/labels.ts";
 
 export { Eliminated } from "#plate/ui/picks/eliminated.tsx";
 
-export type { EliminatedOption } from "#plate/ui/picks/eliminated.tsx";
+export type { EliminatedOption } from "#plate/interactions/eliminated.ts";
 
 export type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 

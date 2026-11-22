@@ -39,7 +39,7 @@ import {
 } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import { marksOf, pickParts } from "#plate/ui/picks/marks.ts";
-import { groupSlotOf, picksOf } from "#plate/ui/picks/picks.ts";
+import { groupSlotOf, picksOf } from "#plate/interactions/picks.ts";
 import { ReviewedPick } from "#plate/ui/picks/review.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 

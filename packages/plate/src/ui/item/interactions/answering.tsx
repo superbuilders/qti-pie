@@ -18,8 +18,8 @@ import { message, numeral } from "#plate/messages.ts";
 import type { RedactedNode, ReferencingChoice } from "#plate/model/item.ts";
 import type { IslandContext, Position } from "#plate/ui/item/context.ts";
 import { limitOf } from "#plate/ui/item/interactions/facts.ts";
-import { chipName } from "#plate/ui/item/interactions/text.ts";
-import type { Place } from "#plate/ui/item/interactions/text.ts";
+import { chipName } from "#plate/content/text.ts";
+import type { Place } from "#plate/content/text.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 

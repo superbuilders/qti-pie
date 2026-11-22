@@ -83,7 +83,7 @@ import type { Phase, Plays, Seen } from "#plate/ui/media/plays.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { useResponse } from "#plate/ui/responses.tsx";
-import { collapsedText } from "#plate/ui/whitespace.ts";
+import { collapsedText } from "#plate/model/whitespace.ts";
 
 /**
  * What the server gives a Media's island, as QTI's `qti-media-interaction` and plate's

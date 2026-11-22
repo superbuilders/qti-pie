@@ -19,7 +19,7 @@ import type { Locale } from "#plate/messages.ts";
 import { bodyAttributeOf } from "#plate/model/attributes.ts";
 import type { MathChild } from "#plate/content/mathml.ts";
 import type { BodyAttribute, RedactedNode } from "#plate/model/item.ts";
-import { collapsedText } from "#plate/ui/whitespace.ts";
+import { collapsedText } from "#plate/model/whitespace.ts";
 
 /**
  * Tell whether an element is hidden from assistive technology, with all below it.

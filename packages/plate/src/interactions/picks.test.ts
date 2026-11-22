@@ -13,8 +13,8 @@
  */
 import { assert, describe, it } from "@effect/vitest";
 import { message } from "#plate/messages.ts";
-import { instructionOf, picksOf } from "#plate/ui/picks/picks.ts";
-import type { Picks } from "#plate/ui/picks/picks.ts";
+import { instructionOf, picksOf } from "#plate/interactions/picks.ts";
+import type { Picks } from "#plate/interactions/picks.ts";
 
 /**
  * Every binding a Choice holds, with whether its child picks exactly one.

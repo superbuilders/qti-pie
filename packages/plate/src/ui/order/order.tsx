@@ -16,7 +16,7 @@
  * An order whose root carries `plate-order-list` is one numbered list instead: no bank, one
  * position per choice, each filled from the start in the presented order, and the child reorders
  * them in place, each move a swap; its response is NULL until the first move, then always the full
- * order (`#plate/ui/placement/order-list.ts`), as AlphaTest's player posted it.
+ * order (`#plate/placement/order-list.ts`), as AlphaTest's player posted it.
  *
  * The response is the chips in position order, posted once the positions are filled from the first
  * as far as the order requires (`useSequence` in `#plate/ui/placement/sequence.ts`): until then,

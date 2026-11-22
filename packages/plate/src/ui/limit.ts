@@ -8,7 +8,7 @@
  * max-associations is 0 then there is no restriction", 5.89.2; gap match's 5.57.3). The server
  * reads that once, from the attribute or its XSD default, and writes `{ kind: "none" }` for 0 and
  * `{ kind: "at-most", n }` for any other count, so no island reads a 0. A picks group's
- * `max-choices` is not a `Limit` but part of its `Picks` (`#plate/ui/picks/picks.ts`), where a
+ * `max-choices` is not a `Limit` but part of its `Picks` (`#plate/interactions/picks.ts`), where a
  * limit of 1 is one pick; an Order's is not one either: QTI gives its 0 no such meaning (plate's
  * reading 18), and the server sends an Order its positions instead.
  *

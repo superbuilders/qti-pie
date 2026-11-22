@@ -63,7 +63,7 @@ import {
   pressAt,
   remove,
 } from "#plate/ui/select-point/points.ts";
-import type { Picks } from "#plate/ui/picks/picks.ts";
+import type { Picks } from "#plate/interactions/picks.ts";
 import type { Point, Step } from "#plate/ui/select-point/points.ts";
 
 /**

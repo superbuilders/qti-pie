@@ -45,7 +45,7 @@ import { UnrenderedNode } from "#plate/ui/item/errors.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
 import { limitOf } from "#plate/ui/item/interactions/facts.ts";
 import { controlNameOf, labelsOf, ownName, rootOf } from "#plate/ui/item/interactions/labels.ts";
-import { imageText, shownText } from "#plate/ui/item/interactions/text.ts";
+import { imageText, shownText } from "#plate/content/text.ts";
 import { markingOf, pointMarksOf } from "#plate/ui/item/interactions/marks.ts";
 import { markPart, wordsOfMark } from "#plate/ui/item/interactions/words.tsx";
 import { fillLabel } from "#plate/ui/labels.ts";

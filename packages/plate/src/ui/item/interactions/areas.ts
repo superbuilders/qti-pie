@@ -11,7 +11,7 @@ import type { Locale } from "#plate/messages.ts";
 import type { ReferencingChoice } from "#plate/model/item.ts";
 import type { IslandContext } from "#plate/ui/item/context.ts";
 import { spokenOf } from "#plate/ui/item/interactions/answering.tsx";
-import type { Place } from "#plate/ui/item/interactions/text.ts";
+import type { Place } from "#plate/content/text.ts";
 import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**

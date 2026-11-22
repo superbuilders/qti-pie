@@ -48,7 +48,7 @@ import type { GraphicLabels } from "#plate/ui/graphic/labels.ts";
 import { floorWidthOf, smallestTargetOf, stageScaleOf } from "#plate/ui/graphic/scale.ts";
 import type { StageScale } from "#plate/ui/graphic/scale.ts";
 import { sizeOf } from "#plate/ui/graphic/size.ts";
-import { collapsedText } from "#plate/ui/whitespace.ts";
+import { collapsedText } from "#plate/model/whitespace.ts";
 
 /**
  * The props of an element of the server's image the name reads: an `img`'s `alt`, whether it is

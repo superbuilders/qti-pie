@@ -1,9 +1,9 @@
 /**
  * The names the server gives a Choice's options (`optionName` and `choiceLabel` in
- * `#plate/ui/picks/names.ts`), against rules written here apart from the code: AlphaTest's player
- * named an option by its label and then its content's text ("A. 1250 × 2 4 × 60"), and Chrome reads
- * neither the theme's counter nor a formula into a name it computes from the `label` around the
- * control, so the server must write such a name itself.
+ * `#plate/interactions/option-names.ts`), against rules written here apart from the code:
+ * AlphaTest's player named an option by its label and then its content's text ("A. 1250 × 2 4 ×
+ * 60"), and Chrome reads neither the theme's counter nor a formula into a name it computes from the
+ * `label` around the control, so the server must write such a name itself.
  *
  * Over every content the generator draws (text, formulas with and without `alttext`, a fraction,
  * an `maction`, a semantics' annotation, a picture with and without `alt`, nested in a paragraph),
@@ -31,7 +31,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import type { MathChild } from "#plate/content/mathml.ts";
 import type { RedactedNode } from "#plate/model/item.ts";
-import { choiceLabel, optionName } from "#plate/ui/picks/names.ts";
+import { choiceLabel, optionName } from "#plate/interactions/option-names.ts";
 
 /**
  * The two functions the rules hold.

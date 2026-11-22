@@ -7,8 +7,9 @@
  * instance, each with read-aloud's control for the catalog it references where the candidate hears
  * it read aloud, named by the choice's place as presented, and how many the child picks, read from
  * its binding and `max-choices` by the one rule every picks group follows (`picksOf` in
- * `#plate/ui/picks/picks.ts`). The review shows the options with each picked one `data-selected`,
- * and, by the host's marks, each marked one `data-mark` (`#plate/ui/picks/marks.ts`).
+ * `#plate/interactions/picks.ts`). The review shows the options with each picked one
+ * `data-selected`, and, by the host's marks, each marked one `data-mark`
+ * (`#plate/ui/picks/marks.ts`).
  *
  * @module
  */
@@ -27,9 +28,9 @@ import {
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import { picksKeys } from "#plate/ui/picks/labels.ts";
 import { marksOf } from "#plate/ui/picks/marks.ts";
-import { choiceLabel, optionName } from "#plate/ui/picks/names.ts";
+import { choiceLabel, optionName } from "#plate/interactions/option-names.ts";
 import { message } from "#plate/messages.ts";
-import { groupSlotOf, instructionOf, picksOf } from "#plate/ui/picks/picks.ts";
+import { groupSlotOf, instructionOf, picksOf } from "#plate/interactions/picks.ts";
 import { ReviewedPick } from "#plate/ui/picks/review.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 

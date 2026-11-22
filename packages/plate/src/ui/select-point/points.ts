@@ -18,7 +18,7 @@ import { Option } from "effect";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import { pointCoordinates } from "#plate/model/values.ts";
 import type { ImagePoint } from "#plate/ui/graphic/geometry.ts";
-import type { Picks } from "#plate/ui/picks/picks.ts";
+import type { Picks } from "#plate/interactions/picks.ts";
 
 /**
  * A point on the image, in its own pixels, each coordinate a whole number.

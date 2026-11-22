@@ -26,7 +26,7 @@ import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import type { picksKeys } from "#plate/ui/picks/labels.ts";
 import { PicksGroup } from "#plate/ui/picks/picks-group.tsx";
-import type { Picks } from "#plate/ui/picks/picks.ts";
+import type { Picks } from "#plate/interactions/picks.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 
@@ -51,9 +51,9 @@ export interface HottextProps extends Authored<Named> {
   readonly name: string;
   /**
    * How many hottexts the child picks (5.66.1), as the server reads it (`picksOf` in
-   * `#plate/ui/picks/picks.ts`): one as radios of one group, where a pick replaces the last, else
-   * checkboxes, a pick past `max-choices` refused. The response is a bag: the island posts each
-   * picked identifier once, which a bag does not read in any order.
+   * `#plate/interactions/picks.ts`): one as radios of one group, where a pick replaces the last,
+   * else checkboxes, a pick past `max-choices` refused. The response is a bag: the island posts
+   * each picked identifier once, which a bag does not read in any order.
    */
   readonly picks: Picks;
   /**

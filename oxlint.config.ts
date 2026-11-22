@@ -93,11 +93,14 @@ const plateCorePatterns = [
  */
 const plateClientModules = [
   "packages/plate/src/form/encoding.ts",
+  "packages/plate/src/interactions/eliminated.ts",
   "packages/plate/src/interactions/pair.ts",
   "packages/plate/src/model/regex.ts",
   "packages/plate/src/model/values.ts",
+  "packages/plate/src/model/whitespace.ts",
   "packages/plate/src/pci/json.ts",
   "packages/plate/src/pci/type-identifier.ts",
+  "packages/plate/src/placement/order-list.ts",
   "packages/plate/src/read-aloud/session.ts",
 ];
 

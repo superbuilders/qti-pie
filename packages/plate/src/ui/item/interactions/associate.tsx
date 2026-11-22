@@ -25,7 +25,7 @@ import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import { boxesShown } from "#plate/ui/item/interactions/pair-boxes.ts";
 import { markPart, wordsOfMark } from "#plate/ui/item/interactions/words.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
-import { chipName } from "#plate/ui/item/interactions/text.ts";
+import { chipName } from "#plate/content/text.ts";
 import { halfName } from "#plate/ui/placement/associable.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 

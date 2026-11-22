@@ -23,7 +23,7 @@ import type { DataRoot, Named } from "#plate/ui/attributes.ts";
 import { PickOutsidePicksGroup } from "#plate/ui/defects.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import { useEliminated } from "#plate/ui/picks/eliminated.tsx";
-import type { Picks } from "#plate/ui/picks/picks.ts";
+import type { Picks } from "#plate/interactions/picks.ts";
 import { useResponse } from "#plate/ui/responses.tsx";
 
 /**

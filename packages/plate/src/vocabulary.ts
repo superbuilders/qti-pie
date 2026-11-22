@@ -441,7 +441,7 @@ const isSharedVocabulary = (name: string): boolean =>
  * formula's: `data-display` on its root, and the names plate writes into the MathML it hands
  * MathJax (`data-mjx-texclass`, a slot's `data-plate-slot`) or reads in the SVG MathJax draws
  * (`data-mml-node`, `data-c`, `data-line`, `data-frame`, `data-table`, `data-background`),
- * `#plate/ui/item/contents/mathjax.ts`. The `data-qti-` prefix is {@link reservedDataPrefix}, not
+ * `#plate/content/math-drawing.ts`. The `data-qti-` prefix is {@link reservedDataPrefix}, not
  * a member, and plate writes no name under it.
  */
 const reservedDataNames: ReadonlySet<string> = new Set([

@@ -32,7 +32,7 @@ import type { ControlMark } from "#plate/ui/item/interactions/control-mark.tsx";
 import { controlNameOf, labelsOf, ownName, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import type { Marking } from "#plate/ui/item/interactions/marks.ts";
-import { choiceText, namesSomething } from "#plate/ui/item/interactions/text.ts";
+import { choiceText, namesSomething } from "#plate/content/text.ts";
 
 /**
  * Give what names an Inline Choice's trigger: its `qti-label`'s content, where that names

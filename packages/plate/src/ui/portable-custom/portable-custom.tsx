@@ -71,7 +71,7 @@ import type { PostedAs } from "#plate/ui/portable-custom/response.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { useResponse } from "#plate/ui/responses.tsx";
-import { asciiTokens, collapsedText } from "#plate/ui/whitespace.ts";
+import { asciiTokens, collapsedText } from "#plate/model/whitespace.ts";
 
 /**
  * What the server gives a Portable Custom Interaction's island, as QTI's

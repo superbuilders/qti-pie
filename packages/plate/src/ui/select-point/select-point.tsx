@@ -40,7 +40,7 @@ import { useResponse } from "#plate/ui/responses.tsx";
 import type { SelectPointLabels } from "#plate/ui/select-point/labels.ts";
 import { Cross, Marker, selectPointScaleOf } from "#plate/ui/select-point/marker.tsx";
 import { pointsOf, textsOf } from "#plate/ui/select-point/points.ts";
-import type { Picks } from "#plate/ui/picks/picks.ts";
+import type { Picks } from "#plate/interactions/picks.ts";
 import type { Point } from "#plate/ui/select-point/points.ts";
 import { selectPoint } from "#plate/ui/select-point/primitive.ts";
 import type { Dragged, SelectPointBoardState } from "#plate/ui/select-point/primitive.ts";

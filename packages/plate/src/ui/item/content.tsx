@@ -19,7 +19,7 @@
 import { Array as Arr, Option, Predicate } from "effect";
 import { createElement, Fragment } from "react";
 import type { Attributes, Key, ReactNode } from "react";
-import type { MathElement } from "#plate/content/mathml.ts";
+import type { MathNode } from "#plate/content/mathml.ts";
 import { contentNodes, copyContent } from "#plate/content/modules.ts";
 import type { ContentNode } from "#plate/content/modules.ts";
 import type { ContainerKind } from "#plate/interactions/contract.ts";
@@ -33,12 +33,14 @@ import type {
   RedactedLevel,
   RedactedNode,
 } from "#plate/model/item.ts";
+import { spokenBefore } from "#plate/read-aloud/placement.ts";
+import type { SpokenBefore } from "#plate/read-aloud/placement.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import type { Glossary, Glossed, ReadsAloud } from "#plate/ui/item/contents/catalog.tsx";
 import { content as mathmlContent, missingInMath } from "#plate/ui/item/contents/mathml.tsx";
 import { content as rubricContent } from "#plate/ui/item/contents/rubric.tsx";
-import { gapSlot, inlineChoiceSlot, textEntrySlot } from "#plate/ui/item/contents/slots.ts";
-import type { SlotSize } from "#plate/ui/item/contents/slots.ts";
+import { slotPlan } from "#plate/content/math-slots.ts";
+import type { SlotSize } from "#plate/content/math-slots.ts";
 import type { Credit, Position } from "#plate/ui/item/context.ts";
 import { NestedInteraction, UnrenderedNode } from "#plate/ui/item/errors.ts";
 import { feedbackBlockOf, isExplanation } from "#plate/ui/item/feedback.tsx";
@@ -52,7 +54,7 @@ import {
   writtenTag,
 } from "#plate/ui/item/html.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
-import { collapsedText } from "#plate/ui/whitespace.ts";
+import { collapsedText } from "#plate/model/whitespace.ts";
 
 /**
  * Hand an interaction of the body to the seam: its model node, as the redacted body holds it, and
@@ -143,7 +145,7 @@ export interface Walk {
 }
 
 /**
- * An interaction or a gap a formula draws in its slot (`#plate/ui/item/contents/slots.ts`): its
+ * An interaction or a gap a formula draws in its slot (`#plate/content/math-slots.ts`): its
  * slot's size, and the interaction as the walk would render it where it stands.
  */
 export interface Slotted {
@@ -856,16 +858,37 @@ const disclosuresAfter = (
  * @returns The control, or nothing.
  */
 const readAloudBefore = (element: BodyElement<RedactedLevel>, walk: Walk): readonly ReactNode[] =>
-  walk.scope.kind === "body" && element.catalog !== undefined
-    ? Option.toArray(
-        walk.scope.readAloud(
-          element.catalog,
-          "text",
-          message(walk.locale, "readAloudText"),
+  walk.scope.kind === "body"
+    ? spokenAt(spokenBefore({ element, kind: "element" }), walk.scope.readAloud, walk.locale)
+    : [];
+
+/**
+ * Write read-aloud's control the placement gives (`spokenBefore` in
+ * `#plate/read-aloud/placement.ts`), named by its role: none where the catalog keeps no spoken card
+ * that gives audio.
+ *
+ * @param spoken The control the placement gives, none where none stands.
+ * @param readAloud The page's read-aloud.
+ * @param locale The locale of plate's own text.
+ * @returns The control, or nothing.
+ */
+const spokenAt = (
+  spoken: Option.Option<SpokenBefore>,
+  readAloud: ReadsAloud,
+  locale: Locale,
+): readonly ReactNode[] =>
+  Option.toArray(
+    spoken.pipe(
+      Option.flatMap(({ catalog, role }) =>
+        readAloud(
+          catalog,
+          role,
+          message(locale, role === "prompt" ? "readAloudPrompt" : "readAloudText"),
           "read-aloud",
         ),
-      )
-    : [];
+      ),
+    ),
+  );
 
 /**
  * Write the props a term takes from the glossary: the id its disclosure's `summary` is named by,
@@ -1003,13 +1026,10 @@ const interactionOf = (
     return rendered;
   }
 
-  const { readAloud } = walk.scope;
-  const preceding = Option.toArray(
-    interaction.catalog.pipe(
-      Option.flatMap((catalog) =>
-        readAloud(catalog, "prompt", message(walk.locale, "readAloudPrompt"), "read-aloud"),
-      ),
-    ),
+  const preceding = spokenAt(
+    spokenBefore({ interaction, kind: "interaction" }),
+    walk.scope.readAloud,
+    walk.locale,
   );
   const following = writtenOf(walk.scope.answer(interaction, "answer"));
 
@@ -1076,135 +1096,50 @@ const contentNodeOf = (node: ContentNode<RedactedLevel>, key: Key, walk: Walk): 
 };
 
 /**
- * Count the slots the formulas among body nodes hold, by the `id` each names: every empty `mspace`
- * whose `xref` names an id, at any depth of each `math` the nodes hold ({@link contentsIn}).
+ * Give the formulas among body nodes, each its `math` element, at any depth ({@link contentsIn}).
  *
  * @param nodes The body nodes.
- * @returns How many slots name each id.
+ * @returns The formulas.
  */
-const slotNamesIn = (nodes: readonly RedactedNode[]): ReadonlyMap<string, number> => {
-  const named = new Map<string, number>();
-  const visit = (element: MathElement<RedactedNode>): void => {
-    for (const child of element.children) {
-      if (child.kind === "element") {
-        const xref = child.attributes.find(({ name }) => name === "xref")?.value;
-
-        if (child.local === "mspace" && xref !== undefined) {
-          named.set(xref, (named.get(xref) ?? 0) + 1);
-        }
-
-        visit(child);
-      }
-    }
-  };
-
-  for (const node of contentsIn(nodes)) {
+const formulasIn = (nodes: readonly RedactedNode[]): readonly MathNode<RedactedLevel>[] =>
+  contentsIn(nodes).flatMap((node) => {
     const payload = copyContent(node);
 
-    if (payload.element === "math") {
-      visit(payload.payload);
-    }
-  }
-
-  return named;
-};
-
-/**
- * Count the characters of body nodes' text, at any depth below elements.
- *
- * @param nodes The nodes.
- * @returns How many characters their text holds.
- */
-const textLengthOf = (nodes: readonly RedactedNode[]): number => {
-  let length = 0;
-
-  for (const node of nodes) {
-    if (node.kind === "text") {
-      length += node.text.trim().length;
-    } else if (node.kind === "element") {
-      length += textLengthOf(node.children);
-    }
-  }
-
-  return length;
-};
-
-/**
- * Find what among body nodes a formula can draw in its slot, where the walk stands: in a body,
- * each Text Entry and Inline Choice with an `id`, rendered through the seam; in an interaction's
- * own content, each `qti-gap` with an `id`, rendered by the interaction's `own`; each with its
- * slot's size. Below elements and containers, never in an interaction's own content, whose walk
- * finds its own.
- *
- * @param nodes The body nodes.
- * @param walk The walk where they stand.
- * @returns Each such node's id and what its slot draws.
- */
-const slotTargetsIn = (
-  nodes: readonly RedactedNode[],
-  walk: Walk,
-): readonly (readonly [string, Slotted])[] =>
-  nodes.flatMap((node): readonly (readonly [string, Slotted])[] => {
-    const { scope } = walk;
-
-    if (isInteraction(node)) {
-      if (scope.kind !== "body" || Option.isNone(node.id)) {
-        return [];
-      }
-
-      const id = node.id.value;
-      const render = (): ReactNode => scope.interaction(node, `slot-${id}`);
-
-      if (node.kind === "inline-choice") {
-        const longest = Math.max(0, ...node.choices.map(({ content }) => textLengthOf(content)));
-
-        return [[id, { render, size: inlineChoiceSlot(longest) }]];
-      }
-
-      return node.kind === "text-entry"
-        ? [[id, { render, size: textEntrySlot(node.expectedLength) }]]
-        : [];
-    }
-
-    if (node.kind === "container") {
-      return slotTargetsIn(node.children, walk);
-    }
-
-    if (node.kind !== "element") {
-      return [];
-    }
-
-    const id = node.attributes.find(({ name }) => name === "id")?.value;
-    const own: readonly (readonly [string, Slotted])[] =
-      scope.kind === "owned" && node.tag === "qti-gap" && id !== undefined
-        ? [[id, { render: () => scope.own(node), size: gapSlot }]]
-        : [];
-
-    return [...own, ...slotTargetsIn(node.children, walk)];
+    return payload.element === "math" ? [payload.payload] : [];
   });
 
 /**
- * Give the slots a run of content's walk draws: the walk's own, and each Text Entry, Inline Choice
- * or gap of the run ({@link slotTargetsIn}) that exactly one slot of the run's formulas names
- * ({@link slotNamesIn}). One named by no slot stays where it stands; one named by two or more stays
- * there too, as AlphaTest's player kept its standalone box for a token written twice, and its
- * slots stay empty. A copy writes no slot, so no interaction stands twice on the page.
+ * Give the slots a run of content's walk draws: the walk's own, and each target of the run that
+ * exactly one slot of its formulas names (`slotPlan` in `#plate/content/math-slots.ts`), drawn as
+ * the walk would draw it where it stands: an interaction through the seam, a gap by its
+ * interaction's `own`. A copy writes no slot, so no interaction stands twice on the page.
  *
  * @param nodes The run's body nodes.
  * @param walk The walk where they stand.
  * @returns The slots.
  */
 const slotsIn = (nodes: readonly RedactedNode[], walk: Walk): ReadonlyMap<string, Slotted> => {
-  if (walk.addressing.writing === "copy") {
+  const { scope } = walk;
+
+  if (walk.addressing.writing === "copy" || scope.kind === "plain") {
     return walk.slots;
   }
 
-  const named = slotNamesIn(nodes);
+  const planned = [...slotPlan(formulasIn(nodes), nodes, scope.kind)].flatMap(
+    ([id, target]): readonly (readonly [string, Slotted])[] => {
+      if (target.kind === "gap") {
+        return scope.kind === "owned"
+          ? [[id, { render: () => scope.own(target.node), size: target.size }]]
+          : [];
+      }
 
-  return new Map([
-    ...walk.slots,
-    ...slotTargetsIn(nodes, walk).filter(([id]) => named.get(id) === 1),
-  ]);
+      return scope.kind === "body"
+        ? [[id, { render: () => scope.interaction(target.node, `slot-${id}`), size: target.size }]]
+        : [];
+    },
+  );
+
+  return new Map([...walk.slots, ...planned]);
 };
 
 /**

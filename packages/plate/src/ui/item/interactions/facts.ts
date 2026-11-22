@@ -2,8 +2,8 @@
  * The facts the server reads from QTI for an island, each once, from the attribute as the model
  * holds it or its XSD default, so no island reads an unwritten attribute or a 0 that means no
  * limit: a count's {@link Limit}, and a sizing hint. How many options a picks group's child picks is
- * `picksOf`'s (`#plate/ui/picks/picks.ts`). The model holds a Choice's and an Order's `orientation`
- * typed, a Choice's with its XSD default.
+ * `picksOf`'s (`#plate/interactions/picks.ts`). The model holds a Choice's and an Order's
+ * `orientation` typed, a Choice's with its XSD default.
  *
  * @module
  */

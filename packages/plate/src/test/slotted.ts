@@ -1,8 +1,7 @@
 /**
- * Interactions as the redacted body holds them, for the suites of the interactions a formula draws
- * in its slots (`src/ui/item/slots.test.ts`) and of where read-aloud's controls stand
- * (`src/ui/item/read-aloud-placement.test.ts`): written here, outside plate's UI, whose lint
- * refuses an object's `class` key, which a model node's field carries.
+ * Interactions as the redacted body holds them, for the suites of the slots a formula plans for the
+ * interactions it draws (`src/content/math-slots.test.ts`) and of the read-aloud control that
+ * stands before a body node (`src/read-aloud/placement.test.ts`).
  *
  * Test support: nothing outside `src/test/` and test files imports it.
  *

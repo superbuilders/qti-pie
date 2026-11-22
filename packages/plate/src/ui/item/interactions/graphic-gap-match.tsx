@@ -51,7 +51,7 @@ import {
   pairsByTarget,
 } from "#plate/ui/item/interactions/chips.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
-import { shownText } from "#plate/ui/item/interactions/text.ts";
+import { shownText } from "#plate/content/text.ts";
 import type { Paired } from "#plate/payload.ts";
 
 /**

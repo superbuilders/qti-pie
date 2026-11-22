@@ -35,6 +35,7 @@
  * @module
  * @see https://docs.mathjax.org/en/v3.2-latest/output/svg.html
  */
+import { Data } from "effect";
 import type { LiteDocument } from "mathjax-full/js/adaptors/lite/Document.js";
 import { LiteElement } from "mathjax-full/js/adaptors/lite/Element.js";
 import type { LiteText } from "mathjax-full/js/adaptors/lite/Text.js";
@@ -45,8 +46,26 @@ import { HTMLMathItem } from "mathjax-full/js/handlers/html/HTMLMathItem.js";
 import { MathML } from "mathjax-full/js/input/mathml.js";
 import { SVG } from "mathjax-full/js/output/svg.js";
 import type { MathAttribute, MathElement } from "#plate/content/mathml.ts";
-import type { SlotSize } from "#plate/ui/item/contents/slots.ts";
-import { UndrawnFormula } from "#plate/ui/item/errors.ts";
+import type { SlotSize } from "#plate/content/math-slots.ts";
+
+/**
+ * MathJax's SVG output gave a formula's container something other than its `svg`, which the
+ * drawing reads: MathJax broke its contract, which no item
+ * can cause, so the page dies loudly rather than show a formula with nothing drawn.
+ */
+export class UndrawnFormula extends Data.TaggedError("UndrawnFormula")<{
+  /**
+   * What the container held first, as MathJax's adaptor names a node's kind (`#text`).
+   */
+  readonly found: string;
+}> {
+  /**
+   * What MathJax gave where its `svg` belongs.
+   */
+  override get message(): string {
+    return `MathJax's SVG output gave a formula's container ${JSON.stringify(this.found)} where its svg belongs, so the server shell drew none of it.`;
+  }
+}
 
 /**
  * One attribute of a drawn element, by the name React writes it under.
