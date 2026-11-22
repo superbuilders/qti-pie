@@ -1,32 +1,32 @@
 /**
- * Static imports, read from TypeScript source, for the tests that hold the package's module graph
- * to a rule, such as the served tables (`src/boundary.test.ts`), and for the lint config, which
- * derives the modules a page loads from the islands' closure as it loads (`plateClientModules` in
- * the repository's `oxlint.config.ts`, through `@qti-pie/plate/test/imports`).
+ * Plate's module graph, read from the repository's root: every static import of every module of
+ * plate's `src/`, the closure of what loads at run time, and the modules a page loads. It is the
+ * one reader of plate's graph, for the lint config, which derives the modules a page loads as it
+ * loads (`plateClientModules` in `oxlint.config.ts`), and for the root's suite that holds plate's
+ * graph to its rules (`#tools/module-graph.test.ts`).
  *
- * {@link readImports} parses a module with vite's `parseAst` (Oxc's parser, which `vitest/node`
- * re-exports) and reads every top-level `import` declaration and every `export … from`. A dynamic
- * `import(…)` and `import.meta` are not declarations. A module that does not parse, and a
- * declaration it does not classify, are reported as unreadable, never skipped, so a test that reads
- * a module's imports fails on a form of import the reader does not know instead of passing it.
+ * {@link readImports} parses a module with Oxc's parser (`oxc-parser`, a devDependency of the
+ * repository's root alone, so no consumer of plate installs it) and reads every top-level `import`
+ * declaration and every `export … from`. A dynamic `import(…)` and `import.meta` are not
+ * declarations. A module that does not parse, and a declaration it does not classify, are reported
+ * as unreadable, never skipped, so a check that reads a module's imports fails on a form of import
+ * the reader does not know instead of passing it.
  *
  * A declaration loads its module at run time unless it is type-only as a whole (`import type`,
  * `export type`): under `verbatimModuleSyntax`, `import { type A } from "x"` is kept as
  * `import {} from "x"`.
  *
- * Test support: nothing outside `src/test/`, test files and the lint config imports it.
- *
  * @module
  */
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { Predicate, Result } from "effect";
-import { parseAst } from "vitest/node";
+import { parseSync } from "oxc-parser";
+import type { Program } from "oxc-parser";
 
 /**
  * One name a declaration imports or re-exports.
  */
-export interface ImportedName {
+interface ImportedName {
   /**
    * The name before `as`; `default` for a default import, and `*` for a namespace import or an
    * `export *`.
@@ -41,7 +41,7 @@ export interface ImportedName {
 /**
  * One static `import` declaration, or one `export … from`.
  */
-export interface StaticImport {
+interface StaticImport {
   /**
    * The line the declaration starts on, from 1.
    */
@@ -63,7 +63,7 @@ export interface StaticImport {
 /**
  * What {@link readImports} reads from one module.
  */
-export interface ModuleImports {
+interface ModuleImports {
   readonly imports: readonly StaticImport[];
   /**
    * The lines of the `import` and `export` declarations it could not classify.
@@ -72,14 +72,14 @@ export interface ModuleImports {
 }
 
 /**
- * The prefix of the package's own import alias, which resolves to `src/`.
+ * The prefix of plate's own import alias, which resolves to its `src/`.
  */
 const plateAlias = "#plate/";
 
 /**
- * One statement of a module, as vite's parser gives it.
+ * One statement of a module, as Oxc's parser gives it.
  */
-type Statement = ReturnType<typeof parseAst>["body"][number];
+type Statement = Program["body"][number];
 
 /**
  * A name an `import { … }` or `export { … } from` names in the module it loads: an identifier, or
@@ -190,36 +190,30 @@ const lineOf = (source: string, index: number): number => source.slice(0, index)
  * @param source The module's TypeScript source.
  * @param lang How to parse it: `"tsx"` for a module that holds JSX, `"ts"` by default.
  * @returns The declarations in source order, and the lines of those it could not classify: the
- *   line the parser stopped on, for a module that does not parse.
+ *   line of the parser's first error, for a module that does not parse.
  */
-export const readImports = (source: string, lang: "ts" | "tsx" = "ts"): ModuleImports =>
-  Result.match(
-    Result.try({
-      // The parser's failure names the offset it stopped at as `pos`; one that names none reads as
-      // the source's start.
-      catch: (error) =>
-        Predicate.hasProperty(error, "pos") && Predicate.isNumber(error.pos) ? error.pos : 0,
-      try: () => parseAst(source, { lang }),
-    }),
-    {
-      onFailure: (offset) => ({ imports: [], unreadable: [lineOf(source, offset)] }),
-      onSuccess: (program) => {
-        const readings = program.body.map((statement) => ({
-          line: lineOf(source, statement.start),
-          reading: readingOf(statement),
-        }));
+const readImports = (source: string, lang: "ts" | "tsx" = "ts"): ModuleImports => {
+  const { errors, program } = parseSync(`module.${lang}`, source, { lang });
+  const [error] = errors;
 
-        return {
-          imports: readings.flatMap(({ line, reading }) =>
-            reading.kind === "import" ? [{ line, ...reading.value }] : [],
-          ),
-          unreadable: readings.flatMap(({ line, reading }) =>
-            reading.kind === "unreadable" ? [line] : [],
-          ),
-        };
-      },
-    },
-  );
+  if (error !== undefined) {
+    return { imports: [], unreadable: [lineOf(source, error.labels[0]?.start ?? 0)] };
+  }
+
+  const readings = program.body.map((statement) => ({
+    line: lineOf(source, statement.start),
+    reading: readingOf(statement),
+  }));
+
+  return {
+    imports: readings.flatMap(({ line, reading }) =>
+      reading.kind === "import" ? [{ line, ...reading.value }] : [],
+    ),
+    unreadable: readings.flatMap(({ line, reading }) =>
+      reading.kind === "unreadable" ? [line] : [],
+    ),
+  };
+};
 
 /**
  * Read the static imports of one module of the package map by its path: none for a JSON module,
@@ -311,19 +305,19 @@ export const clientModules = (sources: ReadonlyMap<string, string>): readonly st
   );
 
 /**
- * Read the package's modules, tests included, from disk: its TypeScript sources, the UI's `.tsx`
- * among them, and its JSON files, which a source imports `with { type: "json" }`.
+ * Read plate's modules, tests included, from disk: its TypeScript sources, the UI's `.tsx` among
+ * them, and its JSON files, which a source imports `with { type: "json" }`.
  *
  * A `.tsx` module is read as any other: its imports precede its JSX, so {@link readImports} reads
  * them, and every rule that walks the graph walks through the UI (`src/ui/`). A JSON module reads
  * as a module with no import declarations, so a walk reaches it and stops there, and a `#plate/`
  * import of one is not a missing module.
  *
- * @returns Each `.ts`, `.tsx` and `.json` file under `src/`, by path under the package
+ * @returns Each `.ts`, `.tsx` and `.json` file under plate's `src/`, by path under the package
  *   (`src/<x>`), in path order.
  */
-export const sourceModules = (): ReadonlyMap<string, string> => {
-  const root = new URL("../", import.meta.url);
+export const plateModules = (): ReadonlyMap<string, string> => {
+  const root = new URL("../packages/plate/src/", import.meta.url);
 
   return new Map(
     readdirSync(root, { encoding: "utf-8", recursive: true })
@@ -335,3 +329,17 @@ export const sourceModules = (): ReadonlyMap<string, string> => {
       ]),
   );
 };
+
+/**
+ * Plate's modules outside `src/ui/` that a `"use client"` module loads, and so a page: what the
+ * islands import from the core, and what that imports in turn, by path from the repository's root
+ * ({@link clientModules}, {@link valueClosure}), less the UI's own, in path order.
+ *
+ * @param modules Plate's modules, by path under the package ({@link plateModules}).
+ * @returns The paths, each `packages/plate/src/<x>`.
+ */
+export const plateClientModulesOf = (modules: ReadonlyMap<string, string>): readonly string[] =>
+  valueClosure(modules, clientModules(modules))
+    .filter((module) => !module.startsWith("src/ui/"))
+    .map((module) => `packages/plate/${module}`)
+    .toSorted();

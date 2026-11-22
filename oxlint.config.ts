@@ -2,7 +2,7 @@ import { builtinModules } from "node:module";
 import { defineConfig } from "oxlint";
 import core from "ultracite/oxlint/core";
 import antiSlop from "ultracite/oxlint/anti-slop";
-import { clientModules, sourceModules, valueClosure } from "@qti-pie/plate/test/imports";
+import { plateClientModulesOf, plateModules } from "#tools/module-graph.ts";
 
 /**
  * Matches module declarations and calls without spacing local call groups.
@@ -88,23 +88,15 @@ const plateCorePatterns = [
 ];
 
 /**
- * Plate's own modules, read from disk as the config loads, by path under the package (`src/<x>`).
- */
-const plateModules = sourceModules();
-
-/**
  * Plate's modules outside `src/ui/` that a `"use client"` module loads, and so a page: what the
  * islands import from the core, and what that imports in turn, by path from the repository's root.
- * The list is derived as the config loads, by the reader plate's tests hold its module graph with
- * (`@qti-pie/plate/test/imports`): every `"use client"` module, and every module reached from one
- * through a declaration that loads its module (`import type` and `export type` load nothing), less
- * the UI's own. So a module that joins the closure joins the list, and nothing keeps the list by
- * hand.
+ * The list is derived as the config loads, by the root's one reader of plate's module graph
+ * (`plateClientModulesOf` in `#tools/module-graph.ts`): every `"use client"` module, and every
+ * module reached from one through a declaration that loads its module (`import type` and
+ * `export type` load nothing), less the UI's own. So a module that joins the closure joins the
+ * list, and nothing keeps the list by hand.
  */
-const plateClientModules = valueClosure(plateModules, clientModules(plateModules))
-  .filter((module) => !module.startsWith("src/ui/"))
-  .map((module) => `packages/plate/${module}`)
-  .toSorted();
+const plateClientModules = plateClientModulesOf(plateModules());
 
 /**
  * The React Compiler's rules, as the toolchain preset turns them on in edullm's apps: oxlint's
@@ -364,7 +356,7 @@ export default defineConfig({
     // A page loads these, so they take from `effect` only what costs a page little: no Schema, no
     // Effect runtime, no Brand. A type-only import loads nothing.
     {
-      files: plateClientModules,
+      files: [...plateClientModules],
       rules: {
         "no-restricted-imports": [
           "error",
@@ -458,13 +450,6 @@ export default defineConfig({
         "anti-slop/no-unknown-parameters": "off",
         "anti-slop/no-unsafe-dictionary-type": "off",
       },
-    },
-    // plate's import reader parses a module with the parser `vitest/node`, plate's declared test
-    // runner, re-exports only as `parseAst`: vite's `parseSync` would need vite declared beside it,
-    // and both parse with Oxc.
-    {
-      files: ["packages/plate/src/test/imports.ts"],
-      rules: { "typescript/no-deprecated": "off" },
     },
     // A PCI frame's boot is the boundary between the host and a PCI's own code: what an AMD module
     // exports, what a factory is handed and what a PCI returns as its state and its response are

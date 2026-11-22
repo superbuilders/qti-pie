@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import { noSupports } from "#plate/supports.ts";
 import type { Supports } from "#plate/supports.ts";
-import { sourceModules } from "#plate/test/imports.ts";
 import { tables } from "#plate/validate/tables.ts";
 import {
   baseTypes,
@@ -13,6 +13,27 @@ import {
   modelled,
   rendererClasses,
 } from "#plate/vocabulary.ts";
+
+/**
+ * Read the package's modules, tests included, by path under the package (`src/<x>`), the UI's
+ * `.tsx` among them: the text the censuses below read for data-* names and renderer classes. They
+ * read text alone, no import; plate's module graph is the root's to read (`tools/module-graph.ts`).
+ *
+ * @returns Each `.ts` and `.tsx` file under `src/`, in path order.
+ */
+const sourceModules = (): ReadonlyMap<string, string> => {
+  const root = new URL("./", import.meta.url);
+
+  return new Map(
+    readdirSync(root, { encoding: "utf-8", recursive: true })
+      .filter((file) => /\.tsx?$/u.test(file))
+      .toSorted()
+      .map((file) => [
+        `src/${file.split(path.sep).join("/")}`,
+        readFileSync(new URL(file, root), "utf-8"),
+      ]),
+  );
+};
 
 /**
  * Assert that a list holds each of its members once.
@@ -158,8 +179,8 @@ const unpresented = (
     (name) =>
       !styles.some((sheet) => new RegExp(`\\.${name}(?![\\w-])`, "u").test(sheet)) &&
       ![...sources].some(
-        ([path, source]) =>
-          !/\.test\.tsx?$/u.test(path) &&
+        ([module, source]) =>
+          !/\.test\.tsx?$/u.test(module) &&
           source.includes(`carriesRendererClass(`) &&
           source.includes(`"${name}"`),
       ),

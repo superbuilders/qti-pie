@@ -2,18 +2,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Schema } from "effect";
 import { readFileSync } from "node:fs";
 import { brandRedacted } from "#plate/redact/walk.ts";
-import { sourceModules, valueClosure } from "#plate/test/imports.ts";
 import { acceptForTest } from "#plate/validate/verdict.ts";
-
-/**
- * The package's sources, tests included, by path under the package.
- */
-const modules = sourceModules();
-
-/**
- * Every module the public surface reaches through declarations that load a module.
- */
-const closure = valueClosure(modules, ["src/index.ts"]);
 
 /**
  * The seams that make an accepted root or a `Redacted` without `openAdmitted` or `redact`: no
@@ -42,29 +31,6 @@ const exportedAmong = (
     named.has(name) || values.has(value) ? [name] : [],
   );
 };
-
-/**
- * The committed JSON modules the serving entries, `.` and the UI's `./ui` and `./ui/client`, may
- * load, each with what reads it while a host serves items. Any other JSON their
- * closure reaches is a table serving never reads, loaded and parsed on every cold start for
- * nothing.
- */
-const servedTables = {} satisfies Readonly<Record<string, string>>;
-
-/**
- * List the committed JSON modules the roots reach that {@link servedTables} does not name.
- *
- * @param sources The modules' sources, by path under the package (`src/<x>`).
- * @param roots The paths to start from.
- * @returns Each such JSON module, in the order the walk first reached it.
- */
-const unservedTables = (
-  sources: ReadonlyMap<string, string>,
-  roots: readonly string[],
-): readonly string[] =>
-  valueClosure(sources, roots).filter(
-    (module) => module.endsWith(".json") && !Object.hasOwn(servedTables, module),
-  );
 
 /**
  * The parts of `package.json` this witness reads.
@@ -162,44 +128,4 @@ describe("the published entries, every script entry of the exports map", () => {
         assert.deepStrictEqual(publishedAmong(published, seams), []);
       }),
   );
-
-  it("load from the UI's entries, ./ui and ./ui/client, no committed JSON but the block table, as the serving entry does", () => {
-    const { exports } = readManifest();
-    const roots = ["./ui", "./ui/client"].map(
-      (subpath) => exports[subpath]?.replace(/^\.\//u, "") ?? "",
-    );
-
-    assert.deepStrictEqual(roots, ["src/ui/index.ts", "src/ui/client.ts"]);
-    assert.deepStrictEqual(unservedTables(modules, roots), []);
-  });
-});
-
-describe("the core, from src/index.ts", () => {
-  it("reaches more than ten modules, redact, restore and openAdmitted among them", () => {
-    assert.isAbove(closure.length, 10);
-    assert.includeMembers(
-      [...closure],
-      ["src/redact.ts", "src/restore.ts", "src/validate/admitted.ts", "src/document/read.ts"],
-    );
-  });
-
-  it('loads from the serving entry, the exports map\'s ".", no committed JSON but the block table', () => {
-    const entry = readManifest().exports["."]?.replace(/^\.\//u, "") ?? "";
-
-    assert.strictEqual(entry, "src/index.ts");
-    assert.deepStrictEqual(unservedTables(modules, [entry]), []);
-  });
-
-  it("refuses a table serving never reads once the serving entry loads one (the plant)", () => {
-    const planted = new Map(modules);
-    planted.set(
-      "src/index.ts",
-      `${modules.get("src/index.ts") ?? ""}\nexport { default as planted } from "#plate/planted.generated.json" with { type: "json" };\n`,
-    );
-
-    assert.sameMembers(
-      [...unservedTables(planted, ["src/index.ts"])],
-      ["src/planted.generated.json"],
-    );
-  });
 });
