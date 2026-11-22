@@ -263,6 +263,11 @@ const packageOf = (name: CaseName): ReadonlyMap<string, Uint8Array> => {
   ]);
 };
 
+/**
+ * Every law the host judges, read once.
+ */
+const hostLaws = judgedLaws(Qti);
+
 layer(NodeServices.layer, { excludeTestServices: true })(
   "qti/package.ts, AlphaTest's shared stimulus shapes",
   (test) => {
@@ -308,7 +313,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   );
                   const host = judge(
                     previewRowsOf((yield* readProgram(dir, nameOf(dir))).inputs),
-                    judgedLaws(Qti),
+                    hostLaws,
                   );
                   assert.deepStrictEqual(
                     [...oracle].toSorted(),

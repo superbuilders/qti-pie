@@ -77,6 +77,11 @@ import { nodePlacesOf, placeKey } from "#pantry/test/places.ts";
 const testTimeoutMs = 600_000;
 
 /**
+ * Every law the host judges, read once.
+ */
+const hostLaws = judgedLaws(Qti);
+
+/**
  * The every-relation package the cases edit.
  */
 const base = everyRelationPackage({ choices: 2, hotspots: 1, hottexts: 1 });
@@ -436,7 +441,7 @@ describe("a gap match interaction's gaps", () => {
                 const breaches = judgment._tag === "Judged" ? judgment.breaches : [];
                 const oracle = new Set<string>(breaches.map(({ law }) => law));
                 const program = yield* readProgram(dir, nameOf(dir));
-                const host = judgeHost(previewRowsOf(program.inputs), judgedLaws(Qti));
+                const host = judgeHost(previewRowsOf(program.inputs), hostLaws);
                 const broken = lawNamesOf(host.broken);
                 const unjudged = lawNamesOf(host.skipped);
                 const shown = [

@@ -64,6 +64,11 @@ import { itemKind } from "#pantry/vocab/terms/tests.ts";
 const laws = lawsOf(grammar);
 
 /**
+ * The schema's row evaluator, compiled once.
+ */
+const evaluator = evaluatorFor(Qti);
+
+/**
  * One `xml:lang` form the box writes, and what RFC 5646 makes of its value, collapsed: the tag it
  * is, folded to small letters, or none for a form that is no tag.
  */
@@ -415,7 +420,7 @@ const documentLangOf = (rows: PreviewRows<typeof Qti>): readonly string[] => {
   const refusedOf = (ownersOf: (attribute: HeldRow) => readonly string[]): readonly string[] =>
     documentForms.flatMap((attribute) => {
       const value = lowerAscii(
-        textOf(withGenerated(evaluatorFor(Qti), Qti.relations.Attribute, attribute), "value"),
+        textOf(withGenerated(evaluator, Qti.relations.Attribute, attribute), "value"),
       );
 
       return value !== "" &&

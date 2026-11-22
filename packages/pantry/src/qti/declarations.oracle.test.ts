@@ -270,6 +270,11 @@ const declaringPackage = (identifier: string): PackageEntries =>
     ],
   ]);
 
+/**
+ * Every law the host judges, read once.
+ */
+const hostLaws = judgedLaws(Qti);
+
 describe("qti/declarations.ts, Declaration not reserved", () => {
   it("reserves an item's three session variables (reading 168)", () => {
     // Oracle: the specification as a checker, §2.2.2 by hand: an item's built-ins are numAttempts,
@@ -284,7 +289,6 @@ describe("qti/declarations.ts, Declaration not reserved", () => {
       // import's rows, and the specification's table by hand. Bound: an item by the three session
       // variables, 3 packages.
       Effect.gen(function* byParent() {
-        const hostLaws = judgedLaws(Qti);
         const oracleLaws = lawsOf(grammar);
         const cases = sessionVariables.map((identifier) => ({ identifier, refused: true }));
 
