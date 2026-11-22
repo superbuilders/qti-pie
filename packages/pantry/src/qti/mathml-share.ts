@@ -56,12 +56,12 @@
  * @see {@link https://www.w3.org/TR/MathML3/chapter4.html#contm.share | MathML 3 §4.2.7, share}
  */
 import { closedId, contained, counted, fin, law, on, relation, select } from "@bjornpagen/grizzle";
-import { NodeKind } from "#pantry/grammar/install.ts";
+import { NodeKind, natural } from "#pantry/grammar/install.ts";
 import { ShareFragment } from "#pantry/qti/identity.ts";
 import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Instance, AssembledDocument } from "#pantry/qti/tests.ts";
-import { entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * One MathML element a share can dominate or be dominated through, keyed by its node's

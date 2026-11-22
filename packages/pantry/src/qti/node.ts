@@ -77,22 +77,24 @@ import {
   FollowSetOf,
   GoverningOf,
   Governor,
-  interactionKinds,
   KindGovernor,
   Needs,
   NodeKind,
-  nonElementKinds,
-  openElementClasses,
   Position,
   SharedModelOf,
   SymbolMember,
   SymbolSetOf,
   TypeName,
   XsiType,
+  interactionKinds,
+  natural,
+  nonElementKinds,
+  openElementClasses,
 } from "#pantry/grammar/install.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * The first characters of an XML Namespaces NCName: XML 1.0's NameStartChar without the colon,

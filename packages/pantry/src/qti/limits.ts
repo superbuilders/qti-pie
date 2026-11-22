@@ -29,7 +29,7 @@ import {
 } from "@bjornpagen/grizzle";
 import type { Facts, Term } from "@bjornpagen/grizzle";
 import { Chars } from "#pantry/grammar/install.ts";
-import { entryOf } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * An NCName (Namespaces in XML 1.0, §3): XML 1.0's `NameStartChar` without the colon, then its

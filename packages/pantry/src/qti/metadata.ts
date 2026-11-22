@@ -106,14 +106,15 @@ import {
   Text,
 } from "@bjornpagen/grizzle";
 import type { NodeKind, ResourceType } from "#pantry/grammar/install.ts";
-import { anyText, BaseType, BaseTypeLexical } from "#pantry/grammar/install.ts";
+import { BaseType, BaseTypeLexical, anyText, natural } from "#pantry/grammar/install.ts";
 import { baseTypes } from "#pantry/grammar/attributes.ts";
 import { carries } from "#pantry/qti/attributes.ts";
 import { BaseTypePattern, unjudgedBaseTypes } from "#pantry/qti/expression-types.ts";
 import { CopiedLexical, EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { usageValueKind } from "#pantry/vocab/terms/metadata.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * The resource types whose LOM record names its document (reading 62): an item's and a test's.

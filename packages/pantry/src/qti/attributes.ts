@@ -115,7 +115,6 @@ import {
 import type { RowScalars } from "@bjornpagen/grizzle";
 import type { Identity } from "#pantry/grammar/install.ts";
 import {
-  anyText,
   AttributeCountOf,
   AttributeGrammar,
   AttributeModelOf,
@@ -128,12 +127,14 @@ import {
   KindNamespace,
   LeadingMembers,
   NodeKind,
-  openElementClasses,
   Required,
   TextDomain,
   ValueDomainOf,
-  universalDomains,
   ValueIdentity,
+  anyText,
+  natural,
+  openElementClasses,
+  universalDomains,
 } from "#pantry/grammar/install.ts";
 import { namingText, referenceIdentities } from "#pantry/grammar/domains.ts";
 import { openClasses } from "#pantry/grammar/kinds.ts";
@@ -143,7 +144,8 @@ import { EntryPath, PackageName, UriText, xmlNameBytes } from "#pantry/qti/limit
 import { holdsCheckedText, Node } from "#pantry/qti/node.ts";
 import { tokenFields, tokenPiece, whitespaceTokens } from "#pantry/qti/token-list.ts";
 import { dataName } from "#pantry/vocab/open.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * A lexical form that names something once collapsed, an NCName with XML whitespace around it

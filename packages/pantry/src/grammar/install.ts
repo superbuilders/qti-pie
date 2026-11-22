@@ -37,7 +37,16 @@
  * - An element's attributes and text are read under its governor ({@link GoverningOf}): its kind, or
  *   the type an `xsi:type` makes govern it (spec readings 60 and 84).
  */
-import { closed, closedId, fin, law, pg, slot, str } from "@bjornpagen/grizzle";
+import {
+  closed,
+  closedId,
+  fin,
+  law,
+  natural as builtinNatural,
+  pg,
+  slot,
+  str,
+} from "@bjornpagen/grizzle";
 import { Array as Arr, Option, pipe, Result } from "effect";
 import { attributeCounts, openDomain } from "#pantry/grammar/attributes.ts";
 import type { AttributeCount } from "#pantry/grammar/attributes.ts";
@@ -50,7 +59,16 @@ import { foreignKinds } from "#pantry/grammar/kinds.ts";
 import { toolLabelKindsOf } from "#pantry/grammar/labels.ts";
 import { patternLiteral } from "#pantry/grammar/names.ts";
 import { typeDerivations } from "#pantry/vocab/inventory/models.ts";
-import { entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
+
+/**
+ * Grizzle's contract `natural`, a bigint never below zero, with its law's entry: the type of every
+ * count, position and bit set of the model, so every field pantry types a natural is of it, the
+ * grammar's here and each schema module's. Each natural the import writes is a count or a position
+ * of its own rows, or a set of a closed relation's bits, and grizzle draws or accumulates the rest,
+ * so no row breaks it, and its law is the law of the values the import derives, "E1 derived".
+ */
+export const natural = law(entryOf("E1 derived"), builtinNatural);
 
 /**
  * The composed grammar of production, every relation below read from it.

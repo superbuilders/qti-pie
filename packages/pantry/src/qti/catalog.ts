@@ -52,7 +52,9 @@
 import { check, contained, key, law, on, relation } from "@bjornpagen/grizzle";
 import { attributesOf } from "#pantry/qti/attributes.ts";
 import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
+import { natural } from "#pantry/grammar/install.ts";
 
 /**
  * One `qti-catalog` that carries an ID, keyed by its element: its `id`, the ID's value as `IdValue`

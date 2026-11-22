@@ -48,7 +48,7 @@ import {
 import type { RelationName } from "@bjornpagen/grizzle";
 import { booleanFalse, booleanTrue } from "#pantry/grammar/domains.ts";
 import { fallbackKind } from "#pantry/grammar/include.ts";
-import { includeParentKinds } from "#pantry/grammar/install.ts";
+import { includeParentKinds, natural } from "#pantry/grammar/install.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { EntryPath, identifierBytes, keyedIdentifier, PackageName } from "#pantry/qti/limits.ts";
@@ -89,7 +89,7 @@ import {
   timeLimitsKind,
   weightKind,
 } from "#pantry/vocab/terms/tests.ts";
-import { declared, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
  * The `identifier` of each test part, section, item ref and stimulus ref, by its element's place,

@@ -11,6 +11,7 @@ import { tupleKey } from "#pantry/grammar/closed.ts";
 import { declaredRelation } from "#pantry/test/declared.ts";
 import { composed } from "#pantry/grammar/compose.ts";
 import { documentRoots } from "#pantry/grammar/facets.ts";
+import { includeKind } from "#pantry/grammar/include.ts";
 import { foreignKinds, isForeignKind } from "#pantry/grammar/kinds.ts";
 import { asiNamespace, mathmlNamespace, ssmlNamespace } from "#pantry/vocab/namespaces.ts";
 import * as open from "#pantry/vocab/open.ts";
@@ -67,6 +68,16 @@ const restatedWildcard = (
   wildcard: ReturnType<typeof wildcardsOf>[number],
 ): ReturnType<typeof wildcardsOf>[number] =>
   parent === "qti-ordering" ? { ...wildcard, namespace: "##any" } : wildcard;
+
+/**
+ * The parents whose wildcards the spec readings read as `skip`, which admit an element of the
+ * namespaces they name but find it no declaration, so it stands as its namespace class's foreign
+ * kind: spec reading 118 reads `xi:include`'s two wildcards so, where `XInclude.xsd`'s
+ * `includeType` writes them `lax`, since XInclude ignores that content ("Other content ... is not
+ * constrained by this specification and is ignored by the XInclude processor", XInclude 1.0 Second
+ * Edition §3.1; `facets.ts`, `ignoredContent`).
+ */
+const skippingParents: ReadonlySet<string> = new Set([includeKind]);
 
 /**
  * The composed grammar of production, failing the test that reads it when a generator refuses.
@@ -246,8 +257,9 @@ describe("Admission against the XSD", () => {
       // declaration any of their sets holds, as reading 81's limit says. The document node
       // declares the roots its model (R5) names, spec reading 44 takes `voice` out of
       // `ssml:token` and `ssml:w`, spec reading 22 takes `qti-template-constraint` out of the
-      // template branches (`takenOut`), and spec reading 61 reads `qti-ordering`'s wildcard as
-      // `##any` (`restatedWildcard`). The box is every parent the walks reach, by every
+      // template branches (`takenOut`), spec reading 61 reads `qti-ordering`'s wildcard as
+      // `##any` (`restatedWildcard`), and spec reading 118 reads `xi:include`'s as `skip`, which
+      // finds no declaration (`skippingParents`). The box is every parent the walks reach, by every
       // element name.
       Effect.gen(function* locality() {
         const { kinds } = yield* grammar;
@@ -306,9 +318,9 @@ describe("Admission against the XSD", () => {
                 }
               }
 
-              for (const wildcard of wildcardsOf(particle).map((held) =>
-                restatedWildcard(parent, held),
-              )) {
+              for (const wildcard of wildcardsOf(particle)
+                .filter(() => !skippingParents.has(parent))
+                .map((held) => restatedWildcard(parent, held))) {
                 for (const name of names) {
                   const key = `{${name.namespace}}${name.local}`;
                   if (

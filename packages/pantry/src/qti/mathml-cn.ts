@@ -64,7 +64,6 @@ import {
   Text,
 } from "@bjornpagen/grizzle";
 import {
-  anyText,
   AttributeName,
   CnBase,
   CnBaseSpelling,
@@ -75,11 +74,13 @@ import {
   CnPattern,
   CnType,
   CnTypeSpelling,
+  anyText,
+  natural,
 } from "#pantry/grammar/install.ts";
 import { CopiedLexical, EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * One judged `m:cn`, keyed by its node's `(package, path, start)`.

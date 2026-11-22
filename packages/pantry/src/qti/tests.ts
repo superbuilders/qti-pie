@@ -81,10 +81,11 @@ import {
   Flag,
   Governor,
   IncludeMember,
-  includeParentKinds,
   IncludeSetOf,
-  SplitRoot,
   NodeKind,
+  SplitRoot,
+  includeParentKinds,
+  natural,
 } from "#pantry/grammar/install.ts";
 import { attributesOf } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
@@ -102,7 +103,8 @@ import {
   splicingParents,
   stimulusRefKind,
 } from "#pantry/vocab/terms/tests.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * An assembled document, keyed by its `(package, path)`, its `Document`'s key: the counts of its

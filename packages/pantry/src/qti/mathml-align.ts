@@ -85,11 +85,11 @@ import {
   Text,
   Type,
 } from "@bjornpagen/grizzle";
-import { anyText } from "#pantry/grammar/install.ts";
+import { anyText, natural } from "#pantry/grammar/install.ts";
 import { CopiedLexical, EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * The `AlignState` roster: where an element stands in its table cell, `closed` where an element

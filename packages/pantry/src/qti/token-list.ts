@@ -53,8 +53,8 @@ import {
   Text,
 } from "@bjornpagen/grizzle";
 import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
-import { anyText } from "#pantry/grammar/install.ts";
-import { entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { anyText, natural } from "#pantry/grammar/install.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * XML whitespace `S`, possibly none. A lexical form holds it around its token or value: every

@@ -31,8 +31,9 @@ import { check, contained, law, on, relation, select, Text } from "@bjornpagen/g
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { EntryPath, PackageName, SsmlMemberText } from "#pantry/qti/limits.ts";
 import { dataSsmlMembers } from "#pantry/vocab/data-ssml.ts";
-import { anyText } from "#pantry/grammar/install.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { anyText, natural } from "#pantry/grammar/install.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * A text with no tab, line feed or carriage return: an `xs:normalizedString`'s value.

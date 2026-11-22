@@ -63,7 +63,9 @@ import {
   whitespaceTokens,
 } from "#pantry/qti/token-list.ts";
 import { cellKinds } from "#pantry/vocab/terms/html.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
+import { natural } from "#pantry/grammar/install.ts";
 
 /**
  * The kinds of the media elements, whose `source` children carry `src` (reading 124).

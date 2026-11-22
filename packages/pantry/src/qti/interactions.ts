@@ -128,7 +128,6 @@ import type { RowScalars } from "@bjornpagen/grizzle";
 import { pipe, Record as Rec } from "effect";
 import { booleanTrue } from "#pantry/grammar/domains.ts";
 import {
-  anyText,
   AttributeName,
   BindingFit,
   BuiltInVariable,
@@ -136,9 +135,11 @@ import {
   ChoiceCount,
   ContentReference,
   Enters,
-  interactionKinds,
   NodeKind,
   RecordBindingFit,
+  anyText,
+  interactionKinds,
+  natural,
 } from "#pantry/grammar/install.ts";
 import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
@@ -160,7 +161,8 @@ import {
   referringRoots,
 } from "#pantry/vocab/terms/interactions.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * A `NodeKind` handle.

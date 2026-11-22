@@ -1034,3 +1034,15 @@ export const lawTable = {
     source: "the XDM whitespace nodes as rows (plan §1.4)",
   },
 } as const satisfies Readonly<Record<string, LawEntry>>;
+
+/**
+ * A law's catalog entry, as grizzle's `law` declares it where the law comes from: the law table's
+ * row of its name, its name and the table's source of it.
+ *
+ * @param name - The law's name, its row of the law table.
+ * @returns The entry.
+ */
+export const entryOf = (name: keyof typeof lawTable) => ({
+  name,
+  source: lawTable[name].source,
+});

@@ -79,7 +79,6 @@ import {
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import {
-  anyText,
   AttributeName,
   DocumentType,
   NodeKind,
@@ -87,6 +86,8 @@ import {
   ResourceDocumentType,
   ResourceType,
   RootOfType,
+  anyText,
+  natural,
 } from "#pantry/grammar/install.ts";
 import { textReferenceKinds } from "#pantry/grammar/references.ts";
 import { Attribute, attributesOf, namedOn } from "#pantry/qti/attributes.ts";
@@ -102,7 +103,8 @@ import {
 } from "#pantry/qti/token-list.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { includeKind } from "#pantry/vocab/terms/tests.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * A `#` anywhere in a text: an `xi:include`'s parameters that hold a fragment identifier.

@@ -80,10 +80,11 @@ import { ncNamePattern } from "#pantry/grammar/domains.ts";
 import {
   AttributeName,
   BaseType,
-  builtInBaseTypes,
   BuiltInVariable,
   NodeKind,
   VariableReference,
+  builtInBaseTypes,
+  natural,
 } from "#pantry/grammar/install.ts";
 import { Attribute, namingPattern } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
@@ -117,7 +118,8 @@ import {
   valueBaseOf,
   valueCardinalityOf,
 } from "#pantry/vocab/terms/expression-types.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * What a reference's lexical form holds around the name it spells: XML whitespace `S`, possibly

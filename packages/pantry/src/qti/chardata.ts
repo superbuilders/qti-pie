@@ -49,17 +49,19 @@ import {
   Chars,
   DocumentType,
   Flag,
-  interactionKinds,
   KindGovernor,
   NodeKind,
+  TypeName,
+  interactionKinds,
+  natural,
   nonElementKinds,
   openElementClasses,
-  TypeName,
 } from "#pantry/grammar/install.ts";
 import { EntryPath, foreignNameBytes, PackageName, xmlNameBytes } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * XML 1.0's `Char` as the body of a class: tab, line feed, carriage return and every scalar from

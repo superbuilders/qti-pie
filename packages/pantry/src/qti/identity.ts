@@ -131,8 +131,9 @@ import {
   Identity,
   NodeKind,
   TextDomain,
-  toolLabelKinds,
   ValueIdentity,
+  natural,
+  toolLabelKinds,
 } from "#pantry/grammar/install.ts";
 import { Attribute, attributesOf, identityIn, Idref, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
@@ -148,7 +149,8 @@ import {
 } from "#pantry/qti/token-list.ts";
 import { idSpaceAttributes, ssmlReads } from "#pantry/vocab/terms/identity.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * One ID of a document, keyed by the element that carries it, `(package, path, start)`: XML Schema

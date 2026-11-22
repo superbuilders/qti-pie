@@ -72,8 +72,9 @@ import {
   whitespaceTokens,
 } from "#pantry/qti/token-list.ts";
 import { roundingKinds, roundingModes } from "#pantry/vocab/terms/operators.ts";
-import { anyText } from "#pantry/grammar/install.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { anyText, natural } from "#pantry/grammar/install.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
  * Which of reading 119's two inputs a rounding operator has, its {@link Rounding} row's `holds`:

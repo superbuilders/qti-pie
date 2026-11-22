@@ -57,7 +57,9 @@ import { contained, key, law, on, relation, select } from "@bjornpagen/grizzle";
 import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
 import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
+import { declared } from "#pantry/qti/law-entries.ts";
+import { entryOf } from "#pantry/vocab/laws.ts";
+import { natural } from "#pantry/grammar/install.ts";
 
 /**
  * A map entry's overlay, keyed by its `qti-map-entry` element's place: its `map-key` as written.

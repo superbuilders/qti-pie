@@ -57,8 +57,14 @@ export interface SpecDocument {
 
 /**
  * The IMS specifications the law sources cite: the QTI 3.0 and 3.0.1 information models, the QTI
- * 3.0 XML binding, the metadata and usage-data bindings, and Data-SSML 1.0, the JSON a closed
- * `data-ssml` holds, which the QTI 3.0 implementation guide names as its definition.
+ * 3.0 XML binding, the metadata and usage-data bindings, Data-SSML 1.0, the JSON a closed
+ * `data-ssml` holds, which the QTI 3.0 implementation guide names as its definition, and the QTI
+ * 3.0 conformance and certification document, whose §3 states what an application does with data
+ * it does not support. That document marks no section either way: its §1.2 says "All sections
+ * marked as non-normative ... are non-normative. Everything else in this specification is
+ * normative." IMS publishes it only as a page whose settings script carries a token of its own on
+ * every request, so its pin is the copy fetched on 2026-11-22, which a fresh download never
+ * matches.
  */
 export const specDocuments: readonly SpecDocument[] = [
   {
@@ -108,6 +114,14 @@ export const specDocuments: readonly SpecDocument[] = [
     text: "datassml/infobind.txt",
     textSha256: "54eb1ac14b80dfd7eb4d71f682f9d917a9b97143693797190c286ec619af7d62",
     url: "https://www.imsglobal.org/sites/default/files/spec/qti/v3/data-ssml_infobind/imsqtiv3p0_datassml_v1p0_InfoBind.html",
+  },
+  {
+    html: "qti-conf/conf.html",
+    htmlSha256: "2b2c860e16ee6c7ae10863c43d33e2efe071f2f29d8544a9b0301247e2b20279",
+    name: "the QTI 3.0 conformance and certification document",
+    text: "qti-conf/conf.txt",
+    textSha256: "aa6e54fe1b7377dd345826fb4640a2aa8463035f70be712deca9202f042a8e6d",
+    url: "https://www.imsglobal.org/spec/qti/v3p0/conf",
   },
 ];
 

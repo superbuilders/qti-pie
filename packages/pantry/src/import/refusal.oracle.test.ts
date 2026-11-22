@@ -45,7 +45,7 @@ import { checkNameOf, lawNameOf, refusalOf, ruleOfLaw, rulesOf } from "#pantry/i
 import type { LawName } from "#pantry/import/refusal.ts";
 import { readerOrigin } from "#pantry/package/refusal-origin.ts";
 import { Qti } from "#pantry/qti/schema.ts";
-import { lawTable, precedence } from "#pantry/vocab/laws.ts";
+import { entryOf, lawTable, precedence } from "#pantry/vocab/laws.ts";
 import { beginsWith, mergedAxes } from "#pantry/test/merged-axes.ts";
 import type { Axis } from "#pantry/test/merged-axes.ts";
 import { UnmodeledVocabulary, unmodeledReasons, XmlVersionRefused } from "#pantry/model/shred.ts";
@@ -54,7 +54,6 @@ import { ZipRefusal } from "#pantry/package/zip.ts";
 import { ImportRefused, ImportRule, limitRules, ruleOfError } from "#pantry/import/rules.ts";
 import type { ReadRefusal, Rule } from "#pantry/import/rules.ts";
 import { plantedLaw, refusedOf, schemaLawsOf, statedLaws } from "#pantry/test/law-namer.ts";
-import { entryOf } from "#pantry/qti/law-entries.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
 
 /**
