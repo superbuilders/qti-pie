@@ -32,8 +32,9 @@ export interface MigrationFile {
 export type LawFamily = "alternatives" | "capacity" | "mirror" | "other" | "selectedSource";
 
 /**
- * The kind of an installed function: a law's trigger function; a roster's `live` set, the bits of
- * its live handles that its bits domain admits (no arguments, a `bit varying`, `…_live_…`); a
+ * The kind of an installed function: a law's trigger function; a roster's live-codes constant, the
+ * bits of its live handles, which its domain's CHECK and its sets' domain's CHECK read, one per
+ * roster since grizzle `503d4bd03` (no arguments, a `bit varying`, `…_live_…`); a
  * closed side's constant (no arguments, a `bit varying`); a roster's names constant (no arguments,
  * a `name[]`); a closed relation's payload of open-typed values (no arguments, any other array); a
  * roster's decode function (`<roster>_name`, a `text`); or another, which today is grizzle's own

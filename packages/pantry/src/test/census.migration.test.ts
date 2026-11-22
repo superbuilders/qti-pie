@@ -85,7 +85,11 @@ describe("the committed migration", () => {
           membersOf("closed"),
           "a names constant per roster",
         );
-        assert.strictEqual(held.functions.live, held.domains.bits, "a live set per bits domain");
+        assert.strictEqual(
+          held.functions.live,
+          membersOf("closed"),
+          "a live-codes constant per roster",
+        );
       }).pipe(Effect.provide(NodeServices.layer)),
   );
 });
