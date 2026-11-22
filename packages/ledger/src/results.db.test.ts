@@ -132,14 +132,17 @@ const TIMED_TEST = "timed.xml";
 const LATE_TEST = "late.xml";
 
 /**
- * The item ref a test names its first member by, the one its start presents.
+ * The item ref a test names its first member by, the one its start presents, and that item's own
+ * identifier: QTI holds a ref's identifier to its item's (information model §4.1.1, pantry's "Item
+ * ref identifier").
  */
 const MEMBER = "member";
 
 /**
- * The item ref a test names its second member by, which no case presents: an individual part's end
- * attempts only the members presented, so a save of it after the end reaches the laws, where a save
- * of a member the end closed finds no open item session and writes nothing.
+ * The item ref a test names its second member by, and that item's own identifier, which no case
+ * presents: an individual part's end attempts only the members presented, so a save of it after
+ * the end reaches the laws, where a save of a member the end closed finds no open item session and
+ * writes nothing.
  */
 const SAVED = "saved";
 
@@ -977,8 +980,8 @@ const published = Effect.gen(function* publish() {
   for (const adaptive of [true, false]) {
     yield* fs.writeFileString(`${dir}/${drawPathOf(adaptive)}`, drawXmlOf(adaptive));
   }
-  yield* fs.writeFileString(`${dir}/${SHORT}`, textEntryXml("short"));
-  yield* fs.writeFileString(`${dir}/${OTHER}`, textEntryXml("other"));
+  yield* fs.writeFileString(`${dir}/${SHORT}`, textEntryXml(MEMBER));
+  yield* fs.writeFileString(`${dir}/${OTHER}`, textEntryXml(SAVED));
   for (const [path, xml] of tests) {
     yield* fs.writeFileString(`${dir}/${path}`, xml);
   }
@@ -1006,9 +1009,10 @@ const rowsOf = <K extends Parameters<typeof decoder.decode>[0]>(
 
 /**
  * The seed every case's item session draws under (`SessionSeed`), which nothing the table reads
- * depends on.
+ * depends on: a seed is a SHA-256, 32 raw bytes, as the take computes one, so the suite's is the
+ * digest of `result-suite`'s UTF-8 bytes.
  */
-const SEED = "result-suite";
+const SEED = Sha256.ofBytes(new TextEncoder().encode("result-suite"));
 
 /**
  * The scorer of a person's value, the suite's own.
@@ -1070,7 +1074,7 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
       facts: {
         insert: {
           Attempt: rowsOf("Attempt", [key]),
-          ItemSession: rowsOf("ItemSession", [{ ...key, stage }]),
+          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: ESSAY, stage }]),
           ProcessedAttempt: rowsOf(
             "ProcessedAttempt",
             c.history ? [{ ...key, completionStatus: "completed" }] : [],
@@ -1340,9 +1344,7 @@ const holdTake = (c: TakeCase, child: string, note: (situation: TakeSituation) =
       facts: {
         insert: {
           Attempt: rowsOf("Attempt", []),
-          ItemSession: rowsOf("ItemSession", [
-            { child, n: 0n, package: PACKAGE, path: TAKE, stage },
-          ]),
+          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: TAKE, stage }]),
           ProcessedAttempt: rowsOf("ProcessedAttempt", []),
           ResponseSnapshot: rowsOf("ResponseSnapshot", []),
           SessionSeed: rowsOf("SessionSeed", [
@@ -1506,7 +1508,7 @@ const holdOperators = (
       facts: {
         insert: {
           Attempt: rowsOf("Attempt", [key]),
-          ItemSession: rowsOf("ItemSession", [{ ...key, stage }]),
+          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: OPERATORS, stage }]),
           ProcessedAttempt: rowsOf("ProcessedAttempt", []),
           ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
           SessionSeed: rowsOf("SessionSeed", [
@@ -1587,7 +1589,10 @@ const holdDrawCase = (c: DrawCase, child: string, note: (situation: DrawSituatio
         facts: {
           insert: {
             Attempt: rowsOf("Attempt", [key]),
-            ItemSession: rowsOf("ItemSession", first ? [{ ...key, stage }] : []),
+            ItemSession: rowsOf(
+              "ItemSession",
+              first ? [{ child, package: PACKAGE, path, stage }] : [],
+            ),
             ProcessedAttempt: rowsOf("ProcessedAttempt", []),
             ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
             SessionSeed: rowsOf(
