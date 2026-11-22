@@ -37,6 +37,8 @@ import type {
   ReferencingChoice,
   SimpleChoice,
 } from "#plate/model/item.ts";
+import { shadeOf } from "#plate/interactions/plot-roles.ts";
+import type { ShadeDirection } from "#plate/interactions/plot-roles.ts";
 import { format } from "#plate/model/values.ts";
 import { presentedOrder } from "#plate/shuffle.ts";
 
@@ -91,6 +93,13 @@ export interface ChoiceInteraction<
    */
   readonly orientation: "horizontal" | "vertical";
   readonly prompt: Option.Option<Nodes<L>>;
+  /**
+   * The choices whose class names a way a number line's ray runs, `plate-shade-left` or
+   * `plate-shade-right` (`shadeOf` in `#plate/interactions/plot-roles.ts`), in document order:
+   * what a Graphic Gap Match drawn as a number line reads of the item's shading interaction (R7).
+   * Empty for every other Choice.
+   */
+  readonly shades: readonly { readonly direction: ShadeDirection; readonly identifier: string }[];
   readonly shuffle: boolean;
 }
 
@@ -271,8 +280,14 @@ const parse = (
   const orientation = read.enumerated(source, "orientation", orientations);
   const prompt = read.content(source, "qti-prompt");
   const choices: SimpleChoice[] = [];
+  const shades: { readonly direction: ShadeDirection; readonly identifier: string }[] = [];
   for (const choice of read.childrenNamed(source, "qti-simple-choice")) {
-    choices.push(simpleChoiceOf(read, choice));
+    const simple = simpleChoiceOf(read, choice);
+
+    choices.push(simple);
+    for (const direction of Option.toArray(shadeOf(read.valueOf(choice, "class")))) {
+      shades.push({ direction, identifier: simple.identifier });
+    }
   }
 
   return {
@@ -292,6 +307,7 @@ const parse = (
     path,
     prompt,
     response: bound.identifier,
+    shades,
     shuffle,
   } satisfies Parsed<ChoiceInteraction>;
 };

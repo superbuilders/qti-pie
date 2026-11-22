@@ -350,6 +350,24 @@ export const rendererClasses = {
    */
   "plate-arrow-up": "an arrow above the hotspot, pointing up",
   /**
+   * On a `qti-graphic-gap-match-interaction`: a box plot over its number line, a box from the first
+   * quartile to the third, the median across it and whiskers out to the minimum and the maximum,
+   * each drawn from where its statistic stands (the `plate-stat-*` classes), as AlphaTest's box
+   * plot drew them (`#plate/graphic/plot.ts`, R8).
+   */
+  "plate-box-plot": "a box plot drawn from its statistics",
+  /**
+   * On a `qti-graphic-gap-match-interaction`: a line drawn through the two hotspots each gap text
+   * is placed on, out to the edges of the plot the hotspots tile, as AlphaTest's line graphs drew
+   * one through two clicks (`#plate/graphic/plot.ts`, R6).
+   */
+  "plate-graph-line": "a line through each gap text's two places",
+  /**
+   * On a `qti-graphic-gap-match-interaction`: a segment drawn between the two hotspots each gap
+   * text is placed on (`#plate/graphic/plot.ts`, R6).
+   */
+  "plate-graph-segment": "a segment between each gap text's two places",
+  /**
    * On a `span`: a highlighted run of text, filled as a highlighter marks it (theme.css).
    */
   "plate-highlight": "a highlighted run of text",
@@ -363,6 +381,13 @@ export const rendererClasses = {
    */
   "plate-lattice": "a graph whose hotspots tile its plot",
   /**
+   * On a `qti-graphic-gap-match-interaction`: a number line whose gap texts draw open or closed
+   * dots where they are placed (`plate-point-open`, `plate-point-closed`), and the ray the item's
+   * shading interaction asks for (`plate-shade`), as AlphaTest's number line drew an inequality
+   * (`#plate/graphic/plot.ts`, R7).
+   */
+  "plate-number-line-graph": "a number line with dots and a ray",
+  /**
    * On a `qti-order-interaction`: one numbered list of the choices in their presented order, which
    * the child reorders by a drag, a tap or a key, each move a swap, posting nothing until the first
    * move and then always the full order (`#plate/ui/order/order.tsx`).
@@ -374,11 +399,58 @@ export const rendererClasses = {
    */
   "plate-paragraph-number": "a paragraph's number, as a badge",
   /**
+   * On a number line's `qti-gap-text`: a filled dot where it is placed, an endpoint the set holds
+   * (`pointStyleOf` in `#plate/interactions/plot-roles.ts`, R7).
+   */
+  "plate-point-closed": "a filled dot on a number line",
+  /**
+   * On a number line's `qti-gap-text`: a hollow dot where it is placed, an endpoint the set leaves
+   * out (`pointStyleOf` in `#plate/interactions/plot-roles.ts`, R7).
+   */
+  "plate-point-open": "a hollow dot on a number line",
+  /**
+   * On the item's `qti-choice-interaction` that says which way a number line's set runs: its
+   * response runs the line's ray from the leftmost dot (`shadingOf` in
+   * `#plate/ui/item/interactions/graphic-gap-match.tsx`, R7).
+   */
+  "plate-shade": "the choice that runs a number line's ray",
+  /**
+   * On a shading interaction's `qti-simple-choice`: picked, it runs the ray to the line's left end
+   * (`shadeOf` in `#plate/interactions/plot-roles.ts`, R7).
+   */
+  "plate-shade-left": "a ray to the number line's left end",
+  /**
+   * On a shading interaction's `qti-simple-choice`: picked, it runs the ray to the line's right end
+   * (`shadeOf` in `#plate/interactions/plot-roles.ts`, R7).
+   */
+  "plate-shade-right": "a ray to the number line's right end",
+  /**
    * On a `qti-slider-interaction`: no readout of the value and no labels of the bounds or steps,
    * which would show the answer, and a hint to drag the handle while no value is chosen
    * (`#plate/ui/slider/slider.tsx`); the thumb still tells a screen reader its value.
    */
   "plate-slider-value-hidden": "a slider that shows no value",
+  /**
+   * On a box plot's `qti-gap-text`, or on the hotspot a given statistic stands on: the box plot's
+   * maximum (`statisticOf` in `#plate/interactions/plot-roles.ts`, R8).
+   */
+  "plate-stat-max": "a box plot's maximum",
+  /**
+   * The same, for the median.
+   */
+  "plate-stat-median": "a box plot's median",
+  /**
+   * The same, for the minimum.
+   */
+  "plate-stat-min": "a box plot's minimum",
+  /**
+   * The same, for the first quartile.
+   */
+  "plate-stat-q1": "a box plot's first quartile",
+  /**
+   * The same, for the third quartile.
+   */
+  "plate-stat-q3": "a box plot's third quartile",
 } as const;
 
 /**

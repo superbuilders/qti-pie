@@ -346,7 +346,7 @@ const boundaryDistance = (vertices: readonly Vertex[], x: number, y: number): nu
 /**
  * A box in the image's pixels: its left, top, right and bottom edges.
  */
-interface Box {
+export interface Box {
   readonly bottom: number;
   readonly left: number;
   readonly right: number;
@@ -520,42 +520,62 @@ export const interiorOf = (drawing: Drawing): Interior => {
 };
 
 /**
- * Give the point straight above or below the middle of an area's box, on the box's top or bottom
- * edge, where an arrow drawn beside the area stands clear of it, as AlphaTest's player stood one
- * centred over or under its drop box: a `rect`'s top or bottom edge at its middle, a `circle`'s or
- * an `ellipse`'s topmost or bottommost point, and the middle of a `poly`'s box's top or bottom
- * edge.
+ * Give the box an area's drawing spans, in the image's pixels: a `rect`'s own, a `circle`'s or an
+ * `ellipse`'s about its centre, and a `poly`'s vertices' extent.
  *
  * @param drawing The area's drawing.
- * @param side The box's edge: its top, or its bottom.
- * @returns The point, in the image's pixels.
+ * @returns Its box.
  */
-export const edgeOf = (drawing: Drawing, side: "bottom" | "top"): ImagePoint => {
+export const boundsOf = (drawing: Drawing): Box => {
   switch (drawing.element) {
     case "circle": {
-      return { x: drawing.cx, y: side === "top" ? drawing.cy - drawing.r : drawing.cy + drawing.r };
+      return {
+        bottom: drawing.cy + drawing.r,
+        left: drawing.cx - drawing.r,
+        right: drawing.cx + drawing.r,
+        top: drawing.cy - drawing.r,
+      };
     }
     case "ellipse": {
       return {
-        x: drawing.cx,
-        y: side === "top" ? drawing.cy - drawing.ry : drawing.cy + drawing.ry,
+        bottom: drawing.cy + drawing.ry,
+        left: drawing.cx - drawing.rx,
+        right: drawing.cx + drawing.rx,
+        top: drawing.cy - drawing.ry,
       };
     }
     case "polygon": {
-      const box = boxOfVertices(drawing.vertices);
-
-      return { x: (box.left + box.right) / 2, y: side === "top" ? box.top : box.bottom };
+      return boxOfVertices(drawing.vertices);
     }
     case "rect": {
       return {
-        x: drawing.x + drawing.width / 2,
-        y: side === "top" ? drawing.y : drawing.y + drawing.height,
+        bottom: drawing.y + drawing.height,
+        left: drawing.x,
+        right: drawing.x + drawing.width,
+        top: drawing.y,
       };
     }
     default: {
       return drawing satisfies never;
     }
   }
+};
+
+/**
+ * Give the point straight above or below the middle of an area's box ({@link boundsOf}), on the
+ * box's top or bottom edge, where an arrow drawn beside the area stands clear of it, as AlphaTest's
+ * player stood one centred over or under its drop box: a `rect`'s top or bottom edge at its middle,
+ * a `circle`'s or an `ellipse`'s topmost or bottommost point, and the middle of a `poly`'s box's
+ * top or bottom edge.
+ *
+ * @param drawing The area's drawing.
+ * @param side The box's edge: its top, or its bottom.
+ * @returns The point, in the image's pixels.
+ */
+export const edgeOf = (drawing: Drawing, side: "bottom" | "top"): ImagePoint => {
+  const box = boundsOf(drawing);
+
+  return { x: (box.left + box.right) / 2, y: side === "top" ? box.top : box.bottom };
 };
 
 /**

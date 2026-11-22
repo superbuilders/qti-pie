@@ -21,12 +21,13 @@ import type { ReactNode } from "react";
 import { Option } from "effect";
 import type { ArrowDirection } from "#plate/interactions/area.ts";
 import { countsOf } from "#plate/interactions/counts.ts";
-import { scopedId } from "#plate/form/encoding.ts";
+import { entryName, scopedId } from "#plate/form/encoding.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { PayloadOf } from "#plate/model/interactions.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { ChoiceMeasure } from "#plate/ui/graphic-gap-match/fit.ts";
 import { HotspotArrows } from "#plate/ui/graphic-gap-match/arrows.tsx";
+import { PlotMarks, PlotPins } from "#plate/ui/graphic-gap-match/figures.tsx";
 import { GraphicGapMatch } from "#plate/ui/graphic-gap-match/graphic-gap-match.tsx";
 import type { GraphicGapHotspot } from "#plate/ui/graphic-gap-match/graphic-gap-match.tsx";
 import { graphicGapMatchKeys } from "#plate/ui/graphic-gap-match/labels.ts";
@@ -35,7 +36,13 @@ import { GraphicMark } from "#plate/ui/graphic/drawn.tsx";
 import { StageFrame, reviewStageOf } from "#plate/ui/graphic/frame.tsx";
 import { paintedOf } from "#plate/graphic/geometry.ts";
 import { floorWidthOf } from "#plate/graphic/scale.ts";
-import { floorOf } from "#plate/graphic/plot.ts";
+import { figuresOf, floorOf, plotKindOf, shadeDirectionOf } from "#plate/graphic/plot.ts";
+import type { PlotChoice, ShadeLink } from "#plate/graphic/plot.ts";
+import { redactedInteractionsIn } from "#plate/model/interactions.ts";
+import type { ResponseValue } from "#plate/model/values.ts";
+import { carriesRendererClass } from "#plate/vocabulary.ts";
+import type { ImageSize } from "#plate/interactions/image-size.ts";
+import type { Statistic } from "#plate/interactions/plot-roles.ts";
 import { sizeOf } from "#plate/ui/graphic/size.ts";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
@@ -65,16 +72,78 @@ import type { Paired } from "#plate/payload.ts";
  * @returns The hotspots.
  */
 const hotspotsOf = (
-  hotspots: readonly (Omit<GraphicGapHotspot, "arrow" | "matchMax"> & {
+  hotspots: readonly (Omit<GraphicGapHotspot, "arrow" | "matchMax" | "statistic"> & {
     readonly arrow: Option.Option<ArrowDirection>;
     readonly matchMax: bigint;
+    readonly statistic: Option.Option<Statistic>;
   })[],
 ): readonly GraphicGapHotspot[] =>
   hotspots.map((hotspot) => ({
     ...hotspot,
     arrow: Option.getOrUndefined(hotspot.arrow),
     matchMax: limitOf(hotspot.matchMax),
+    statistic: Option.getOrUndefined(hotspot.statistic),
   }));
+
+/**
+ * Find the item's shading interaction a Graphic Gap Match drawn as a number line reads (R7): the
+ * first `qti-choice-interaction` of the item's body whose class holds `plate-shade`, with the entry
+ * name its response posts under and its choices that run the ray left and right; none where the
+ * plot is no number line or the item holds no such interaction.
+ *
+ * @param context What the shell knows: the root's class, the body and the instance.
+ * @returns The shading interaction and its response's identifier, none for none.
+ */
+const shadingOf = (
+  context: Pick<IslandContext, "body" | "className" | "instance">,
+): { readonly link: ShadeLink; readonly response: string } | undefined => {
+  if (plotKindOf(context.className) !== "number-line") {
+    return undefined;
+  }
+
+  const choice = redactedInteractionsIn(context.body).find(
+    (node) => node.kind === "choice" && carriesRendererClass(node.class, "plate-shade"),
+  );
+
+  if (choice?.kind !== "choice") {
+    return undefined;
+  }
+
+  return {
+    link: {
+      left: choice.shades.find((shade) => shade.direction === "left")?.identifier,
+      name: entryName(context.instance, choice.response),
+      right: choice.shades.find((shade) => shade.direction === "right")?.identifier,
+    },
+    response: choice.response,
+  };
+};
+
+/**
+ * Give a gap choice as the plot reads it: its identifier, the dot its class asks for and the
+ * statistic its class says it places.
+ *
+ * @param choice The choice, as the payload holds it.
+ * @returns The plot's choice.
+ */
+const plotChoiceOf = (choice: PayloadOf<"graphic-gap-match">["choices"][number]): PlotChoice => ({
+  identifier: choice.identifier,
+  point: Option.getOrUndefined(choice.point),
+  statistic: Option.getOrUndefined(choice.statistic),
+});
+
+/**
+ * Give the identifiers a shown response holds, as a review shows the shading interaction's: each
+ * identifier value of a single or multiple response, none for a response the review shows no value
+ * of, or of another base type.
+ *
+ * @param value The response's shown value, none where the review shows none.
+ * @returns The identifiers.
+ */
+const pickedIn = (value: ResponseValue | undefined): readonly string[] =>
+  value === undefined || value.cardinality === "record"
+    ? []
+    : value.values.flatMap((single) => (single.baseType === "identifier" ? [single.value] : []));
 
 /**
  * Measure a gap choice's content for the fit on the image (`#plate/ui/graphic-gap-match/fit.ts`):
@@ -121,6 +190,7 @@ export const island = (
     <GraphicGapMatch
       gapChoices={node.choices.map((choice, index) => ({
         ...associableOf(choice, { count: node.choices.length, n: index + 1 }, "phrasing", context),
+        ...plotChoiceOf(choice),
         measure: measureOf(choice, context.locale),
       }))}
       hotspots={hotspotsOf(spokenAreasOf(node.hotspots, context))}
@@ -130,8 +200,10 @@ export const island = (
       maxAssociations={limitOf(node.maxAssociations)}
       name={node.formName}
       naming={groupNameOf(prompt, node, context)}
+      plot={plotKindOf(context.className)}
       prompt={prompt}
       root={rootOf(model, context)}
+      shade={shadingOf(context)?.link}
       size={node.size}
     />
   );
@@ -172,6 +244,20 @@ export const review = (
   const measures = new Map(
     node.choices.map((choice) => [choice.identifier, measureOf(choice, locale)]),
   );
+  const shading = shadingOf(context);
+  const shade =
+    shading === undefined
+      ? undefined
+      : shadeDirectionOf(shading.link, pickedIn(context.values.get(shading.response)));
+  const figuresAt = (size: ImageSize) =>
+    figuresOf(
+      plotKindOf(context.className),
+      node.choices.map(plotChoiceOf),
+      hotspots,
+      node.pairs,
+      size,
+      shade,
+    );
   const placed = hotspots.map((hotspot) => ({
     area: hotspot,
     choices: (byHotspot.get(hotspot.identifier) ?? []).flatMap((chip, at) => {
@@ -211,20 +297,24 @@ export const review = (
         <StageFrame
           image={context.content(node.image, { position: "flow" })}
           labels={labelsOf(graphicKeys, context.locale, {})}
-          marks={({ size }) =>
-            paintedOf(hotspots, size).map(({ area, drawing }) => (
-              <GraphicMark
-                key={area.identifier}
-                area={area}
-                data-placed={flag(byHotspot.has(area.identifier))}
-                drawing={drawing}
-              />
-            ))
-          }
+          marks={({ size }) => (
+            <>
+              {paintedOf(hotspots, size).map(({ area, drawing }) => (
+                <GraphicMark
+                  key={area.identifier}
+                  area={area}
+                  data-placed={flag(byHotspot.has(area.identifier))}
+                  drawing={drawing}
+                />
+              ))}
+              <PlotMarks figures={figuresAt(size)} />
+            </>
+          )}
           naming={names}
           pins={({ scale, size }) => (
             <>
               <HotspotArrows hotspots={hotspots} size={size} />
+              <PlotPins figures={figuresAt(size)} size={size} />
               <PlacedChoices floor={floorWidthOf(size, scale)} placed={placed} size={size} />
             </>
           )}

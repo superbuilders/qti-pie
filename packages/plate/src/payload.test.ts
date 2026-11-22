@@ -165,6 +165,7 @@ const choice: ChoiceInteraction = {
   prompt: Option.some([text("Which city is the capital of France?")]),
   promptCatalog: Option.none(),
   response: "CAPITAL",
+  shades: [],
   shuffle: false,
 };
 

@@ -2274,6 +2274,58 @@
     white-space: nowrap;
   }
 
+  /*
+   * A plot's figures (plate's vocabulary, R6 to R8), drawn over the picture from where its choices
+   * are placed, taking no pointer: a line graph's lines in the primary colour, 2.5 px; a box plot's
+   * box and median in the primary colour, its whiskers and caps in the text's; and a number line's
+   * dots, 8 px in radius, edged in the text's colour, an open one hollow and a closed one filled, as
+   * AlphaTest's player drew each. Every stroke keeps its width as the picture scales.
+   */
+  [data-slot="plate-graphic-plot"] {
+    fill: none;
+  }
+
+  :is(
+    [data-slot="plate-graphic-plot-line"],
+    [data-slot="plate-graphic-plot-box"],
+    [data-slot="plate-graphic-plot-median"],
+    [data-slot="plate-graphic-plot-ray"]
+  ) {
+    stroke: var(--ui-primary);
+    stroke-width: 2.5px;
+  }
+
+  /* A number line's shading: a 5 px ray, as AlphaTest drew it, and its arrowhead at the line's end. */
+  [data-slot="plate-graphic-plot-ray"] {
+    stroke-width: 5px;
+  }
+
+  [data-slot="plate-graphic-plot-arrowhead"] {
+    fill: var(--ui-primary);
+  }
+
+  [data-slot="plate-graphic-plot-median"] {
+    stroke-width: 3px;
+  }
+
+  :is([data-slot="plate-graphic-plot-whisker"], [data-slot="plate-graphic-plot-cap"]) {
+    stroke: var(--ui-foreground);
+    stroke-width: 2px;
+  }
+
+  :is([data-slot="plate-graphic-point-open"], [data-slot="plate-graphic-point-closed"]) {
+    stroke: var(--ui-foreground);
+    stroke-width: 2px;
+  }
+
+  [data-slot="plate-graphic-point-open"] {
+    fill: var(--ui-background);
+  }
+
+  [data-slot="plate-graphic-point-closed"] {
+    fill: var(--ui-primary);
+  }
+
   /* == the host's settings for a Hotspot, on the item's root == */
 
   /*

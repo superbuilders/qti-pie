@@ -12,11 +12,12 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import type { GraphicArea } from "#plate/graphic/geometry.ts";
-import { floorOf } from "#plate/graphic/plot.ts";
+import { figuresOf, floorOf, plotKindOf, shadeDirectionOf } from "#plate/graphic/plot.ts";
 import { smallestTargetOf, stageScaleOf } from "#plate/graphic/scale.ts";
+import { pointStyleOf, shadeOf, statisticOf } from "#plate/interactions/plot-roles.ts";
 import { runKilled } from "#plate/test/kills.ts";
 import type { Kill } from "#plate/test/kills.ts";
-import { walkLattice } from "#plate/test/plot-rules.ts";
+import { walkLattice, walkPlot } from "#plate/test/plot-rules.ts";
 
 /**
  * A lattice of three by three 10 px cells tiling a 30 px picture, each a `rect` hotspot.
@@ -86,6 +87,134 @@ describe("a Graphic Gap Match's lattice", () => {
   for (const kill of kills) {
     it(`kills ${kill.why}`, () => {
       const run = runKilled(kill, latticeScript);
+
+      assert.strictEqual(run.status, 0, run.stderr);
+      assert.notInclude(run.stdout, '"found":null', `the walk passed with ${kill.file} mutated`);
+    });
+  }
+});
+
+/**
+ * The plot's kills: a line left unextended, a line clipped wrong, two plot classes still drawing, a
+ * whisker capped at the wrong end, a given statistic ignored, the box plot drawn on its line, a
+ * dot's style ignored, the ray run from the wrong dot or the wrong way, an unanswered shading read
+ * as right, the shading's choices swapped, two statistic classes still naming one, and open and
+ * closed swapped.
+ */
+const plotKills: readonly Kill[] = [
+  {
+    file: "src/graphic/plot.ts",
+    original: 'reach === "segment" ? [first, second] : throughBox(first, second, box)',
+    replacement: "[first, second]",
+    why: "a line stops at its two points",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original: "const enter = Math.max(xEnter, yEnter);",
+    replacement: "const enter = Math.min(xEnter, yEnter);",
+    why: "a line runs past the plot's box",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original: "asked.length === 1 ?",
+    replacement: "asked.length >= 1 ?",
+    why: "two plot classes still draw the first",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original: "whisker(high, q3)",
+    replacement: "whisker(q3, high)",
+    why: "the upper whisker is capped at the quartile, not the maximum",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original: "const at = placed?.target ?? given?.identifier;",
+    replacement: "const at = placed?.target;",
+    why: "a given statistic is not drawn from",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original: "const level = (stand: Stand) => stand.middle.y - boxRise;",
+    replacement: "const level = (stand: Stand) => stand.middle.y;",
+    why: "the box plot is drawn on the line, not above it",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original: '[{ dot, kind: "point", x: stand.middle.x, y: stand.middle.y }]',
+    replacement: '[{ dot: "closed", kind: "point", x: stand.middle.x, y: stand.middle.y }]',
+    why: "every dot is drawn closed",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original: "dots.toSorted((a, b) => a.x - b.x)",
+    replacement: "dots.toSorted((a, b) => b.x - a.x)",
+    why: "the ray runs from the rightmost dot",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original: 'x2: shade === "left" ? box.left : box.right,',
+    replacement: "x2: box.right,",
+    why: "every ray runs right",
+  },
+  {
+    file: "src/graphic/plot.ts",
+    original:
+      'return link.right !== undefined && picked.includes(link.right) ? "right" : undefined;',
+    replacement: 'return link.right !== undefined ? "right" : undefined;',
+    why: "an unanswered shading runs the ray right",
+  },
+  {
+    file: "src/interactions/plot-roles.ts",
+    original: 'Option.some(left ? "left" : "right")',
+    replacement: 'Option.some(left ? "right" : "left")',
+    why: "the shading's left and right choices are swapped",
+  },
+  {
+    file: "src/interactions/plot-roles.ts",
+    original: "named.length === 1 ?",
+    replacement: "named.length >= 1 ?",
+    why: "two statistic classes still name the first",
+  },
+  {
+    file: "src/interactions/plot-roles.ts",
+    original: 'Option.some(open ? "open" : "closed")',
+    replacement: 'Option.some(open ? "closed" : "open")',
+    why: "open and closed dots are swapped",
+  },
+];
+
+/**
+ * The program a plot kill runs in its mutant copy: it walks the copy's plot and writes what it
+ * found as JSON.
+ */
+const plotScript = [
+  'import { Option } from "effect";',
+  'import { pointStyleOf, shadeOf, statisticOf } from "#plate/interactions/plot-roles.ts";',
+  'import { figuresOf, plotKindOf, shadeDirectionOf } from "#plate/graphic/plot.ts";',
+  'import { walkPlot } from "#plate/test/plot-rules.ts";',
+  "process.stdout.write(JSON.stringify({ found: walkPlot({ figuresOf, none: Option.none(), plotKindOf, pointStyleOf, shadeDirectionOf, shadeOf, some: Option.some, statisticOf, value: Option.getOrUndefined }) ?? null }));",
+].join("\n");
+
+describe("a Graphic Gap Match's plot", () => {
+  it("draws the lines, the box plot and the dots of every case of its box as AlphaTest drew them, and reads plate's classes as whole tokens", () => {
+    const found = walkPlot({
+      figuresOf,
+      none: Option.none(),
+      plotKindOf,
+      pointStyleOf,
+      shadeDirectionOf,
+      shadeOf,
+      some: Option.some,
+      statisticOf,
+      value: Option.getOrUndefined,
+    });
+
+    assert.isUndefined(found, found);
+  });
+
+  for (const kill of plotKills) {
+    it(`kills ${kill.why}`, () => {
+      const run = runKilled(kill, plotScript);
 
       assert.strictEqual(run.status, 0, run.stderr);
       assert.notInclude(run.stdout, '"found":null', `the walk passed with ${kill.file} mutated`);

@@ -168,7 +168,7 @@ const unpresented = (
 describe("plate's renderer vocabulary", () => {
   it("names each class under plate's own prefix, never QTI's qti-, as QTI's implementation guide §3.2.1 asks", () => {
     for (const name of Object.keys(rendererClasses)) {
-      assert.match(name, /^plate-[a-z]+(?:-[a-z]+)*$/u, name);
+      assert.match(name, /^plate-[a-z0-9]+(?:-[a-z0-9]+)*$/u, name);
     }
   });
 

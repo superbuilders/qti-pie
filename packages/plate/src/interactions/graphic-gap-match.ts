@@ -48,6 +48,8 @@ import { Option } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
 import { areaLabel, arrowOf, coordinatesOf } from "#plate/interactions/area.ts";
 import type { AreaCoordinate, ArrowDirection } from "#plate/interactions/area.ts";
+import { pointStyleOf, statisticOf } from "#plate/interactions/plot-roles.ts";
+import type { PointStyle, Statistic } from "#plate/interactions/plot-roles.ts";
 import {
   choiceRegions,
   contentRegion,
@@ -143,11 +145,20 @@ interface GraphicGapMatchChoice<L extends Level = ModelLevel> extends Referencin
    */
   readonly matchMin: bigint;
   /**
+   * The number line's dot its class asks for where it is placed, none for none
+   * ({@link pointStyleOf}).
+   */
+  readonly point: Option.Option<PointStyle>;
+  /**
    * The size written on the choice's image, the first `img`, `picture` or `object` it holds, which
    * the page fits the choice on the image by; `neither` for a choice that holds no image, a gap
    * text.
    */
   readonly size: AuthoredSize;
+  /**
+   * The box plot's statistic its class says it places, none for none ({@link statisticOf}).
+   */
+  readonly statistic: Option.Option<Statistic>;
 }
 
 /**
@@ -182,6 +193,11 @@ interface AssociableHotspot extends ReferencingChoice {
    * `match-min`, 0 when absent: the fewest choices this hotspot must hold for a valid response.
    */
   readonly matchMin: bigint;
+  /**
+   * The box plot's statistic its class says is given here, drawn into the picture rather than
+   * placed, none for none ({@link statisticOf}).
+   */
+  readonly statistic: Option.Option<Statistic>;
 }
 
 /**
@@ -248,7 +264,9 @@ interface GraphicGapMatchPayloadChoice extends ReferencingChoice {
    */
   readonly matchGroup: readonly string[];
   readonly matchMax: bigint;
+  readonly point: Option.Option<PointStyle>;
   readonly size: AuthoredSize;
+  readonly statistic: Option.Option<Statistic>;
 }
 
 /**
@@ -257,6 +275,7 @@ interface GraphicGapMatchPayloadChoice extends ReferencingChoice {
  */
 interface GraphicGapMatchPayloadHotspot extends ReferencingChoice {
   readonly arrow: Option.Option<ArrowDirection>;
+  readonly statistic: Option.Option<Statistic>;
   readonly coords: readonly AreaCoordinate[];
   readonly geometry: HotspotGeometry;
   readonly label: Option.Option<string>;
@@ -319,6 +338,7 @@ const readChoice = (read: ReaderKit, choice: SourceElement): GraphicGapMatchChoi
   const matchMax = read.countAttribute(choice, "match-max");
   const matchMin = read.countAttribute(choice, "match-min");
   const catalog = read.catalog(choice);
+  const classes = read.valueOf(choice, "class");
 
   return {
     catalog,
@@ -328,10 +348,12 @@ const readChoice = (read: ReaderKit, choice: SourceElement): GraphicGapMatchChoi
     matchGroup: matchGroupOf(read.valueOf(choice, "match-group")),
     matchMax: Option.getOrElse(matchMax, () => 0n),
     matchMin: Option.getOrElse(matchMin, () => 0n),
+    point: pointStyleOf(classes),
     size: Option.match(imageElementOf(read, choice), {
       onNone: (): AuthoredSize => ({ kind: "neither" }),
       onSome: (image) => authoredSizeOf(read, image),
     }),
+    statistic: statisticOf(classes),
   };
 };
 
@@ -358,8 +380,10 @@ const readHotspot = (read: ReaderKit, hotspot: SourceElement): AssociableHotspot
   const matchMax = read.countAttribute(hotspot, "match-max");
   const matchMin = read.countAttribute(hotspot, "match-min");
 
+  const classes = read.valueOf(hotspot, "class");
+
   return {
-    arrow: arrowOf(read.valueOf(hotspot, "class")),
+    arrow: arrowOf(classes),
     catalog,
     coords,
     geometry,
@@ -368,6 +392,7 @@ const readHotspot = (read: ReaderKit, hotspot: SourceElement): AssociableHotspot
     matchGroup: matchGroupOf(read.valueOf(hotspot, "match-group")),
     matchMax: Option.getOrElse(matchMax, () => 0n),
     matchMin: Option.getOrElse(matchMin, () => 0n),
+    statistic: statisticOf(classes),
   };
 };
 
@@ -497,7 +522,9 @@ export const graphicGapMatchModule: InteractionModule<
       label: choice.label,
       matchGroup: listedIn(choice.matchGroup),
       matchMax: choice.matchMax,
+      point: choice.point,
       size: choice.size,
+      statistic: choice.statistic,
     })),
     class: interaction.class,
     formName: kit.formName(interaction.response),
@@ -510,6 +537,7 @@ export const graphicGapMatchModule: InteractionModule<
       label: hotspot.label,
       matchGroup: listedIn(hotspot.matchGroup),
       matchMax: hotspot.matchMax,
+      statistic: hotspot.statistic,
     })),
     image: interaction.image,
     maxAssociations: interaction.maxAssociations,

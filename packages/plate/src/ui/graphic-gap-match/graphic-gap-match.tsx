@@ -39,6 +39,10 @@ import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import type { ArrowDirection } from "#plate/interactions/area.ts";
 import { HotspotArrows } from "#plate/ui/graphic-gap-match/arrows.tsx";
+import { PlotMarks, PlotPins } from "#plate/ui/graphic-gap-match/figures.tsx";
+import { figuresOf, shadeDirectionOf } from "#plate/graphic/plot.ts";
+import type { PlotChoice, PlotKind, ShadeLink } from "#plate/graphic/plot.ts";
+import type { ShadeDirection, Statistic } from "#plate/interactions/plot-roles.ts";
 import type { GraphicGapMatchLabels } from "#plate/ui/graphic-gap-match/labels.ts";
 import type { ChoiceMeasure } from "#plate/ui/graphic-gap-match/fit.ts";
 import { PlacedChoices } from "#plate/ui/graphic-gap-match/placed.tsx";
@@ -70,11 +74,13 @@ import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 import { useResponse } from "#plate/ui/responses.tsx";
 
 /**
- * One `qti-gap-text` or `qti-gap-img` as the island takes it: an associable choice, and its
- * content measured, which decides whether a hotspot's box on the image has room for it
- * (`#plate/ui/graphic-gap-match/fit.ts`).
+ * One `qti-gap-text` or `qti-gap-img` as the island takes it: an associable choice; its content
+ * measured, which decides whether a hotspot's box on the image has room for it
+ * (`#plate/ui/graphic-gap-match/fit.ts`); and what it is to the plot, the dot its class asks for
+ * and the statistic its class says it places (`PlotChoice` in
+ * `#plate/graphic/plot.ts`).
  */
-export interface GapChoice extends AssociableChoice {
+export interface GapChoice extends AssociableChoice, Omit<PlotChoice, "identifier"> {
   readonly measure: ChoiceMeasure;
 }
 
@@ -105,6 +111,11 @@ export interface GraphicGapHotspot extends StageArea, Spoken {
    * writes 0 as no limit (see {@link Limit}).
    */
   readonly matchMax: Limit;
+  /**
+   * The box plot's statistic its class says is given on it, none for none
+   * (`PlotSpot` in `#plate/graphic/plot.ts`).
+   */
+  readonly statistic: Statistic | undefined;
   /**
    * Whether `label` is plate's "Area n of count", the author having named the hotspot nothing,
    * which its row writes as `data-unnamed`.
@@ -155,6 +166,18 @@ export interface GraphicGapMatchProps extends Authored<NameAttributes> {
    */
   readonly floor: TargetFloor;
   readonly maxAssociations: Limit;
+  /**
+   * What the plot draws beyond the interaction, by the root's class (`plotKindOf` in
+   * `#plate/graphic/plot.ts`).
+   */
+  readonly plot: PlotKind;
+  /**
+   * The item's shading interaction, where the plot is a number line and the item holds one
+   * (`plate-shade` on a `qti-choice-interaction`): the entry name its response posts under and its
+   * choices that run the ray left and right, which the island reads from the item's `<Responses>`
+   * to draw the ray as the child picks. Undefined for none.
+   */
+  readonly shade: ShadeLink | undefined;
   /**
    * The entry name the response posts under, plate's `entryName` for the item's instance.
    */
@@ -259,6 +282,67 @@ const StageArrows = (props: { readonly hotspots: readonly GraphicGapHotspot[] })
 };
 
 /**
+ * What the plot's stage parts draw from: the plot, its gap texts, its hotspots and the
+ * placements.
+ */
+interface StagePlot {
+  readonly choices: readonly PlotChoice[];
+  readonly hotspots: readonly GraphicGapHotspot[];
+  readonly placements: Pairs;
+  readonly plot: PlotKind;
+  readonly shade: ShadeDirection | undefined;
+}
+
+/**
+ * Draw the plot's figures that scale with the image, at the stage's pixel space
+ * (`PlotMarks` in `#plate/ui/graphic-gap-match/figures.tsx`).
+ *
+ * @param props What the plot draws from.
+ * @returns The figures.
+ */
+const StagePlotMarks = (props: StagePlot) => {
+  const { size } = useGraphicStage();
+
+  return (
+    <PlotMarks
+      figures={figuresOf(
+        props.plot,
+        props.choices,
+        props.hotspots,
+        props.placements,
+        size,
+        props.shade,
+      )}
+    />
+  );
+};
+
+/**
+ * Pin the plot's dots, at the stage's pixel space (`PlotPins` in
+ * `#plate/ui/graphic-gap-match/figures.tsx`).
+ *
+ * @param props What the plot draws from.
+ * @returns The dots.
+ */
+const StagePlotPins = (props: StagePlot) => {
+  const { size } = useGraphicStage();
+
+  return (
+    <PlotPins
+      figures={figuresOf(
+        props.plot,
+        props.choices,
+        props.hotspots,
+        props.placements,
+        size,
+        props.shade,
+      )}
+      size={size}
+    />
+  );
+};
+
+/**
  * Render a Graphic Gap Match for the child to answer, holding its response in the item's
  * `<Responses>`.
  *
@@ -311,11 +395,15 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
     maxAssociations,
     name,
     naming,
+    plot,
     prompt,
     root,
+    shade,
     size,
   } = props;
   const [texts, set] = useResponse(name);
+  const [shaded] = useResponse(shade?.name ?? name);
+  const toward = shade === undefined ? undefined : shadeDirectionOf(shade, shaded);
   const [focused, setFocused] = useState<string>();
   const board = useMemo(
     () => boardOf(gapChoices, hotspots, maxAssociations),
@@ -376,9 +464,25 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
         </PlacementBank>
         <GraphicStage
           labels={labels}
+          marks={
+            <StagePlotMarks
+              choices={gapChoices}
+              hotspots={hotspots}
+              placements={placements}
+              plot={plot}
+              shade={toward}
+            />
+          }
           pins={
             <>
               <StageArrows hotspots={hotspots} />
+              <StagePlotPins
+                choices={gapChoices}
+                hotspots={hotspots}
+                placements={placements}
+                plot={plot}
+                shade={toward}
+              />
               <StagePlaced placed={placedOf(hotspots, choices, placements)} />
             </>
           }
