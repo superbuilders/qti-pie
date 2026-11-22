@@ -1,6 +1,7 @@
 /**
  * The arrows a Graphic Gap Match draws beside its hotspots, where each hotspot's author asks for
- * one by `data-arrow-direction`: the island's stage and the review's pin them alike. Safe to import
+ * one by plate's class `plate-arrow-up` or `plate-arrow-down`: the island's stage and the review's
+ * pin them alike. Safe to import
  * on the server and the client: it holds no hook or state.
  *
  * @module

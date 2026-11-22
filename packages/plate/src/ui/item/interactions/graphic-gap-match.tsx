@@ -13,7 +13,7 @@
  * choices the response puts there, each pair marked when the review marks, the response a bag in
  * which a pair may repeat. A hotspot's row in either is `data-unnamed` where its name is plate's,
  * the author having named it nothing, and either draws an arrow beside each hotspot whose author's
- * `data-arrow-direction` asks for one.
+ * class `plate-arrow-up` or `plate-arrow-down` asks for one.
  *
  * @module
  */

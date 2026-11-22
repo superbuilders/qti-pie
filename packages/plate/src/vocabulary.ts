@@ -278,6 +278,34 @@ export const classTokensOf = (classes: string): readonly string[] =>
   classes.split(/[\t\n\f\r ]+/u).filter((token) => token !== "");
 
 /**
+ * Tell whether a `class` attribute holds a token.
+ *
+ * @param classes The attribute as written, none when absent.
+ * @param token The token.
+ * @returns Whether {@link classTokensOf} gives it.
+ */
+export const hasClass = (classes: Option.Option<string>, token: string): boolean =>
+  Option.exists(classes, (written) => classTokensOf(written).includes(token));
+
+/**
+ * Plate's renderer vocabulary: the classes, each prefixed `plate-`, an author writes on a standard
+ * QTI element to ask plate for a presentation QTI 3's shared vocabulary has no class for, each
+ * entered here once, so the model, the islands, the review and the theme read one name
+ * (metis's no-regression plan, section 3.2, under plate's prefix on edullm-bd's order of
+ * 2026-11-22). Classes, never `data-*`: under the ruling of 2026-11-10 every `data-*` name plate
+ * reads is reserved and dropped from author content, so a parameter plate reads rides on a class
+ * token. Each changes how plate draws the element and nothing it does, no response, limit or name,
+ * and a renderer that knows none of them still renders the standard interaction beneath it.
+ *
+ * - `arrowUp`, `arrowDown`, on a `qti-associable-hotspot`: an arrow drawn above the hotspot pointing
+ *   up, or below it pointing down, as AlphaTest's player drew one beside a drop box (R9).
+ */
+export const plateClasses = {
+  arrowDown: "plate-arrow-down",
+  arrowUp: "plate-arrow-up",
+} as const;
+
+/**
  * Give the class an interaction's root carries for a candidate: the author's `class` as written,
  * less each class {@link lowVisionIgnored} names for its owner when the candidate's supports show
  * low-vision indications ({@link showsLowVision}), and none when no class token is left.

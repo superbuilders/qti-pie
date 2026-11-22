@@ -156,8 +156,8 @@ interface GraphicGapMatchChoice<L extends Level = ModelLevel> extends Referencin
  */
 interface AssociableHotspot extends ReferencingChoice {
   /**
-   * The arrow its author's `data-arrow-direction` asks the page to draw beside it, none for none
-   * ({@link arrowOf}).
+   * The arrow its author's class `plate-arrow-up` or `plate-arrow-down` asks the page to draw
+   * beside it, none for none ({@link arrowOf}).
    */
   readonly arrow: Option.Option<ArrowDirection>;
   readonly coords: readonly AreaCoordinate[];
@@ -337,8 +337,8 @@ const readChoice = (read: ReaderKit, choice: SourceElement): GraphicGapMatchChoi
 
 /**
  * Read one `qti-associable-hotspot` into its hotspot: its identifier, the catalog it references,
- * its geometry and coordinates as written, its name, its limits, and the arrow its author's
- * `data-arrow-direction` asks for.
+ * its geometry and coordinates as written, its name, its limits, and the arrow its author's class
+ * asks for.
  *
  * @param read The reader kit.
  * @param hotspot The associable hotspot.
@@ -359,7 +359,7 @@ const readHotspot = (read: ReaderKit, hotspot: SourceElement): AssociableHotspot
   const matchMin = read.countAttribute(hotspot, "match-min");
 
   return {
-    arrow: arrowOf(read.valueOf(hotspot, "data-arrow-direction")),
+    arrow: arrowOf(read.valueOf(hotspot, "class")),
     catalog,
     coords,
     geometry,

@@ -219,11 +219,11 @@ const arrowPaths = {
 } as const satisfies Readonly<Record<ArrowDirection, string>>;
 
 /**
- * Pin an arrow beside an area, `<g data-slot="plate-graphic-arrow">`, as its author's
- * `data-arrow-direction` asks: above the area's box pointing up, or below it pointing down, centred
- * on it ({@link edgeOf}), 16 px tall and {@link arrowGap} clear of it, at the page's own size,
- * drawn in the text's colour, as AlphaTest's player drew one beside its drop box. It takes no
- * pointer, so a tap beside the area reaches what is under it.
+ * Pin an arrow beside an area, `<g data-slot="plate-graphic-arrow">`, as its author's class asks
+ * (`plate-arrow-up`, `plate-arrow-down`): above the area's box pointing up, or below it pointing
+ * down, centred on it ({@link edgeOf}), 16 px tall and {@link arrowGap} clear of it, at the page's
+ * own size, drawn in the text's colour, as AlphaTest's player drew one beside its drop box. It
+ * takes no pointer, so a tap beside the area reaches what is under it.
  *
  * @param props.area The area.
  * @param props.direction The arrow's direction.

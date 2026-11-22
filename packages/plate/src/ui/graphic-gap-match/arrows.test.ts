@@ -1,15 +1,14 @@
 /**
- * The arrow a Graphic Gap Match draws beside a hotspot whose author asks for one by
- * `data-arrow-direction` (`arrowOf` in `#plate/interactions/area.ts`, `HotspotArrows` beside this
- * file): read exactly as AlphaTest's player matched it, `up` or `down`, and pinned beside exactly
- * the hotspots that ask, above the hotspot's box pointing up or below it pointing down, centred on
- * it and clear of it.
+ * The arrow a Graphic Gap Match draws beside a hotspot whose author asks for one by plate's class
+ * `plate-arrow-up` or `plate-arrow-down` (`arrowOf` in `#plate/interactions/area.ts`,
+ * `HotspotArrows` beside this file): read from the hotspot's class tokens, and pinned beside
+ * exactly the hotspots that ask, above the hotspot's box pointing up or below it pointing down,
+ * centred on it and clear of it.
  *
- * The oracle is AlphaTest's player (mastery-track-player 941a86a, `GapMatchInteraction.tsx`): it
- * read `data-arrow-direction` when its value was `up` or `down` and nothing else, and drew a 16 px
- * arrow 2 px above a zone's top (`mb-0.5`) or below its bottom (`mt-0.5`), centred on the zone
- * (`items-center`). Each hotspot's edge is worked here from its `coords`, apart from plate's
- * geometry.
+ * The oracle for the drawing is AlphaTest's player (mastery-track-player 941a86a,
+ * `GapMatchInteraction.tsx`): it drew a 16 px arrow 2 px above a zone's top (`mb-0.5`) or below its
+ * bottom (`mt-0.5`), centred on the zone (`items-center`). Each hotspot's edge is worked here from
+ * its `coords`, apart from plate's geometry.
  *
  * @module
  */
@@ -108,15 +107,29 @@ const arrowsIn = (html: string): readonly Shown[] =>
   }));
 
 describe("a hotspot's arrow", () => {
-  it("is read from data-arrow-direction when it is exactly up or down, and never otherwise", () => {
-    assert.deepStrictEqual(arrowOf(Option.some("up")), Option.some("up"));
-    assert.deepStrictEqual(arrowOf(Option.some("down")), Option.some("down"));
+  it("is read from the hotspot's class: plate-arrow-up or plate-arrow-down alone, as a whole token, and never otherwise", () => {
+    const asked: readonly (readonly [string | undefined, ArrowDirection | undefined])[] = [
+      ["plate-arrow-up", "up"],
+      ["plate-arrow-down", "down"],
+      ["qti-x plate-arrow-down other", "down"],
+      ["\tplate-arrow-up\n", "up"],
+      ["plate-arrow-up plate-arrow-down", undefined],
+      ["plate-arrow-down plate-arrow-down", "down"],
+      ["plate-arrow-left", undefined],
+      ["Plate-arrow-up", undefined],
+      ["plate-arrow-upward", undefined],
+      ["xplate-arrow-up", undefined],
+      ["", undefined],
+      [undefined, undefined],
+    ];
 
-    for (const written of ["", "Up", "DOWN", " up", "down ", "left", "right", "updown", "true"]) {
-      assert.deepStrictEqual(arrowOf(Option.some(written)), Option.none(), written);
+    for (const [classes, direction] of asked) {
+      assert.deepStrictEqual(
+        arrowOf(Option.fromNullishOr(classes)),
+        Option.fromNullishOr(direction),
+        String(classes),
+      );
     }
-
-    assert.deepStrictEqual(arrowOf(Option.none()), Option.none());
   });
 
   it("is pinned beside exactly the hotspots that ask for one, above pointing up or below pointing down, for every pattern over three zones", () => {

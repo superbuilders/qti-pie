@@ -50,7 +50,7 @@ import { MatchTable } from "#plate/ui/match/table.tsx";
 import type { TableHeader } from "#plate/ui/match/table.tsx";
 import { pickParts } from "#plate/ui/picks/marks.ts";
 import type { PickReview } from "#plate/ui/picks/marks.ts";
-import { classTokensOf } from "#plate/vocabulary.ts";
+import { hasClass } from "#plate/vocabulary.ts";
 
 /**
  * Give a choice of a Match's second set as the island takes it, a group: its content written where
@@ -119,11 +119,7 @@ type MatchLayout = "bank" | "table";
  * @returns The layout.
  */
 const layoutOf = (context: Pick<IslandContext, "className">): MatchLayout =>
-  Option.exists(context.className, (classes) =>
-    classTokensOf(classes).includes("qti-match-tabular"),
-  )
-    ? "table"
-    : "bank";
+  hasClass(context.className, "qti-match-tabular") ? "table" : "bank";
 
 /**
  * Give one header of a Match's table as the island takes it: the choice, its content written where

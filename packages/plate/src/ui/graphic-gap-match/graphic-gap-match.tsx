@@ -83,8 +83,8 @@ export interface GapChoice extends AssociableChoice {
  */
 export interface GraphicGapHotspot extends StageArea, Spoken {
   /**
-   * The arrow its author's `data-arrow-direction` asks the stage to draw beside it, pointing up or
-   * down; undefined for none.
+   * The arrow its author's class `plate-arrow-up` or `plate-arrow-down` asks the stage to draw
+   * beside it; undefined for none.
    */
   readonly arrow: ArrowDirection | undefined;
   /**
@@ -269,8 +269,8 @@ const StageArrows = (props: { readonly hotspots: readonly GraphicGapHotspot[] })
  *   choice and `data-focus-visible` while its row's control has keyboard focus, holding a `g` that
  *   is the primitive's `plate-placement-target` for the hotspot, with `data-over` and
  *   `data-refuses` while a drag is over it, around the area's hit shape, `plate-graphic-area`; and
- *   in the stage's pins an arrow beside each hotspot whose author's `data-arrow-direction` asks for
- *   one, `plate-graphic-arrow` ({@link HotspotArrows}), and the choices each hotspot holds
+ *   in the stage's pins an arrow beside each hotspot whose author's class asks for one,
+ *   `plate-graphic-arrow` ({@link HotspotArrows}), and the choices each hotspot holds
  *   (`#plate/ui/graphic-gap-match/placed.tsx`);
  * - `plate-graphic-gap-match-targets`, the list of hotspots below the image, in document order: each
  *   hotspot a `plate-placement-target`, a group named by the hotspot's name through `aria-label`,
