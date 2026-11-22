@@ -385,12 +385,11 @@ const ReferenceRow = Schema.Struct({
 });
 
 /**
- * One `Srcset` row of an imported package, as `admit-rows.sql` exports it: its element's place, the
- * attribute, and the element's kind.
+ * One `Srcset` row of an imported package, as `admit-rows.sql` exports it: its element's place and
+ * the element's kind.
  */
 const SrcsetRow = Schema.Struct({
   kind: Schema.String,
-  name: Schema.String,
   package: Schema.String,
   path: Schema.String,
   start: Schema.Number,
@@ -578,8 +577,8 @@ ${admitted.map(({ digest, marks: held }) => `  ["${digest}", ${JSON.stringify(he
         file: "srcsets.jsonl",
         lines: srcsets
           .filter((row) => scoped.has(row.package))
-          .map(({ kind, name, package: named, path: at, start }) =>
-            JSON.stringify({ digest: named.slice(2), kind, name, path: at, start }),
+          .map(({ kind, package: named, path: at, start }) =>
+            JSON.stringify({ digest: named.slice(2), kind, path: at, start }),
           ),
       },
       {

@@ -1,5 +1,5 @@
 -- The admission run's row export (scripts/admit.ts): the Node, OpenAttribute, Reference and Srcset rows of every
--- package it imported,
+-- package it imported (a Srcset row with its element's kind, from the element's Node row),
 -- the one-document packages named a-<digest> and the packages imported whole named s-<folder>, each closed value
 -- (a node's kind, an attribute's name and class, a reference's scope) by its roster's name, through the database's
 -- own name functions. Run by psql as the installation's owner after `admit.ts import`, with
@@ -28,8 +28,8 @@ from "qti"."reference"
 where package like 'a-%' or package like 's-%'
 order by package, path, start, name;
 \o :srcsets
-select json_build_object('package', package, 'path', path, 'start', start, 'name', ("qti".:"attribute_name_names"())[name + 1], 'kind', ("qti".:"node_kind_names"())[kind + 1])::text
-from "qti"."srcset"
+select json_build_object('package', package, 'path', path, 'start', start, 'kind', ("qti".:"node_kind_names"())[kind + 1])::text
+from "qti"."srcset" join "qti"."node" using (package, path, start)
 where package like 'a-%' or package like 's-%'
 order by package, path, start;
 \o
