@@ -181,6 +181,14 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  * - **SnapshotRecord**: a record response's fields in the snapshot, each with its own base type,
  *   which no declaration states, so the field is the header and its value the arm of its base type,
  *   **SnapshotRecord**`<BaseType>`. A record with no field is NULL.
+ * - **ApplicationDemand**: a recorded custom operator the attempt's response processing reached and
+ *   could not evaluate, its value not yet recorded (the registry's `RecordedApplication`), by the
+ *   attempt's key and the operator's place in the item's document (`start`): a fact of the grader's
+ *   run, which only the grade write stores, so an application is requested exactly when the
+ *   processing reaches it with a response (`rubric-score`'s contract: "NULL iff the response is
+ *   NULL (no request is made)"), and never where a branch the processing takes passes it by, such
+ *   as an essay its own rule finds empty. An operator that only an earlier operator's value lets
+ *   the processing reach is demanded by the run after that value is recorded.
  * - **OperatorEvaluation**: the value a recorded custom operator took in an attempt (the registry's
  *   `RecordedApplication`, `#registry/levels.ts`), a fact the registered evaluator records once per
  *   application and attempt, which the SQL grader reads, so every invocation of response processing
@@ -192,9 +200,8 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  *   registry's `Grader`, of that class), `request`, the SHA-256 of the exact request body it sent,
  *   32 raw bytes (grizzle's `sha256`), which pins the model, its parameters, the prompt with its
  *   rubric, passage and question, the response and the maximum, and whether the model replied or
- *   declined. An application whose response is NULL has no request and no row, and its value is
- *   NULL; an application with a response and no row is pending (QTI 3.0.1 RR Table 2.7.7,
- *   `pendingResponseProcessing`), derived and never stored.
+ *   declined. It answers a demand: a demanded application with no evaluation is pending (QTI 3.0.1
+ *   RR Table 2.7.7, `pendingResponseProcessing`), derived and never stored.
  * - **OperatorReply**, **OperatorFeedback** and **OperatorDecline**: a replied evaluation's record,
  *   `rubric-score`'s fields, its `score` a finite float of zero or more and its `feedback` where
  *   the reply's is no empty string, which is QTI's NULL; a declined one's reason. A declined
@@ -1938,6 +1945,15 @@ export const ledgerOf = (qti: RegistryLevel) => {
    */
   const evaluationKey = [...snapshotKey, "operator", "evaluated"] as const;
 
+  /**
+   * A demand's key's fields: its attempt's, and the operator's place in the item's document.
+   */
+  const demandKey = [...snapshotKey, "operator"] as const;
+
+  const ApplicationDemand = named(
+    "One demand an application",
+    relation("ApplicationDemand", { ...snapshotFields, operator: natural }, demandKey),
+  );
   const OperatorEvaluation = named(
     "Evaluation instant",
     relation(
@@ -2773,6 +2789,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       TestOutcomeRecordFile,
       EvaluationResult,
       DeclineReason,
+      ApplicationDemand,
       OperatorEvaluation,
       OperatorReply,
       OperatorFeedback,
@@ -4593,8 +4610,19 @@ export const ledgerOf = (qti: RegistryLevel) => {
         }),
       ),
       named(
-        "Evaluation of its attempt",
-        contained(on(OperatorEvaluation, ...snapshotKey), on(Attempt, ...snapshotKey)),
+        "Demand of its attempt",
+        contained(on(ApplicationDemand, ...snapshotKey), on(Attempt, ...snapshotKey)),
+      ),
+      named(
+        "Demand of an application",
+        contained(
+          on(ApplicationDemand, "package", "path", "operator"),
+          on(RecordedApplication, "package", "path", "start"),
+        ),
+      ),
+      named(
+        "Evaluation of a demand",
+        contained(on(OperatorEvaluation, ...demandKey), on(ApplicationDemand, ...demandKey)),
       ),
       named("Evaluation key", key(on(OperatorEvaluation, ...snapshotKey, "operator"))),
       named(

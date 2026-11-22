@@ -34,9 +34,10 @@
  *   their evaluation until response processing has run; its rubric group whose every draw declined
  *   waits for a person's value; a NULL response asks nothing; a processed attempt, history among
  *   them, waits for nothing.
- * - **Operands** (`rubric-score`'s contract): each draw of an answered essay, with its response, its
- *   rubric group, the grader version in force and MAXSCORE's default (ASI Table 5.42); its literal
- *   draw.
+ * - **Operands** (`rubric-score`'s contract): each draw of an answered essay the grader's run
+ *   demands, with its response, its rubric group, the grader version in force and MAXSCORE's
+ *   default (ASI Table 5.42); its literal draw. A history attempt carries none: nothing grades it,
+ *   and history is never regraded.
  * - **Grading**: by the write after which nothing of the attempt waits, in its own transaction.
  * - **Values in force and credit**: response processing's SCORE and MAXSCORE, and the owner's credit
  *   of SCORE over MAXSCORE (proposal 2026-11-18, Decision 3).
@@ -899,8 +900,8 @@ const statusOf = (held: Held) => (waitsOf(held) ? "pendingResponseProcessing" : 
  * - **Grading** (Bjorn, 2026-11-18: "grading MUST be done in the same database transaction"): an
  *   attempt is processed by the write after which nothing of it waits, in that write's own
  *   transaction, and by no earlier one.
- * - **Operands**: each draw of an answered essay, its response, rubric group, grader in force and
- *   maximum.
+ * - **Operands**: each draw of an answered essay the grader's run demands, its response, rubric
+ *   group, grader in force and maximum; none of a history attempt, which nothing grades.
  * - **Values and credit**: grading's SCORE and MAXSCORE, SCORE NULL for an unanswered essay; the
  *   credit none at 0, full at the maximum, partial between, and none where SCORE is NULL.
  */
@@ -963,12 +964,13 @@ const expectedOf = (c: Case): Expected => {
             ["MAXSCORE", essayMaximum],
             ...Option.toArray(score).map((value) => ["SCORE", value] as const),
           ],
-      operands: c.answered
-        ? Array.from(
-            { length: essayDraws },
-            () => [c.response, RUBRIC, grader.version, essayMaximum] as const,
-          )
-        : [],
+      operands:
+        c.answered && !c.history
+          ? Array.from(
+              { length: essayDraws },
+              () => [c.response, RUBRIC, grader.version, essayMaximum] as const,
+            )
+          : [],
       status: unprocessed ? "pendingResponseProcessing" : "final",
     }),
     steps,

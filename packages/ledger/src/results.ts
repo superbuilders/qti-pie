@@ -59,64 +59,33 @@ export const AttemptStatus = closed.unordered("AttemptStatus", [
 
 /**
  * Each recorded application of an attempt that waits for its evaluation, as a plain query, with its
- * item session's stage (`ItemSession`'s, a dependent attribute of the attempt): a
- * `qti-custom-operator` of a recorded class in the attempt's item (`RecordedApplication`, by the
- * operator's place), its request made, and no `OperatorEvaluation` of it at the attempt yet. Until
- * none waits, the attempt's response processing does not run: the operator's value is an input of
- * it ("The custom operator provides an extension mechanism for defining operations which are
- * currently not supported by this specification", ASI Table 5.37). An application's request is made
- * unless one of its `essay` operands names a response the attempt leaves NULL ("NULL iff the
- * response is NULL (no request is made)", `rubric-score`'s contract): a string response's NULL is
- * no row (§2.2.2: "An item variable may have no value at all, in which case it is said to have the
- * special value NULL"), the empty string's among them (Table 4.1). An attempt whose response
- * processing has run (`ProcessedAttempt`) waits for nothing, history imported with its outcomes and
- * no evaluation among them. What the Delivery level's `PendingApplication` holds, and what
- * grading's guard negates.
+ * item session's stage (`ItemSession`'s, a dependent attribute of the attempt): a demand of the
+ * attempt (`ApplicationDemand`, what the grader's run reached and could not evaluate) with no
+ * `OperatorEvaluation` of it yet. Until none waits, the attempt's response processing does not run
+ * again: the operator's value is an input of it ("The custom operator provides an extension
+ * mechanism for defining operations which are currently not supported by this specification", ASI
+ * Table 5.37). Which applications are requested is the processing's own decision, so an essay its
+ * own rule finds empty is never requested, and a NULL response is never demanded ("NULL iff the
+ * response is NULL (no request is made)", `rubric-score`'s contract). An attempt whose response
+ * processing has run (`ProcessedAttempt`) waits for nothing. What the Delivery level's
+ * `PendingApplication` holds, and what grading's guard negates.
  *
  * @param ledger - The ledger level.
  * @returns The query.
  */
 export const pendingApplicationsOf = (ledger: LedgerLevel) => {
-  const {
-    ApplicationResponse,
-    Attempt,
-    ItemSession,
-    OperatorEvaluation,
-    ProcessedAttempt,
-    RecordedApplication,
-    SnapshotSingleString,
-  } = ledger.relations;
-
-  /**
-   * Each recorded application of an attempt whose request is never made: its essay's response is
-   * NULL.
-   */
-  const unaskedApplications = query(ledger).rule((r) => {
-    const { child, package: pkg, path, n, at } = v(Attempt, "unaskedAttempt");
-    const { start: operator, identifier } = v(ApplicationResponse, "unaskedResponse");
-
-    return r
-      .match(Attempt, { at, child, n, package: pkg, path })
-      .match(ApplicationResponse, { identifier, package: pkg, path, start: operator })
-      .where(
-        r.not(SnapshotSingleString, { at, child, n, package: pkg, path, variable: identifier }),
-      )
-      .find({ at, child, n, operator, package: pkg, path });
-  });
+  const { ApplicationDemand, ItemSession, OperatorEvaluation, ProcessedAttempt } = ledger.relations;
 
   return query(ledger).rule((r) => {
-    const { child, package: pkg, path, n, at } = v(Attempt, "pendingAttempt");
+    const { child, package: pkg, path, n, at, operator } = v(ApplicationDemand, "pendingDemand");
     const { stage } = v(ItemSession, "pendingSession");
-    const { start: operator } = v(RecordedApplication, "pendingApplication");
 
     return r
-      .match(Attempt, { at, child, n, package: pkg, path })
+      .match(ApplicationDemand, { at, child, n, operator, package: pkg, path })
       .match(ItemSession, { child, n, package: pkg, path, stage })
-      .match(RecordedApplication, { package: pkg, path, start: operator })
       .where(
         r.not(ProcessedAttempt, { at, child, n, package: pkg, path }),
         r.not(OperatorEvaluation, { at, child, n, operator, package: pkg, path }),
-        r.not(unaskedApplications, { at, child, n, operator, package: pkg, path }),
       )
       .find({ at, child, n, operator, package: pkg, path, stage });
   });

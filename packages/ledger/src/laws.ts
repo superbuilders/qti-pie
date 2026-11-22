@@ -67,6 +67,14 @@ export const ledgerLaws = {
     source:
       "src/delivery.ts UndeliveredSitting: no sitting is of a test this runtime does not deliver (DeliveredTest's clauses)",
   },
+  "Demand of an application": {
+    source:
+      "src/ledger.ts ApplicationDemand: a recorded custom operator the attempt's response processing reached, an application of its item (the registry's RecordedApplication)",
+  },
+  "Demand of its attempt": {
+    source:
+      "src/ledger.ts ApplicationDemand: 'a fact of the grader's run, which only the grade write stores', by the attempt's key",
+  },
   "Distinct values": {
     source: `${info}#Enumerated_CardinalityEnum (§8.17, CardinalityEnum: 'multiple' - 'containers may contain multiple occurrences of the same value'): 'a multiple's distinct values, each with how many times it occurs', each distinct value one row, a float's or a duration's by its identity image and a string's by its digest (src/ledger.ts)`,
   },
@@ -90,8 +98,8 @@ export const ledgerLaws = {
     source:
       "src/ledger.ts OperatorEvaluation: 'a fact the registered evaluator records once per application and attempt, which the SQL grader reads, so every invocation of response processing reads the same value' (ASI §2.11.3: 'Operators never effect the values of itemVariables directly')",
   },
-  "Evaluation of its attempt": {
-    source: `${info}#Main2p11 (§2.11.3: 'Operators never effect the values of itemVariables directly'): an operator's recorded value is of the attempt its response processing reads it in (src/ledger.ts OperatorEvaluation)`,
+  "Evaluation of a demand": {
+    source: `${info}#Main2p11 (§2.11.3: 'Operators never effect the values of itemVariables directly'): an operator's recorded value answers the demand of the attempt whose response processing reached it (src/ledger.ts OperatorEvaluation, ApplicationDemand)`,
   },
   "Evaluation result": {
     source:
@@ -222,6 +230,10 @@ export const ledgerLaws = {
   },
   "One control a stage": {
     source: `${info}#DataCharacteristic_ItemSessionControl (§7.19, ItemSessionControl): 'src/ledger.ts StageControl: the item-session control an application's decision states for an item stage', one a stage`,
+  },
+  "One demand an application": {
+    source:
+      "src/ledger.ts ApplicationDemand: one demand per application and attempt, its key the attempt's and the operator's place (`start`): a run demands an application it reached once, and a later run never again once it is evaluated",
   },
   "One end a sitting": {
     source: `${info}#DataCharacteristic_TestPart.Attr_submission-mode (Table 5.159.5: 'all submitted together at the end'): 'TestEnd is that end', one a sitting (src/sittings.ts)`,

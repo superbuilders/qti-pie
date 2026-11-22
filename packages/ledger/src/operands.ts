@@ -5,9 +5,10 @@
  * value, to the application's maximum.
  *
  * - **ApplicationOperands** `(child, package, path, n, at, operator) → stage, response, rubric,
- *   grader`: each recorded application whose request is made (its essay's response non-NULL), with
- *   the response's text, the rubric group its `rubric` operand names (`RubricApplication`) and the
- *   grader version in force for its class (`InForceGrader`).
+ *   grader`: each recorded application whose request is made, the attempt's demand of it
+ *   (`ApplicationDemand`, what the grader's run reached with a response), with the response's text,
+ *   the rubric group its `rubric` operand names (`RubricApplication`) and the grader version in
+ *   force for its class (`InForceGrader`).
  * - **ApplicationMaximum** `(child, package, path, n, at, operator) → maximum`: the value its
  *   `maximum` operand, a `qti-default`, takes in the attempt's item session: "This expression looks
  *   up the declaration of an itemVariable and returns the associated defaultValue or NULL if no
@@ -42,8 +43,8 @@ import { named } from "#ledger/laws.ts";
  */
 export const applicationOperandsOf = (ledger: LedgerLevel) => {
   const {
+    ApplicationDemand,
     ApplicationResponse,
-    Attempt,
     InForceGrader,
     ItemSession,
     RecordedApplication,
@@ -52,19 +53,16 @@ export const applicationOperandsOf = (ledger: LedgerLevel) => {
   } = ledger.relations;
 
   return query(ledger).rule((r) => {
-    const { child, package: pkg, path, n, at } = v(Attempt, "requested");
+    const { child, package: pkg, path, n, at, operator } = v(ApplicationDemand, "requested");
     const { stage } = v(ItemSession, "requestedSession");
-    const { start: operator, class: operatorClass } = v(
-      RecordedApplication,
-      "requestedApplication",
-    );
+    const { class: operatorClass } = v(RecordedApplication, "requestedApplication");
     const { identifier } = v(ApplicationResponse, "requestedResponse");
     const { value: response } = v(SnapshotSingleString, "requestedText");
     const { rubric } = v(RubricApplication, "requestedRubric");
     const { version: grader } = v(InForceGrader, "requestedGrader");
 
     return r
-      .match(Attempt, { at, child, n, package: pkg, path })
+      .match(ApplicationDemand, { at, child, n, operator, package: pkg, path })
       .match(ItemSession, { child, n, package: pkg, path, stage })
       .match(RecordedApplication, { class: operatorClass, package: pkg, path, start: operator })
       .match(ApplicationResponse, { identifier, package: pkg, path, start: operator })
