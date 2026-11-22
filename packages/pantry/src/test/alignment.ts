@@ -1682,6 +1682,14 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
       status: "G",
     },
   ],
+  [
+    244,
+    {
+      owner:
+        "the ledger's admission, matching an `xhtml` Extended Text's `pattern-mask` against `p3.xhtml_text` of its value (`machine/admission.sql`), held to plate's `textOfXhtml` by `xhtml-text.db.test.ts`; pantry stores `pattern-mask` as written",
+      status: "G",
+    },
+  ],
 ]);
 
 /**
