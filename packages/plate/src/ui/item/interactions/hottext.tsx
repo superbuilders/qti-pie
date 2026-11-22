@@ -11,7 +11,7 @@
  *
  * @module
  */
-import { Array as Arr } from "effect";
+import { Array as Arr, Option } from "effect";
 import type { ReactNode } from "react";
 import { hottextTag } from "#plate/interactions/hottext.ts";
 import type { HottextPart } from "#plate/interactions/hottext.ts";
@@ -136,7 +136,7 @@ export const island = (
                 <PickOption
                   identifier={part.identifier}
                   key={path}
-                  label={optionName(part.passage, { count, n: index + 1 }, locale)}
+                  label={optionName(part.passage, { count, n: index + 1 }, Option.none(), locale)}
                   slot="plate-hottext-choice"
                 >
                   <span data-slot="plate-hottext-content">{content}</span>

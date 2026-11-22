@@ -1148,8 +1148,10 @@
    * Choice labels (1.2.1.1, 1.2.1.2): a label class numbers the options in its counter style, with
    * a period after each unless a suffix class asks for ")" or nothing; `qti-labels-none`, or no
    * label class, shows none. The label stands after the radio or checkbox, before the content. Its
-   * alternative text is empty, so each control's name stays the author's content, and the group's
-   * own "2 of 4" gives its place.
+   * alternative text is empty: the server names each control by its label and then its content
+   * ("A. 1250 × 2 4 × 60", `optionName` in `#plate/ui/picks/names.ts`), as AlphaTest's player named
+   * its options, since Chrome reads neither a counter nor a formula into a name it computes from
+   * content; the group's own "2 of 4" gives its place.
    */
   [data-slot="plate-choice"].qti-labels-decimal {
     --plate-label-style: decimal;

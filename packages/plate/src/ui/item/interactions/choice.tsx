@@ -27,7 +27,7 @@ import {
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import { picksKeys } from "#plate/ui/picks/labels.ts";
 import { marksOf } from "#plate/ui/picks/marks.ts";
-import { optionName } from "#plate/ui/picks/names.ts";
+import { choiceLabel, optionName } from "#plate/ui/picks/names.ts";
 import { message } from "#plate/messages.ts";
 import { groupSlotOf, instructionOf, picksOf } from "#plate/ui/picks/picks.ts";
 import { ReviewedPick } from "#plate/ui/picks/review.tsx";
@@ -57,6 +57,7 @@ export const island = (
         label: optionName(
           choice.content,
           { count: node.choices.length, n: index + 1 },
+          choiceLabel(context.className, index + 1),
           context.locale,
         ),
         ...spokenOf(choice, index + 1, "readAloudChoice", context),
