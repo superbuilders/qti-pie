@@ -38,7 +38,7 @@
 import type { LiteDocument } from "mathjax-full/js/adaptors/lite/Document.js";
 import { LiteElement } from "mathjax-full/js/adaptors/lite/Element.js";
 import type { LiteText } from "mathjax-full/js/adaptors/lite/Text.js";
-import { liteAdaptor } from "mathjax-full/js/adaptors/liteAdaptor.js";
+import { LiteAdaptor } from "mathjax-full/js/adaptors/liteAdaptor.js";
 import { STATE } from "mathjax-full/js/core/MathItem.js";
 import { HTMLDocument } from "mathjax-full/js/handlers/html/HTMLDocument.js";
 import { HTMLMathItem } from "mathjax-full/js/handlers/html/HTMLMathItem.js";
@@ -204,9 +204,59 @@ interface SheetRule {
 }
 
 /**
- * The adaptor MathJax reads and writes its trees through: the lite DOM, which needs no browser.
+ * The advance widths of the characters MathJax's fonts lack that formulas hold, in em of the
+ * font they are drawn in, as Chrome draws them in its serif face, which AlphaTest's CHTML drew them
+ * in (`MJXZERO, serif`): Liberation Serif, metric for metric Times New Roman and ChromeOS's Tinos,
+ * gives `¢` 0.5 and `º` 0.31, and the answer box `▢`, which none of them holds, comes from the
+ * symbol face Chrome falls back to at 0.945. Measured at 100 px in headless Chrome on cassowary,
+ * 2026-11-22.
  */
-const adaptor = liteAdaptor();
+const advanceWidths: ReadonlyMap<string, number> = new Map([
+  ["¢", 0.5],
+  ["º", 0.31],
+  ["▢", 0.945],
+]);
+
+/**
+ * The width MathJax's lite DOM gives a character it cannot measure, which {@link advanceWidths}
+ * replaces where it knows the character's (`unknownCharWidth`, its default).
+ */
+const estimatedWidth = 0.6;
+
+/**
+ * The lite DOM, which needs no browser, measuring the characters MathJax's fonts lack by their
+ * advance widths where it knows them ({@link advanceWidths}) and by its own estimate otherwise, at
+ * the size MathJax draws them (the text's `font-size`, in thousandths of MathJax's em), so a
+ * character is laid out as wide as a browser draws it and its glyph is fitted to no other width.
+ */
+class MeasuringAdaptor extends LiteAdaptor {
+  /**
+   * Measure a text MathJax's fonts lack.
+   *
+   * @param node The SVG text MathJax draws it in.
+   * @returns Its width and height in MathJax's em.
+   */
+  override nodeSize(node: LiteElement): [number, number] {
+    const [estimate, height] = super.nodeSize(node);
+    const text = this.textContent(node);
+    let correction = 0;
+
+    for (const [character, width] of advanceWidths) {
+      correction += (text.split(character).length - 1) * (width - estimatedWidth);
+    }
+
+    const size = this.hasAttribute(node, "font-size")
+      ? Number(String(this.getAttribute(node, "font-size")).replace(/px$/u, ""))
+      : 1000;
+
+    return [((estimate + correction) * size) / 1000, height];
+  }
+}
+
+/**
+ * The adaptor MathJax reads and writes its trees through.
+ */
+const adaptor = new MeasuringAdaptor();
 
 /**
  * Format a number as MathJax's output does (`CommonOutputJax.fixed`): three decimals, trailing
@@ -360,9 +410,9 @@ const styleOf = (element: LiteElement): readonly (readonly [string, string])[] =
  * `style`'s declarations of drawing attributes, each overriding the one before. Every other
  * attribute is left out. A `text`, a character MathJax's fonts lack, is fitted to the width
  * MathJax laid it out at (`textLength`, glyphs and spacing adjusted): a browser's MathJax measures
- * the character in the page's font, and the server's lite DOM can only estimate it (0.6 em, a full
- * width character 1 em), so the page's glyph is drawn at the estimate rather than run into the
- * characters beside it.
+ * the character in the page's font, and the server's lite DOM measures it by its known advance
+ * width ({@link MeasuringAdaptor}) or estimates it, so the page's glyph keeps its own width where
+ * it is known and never runs into the characters beside it.
  *
  * @param placed The element and the two above it.
  * @returns Its attributes, by the names React writes them under.
