@@ -13,7 +13,7 @@ const timeoutMs = 60_000;
 export default defineConfig(async () => ({
   test: {
     hookTimeout: timeoutMs,
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     // One tag per cache under ~/.cache/qti-pie. A missing cache fails the tests that carry its tag,
     // with a message naming the missing path and how to fetch it (`src/test/setup.ts`).
     setupFiles: ["src/test/setup.ts"],

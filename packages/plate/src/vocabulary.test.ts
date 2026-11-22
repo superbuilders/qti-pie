@@ -159,7 +159,7 @@ const unpresented = (
       !styles.some((sheet) => new RegExp(`\\.${name}(?![\\w-])`, "u").test(sheet)) &&
       ![...sources].some(
         ([path, source]) =>
-          !path.endsWith(".test.ts") &&
+          !/\.test\.tsx?$/u.test(path) &&
           source.includes(`carriesRendererClass(`) &&
           source.includes(`"${name}"`),
       ),

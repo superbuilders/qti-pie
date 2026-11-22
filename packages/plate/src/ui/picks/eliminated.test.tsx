@@ -19,7 +19,6 @@
 import { assert, describe, it } from "@effect/vitest";
 import type { LiteElement, LiteNode } from "mathjax-full/js/adaptors/lite/Element.js";
 import { liteAdaptor } from "mathjax-full/js/adaptors/liteAdaptor.js";
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { bareRoot } from "#plate/test/roots.ts";
 import { Choice } from "#plate/ui/choice/choice.tsx";
@@ -117,32 +116,31 @@ interface Writing {
  * @returns The island's server markup, read into a tree.
  */
 const render = (inline: Case, writing: Writing): LiteElement => {
-  const choice = createElement(Choice, {
-    choices: Array.from({ length: inline.count }, (_, at) => ({
-      content: `Option ${String(at)}`,
-      identifier: identifierAt(at),
-      label: undefined,
-    })),
-    instruction: undefined,
-    labels: { eliminated: crossedOut, limit: "At most {n}" },
-    name: own,
-    naming: { "aria-label": "Answer" },
-    orientation: "vertical",
-    picks: inline.picks,
-    prompt: undefined,
-    root: bareRoot,
-  });
   const markup = renderToStaticMarkup(
-    createElement(Responses, {
-      children: createElement(Eliminated, {
-        children: choice,
-        value: writing.hand(handed(inline)),
-      }),
-      onChange: () => {
+    <Responses
+      value={inline.picked === undefined ? [] : [[own, identifierAt(inline.picked)]]}
+      onChange={() => {
         // A server render calls no handler.
-      },
-      value: inline.picked === undefined ? [] : [[own, identifierAt(inline.picked)]],
-    }),
+      }}
+    >
+      <Eliminated value={writing.hand(handed(inline))}>
+        <Choice
+          choices={Array.from({ length: inline.count }, (_, at) => ({
+            content: `Option ${String(at)}`,
+            identifier: identifierAt(at),
+            label: undefined,
+          }))}
+          instruction={undefined}
+          labels={{ eliminated: crossedOut, limit: "At most {n}" }}
+          name={own}
+          naming={{ "aria-label": "Answer" }}
+          orientation="vertical"
+          picks={inline.picks}
+          prompt={undefined}
+          root={bareRoot}
+        />
+      </Eliminated>
+    </Responses>,
   );
 
   return adaptor.body(adaptor.parse(`<body>${markup}</body>`, "text/html"));

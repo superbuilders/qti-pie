@@ -22,7 +22,6 @@
 import { assert, describe, it } from "@effect/vitest";
 import type { LiteElement, LiteNode } from "mathjax-full/js/adaptors/lite/Element.js";
 import { liteAdaptor } from "mathjax-full/js/adaptors/liteAdaptor.js";
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { bareRoot } from "#plate/test/roots.ts";
 import { InlineChoice } from "#plate/ui/inline-choice/inline-choice.tsx";
@@ -96,26 +95,26 @@ const identifierAt = (index: number): string => `C${String(index)}`;
  */
 const render = (inline: Case): LiteElement => {
   const picked = inline.pick === undefined ? -1 : inline.texts.indexOf(inline.pick);
-  const island = createElement(InlineChoice, {
-    choices: inline.texts.map((text, index) => ({
-      content: text,
-      identifier: identifierAt(index),
-      label: text,
-    })),
-    labels: { prompt: inline.prompt },
-    name: "i.R",
-    required: false,
-    root: bareRoot,
-    trigger: { kind: "named", naming: { "aria-label": "Answer" } },
-  });
   const markup = renderToStaticMarkup(
-    createElement(Responses, {
-      children: island,
-      onChange: () => {
+    <Responses
+      value={picked === -1 ? [] : [["i.R", identifierAt(picked)]]}
+      onChange={() => {
         // A server render calls no handler.
-      },
-      value: picked === -1 ? [] : [["i.R", identifierAt(picked)]],
-    }),
+      }}
+    >
+      <InlineChoice
+        choices={inline.texts.map((text, index) => ({
+          content: text,
+          identifier: identifierAt(index),
+          label: text,
+        }))}
+        labels={{ prompt: inline.prompt }}
+        name="i.R"
+        required={false}
+        root={bareRoot}
+        trigger={{ kind: "named", naming: { "aria-label": "Answer" } }}
+      />
+    </Responses>,
   );
 
   return adaptor.body(adaptor.parse(`<body>${markup}</body>`, "text/html"));
