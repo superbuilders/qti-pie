@@ -116,11 +116,14 @@ const hotspotPicks = ["ring", "fill"] as const;
 
 /**
  * How a child types into a Text Entry beside the device's own keyboard: `none`, with that keyboard
- * alone; or `on-screen`, with child-sized keys under each box, the keys the box's response can
- * hold (`keypadOf` in `#plate/ui/text-entry/keypad.ts`), which type into the box as its keyboard
- * does.
+ * alone; `on-screen`, with child-sized keys under each box, the keys the box's response can hold
+ * (`keypadOf` in `#plate/ui/text-entry/keypad.ts`), which type into the box as its keyboard does;
+ * or `host`, with a keypad the host shows of its own: plate shows no keys, and each box asks the
+ * device for no keyboard (`inputmode="none"`), so the host's keys are the only ones on the screen,
+ * as AlphaTest's player asked for none under its own drill keypad (mastery-track-player 941a86a,
+ * `FluencyInteraction.tsx` lines 1276–1290).
  */
-const textEntryKeypads = ["none", "on-screen"] as const;
+const textEntryKeypads = ["none", "on-screen", "host"] as const;
 
 /**
  * How a child types into a Text Entry, as {@link textEntryKeypads} says.

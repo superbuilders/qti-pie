@@ -133,8 +133,8 @@ const keysOf = (reading: TypedReading): Option.Option<Keypad> => {
 };
 
 /**
- * Give the keypad a box shows under the host's setting: none under `none`, and under `on-screen`
- * the keys its response holds ({@link keysOf}).
+ * Give the keypad a box shows under the host's setting: none under `none` and under `host`, whose
+ * keypad is the host's own, and under `on-screen` the keys its response holds ({@link keysOf}).
  *
  * @param setting The configuration's `textEntryKeypad`.
  * @param reading How the box's text is read.
@@ -145,6 +145,7 @@ export const keypadOf = (
   reading: TypedReading,
 ): Option.Option<Keypad> => {
   switch (setting) {
+    case "host":
     case "none": {
       return Option.none();
     }

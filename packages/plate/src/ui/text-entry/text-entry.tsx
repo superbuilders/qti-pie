@@ -19,11 +19,12 @@ import { useRef, useState } from "react";
 import type { TextEntryKeypad } from "#plate/configuration.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
+import { digitsOf } from "#plate/ui/text-entry/digits.ts";
 import { faces, keypadOf, pressed } from "#plate/ui/text-entry/keypad.ts";
 import type { Key } from "#plate/ui/text-entry/keypad.ts";
 import type { textEntryKeys } from "#plate/ui/text-entry/labels.ts";
 import { asTyped, inputModeOf, useBoxes } from "#plate/ui/typed.ts";
-import type { BoxCounts } from "#plate/ui/typed.ts";
+import type { BoxCounts, TypedReading } from "#plate/ui/typed.ts";
 
 /**
  * What the server gives a Text Entry's island, as QTI's `qti-text-entry-interaction` and plate's
@@ -37,6 +38,11 @@ export interface TextEntryProps extends Authored<Named> {
    * XSD's default (5.162.2).
    */
   readonly base: number;
+  /**
+   * Whether the author marked the box a drill's (`plate-digits`, `#plate/ui/text-entry/digits.ts`):
+   * it takes digits alone and asks for the device's number keyboard.
+   */
+  readonly digits: boolean;
   /**
    * The base type of the response the interaction binds. A `record` response is a `string` here:
    * the text typed is its `stringValue`, which the server reads its other fields from.
@@ -76,6 +82,29 @@ export interface TextEntryProps extends Authored<Named> {
 const oneBox: BoxCounts = { most: 1, shown: 1 };
 
 /**
+ * Give the keyboard a box asks the device for: none where the host shows a keypad of its own
+ * (`textEntryKeypad` `host`), which wins, since its keys are the ones the child types with; the
+ * number keyboard for a drill's box (`plate-digits`); else the keyboard its base type reads by
+ * (`inputModeOf`).
+ *
+ * @param keypad The host's `textEntryKeypad`.
+ * @param digits Whether the box is a drill's.
+ * @param reading How the box's text is read.
+ * @returns The `inputmode`, undefined for the device's text keyboard.
+ */
+const inputModeFor = (
+  keypad: TextEntryKeypad,
+  digits: boolean,
+  reading: TypedReading,
+): "decimal" | "none" | "numeric" | undefined => {
+  if (keypad === "host") {
+    return "none";
+  }
+
+  return digits ? "numeric" : inputModeOf(reading);
+};
+
+/**
  * Render a Text Entry for the child to answer, holding its response in the item's `<Responses>`.
  *
  * The parts:
@@ -83,7 +112,9 @@ const oneBox: BoxCounts = { most: 1, shown: 1 };
  * - `plate-text-entry`, the root, a `span`, with the author's `class` and `data-*`;
  * - UI SDK's `field`, rendered as a `span`, which ties the input to its hint;
  * - UI SDK's `input`, a native text input named by `naming`, which the server resolved: `inputmode`
- *   by the base type, `expected-length` as its `size`, `placeholder-text` as its `placeholder`;
+ *   by the base type, numeric for a drill's box, none under a host's own keypad
+ *   ({@link inputModeFor}), `expected-length` as its `size`, `placeholder-text` as its
+ *   `placeholder`;
  * - UI SDK's `field-error`, rendered as a `span`, holding the `pattern` label from the moment the
  *   input loses focus with text that fails the `pattern-mask` until the text matches, on the
  *   keystroke that makes it match. Meanwhile the field marks the input `aria-invalid`, names the
@@ -101,7 +132,9 @@ const oneBox: BoxCounts = { most: 1, shown: 1 };
  * reaches them and Enter and Space press them. The keypad is part of the box: the hint waits for
  * the child to leave both, so a tap on a key while typing toward an answer shows nothing.
  *
- * Every keystroke writes the response, and the host paces its saves. An empty input posts
+ * A drill's box keeps the digits of what is typed and drops every other character as it is typed
+ * (`digitsOf`), so its response holds digits alone. Every keystroke writes the response, and the
+ * host paces its saves. An empty input posts
  * nothing, and so does a blank one bound to a number, which the server would read as NULL. The
  * text posts as typed: the server trims a number and reads an `integer` in `base`.
  *
@@ -118,6 +151,7 @@ export const TextEntry = (props: TextEntryProps) => {
   const {
     base,
     baseType,
+    digits,
     expectedLength,
     keypad,
     labels,
@@ -173,7 +207,7 @@ export const TextEntry = (props: TextEntryProps) => {
           autoComplete="off"
           autoCorrect="off"
           controller={controller}
-          inputMode={inputModeOf(reading)}
+          inputMode={inputModeFor(keypad, digits, reading)}
           placeholder={placeholder}
           ref={input}
           size={expectedLength}
@@ -181,7 +215,7 @@ export const TextEntry = (props: TextEntryProps) => {
           type="text"
           value={box.text}
           onValueChange={(text) => {
-            write(0, text);
+            write(0, digits ? digitsOf(text) : text);
           }}
         />
         {box.flagged ? (

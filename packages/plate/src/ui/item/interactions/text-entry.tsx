@@ -29,6 +29,7 @@ import { controlNameOf, labelsOf, ownName, rootOf } from "#plate/ui/item/interac
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import type { Marking } from "#plate/ui/item/interactions/marks.ts";
 import { mathEntryClass } from "#plate/math-entry/field.ts";
+import { digitsClass } from "#plate/ui/text-entry/digits.ts";
 import { MathAnswer } from "#plate/ui/item/interactions/math-answer.tsx";
 import { textEntryKeys } from "#plate/ui/text-entry/labels.ts";
 import { MathEntry } from "#plate/ui/text-entry/math-entry.tsx";
@@ -79,6 +80,7 @@ export const island = (
     <TextEntry
       base={node.base}
       baseType={node.baseType}
+      digits={holds(context.className, digitsClass)}
       expectedLength={hintOf(node.expectedLength)}
       keypad={context.textEntryKeypad}
       labels={labelsOf(textEntryKeys, context.locale, { pattern: model.patternMaskMessage })}

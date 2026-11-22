@@ -180,6 +180,17 @@ describe("configure", () => {
     }),
   );
 
+  it.effect('decodes textEntryKeypad "host"', () =>
+    Effect.gen(function* hostKeypad() {
+      const { textEntryKeypad } = yield* configure({
+        seed: "",
+        textEntryKeypad: "host",
+      });
+
+      assert.strictEqual(textEntryKeypad, "host");
+    }),
+  );
+
   it.effect("decodes outputBudget 536,870,888, the longest string V8 builds", () =>
     Effect.gen(function* longestBudget() {
       assert.strictEqual(

@@ -61,6 +61,8 @@ export { Responses, useResponse } from "#plate/ui/responses.tsx";
 
 export type { PostedEntries, PostedEntry } from "#plate/ui/responses.tsx";
 
+export { digitsClass, digitsOf } from "#plate/ui/text-entry/digits.ts";
+
 export { TextEntry } from "#plate/ui/text-entry/text-entry.tsx";
 
 export type { TextEntryProps } from "#plate/ui/text-entry/text-entry.tsx";
