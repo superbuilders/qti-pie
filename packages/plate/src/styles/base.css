@@ -328,6 +328,24 @@
     box-shadow: inset var(--plate-focus-halo);
   }
 
+  /*
+   * The pane's tabs, where it holds two or more stimuli: each tab a target at least 48 px tall, as
+   * every control is, showing its focus with the two-toned ring.
+   */
+  :where([data-slot="plate-stimuli"]) [data-slot="tabs-tab"] {
+    min-block-size: var(--plate-control-size);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :where([data-slot="plate-stimuli"]) [data-slot="tabs-tab"]:focus-visible {
+    outline: var(--plate-focus-ring);
+    outline-offset: 2px;
+    box-shadow: var(--plate-focus-halo);
+  }
+
   /* What a placement a target refused says beside its controls: nothing, while it is empty. */
   [data-slot="plate-placement-message"]:empty {
     display: none;

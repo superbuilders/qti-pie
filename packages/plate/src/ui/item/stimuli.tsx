@@ -41,7 +41,7 @@ import type { Key, ReactNode } from "react";
 import { copyItemContent, itemContentNodes } from "#plate/content/modules.ts";
 import type { ItemPayloadsHeld } from "#plate/content/modules.ts";
 import { scopedId } from "#plate/form/encoding.ts";
-import { message } from "#plate/messages.ts";
+import { message, numeral } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
@@ -66,6 +66,8 @@ import { StimulusMissing, UnrenderedNode } from "#plate/ui/item/errors.ts";
 import { takesFlow } from "#plate/ui/item/html.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
 import type { RenderMode } from "#plate/payload.ts";
+import { PassageTabs } from "#plate/ui/passages/passage-tabs.tsx";
+import { collapsedText } from "#plate/ui/whitespace.ts";
 import type { AcceptedStimulus } from "#plate/validate/verdict.ts";
 
 /**
@@ -285,9 +287,27 @@ export const stimulusArticle = (
 };
 
 /**
+ * Name a stimulus's tab in the pane: its `title`, its whitespace collapsed, an attribute every
+ * `qti-assessment-stimulus` carries; "Passage n" by its place where the title is blank, so no tab
+ * is nameless.
+ *
+ * @param title The stimulus's `title`, as written.
+ * @param n Its place among the pane's stimuli, from 1.
+ * @param locale The locale of plate's own text.
+ * @returns The tab's name.
+ */
+export const passageName = (title: string, n: number, locale: Locale): string =>
+  Option.getOrElse(
+    Option.liftPredicate(collapsedText(title), (written) => written !== ""),
+    () => message(locale, "stimuliTab", { n: numeral(locale, n) }),
+  );
+
+/**
  * Write the stimulus pane, `plate-stimuli`: a region named `Passage`, in the tab order, holding the
- * stimuli no body element places, in their refs' order; nothing when every stimulus is placed or
- * the item references none.
+ * stimuli no body element places, in their refs' order, two or more of them as tabs, each named by
+ * its stimulus's `title` (`PassageTabs` in `#plate/ui/passages/passage-tabs.tsx`), as AlphaTest's
+ * player showed them, with its line telling the child to read them all; nothing when every
+ * stimulus is placed or the item references none.
  *
  * @param stimuli The stimuli the pane holds.
  * @param setting What they are written under.
@@ -308,6 +328,15 @@ export const stimulusPane = (
             key: "stimuli",
             tabIndex: 0,
           },
-          ...stimuli.map((shown, index) => stimulusArticle(shown, setting, index)),
+          stimuli.length === 1
+            ? stimuli.map((shown, index) => stimulusArticle(shown, setting, index))
+            : createElement(PassageTabs, {
+                instruction: message(setting.locale, "stimuliInstruction"),
+                label: message(setting.locale, "stimuli"),
+                passages: stimuli.map((shown, index) => ({
+                  article: stimulusArticle(shown, setting, index),
+                  name: passageName(shown.redacted.title, index + 1, setting.locale),
+                })),
+              }),
         ),
       );

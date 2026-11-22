@@ -378,6 +378,37 @@
   }
 
   /*
+   * The pane's tabs, two or more stimuli: the line telling the child to read them all, then a row
+   * of tabs over a rule, each as wide as its share of the row, the picked one marked by a thick
+   * edge in the foreground under it and bold words, then the picked stimulus.
+   */
+  [data-slot="plate-stimuli-instruction"] {
+    margin-block: 0 0.75rem;
+    color: var(--ui-muted-foreground);
+  }
+
+  :where([data-slot="plate-stimuli"]) [data-slot="tabs-list"] {
+    display: flex;
+    margin-block-end: 1rem;
+    border-block-end: 2px solid var(--ui-input);
+  }
+
+  :where([data-slot="plate-stimuli"]) [data-slot="tabs-tab"] {
+    flex: 1;
+    margin-block-end: -2px;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    border-block-end: 4px solid transparent;
+    background: none;
+    color: inherit;
+  }
+
+  :where([data-slot="plate-stimuli"]) [data-slot="tabs-tab"][data-selected] {
+    border-block-end-color: var(--ui-foreground);
+    font-weight: 600;
+  }
+
+  /*
    * A picture that failed to load: its line under its words, framed as a notice is, in the item's
    * own text size and colour whatever the picture's box.
    */

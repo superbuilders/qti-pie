@@ -15,7 +15,9 @@
  * stimuli an item references, which the candidate reads beside the item, and `question` the region
  * of the item itself beside it, so a screen reader moves between the two by its landmarks.
  * `pictureUnloaded` is the line a picture that fails to load shows under its words, as AlphaTest's
- * player wrote "[Image failed to load]", telling the child what to do.
+ * player wrote "[Image failed to load]", telling the child what to do. A pane of two or more
+ * stimuli holds one tab per stimulus under `stimuliInstruction`, AlphaTest's player's words, each
+ * named by the stimulus's `title`, or by `stimuliTab`, `{n}` its place, where its title is blank.
  */
 export const contentMessages = {
   glossarySummary: "Definition",
@@ -30,4 +32,6 @@ export const contentMessages = {
   pictureUnloaded: "This picture didn't load. Tell your teacher.",
   question: "Question",
   stimuli: "Passage",
+  stimuliInstruction: "Read all passages below and use the tabs to alternate between them",
+  stimuliTab: "Passage {n}",
 } as const;
