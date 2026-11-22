@@ -109,6 +109,7 @@ import {
   closedId,
   contained,
   counted,
+  Crypto,
   drawn,
   fin,
   generated,
@@ -121,6 +122,7 @@ import {
   pg,
   relation,
   select,
+  sha256,
   Text,
   Type,
 } from "@bjornpagen/grizzle";
@@ -144,7 +146,7 @@ import {
 import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
 import { namePattern } from "#pantry/qti/declarations.ts";
-import { CopiedLexical, EntryPath, PackageName, QtiIdentifier } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName, QtiIdentifier } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Instance, itemInstances } from "#pantry/qti/tests.ts";
 
@@ -273,8 +275,10 @@ export const templateVariableKind = "qti-template-variable" satisfies Kind;
  * whatever the form: a value with whitespace inside is held as its type's whiteSpace reads it, and
  * is no value of its type, which its value domain refuses alone.
  *
- * The lexical form and its collapse are `CopiedLexical` (`#pantry/qti/limits.ts`), the bound of an
- * attribute's form a key holds, so every index over `value` holds it as itself. A parse that reads
+ * The lexical form and its collapse are `matchedText` (`#pantry/qti/limits.ts`), of any length a
+ * query's match reads, since QTI bounds no attribute's value; `lexicalDigest`, the form's SHA-256,
+ * is what the copy's containment from `Attribute` holds, `Attribute.lexicalDigest`'s, so no key
+ * holds the form itself. A parse that reads
  * a value bounds its own operand
  * where it reads it ("Aria value range", `#pantry/qti/overlay-queries/interaction.ts`), so no
  * identifier O3 reads is held to a decimal's bound.
@@ -285,7 +289,7 @@ export const InteractionAttribute = law(
     "InteractionAttribute",
     {
       kind: closedId(NodeKind),
-      lexical: CopiedLexical,
+      lexical: matchedText,
       name: closedId(AttributeName),
       package: PackageName,
       path: EntryPath,
@@ -294,7 +298,8 @@ export const InteractionAttribute = law(
     },
     ["package", "path", "start", "name"],
     (v) => ({
-      value: law(entryOf("E1 derived"), generated(CopiedLexical, Text.collapse(v.lexical))),
+      lexicalDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(v.lexical))),
+      value: law(entryOf("E1 derived"), generated(matchedText, Text.collapse(v.lexical))),
     }),
   ),
 );
@@ -1551,8 +1556,8 @@ export const interactionLawsByName = {
   ]),
   "E1 derived": declared("E1 derived", [
     contained(
-      on(o3Attributes, "package", "path", "start", "name", "kind", "lexical"),
-      on(InteractionAttribute, "package", "path", "start", "name", "kind", "lexical"),
+      on(o3Attributes, "package", "path", "start", "name", "kind", "lexicalDigest"),
+      on(InteractionAttribute, "package", "path", "start", "name", "kind", "lexicalDigest"),
     ),
     contained(
       on(InteractionAttribute, "package", "path", "start", "name"),

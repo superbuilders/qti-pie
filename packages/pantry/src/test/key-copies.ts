@@ -47,8 +47,6 @@ import {
 } from "#pantry/test/predicates.ts";
 import type { Row, StoredSide, StoredStatement, Term } from "#pantry/test/predicates.ts";
 import {
-  CopiedLexical,
-  copiedLexicalBytes,
   EntryPath,
   entryPathBytes,
   identifierBytes,
@@ -88,7 +86,6 @@ export const keyTextBounds: ReadonlyMap<unknown, number> = new Map<unknown, numb
   [UriText, uriBytes],
   [LiteralText, literalTextBytes],
   [SsmlMemberText, ssmlMemberBytes],
-  [CopiedLexical, copiedLexicalBytes],
   [Qti.relations.Namespace.fields.prefix, xmlNameBytes],
   [Qti.relations.OpenAttribute.fields.local, xmlNameBytes],
 ]);

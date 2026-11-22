@@ -50,6 +50,7 @@ import {
   closed,
   closedId,
   contained,
+  Crypto,
   generated,
   law,
   Logic,
@@ -58,11 +59,12 @@ import {
   pg,
   relation,
   select,
+  sha256,
   Text,
   Type,
 } from "@bjornpagen/grizzle";
 import { Attribute, attributesOf } from "#pantry/qti/attributes.ts";
-import { CopiedLexical, EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, integerForm, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import {
   listTokens,
@@ -153,19 +155,24 @@ export const Rounding = law(
 
 /**
  * A rounding operator's `figures`, keyed by its element's place, where it writes one:
- * `figuresLexical` as written, copied from the attribute, and `figures`, that form collapsed, which
- * the database derives.
+ * `figuresLexical` as written, copied from the attribute, of any length, held to it by its SHA-256,
+ * `figuresLexicalDigest`, and `figures`, that form collapsed, which the database derives.
  */
 export const RoundingFigures = law(
   entryOf("E1 derived"),
   relation.generated(
     "RoundingFigures",
-    { figuresLexical: CopiedLexical, package: PackageName, path: EntryPath, start: natural },
+    { figuresLexical: matchedText, package: PackageName, path: EntryPath, start: natural },
     ["package", "path", "start"],
     (f) => ({
-      figures: law(
+      figures: law(entryOf("E1 derived"), generated(matchedText, Text.collapse(f.figuresLexical))),
+      figuresDigest: law(
         entryOf("E1 derived"),
-        generated(CopiedLexical, Text.collapse(f.figuresLexical)),
+        generated(sha256, Crypto.sha256(Text.collapse(f.figuresLexical))),
+      ),
+      figuresLexicalDigest: law(
+        entryOf("E1 derived"),
+        generated(sha256, Crypto.sha256(f.figuresLexical)),
       ),
     }),
   ),
@@ -174,21 +181,25 @@ export const RoundingFigures = law(
 /**
  * A rounding operator that has both a `figures` and a mode in force, keyed by its element's place:
  * the `both` arm of its {@link Rounding} row's `holds`, which grizzle's `alternatives` states,
- * with its {@link RoundingFigures}' `figures` and its mode in force, `RoundingMode`'s `mode`, the
- * two reading 119 judges together ({@link roundingFigures}).
+ * with its {@link RoundingFigures}' `figures`, held to it by their SHA-256s (`figuresDigest`), and
+ * its mode in force, `RoundingMode`'s `mode`, the two reading 119 judges together
+ * ({@link roundingFigures}).
  */
 export const RoundingModeFigures = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "RoundingModeFigures",
     {
-      figures: CopiedLexical,
+      figures: matchedText,
       mode: anyText,
       package: PackageName,
       path: EntryPath,
       start: natural,
     },
     ["package", "path", "start"],
+    (m) => ({
+      figuresDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(m.figures))),
+    }),
   ),
 );
 
@@ -347,8 +358,8 @@ export const operatorLawsByName = {
       on(Rounding, "package", "path", "start"),
     ),
     contained(
-      on(figuresAttributes, "package", "path", "start", "lexical"),
-      on(RoundingFigures, "package", "path", "start", "figuresLexical"),
+      on(figuresAttributes, "package", "path", "start", "lexicalDigest"),
+      on(RoundingFigures, "package", "path", "start", "figuresLexicalDigest"),
     ),
     contained(
       on(RoundingFigures, "package", "path", "start"),
@@ -360,8 +371,8 @@ export const operatorLawsByName = {
     ),
     alternatives(Rounding, "holds", RoundingHolds, { both: RoundingModeFigures }),
     contained(
-      on(RoundingModeFigures, "package", "path", "start", "figures"),
-      on(RoundingFigures, "package", "path", "start", "figures"),
+      on(RoundingModeFigures, "package", "path", "start", "figuresDigest"),
+      on(RoundingFigures, "package", "path", "start", "figuresDigest"),
     ),
     mirrors(
       on(toleranceAttributes, "package", "path", "start"),

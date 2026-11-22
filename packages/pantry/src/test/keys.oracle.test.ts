@@ -344,9 +344,9 @@ describe("the oracle's key-text list", () => {
     // Oracle: the law table's copies into a field of a narrower bound from a relation the oracle
     // has no rows of. Bounded where its row is written: `LeastCountNode.least` and
     // `MostCountNode.most` are a written count's `LeastCount.least` and `MostCount.most`, which
-    // the import writes where it writes its count's row (overlay-queries/interaction.ts); an
-    // `m:cn`'s `typeLexical` and `baseLexical` are its attributes' lexical forms, which
-    // `CnAttribute.lexical` holds as `cnAttributes` copies them (mathml-cn.ts). A derived
+    // the import writes where it writes its count's row (overlay-queries/interaction.ts). An
+    // `m:cn`'s `typeLexical` and `baseLexical` are held to its attributes' lexical forms by their
+    // SHA-256s (mathml-cn.ts), no copy of a text into a narrower field. A derived
     // relation's column is a codec to grizzle, its bound unread, so a copy from one is listed
     // where its column is a stored field of the target's own type read unchanged: a reference's
     // token (`PlacedReference`, `UnassembledReference`), an `Idref`'s `token`; a placed reference
@@ -371,7 +371,6 @@ describe("the oracle's key-text list", () => {
         ),
       ].toSorted(),
       [
-        "CnCount.typeLexical → CnAttribute.lexical",
         "InteractionAttribute.value → BindingName.identifier",
         "InteractionAttribute.value → BoundVariable.identifier",
         "InteractionAttribute.value → Choice.identifier",
@@ -385,8 +384,6 @@ describe("the oracle's key-text list", () => {
         "InteractionAttribute.value → PrintedVariableRef.identifier",
         "InteractionAttribute.value → TemplateRef.identifier",
         "LeastCountNode.least → InteractionAttribute.value",
-        "MathCn.baseLexical → CnAttribute.lexical",
-        "MathCn.typeLexical → CnAttribute.lexical",
         "MostCountNode.most → InteractionAttribute.value",
         "PlacedReference.token → AssembledCatalog.id",
         "PlacedReferenceSite.identifier → PlacedVariableRef.identifier",

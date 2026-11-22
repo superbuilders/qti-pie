@@ -8,7 +8,6 @@
 import { keyTextBytes, natural, pg } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import {
-  copiedLexicalBytes,
   EntryPath,
   entryPathBytes,
   keyMatchedTextBytes,
@@ -62,11 +61,5 @@ describe("qti/key-bounds", () => {
     // DataSsmlProperty's lookup (package, path, start, member, name) and DataSsmlMember's target
     // (package, path, start, at, member).
     assert.isAtMost(ssmlMemberBytes, keyTextBytes([PackageName, EntryPath, natural, natural]));
-    // InteractionAttribute's reference target (package, path, start, name, kind, lexical), the
-    // widest key that holds a copied lexical form.
-    assert.isAtMost(
-      copiedLexicalBytes,
-      keyTextBytes([PackageName, EntryPath, natural, code, code]),
-    );
   });
 });

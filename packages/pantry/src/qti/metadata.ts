@@ -110,7 +110,7 @@ import { BaseType, BaseTypeLexical, anyText, natural } from "#pantry/grammar/ins
 import { baseTypes } from "#pantry/grammar/attributes.ts";
 import { carries } from "#pantry/qti/attributes.ts";
 import { BaseTypePattern, unjudgedBaseTypes } from "#pantry/qti/expression-types.ts";
-import { CopiedLexical, EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { usageValueKind } from "#pantry/vocab/terms/metadata.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
@@ -149,14 +149,20 @@ export const UsageValue = law(
   relation.generated(
     "UsageValue",
     {
-      baseTypeLexical: CopiedLexical,
+      baseTypeLexical: matchedText,
       package: PackageName,
       path: EntryPath,
       start: natural,
       text: anyText,
     },
     ["package", "path", "start"],
-    (u) => ({ textDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(u.text))) }),
+    (u) => ({
+      baseTypeLexicalDigest: law(
+        entryOf("E1 derived"),
+        generated(sha256, Crypto.sha256(u.baseTypeLexical)),
+      ),
+      textDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(u.text))),
+    }),
   ),
 );
 
@@ -174,14 +180,20 @@ export const UsageValueBaseType = law(
     "UsageValueBaseType",
     {
       baseType: closedId(BaseType),
-      baseTypeLexical: CopiedLexical,
+      baseTypeLexical: matchedText,
       package: PackageName,
       path: EntryPath,
       start: natural,
       text: anyText,
     },
     ["package", "path", "start"],
-    (u) => ({ textDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(u.text))) }),
+    (u) => ({
+      baseTypeLexicalDigest: law(
+        entryOf("E1 derived"),
+        generated(sha256, Crypto.sha256(u.baseTypeLexical)),
+      ),
+      textDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(u.text))),
+    }),
   ),
 );
 
@@ -262,12 +274,12 @@ export const metadataLawsByName = {
       on(Node, "package", "path", "start", "stringValueDigest"),
     ),
     contained(
-      on(spelledUsageValues, "package", "path", "start", "baseTypeLexical"),
-      on(UsageValueBaseType, "package", "path", "start", "baseTypeLexical"),
+      on(spelledUsageValues, "package", "path", "start", "baseTypeLexicalDigest"),
+      on(UsageValueBaseType, "package", "path", "start", "baseTypeLexicalDigest"),
     ),
     contained(
-      on(UsageValueBaseType, "package", "path", "start", "baseTypeLexical"),
-      on(spelledUsageValues, "package", "path", "start", "baseTypeLexical"),
+      on(UsageValueBaseType, "package", "path", "start", "baseTypeLexicalDigest"),
+      on(spelledUsageValues, "package", "path", "start", "baseTypeLexicalDigest"),
     ),
     contained(
       on(UsageValueBaseType, "package", "path", "start", "textDigest"),

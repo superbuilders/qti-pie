@@ -67,6 +67,7 @@ import {
   closedId,
   contained,
   counted,
+  Crypto,
   drawn,
   fin,
   fold,
@@ -82,11 +83,12 @@ import {
   pg,
   relation,
   select,
+  sha256,
   Text,
   Type,
 } from "@bjornpagen/grizzle";
 import { anyText, natural } from "#pantry/grammar/install.ts";
-import { CopiedLexical, EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, integerForm, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
@@ -131,7 +133,7 @@ export const MathAction = law(
     {
       package: PackageName,
       path: EntryPath,
-      selectionLexical: CopiedLexical,
+      selectionLexical: matchedText,
       selectionWritten: pg.boolean,
       start: natural,
     },
@@ -156,6 +158,10 @@ export const MathAction = law(
             ),
           ),
         ),
+      ),
+      selectionLexicalDigest: law(
+        entryOf("E1 derived"),
+        generated(sha256, Crypto.sha256(m.selectionLexical)),
       ),
     }),
   ),
@@ -331,8 +337,8 @@ const leafStartFold = fold(
 export const alignLaws = [
   mirrors(on(MathAction, "package", "path", "start"), on(actions, "package", "path", "start")),
   contained(
-    on(selectionAttributes, "package", "path", "start", "lexical"),
-    on(writtenSelections, "package", "path", "start", "selectionLexical"),
+    on(selectionAttributes, "package", "path", "start", "lexicalDigest"),
+    on(writtenSelections, "package", "path", "start", "selectionLexicalDigest"),
   ),
   contained(
     on(writtenSelections, "package", "path", "start"),

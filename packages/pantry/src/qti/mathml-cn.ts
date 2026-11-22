@@ -55,12 +55,15 @@ import {
   closedId,
   contained,
   counted,
+  Crypto,
   drawn,
   fin,
+  generated,
   law,
   on,
   relation,
   select,
+  sha256,
   Text,
 } from "@bjornpagen/grizzle";
 import {
@@ -77,7 +80,7 @@ import {
   anyText,
   natural,
 } from "#pantry/grammar/install.ts";
-import { CopiedLexical, EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
@@ -87,13 +90,13 @@ import { entryOf } from "#pantry/vocab/laws.ts";
  *
  * - **the host's:** the node, proved by containment to be an `m:cn`; `type` and `base`, the handles
  *   the `cn` is judged under, and `typeLexical` and `baseLexical`, the lexical forms of the
- *   attributes that gave them, each empty where the `cn` writes none; proved by containment and by
- *   `E1_derived`;
+ *   attributes that gave them, each empty where the `cn` writes none; proved by containment, by
+ *   their SHA-256s (`typeLexicalDigest`, `baseLexicalDigest`), and by `E1_derived`;
  * - **drawn:** `parts`, the count of its {@link CnPartText} rows.
  */
 export const MathCn = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "MathCn",
     {
       base: closedId(CnBase),
@@ -106,6 +109,16 @@ export const MathCn = law(
       typeLexical: anyText,
     },
     ["package", "path", "start"],
+    (c) => ({
+      baseLexicalDigest: law(
+        entryOf("E1 derived"),
+        generated(sha256, Crypto.sha256(c.baseLexical)),
+      ),
+      typeLexicalDigest: law(
+        entryOf("E1 derived"),
+        generated(sha256, Crypto.sha256(c.typeLexical)),
+      ),
+    }),
   ),
 );
 
@@ -135,12 +148,12 @@ export const CnPartText = law(
 /**
  * One `m:cn` whose `type` {@link CnType} lists (`real` where it writes none), keyed by its node,
  * whatever its `base` and whatever its parts hold: the `type` and its lexical form as written
- * (empty where unwritten, as on {@link MathCn}), and `parts`, the count of its {@link CnSlot} rows.
- * It carries the part count of a `cn` that {@link MathCn} does not judge.
+ * (empty where unwritten, as on {@link MathCn}), with its SHA-256, and `parts`, the count of its
+ * {@link CnSlot} rows. It carries the part count of a `cn` that {@link MathCn} does not judge.
  */
 export const CnCount = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "CnCount",
     {
       package: PackageName,
@@ -151,6 +164,12 @@ export const CnCount = law(
       typeLexical: anyText,
     },
     ["package", "path", "start"],
+    (c) => ({
+      typeLexicalDigest: law(
+        entryOf("E1 derived"),
+        generated(sha256, Crypto.sha256(c.typeLexical)),
+      ),
+    }),
   ),
 );
 
@@ -177,21 +196,24 @@ export const CnSlot = law(
 
 /**
  * One `type` or `base` attribute of an `m:cn`, keyed by its node and its name: its lexical form as
- * written, whether or not the `cn` is judged, copied so that a law can compare it in a key, which
- * holds it as itself, a `CopiedLexical` (`#pantry/qti/limits.ts`).
+ * written, whether or not the `cn` is judged, of any length, copied so that a law can compare it,
+ * which a key holds by its SHA-256, `lexicalDigest`.
  */
 export const CnAttribute = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "CnAttribute",
     {
-      lexical: CopiedLexical,
+      lexical: matchedText,
       name: closedId(AttributeName),
       package: PackageName,
       path: EntryPath,
       start: natural,
     },
     ["package", "path", "start", "name"],
+    (a) => ({
+      lexicalDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(a.lexical))),
+    }),
   ),
 );
 
@@ -275,31 +297,31 @@ export const cnCountLaws = {
 export const cnLaws = [
   contained(on(MathCn, "package", "path", "start"), on(cnNodes, "package", "path", "start")),
   contained(
-    on(cnAttributes, "package", "path", "start", "name", "lexical"),
-    on(CnAttribute, "package", "path", "start", "name", "lexical"),
+    on(cnAttributes, "package", "path", "start", "name", "lexicalDigest"),
+    on(CnAttribute, "package", "path", "start", "name", "lexicalDigest"),
   ),
   contained(
     on(CnAttribute, "package", "path", "start", "name"),
     on(cnAttributes, "package", "path", "start", "name"),
   ),
   contained(
-    on(typedCns, "package", "path", "start", "typeLexical"),
+    on(typedCns, "package", "path", "start", "typeLexicalDigest"),
     on(
       select(CnAttribute, (a) => a.eq(a.name, "type")),
       "package",
       "path",
       "start",
-      "lexical",
+      "lexicalDigest",
     ),
   ),
   contained(
-    on(basedCns, "package", "path", "start", "baseLexical"),
+    on(basedCns, "package", "path", "start", "baseLexicalDigest"),
     on(
       select(CnAttribute, (a) => a.eq(a.name, "base")),
       "package",
       "path",
       "start",
-      "lexical",
+      "lexicalDigest",
     ),
   ),
   cnCountLaws.judgedParts,
@@ -325,13 +347,13 @@ export const cnLaws = [
 
   contained(on(CnCount, "package", "path", "start"), on(cnNodes, "package", "path", "start")),
   contained(
-    on(typedCounts, "package", "path", "start", "typeLexical"),
+    on(typedCounts, "package", "path", "start", "typeLexicalDigest"),
     on(
       select(CnAttribute, (a) => a.eq(a.name, "type")),
       "package",
       "path",
       "start",
-      "lexical",
+      "lexicalDigest",
     ),
   ),
   check("E1_derived", CnCount, (c) =>

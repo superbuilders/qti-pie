@@ -293,6 +293,7 @@ export const Attribute = law(
 
       return {
         idrefTextDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(a.idrefText))),
+        lexicalDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(a.lexical))),
         value: law(entryOf("E1 derived"), generated(Chars, value)),
         valueDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(value))),
       };

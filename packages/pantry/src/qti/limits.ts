@@ -353,36 +353,6 @@ export const ssmlMemberBytes = 1592;
 export const SsmlMemberText = law(entryOf("Key text bound"), str.bytes(ssmlMemberBytes, Chars));
 
 /**
- * The most UTF-8 bytes an attribute's lexical form holds where an overlay copies it into a key so
- * that a law can compare it: what one B-tree entry leaves it in `InteractionAttribute`'s reference
- * target, the widest key that holds such a copy; every other copy's key (`CnAttribute`'s,
- * `MathAction`'s, `UsageValueBaseType`'s, `RoundingFigures`') leaves it more. The real forms are
- * far shorter (REPRKEY's key-text table, grizzle lane REPRKEY, 2026-11-21): an interaction
- * attribute's lexical form is at most 13 bytes in the QTI store (172,814 rows), 22 in the chemistry
- * content and 46 in AlphaTest's converted items (241,524 values), 3% of the bound; an `m:cn`'s
- * `type` or `base`, a `maction`'s `selection`, a usage value's `baseType` and a rounding's
- * `figures` hold no value in any of the three, so their bound stands on the specification alone.
- *
- * @limitKind derived
- * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
- * @unit UTF-8 bytes
- * @scope one attribute's lexical form an overlay copies, in any key or index grizzle builds over it
- * @constraint QTI and MathML put no bound on an attribute's value; a longer one is refused at import
- * @derivation grizzle's `keyTextBytes` over `InteractionAttribute`'s reference target `(package,
- *   path, start, name, kind, lexical)`, the form beside a name of {@link nameMaxBytes}, a path of
- *   {@link entryPathBytes}, a natural and two codes
- * @from nameMaxBytes, entryPathBytes
- */
-export const copiedLexicalBytes = 1601;
-
-/**
- * An attribute's lexical form as an overlay copies it into a key, of at most
- * {@link copiedLexicalBytes} UTF-8 bytes, and a form collapsed from one (an interaction attribute's
- * `value`, a rounding's `figures`), which a collapse never lengthens.
- */
-export const CopiedLexical = law(entryOf("Key text bound"), str.bytes(copiedLexicalBytes, Chars));
-
-/**
  * The most UTF-8 bytes of a text a query reads by a pattern, `Text.matches`: grizzle's
  * `regexTextMaxBytes`, the longest text PostgreSQL's regex engine reads. A longer one is refused,
  * a stated limit of the representation.

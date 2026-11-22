@@ -25,8 +25,14 @@ import type {
   XdmText,
   XdmWhitespace,
 } from "#pantry/model/xdm.ts";
-import { copiedLexicalBytes, utf8Length } from "#pantry/qti/limits.ts";
+import { utf8Length } from "#pantry/qti/limits.ts";
 import { ownViewOf } from "#pantry/import/fold.ts";
+
+/**
+ * PostgreSQL 19's limit on one B-tree entry (BTMaxItemSize at 8 kB blocks), past which no key
+ * could hold a text as itself.
+ */
+const btreeEntryBytes = 2704;
 
 /**
  * The kinds the cases' elements are of.
@@ -375,12 +381,12 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     assert.sameMembers(keysOf(rows.MathCn), [keyAt(2), keyAt(6)]);
   });
 
-  it("copies a type a byte past the bound a key holds it to unchanged, for the database to refuse", () => {
-    // The builder restates the tree whatever its length; `CnAttribute.lexical` is a
-    // `CopiedLexical`, which a key holds as itself, of at most `copiedLexicalBytes`
-    // (`#pantry/qti/limits.ts`), so the database refuses the copy under key-text-bound, a stated
-    // limit of the representation (reading 2 bounds no type's spelling).
-    const long = "t".repeat(copiedLexicalBytes + 1);
+  it("copies a type wider than any B-tree entry unchanged, which a key holds by its digest", () => {
+    // The builder restates the tree whatever its length. Reading 2 bounds no type's spelling, so
+    // `CnAttribute.lexical` is of any length and a key holds it by its SHA-256, `lexicalDigest`,
+    // which the database derives: a type past PostgreSQL's 2,704-byte B-tree entry
+    // (BTMaxItemSize) is copied as written and refused by no bound.
+    const long = "t".repeat(btreeEntryBytes + 1);
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -394,8 +400,8 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     assert.strictEqual(copied?.lexical, long);
     assert.isAbove(
       utf8Length(copied?.lexical ?? ""),
-      copiedLexicalBytes,
-      "the copy is past the bound a key holds it to",
+      btreeEntryBytes,
+      "the copy is wider than any B-tree entry",
     );
     assert.sameMembers(keysOf(rows.MathCn), []);
   });
