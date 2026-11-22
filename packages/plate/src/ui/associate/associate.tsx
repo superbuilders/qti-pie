@@ -16,7 +16,7 @@
  */
 import type { AssociateLabels } from "#plate/ui/associate/labels.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
-import type { Limit } from "#plate/ui/limit.ts";
+import type { Limit } from "#plate/placement/limit.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 import { PairBoxes, usePairBoxes } from "#plate/ui/placement/boxes.tsx";
 import {

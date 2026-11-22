@@ -18,7 +18,7 @@ import { Associate } from "#plate/ui/associate/associate.tsx";
 import { associateKeys } from "#plate/ui/associate/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { contentOf, spokenOf } from "#plate/ui/item/interactions/answering.tsx";
-import { limitOf } from "#plate/ui/item/interactions/facts.ts";
+import { limitOf } from "#plate/placement/limit.ts";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { bankChipPart, bankedOf } from "#plate/ui/item/interactions/chips.tsx";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";

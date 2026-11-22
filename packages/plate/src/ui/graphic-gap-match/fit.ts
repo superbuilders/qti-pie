@@ -404,7 +404,7 @@ const takenAt = (
  *   them.
  * @param box The area's box, in the image's pixels.
  * @param narrowest The narrowest the page draws the box, across in CSS px: its share of the
- *   stage's floor width (`floorWidthOf` in `#plate/ui/graphic/scale.ts`).
+ *   stage's floor width (`floorWidthOf` in `#plate/graphic/scale.ts`).
  * @returns The bands the box can show, narrowest first; none where no choice can stand in it.
  */
 export const bandsOf = (

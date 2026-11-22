@@ -24,12 +24,13 @@ import type { GraphicAssociateArea } from "#plate/ui/graphic-associate/graphic-a
 import { graphicAssociateKeys } from "#plate/ui/graphic-associate/labels.ts";
 import { GraphicMark, PairLine } from "#plate/ui/graphic/drawn.tsx";
 import { StageFrame, reviewStageOf } from "#plate/ui/graphic/frame.tsx";
-import { paintedOf } from "#plate/ui/graphic/geometry.ts";
+import { paintedOf } from "#plate/graphic/geometry.ts";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
-import { namedAreasOf, spokenAreasOf } from "#plate/ui/item/interactions/areas.ts";
-import { limitOf } from "#plate/ui/item/interactions/facts.ts";
+import { namedAreasOf } from "#plate/interactions/area-names.ts";
+import { spokenAreasOf } from "#plate/ui/item/interactions/areas.ts";
+import { limitOf } from "#plate/placement/limit.ts";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import { boxesShown } from "#plate/ui/item/interactions/pair-boxes.ts";

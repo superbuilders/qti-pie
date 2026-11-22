@@ -14,7 +14,7 @@
  * @module
  * @see https://www.w3.org/TR/WCAG22/#pointer-cancellation
  */
-import type { ImagePoint } from "#plate/ui/graphic/geometry.ts";
+import type { ImagePoint } from "#plate/graphic/geometry.ts";
 
 /**
  * Where a pointer is on the stage: off the image, or on it at a point, in the image's pixels, in an

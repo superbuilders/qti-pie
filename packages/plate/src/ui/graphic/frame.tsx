@@ -1,7 +1,7 @@
 /**
  * The frame every graphic interaction's image stands in, as plain markup: the scroll region, the
  * image with its overlay over it, and the sizing that makes every area a target a child can hit
- * (`#plate/ui/graphic/scale.ts`). A review renders it on the server as it is; the answering stage
+ * (`#plate/graphic/scale.ts`). A review renders it on the server as it is; the answering stage
  * (`#plate/ui/graphic/stage.tsx`) renders the same parts with its own behaviour bound to them.
  * Safe to import on the server and the client: nothing here holds a hook or state.
  *
@@ -32,7 +32,7 @@
  * and the image fills the column, its overlay scaling with it and its pins standing where they
  * belong on it. The image is drawn as large as its container and the budget allow, above or below
  * its author's size, and never so small that an area is under 44 px across
- * (`#plate/ui/graphic/scale.ts`). The two spacers stand only where the image's size is known, and
+ * (`#plate/graphic/scale.ts`). The two spacers stand only where the image's size is known, and
  * the image keeps its own size until then, within the container and the budget.
  *
  * @module
@@ -43,10 +43,10 @@ import { Children, isValidElement } from "react";
 import type { ReactElement, ReactNode } from "react";
 import type { AuthoredSize, ImageSize } from "#plate/interactions/image-size.ts";
 import type { NameAttributes, Named } from "#plate/ui/attributes.ts";
-import type { GraphicArea, ImagePoint } from "#plate/ui/graphic/geometry.ts";
+import type { GraphicArea, ImagePoint } from "#plate/graphic/geometry.ts";
 import type { GraphicLabels } from "#plate/ui/graphic/labels.ts";
-import { floorWidthOf, smallestTargetOf, stageScaleOf } from "#plate/ui/graphic/scale.ts";
-import type { StageScale } from "#plate/ui/graphic/scale.ts";
+import { floorWidthOf, smallestTargetOf, stageScaleOf } from "#plate/graphic/scale.ts";
+import type { StageScale } from "#plate/graphic/scale.ts";
 import { sizeOf } from "#plate/ui/graphic/size.ts";
 import { collapsedText } from "#plate/model/whitespace.ts";
 

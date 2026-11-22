@@ -30,7 +30,7 @@ import { useMemo } from "react";
 import type { ReactNode } from "react";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import type { OrderLabels } from "#plate/ui/order/labels.ts";
-import type { Position } from "#plate/ui/placement/machine.ts";
+import type { Position } from "#plate/placement/machine.ts";
 import {
   PlacementBank,
   PlacementChip,

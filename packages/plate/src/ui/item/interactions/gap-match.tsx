@@ -30,7 +30,7 @@ import {
   missedOf,
   pairsByTarget,
 } from "#plate/ui/item/interactions/chips.tsx";
-import { limitOf } from "#plate/ui/item/interactions/facts.ts";
+import { limitOf } from "#plate/placement/limit.ts";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";

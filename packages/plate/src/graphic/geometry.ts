@@ -12,7 +12,7 @@
  * based on the associated object's width and height. The radius should be the smaller value of the
  * two" (7.9; spec-readings reading 180).
  *
- * Which points an area holds is `areaHolds` (`#plate/ui/graphic/holds.ts`), the exact test the QTI
+ * Which points an area holds is `areaHolds` (`#plate/graphic/holds.ts`), the exact test the QTI
  * database's scoring states too: its boundary included (reading 52), and coordinates that do not
  * fit the shape read as HTML's image-map processing reads them (reading 59). Where areas overlap,
  * the one listed first holds the point, since "If hotspots overlap then those listed first hide
@@ -23,7 +23,7 @@
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Coords
  */
 import { Array as Arr } from "effect";
-import { areaHolds } from "#plate/ui/graphic/holds.ts";
+import { areaHolds } from "#plate/graphic/holds.ts";
 import type { AreaCoordinate } from "#plate/interactions/area.ts";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";

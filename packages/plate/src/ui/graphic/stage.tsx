@@ -18,7 +18,7 @@
  * loads nothing never gets one, so its interaction offers its areas only in its list.
  *
  * The stage is sized so every area is a target a child can hit, never under 44 CSS px across
- * (`#plate/ui/graphic/scale.ts`), from the smallest tap region, what each area keeps once those
+ * (`#plate/graphic/scale.ts`), from the smallest tap region, what each area keeps once those
  * listed before it take the points they share, unless the interaction gives a scale of its own, and
  * above that as large as its container and the host's height budget allow (the frame's sizing).
  * Its region is always named, and scrolls across when the page is narrower than that floor, a tab
@@ -60,14 +60,14 @@ import {
   scrollsAtReflow,
   stageNameOf,
 } from "#plate/ui/graphic/frame.tsx";
-import { hitOf, paintedOf } from "#plate/ui/graphic/geometry.ts";
+import { hitOf, paintedOf } from "#plate/graphic/geometry.ts";
 import type { AuthoredSize, ImageSize } from "#plate/interactions/image-size.ts";
-import type { Drawing, GraphicArea, ImagePoint } from "#plate/ui/graphic/geometry.ts";
+import type { Drawing, GraphicArea, ImagePoint } from "#plate/graphic/geometry.ts";
 import type { GraphicLabels } from "#plate/ui/graphic/labels.ts";
 import { noPress, pressStep } from "#plate/ui/graphic/press.ts";
 import type { Press, PressEvent, Spot } from "#plate/ui/graphic/press.ts";
-import { floorWidthOf, smallestTargetOf, stageScaleOf } from "#plate/ui/graphic/scale.ts";
-import type { StageScale } from "#plate/ui/graphic/scale.ts";
+import { floorWidthOf, smallestTargetOf, stageScaleOf } from "#plate/graphic/scale.ts";
+import type { StageScale } from "#plate/graphic/scale.ts";
 import { sizeOf } from "#plate/ui/graphic/size.ts";
 import type { NameAttributes } from "#plate/ui/attributes.ts";
 

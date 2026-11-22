@@ -27,9 +27,9 @@
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import { DrawnArea, GraphicMark } from "#plate/ui/graphic/drawn.tsx";
-import type { Drawing, GraphicArea } from "#plate/ui/graphic/geometry.ts";
-import { stageScaleOf } from "#plate/ui/graphic/scale.ts";
-import type { StageScale } from "#plate/ui/graphic/scale.ts";
+import type { Drawing, GraphicArea } from "#plate/graphic/geometry.ts";
+import { stageScaleOf } from "#plate/graphic/scale.ts";
+import type { StageScale } from "#plate/graphic/scale.ts";
 import type { Reach } from "#plate/ui/select-point/points.ts";
 
 /**

@@ -6,7 +6,7 @@
  * included, since a part finds its root through React context. The primitive stands under every
  * interaction that moves things: match, gap match and order, associate's boxes of pairs, and the
  * graphic kinds, whose targets or chips may be an image's hotspots. Its pure machine
- * (`#plate/ui/placement/machine.ts`) decides what a child may do; these parts take a tap, a drag or
+ * (`#plate/placement/machine.ts`) decides what a child may do; these parts take a tap, a drag or
  * a key and say what happened.
  *
  * An island renders a {@link PlacementRoot} with the interaction's board, the placements its
@@ -43,8 +43,8 @@ import type { PartProps } from "@ui-sdk/react/primitive";
 import { createContext, use, useMemo } from "react";
 import { adapted } from "#plate/ui/adapted.ts";
 import { PlacementPartOutside, TargetLabelInBank } from "#plate/ui/defects.ts";
-import { bank } from "#plate/ui/placement/machine.ts";
-import type { Bank, Spot } from "#plate/ui/placement/machine.ts";
+import { bank } from "#plate/placement/machine.ts";
+import type { Bank, Spot } from "#plate/placement/machine.ts";
 import { placement } from "#plate/ui/placement/primitive.ts";
 import type {
   NamedSpot,

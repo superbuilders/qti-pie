@@ -56,7 +56,7 @@ import {
   samePlace,
   showsFull,
   usedUp,
-} from "#plate/ui/placement/machine.ts";
+} from "#plate/placement/machine.ts";
 import type {
   Arrangement,
   Bank,
@@ -73,7 +73,7 @@ import type {
   SequenceBoard,
   Spot,
   Step,
-} from "#plate/ui/placement/machine.ts";
+} from "#plate/placement/machine.ts";
 
 /**
  * Why the placements changed: `item-press` for a tap, a click, or Space or Enter on a chip or slot;

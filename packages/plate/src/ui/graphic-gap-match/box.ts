@@ -12,8 +12,8 @@
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Data_GraphicGapMatchInteraction
  */
 import type { ImageSize } from "#plate/interactions/image-size.ts";
-import { drawingOf, interiorOf } from "#plate/ui/graphic/geometry.ts";
-import type { GraphicArea } from "#plate/ui/graphic/geometry.ts";
+import { drawingOf, interiorOf } from "#plate/graphic/geometry.ts";
+import type { GraphicArea } from "#plate/graphic/geometry.ts";
 
 /**
  * An upright box inside an area, in the image's pixels: its centre, `x` and `y`, and its `width`

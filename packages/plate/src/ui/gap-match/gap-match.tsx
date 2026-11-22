@@ -27,10 +27,11 @@ import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import { GapOutsideGapMatch } from "#plate/ui/defects.ts";
 import type { GapMatchLabels } from "#plate/ui/gap-match/labels.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
-import type { Limit } from "#plate/ui/limit.ts";
-import { chipRuleOf, placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
+import type { Limit } from "#plate/placement/limit.ts";
+import { placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
+import { chipRuleOf } from "#plate/placement/rules.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
-import type { Pairs, PairsBoard } from "#plate/ui/placement/machine.ts";
+import type { Pairs, PairsBoard } from "#plate/placement/machine.ts";
 import {
   PlacementBank,
   PlacementChip,

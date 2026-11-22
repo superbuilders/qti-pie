@@ -2,24 +2,24 @@
  * A Match's board, which both of its layouts move chips on: the chip bank, and the table QTI's
  * `qti-match-tabular` asks for, whose cells are the board's pairs, a source's row and a target's
  * column each. The table is a layout of the same board, not a second engine: a press on a cell is
- * the placement machine's pick and place (`#plate/ui/placement/machine.ts`), which holds every
+ * the placement machine's pick and place (`#plate/placement/machine.ts`), which holds every
  * limit, refuses before anything changes, and returns the next placements, so both layouts post
  * the same `directedPair` response under the same rules. Safe to import on the server.
  *
  * @module
  */
-import { chipRuleOf } from "#plate/ui/placement/associable.ts";
-import type { Associable } from "#plate/ui/placement/associable.ts";
-import { isOne } from "#plate/ui/limit.ts";
-import type { Limit } from "#plate/ui/limit.ts";
-import { bank, chipsIn, pick, place } from "#plate/ui/placement/machine.ts";
+import { chipRuleOf } from "#plate/placement/rules.ts";
+import type { Associable } from "#plate/placement/rules.ts";
+import { isOne } from "#plate/placement/limit.ts";
+import type { Limit } from "#plate/placement/limit.ts";
+import { bank, chipsIn, pick, place } from "#plate/placement/machine.ts";
 import type {
   PairsArrangement,
   PairsBoard,
   Place,
   Step,
   Target,
-} from "#plate/ui/placement/machine.ts";
+} from "#plate/placement/machine.ts";
 
 /**
  * Build a Match's board: its first set's choices the chips, each placed up to its `match-max`, its

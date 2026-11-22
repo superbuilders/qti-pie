@@ -47,7 +47,7 @@ import type { AuthoredSize } from "#plate/interactions/image-size.ts";
 import { GraphicStage, useGraphicStage } from "#plate/ui/graphic/stage.tsx";
 import type { StageArea, StagePress } from "#plate/ui/graphic/stage.tsx";
 import { fillLabel } from "#plate/ui/labels.ts";
-import type { Position, Sequence } from "#plate/ui/placement/machine.ts";
+import type { Position, Sequence } from "#plate/placement/machine.ts";
 import {
   PlacementBank,
   PlacementChip,

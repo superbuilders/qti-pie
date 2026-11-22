@@ -3,7 +3,7 @@
  * the child taps an area of the picture. Pure, and safe to import on the server and the client.
  *
  * The image's areas are the board's chips, the same ones its list shows, and a tap writes nothing
- * of its own: it goes through the placement machine (`#plate/ui/placement/machine.ts`), so the
+ * of its own: it goes through the placement machine (`#plate/placement/machine.ts`), so the
  * image and the list share one state and one set of rules. A tap puts the area in the open half,
  * the empty half of the first box that holds one chip, else the first half of the empty box a new
  * pair begins in. So a first tap starts a box, a second tap on another area completes the pair, and
@@ -14,8 +14,8 @@
  *
  * @module
  */
-import { bank, pick, place, shownBoxes } from "#plate/ui/placement/machine.ts";
-import type { BoxesArrangement, Half, Step } from "#plate/ui/placement/machine.ts";
+import { bank, pick, place, shownBoxes } from "#plate/placement/machine.ts";
+import type { BoxesArrangement, Half, Step } from "#plate/placement/machine.ts";
 
 /**
  * The half a tap on the image puts an area in, and the chip waiting in the other half of its box,

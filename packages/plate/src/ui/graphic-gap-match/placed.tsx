@@ -53,7 +53,7 @@ import { placedBoxOf } from "#plate/ui/graphic-gap-match/box.ts";
 import { bandsOf } from "#plate/ui/graphic-gap-match/fit.ts";
 import type { Band, ChoiceMeasure } from "#plate/ui/graphic-gap-match/fit.ts";
 import { percentOf } from "#plate/ui/graphic/frame.tsx";
-import type { GraphicArea } from "#plate/ui/graphic/geometry.ts";
+import type { GraphicArea } from "#plate/graphic/geometry.ts";
 
 /**
  * One choice a hotspot holds, as the image shows it: its content, measured for the fit; its key
@@ -168,7 +168,7 @@ const Gate = (props: {
  * box can hold none of its choices, draws nothing.
  *
  * @param props.floor The stage's floor width, in CSS px, the narrowest the image is drawn
- *   (`floorWidthOf` in `#plate/ui/graphic/scale.ts`), of which each box takes its share.
+ *   (`floorWidthOf` in `#plate/graphic/scale.ts`), of which each box takes its share.
  * @param props.placed The hotspots and the choices each holds.
  * @param props.size The image's size, the pixel space of the areas' coordinates.
  * @returns The drawn choices.

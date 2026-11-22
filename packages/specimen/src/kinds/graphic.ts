@@ -9,7 +9,7 @@ import type { Gen } from "@bjornpagen/testing/gen";
  * The areas stand on a grid of near-square cells over the picture, one to a cell in reading order,
  * each centred in its cell, so no two overlap; a default area, where a kind writes one, is the
  * whole picture. Every coordinate is in the picture's authored pixels, which is the space plate
- * reads an area's coordinates in (`ui/graphic/geometry.ts`), written as whole pixels or as whole
+ * reads an area's coordinates in (`graphic/geometry.ts`), written as whole pixels or as whole
  * percentages of the picture, the only percentages QTI's `coords` admit.
  *
  * @module
@@ -39,7 +39,7 @@ const geometry = dimension("Areas' shape", [
 
 /**
  * How big each area is: half its cell; `tiny`, 12 authored pixels across, under the 24 px a
- * target needs, so plate's stage scales the picture up to give it room (`ui/graphic/scale.ts`); or
+ * target needs, so plate's stage scales the picture up to give it room (`graphic/scale.ts`); or
  * the cell less a margin.
  */
 const extent = dimension("Areas' size", [
@@ -198,7 +198,7 @@ const geometryAt = (held: Stage["geometry"], at: number): Geometry =>
 /**
  * The pixels one unit of a coordinate spans: a pixel; or, on a stage that writes percentages, a
  * hundredth of the side the coordinate is a percentage of, as plate reads one
- * (`ui/graphic/geometry.ts`): an x of the width, a y of the height, and a circle's radius of the
+ * (`graphic/geometry.ts`): an x of the width, a y of the height, and a circle's radius of the
  * smaller side.
  */
 interface Units {

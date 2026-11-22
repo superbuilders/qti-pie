@@ -5,14 +5,14 @@
  * of Graphic Order, is an empty element, so its name is its `hotspot-label`, else its `aria-label`,
  * and an area with neither, or both blank, is marked on the item's verdict for the content admin.
  *
- * The oracle is the documents, read by eye: each item written (`#plate/test/area-items.ts`) names
- * its first area by `hotspot-label`, gives its second no name, writes its third's `hotspot-label`
- * blank, names its fourth by `aria-label` alone and its fifth by `aria-label` beside a blank
- * `hotspot-label`, and writes its sixth's `aria-label` blank; the fixtures
- * `m3d/items/graphic-gap-match.xml`, `ei/items/graphic-order.xml` and
- * `ei/items/graphic-associate.xml` label every area, `ei/items/graphic-order-subset.xml` every area
- * but its third, and the corpus's BPIG `QTI3-graphic-order.xml` names its four airports by
- * `aria-label` alone ("Airport A" to "Airport D").
+ * The oracle is the documents, read by eye: each item written here names its first area by
+ * `hotspot-label`, gives its second no name, writes its third's `hotspot-label` blank, names its
+ * fourth by `aria-label` alone and its fifth by `aria-label` beside a blank `hotspot-label`, and
+ * writes its sixth's `aria-label` blank; the fixtures `m3d/items/graphic-gap-match.xml`,
+ * `ei/items/graphic-order.xml` and `ei/items/graphic-associate.xml` label every area,
+ * `ei/items/graphic-order-subset.xml` every area but its third, and the corpus's BPIG
+ * `QTI3-graphic-order.xml` names its four airports by `aria-label` alone ("Airport A" to "Airport
+ * D").
  *
  * @module
  */
@@ -21,7 +21,6 @@ import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { interactionsIn } from "#plate/model/interactions.ts";
-import { areaItemOf, areaKinds } from "#plate/test/area-items.ts";
 import { readCorpusFile } from "#plate/test/corpus.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
@@ -41,6 +40,81 @@ const unlabelled = "hotspot-label:missing";
  * The element path of a graphic interaction in an item's body.
  */
 const bodyPath = "qti-assessment-item/qti-item-body";
+
+/**
+ * One graphic kind as this test writes an item of it: its interaction element and the attributes it
+ * is written with, the element of its areas, the response its binding declares, and the children it
+ * holds before its areas.
+ */
+interface Kind {
+  readonly area: "qti-associable-hotspot" | "qti-hotspot-choice";
+  readonly attributes: string;
+  readonly declaration: string;
+  readonly element: string;
+  readonly leading: string;
+  /**
+   * The attributes every area of the kind is written with beyond its identifier, its shape, its
+   * coordinates and its label.
+   */
+  readonly limits: string;
+}
+
+/**
+ * The three kinds, each bound as the information model binds it.
+ */
+const kinds: readonly Kind[] = [
+  {
+    area: "qti-associable-hotspot",
+    attributes: 'max-associations="2"',
+    declaration: 'cardinality="multiple" base-type="directedPair"',
+    element: "qti-graphic-gap-match-interaction",
+    leading: '<qti-gap-text identifier="A" match-max="1">Field</qti-gap-text>',
+    limits: 'match-max="1"',
+  },
+  {
+    area: "qti-hotspot-choice",
+    attributes: "",
+    declaration: 'cardinality="ordered" base-type="identifier"',
+    element: "qti-graphic-order-interaction",
+    leading: "",
+    limits: "",
+  },
+  {
+    area: "qti-associable-hotspot",
+    attributes: 'max-associations="2"',
+    declaration: 'cardinality="multiple" base-type="pair"',
+    element: "qti-graphic-associate-interaction",
+    leading: "",
+    limits: 'match-max="1"',
+  },
+];
+
+/**
+ * Write an item of a kind whose six areas are named by `hotspot-label`, by nothing, by a blank
+ * `hotspot-label`, by `aria-label` alone, by `aria-label` beside a blank `hotspot-label`, and by a
+ * blank `aria-label`.
+ *
+ * @param kind The kind.
+ * @returns The item's XML.
+ */
+const itemOf = (kind: Kind): string =>
+  [
+    '<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="labels" title="Labels" adaptive="false" time-dependent="false">',
+    `<qti-response-declaration identifier="RESPONSE" ${kind.declaration}/>`,
+    "<qti-item-body>",
+    `<${kind.element} response-identifier="RESPONSE" ${kind.attributes}>`,
+    '<img src="map.svg" alt="A farm" width="400" height="300"/>',
+    kind.leading,
+    `<${kind.area} identifier="H1" shape="rect" coords="10,10,60,60" ${kind.limits} hotspot-label="The field"/>`,
+    `<${kind.area} identifier="H2" shape="circle" coords="200,100,40" ${kind.limits}/>`,
+    `<${kind.area} identifier="H3" shape="rect" coords="300,200,380,280" ${kind.limits} hotspot-label=" "/>`,
+    `<${kind.area} identifier="H4" shape="rect" coords="10,200,60,250" ${kind.limits} aria-label="The pond"/>`,
+    `<${kind.area} identifier="H5" shape="rect" coords="100,200,150,250" ${kind.limits} hotspot-label=" " aria-label="The barn"/>`,
+    `<${kind.area} identifier="H6" shape="rect" coords="200,10,250,60" ${kind.limits} aria-label=" "/>`,
+    `</${kind.element}>`,
+    "</qti-item-body>",
+    "</qti-assessment-item>",
+  ].join("");
 
 /**
  * Open a document, which `admitted` must accept as an item.
@@ -88,14 +162,14 @@ const namesOf = (item: Accepted): readonly (string | undefined)[] =>
   );
 
 describe("the graphic kinds' verdict on an unlabelled area", () => {
-  for (const kind of areaKinds) {
+  for (const kind of kinds) {
     it.effect(
       `${kind.element} names each ${kind.area} by its hotspot-label, else its aria-label, and marks each named neither way (WCAG 1.1.1)`,
       () =>
         Effect.gen(function* unlabelledAreas() {
           const { item, verdict } = yield* accepted(
             `${kind.element}.xml`,
-            new TextEncoder().encode(areaItemOf(kind)),
+            new TextEncoder().encode(itemOf(kind)),
           );
           const at = `${bodyPath}/${kind.element}/${kind.area}`;
 

@@ -18,9 +18,9 @@
  *   rendered (a choice's text, image or MathML; a prompt). No functions, no seed, no correct
  *   response. The server has already shuffled the choices, written QTI's defaults, resolved the
  *   name and read what the attributes mean together, as Choice's {@link Picks} or a count's `Limit`
- *   (`#plate/ui/limit.ts`), so an island reads facts and never decides what an unwritten attribute
- *   means. What the author wrote on the root and what names the group arrive as one value each
- *   (`Authored` in `#plate/ui/attributes.ts`), which the island spreads.
+ *   (`#plate/placement/limit.ts`), so an island reads facts and never decides what an unwritten
+ *   attribute means. What the author wrote on the root and what names the group arrive as one value
+ *   each (`Authored` in `#plate/ui/attributes.ts`), which the island spreads.
  * - **Labels.** Every text plate writes that the child hears or reads arrives in a `labels` prop of
  *   plain strings, from plate's message catalog or from the author's own message. A label's
  *   `{placeholders}` hold values only the island knows; the island fills them, and each label's

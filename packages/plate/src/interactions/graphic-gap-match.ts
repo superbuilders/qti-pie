@@ -12,7 +12,7 @@
  *   shapes that draw an area ({@link geometries}).
  * - "An area's `coords` that do not fit its shape are read as the HTML Standard's image-map
  *   processing reads an `area`'s." The module keeps each hotspot's coordinates as written, and the
- *   server shell's geometry reads them so (`#plate/ui/graphic/geometry.ts`).
+ *   server shell's geometry reads them so (`#plate/graphic/geometry.ts`).
  * - "A `qti-gap` appears only within a gap-match interaction, and a `qti-hottext` may appear in any
  *   flow or inline content." the database refuses a `qti-gap` inside a gap text of this
  *   interaction, so a choice's content never holds one.

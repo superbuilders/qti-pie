@@ -6,7 +6,7 @@
  *
  * An area's target size is the diameter of the largest circle its tap region holds, the points a
  * tap gives it once the areas listed before it have taken the points they share (`tapDiameterOf` in
- * `#plate/ui/graphic/geometry.ts`): a pointer anywhere in that circle is on the area. The stage
+ * `#plate/graphic/geometry.ts`): a pointer anywhere in that circle is on the area. The stage
  * scales the image, its overlay and every area together, by one factor, so QTI's coordinates stay
  * in the image's authored pixels, the overlay's `viewBox`; the smallest area's diameter, in those
  * pixels, decides the least factor, `floor`. Above it the stylesheet draws the stage as large as
@@ -20,8 +20,8 @@
  * @see https://www.w3.org/TR/WCAG22/#target-size-minimum
  */
 import type { ImageSize } from "#plate/interactions/image-size.ts";
-import { tapDiameterOf } from "#plate/ui/graphic/geometry.ts";
-import type { GraphicArea } from "#plate/ui/graphic/geometry.ts";
+import { tapDiameterOf } from "#plate/graphic/geometry.ts";
+import type { GraphicArea } from "#plate/graphic/geometry.ts";
 
 /**
  * The least factor a stage scales its authored size by, `floor`: the one at which its smallest

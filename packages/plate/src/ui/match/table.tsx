@@ -7,11 +7,11 @@
  * Match Set as the table row headers, and the choices of the second Simple Match Set as the table
  * column headers" (QTI 3.0 shared vocabulary, 1.2.8.2).
  *
- * It is a layout of the Match's board (`matchBoardOf` in `#plate/ui/match/board.ts`), the bank's
- * own, and a press on a cell is the placement machine's step (`press` there), so the table keeps
- * every limit the bank keeps and posts the same `directedPair` response, one `"row column"` text
- * per ticked cell. A row whose `match-max` is 1 is a row of radios: a tick in another cell moves
- * its tick there.
+ * It is a layout of the Match's board (`matchBoardOf` in `#plate/placement/match-board.ts`), the
+ * bank's own, and a press on a cell is the placement machine's step (`press` there), so the table
+ * keeps every limit the bank keeps and posts the same `directedPair` response, one `"row column"`
+ * text per ticked cell. A row whose `match-max` is 1 is a row of radios: a tick in another cell
+ * moves its tick there.
  *
  * @module
  */
@@ -22,14 +22,14 @@ import type { ReactNode } from "react";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
-import type { Limit } from "#plate/ui/limit.ts";
-import { matchBoardOf, press } from "#plate/ui/match/board.ts";
-import type { Cell } from "#plate/ui/match/board.ts";
+import type { Limit } from "#plate/placement/limit.ts";
+import { matchBoardOf, press } from "#plate/placement/match-board.ts";
+import type { Cell } from "#plate/placement/match-board.ts";
 import type { MatchTableLabels } from "#plate/ui/match/labels.ts";
 import type { MatchHeader } from "#plate/ui/match/match.tsx";
 import { placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
-import type { PairsArrangement, Refusal } from "#plate/ui/placement/machine.ts";
+import type { PairsArrangement, Refusal } from "#plate/placement/machine.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { useResponse } from "#plate/ui/responses.tsx";

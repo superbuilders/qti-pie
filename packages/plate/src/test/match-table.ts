@@ -2,8 +2,8 @@
  * Test support for a Match laid out as a table: the rules a press on a cell keeps, written apart
  * from plate's code, the box of boards and placements the property walks, and the walk itself,
  * which finds the first case where a cell logic and the rules disagree. The table's property
- * (`#plate/ui/match/board.test.ts`) walks plate's cell logic, and each of its kills walks a mutant
- * copy of plate in a program of its own.
+ * (`#plate/placement/match-board.test.ts`) walks plate's cell logic, and each of its kills walks a
+ * mutant copy of plate in a program of its own.
  *
  * The rules, from the QTI 3.0 information model and plate's ruling for a row of radios:
  *
@@ -18,8 +18,8 @@
  *
  * @module
  */
-import type { Limit } from "#plate/ui/limit.ts";
-import type { PairsArrangement, PairsBoard, Step } from "#plate/ui/placement/machine.ts";
+import type { Limit } from "#plate/placement/limit.ts";
+import type { PairsArrangement, PairsBoard, Step } from "#plate/placement/machine.ts";
 
 /**
  * One choice of a board as QTI writes it: its identifier, `match-max` as written, 0 for no limit,
@@ -79,8 +79,8 @@ interface Ruled {
 
 /**
  * What the walk checks, from one program, plate's or a mutant copy's: the server's reading of
- * QTI's counts (`limitOf` in `#plate/ui/item/interactions/facts.ts`), the board a Match's choices
- * make, and the cell logic (`matchBoardOf` and `press` in `#plate/ui/match/board.ts`).
+ * QTI's counts (`limitOf` in `#plate/placement/limit.ts`), the board a Match's choices make, and
+ * the cell logic (`matchBoardOf` and `press` in `#plate/placement/match-board.ts`).
  */
 export interface Subject {
   readonly limitOf: (count: bigint) => Limit;

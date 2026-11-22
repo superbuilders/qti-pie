@@ -1207,7 +1207,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     180,
     {
       owner:
-        "plate draws and hit-tests a circle's percentage radius on the smaller side of its image (`#plate/ui/graphic/geometry.ts`); pantry stores a shape's `coords` as written in `Attribute` and judges it by its value domain alone, reading no percentage",
+        "plate draws and hit-tests a circle's percentage radius on the smaller side of its image (`#plate/graphic/geometry.ts`); pantry stores a shape's `coords` as written in `Attribute` and judges it by its value domain alone, reading no percentage",
       status: "G",
     },
   ],
@@ -1223,7 +1223,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     182,
     {
       owner:
-        "plate's associate and graphic associate validation refuses a self pair and a pair given twice in either order in tier (a) (`#plate/interactions/associate.ts`, `#plate/interactions/graphic-associate.ts`), and the board of boxes both islands stand on refuses either before a response changes (`selfPair`, `pairMade`, `#plate/ui/placement/machine.ts`); pantry stores no response",
+        "plate's associate and graphic associate validation refuses a self pair and a pair given twice in either order in tier (a) (`#plate/interactions/associate.ts`, `#plate/interactions/graphic-associate.ts`), and the board of boxes both islands stand on refuses either before a response changes (`selfPair`, `pairMade`, `#plate/placement/machine.ts`); pantry stores no response",
       status: "G",
     },
   ],
@@ -1239,7 +1239,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     184,
     {
       owner:
-        "plate draws every graphic interaction's image at the scale `stageScaleOf` gives from its smallest tap region's `tapDiameterOf` (`#plate/ui/graphic/geometry.ts`, `#plate/ui/graphic/scale.ts`, `#plate/ui/graphic/frame.tsx`), its `coords` in the image's authored pixels; pantry stores the image's `width` and `height` and the areas' `coords` as written in `Attribute`",
+        "plate draws every graphic interaction's image at the scale `stageScaleOf` gives from its smallest tap region's `tapDiameterOf` (`#plate/graphic/geometry.ts`, `#plate/graphic/scale.ts`, `#plate/ui/graphic/frame.tsx`), its `coords` in the image's authored pixels; pantry stores the image's `width` and `height` and the areas' `coords` as written in `Attribute`",
       status: "G",
     },
   ],

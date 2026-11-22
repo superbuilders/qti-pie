@@ -38,7 +38,7 @@ import type { Locale } from "#plate/messages.ts";
 import type { PayloadOf } from "#plate/model/interactions.ts";
 import type { Paired } from "#plate/payload.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
-import { limitOf } from "#plate/ui/item/interactions/facts.ts";
+import { limitOf } from "#plate/placement/limit.ts";
 import { groupOf } from "#plate/ui/item/interactions/group.ts";
 import { labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { mediaKeys } from "#plate/ui/media/labels.ts";

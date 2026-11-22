@@ -93,6 +93,10 @@ const plateCorePatterns = [
  */
 const plateClientModules = [
   "packages/plate/src/form/encoding.ts",
+  "packages/plate/src/graphic/arrows.ts",
+  "packages/plate/src/graphic/geometry.ts",
+  "packages/plate/src/graphic/holds.ts",
+  "packages/plate/src/graphic/scale.ts",
   "packages/plate/src/interactions/eliminated.ts",
   "packages/plate/src/interactions/pair.ts",
   "packages/plate/src/interactions/xhtml-text.ts",
@@ -101,7 +105,11 @@ const plateClientModules = [
   "packages/plate/src/model/whitespace.ts",
   "packages/plate/src/pci/json.ts",
   "packages/plate/src/pci/type-identifier.ts",
+  "packages/plate/src/placement/limit.ts",
+  "packages/plate/src/placement/machine.ts",
+  "packages/plate/src/placement/match-board.ts",
   "packages/plate/src/placement/order-list.ts",
+  "packages/plate/src/placement/rules.ts",
   "packages/plate/src/read-aloud/session.ts",
 ];
 
@@ -378,8 +386,8 @@ export default defineConfig({
         "packages/plate/src/model/declarations.ts",
         "packages/plate/src/model/item.test.ts",
         "packages/plate/src/model/item.ts",
-        "packages/plate/src/ui/graphic/holds.test.ts",
-        "packages/plate/src/ui/graphic/holds.ts",
+        "packages/plate/src/graphic/holds.test.ts",
+        "packages/plate/src/graphic/holds.ts",
       ],
       rules: { "anti-slop/no-shape-in-symbol-names": "off" },
     },

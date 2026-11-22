@@ -22,13 +22,14 @@ import type { ReactNode } from "react";
 import type { Paired } from "#plate/payload.ts";
 import { CheckBadge, CornerPin, GraphicMark } from "#plate/ui/graphic/drawn.tsx";
 import { StageFrame, reviewStageOf } from "#plate/ui/graphic/frame.tsx";
-import { paintedOf } from "#plate/ui/graphic/geometry.ts";
+import { paintedOf } from "#plate/graphic/geometry.ts";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import { Hotspot } from "#plate/ui/hotspot/hotspot.tsx";
 import { hotspotKeys } from "#plate/ui/hotspot/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
-import { namedAreasOf, spokenAreasOf } from "#plate/ui/item/interactions/areas.ts";
+import { namedAreasOf } from "#plate/interactions/area-names.ts";
+import { spokenAreasOf } from "#plate/ui/item/interactions/areas.ts";
 import {
   controlNameOf,
   groupNameOf,

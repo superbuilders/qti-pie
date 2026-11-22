@@ -21,8 +21,8 @@
  * @module
  */
 import type { Pair } from "#plate/interactions/pair.ts";
-import { isOne, reached } from "#plate/ui/limit.ts";
-import type { Limit } from "#plate/ui/limit.ts";
+import { isOne, reached } from "#plate/placement/limit.ts";
+import type { Limit } from "#plate/placement/limit.ts";
 
 /**
  * A chip of a board of pairs: one source the child moves, by its QTI identifier. `uses` is the

@@ -17,7 +17,7 @@ import type { ReactNode } from "react";
 import { message, numeral } from "#plate/messages.ts";
 import type { RedactedNode, ReferencingChoice } from "#plate/model/item.ts";
 import type { IslandContext, Position } from "#plate/ui/item/context.ts";
-import { limitOf } from "#plate/ui/item/interactions/facts.ts";
+import { limitOf } from "#plate/placement/limit.ts";
 import { chipName } from "#plate/content/text.ts";
 import type { Place } from "#plate/content/text.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";

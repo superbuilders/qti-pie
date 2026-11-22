@@ -21,8 +21,8 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Data_MediaInteraction
  */
-import { reached } from "#plate/ui/limit.ts";
-import type { Limit } from "#plate/ui/limit.ts";
+import { reached } from "#plate/placement/limit.ts";
+import type { Limit } from "#plate/placement/limit.ts";
 
 /**
  * Where the media stands: at rest, before its first playback or once it has ended; playing; or

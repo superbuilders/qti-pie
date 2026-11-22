@@ -15,7 +15,7 @@
  * @module
  */
 import { assert, describe, it } from "@effect/vitest";
-import type { Sequence } from "#plate/ui/placement/machine.ts";
+import type { Sequence } from "#plate/placement/machine.ts";
 import { listPlacements, listResponse } from "#plate/placement/order-list.ts";
 
 /**

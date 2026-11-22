@@ -47,7 +47,7 @@ import {
 import type { ChangeDetails } from "@ui-sdk/core";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import { flag } from "#plate/ui/attributes.ts";
-import type { ImagePoint } from "#plate/ui/graphic/geometry.ts";
+import type { ImagePoint } from "#plate/graphic/geometry.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import type { SelectPointLabels } from "#plate/ui/select-point/labels.ts";
 import { markSlot, reachOf } from "#plate/ui/select-point/marker.tsx";

@@ -6,7 +6,7 @@
  * response, the two areas' identifiers in either order, since "(A,B) and (B,A) are equivalent"
  * (QTI 3.0 information model 8.13).
  *
- * The areas are the chips of a board of boxes (`#plate/ui/placement/machine.ts`), as Associate's
+ * The areas are the chips of a board of boxes (`#plate/placement/machine.ts`), as Associate's
  * choices are, and each pair is made in a box of two halves, so two inputs reach one response
  * through one machine:
  *
@@ -39,12 +39,12 @@ import { DrawnArea, GraphicMark, PairLine } from "#plate/ui/graphic/drawn.tsx";
 import { GraphicStage, useGraphicStage } from "#plate/ui/graphic/stage.tsx";
 import type { StageArea, StagePress } from "#plate/ui/graphic/stage.tsx";
 import { fillLabel } from "#plate/ui/labels.ts";
-import type { Limit } from "#plate/ui/limit.ts";
+import type { Limit } from "#plate/placement/limit.ts";
 import { halfName } from "#plate/ui/placement/associable.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 import { PairBoxes, usePairBoxes } from "#plate/ui/placement/boxes.tsx";
 import type { ChipFocusProps } from "#plate/ui/placement/boxes.tsx";
-import type { Boxes, BoxesArrangement, Refusal } from "#plate/ui/placement/machine.ts";
+import type { Boxes, BoxesArrangement, Refusal } from "#plate/placement/machine.ts";
 import {
   PlacementBank,
   PlacementChip,

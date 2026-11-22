@@ -1,7 +1,7 @@
 /**
  * A sequence board on the placement primitive, which Order and Graphic Order share: the child puts
  * each chip into the position it chooses, and the response is the chips in position order. The
- * machine (`#plate/ui/placement/machine.ts`, {@link SequenceBoard}) decides every move; this module
+ * machine (`#plate/placement/machine.ts`, {@link SequenceBoard}) decides every move; this module
  * keeps the positions a child sees and the response they post in step.
  *
  * An ordered response is a list, so it holds no gap: "A then C" with position 2 empty is no answer
@@ -16,7 +16,7 @@
  * @module
  */
 import { useMemo, useState } from "react";
-import type { Sequence, SequenceBoard } from "#plate/ui/placement/machine.ts";
+import type { Sequence, SequenceBoard } from "#plate/placement/machine.ts";
 import { listPlacements, listResponse } from "#plate/placement/order-list.ts";
 import { useResponse } from "#plate/ui/responses.tsx";
 

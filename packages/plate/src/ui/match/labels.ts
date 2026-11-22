@@ -39,10 +39,10 @@ export type MatchLabels = Labels<typeof matchKeys>;
  * The catalog's message for every text a Match laid out as a table (`qti-match-tabular`) writes for
  * the child: the Match's, with the table's own words for its refusals, which name a row and a
  * column where the bank's name a chip and a group, and `moved`, said when a row whose `match-max`
- * is 1 takes a new tick and its old one leaves (`press` in `#plate/ui/match/board.ts`). A tick put
- * in or taken out says nothing: its tick box says its own state. The table picks nothing up and
- * trades nothing, so it never says the primitive's other steps, and a press on a ticked cell takes
- * the tick out, so it never says `pairMade`.
+ * is 1 takes a new tick and its old one leaves (`press` in `#plate/placement/match-board.ts`). A
+ * tick put in or taken out says nothing: its tick box says its own state. The table picks nothing
+ * up and trades nothing, so it never says the primitive's other steps, and a press on a ticked cell
+ * takes the tick out, so it never says `pairMade`.
  */
 export const matchTableKeys = {
   ...matchKeys,

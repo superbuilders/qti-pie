@@ -1,7 +1,7 @@
 /**
  * The areas of a `qti-area-map-entry` and whether each holds a point ({@link areaHolds}), a leaf
  * that `qti-map-response-point` and `qti-inside` read, and the graphic islands' hit test
- * (`#plate/ui/graphic/geometry.ts`) with them.
+ * (`#plate/graphic/geometry.ts`) with them.
  *
  * Every test is decided exactly, at any size: `rect` only compares floats, and `circle`, `ellipse`
  * and `poly` compute on exact integers ({@link onIntegers}), so no test rounds or overflows. A page

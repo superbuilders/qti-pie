@@ -10,7 +10,7 @@
  *
  * @module
  */
-import type { Sequence } from "#plate/ui/placement/machine.ts";
+import type { Sequence } from "#plate/placement/machine.ts";
 
 /**
  * What a tap did to the order, by its kind:

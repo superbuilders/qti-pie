@@ -25,7 +25,7 @@ export { InlineChoice } from "#plate/ui/inline-choice/inline-choice.tsx";
 
 export type { InlineChoiceProps } from "#plate/ui/inline-choice/inline-choice.tsx";
 
-export type { Limit } from "#plate/ui/limit.ts";
+export type { Limit } from "#plate/placement/limit.ts";
 
 export { Match } from "#plate/ui/match/match.tsx";
 

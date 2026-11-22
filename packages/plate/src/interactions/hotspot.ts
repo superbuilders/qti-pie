@@ -9,7 +9,7 @@
  *   lists it after every other hotspot, in document order.
  * - "An area's `coords` that do not fit its shape are read as the HTML Standard's image-map
  *   processing reads an `area`'s." The module keeps each hotspot's coordinates as written, and the
- *   server shell's geometry reads them so (`#plate/ui/graphic/geometry.ts`).
+ *   server shell's geometry reads them so (`#plate/graphic/geometry.ts`).
  * - "A `default` shape carries `coords`, as every shape does, and they are a `CoordsDType`." A
  *   `default` hotspot's coordinates are read and kept as written; its area is the whole image,
  *   whatever they say.

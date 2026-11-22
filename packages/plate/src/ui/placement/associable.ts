@@ -1,86 +1,38 @@
 /**
  * What the associating interactions share: the choices a child associates, as the server writes
- * them, how each becomes a chip of a board, and the texts their responses post. Match and Gap
- * Match post `directedPair`s from a board of pairs; Associate and Graphic Associate post `pair`s
- * from a board of boxes. Safe to import on the server.
+ * them, and the texts their responses post; the rule each brings to a board is
+ * `#plate/placement/rules.ts`'s. Match and Gap Match post `directedPair`s from a board of pairs;
+ * Associate and Graphic Associate post `pair`s from a board of boxes. Safe to import on the
+ * server.
  *
  * @module
  */
 import type { ReactNode } from "react";
 import { pairText } from "#plate/interactions/pair.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
-import type { Limit } from "#plate/ui/limit.ts";
 import type { BoxLabels } from "#plate/ui/placement/labels.ts";
-import type {
-  Box,
-  Boxes,
-  ChipRule,
-  Half,
-  Pairs,
-  PartnerRule,
-} from "#plate/ui/placement/machine.ts";
+import type { Box, Boxes, Half, Pairs } from "#plate/placement/machine.ts";
+import type { Associable } from "#plate/placement/rules.ts";
 import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * One associable choice as an island shows it: a `qti-simple-associable-choice` of either match
- * set or of an associate, or a gap match's `qti-gap-text` or `qti-gap-img`.
+ * set or of an associate, or a gap match's `qti-gap-text` or `qti-gap-img`: the facts of its rule
+ * ({@link Associable}), and these.
  *
  * - `content` is the choice's server-rendered content, shown in its chip in the bank and again in
  *   each target that holds it, so it holds no `id` and no interactive element.
- * - `identifier` is the choice's `identifier`.
  * - `label`, none when the content shows text, is the accessible name the server gives a choice whose
  *   content has none, such as an image: its chip or target carries it, and announcements read it,
  *   since the primitive reads a part's text, then its `aria-label`, and never an image's `alt`.
- * - `matchGroup` is the choice's `match-group`, the identifiers it may be associated with, empty when
- *   the author wrote none or an empty list, which both mean any (QTI 3.0 information model 5.131.5,
- *   5.58.4, 5.56.4).
- * - `matchMax` is the choice's `match-max`, which QTI requires: how many associations it may be in
- *   (5.131.6, 5.58.5, 5.56.5). The server writes 0 as no limit (see {@link Limit}).
  * - `readAloud` is read-aloud's control for the catalog the choice references, absent where the
  *   candidate hears none: the island writes it beside the choice's chip in the bank alone, which
  *   lists every choice once, so each choice is heard from one place.
  */
-export interface AssociableChoice extends Spoken {
+export interface AssociableChoice extends Associable, Spoken {
   readonly content: ReactNode;
-  readonly identifier: string;
   readonly label: string | undefined;
-  readonly matchGroup: readonly string[];
-  readonly matchMax: Limit;
 }
-
-/**
- * What a choice brings to its rule on a board: its identifier, `match-group` and `match-max`, a
- * Match's or a Gap Match's choice on a board of pairs, an associate's choice or a graphic
- * associate's `qti-associable-hotspot` on a board of boxes, whose `match-group` and `match-max`
- * mean the same (5.7.4, 5.7.8).
- */
-export type Associable = Pick<AssociableChoice, "identifier" | "matchGroup" | "matchMax">;
-
-/**
- * Make an associable choice a chip of a board of pairs: placed up to its `match-max`, and only
- * into the targets its `match-group` lists, when it lists any.
- *
- * @param choice The choice.
- * @returns Its chip.
- */
-export const chipRuleOf = (choice: Associable): ChipRule => ({
-  id: choice.identifier,
-  targets: choice.matchGroup,
-  uses: choice.matchMax,
-});
-
-/**
- * Make an associable choice or hotspot a chip of a board of boxes: in up to its `match-max` pairs,
- * and paired only with the choices its `match-group` lists, when it lists any.
- *
- * @param choice The choice or hotspot.
- * @returns Its chip.
- */
-export const partnerRuleOf = (choice: Associable): PartnerRule => ({
-  id: choice.identifier,
-  partners: choice.matchGroup,
-  uses: choice.matchMax,
-});
 
 /**
  * Read the two identifiers of a text in plate's lexical form of a `pair` or a `directedPair`: two

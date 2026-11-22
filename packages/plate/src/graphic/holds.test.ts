@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { areaHolds } from "#plate/ui/graphic/holds.ts";
+import { areaHolds } from "#plate/graphic/holds.ts";
 
 describe("areaHolds", () => {
   it("rect holds a point inside, and not one outside", () => {

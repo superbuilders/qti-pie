@@ -76,7 +76,7 @@ const targetOf = (drawing: ObjectDrawing): number => {
 
 /**
  * Give the smallest target among a stage's copies, the measure its scale is read from
- * (`stageScaleOf` in `#plate/ui/graphic/scale.ts`): a Position Object's stage shows no area, so its
+ * (`stageScaleOf` in `#plate/graphic/scale.ts`): a Position Object's stage shows no area, so its
  * targets are the copies the child places, each as large as its object.
  *
  * @param drawings How each of the stage's objects is drawn.

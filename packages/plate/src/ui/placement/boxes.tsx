@@ -4,7 +4,7 @@
  * A board of boxes on the placement primitive, which Associate and Graphic Associate share: the
  * child makes each `pair` of the response in a box of two halves, a chip in each, and a box whose
  * halves both hold a chip is one pair of the response. The machine
- * (`#plate/ui/placement/machine.ts`, {@link BoxesBoard}) holds QTI's limits and plate's rulings, and
+ * (`#plate/placement/machine.ts`, {@link BoxesBoard}) holds QTI's limits and plate's rulings, and
  * the primitive refuses a move before anything changes and announces every step, a pair made
  * included; this module keeps the boxes a child sees and the response they post in step, and
  * renders the boxes.
@@ -17,18 +17,14 @@
  */
 import { useMemo, useState } from "react";
 import { flag } from "#plate/ui/attributes.ts";
-import type { Limit } from "#plate/ui/limit.ts";
-import {
-  boxesOf,
-  halfName,
-  keptBoxes,
-  pairTextsOf,
-  partnerRuleOf,
-} from "#plate/ui/placement/associable.ts";
-import type { Associable, AssociableChoice } from "#plate/ui/placement/associable.ts";
+import type { Limit } from "#plate/placement/limit.ts";
+import { boxesOf, halfName, keptBoxes, pairTextsOf } from "#plate/ui/placement/associable.ts";
+import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
+import { partnerRuleOf } from "#plate/placement/rules.ts";
+import type { Associable } from "#plate/placement/rules.ts";
 import type { BoxLabels } from "#plate/ui/placement/labels.ts";
-import { shownBoxes } from "#plate/ui/placement/machine.ts";
-import type { Boxes, BoxesBoard, Half } from "#plate/ui/placement/machine.ts";
+import { shownBoxes } from "#plate/placement/machine.ts";
+import type { Boxes, BoxesBoard, Half } from "#plate/placement/machine.ts";
 import { PlacementChip, PlacementSlot, PlacementTarget } from "#plate/ui/placement/parts.tsx";
 import { useResponse } from "#plate/ui/responses.tsx";
 

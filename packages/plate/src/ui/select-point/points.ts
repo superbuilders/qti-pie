@@ -17,7 +17,7 @@
 import { Option } from "effect";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import { pointCoordinates } from "#plate/model/values.ts";
-import type { ImagePoint } from "#plate/ui/graphic/geometry.ts";
+import type { ImagePoint } from "#plate/graphic/geometry.ts";
 import type { Picks } from "#plate/interactions/picks.ts";
 
 /**

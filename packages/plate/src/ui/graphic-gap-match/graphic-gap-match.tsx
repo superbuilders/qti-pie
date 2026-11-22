@@ -47,11 +47,12 @@ import { DrawnArea, GraphicMark } from "#plate/ui/graphic/drawn.tsx";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
 import { GraphicStage, useGraphicStage } from "#plate/ui/graphic/stage.tsx";
 import type { StageArea } from "#plate/ui/graphic/stage.tsx";
-import { isOne } from "#plate/ui/limit.ts";
-import type { Limit } from "#plate/ui/limit.ts";
-import { chipRuleOf, placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
+import { isOne } from "#plate/placement/limit.ts";
+import type { Limit } from "#plate/placement/limit.ts";
+import { placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
+import { chipRuleOf } from "#plate/placement/rules.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
-import type { Pairs, PairsBoard } from "#plate/ui/placement/machine.ts";
+import type { Pairs, PairsBoard } from "#plate/placement/machine.ts";
 import {
   PlacementBank,
   PlacementChip,

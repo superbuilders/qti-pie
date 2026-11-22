@@ -37,9 +37,9 @@ import { positionObject } from "#plate/ui/position-object/primitive.ts";
 import type { CopyKey, HeldCopy, StageObject } from "#plate/ui/position-object/primitive.ts";
 import { ObjectCopy, placedAt } from "#plate/ui/position-object/token.tsx";
 import type { ObjectDrawing } from "#plate/ui/position-object/token.tsx";
-import type { ImagePoint } from "#plate/ui/graphic/geometry.ts";
+import type { ImagePoint } from "#plate/graphic/geometry.ts";
 import type { GraphicLabels } from "#plate/ui/graphic/labels.ts";
-import type { StageScale } from "#plate/ui/graphic/scale.ts";
+import type { StageScale } from "#plate/graphic/scale.ts";
 import { useEntries } from "#plate/ui/responses.tsx";
 
 /**
@@ -92,7 +92,7 @@ export interface PositionObjectStageProps {
    */
   readonly objects: readonly StagedObject[];
   /**
-   * The stage's scale, from its smallest copy (`stageScaleOf` in `#plate/ui/graphic/scale.ts`), so
+   * The stage's scale, from its smallest copy (`stageScaleOf` in `#plate/graphic/scale.ts`), so
    * every copy the child places is a target of at least 24 CSS px, and 44 where the page has room.
    */
   readonly scale: StageScale;

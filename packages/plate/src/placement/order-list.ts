@@ -13,7 +13,7 @@
  *
  * @module
  */
-import type { Sequence } from "#plate/ui/placement/machine.ts";
+import type { Sequence } from "#plate/placement/machine.ts";
 
 /**
  * Give the positions a list shows: the response's order where it holds every choice, as when the
