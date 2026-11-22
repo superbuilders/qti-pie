@@ -41,8 +41,8 @@ import type { ArrowDirection } from "#plate/interactions/area.ts";
 import { HotspotArrows } from "#plate/ui/graphic-gap-match/arrows.tsx";
 import { PlotMarks, PlotPins } from "#plate/ui/graphic-gap-match/figures.tsx";
 import { figuresOf, shadeDirectionOf } from "#plate/graphic/plot.ts";
-import type { PlotChoice, PlotKind, ShadeLink } from "#plate/graphic/plot.ts";
-import type { ShadeDirection, Statistic } from "#plate/interactions/plot-roles.ts";
+import type { PlotChoice, ShadeLink } from "#plate/graphic/plot.ts";
+import type { PlotKind, ShadeDirection, Statistic } from "#plate/interactions/plot-roles.ts";
 import type { GraphicGapMatchLabels } from "#plate/ui/graphic-gap-match/labels.ts";
 import type { ChoiceMeasure } from "#plate/ui/graphic-gap-match/fit.ts";
 import { PlacedChoices } from "#plate/ui/graphic-gap-match/placed.tsx";
@@ -168,7 +168,7 @@ export interface GraphicGapMatchProps extends Authored<NameAttributes> {
   readonly maxAssociations: Limit;
   /**
    * What the plot draws beyond the interaction, by the root's class (`plotKindOf` in
-   * `#plate/graphic/plot.ts`).
+   * `#plate/interactions/plot-roles.ts`).
    */
   readonly plot: PlotKind;
   /**

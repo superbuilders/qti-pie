@@ -12,7 +12,8 @@
  */
 import type { Option } from "effect";
 import type { StageScale, TargetFloor } from "#plate/graphic/scale.ts";
-import type { Figure, PlotChoice, PlotKind, PlotSpot } from "#plate/graphic/plot.ts";
+import type { Figure, PlotChoice, PlotSpot } from "#plate/graphic/plot.ts";
+import type { PlotKind } from "#plate/interactions/plot-roles.ts";
 
 /**
  * What a lattice walk checks, from one program, plate's or a mutant copy's.

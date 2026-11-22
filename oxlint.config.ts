@@ -96,6 +96,7 @@ const plateClientModules = [
   "packages/plate/src/graphic/arrows.ts",
   "packages/plate/src/graphic/geometry.ts",
   "packages/plate/src/graphic/holds.ts",
+  "packages/plate/src/graphic/plot.ts",
   "packages/plate/src/graphic/scale.ts",
   "packages/plate/src/interactions/eliminated.ts",
   "packages/plate/src/interactions/pair.ts",

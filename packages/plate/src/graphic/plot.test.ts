@@ -1,7 +1,8 @@
 /**
- * A Graphic Gap Match's plot under plate's renderer vocabulary (`#plate/graphic/plot.ts`), held to
- * the rules of `#plate/test/plot-rules.ts`, written apart from it, and its kills, each a bug
- * planted in a mutant copy of plate run as a program of its own (`#plate/test/kills.ts`).
+ * A Graphic Gap Match's plot under plate's renderer vocabulary (`#plate/graphic/plot.ts`, its
+ * classes read by `#plate/interactions/plot-roles.ts`), held to the rules of
+ * `#plate/test/plot-rules.ts`, written apart from it, and its kills, each a bug planted in a mutant
+ * copy of plate run as a program of its own (`#plate/test/kills.ts`).
  *
  * The lattice (R10, Q4): `plate-lattice` on the root keeps 24 px targets, every other root 44, and
  * a stage is drawn at the scale that makes its smallest cell that wide (`#plate/graphic/scale.ts`),
@@ -12,9 +13,15 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import type { GraphicArea } from "#plate/graphic/geometry.ts";
-import { figuresOf, floorOf, plotKindOf, shadeDirectionOf } from "#plate/graphic/plot.ts";
+import { figuresOf, shadeDirectionOf } from "#plate/graphic/plot.ts";
 import { smallestTargetOf, stageScaleOf } from "#plate/graphic/scale.ts";
-import { pointStyleOf, shadeOf, statisticOf } from "#plate/interactions/plot-roles.ts";
+import {
+  floorOf,
+  plotKindOf,
+  pointStyleOf,
+  shadeOf,
+  statisticOf,
+} from "#plate/interactions/plot-roles.ts";
 import { runKilled } from "#plate/test/kills.ts";
 import type { Kill } from "#plate/test/kills.ts";
 import { walkLattice, walkPlot } from "#plate/test/plot-rules.ts";
@@ -38,7 +45,7 @@ const cells: readonly GraphicArea[] = [0, 1, 2].flatMap((row) =>
  */
 const kills: readonly Kill[] = [
   {
-    file: "src/graphic/plot.ts",
+    file: "src/interactions/plot-roles.ts",
     original: '? "minimum" : "enhanced"',
     replacement: '? "enhanced" : "enhanced"',
     why: "a lattice keeps 44 px",
@@ -64,7 +71,7 @@ const kills: readonly Kill[] = [
 const latticeScript = [
   'import { Option } from "effect";',
   'import { stageScaleOf } from "#plate/graphic/scale.ts";',
-  'import { floorOf } from "#plate/graphic/plot.ts";',
+  'import { floorOf } from "#plate/interactions/plot-roles.ts";',
   'import { walkLattice } from "#plate/test/plot-rules.ts";',
   "process.stdout.write(JSON.stringify({ found: walkLattice({ floorOf, none: Option.none(), some: Option.some, stageScaleOf }) ?? null }));",
 ].join("\n");
@@ -115,7 +122,7 @@ const plotKills: readonly Kill[] = [
     why: "a line runs past the plot's box",
   },
   {
-    file: "src/graphic/plot.ts",
+    file: "src/interactions/plot-roles.ts",
     original: "asked.length === 1 ?",
     replacement: "asked.length >= 1 ?",
     why: "two plot classes still draw the first",
@@ -189,8 +196,8 @@ const plotKills: readonly Kill[] = [
  */
 const plotScript = [
   'import { Option } from "effect";',
-  'import { pointStyleOf, shadeOf, statisticOf } from "#plate/interactions/plot-roles.ts";',
-  'import { figuresOf, plotKindOf, shadeDirectionOf } from "#plate/graphic/plot.ts";',
+  'import { plotKindOf, pointStyleOf, shadeOf, statisticOf } from "#plate/interactions/plot-roles.ts";',
+  'import { figuresOf, shadeDirectionOf } from "#plate/graphic/plot.ts";',
   'import { walkPlot } from "#plate/test/plot-rules.ts";',
   "process.stdout.write(JSON.stringify({ found: walkPlot({ figuresOf, none: Option.none(), plotKindOf, pointStyleOf, shadeDirectionOf, shadeOf, some: Option.some, statisticOf, value: Option.getOrUndefined }) ?? null }));",
 ].join("\n");

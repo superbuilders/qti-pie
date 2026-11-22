@@ -273,7 +273,8 @@ const showsLowVision = (supports: Pick<Supports, "catalog" | "display">): boolea
  *
  * @param classes The attribute's value.
  * @returns Its tokens, in written order.
- * @see https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#set-of-space-separated-tokens
+ * @see
+ * https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#set-of-space-separated-tokens
  */
 export const classTokensOf = (classes: string): readonly string[] =>
   classes.split(/[\t\n\f\r ]+/u).filter((token) => token !== "");
@@ -377,7 +378,8 @@ export const rendererClasses = {
    * The cells' outlines are not drawn at rest, only while one holds a choice, while a choice is
    * dragged over one, while one has keyboard focus, and on a review's marks; the list of cells
    * below the picture leaves the eye; and each cell keeps 24 px, WCAG 2.5.8's minimum, rather than
-   * every other stage's 44 (`#plate/graphic/plot.ts`, base.css; R10, and the owner's Q4).
+   * every other stage's 44 (`floorOf` in `#plate/interactions/plot-roles.ts`, base.css; R10, and
+   * the owner's Q4).
    */
   "plate-lattice": "a graph whose hotspots tile its plot",
   /**

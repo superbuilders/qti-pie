@@ -1,14 +1,60 @@
 /**
- * What a gap text or a hotspot of a Graphic Gap Match is to the plot plate draws over its picture,
- * read from plate's renderer classes on it (`rendererClasses` in `#plate/vocabulary.ts`): the box
- * plot's statistic it places or stands for (R8), and the number line's dot it draws (R7). Each is
- * presentation alone; no response, limit or name reads it.
+ * What a Graphic Gap Match's root, gap texts and hotspots are to the plot plate draws over its
+ * picture, read from plate's renderer classes on them (`rendererClasses` in
+ * `#plate/vocabulary.ts`): the plot the root asks for and the target size its hotspots keep; the
+ * box plot's statistic a gap text places or a hotspot stands for (R8); and the number line's dot a
+ * gap text draws (R7). Each is presentation alone; no response, limit or name reads it. The server
+ * reads them and hands the island what they say, so the plot's drawing (`#plate/graphic/plot.ts`)
+ * and the page read no class.
  *
  * @module
  */
 import { Array as Arr, Option } from "effect";
+import type { TargetFloor } from "#plate/graphic/scale.ts";
 import { carriesRendererClass } from "#plate/vocabulary.ts";
 import type { RendererClass } from "#plate/vocabulary.ts";
+
+/**
+ * Give the target size a Graphic Gap Match's hotspots keep on its stage: 24 px where its root
+ * carries `plate-lattice`, a graph whose hotspots tile its plot, else 44 px (`TargetFloor` in
+ * `#plate/graphic/scale.ts`).
+ *
+ * @param classes The class the root carries, none when it carries none.
+ * @returns The floor.
+ */
+export const floorOf = (classes: Option.Option<string>): TargetFloor =>
+  carriesRendererClass(classes, "plate-lattice") ? "minimum" : "enhanced";
+
+/**
+ * What a Graphic Gap Match's plot draws, by its root's class: `line` or `segment` through each gap
+ * text's two placements (R6), a `box-plot` from its statistics (R8), a `number-line`'s dots (R7),
+ * or nothing beyond the interaction, `plain`.
+ */
+export type PlotKind = "box-plot" | "line" | "number-line" | "plain" | "segment";
+
+/**
+ * Each plot's class on the root.
+ */
+const plotClasses: readonly (readonly [RendererClass, Exclude<PlotKind, "plain">])[] = [
+  ["plate-graph-line", "line"],
+  ["plate-graph-segment", "segment"],
+  ["plate-box-plot", "box-plot"],
+  ["plate-number-line-graph", "number-line"],
+];
+
+/**
+ * Read a Graphic Gap Match's plot from its root's class: the one plot whose class it holds, and
+ * `plain` where it holds none, or two, which ask for no one drawing.
+ *
+ * @param classes The class the root carries, none when it carries none.
+ * @returns The plot.
+ */
+export const plotKindOf = (classes: Option.Option<string>): PlotKind => {
+  const asked = plotClasses.filter(([name]) => carriesRendererClass(classes, name));
+  const [only] = asked;
+
+  return only !== undefined && asked.length === 1 ? only[1] : "plain";
+};
 
 /**
  * The five statistics of a box plot, in the order its axis shows them.

@@ -1,8 +1,9 @@
 /**
- * What a Graphic Gap Match draws of its plot beyond the standard interaction, by plate's renderer
- * vocabulary on its root and its gap texts (`rendererClasses` in `#plate/vocabulary.ts`): pure, and
- * safe to import on the server and the client alike, so the island and the review draw from one
- * rule.
+ * What a Graphic Gap Match draws of its plot beyond the standard interaction, from the plot its
+ * root's class asks for and what its gap texts and hotspots are to it, which the server reads from
+ * plate's renderer vocabulary (`#plate/interactions/plot-roles.ts`): pure, and safe to import on
+ * the server and the client alike, so the island and the review draw from one rule. It reads no
+ * class itself, so a page that draws a plot loads no reader of plate's vocabulary.
  *
  * Every figure stands where the hotspots its choices are placed on stand, each hotspot's middle
  * (`interiorOf` in `#plate/graphic/geometry.ts`), so a lattice point's cell or a tick's strip
@@ -11,57 +12,16 @@
  *
  * @module
  */
-import type { Option } from "effect";
-import type { PointStyle, ShadeDirection, Statistic } from "#plate/interactions/plot-roles.ts";
+import type {
+  PlotKind,
+  PointStyle,
+  ShadeDirection,
+  Statistic,
+} from "#plate/interactions/plot-roles.ts";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import type { Pairs } from "#plate/placement/machine.ts";
 import { boundsOf, drawingOf, interiorOf } from "#plate/graphic/geometry.ts";
 import type { Box, GraphicArea, ImagePoint } from "#plate/graphic/geometry.ts";
-import type { TargetFloor } from "#plate/graphic/scale.ts";
-import { carriesRendererClass } from "#plate/vocabulary.ts";
-import type { RendererClass } from "#plate/vocabulary.ts";
-
-/**
- * Give the target size a Graphic Gap Match's hotspots keep on its stage: 24 px where its root
- * carries `plate-lattice`, a graph whose hotspots tile its plot, else 44 px (`TargetFloor` in
- * `#plate/graphic/scale.ts`).
- *
- * @param classes The class the root carries, none when it carries none.
- * @returns The floor.
- */
-export const floorOf = (classes: Option.Option<string>): TargetFloor =>
-  carriesRendererClass(classes, "plate-lattice") ? "minimum" : "enhanced";
-
-/**
- * What a Graphic Gap Match's plot draws, by its root's class: `line` or `segment` through each gap
- * text's two placements (R6), a `box-plot` from its statistics (R8), a `number-line`'s dots (R7),
- * or nothing beyond the interaction, `plain`.
- */
-export type PlotKind = "box-plot" | "line" | "number-line" | "plain" | "segment";
-
-/**
- * Each plot's class on the root.
- */
-const plotClasses: readonly (readonly [RendererClass, Exclude<PlotKind, "plain">])[] = [
-  ["plate-graph-line", "line"],
-  ["plate-graph-segment", "segment"],
-  ["plate-box-plot", "box-plot"],
-  ["plate-number-line-graph", "number-line"],
-];
-
-/**
- * Read a Graphic Gap Match's plot from its root's class: the one plot whose class it holds, and
- * `plain` where it holds none, or two, which ask for no one drawing.
- *
- * @param classes The class the root carries, none when it carries none.
- * @returns The plot.
- */
-export const plotKindOf = (classes: Option.Option<string>): PlotKind => {
-  const asked = plotClasses.filter(([name]) => carriesRendererClass(classes, name));
-  const [only] = asked;
-
-  return only !== undefined && asked.length === 1 ? only[1] : "plain";
-};
 
 /**
  * The item's shading interaction as a number line reads it (`plate-shade` on a
