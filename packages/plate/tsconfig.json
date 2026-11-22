@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.json",
   "include": ["src", "vite.config.ts"],
-  "exclude": ["**/node_modules", "**/work", "src/ui/**"]
+  "exclude": ["**/node_modules", "**/work", "src/ui/**", "src/math-entry/**"]
 }

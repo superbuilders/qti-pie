@@ -3,6 +3,7 @@
   "compilerOptions": {
     "lib": ["esnext", "dom"],
     "types": ["node", "react/experimental"],
+    "customConditions": ["browser", "production"],
     "jsx": "react-jsx",
     "tsBuildInfoFile": "../../node_modules/.cache/tsconfig.ui.tsbuildinfo"
   },

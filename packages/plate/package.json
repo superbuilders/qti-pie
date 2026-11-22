@@ -10,6 +10,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./admission-codes": "./src/admission-codes.ts",
+    "./math-entry": "./src/math-entry/field.ts",
     "./ui": "./src/ui/index.ts",
     "./ui/client": "./src/ui/client.ts",
     "./ui/pci-frame": "./src/ui/portable-custom/frame-page.ts",
@@ -28,7 +29,8 @@
     "@ui-sdk/core": "catalog:",
     "@ui-sdk/react": "catalog:",
     "effect": "catalog:",
-    "mathjax-full": "catalog:"
+    "mathjax-full": "catalog:",
+    "mathlive": "catalog:"
   },
   "devDependencies": {
     "@bjornpagen/devtools": "workspace:*",

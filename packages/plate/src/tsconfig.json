@@ -3,9 +3,10 @@
   "compilerOptions": {
     "lib": ["esnext", "dom"],
     "types": ["node", "react/experimental"],
+    "customConditions": ["browser", "production"],
     "jsx": "react-jsx",
     "tsBuildInfoFile": "../node_modules/.cache/tsconfig.src.tsbuildinfo"
   },
-  "include": ["ui/**/*.ts", "ui/**/*.tsx"],
+  "include": ["ui/**/*.ts", "ui/**/*.tsx", "math-entry/**/*.ts"],
   "exclude": ["**/node_modules"]
 }
