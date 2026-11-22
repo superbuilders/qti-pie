@@ -15,12 +15,11 @@
  * zero or more per package, and what a consumer reads of it handles its absence as a case of its
  * own. The two laws below hold only what LOM's data model, which QTI 3.0 Metadata §2.7 adopts
  * ("Usage as defined by [LOM, 02]", normative by its §1.2), makes of a value written. A catalog,
- * entry, taxon source or taxon id a view keys is held there as itself, a `KeyMatchedText` of at
- * most `keyMatchedTextBytes` UTF-8 bytes (`#pantry/qti/limits.ts`), what a B-tree entry leaves it
- * in the ordered reads of the QTI database that consume the views; LOM bounds none, so a longer
- * one is left out of that view ({@link fitsKeyMatchedText}), the unsupported data an importer may
- * ignore (§3), and the package is admitted. The longest any real package writes is 73 bytes (on
- * 2026-11-22, 363 exported packages and 2,813 converted AlphaTest packages).
+ * entry, earlier package's name, taxon source or taxon id a view carries is carried as itself, of
+ * any length, since LOM bounds none, beside its SHA-256 (`catalogDigest`, `entryDigest`,
+ * `earlierDigest`, `sourceDigest`, `idDigest`, and a taxon's entry string's `entryDigest`), the
+ * explicit digest a consumer orders and matches by where a key or an ordered read holds it: 32
+ * bytes, which any key holds, so no text is ever refused or left out for its length.
  *
  * - **LOM vocabulary**: a status's, a contribute role's, a relation kind's and a classification
  *   purpose's `value` whose vocabulary is LOM's own is one of that vocabulary's tokens exactly. Its
@@ -79,7 +78,17 @@
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/conf | QTI 3.0 Conformance and Certification, §2.2 and §3}
  * @see {@link https://www.rfc-editor.org/rfc/rfc2426 | RFC 2426, vCard MIME Directory Profile}
  */
-import { check, closed, closedId, derived, query, schema, Text, v } from "@bjornpagen/grizzle";
+import {
+  check,
+  closed,
+  closedId,
+  Crypto,
+  derived,
+  query,
+  schema,
+  Text,
+  v,
+} from "@bjornpagen/grizzle";
 import type { NodeKind } from "#pantry/grammar/install.ts";
 import { QtiMedia } from "#pantry/qti/media.ts";
 import { lomVocabularySources } from "#pantry/qti/metadata.ts";
@@ -87,7 +96,7 @@ import { RecordNode } from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { manifestIdentifiers, resourceIdentifiers } from "#pantry/qti/overlay-queries/package.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
-import { fitsKeyMatchedText, keyedMatchedText, matchedText } from "#pantry/qti/limits.ts";
+import { matchedText } from "#pantry/qti/limits.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
@@ -402,8 +411,7 @@ const generalIdentifiers = query(QtiLomVocabulary).rule((r) => {
 
 /**
  * Each package's lesson: the general identifier whose entry is its manifest's `identifier`, its
- * catalog and entry as a key holds them, each a `KeyMatchedText` cast under grizzle's byte guard,
- * kept only where both fit ({@link fitsKeyMatchedText}), so the guard's other arm never stands.
+ * catalog and entry as written, each beside its SHA-256.
  */
 const lessons = query(QtiLomVocabulary).rule((r) => {
   const { catalog, entry, package: pkg } = v(generalIdentifiers, "identifier");
@@ -411,11 +419,11 @@ const lessons = query(QtiLomVocabulary).rule((r) => {
   return r
     .match(generalIdentifiers, { catalog, entry, package: pkg })
     .match(manifestIdentifiers, { package: pkg, value: entry })
-    .where(fitsKeyMatchedText(catalog))
-    .where(fitsKeyMatchedText(entry))
     .find({
-      catalog: keyedMatchedText(catalog),
-      entry: keyedMatchedText(entry),
+      catalog,
+      catalogDigest: Crypto.sha256(catalog),
+      entry,
+      entryDigest: Crypto.sha256(entry),
       package: pkg,
     });
 });
@@ -526,8 +534,7 @@ const supersessions = query(QtiLomVocabulary).rule((r) => {
 
   return r
     .match(versionsOf, { catalog: packageScheme, entry: earlier, package: pkg })
-    .where(fitsKeyMatchedText(earlier))
-    .find({ earlier: keyedMatchedText(earlier), package: pkg });
+    .find({ earlier, earlierDigest: Crypto.sha256(earlier), package: pkg });
 });
 
 /**
@@ -760,12 +767,12 @@ const lessonClaims = query(QtiLomVocabulary).rule((r) => {
 export const Head = derived(
   "Head",
   query(QtiLomVocabulary).rule((r) => {
-    const { catalog, entry, package: pkg } = v(lessons, "lesson");
+    const { catalog, catalogDigest, entry, entryDigest, package: pkg } = v(lessons, "lesson");
 
     return r
-      .match(lessons, { catalog, entry, package: pkg })
+      .match(lessons, { catalog, catalogDigest, entry, entryDigest, package: pkg })
       .where(r.not(lessonClaims, { catalog, earlier: pkg, entry }))
-      .find({ catalog, entry, package: pkg });
+      .find({ catalog, catalogDigest, entry, entryDigest, package: pkg });
   }),
 );
 
@@ -816,11 +823,11 @@ export const PackageRelation = derived(
     return r
       .match(relations, { catalog, entry, kind: text, package: pkg, relation })
       .match(RelationKindText, { term: kind, text })
-      .where(fitsKeyMatchedText(catalog))
-      .where(fitsKeyMatchedText(entry))
       .find({
-        catalog: keyedMatchedText(catalog),
-        entry: keyedMatchedText(entry),
+        catalog,
+        catalogDigest: Crypto.sha256(catalog),
+        entry,
+        entryDigest: Crypto.sha256(entry),
         kind,
         package: pkg,
         relation,
@@ -842,13 +849,13 @@ export const PackageClassification = derived(
     return r
       .match(taxa, { id, package: pkg, purpose: text, source })
       .match(ClassificationPurposeText, { term: purpose, text })
-      .where(fitsKeyMatchedText(id))
-      .where(fitsKeyMatchedText(source))
       .find({
-        id: keyedMatchedText(id),
+        id,
+        idDigest: Crypto.sha256(id),
         package: pkg,
         purpose,
-        source: keyedMatchedText(source),
+        source,
+        sourceDigest: Crypto.sha256(source),
       });
   }),
 );
@@ -880,13 +887,14 @@ export const TaxonEntry = derived(
         path: manifestPath,
         stringValue: string.stringValue,
       })
-      .where(fitsKeyMatchedText(id))
-      .where(fitsKeyMatchedText(source))
       .find({
         entry: string.stringValue,
-        id: keyedMatchedText(id),
+        entryDigest: Crypto.sha256(string.stringValue),
+        id,
+        idDigest: Crypto.sha256(id),
         package: pkg,
-        source: keyedMatchedText(source),
+        source,
+        sourceDigest: Crypto.sha256(source),
       });
   }),
 );

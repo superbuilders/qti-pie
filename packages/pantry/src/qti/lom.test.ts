@@ -11,6 +11,7 @@
  * queries only the database evaluates, so the database is their judge, as it is the media level's
  * (`policyLaws` of `#pantry/test/oracle-laws.ts`).
  */
+import { Sha256 } from "@bjornpagen/grizzle";
 import type { CheckVerdict, EvaluatedRow, Unevaluated } from "@bjornpagen/grizzle";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
@@ -477,6 +478,20 @@ const situationsOf = (row: StatedRow): readonly StatedSituation[] => {
 };
 
 /**
+ * The shared grade scheme a classification's taxon path names as its source.
+ */
+const gradeScheme = "https://qti.edullm.ai/grade";
+
+/**
+ * A text's SHA-256, the digest of its UTF-8, as a view carries it beside the text
+ * (`Crypto.sha256`).
+ *
+ * @param text - The text.
+ * @returns Its digest.
+ */
+const digestOf = (text: string): Sha256 => Sha256.ofBytes(new TextEncoder().encode(text));
+
+/**
  * The names of the checks the level judges a stated view's row by.
  *
  * @param row - The row.
@@ -508,9 +523,11 @@ const checksOver = (row: StatedRow): readonly string[] => {
           Result.map(
             evaluate.admit(PackageClassification, {
               id: row.id,
+              idDigest: digestOf(row.id),
               package: "p",
               purpose: row.purpose,
-              source: "https://qti.edullm.ai/grade",
+              source: gradeScheme,
+              sourceDigest: digestOf(gradeScheme),
             }),
             (admitted) => evaluate(PackageClassification, admitted),
           ),
@@ -525,7 +542,9 @@ const checksOver = (row: StatedRow): readonly string[] => {
           Result.map(
             evaluate.admit(PackageRelation, {
               catalog: "c",
+              catalogDigest: digestOf("c"),
               entry: row.entry,
+              entryDigest: digestOf(row.entry),
               kind: row.kind,
               package: "p",
               relation: 1n,

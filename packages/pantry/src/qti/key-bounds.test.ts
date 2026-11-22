@@ -11,8 +11,6 @@ import {
   EntryPath,
   entryPathBytes,
   identifierBytes,
-  KeyMatchedText,
-  keyMatchedTextBytes,
   literalTextBytes,
   PackageName,
 } from "#pantry/qti/limits.ts";
@@ -38,9 +36,6 @@ describe("qti/key-bounds", () => {
       identifierBytes,
       keyTextBytes([PackageName, EntryPath, EntryPath, natural, code, natural, natural]),
     );
-    // The QTI database's History (catalog, entry, package, earlier), two LOM texts beside two
-    // package names.
-    assert.isAtMost(keyMatchedTextBytes, keyTextBytes([KeyMatchedText, PackageName, PackageName]));
     // Literal's reference target (package, path, start, text, baseType).
     assert.isAtMost(literalTextBytes, keyTextBytes([PackageName, EntryPath, natural, code]));
   });

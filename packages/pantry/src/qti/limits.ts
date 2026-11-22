@@ -180,56 +180,6 @@ export const keyedIdentifier = (identifier: TextTerm) =>
   );
 
 /**
- * The most UTF-8 bytes a LOM term's catalog, entry, source or id holds in the typed LOM views, what
- * one B-tree entry leaves two of them in the QTI database's ordered reads of those views beside two
- * package names. A numbered reading's number is no such text: it is a stretch of its reference's
- * identifier, a {@link QtiIdentifier}.
- *
- * @limitKind derived
- * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
- * @unit UTF-8 bytes
- * @scope one such text in any key or index grizzle builds over it
- * @constraint LOM puts no bound on these texts; a longer one is left out of the typed LOM view that
- *   keys it ({@link fitsKeyMatchedText}), never refused
- * @derivation grizzle's `keyTextBytes` over the QTI database's `History` `(catalog, entry, package,
- *   earlier)`, each text beside the other and two names of {@link nameMaxBytes}
- * @from nameMaxBytes
- */
-export const keyMatchedTextBytes = 777;
-
-/**
- * A matched text as a key holds it, of at most {@link keyMatchedTextBytes} UTF-8 bytes.
- */
-export const KeyMatchedText = law(entryOf("Key text bound"), str.bytes(keyMatchedTextBytes, Chars));
-
-/**
- * Whether a LOM text fits {@link KeyMatchedText}: at most {@link keyMatchedTextBytes} UTF-8 bytes.
- * A typed LOM view keeps a catalog, entry, taxon source or taxon id only where it fits
- * (`#pantry/qti/lom.ts`), since LOM bounds none of them and an importer may "ignore or remove the
- * unsupported data" (QTI 3.0 Conformance §3), never refuse it.
- *
- * @param text - The text, a node's string value as the view reads it.
- * @returns Whether it fits.
- */
-export const fitsKeyMatchedText = (text: TextTerm) =>
-  Logic.le(Text.octetLength(text), keyMatchedTextBytes);
-
-/**
- * Cast a LOM text a view keys into {@link KeyMatchedText}, under grizzle's byte guard. The guard's
- * other arm, the empty text, is unreachable: the view keeps the text only where it fits
- * ({@link fitsKeyMatchedText}).
- *
- * @param text - The text, a node's string value as the view reads it.
- * @returns It, as a key holds it.
- */
-export const keyedMatchedText = (text: TextTerm) =>
-  Logic.when(
-    Num.within(Text.octetLength(text), 0, keyMatchedTextBytes),
-    () => Type.cast(text, KeyMatchedText),
-    Type.literal(KeyMatchedText, ""),
-  );
-
-/**
  * The most UTF-8 bytes a URI value holds in the ledger's response keys (`UriValue` of the QTI
  * ledger). Pantry keys no URI as itself: an open attribute's namespace name is held by its SHA-256
  * (`OpenAttribute.uriDigest`, `#pantry/qti/attributes.ts`), of any length.

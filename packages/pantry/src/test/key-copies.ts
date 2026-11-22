@@ -50,8 +50,6 @@ import {
   EntryPath,
   entryPathBytes,
   identifierBytes,
-  KeyMatchedText,
-  keyMatchedTextBytes,
   LiteralText,
   literalTextBytes,
   matchedText,
@@ -72,7 +70,6 @@ export const keyTextBounds: ReadonlyMap<unknown, number> = new Map<unknown, numb
   [matchedText, matchedTextBytes],
   [EntryPath, entryPathBytes],
   [QtiIdentifier, identifierBytes],
-  [KeyMatchedText, keyMatchedTextBytes],
   [LiteralText, literalTextBytes],
 ]);
 
