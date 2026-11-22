@@ -96,9 +96,9 @@ export const PackageName = law(
  * @unit UTF-8 bytes
  * @scope one entry path in any key or index grizzle builds over it
  * @constraint IMS Content Packaging puts no bound on a path; a longer one is refused at import, a
- *   known deviation, dated 2026-11-22, until EntryPath's own digest re-key, the pin after pin+2
- *   (a `pathDigest` the import writes in every primary key, as `IdrefTarget.idDigest` is): the
- *   longest real path is 88 bytes (363 exported packages and 2,813 converted AlphaTest packages,
+ *   known deviation, dated 2026-11-22, until EntryPath's own digest re-key, the pin after pin+2 (a
+ *   `pathDigest` the import writes in every primary key, as `IdrefTarget.idDigest` is): the longest
+ *   real path is 88 bytes (363 exported packages and 2,813 converted AlphaTest packages,
  *   2026-11-22), 11% of the bound
  * @derivation grizzle's `keyTextBytes` over `Instance`'s lookup `(package, assemblyKind, assembly,
  *   document, parent, siteDocument, site)`, three paths beside a name of {@link nameMaxBytes},
@@ -142,7 +142,11 @@ type TextTerm = Term<string, unknown, unknown, "text", string, Facts, string>;
  * @unit UTF-8 bytes
  * @scope one QTI identifier, or an item variable's name, in any key or index grizzle builds over it
  * @constraint QTI's identifier (`IdentifierDType`, an NCName) has no length bound; a longer one is
- *   refused at import
+ *   refused at import, a known deviation, dated 2026-11-22, until its digest re-key, after the
+ *   singleton-migration wipe, one pantry, ledger and application migration with writer-supplied
+ *   digests (the ledger keys every value by its variable's identifier): the longest real identifier
+ *   is 83 bytes (363 exported packages and 2,813 converted AlphaTest packages, 2026-11-22), 17% of
+ *   the bound
  * @derivation grizzle's `keyTextBytes` over the primary keys of the ledger's `SnapshotMultiplePair`
  *   and `SnapshotMultipleDirectedPair`, `(child, package, path, n, at, variable, least | source,
  *   greatest | target)`, three identifiers beside a learner of 69 bytes, a name of
@@ -188,8 +192,10 @@ export const keyedIdentifier = (identifier: TextTerm) =>
  * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
  * @unit UTF-8 bytes
  * @scope one URI response value in any key the ledger builds over it
- * @constraint RFC 3986 puts no bound on a URI; a longer response is refused where the ledger records
- *   it, until the ledger keys it by a digest (pin+2, with its other response keys)
+ * @constraint RFC 3986 puts no bound on a URI; a longer response is refused where the ledger
+ *   records it, a known deviation, dated 2026-11-22, until its digest re-key, after the
+ *   singleton-migration wipe, one pantry, ledger and application migration with writer-supplied
+ *   digests, with the identifier's: no real response value is measured near it
  * @derivation held at the bound it took when `OpenAttributeEntity`'s key `(package, path, start,
  *   uri, local, offset)` held a namespace name beside a name of {@link nameMaxBytes}, a path of
  *   {@link entryPathBytes} and a local name of at most 793 bytes, which the ledger's URI response
@@ -208,7 +214,11 @@ export const uriBytes = 792;
  * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
  * @unit UTF-8 bytes
  * @scope one `qti-base-value`'s text in any key or index grizzle builds over it
- * @constraint QTI puts no bound on a base value; a longer one is refused at import
+ * @constraint QTI puts no bound on a base value; a longer one is refused at import, a known
+ *   deviation, dated 2026-11-22, until its digest re-key, after the singleton-migration wipe, one
+ *   pantry, ledger and application migration with writer-supplied digests (the ledger keys a human
+ *   score by its rubric, a base value's text): the longest real base value is 75 bytes (363
+ *   exported packages and 2,813 converted AlphaTest packages, 2026-11-22), 5% of the bound
  * @derivation grizzle's `keyTextBytes` over the ledger's `HumanOperatorValue` and
  *   `HumanOperatorFeedback` keys `(child, package, path, n, at, rubric, asserted)`, the rubric
  *   beside a learner of 69 bytes, a name of {@link nameMaxBytes}, a path of {@link entryPathBytes},

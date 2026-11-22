@@ -498,12 +498,15 @@ export const ledgerOf = (qti: RegistryLevel) => {
    * A text single of an identifier: QTI's identifier, of one character or more (QTI reads the empty
    * string as NULL), within pantry's identifier bound (`identifierBytes`), drawn from the item's
    * own declarations and choices (REPRKEY's scan of every real item: a QTI identifier's p99.9 83
-   * bytes).
+   * bytes). QTI bounds no identifier, so a longer one is a known deviation, dated 2026-11-22, until
+   * the identifier's digest re-key after the singleton-migration wipe (pantry's `identifierBytes`).
    */
   const IdentifierValue = named("Key text bound", str.bytes(identifierBytes, someText));
 
   /**
    * A text single of a URI, of one character or more, within pantry's URI bound (`uriBytes`).
+   * RFC 3986 bounds no URI, so a longer response is a known deviation, dated 2026-11-22, until the
+   * ledger's digest re-key of its response keys after the singleton-migration wipe.
    */
   const UriValue = named("Key text bound", str.bytes(uriBytes, someText));
 
