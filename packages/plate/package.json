@@ -19,7 +19,8 @@
     "./styles/theme.css": "./src/styles/theme.css",
     "./test/admitted": "./src/test/admitted.ts",
     "./test/corpus": "./src/test/corpus.ts",
-    "./test/records": "./src/test/records.ts"
+    "./test/records": "./src/test/records.ts",
+    "./words": "./src/words.ts"
   },
   "scripts": {
     "typecheck": "sh -c 'toolchain-typecheck -p src/tsconfig.json \"$@\" & toolchain-typecheck -p tsconfig.json \"$@\"; plate=$?; wait $! && exit $plate' typecheck",
