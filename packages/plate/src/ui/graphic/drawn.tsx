@@ -15,10 +15,11 @@
  * @see https://www.w3.org/TR/WCAG22/#non-text-contrast
  */
 import type { ReactNode, SVGAttributes } from "react";
+import type { ArrowDirection } from "#plate/interactions/area.ts";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
 import type { AnswerMark } from "#plate/ui/item/interactions/marks.ts";
 import { Pin } from "#plate/ui/graphic/frame.tsx";
-import { cornerOf, drawingOf, interiorOf } from "#plate/ui/graphic/geometry.ts";
+import { cornerOf, drawingOf, edgeOf, interiorOf } from "#plate/ui/graphic/geometry.ts";
 import type { Drawing, GraphicArea } from "#plate/ui/graphic/geometry.ts";
 
 /**
@@ -193,6 +194,67 @@ export const CornerPin = (props: {
   return drawing === undefined ? null : (
     <Pin at={cornerOf(drawing)} size={size}>
       <g transform={`translate(${String(-badgeRadius)} ${String(badgeRadius)})`}>{children}</g>
+    </Pin>
+  );
+};
+
+/**
+ * The side of an arrow's box, in CSS px: AlphaTest's player's 16 px arrow (`w-4 h-4`).
+ */
+const arrowSize = 16;
+
+/**
+ * The space between an arrow and the area it stands beside, in CSS px: AlphaTest's player's 2 px
+ * margin (`mb-0.5`, `mt-0.5`).
+ */
+const arrowGap = 2;
+
+/**
+ * Each arrow's path, in a box 24 units across, AlphaTest's player's lucide `ArrowUp` and
+ * `ArrowDown`: a shaft and its head, pointing up or down.
+ */
+const arrowPaths = {
+  down: "M 12 5 V 19 M 19 12 L 12 19 L 5 12",
+  up: "M 12 19 V 5 M 5 12 L 12 5 L 19 12",
+} as const satisfies Readonly<Record<ArrowDirection, string>>;
+
+/**
+ * Pin an arrow beside an area, `<g data-slot="plate-graphic-arrow">`, as its author's
+ * `data-arrow-direction` asks: above the area's box pointing up, or below it pointing down, centred
+ * on it ({@link edgeOf}), 16 px tall and {@link arrowGap} clear of it, at the page's own size,
+ * drawn in the text's colour, as AlphaTest's player drew one beside its drop box. It takes no
+ * pointer, so a tap beside the area reaches what is under it.
+ *
+ * @param props.area The area.
+ * @param props.direction The arrow's direction.
+ * @param props.size The image's size, the pixel space of the area's coordinates.
+ * @returns The pinned arrow, or none for an area that holds no point.
+ */
+export const ArrowPin = (props: {
+  readonly area: GraphicArea;
+  readonly direction: ArrowDirection;
+  readonly size: ImageSize;
+}) => {
+  const { area, direction, size } = props;
+  const drawing = drawingOf(area, size);
+  const top = direction === "up" ? -(arrowGap + arrowSize) : arrowGap;
+
+  return drawing === undefined ? null : (
+    <Pin at={edgeOf(drawing, direction === "up" ? "top" : "bottom")} size={size}>
+      <g
+        data-slot="plate-graphic-arrow"
+        pointerEvents="none"
+        transform={`translate(${String(-arrowSize / 2)} ${String(top)}) scale(${String(arrowSize / 24)})`}
+      >
+        <path
+          d={arrowPaths[direction]}
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+        />
+      </g>
     </Pin>
   );
 };

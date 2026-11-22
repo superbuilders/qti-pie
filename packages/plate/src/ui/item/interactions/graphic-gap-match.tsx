@@ -12,17 +12,21 @@
  * dimensions, since the server cannot measure an image, and the list of hotspots, each holding the
  * choices the response puts there, each pair marked when the review marks, the response a bag in
  * which a pair may repeat. A hotspot's row in either is `data-unnamed` where its name is plate's,
- * the author having named it nothing.
+ * the author having named it nothing, and either draws an arrow beside each hotspot whose author's
+ * `data-arrow-direction` asks for one.
  *
  * @module
  */
 import type { ReactNode } from "react";
+import { Option } from "effect";
+import type { ArrowDirection } from "#plate/interactions/area.ts";
 import { countsOf } from "#plate/interactions/counts.ts";
 import { scopedId } from "#plate/form/encoding.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { PayloadOf } from "#plate/model/interactions.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { ChoiceMeasure } from "#plate/ui/graphic-gap-match/fit.ts";
+import { HotspotArrows } from "#plate/ui/graphic-gap-match/arrows.tsx";
 import { GraphicGapMatch } from "#plate/ui/graphic-gap-match/graphic-gap-match.tsx";
 import type { GraphicGapHotspot } from "#plate/ui/graphic-gap-match/graphic-gap-match.tsx";
 import { graphicGapMatchKeys } from "#plate/ui/graphic-gap-match/labels.ts";
@@ -53,16 +57,20 @@ import type { Paired } from "#plate/payload.ts";
 /**
  * Give the hotspots as the island and the review show them, in document order: each one named, by
  * {@link namedAreasOf}, or by {@link spokenAreasOf} with its read-aloud for the island, with its
- * `match-group` and its `match-max`, 0 being no limit.
+ * `match-group`, its `match-max`, 0 being no limit, and the arrow its author asks for.
  *
  * @param hotspots The hotspots, each named.
  * @returns The hotspots.
  */
 const hotspotsOf = (
-  hotspots: readonly (Omit<GraphicGapHotspot, "matchMax"> & { readonly matchMax: bigint })[],
+  hotspots: readonly (Omit<GraphicGapHotspot, "arrow" | "matchMax"> & {
+    readonly arrow: Option.Option<ArrowDirection>;
+    readonly matchMax: bigint;
+  })[],
 ): readonly GraphicGapHotspot[] =>
   hotspots.map((hotspot) => ({
     ...hotspot,
+    arrow: Option.getOrUndefined(hotspot.arrow),
     matchMax: limitOf(hotspot.matchMax),
   }));
 
@@ -212,7 +220,10 @@ export const review = (
           }
           naming={names}
           pins={({ scale, size }) => (
-            <PlacedChoices floor={floorWidthOf(size, scale)} placed={placed} size={size} />
+            <>
+              <HotspotArrows hotspots={hotspots} size={size} />
+              <PlacedChoices floor={floorWidthOf(size, scale)} placed={placed} size={size} />
+            </>
           )}
           stage={reviewStageOf(hotspots, node.size)}
         />

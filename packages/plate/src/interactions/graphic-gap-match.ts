@@ -46,8 +46,8 @@
  */
 import { Option } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
-import { areaLabel, coordinatesOf } from "#plate/interactions/area.ts";
-import type { AreaCoordinate } from "#plate/interactions/area.ts";
+import { areaLabel, arrowOf, coordinatesOf } from "#plate/interactions/area.ts";
+import type { AreaCoordinate, ArrowDirection } from "#plate/interactions/area.ts";
 import {
   choiceRegions,
   contentRegion,
@@ -155,6 +155,11 @@ interface GraphicGapMatchChoice<L extends Level = ModelLevel> extends Referencin
  * area of the image, with the catalog it references.
  */
 interface AssociableHotspot extends ReferencingChoice {
+  /**
+   * The arrow its author's `data-arrow-direction` asks the page to draw beside it, none for none
+   * ({@link arrowOf}).
+   */
+  readonly arrow: Option.Option<ArrowDirection>;
   readonly coords: readonly AreaCoordinate[];
   /**
    * The area's geometry, its `shape`.
@@ -251,6 +256,7 @@ interface GraphicGapMatchPayloadChoice extends ReferencingChoice {
  * geometry and coordinates, and what the server shell reads of its limits.
  */
 interface GraphicGapMatchPayloadHotspot extends ReferencingChoice {
+  readonly arrow: Option.Option<ArrowDirection>;
   readonly coords: readonly AreaCoordinate[];
   readonly geometry: HotspotGeometry;
   readonly label: Option.Option<string>;
@@ -331,7 +337,8 @@ const readChoice = (read: ReaderKit, choice: SourceElement): GraphicGapMatchChoi
 
 /**
  * Read one `qti-associable-hotspot` into its hotspot: its identifier, the catalog it references,
- * its geometry and coordinates as written, its name and its limits.
+ * its geometry and coordinates as written, its name, its limits, and the arrow its author's
+ * `data-arrow-direction` asks for.
  *
  * @param read The reader kit.
  * @param hotspot The associable hotspot.
@@ -352,6 +359,7 @@ const readHotspot = (read: ReaderKit, hotspot: SourceElement): AssociableHotspot
   const matchMin = read.countAttribute(hotspot, "match-min");
 
   return {
+    arrow: arrowOf(read.valueOf(hotspot, "data-arrow-direction")),
     catalog,
     coords,
     geometry,
@@ -494,6 +502,7 @@ export const graphicGapMatchModule: InteractionModule<
     class: interaction.class,
     formName: kit.formName(interaction.response),
     hotspots: interaction.hotspots.map((hotspot) => ({
+      arrow: hotspot.arrow,
       catalog: hotspot.catalog,
       coords: hotspot.coords,
       geometry: hotspot.geometry,

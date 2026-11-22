@@ -24,6 +24,39 @@ export interface AreaCoordinate {
 }
 
 /**
+ * The two directions of the arrow an area's author asks the page to draw beside it, by
+ * `data-arrow-direction`: an author `data-*` extension AlphaTest's items carry on a drop zone,
+ * which metis's converter keeps on the `qti-associable-hotspot` the zone becomes, and which
+ * AlphaTest's player drew as an arrow above the zone pointing up, or below it pointing down
+ * (mastery-track-player 941a86a, `GapMatchInteraction.tsx` 434 and 457). It lays nothing out and
+ * answers nothing.
+ */
+export const arrowDirections = ["down", "up"] as const;
+
+/**
+ * One of {@link arrowDirections}.
+ */
+export type ArrowDirection = (typeof arrowDirections)[number];
+
+/**
+ * Each arrow direction by its name, as `data-arrow-direction` writes it.
+ */
+const arrowsByName: ReadonlyMap<string, ArrowDirection> = new Map(
+  arrowDirections.map((direction) => [direction, direction]),
+);
+
+/**
+ * Read the arrow an area's author asks for, its `data-arrow-direction`, exactly `up` or `down` as
+ * AlphaTest's player matched it (`data-arrow-direction="(up|down)"`); any other value, or none,
+ * asks for none.
+ *
+ * @param written The attribute as written, none when absent.
+ * @returns The arrow's direction, none for no arrow.
+ */
+export const arrowOf = (written: Option.Option<string>): Option.Option<ArrowDirection> =>
+  written.pipe(Option.flatMap((value) => Option.fromNullishOr(arrowsByName.get(value))));
+
+/**
  * Read an area's `coords`, each coordinate as written, in written order.
  *
  * @param read The reader kit.

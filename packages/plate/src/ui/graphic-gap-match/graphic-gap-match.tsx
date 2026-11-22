@@ -37,6 +37,8 @@ import { useMemo, useState } from "react";
 import type { FocusEvent, ReactNode } from "react";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
+import type { ArrowDirection } from "#plate/interactions/area.ts";
+import { HotspotArrows } from "#plate/ui/graphic-gap-match/arrows.tsx";
 import type { GraphicGapMatchLabels } from "#plate/ui/graphic-gap-match/labels.ts";
 import type { ChoiceMeasure } from "#plate/ui/graphic-gap-match/fit.ts";
 import { PlacedChoices } from "#plate/ui/graphic-gap-match/placed.tsx";
@@ -80,6 +82,11 @@ export interface GapChoice extends AssociableChoice {
  * that name it; its name; its limits; and its read-aloud, which stands after its name in its row.
  */
 export interface GraphicGapHotspot extends StageArea, Spoken {
+  /**
+   * The arrow its author's `data-arrow-direction` asks the stage to draw beside it, pointing up or
+   * down; undefined for none.
+   */
+  readonly arrow: ArrowDirection | undefined;
   /**
    * The hotspot's name, which its row shows and announcements say: the author's `hotspot-label`
    * where it is written and not blank, else plate's "Area n of count", its place among the
@@ -231,6 +238,19 @@ const StagePlaced = (props: { readonly placed: readonly PlacedIn[] }) => {
 };
 
 /**
+ * Pin an arrow beside each hotspot whose author asks for one, at the stage's pixel space
+ * ({@link HotspotArrows}).
+ *
+ * @param props.hotspots The hotspots.
+ * @returns The arrows.
+ */
+const StageArrows = (props: { readonly hotspots: readonly GraphicGapHotspot[] }) => {
+  const { size } = useGraphicStage();
+
+  return <HotspotArrows hotspots={props.hotspots} size={size} />;
+};
+
+/**
  * Render a Graphic Gap Match for the child to answer, holding its response in the item's
  * `<Responses>`.
  *
@@ -249,7 +269,9 @@ const StagePlaced = (props: { readonly placed: readonly PlacedIn[] }) => {
  *   choice and `data-focus-visible` while its row's control has keyboard focus, holding a `g` that
  *   is the primitive's `plate-placement-target` for the hotspot, with `data-over` and
  *   `data-refuses` while a drag is over it, around the area's hit shape, `plate-graphic-area`; and
- *   in the stage's pins the choices each hotspot holds (`#plate/ui/graphic-gap-match/placed.tsx`);
+ *   in the stage's pins an arrow beside each hotspot whose author's `data-arrow-direction` asks for
+ *   one, `plate-graphic-arrow` ({@link HotspotArrows}), and the choices each hotspot holds
+ *   (`#plate/ui/graphic-gap-match/placed.tsx`);
  * - `plate-graphic-gap-match-targets`, the list of hotspots below the image, in document order: each
  *   hotspot a `plate-placement-target`, a group named by the hotspot's name through `aria-label`,
  *   `data-unnamed` where that name is plate's "Area n of count", the author having named the
@@ -335,7 +357,12 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
         </PlacementBank>
         <GraphicStage
           labels={labels}
-          pins={<StagePlaced placed={placedOf(hotspots, choices, placements)} />}
+          pins={
+            <>
+              <StageArrows hotspots={hotspots} />
+              <StagePlaced placed={placedOf(hotspots, choices, placements)} />
+            </>
+          }
           naming={naming}
           size={size}
           targets={{

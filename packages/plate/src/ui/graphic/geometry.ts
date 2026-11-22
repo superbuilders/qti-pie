@@ -520,6 +520,45 @@ export const interiorOf = (drawing: Drawing): Interior => {
 };
 
 /**
+ * Give the point straight above or below the middle of an area's box, on the box's top or bottom
+ * edge, where an arrow drawn beside the area stands clear of it, as AlphaTest's player stood one
+ * centred over or under its drop box: a `rect`'s top or bottom edge at its middle, a `circle`'s or
+ * an `ellipse`'s topmost or bottommost point, and the middle of a `poly`'s box's top or bottom
+ * edge.
+ *
+ * @param drawing The area's drawing.
+ * @param side The box's edge: its top, or its bottom.
+ * @returns The point, in the image's pixels.
+ */
+export const edgeOf = (drawing: Drawing, side: "bottom" | "top"): ImagePoint => {
+  switch (drawing.element) {
+    case "circle": {
+      return { x: drawing.cx, y: side === "top" ? drawing.cy - drawing.r : drawing.cy + drawing.r };
+    }
+    case "ellipse": {
+      return {
+        x: drawing.cx,
+        y: side === "top" ? drawing.cy - drawing.ry : drawing.cy + drawing.ry,
+      };
+    }
+    case "polygon": {
+      const box = boxOfVertices(drawing.vertices);
+
+      return { x: (box.left + box.right) / 2, y: side === "top" ? box.top : box.bottom };
+    }
+    case "rect": {
+      return {
+        x: drawing.x + drawing.width / 2,
+        y: side === "top" ? drawing.y : drawing.y + drawing.height,
+      };
+    }
+    default: {
+      return drawing satisfies never;
+    }
+  }
+};
+
+/**
  * Give the point of an area's outline farthest toward the image's top right, where a mark stands
  * clear of what the area outlines, the picture's own label or part, which its middle holds: a
  * `rect`'s top-right corner, for a `default` area the image's; the point of a `circle` or an
