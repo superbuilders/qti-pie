@@ -52,12 +52,12 @@
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Mapping | QTI 3.0 information model, §5.88 Mapping}
  */
-import { contained, key, natural, on, relation, select } from "@bjornpagen/grizzle";
+import { contained, key, law, on, relation, select } from "@bjornpagen/grizzle";
 
 import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
 import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * A map entry's overlay, keyed by its `qti-map-entry` element's place: its `map-key` as written.
@@ -67,15 +67,18 @@ import { declared } from "#pantry/qti/law-entries.ts";
  * declaration's, its node's grandparent's, read through `Node` (`MapKeyType`,
  * `#pantry/qti/overlay-queries/declaration.ts`).
  */
-export const MapKey = relation(
-  "MapKey",
-  {
-    key: matchedText,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const MapKey = law(
+  entryOf("Mapping overlay"),
+  relation(
+    "MapKey",
+    {
+      key: matchedText,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -91,15 +94,18 @@ export const MapKey = relation(
  * limit ({@link matchedText}, grizzle's `regexTextMaxBytes`), and no key holds it, its copy
  * held to its attribute by a rule over a query (`#pantry/qti/queries.ts`, "Mapping overlay").
  */
-export const LookupValue = relation(
-  "LookupValue",
-  {
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    value: matchedText,
-  },
-  ["package", "path", "start"],
+export const LookupValue = law(
+  entryOf("Mapping overlay"),
+  relation(
+    "LookupValue",
+    {
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      value: matchedText,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**

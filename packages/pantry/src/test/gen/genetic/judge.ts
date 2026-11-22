@@ -61,7 +61,7 @@ import { filesOf } from "#pantry/test/oracle-complete/mutation.ts";
 import { boundBroken, judge, ruleOf } from "#pantry/test/oracle.ts";
 import type { Breach, LawName, Judgment as OracleJudgment, Laws } from "#pantry/test/oracle.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
-import { refusedOf } from "#pantry/test/law-names.ts";
+import { refusedOf } from "#pantry/test/law-namer.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
 /**

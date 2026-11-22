@@ -48,7 +48,7 @@ import { nodePlacesOf, placeKey } from "#pantry/test/places.ts";
 import { judge, ruleOf, shownBreach } from "#pantry/test/oracle.ts";
 import { lawTable } from "#pantry/vocab/laws.ts";
 import type { LawName } from "#pantry/test/oracle.ts";
-import { schemaLawNameOf, schemaRulesOf } from "#pantry/test/law-namer.ts";
+import { lawNameOf, rulesOf } from "#pantry/import/refusal.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 
 /**
@@ -576,7 +576,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   const queried = declarationQueryLawsOf(rows);
                   const brokenNames = [
                     ...broken.map(({ law }) =>
-                      Option.getOrElse(schemaLawNameOf(law), () => Formatter.format(law)),
+                      Option.getOrElse(lawNameOf(law), () => Formatter.format(law)),
                     ),
                     ...queried,
                   ];
@@ -590,7 +590,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
                   const brokenLaws = broken.map(({ law }) => law);
                   const rule = Arr.isReadonlyArrayNonEmpty(brokenLaws)
-                    ? Arr.head(schemaRulesOf(brokenLaws))
+                    ? Arr.head(rulesOf(brokenLaws))
                     : Option.map(Arr.head(queried), (name) => lawTable[name].rule);
                   const rules = [...expected].map((law) => ruleOf(law));
 

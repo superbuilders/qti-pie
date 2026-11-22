@@ -11,7 +11,7 @@
  * alone, and it sits with the package's readers rather than the importer, so the command line reads
  * a refusal without loading the importer: its startup graph reaches no `#pantry/import/` module.
  */
-import type { Refused, Witness } from "@bjornpagen/grizzle";
+import type { BrokenLaws, Witness } from "@bjornpagen/grizzle";
 import { Schema } from "effect";
 
 /**
@@ -31,7 +31,7 @@ const witnessKinds = {
 export const WitnessKind = Schema.Literals(Object.values(witnessKinds));
 
 /**
- * The name of one decision of a refusal, how it decides its laws, in grizzle's `Refused` or the
+ * The name of one decision of a refusal, how it decides its laws, in grizzle's `BrokenLaws` or the
  * importer's reading of it (`RefusalOf` of `#pantry/import/refusal.ts`): its kind, and for `above`
  * what grizzle found of the login's own laws after it (`own`).
  */
@@ -45,8 +45,8 @@ export type RefusalDecision<R> = R extends {
     : never;
 
 /**
- * The decisions of grizzle's `Refused`, by name ({@link RefusalDecision}), checked against it both
- * ways: a decision it adds or drops fails to compile here.
+ * The decisions of grizzle's `BrokenLaws`, by name ({@link RefusalDecision}), checked against it
+ * both ways: a decision it adds or drops fails to compile here.
  */
 const refusalDecisions = {
   "above every": "above every",
@@ -55,11 +55,11 @@ const refusalDecisions = {
   every: "every",
   first: "first",
   some: "some",
-} as const satisfies { readonly [Decision in RefusalDecision<Refused>]: Decision };
+} as const satisfies { readonly [Decision in RefusalDecision<BrokenLaws>]: Decision };
 
 /**
  * How grizzle decided the laws a database refusal names, as its outcome says (grizzle-engine
- * `types/changeset/changeset.ts` `Refused`, at the vendored commit), by the outcome's shape:
+ * `types/changeset/changeset.ts` `BrokenLaws`, at the vendored commit), by the outcome's shape:
  * `every`, each law named is broken; `first`, the laws of the CHECK PostgreSQL tried first, and the
  * row may break others too; `some`, at least one law named is broken, and nothing grizzle holds
  * says which. Each `above` shape names first the law of a level above the login's that PostgreSQL

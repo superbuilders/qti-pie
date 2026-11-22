@@ -54,8 +54,8 @@
  */
 import {
   accumulated,
-  Bits,
   bits,
+  Bits,
   check,
   closed,
   closedId,
@@ -65,8 +65,8 @@ import {
   fin,
   fold,
   key,
+  law,
   Monoid,
-  natural,
   on,
   pg,
   relation,
@@ -102,7 +102,7 @@ import {
   splicingParents,
   stimulusRefKind,
 } from "#pantry/vocab/terms/tests.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * An assembled document, keyed by its `(package, path)`, its `Document`'s key: the counts of its
@@ -118,16 +118,19 @@ import { declared } from "#pantry/qti/law-entries.ts";
  * - **accumulated:** `sites`, the count of its sites that place their target ({@link sitesFold}), the
  *   children each of its instances holds.
  */
-export const AssembledDocument = relation(
-  "AssembledDocument",
-  {
-    instances: drawn(natural),
-    package: PackageName,
-    path: EntryPath,
-    sites: accumulated(natural, 0n),
-    targets: drawn(natural),
-  },
-  ["package", "path"],
+export const AssembledDocument = law(
+  entryOf("Test overlay"),
+  relation(
+    "AssembledDocument",
+    {
+      instances: drawn(natural),
+      package: PackageName,
+      path: EntryPath,
+      sites: accumulated(natural, 0n),
+      targets: drawn(natural),
+    },
+    ["package", "path"],
+  ),
 );
 
 /**
@@ -144,10 +147,13 @@ export const AssembledDocument = relation(
  * The import writes its rows where its form names something (`namedBy` of
  * `#pantry/import/names.ts`, which lists every such relation), a gate no form AL1 admits closes.
  */
-export const Named = relation(
-  "Named",
-  { identifier: QtiIdentifier, package: PackageName, path: EntryPath, start: natural },
-  ["package", "path", "start"],
+export const Named = law(
+  entryOf("Test overlay"),
+  relation(
+    "Named",
+    { identifier: QtiIdentifier, package: PackageName, path: EntryPath, start: natural },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -165,24 +171,27 @@ export const Named = relation(
  * and the document that path names is its {@link SiteTarget}, a row of its own, since a path may
  * name none (spec reading 115).
  */
-export const Site = relation(
-  "Site",
-  {
-    ancestry: bits(Flag),
-    children: natural,
-    external: pg.boolean,
-    governor: closedId(Governor),
-    kind: closedId(NodeKind),
-    nearest: natural,
-    nearestKind: closedId(NodeKind),
-    nearestPath: EntryPath,
-    package: PackageName,
-    parent: natural,
-    parentKind: closedId(NodeKind),
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const Site = law(
+  entryOf("Test overlay"),
+  relation(
+    "Site",
+    {
+      ancestry: bits(Flag),
+      children: natural,
+      external: pg.boolean,
+      governor: closedId(Governor),
+      kind: closedId(NodeKind),
+      nearest: natural,
+      nearestKind: closedId(NodeKind),
+      nearestPath: EntryPath,
+      package: PackageName,
+      parent: natural,
+      parentKind: closedId(NodeKind),
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -200,17 +209,20 @@ export const Site = relation(
  *   before any deferred key: an href naming an absent file is refused under "File exists" alone,
  *   whatever its site is, and the site's document laws read only paths an entry holds.
  */
-export const SitePath = relation(
-  "SitePath",
-  {
-    entry: pg.boolean,
-    kind: closedId(NodeKind),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    target: EntryPath,
-  },
-  ["package", "path", "start"],
+export const SitePath = law(
+  entryOf("Test overlay"),
+  relation(
+    "SitePath",
+    {
+      entry: pg.boolean,
+      kind: closedId(NodeKind),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      target: EntryPath,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -232,26 +244,29 @@ export const SitePath = relation(
  * - **its include's:** `splices`, whether it splices its target in place, and `places`, whether it
  *   places its target at all, its {@link Inclusion}'s.
  */
-export const SiteTarget = relation(
-  "SiteTarget",
-  {
-    ancestry: bits(Flag),
-    kind: closedId(NodeKind),
-    nearest: natural,
-    nearestKind: closedId(NodeKind),
-    package: PackageName,
-    parentKind: closedId(NodeKind),
-    path: EntryPath,
-    places: pg.boolean,
-    splices: pg.boolean,
-    start: natural,
-    target: EntryPath,
-    targetNearest: natural,
-    targetNearestKind: closedId(NodeKind),
-    targetNearestPath: EntryPath,
-    targetRoot: closedId(NodeKind),
-  },
-  ["package", "path", "start"],
+export const SiteTarget = law(
+  entryOf("Test overlay"),
+  relation(
+    "SiteTarget",
+    {
+      ancestry: bits(Flag),
+      kind: closedId(NodeKind),
+      nearest: natural,
+      nearestKind: closedId(NodeKind),
+      package: PackageName,
+      parentKind: closedId(NodeKind),
+      path: EntryPath,
+      places: pg.boolean,
+      splices: pg.boolean,
+      start: natural,
+      target: EntryPath,
+      targetNearest: natural,
+      targetNearestKind: closedId(NodeKind),
+      targetNearestPath: EntryPath,
+      targetRoot: closedId(NodeKind),
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -265,18 +280,21 @@ export const SiteTarget = relation(
  * root" refuses it, unless its root is the name of a kind the composition splits by context whose
  * split kind it may stand for (spec reading 116), admitted and `UnplacedInclude`'s `root`.
  */
-export const Inclusion = relation(
-  "Inclusion",
-  {
-    package: PackageName,
-    parentKind: closedId(NodeKind),
-    path: EntryPath,
-    places: pg.boolean,
-    root: closedId(NodeKind),
-    splices: pg.boolean,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const Inclusion = law(
+  entryOf("Test overlay"),
+  relation(
+    "Inclusion",
+    {
+      package: PackageName,
+      parentKind: closedId(NodeKind),
+      path: EntryPath,
+      places: pg.boolean,
+      root: closedId(NodeKind),
+      splices: pg.boolean,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -298,38 +316,44 @@ export const Inclusion = relation(
  *   `#pantry/qti/overlay-queries/expression.ts` and `reference.ts`), since an item's own placement
  *   types the template it locates beside its own document.
  */
-export const Instance = relation(
-  "Instance",
-  {
-    assembly: EntryPath,
-    assemblyKind: closedId(NodeKind),
-    at: drawn(natural),
-    bindings: drawn(natural),
-    children: drawn(natural),
-    choices: drawn(natural),
-    document: EntryPath,
-    end: drawn(natural),
-    hottexts: drawn(natural),
-    idrefTargets: drawn(natural),
-    ids: drawn(natural),
-    package: PackageName,
-    parent: drawn(natural),
-    rootKind: closedId(NodeKind),
-    site: natural,
-    siteDocument: EntryPath,
-    start: drawn(natural),
-  },
-  ["package", "assembly", "start"],
+export const Instance = law(
+  entryOf("Inclusion cycle"),
+  relation(
+    "Instance",
+    {
+      assembly: EntryPath,
+      assemblyKind: closedId(NodeKind),
+      at: drawn(natural),
+      bindings: drawn(natural),
+      children: drawn(natural),
+      choices: drawn(natural),
+      document: EntryPath,
+      end: drawn(natural),
+      hottexts: drawn(natural),
+      idrefTargets: drawn(natural),
+      ids: drawn(natural),
+      package: PackageName,
+      parent: drawn(natural),
+      rootKind: closedId(NodeKind),
+      site: natural,
+      siteDocument: EntryPath,
+      start: drawn(natural),
+    },
+    ["package", "assembly", "start"],
+  ),
 );
 
 /**
  * An item's stimulus ref that writes an identifier, keyed by its element (information model §7.6):
  * its collapsed `identifier`. One that writes none has no row: AL3 refuses it alone (reading 147).
  */
-export const StimulusRef = relation(
-  "StimulusRef",
-  { identifier: QtiIdentifier, package: PackageName, path: EntryPath, start: natural },
-  ["package", "path", "start"],
+export const StimulusRef = law(
+  entryOf("Test overlay"),
+  relation(
+    "StimulusRef",
+    { identifier: QtiIdentifier, package: PackageName, path: EntryPath, start: natural },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -346,10 +370,13 @@ export const StimulusRef = relation(
  * external one or one the importer cannot resolve: "Item ref target" refuses it through its href's
  * containment here.
  */
-export const ItemRefHref = relation(
-  "ItemRefHref",
-  { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
-  ["package", "path", "start"],
+export const ItemRefHref = law(
+  entryOf("Item ref target"),
+  relation(
+    "ItemRefHref",
+    { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -358,10 +385,13 @@ export const ItemRefHref = relation(
  * target of the item type (`ItemRefTarget`, `#pantry/qti/queries.ts`), and none for an LTI link's,
  * so an item resource whose file the package lacks has none, which "Item ref target" refuses.
  */
-export const ItemRefDocument = relation(
-  "ItemRefDocument",
-  { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
-  ["package", "path", "start"],
+export const ItemRefDocument = law(
+  entryOf("Test overlay"),
+  relation(
+    "ItemRefDocument",
+    { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -380,21 +410,24 @@ export const ItemRefDocument = relation(
  * of 2026-11-20), so a name whose only readings are two numbered ones is the importer's to tell
  * apart, a recorded under-refusal (spec reading 88).
  */
-export const NumberedReading = relation(
-  "NumberedReading",
-  {
-    assembly: EntryPath,
-    attribute: closedId(AttributeName),
-    number: KeyMatchedText,
-    package: PackageName,
-    path: EntryPath,
-    scope: natural,
-    scopeInstance: natural,
-    scopePath: EntryPath,
-    start: natural,
-    variable: QtiIdentifier,
-  },
-  ["package", "assembly", "path", "start", "attribute", "scopeInstance", "scope", "number"],
+export const NumberedReading = law(
+  entryOf("E1 derived"),
+  relation(
+    "NumberedReading",
+    {
+      assembly: EntryPath,
+      attribute: closedId(AttributeName),
+      number: KeyMatchedText,
+      package: PackageName,
+      path: EntryPath,
+      scope: natural,
+      scopeInstance: natural,
+      scopePath: EntryPath,
+      start: natural,
+      variable: QtiIdentifier,
+    },
+    ["package", "assembly", "path", "start", "attribute", "scopeInstance", "scope", "number"],
+  ),
 );
 
 /**
@@ -408,20 +441,23 @@ export const NumberedReading = relation(
  * it cannot find one itself, since no text operation it has takes what follows a name's prefix in
  * a query (the grizzle ask of 2026-11-20).
  */
-export const LinkReading = relation(
-  "LinkReading",
-  {
-    assembly: EntryPath,
-    attribute: closedId(AttributeName),
-    package: PackageName,
-    path: EntryPath,
-    scope: natural,
-    scopeInstance: natural,
-    scopePath: EntryPath,
-    start: natural,
-    variable: QtiIdentifier,
-  },
-  ["package", "assembly", "path", "start", "attribute", "scopeInstance", "scope"],
+export const LinkReading = law(
+  entryOf("E1 derived"),
+  relation(
+    "LinkReading",
+    {
+      assembly: EntryPath,
+      attribute: closedId(AttributeName),
+      package: PackageName,
+      path: EntryPath,
+      scope: natural,
+      scopeInstance: natural,
+      scopePath: EntryPath,
+      start: natural,
+      variable: QtiIdentifier,
+    },
+    ["package", "assembly", "path", "start", "attribute", "scopeInstance", "scope"],
+  ),
 );
 
 /**

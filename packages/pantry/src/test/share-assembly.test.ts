@@ -25,7 +25,7 @@ import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
 import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
 import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
-import { schemaRulesOf } from "#pantry/test/law-namer.ts";
+import { rulesOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
 /**
@@ -234,7 +234,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("an assembled document'
                 const rule =
                   first === undefined
                     ? "accepted"
-                    : Option.getOrElse(Arr.head(schemaRulesOf([first, ...rest])), () => "unnamed");
+                    : Option.getOrElse(Arr.head(rulesOf([first, ...rest])), () => "unnamed");
                 const rules = verdict.kind === "accepted" ? new Set(["accepted"]) : verdict.rules;
                 const named = `${drawn.name}: the import's rows give ${rule} (${broken.map(({ law }) => Formatter.format(law)).join("; ") || "no law"}), the oracle ${[...rules].join(", ")}`;
 

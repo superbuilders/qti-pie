@@ -89,8 +89,8 @@
  */
 import {
   accumulated,
-  Bits,
   bits,
+  Bits,
   check,
   closedId,
   contained,
@@ -101,9 +101,9 @@ import {
   fin,
   fold,
   generated,
+  law,
   Logic,
   Monoid,
-  natural,
   on,
   ordered,
   relation,
@@ -143,7 +143,7 @@ import { EntryPath, PackageName, UriText, xmlNameBytes } from "#pantry/qti/limit
 import { holdsCheckedText, Node } from "#pantry/qti/node.ts";
 import { tokenFields, tokenPiece, whitespaceTokens } from "#pantry/qti/token-list.ts";
 import { dataName } from "#pantry/vocab/open.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * A lexical form that names something once collapsed, an NCName with XML whitespace around it
@@ -186,14 +186,17 @@ const ncChar = `\\-.0-9\\u{B7}\\u{300}-\\u{36F}\\u{203F}-\\u{2040}${ncStart}`;
  * type's pattern: {@link EntityName} writes the same NCName under `u`, and a refusal names each by
  * its pattern. Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const OpenLocal = str.bytes(xmlNameBytes, str.regex(`^[${ncStart}][${ncChar}]*$`, "su"));
+export const OpenLocal = law(
+  entryOf("Key text bound"),
+  str.bytes(xmlNameBytes, str.regex(`^[${ncStart}][${ncChar}]*$`, "su")),
+);
 
 /**
  * An entity's name inside an attribute's lexical form: an NCName, since no entity name holds a
  * colon (Namespaces in XML 1.0, §7).
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const EntityName = str.regex(`^[${ncStart}][${ncChar}]*$`);
+export const EntityName = law(entryOf("XML production"), str.regex(`^[${ncStart}][${ncChar}]*$`));
 
 /**
  * One attribute of a closed name on an element, keyed by its element and its name: its expanded
@@ -240,52 +243,59 @@ export const EntityName = str.regex(`^[${ncStart}][${ncChar}]*$`);
  *   reads whether its lexical form is an address, and no level above it does either: the
  *   package-media level (`#pantry/qti/media.ts`) states no law.
  */
-export const Attribute = relation.generated(
-  "Attribute",
-  {
-    governor: accumulated(closedId(Governor), "document"),
-    idrefText: accumulated(anyText, ""),
-    idrefs: drawn(natural),
-    kind: accumulated(closedId(NodeKind), "document"),
-    lexical: Chars,
-    name: closedId(AttributeName, { except: openClasses }),
-    package: PackageName,
-    path: EntryPath,
-    prefix: NamespacePrefix,
-    slot: bits(AttributeSlot),
-    start: natural,
-  },
-  ["package", "path", "start", "name"],
-  (a) => {
-    const domain = AttributeGrammar.at("domain", AttributeModelOf.at("model", a.governor), a.name);
-    const leading = Logic.and(
-      LeadingMembers.has(domain),
-      Text.matches(a.lexical, LeadingMembers.at("pattern", domain)),
-    );
-    const leadingClass = LeadingMembers.at("whiteSpace", domain);
-    const normalized = (whiteSpace: typeof leadingClass) =>
-      Logic.cond(
-        Logic.eq(whiteSpace, "collapse"),
-        Text.collapse(a.lexical),
-        Logic.cond(Logic.eq(whiteSpace, "replace"), Text.replaceWhitespace(a.lexical), a.lexical),
+export const Attribute = law(
+  entryOf("AL2 distinct"),
+  relation.generated(
+    "Attribute",
+    {
+      governor: accumulated(closedId(Governor), "document"),
+      idrefText: accumulated(anyText, ""),
+      idrefs: drawn(natural),
+      kind: accumulated(closedId(NodeKind), "document"),
+      lexical: Chars,
+      name: closedId(AttributeName, { except: openClasses }),
+      package: PackageName,
+      path: EntryPath,
+      prefix: NamespacePrefix,
+      slot: bits(AttributeSlot),
+      start: natural,
+    },
+    ["package", "path", "start", "name"],
+    (a) => {
+      const domain = AttributeGrammar.at(
+        "domain",
+        AttributeModelOf.at("model", a.governor),
+        a.name,
+      );
+      const leading = Logic.and(
+        LeadingMembers.has(domain),
+        Text.matches(a.lexical, LeadingMembers.at("pattern", domain)),
+      );
+      const leadingClass = LeadingMembers.at("whiteSpace", domain);
+      const normalized = (whiteSpace: typeof leadingClass) =>
+        Logic.cond(
+          Logic.eq(whiteSpace, "collapse"),
+          Text.collapse(a.lexical),
+          Logic.cond(Logic.eq(whiteSpace, "replace"), Text.replaceWhitespace(a.lexical), a.lexical),
+        );
+
+      const value = Logic.cond(
+        leading,
+        normalized(leadingClass),
+        Logic.cond(
+          ValueDomainOf.has(domain),
+          normalized(ValueDomainOf.at("whiteSpace", domain)),
+          a.lexical,
+        ),
       );
 
-    const value = Logic.cond(
-      leading,
-      normalized(leadingClass),
-      Logic.cond(
-        ValueDomainOf.has(domain),
-        normalized(ValueDomainOf.at("whiteSpace", domain)),
-        a.lexical,
-      ),
-    );
-
-    return {
-      idrefTextDigest: generated(sha256, Crypto.sha256(a.idrefText)),
-      value: generated(Chars, value),
-      valueDigest: generated(sha256, Crypto.sha256(value)),
-    };
-  },
+      return {
+        idrefTextDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(a.idrefText))),
+        value: law(entryOf("E1 derived"), generated(Chars, value)),
+        valueDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(value))),
+      };
+    },
+  ),
 );
 
 /**
@@ -301,23 +311,26 @@ export const Attribute = relation.generated(
  * - **accumulated** along the owner axis: its element's `kind` and `governor`, by which
  *   `AL4_declared_data_name` reads its attribute model.
  */
-export const OpenAttribute = relation(
-  "OpenAttribute",
-  {
-    class: closedId(AttributeName, { only: openClasses }),
-    elementNamespace: anyText,
-    governor: accumulated(closedId(Governor), "document"),
-    kind: accumulated(closedId(NodeKind), "document"),
-    lexical: Chars,
-    local: OpenLocal,
-    package: PackageName,
-    path: EntryPath,
-    prefix: NamespacePrefix,
-    slot: bits(AttributeSlot),
-    start: natural,
-    uri: UriText,
-  },
-  ["package", "path", "start", "uri", "local"],
+export const OpenAttribute = law(
+  entryOf("AL4 open name key"),
+  relation(
+    "OpenAttribute",
+    {
+      class: closedId(AttributeName, { only: openClasses }),
+      elementNamespace: anyText,
+      governor: accumulated(closedId(Governor), "document"),
+      kind: accumulated(closedId(NodeKind), "document"),
+      lexical: Chars,
+      local: OpenLocal,
+      package: PackageName,
+      path: EntryPath,
+      prefix: NamespacePrefix,
+      slot: bits(AttributeSlot),
+      start: natural,
+      uri: UriText,
+    },
+    ["package", "path", "start", "uri", "local"],
+  ),
 );
 
 /**
@@ -333,22 +346,25 @@ export const OpenAttribute = relation(
  * token list's fields, piece and check, and not through `tokenList`, whose owner is keyed by its
  * element alone.
  */
-export const Idref = relation.generated(
-  "Idref",
-  {
-    after: tokenFields.after,
-    at: tokenFields.at,
-    before: tokenFields.before,
-    name: closedId(AttributeName),
-    package: PackageName,
-    path: EntryPath,
-    piecesAfter: tokenFields.piecesAfter,
-    piecesWas: tokenFields.piecesWas,
-    start: natural,
-    token: tokenFields.token,
-  },
-  ["package", "path", "start", "name", "at"],
-  (i) => tokenPiece(i),
+export const Idref = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "Idref",
+    {
+      after: tokenFields.after,
+      at: tokenFields.at,
+      before: tokenFields.before,
+      name: closedId(AttributeName),
+      package: PackageName,
+      path: EntryPath,
+      piecesAfter: tokenFields.piecesAfter,
+      piecesWas: tokenFields.piecesWas,
+      start: natural,
+      token: tokenFields.token,
+    },
+    ["package", "path", "start", "name", "at"],
+    (i) => tokenPiece(i),
+  ),
 );
 
 /**
@@ -357,35 +373,41 @@ export const Idref = relation.generated(
  * lexical form, which keeps it as `&entity;`. The offset is the reference's place in the value, so
  * no other order is stored.
  */
-export const AttributeEntity = relation(
-  "AttributeEntity",
-  {
-    entity: EntityName,
-    name: closedId(AttributeName),
-    offset: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start", "name", "offset"],
+export const AttributeEntity = law(
+  entryOf("AttributeEntity owner"),
+  relation(
+    "AttributeEntity",
+    {
+      entity: EntityName,
+      name: closedId(AttributeName),
+      offset: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start", "name", "offset"],
+  ),
 );
 
 /**
  * One unexpanded entity reference inside an open attribute's lexical form, keyed by its attribute
  * and its offset, as {@link AttributeEntity} is a closed attribute's.
  */
-export const OpenAttributeEntity = relation(
-  "OpenAttributeEntity",
-  {
-    entity: EntityName,
-    local: OpenLocal,
-    offset: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    uri: UriText,
-  },
-  ["package", "path", "start", "uri", "local", "offset"],
+export const OpenAttributeEntity = law(
+  entryOf("AttributeEntity owner"),
+  relation(
+    "OpenAttributeEntity",
+    {
+      entity: EntityName,
+      local: OpenLocal,
+      offset: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      uri: UriText,
+    },
+    ["package", "path", "start", "uri", "local", "offset"],
+  ),
 );
 
 /**

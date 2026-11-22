@@ -36,7 +36,6 @@ import {
   key,
   lexicalForm,
   Logic,
-  natural,
   Num,
   on,
   pg,
@@ -90,7 +89,7 @@ import {
   timeLimitsKind,
   weightKind,
 } from "#pantry/vocab/terms/tests.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * The `identifier` of each test part, section, item ref and stimulus ref, by its element's place,

@@ -2,7 +2,7 @@
  * The import's rows judged on the host: the laws `Qti` states that a package's rows can be held to
  * before any of them is written, over the rows the import's write stores (grizzle's insertion
  * preview, `#pantry/test/host-judge.ts` `previewOf`), each named by its law as a refusal names it
- * (`#pantry/test/law-namer.ts` `schemaLawNameOf`), each statement's laws as grizzle's
+ * (`#pantry/import/refusal.ts` `lawNameOf`), each statement's laws as grizzle's
  * `lawsByStatement` gives them.
  *
  * - Each key, containment and check the host judge reads (`#pantry/test/host-judge.ts` `judgedLaws`),
@@ -27,7 +27,7 @@
 import { Formatter, Option, Predicate, Result, Schema } from "effect";
 import { sameLaw } from "@bjornpagen/grizzle";
 import type { Law } from "@bjornpagen/grizzle";
-import { lawOfCheck } from "#pantry/import/refusal.ts";
+import { lawNameOf, lawOfCheck } from "#pantry/import/refusal.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
 import { utf8Length } from "#pantry/qti/limits.ts";
@@ -40,7 +40,7 @@ import {
 } from "#pantry/test/host-judge.ts";
 import type { RowReading } from "#pantry/test/host-judge.ts";
 import { identityOf, keyTextBounds } from "#pantry/test/key-copies.ts";
-import { schemaLawNameOf, statedLaws, statementLawsOf } from "#pantry/test/law-namer.ts";
+import { statedLaws, statementLawsOf } from "#pantry/test/law-namer.ts";
 
 /**
  * Each statement of `Qti` with its laws, as grizzle's `lawsByStatement` names them
@@ -87,7 +87,7 @@ const unreadChecks: ReadonlySet<LawName> = new Set(
 );
 
 /**
- * The laws no statement states, as grizzle's `lawsOf` lists them, each with the name `law-namer.ts`
+ * The laws no statement states, as grizzle's `lawsOf` lists them, each with the name its entry
  * gives it (`statedLaws`): the primary keys, the contracts, the patterns and the generated fields.
  */
 const writtenLaws = statedLaws().filter(
@@ -107,7 +107,7 @@ const namedLaws: readonly (readonly [Law, LawName])[] = [
     laws.flatMap((law) =>
       law.kind === "check"
         ? []
-        : Option.toArray(Option.map(schemaLawNameOf(law), (name) => [law, name] as const)),
+        : Option.toArray(Option.map(lawNameOf(law), (name) => [law, name] as const)),
     ),
   ),
   ...writtenLaws,

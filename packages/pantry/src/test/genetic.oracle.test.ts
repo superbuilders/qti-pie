@@ -76,7 +76,7 @@ import {
   shownResidual,
 } from "#pantry/test/gen/genetic/search.ts";
 import type { Isolating } from "#pantry/test/gen/genetic/search.ts";
-import { schemaLawNameOf } from "#pantry/test/law-namer.ts";
+import { lawNameOf } from "#pantry/import/refusal.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { settings } from "#pantry/test/settings.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
@@ -257,7 +257,7 @@ const keyTextBound: Signature = { kind: "oracle-only-law", law: "Key text bound"
  * The names of the laws the host judges ({@link judgedLaws}), each as `Qti` names its law.
  */
 const judgedNames: ReadonlySet<string> = new Set(
-  judgedLaws.flatMap((law) => Option.toArray(schemaLawNameOf(law))),
+  judgedLaws.flatMap((law) => Option.toArray(lawNameOf(law))),
 );
 
 /**

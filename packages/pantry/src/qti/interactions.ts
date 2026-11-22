@@ -113,10 +113,10 @@ import {
   fin,
   generated,
   key,
+  law,
   lexicalForm,
   Logic,
   mirrors,
-  natural,
   on,
   pg,
   relation,
@@ -160,7 +160,7 @@ import {
   referringRoots,
 } from "#pantry/vocab/terms/interactions.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * A `NodeKind` handle.
@@ -277,21 +277,24 @@ export const templateVariableKind = "qti-template-variable" satisfies Kind;
  * where it reads it ("Aria value range", `#pantry/qti/overlay-queries/interaction.ts`), so no
  * identifier O3 reads is held to a decimal's bound.
  */
-export const InteractionAttribute = relation.generated(
-  "InteractionAttribute",
-  {
-    kind: closedId(NodeKind),
-    lexical: CopiedLexical,
-    name: closedId(AttributeName),
-    package: PackageName,
-    path: EntryPath,
-    rootKind: closedId(NodeKind),
-    start: natural,
-  },
-  ["package", "path", "start", "name"],
-  (v) => ({
-    value: generated(CopiedLexical, Text.collapse(v.lexical)),
-  }),
+export const InteractionAttribute = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "InteractionAttribute",
+    {
+      kind: closedId(NodeKind),
+      lexical: CopiedLexical,
+      name: closedId(AttributeName),
+      package: PackageName,
+      path: EntryPath,
+      rootKind: closedId(NodeKind),
+      start: natural,
+    },
+    ["package", "path", "start", "name"],
+    (v) => ({
+      value: law(entryOf("E1 derived"), generated(CopiedLexical, Text.collapse(v.lexical))),
+    }),
+  ),
 );
 
 /**
@@ -302,16 +305,19 @@ export const InteractionAttribute = relation.generated(
  * writes a `response-identifier`, so its choices' family always has its owner and a missing
  * response identifier is AL3's alone.
  */
-export const Interaction = relation(
-  "Interaction",
-  {
-    choices: drawn(natural),
-    moduleForms: drawn(natural),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const Interaction = law(
+  entryOf("E1 derived"),
+  relation(
+    "Interaction",
+    {
+      choices: drawn(natural),
+      moduleForms: drawn(natural),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -331,17 +337,20 @@ export const Interaction = relation(
  * The variable it binds is the item's response declaration of its name, which "Binding declared"
  * reads through a query (`#pantry/qti/overlay-queries/reference.ts`).
  */
-export const BoundVariable = relation(
-  "BoundVariable",
-  {
-    adaptive: pg.boolean,
-    attribute: closedId(AttributeName),
-    identifier: QtiIdentifier,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start", "attribute"],
+export const BoundVariable = law(
+  entryOf("E1 derived"),
+  relation(
+    "BoundVariable",
+    {
+      adaptive: pg.boolean,
+      attribute: closedId(AttributeName),
+      identifier: QtiIdentifier,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start", "attribute"],
+  ),
 );
 
 /**
@@ -356,16 +365,19 @@ export const BoundVariable = relation(
  * `#pantry/import/names.ts`, which lists every such relation), until it is a query over
  * `Attribute`.
  */
-export const BindingName = relation(
-  "BindingName",
-  {
-    attribute: closedId(AttributeName),
-    identifier: QtiIdentifier,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start", "attribute"],
+export const BindingName = law(
+  entryOf("E1 derived"),
+  relation(
+    "BindingName",
+    {
+      attribute: closedId(AttributeName),
+      identifier: QtiIdentifier,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start", "attribute"],
+  ),
 );
 
 /**
@@ -382,19 +394,22 @@ export const BindingName = relation(
  * `adaptive`, whether the item is adaptive. The variable it binds is the assembly's item's response
  * declaration of its name, read as an own binding's is.
  */
-export const PlacedBinding = relation(
-  "PlacedBinding",
-  {
-    adaptive: pg.boolean,
-    assembly: EntryPath,
-    attribute: closedId(AttributeName),
-    identifier: QtiIdentifier,
-    instance: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "assembly", "instance", "start", "attribute"],
+export const PlacedBinding = law(
+  entryOf("E1 derived"),
+  relation(
+    "PlacedBinding",
+    {
+      adaptive: pg.boolean,
+      assembly: EntryPath,
+      attribute: closedId(AttributeName),
+      identifier: QtiIdentifier,
+      instance: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "assembly", "instance", "start", "attribute"],
+  ),
 );
 
 /**
@@ -406,34 +421,40 @@ export const PlacedBinding = relation(
  * `PlacedChoiceOrHottext`, `#pantry/qti/queries.ts`, holds a name to one of them), and a fragment
  * placed twice in one item holds its choices twice.
  */
-export const PlacedChoice = relation(
-  "PlacedChoice",
-  {
-    assembly: EntryPath,
-    identifier: QtiIdentifier,
-    instance: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "assembly", "instance", "start"],
+export const PlacedChoice = law(
+  entryOf("E1 derived"),
+  relation(
+    "PlacedChoice",
+    {
+      assembly: EntryPath,
+      identifier: QtiIdentifier,
+      instance: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "assembly", "instance", "start"],
+  ),
 );
 
 /**
  * One hottext of an instance of an assembly, keyed by the instance and the hottext's `start`: a
  * {@link Hottext} of the instance's document, under the assembly, as {@link PlacedChoice} is.
  */
-export const PlacedHottext = relation(
-  "PlacedHottext",
-  {
-    assembly: EntryPath,
-    identifier: QtiIdentifier,
-    instance: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "assembly", "instance", "start"],
+export const PlacedHottext = law(
+  entryOf("E1 derived"),
+  relation(
+    "PlacedHottext",
+    {
+      assembly: EntryPath,
+      identifier: QtiIdentifier,
+      instance: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "assembly", "instance", "start"],
+  ),
 );
 
 /**
@@ -454,15 +475,18 @@ const placedBindingFamily = counted(
  * interaction its {@link ChoiceInteraction}'s, the node's nearest, which the laws read through
  * `Node` (`#pantry/qti/overlay-queries/interaction.ts`). It owns no sequence (C15).
  */
-export const Choice = relation(
-  "Choice",
-  {
-    identifier: QtiIdentifier,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const Choice = law(
+  entryOf("E1 derived"),
+  relation(
+    "Choice",
+    {
+      identifier: QtiIdentifier,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -477,16 +501,19 @@ export const Choice = relation(
  * document's context (`Document.contextPath` and `contextNearest`), the interaction its fragment's
  * include stands in (spec reading 117).
  */
-export const ChoiceInteraction = relation(
-  "ChoiceInteraction",
-  {
-    interaction: natural,
-    interactionPath: EntryPath,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const ChoiceInteraction = law(
+  entryOf("E1 derived"),
+  relation(
+    "ChoiceInteraction",
+    {
+      interaction: natural,
+      interactionPath: EntryPath,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -509,10 +536,13 @@ const choiceFamily = counted(
  * Its rows are copies of the tree, both ways: an attribute form of each `module` attribute of a
  * portable custom interaction, an element form of each `qti-interaction-modules` child of one.
  */
-export const PciModuleForm = relation(
-  "PciModuleForm",
-  { element: pg.boolean, package: PackageName, path: EntryPath, start: natural },
-  ["package", "path", "start", "element"],
+export const PciModuleForm = law(
+  entryOf("E1 derived"),
+  relation(
+    "PciModuleForm",
+    { element: pg.boolean, package: PackageName, path: EntryPath, start: natural },
+    ["package", "path", "start", "element"],
+  ),
 );
 
 /**
@@ -560,15 +590,18 @@ const elementForms = select(PciModuleForm, (f) => f.eq(f.element, true));
  * `nearestKind`, `nearestPath`), which the laws read through `Node`
  * (`#pantry/qti/overlay-queries/interaction.ts`).
  */
-export const Hottext = relation(
-  "Hottext",
-  {
-    identifier: QtiIdentifier,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const Hottext = law(
+  entryOf("E1 derived"),
+  relation(
+    "Hottext",
+    {
+      identifier: QtiIdentifier,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -608,18 +641,21 @@ const placedHottextFamily = counted(
  * A count with a value is a row of its own, its {@link LeastCount} or {@link MostCount}, and one
  * with none has no row (a missing value is a row of its own relation, never a sentinel).
  */
-export const CountBound = relation(
-  "CountBound",
-  {
-    maxName: closedId(AttributeName),
-    maxWritten: pg.boolean,
-    minName: closedId(AttributeName),
-    minWritten: pg.boolean,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const CountBound = law(
+  entryOf("E1 derived"),
+  relation(
+    "CountBound",
+    {
+      maxName: closedId(AttributeName),
+      maxWritten: pg.boolean,
+      minName: closedId(AttributeName),
+      minWritten: pg.boolean,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -636,32 +672,38 @@ export const CountBound = relation(
  * `countAttribute`). A count is an `xs:nonNegativeInteger` held to the signed 64-bit range (reading
  * 46), so its value is in `lexicalForm(pg.bigint)`, which `E1_derived` requires.
  */
-export const LeastCount = relation(
-  "LeastCount",
-  {
-    least: anyText,
-    leastValue: pg.bigint,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const LeastCount = law(
+  entryOf("E1 derived"),
+  relation(
+    "LeastCount",
+    {
+      least: anyText,
+      leastValue: pg.bigint,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
  * A bound's most count, where it has a value, keyed by its place, as {@link LeastCount} is the
  * least's: `most` and `mostValue`.
  */
-export const MostCount = relation(
-  "MostCount",
-  {
-    most: anyText,
-    mostValue: pg.bigint,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const MostCount = law(
+  entryOf("E1 derived"),
+  relation(
+    "MostCount",
+    {
+      most: anyText,
+      mostValue: pg.bigint,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -669,10 +711,12 @@ export const MostCount = relation(
  * `adaptive` is true. Every adaptive item has its row, and so does every document a
  * {@link BoundVariable} names.
  */
-export const ItemMode = relation(
-  "ItemMode",
-  { adaptive: pg.boolean, package: PackageName, path: EntryPath },
-  ["package", "path"],
+export const ItemMode = law(
+  entryOf("E1 derived"),
+  relation("ItemMode", { adaptive: pg.boolean, package: PackageName, path: EntryPath }, [
+    "package",
+    "path",
+  ]),
 );
 
 /**
@@ -699,12 +743,10 @@ const referenceFields = {
  * A feedback element's outcome, keyed by its element's place and `outcome-identifier` (reading
  * 77).
  */
-export const FeedbackRef = relation("FeedbackRef", referenceFields, [
-  "package",
-  "path",
-  "start",
-  "attribute",
-]);
+export const FeedbackRef = law(
+  entryOf("E1 derived"),
+  relation("FeedbackRef", referenceFields, ["package", "path", "start", "attribute"]),
+);
 
 /**
  * A template element's or a choice's template variable, keyed by its element's place and
@@ -713,12 +755,10 @@ export const FeedbackRef = relation("FeedbackRef", referenceFields, [
  * identifier and of single or multiple cardinality (reading R15-l, "Template variable type"); a
  * portable custom interaction's `qti-template-variable` states no type.
  */
-export const TemplateRef = relation("TemplateRef", referenceFields, [
-  "package",
-  "path",
-  "start",
-  "attribute",
-]);
+export const TemplateRef = law(
+  entryOf("E1 derived"),
+  relation("TemplateRef", referenceFields, ["package", "path", "start", "attribute"]),
+);
 
 /**
  * The variable a printed variable prints, keyed by its element's place and `identifier` (§7.30.6:
@@ -726,24 +766,20 @@ export const TemplateRef = relation("TemplateRef", referenceFields, [
  * or `index` names where that value is a name, not an integer, keyed by its element's place and the
  * attribute.
  */
-export const PrintedVariableRef = relation("PrintedVariableRef", referenceFields, [
-  "package",
-  "path",
-  "start",
-  "attribute",
-]);
+export const PrintedVariableRef = law(
+  entryOf("E1 derived"),
+  relation("PrintedVariableRef", referenceFields, ["package", "path", "start", "attribute"]),
+);
 
 /**
  * The context variable a PCI's `qti-context-variable` binds, keyed by its element's place and
  * `identifier`
  * (reading 92: "the context variables are the declared ones and the built-in QTI_CONTEXT").
  */
-export const ContextRef = relation("ContextRef", referenceFields, [
-  "package",
-  "path",
-  "start",
-  "attribute",
-]);
+export const ContextRef = law(
+  entryOf("E1 derived"),
+  relation("ContextRef", referenceFields, ["package", "path", "start", "attribute"]),
+);
 
 /**
  * The fields of a reference an included fragment makes: its element's place and kind, the attribute
@@ -763,46 +799,38 @@ const fragmentNameFields = {
  * An included fragment's feedback outcome reference, a feedback element's `outcome-identifier`,
  * keyed by its element's place and attribute (spec reading 117).
  */
-export const FragmentFeedbackName = relation("FragmentFeedbackName", fragmentNameFields, [
-  "package",
-  "path",
-  "start",
-  "attribute",
-]);
+export const FragmentFeedbackName = law(
+  entryOf("E1 derived"),
+  relation("FragmentFeedbackName", fragmentNameFields, ["package", "path", "start", "attribute"]),
+);
 
 /**
  * An included fragment's printed variable reference, a printed variable's `identifier`, or its
  * `base` or `index` where it names a variable, keyed by its element's place and attribute (spec
  * reading 117).
  */
-export const FragmentPrintedName = relation("FragmentPrintedName", fragmentNameFields, [
-  "package",
-  "path",
-  "start",
-  "attribute",
-]);
+export const FragmentPrintedName = law(
+  entryOf("E1 derived"),
+  relation("FragmentPrintedName", fragmentNameFields, ["package", "path", "start", "attribute"]),
+);
 
 /**
  * An included fragment's template variable reference, a template element's or a choice's
  * `template-identifier`, keyed by its element's place and attribute (spec reading 117).
  */
-export const FragmentTemplateName = relation("FragmentTemplateName", fragmentNameFields, [
-  "package",
-  "path",
-  "start",
-  "attribute",
-]);
+export const FragmentTemplateName = law(
+  entryOf("E1 derived"),
+  relation("FragmentTemplateName", fragmentNameFields, ["package", "path", "start", "attribute"]),
+);
 
 /**
  * An included fragment's context variable reference, a `qti-context-variable`'s `identifier`,
  * keyed by its element's place and attribute (spec reading 117).
  */
-export const FragmentContextName = relation("FragmentContextName", fragmentNameFields, [
-  "package",
-  "path",
-  "start",
-  "attribute",
-]);
+export const FragmentContextName = law(
+  entryOf("E1 derived"),
+  relation("FragmentContextName", fragmentNameFields, ["package", "path", "start", "attribute"]),
+);
 
 /**
  * A document whose references resolve once per assembly that places it, keyed by the document
@@ -810,17 +838,20 @@ export const FragmentContextName = relation("FragmentContextName", fragmentNameF
  * {@link FragmentPrintedName}, {@link FragmentTemplateName} and {@link FragmentContextName} rows:
  * every document that is no item's has its row, its counts 0 where it makes none.
  */
-export const ReferringDocument = relation(
-  "ReferringDocument",
-  {
-    contexts: drawn(natural),
-    feedbacks: drawn(natural),
-    package: PackageName,
-    path: EntryPath,
-    prints: drawn(natural),
-    templates: drawn(natural),
-  },
-  ["package", "path"],
+export const ReferringDocument = law(
+  entryOf("E1 derived"),
+  relation(
+    "ReferringDocument",
+    {
+      contexts: drawn(natural),
+      feedbacks: drawn(natural),
+      package: PackageName,
+      path: EntryPath,
+      prints: drawn(natural),
+      templates: drawn(natural),
+    },
+    ["package", "path"],
+  ),
 );
 
 /**
@@ -865,20 +896,23 @@ const fragmentContextNameFamily = counted(
  * of {@link FragmentFeedbackRef}, {@link FragmentPrintedRef}, {@link FragmentTemplateRef} and
  * {@link FragmentContextRef} rows, which the families draw.
  */
-export const FragmentScope = relation(
-  "FragmentScope",
-  {
-    assembly: EntryPath,
-    assemblyKind: closedId(NodeKind),
-    contexts: drawn(natural),
-    document: EntryPath,
-    feedbacks: drawn(natural),
-    instance: natural,
-    package: PackageName,
-    prints: drawn(natural),
-    templates: drawn(natural),
-  },
-  ["package", "assembly", "instance"],
+export const FragmentScope = law(
+  entryOf("E1 derived"),
+  relation(
+    "FragmentScope",
+    {
+      assembly: EntryPath,
+      assemblyKind: closedId(NodeKind),
+      contexts: drawn(natural),
+      document: EntryPath,
+      feedbacks: drawn(natural),
+      instance: natural,
+      package: PackageName,
+      prints: drawn(natural),
+      templates: drawn(natural),
+    },
+    ["package", "assembly", "instance"],
+  ),
 );
 
 /**
@@ -907,49 +941,61 @@ const fragmentReferenceFields = {
  * {@link FragmentPrintedRef}, so each law that resolves one is a statement of its own, which a
  * refusal names by its relations and terms ("Feedback reference", "Printed variable reference").
  */
-export const FragmentFeedbackRef = relation("FragmentFeedbackRef", fragmentReferenceFields, [
-  "package",
-  "assembly",
-  "instance",
-  "start",
-  "attribute",
-]);
+export const FragmentFeedbackRef = law(
+  entryOf("E1 derived"),
+  relation("FragmentFeedbackRef", fragmentReferenceFields, [
+    "package",
+    "assembly",
+    "instance",
+    "start",
+    "attribute",
+  ]),
+);
 
 /**
  * A fragment's printed variable reference resolved under one placement, keyed as
  * {@link FragmentFeedbackRef} is.
  */
-export const FragmentPrintedRef = relation("FragmentPrintedRef", fragmentReferenceFields, [
-  "package",
-  "assembly",
-  "instance",
-  "start",
-  "attribute",
-]);
+export const FragmentPrintedRef = law(
+  entryOf("E1 derived"),
+  relation("FragmentPrintedRef", fragmentReferenceFields, [
+    "package",
+    "assembly",
+    "instance",
+    "start",
+    "attribute",
+  ]),
+);
 
 /**
  * A fragment's template variable reference resolved under one placement,
  * keyed as {@link FragmentFeedbackRef} is ("Template reference").
  */
-export const FragmentTemplateRef = relation("FragmentTemplateRef", fragmentReferenceFields, [
-  "package",
-  "assembly",
-  "instance",
-  "start",
-  "attribute",
-]);
+export const FragmentTemplateRef = law(
+  entryOf("E1 derived"),
+  relation("FragmentTemplateRef", fragmentReferenceFields, [
+    "package",
+    "assembly",
+    "instance",
+    "start",
+    "attribute",
+  ]),
+);
 
 /**
  * A fragment's context variable reference resolved under one placement,
  * keyed as {@link FragmentFeedbackRef} is ("Context variable reference").
  */
-export const FragmentContextRef = relation("FragmentContextRef", fragmentReferenceFields, [
-  "package",
-  "assembly",
-  "instance",
-  "start",
-  "attribute",
-]);
+export const FragmentContextRef = law(
+  entryOf("E1 derived"),
+  relation("FragmentContextRef", fragmentReferenceFields, [
+    "package",
+    "assembly",
+    "instance",
+    "start",
+    "attribute",
+  ]),
+);
 
 /**
  * Each placement's resolved feedback references, counted by `FragmentScope.feedbacks`, which equals

@@ -81,7 +81,7 @@ import { baseValueCases, baseValuePackageOf } from "#pantry/test/base-value-case
 import { declarationQueryLawsOf } from "#pantry/test/declaration-queries.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { previewRowsOf, judge as judgeHost, judgedLaws } from "#pantry/test/host-judge.ts";
-import { schemaLawNameOf } from "#pantry/test/law-namer.ts";
+import { lawNameOf } from "#pantry/import/refusal.ts";
 
 /**
  * Where a lone document of these cases stands: one item of one package, the place every row holds.
@@ -1269,7 +1269,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
               [
                 ...new Set([
                   ...broken.map(({ law }) =>
-                    Option.getOrElse(schemaLawNameOf(law), () => Formatter.format(law)),
+                    Option.getOrElse(lawNameOf(law), () => Formatter.format(law)),
                   ),
                   ...declarationQueryLawsOf(rows),
                 ]),

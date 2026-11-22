@@ -57,7 +57,7 @@ import {
   counted,
   drawn,
   fin,
-  natural,
+  law,
   on,
   relation,
   select,
@@ -79,6 +79,7 @@ import {
 import { CopiedLexical, EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
+import { entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * One judged `m:cn`, keyed by its node's `(package, path, start)`.
@@ -89,19 +90,22 @@ import { Node } from "#pantry/qti/node.ts";
  *   `E1_derived`;
  * - **drawn:** `parts`, the count of its {@link CnPartText} rows.
  */
-export const MathCn = relation(
-  "MathCn",
-  {
-    base: closedId(CnBase),
-    baseLexical: anyText,
-    package: PackageName,
-    parts: drawn(natural),
-    path: EntryPath,
-    start: natural,
-    type: closedId(CnType),
-    typeLexical: anyText,
-  },
-  ["package", "path", "start"],
+export const MathCn = law(
+  entryOf("E1 derived"),
+  relation(
+    "MathCn",
+    {
+      base: closedId(CnBase),
+      baseLexical: anyText,
+      package: PackageName,
+      parts: drawn(natural),
+      path: EntryPath,
+      start: natural,
+      type: closedId(CnType),
+      typeLexical: anyText,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -109,19 +113,22 @@ export const MathCn = relation(
  * separates: the `type` and `base` of its `cn`, the part's collapsed `text` and the `form` of its
  * place. A part beyond its type's places sits at the place no type lists, so it is refused.
  */
-export const CnPartText = relation(
-  "CnPartText",
-  {
-    base: closedId(CnBase),
-    form: closedId(CnPartForm),
-    package: PackageName,
-    part: closedId(CnPart),
-    path: EntryPath,
-    start: natural,
-    text: anyText,
-    type: closedId(CnType),
-  },
-  ["package", "path", "start", "part"],
+export const CnPartText = law(
+  entryOf("E1 derived"),
+  relation(
+    "CnPartText",
+    {
+      base: closedId(CnBase),
+      form: closedId(CnPartForm),
+      package: PackageName,
+      part: closedId(CnPart),
+      path: EntryPath,
+      start: natural,
+      text: anyText,
+      type: closedId(CnType),
+    },
+    ["package", "path", "start", "part"],
+  ),
 );
 
 /**
@@ -130,17 +137,20 @@ export const CnPartText = relation(
  * (empty where unwritten, as on {@link MathCn}), and `parts`, the count of its {@link CnSlot} rows.
  * It carries the part count of a `cn` that {@link MathCn} does not judge.
  */
-export const CnCount = relation(
-  "CnCount",
-  {
-    package: PackageName,
-    parts: drawn(natural),
-    path: EntryPath,
-    start: natural,
-    type: closedId(CnType),
-    typeLexical: anyText,
-  },
-  ["package", "path", "start"],
+export const CnCount = law(
+  entryOf("E1 derived"),
+  relation(
+    "CnCount",
+    {
+      package: PackageName,
+      parts: drawn(natural),
+      path: EntryPath,
+      start: natural,
+      type: closedId(CnType),
+      typeLexical: anyText,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -148,17 +158,20 @@ export const CnCount = relation(
  * parts `m:sep` separates, judged or not: the `type` of its `cn` and the `form` of its place. A
  * part beyond its type's places sits at the place no type lists, so it is refused.
  */
-export const CnSlot = relation(
-  "CnSlot",
-  {
-    form: closedId(CnPartForm),
-    package: PackageName,
-    part: closedId(CnPart),
-    path: EntryPath,
-    start: natural,
-    type: closedId(CnType),
-  },
-  ["package", "path", "start", "part"],
+export const CnSlot = law(
+  entryOf("E1 derived"),
+  relation(
+    "CnSlot",
+    {
+      form: closedId(CnPartForm),
+      package: PackageName,
+      part: closedId(CnPart),
+      path: EntryPath,
+      start: natural,
+      type: closedId(CnType),
+    },
+    ["package", "path", "start", "part"],
+  ),
 );
 
 /**
@@ -166,16 +179,19 @@ export const CnSlot = relation(
  * written, whether or not the `cn` is judged, copied so that a law can compare it in a key, which
  * holds it as itself, a `CopiedLexical` (`#pantry/qti/limits.ts`).
  */
-export const CnAttribute = relation(
-  "CnAttribute",
-  {
-    lexical: CopiedLexical,
-    name: closedId(AttributeName),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start", "name"],
+export const CnAttribute = law(
+  entryOf("E1 derived"),
+  relation(
+    "CnAttribute",
+    {
+      lexical: CopiedLexical,
+      name: closedId(AttributeName),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start", "name"],
+  ),
 );
 
 /**

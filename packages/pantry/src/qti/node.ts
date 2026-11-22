@@ -35,8 +35,8 @@
  */
 import {
   accumulated,
-  Bits,
   bits,
+  Bits,
   check,
   closedId,
   contained,
@@ -46,9 +46,9 @@ import {
   fold,
   generated,
   key,
+  law,
   Logic,
   Monoid,
-  natural,
   on,
   pred,
   relation,
@@ -92,7 +92,7 @@ import {
 } from "#pantry/grammar/install.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * The first characters of an XML Namespaces NCName: XML 1.0's NameStartChar without the colon,
@@ -119,7 +119,7 @@ const prefixPattern = `^(?:[${ncNameStart}][${ncNameContinuation}]*)?$`;
  * The text type of an element's prefix: {@link prefixPattern}, of any length. Exported for
  * `src/import/refusal.ts`, which names its pattern law.
  */
-export const Prefix = str.regex(prefixPattern);
+export const Prefix = law(entryOf("XML production"), str.regex(prefixPattern));
 
 /**
  * The type of a node's first or last character: one code point, or the empty string where the node
@@ -128,7 +128,7 @@ export const Prefix = str.regex(prefixPattern);
  * node's neighbours compares (`#pantry/qti/overlay-queries/quotation.ts`, spec reading 127).
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const EndCharacter = str.regex("^.?$", "su");
+export const EndCharacter = law(entryOf("E1 derived"), str.regex("^.?$", "su"));
 
 /**
  * One node of a document: an element, a run of character data, a comment, an instruction, an entity
@@ -166,54 +166,60 @@ export const EndCharacter = str.regex("^.?$", "su");
  * Its fields are declared in key order, which the lint's `sort-keys` holds and which is column
  * order, the generated ones after the rest.
  */
-export const Node = relation.generated(
-  "Node",
-  {
-    ancestry: bits(Flag),
-    at: drawn(natural),
-    attributes: drawn(natural),
-    attrs: accumulated(bits(AttributeSlot), Bits.of(AttributeSlot, [])),
-    barredChildren: accumulated(natural, 0n),
-    chars: Chars,
-    charsAfter: accumulated(matchedText, ""),
-    charsWas: accumulated(matchedText, ""),
-    children: drawn(natural),
-    countedChildren: accumulated(natural, 0n),
-    elementChildren: accumulated(natural, 0n),
-    elements: accumulated(natural, 0n),
-    elementsWas: accumulated(natural, 0n),
-    end: drawn(natural),
-    first: EndCharacter,
-    governor: closedId(Governor),
-    kind: closedId(NodeKind),
-    last: EndCharacter,
-    lastState: accumulated(closedId(Position), "0"),
-    nearest: natural,
-    nearestKind: closedId(NodeKind),
-    nearestPath: EntryPath,
-    openAttributes: drawn(natural),
-    package: PackageName,
-    parent: drawn(natural),
-    parentAncestry: accumulated(bits(Flag), Bits.of(Flag, [])),
-    parentGovernor: accumulated(closedId(Governor), "document"),
-    parentKind: accumulated(closedId(NodeKind), "document"),
-    parentNearest: accumulated(natural, 0n),
-    parentNearestKind: accumulated(closedId(NodeKind), "document"),
-    parentNearestPath: accumulated(EntryPath, manifestPath),
-    parentParentKind: accumulated(closedId(NodeKind), "document"),
-    path: EntryPath,
-    prefix: Prefix,
-    start: drawn(natural),
-    state: closedId(Position),
-    stringValue: accumulated(matchedText, ""),
-    was: accumulated(closedId(Position), "0"),
-  },
-  ["package", "path", "start"],
-  (n) => ({
-    charsAfterDigest: generated(sha256, Crypto.sha256(n.charsAfter)),
-    charsWasDigest: generated(sha256, Crypto.sha256(n.charsWas)),
-    stringValueDigest: generated(sha256, Crypto.sha256(n.stringValue)),
-  }),
+export const Node = law(
+  entryOf("Node key"),
+  relation.generated(
+    "Node",
+    {
+      ancestry: bits(Flag),
+      at: drawn(natural),
+      attributes: drawn(natural),
+      attrs: accumulated(bits(AttributeSlot), Bits.of(AttributeSlot, [])),
+      barredChildren: accumulated(natural, 0n),
+      chars: Chars,
+      charsAfter: accumulated(matchedText, ""),
+      charsWas: accumulated(matchedText, ""),
+      children: drawn(natural),
+      countedChildren: accumulated(natural, 0n),
+      elementChildren: accumulated(natural, 0n),
+      elements: accumulated(natural, 0n),
+      elementsWas: accumulated(natural, 0n),
+      end: drawn(natural),
+      first: EndCharacter,
+      governor: closedId(Governor),
+      kind: closedId(NodeKind),
+      last: EndCharacter,
+      lastState: accumulated(closedId(Position), "0"),
+      nearest: natural,
+      nearestKind: closedId(NodeKind),
+      nearestPath: EntryPath,
+      openAttributes: drawn(natural),
+      package: PackageName,
+      parent: drawn(natural),
+      parentAncestry: accumulated(bits(Flag), Bits.of(Flag, [])),
+      parentGovernor: accumulated(closedId(Governor), "document"),
+      parentKind: accumulated(closedId(NodeKind), "document"),
+      parentNearest: accumulated(natural, 0n),
+      parentNearestKind: accumulated(closedId(NodeKind), "document"),
+      parentNearestPath: accumulated(EntryPath, manifestPath),
+      parentParentKind: accumulated(closedId(NodeKind), "document"),
+      path: EntryPath,
+      prefix: Prefix,
+      start: drawn(natural),
+      state: closedId(Position),
+      stringValue: accumulated(matchedText, ""),
+      was: accumulated(closedId(Position), "0"),
+    },
+    ["package", "path", "start"],
+    (n) => ({
+      charsAfterDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(n.charsAfter))),
+      charsWasDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(n.charsWas))),
+      stringValueDigest: law(
+        entryOf("E1 derived"),
+        generated(sha256, Crypto.sha256(n.stringValue)),
+      ),
+    }),
+  ),
 );
 
 /**
@@ -232,17 +238,20 @@ type NodeRow = RowScalars<typeof Node>;
  *   type; and its element's `governor` and `kind`, copied through the `(package, path, start, kind,
  *   governor)` tuple the attribute and identity overlays copy too.
  */
-export const ElementType = relation(
-  "ElementType",
-  {
-    governor: closedId(Governor),
-    kind: closedId(NodeKind),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    type: closedId(TypeName),
-  },
-  ["package", "path", "start"],
+export const ElementType = law(
+  entryOf("E1 derived"),
+  relation(
+    "ElementType",
+    {
+      governor: closedId(Governor),
+      kind: closedId(NodeKind),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      type: closedId(TypeName),
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**

@@ -15,7 +15,7 @@ import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
 import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { withItem } from "#pantry/test/probe.ts";
-import { schemaLawNameOf, schemaRulesOf } from "#pantry/test/law-namer.ts";
+import { lawNameOf, rulesOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
 const laws = judgedLaws(Qti);
@@ -107,13 +107,11 @@ layer(NodeServices.layer, { excludeTestServices: true })("an SSML attribute coun
             const [first, ...rest] = brokenLaws;
 
             return {
-              al5: brokenLaws.some((law) =>
-                Option.contains(schemaLawNameOf(law), "AL5 attribute count"),
-              ),
+              al5: brokenLaws.some((law) => Option.contains(lawNameOf(law), "AL5 attribute count")),
               host:
                 first === undefined
                   ? "accepted"
-                  : Option.getOrElse(Arr.head(schemaRulesOf([first, ...rest])), () => "unnamed"),
+                  : Option.getOrElse(Arr.head(rulesOf([first, ...rest])), () => "unnamed"),
               oracle: oracle.kind === "accepted" ? new Set(["accepted"]) : oracle.rules,
             };
           }),

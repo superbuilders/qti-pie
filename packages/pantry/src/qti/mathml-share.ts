@@ -55,21 +55,13 @@
  *
  * @see {@link https://www.w3.org/TR/MathML3/chapter4.html#contm.share | MathML 3 §4.2.7, share}
  */
-import {
-  closedId,
-  contained,
-  counted,
-  fin,
-  natural,
-  on,
-  relation,
-  select,
-} from "@bjornpagen/grizzle";
+import { closedId, contained, counted, fin, law, on, relation, select } from "@bjornpagen/grizzle";
 import { NodeKind } from "#pantry/grammar/install.ts";
 import { ShareFragment } from "#pantry/qti/identity.ts";
 import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Instance, AssembledDocument } from "#pantry/qti/tests.ts";
+import { entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * One MathML element a share can dominate or be dominated through, keyed by its node's
@@ -77,15 +69,18 @@ import { Instance, AssembledDocument } from "#pantry/qti/tests.ts";
  * its node's, and its parent's rank its parent's row's, which the rules over the queries
  * `MathRankNode` and `MathRankStep` read (`#pantry/qti/overlay-queries/expression.ts`).
  */
-export const MathRank = relation(
-  "MathRank",
-  {
-    package: PackageName,
-    path: EntryPath,
-    rank: natural,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const MathRank = law(
+  entryOf("E1 derived"),
+  relation(
+    "MathRank",
+    {
+      package: PackageName,
+      path: EntryPath,
+      rank: natural,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -97,16 +92,19 @@ export const MathRank = relation(
  *   same document. The two ranks the law compares are the {@link MathRank} rows' of the share and
  *   of the target, which the rule over the query `ShareRanks` reads.
  */
-export const ShareTarget = relation(
-  "ShareTarget",
-  {
-    id: XmlId,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    targetStart: natural,
-  },
-  ["package", "path", "start"],
+export const ShareTarget = law(
+  entryOf("E1 derived"),
+  relation(
+    "ShareTarget",
+    {
+      id: XmlId,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      targetStart: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -123,17 +121,20 @@ export const ShareTarget = relation(
  *   the rules over the queries `PlacedMathRankNode` and `PlacedMathRankStep` read. An `m:math` and
  *   the document node have no tied parent.
  */
-export const PlacedMathRank = relation(
-  "PlacedMathRank",
-  {
-    assembly: EntryPath,
-    instance: natural,
-    package: PackageName,
-    path: EntryPath,
-    rank: natural,
-    start: natural,
-  },
-  ["package", "assembly", "instance", "start"],
+export const PlacedMathRank = law(
+  entryOf("E1 derived"),
+  relation(
+    "PlacedMathRank",
+    {
+      assembly: EntryPath,
+      instance: natural,
+      package: PackageName,
+      path: EntryPath,
+      rank: natural,
+      start: natural,
+    },
+    ["package", "assembly", "instance", "start"],
+  ),
 );
 
 /**
@@ -149,21 +150,24 @@ export const PlacedMathRank = relation(
  *   `targetInstance`, are the {@link PlacedMathRank} rows', which the rule over the query
  *   `PlacedShareRanks` reads.
  */
-export const PlacedShareTarget = relation(
-  "PlacedShareTarget",
-  {
-    assembly: EntryPath,
-    assemblyKind: closedId(NodeKind),
-    id: XmlId,
-    instance: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    target: EntryPath,
-    targetInstance: natural,
-    targetStart: natural,
-  },
-  ["package", "assembly", "instance", "start"],
+export const PlacedShareTarget = law(
+  entryOf("E1 derived"),
+  relation(
+    "PlacedShareTarget",
+    {
+      assembly: EntryPath,
+      assemblyKind: closedId(NodeKind),
+      id: XmlId,
+      instance: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      target: EntryPath,
+      targetInstance: natural,
+      targetStart: natural,
+    },
+    ["package", "assembly", "instance", "start"],
+  ),
 );
 
 /**

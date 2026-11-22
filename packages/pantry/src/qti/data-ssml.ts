@@ -27,12 +27,12 @@
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/data-ssml_infobind/imsqtiv3p0_datassml_v1p0_InfoBind.html#JSOND | IMS Data-SSML 1.0, 3.4 Description of the JSON Schema}
  */
-import { check, contained, natural, on, relation, select, Text } from "@bjornpagen/grizzle";
+import { check, contained, law, on, relation, select, Text } from "@bjornpagen/grizzle";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { EntryPath, PackageName, SsmlMemberText } from "#pantry/qti/limits.ts";
 import { dataSsmlMembers } from "#pantry/vocab/data-ssml.ts";
 import { anyText } from "#pantry/grammar/install.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * A text with no tab, line feed or carriage return: an `xs:normalizedString`'s value.
@@ -43,20 +43,26 @@ const normalizedValue = Text.pattern("^[^\\t\\n\\r]*$");
  * An element whose closed `data-ssml` is one JSON object of objects of strings, keyed by the
  * element, `(package, path, start)`.
  */
-export const DataSsml = relation(
-  "DataSsml",
-  { package: PackageName, path: EntryPath, start: natural },
-  ["package", "path", "start"],
+export const DataSsml = law(
+  entryOf("E1 derived"),
+  relation("DataSsml", { package: PackageName, path: EntryPath, start: natural }, [
+    "package",
+    "path",
+    "start",
+  ]),
 );
 
 /**
  * One member of a `data-ssml` object as written, keyed by its element and its place in the object,
  * from 0: its decoded name.
  */
-export const DataSsmlMember = relation(
-  "DataSsmlMember",
-  { at: natural, member: SsmlMemberText, package: PackageName, path: EntryPath, start: natural },
-  ["package", "path", "start", "at"],
+export const DataSsmlMember = law(
+  entryOf("E1 derived"),
+  relation(
+    "DataSsmlMember",
+    { at: natural, member: SsmlMemberText, package: PackageName, path: EntryPath, start: natural },
+    ["package", "path", "start", "at"],
+  ),
 );
 
 /**
@@ -64,19 +70,22 @@ export const DataSsmlMember = relation(
  * in the member, from 0: its member's name (`memberName`, its {@link DataSsmlMember}'s), its
  * decoded name and its decoded value.
  */
-export const DataSsmlProperty = relation(
-  "DataSsmlProperty",
-  {
-    at: natural,
-    member: natural,
-    memberName: SsmlMemberText,
-    name: SsmlMemberText,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    value: anyText,
-  },
-  ["package", "path", "start", "member", "at"],
+export const DataSsmlProperty = law(
+  entryOf("E1 derived"),
+  relation(
+    "DataSsmlProperty",
+    {
+      at: natural,
+      member: natural,
+      memberName: SsmlMemberText,
+      name: SsmlMemberText,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      value: anyText,
+    },
+    ["package", "path", "start", "member", "at"],
+  ),
 );
 
 /**

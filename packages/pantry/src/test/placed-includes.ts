@@ -71,10 +71,11 @@ const placesOf = (rows: PreviewRows<typeof Qti>) => {
 };
 
 /**
- * Each include's `SitePath` naming an entry, by place, with whether it holds an `xi:fallback`.
+ * Each include's `SitePath` naming an entry, with whether it holds an `xi:fallback` and whether a
+ * `SiteTarget` stands at its place.
  *
  * @param rows - The import's rows.
- * @returns The places and their fallbacks.
+ * @returns The rows, with their fallbacks and targets.
  */
 const entryIncludesOf = (rows: PreviewRows<typeof Qti>) => {
   const { placeOf, rowsOf } = readerOf(rows);
@@ -84,19 +85,32 @@ const entryIncludesOf = (rows: PreviewRows<typeof Qti>) => {
     .filter((row) => at(row, "entry") === true && at(row, "kind") === includeKind)
     .map((row) => ({
       fallback: fallbacks.has(placeOf(row)),
+      row,
       targeted: targets.has(placeOf(row)),
     }));
 };
 
 /**
- * Restate "Include target"'s containment of `PlacedIncludePath` into `SiteTarget`: whether an
- * include naming an entry, holding no `xi:fallback`, names no document.
+ * Restate "Include target"'s containment of `PlacedIncludePath` into `SiteTarget`: each include
+ * naming an entry, holding no `xi:fallback`, that names no document, by its `SitePath` row.
+ *
+ * @param rows - The import's rows.
+ * @returns The rows that break the containment.
+ */
+export const includeTargetBreachesOf = (rows: PreviewRows<typeof Qti>): readonly HeldRow[] =>
+  entryIncludesOf(rows).flatMap(({ fallback, row, targeted }) =>
+    fallback || targeted ? [] : [row],
+  );
+
+/**
+ * Restate "Include target" for a package: whether any include breaks it
+ * ({@link includeTargetBreachesOf}).
  *
  * @param rows - The import's rows.
  * @returns Whether the containment breaks.
  */
 export const breaksIncludeTarget = (rows: PreviewRows<typeof Qti>): boolean =>
-  entryIncludesOf(rows).some(({ fallback, targeted }) => !fallback && !targeted);
+  includeTargetBreachesOf(rows).length > 0;
 
 /**
  * Restate `UnplacedInclude`'s four rules, each include's cause, sorted: `external`, an external

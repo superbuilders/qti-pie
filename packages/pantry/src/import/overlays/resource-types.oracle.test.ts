@@ -26,7 +26,7 @@ import type { Edit } from "#pantry/test/fixtures.ts";
 import { hostVerdictOf } from "#pantry/test/gen/genetic/host-laws.ts";
 import { judge, lawsOf, verdictOf } from "#pantry/test/oracle.ts";
 import { resourceTypeCases } from "#pantry/test/resource-type-cases.ts";
-import { schemaRulesOf } from "#pantry/test/law-namer.ts";
+import { rulesOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 
@@ -140,7 +140,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             );
             assert.strictEqual(
               Arr.isReadonlyArrayNonEmpty(host.brokenLaws)
-                ? Option.getOrUndefined(Arr.head(schemaRulesOf(host.brokenLaws)))
+                ? Option.getOrUndefined(Arr.head(rulesOf(host.brokenLaws)))
                 : undefined,
               verdict.verdict === "accepted" || byQuery ? undefined : verdict.rule,
               "the import's rows, judged on the host, refused under the same rule, or by nothing where the law they break is a rule over a query, the database's alone",

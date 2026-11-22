@@ -63,7 +63,7 @@ const xmlSide = [
  * relative to `src`: the
  * schema, its roles and logins, the grammar's generators and installed constants, the inventory
  * data and its offline derivers, the database layer, the scan and its paging, and the refusal
- * report with its law catalog and the committed law-name dictionary (`vocab/law-names.json`).
+ * report with its law catalog.
  *
  * `xml/oracle.ts` is the grammar's own `xmllint` harness, which only tests reach and which imports
  * no module of pantry's.
@@ -77,7 +77,6 @@ const databaseSide = [
   "package/refusal-origin.ts",
   "qti/*.ts",
   "qti/overlay-queries/*.ts",
-  "vocab/*.json",
   "vocab/**/*.ts",
   "xml/oracle.ts",
 ];

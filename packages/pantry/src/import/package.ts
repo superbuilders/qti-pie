@@ -63,8 +63,8 @@ export const WrapApply = Context.Reference<
  * under every rule its laws carry. The witness is the key of the first stated row that breaks a
  * law, or `unreported` for a foreign key and for a law no stated row breaks as grizzle's host
  * judges it. A law no row of the law table names still prints its text, and carries no rule.
- * Naming the laws reads the committed dictionary alone, which compiles nothing, and that step has a
- * span of its own, which records the laws it named and their rules.
+ * Naming the laws reads the entries the laws carry alone, which compiles nothing, and that step has
+ * a span of its own, which records the laws it named and their rules.
  *
  * @param error - The apply's `refused` call error.
  * @returns Fails with the `ImportRefused` it names.

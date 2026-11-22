@@ -17,6 +17,7 @@
  * parse guards its own operand by ({@link parsedDecimalBytes}).
  */
 import {
+  law,
   lexicalForm,
   Logic,
   Num,
@@ -28,6 +29,7 @@ import {
 } from "@bjornpagen/grizzle";
 import type { Facts, Term } from "@bjornpagen/grizzle";
 import { Chars } from "#pantry/grammar/install.ts";
+import { entryOf } from "#pantry/qti/law-entries.ts";
 
 /**
  * An NCName (Namespaces in XML 1.0, §3): XML 1.0's `NameStartChar` without the colon, then its
@@ -78,7 +80,10 @@ export const nameMaxBytes = 255;
  * its key. An NCName is an `xs:ID`'s collapsed lexical form, so a manifest identifier is a name a
  * caller may choose.
  */
-export const PackageName = str.bytes(nameMaxBytes, str.regex(`^${ncName}$`));
+export const PackageName = law(
+  entryOf("Package key"),
+  str.bytes(nameMaxBytes, str.regex(`^${ncName}$`)),
+);
 
 /**
  * The most UTF-8 bytes an entry's path holds: what one B-tree entry leaves each path in the widest
@@ -111,7 +116,10 @@ export const entryPathBytes = 790;
  * `Entry`, `Document` and every row of a document hold it as their `path`, and a reference resolved
  * in the package names its target by one.
  */
-export const EntryPath = str.bytes(entryPathBytes, str.regex("^[^/].*$", "su"));
+export const EntryPath = law(
+  entryOf("Key text bound"),
+  str.bytes(entryPathBytes, str.regex("^[^/].*$", "su")),
+);
 
 /**
  * A text a query reads where it stands, as a view casts it into a key text: a plain text term of
@@ -145,7 +153,7 @@ export const identifierBytes = 503;
  * A QTI identifier as a key holds it, of at most {@link identifierBytes} UTF-8 bytes: a
  * declaration's, a choice's, a reference's or an item variable's name.
  */
-export const QtiIdentifier = str.bytes(identifierBytes, Chars);
+export const QtiIdentifier = law(entryOf("Key text bound"), str.bytes(identifierBytes, Chars));
 
 /**
  * Cast a QTI identifier a view keys into {@link QtiIdentifier}, under grizzle's byte guard (README,
@@ -185,7 +193,7 @@ export const xmlIdBytes = 795;
 /**
  * An `xs:ID` as a key holds it, of at most {@link xmlIdBytes} UTF-8 bytes.
  */
-export const XmlId = str.bytes(xmlIdBytes, Chars);
+export const XmlId = law(entryOf("Key text bound"), str.bytes(xmlIdBytes, Chars));
 
 /**
  * Cast an `xs:ID` a view keys into {@link XmlId}, under grizzle's byte guard. The guard's other arm,
@@ -228,7 +236,7 @@ export const keyMatchedTextBytes = 777;
 /**
  * A matched text as a key holds it, of at most {@link keyMatchedTextBytes} UTF-8 bytes.
  */
-export const KeyMatchedText = str.bytes(keyMatchedTextBytes, Chars);
+export const KeyMatchedText = law(entryOf("Key text bound"), str.bytes(keyMatchedTextBytes, Chars));
 
 /**
  * Cast a LOM text a view keys into {@link KeyMatchedText}, under grizzle's byte guard. The guard's
@@ -267,7 +275,7 @@ export const uriBytes = 792;
 /**
  * A namespace name or URI as a key holds it, of at most {@link uriBytes} UTF-8 bytes.
  */
-export const UriText = str.bytes(uriBytes, Chars);
+export const UriText = law(entryOf("Key text bound"), str.bytes(uriBytes, Chars));
 
 /**
  * The most UTF-8 bytes an XML name holds in a key, a local name or a namespace prefix: what
@@ -308,7 +316,7 @@ export const literalTextBytes = 1501;
 /**
  * A base value's text as a key holds it, of at most {@link literalTextBytes} UTF-8 bytes.
  */
-export const LiteralText = str.bytes(literalTextBytes, Chars);
+export const LiteralText = law(entryOf("Key text bound"), str.bytes(literalTextBytes, Chars));
 
 /**
  * The most UTF-8 bytes a `data-ssml` member's name holds: what one B-tree entry leaves it in the
@@ -330,7 +338,7 @@ export const ssmlMemberBytes = 1592;
 /**
  * A `data-ssml` member's name as a key holds it, of at most {@link ssmlMemberBytes} UTF-8 bytes.
  */
-export const SsmlMemberText = str.bytes(ssmlMemberBytes, Chars);
+export const SsmlMemberText = law(entryOf("Key text bound"), str.bytes(ssmlMemberBytes, Chars));
 
 /**
  * The most UTF-8 bytes an attribute's lexical form holds where an overlay copies it into a key so
@@ -360,7 +368,7 @@ export const copiedLexicalBytes = 1601;
  * {@link copiedLexicalBytes} UTF-8 bytes, and a form collapsed from one (an interaction attribute's
  * `value`, a rounding's `figures`), which a collapse never lengthens.
  */
-export const CopiedLexical = str.bytes(copiedLexicalBytes, Chars);
+export const CopiedLexical = law(entryOf("Key text bound"), str.bytes(copiedLexicalBytes, Chars));
 
 /**
  * The most UTF-8 bytes of a text a query reads by a pattern, `Text.matches`: grizzle's
@@ -373,7 +381,7 @@ export const matchedTextBytes = regexTextMaxBytes;
  * The type of {@link matchedTextBytes}' texts: a run of XML `Char`s ({@link Chars}, a node's
  * characters folded or an attribute's value) of at most that many UTF-8 bytes.
  */
-export const matchedText = str.bytes(matchedTextBytes, Chars);
+export const matchedText = law(entryOf("Key text bound"), str.bytes(matchedTextBytes, Chars));
 
 /**
  * The most UTF-8 bytes of a decimal text a query reads by a parse, `Text.parseDecimal`:

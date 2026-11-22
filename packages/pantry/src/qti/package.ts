@@ -68,8 +68,8 @@ import {
   Crypto,
   drawn,
   generated,
+  law,
   mirrors,
-  natural,
   on,
   relation,
   select,
@@ -102,7 +102,7 @@ import {
 } from "#pantry/qti/token-list.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { includeKind } from "#pantry/vocab/terms/tests.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * A `#` anywhere in a text: an `xi:include`'s parameters that hold a fragment identifier.
@@ -119,7 +119,10 @@ const fragmentMark = Text.pattern("#");
  * (`#pantry/qti/overlay-queries/package.ts`), and no key: two packages that share one are two
  * names.
  */
-export const Package = relation("Package", { name: PackageName }, ["name"]);
+export const Package = law(
+  entryOf("Package key"),
+  relation("Package", { name: PackageName }, ["name"]),
+);
 
 /**
  * What an entry is: a `document`, which the import shreds and the database holds as its tree alone
@@ -136,10 +139,12 @@ export const EntryKind = closed.ordered("EntryKind", ["document", "media"]);
  * bytes are the content-addressed store's, under its digest. Whether the entry is the manifest is a
  * function of `path`, so it is not stored (review R19).
  */
-export const Entry = relation(
-  "Entry",
-  { kind: closedId(EntryKind), package: PackageName, path: EntryPath },
-  ["package", "path"],
+export const Entry = law(
+  entryOf("Entry family"),
+  relation("Entry", { kind: closedId(EntryKind), package: PackageName, path: EntryPath }, [
+    "package",
+    "path",
+  ]),
 );
 
 /**
@@ -150,10 +155,10 @@ export const Entry = relation(
  * content-addressed, so the digest names exactly the bytes a player is served. A player fetches the
  * file by it.
  */
-export const Media = relation("Media", { digest: sha256, package: PackageName, path: EntryPath }, [
-  "package",
-  "path",
-]);
+export const Media = law(
+  entryOf("Entry kind"),
+  relation("Media", { digest: sha256, package: PackageName, path: EntryPath }, ["package", "path"]),
+);
 
 /**
  * The pattern of an href's `params` piece (reading 102): empty, or a query or a fragment, from the
@@ -174,7 +179,7 @@ export const hrefPathPattern = Text.pattern("^[^?#]*$");
  * compares but "Include fragment identifier", written beside the reference's target it follows so
  * the pieces concatenate to the lexical form.
  */
-export const HrefParams = str.regex(hrefParamsPattern, "su");
+export const HrefParams = law(entryOf("E1 derived"), str.regex(hrefParamsPattern, "su"));
 
 /**
  * An external href, which names no package entry and is never resolved: a URI with a scheme
@@ -190,7 +195,7 @@ export const externalHrefPattern = Text.pattern("^(?:[A-Za-z][A-Za-z0-9+.\\-]*:|
  * What a `srcset` holds before an image candidate's URL and after its last one: whitespace and
  * commas (HTML, "parse a srcset attribute", which skips both).
  */
-export const SrcsetGap = str.regex("^[\\t\\n\\r ,]*$");
+export const SrcsetGap = law(entryOf("E1 derived"), str.regex("^[\\t\\n\\r ,]*$"));
 
 /**
  * The pattern of an image candidate's URL as a `srcset` writes it: a run of non-whitespace
@@ -211,7 +216,10 @@ export const SrcsetUrl = str.regex(srcsetUrlPattern);
  * reads it by `Text.matches`), the bound of `#pantry/qti/limits.ts` (the `srcset`'s stated
  * limit).
  */
-export const SrcsetCandidateUrl = str.bytes(matchedTextBytes, SrcsetUrl);
+export const SrcsetCandidateUrl = law(
+  entryOf("Key text bound"),
+  str.bytes(matchedTextBytes, SrcsetUrl),
+);
 
 /**
  * What leads every image candidate after the first: whitespace and commas holding at least one
@@ -224,7 +232,10 @@ const srcsetSeparator = Text.pattern("^[\\t\\n\\r ]*,[\\t\\n\\r ,]*$");
  * An image candidate's descriptors as written: empty, or whitespace and the rest of the candidate
  * up to the comma that ends it, which no law reads (spec reading 124).
  */
-export const SrcsetDescriptor = str.regex("^(?:[\\t\\n\\r ].*)?$", "su");
+export const SrcsetDescriptor = law(
+  entryOf("E1 derived"),
+  str.regex("^(?:[\\t\\n\\r ].*)?$", "su"),
+);
 
 /**
  * How an href resolves (readings 102 and 103), the outcome the importer writes on every href's row:
@@ -268,10 +279,13 @@ export const resolvedPathPattern = Text.pattern(
  * as written is its `Attribute` row's alone, which no row copies (C18). Beside its resource's type
  * code (`resourceTypes` of `#pantry/qti/queries.ts`) it is a typed href, the query `TypedHref`.
  */
-export const ResourceHref = relation(
-  "ResourceHref",
-  { package: PackageName, path: EntryPath, scope: closedId(HrefScope), start: natural },
-  ["package", "path", "start"],
+export const ResourceHref = law(
+  entryOf("Manifest overlay"),
+  relation(
+    "ResourceHref",
+    { package: PackageName, path: EntryPath, scope: closedId(HrefScope), start: natural },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -279,10 +293,13 @@ export const ResourceHref = relation(
  * entry path it resolves to (RFC 3986, §5.2; readings 102 and 103), what it is compared by with its
  * resource's files and with an item ref's target, and the document a document-typed resource names.
  */
-export const ResourceHrefPath = relation(
-  "ResourceHrefPath",
-  { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
-  ["package", "path", "start"],
+export const ResourceHrefPath = law(
+  entryOf("Manifest overlay"),
+  relation(
+    "ResourceHrefPath",
+    { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -292,11 +309,16 @@ export const ResourceHrefPath = relation(
  * for: its outside comparison, of a text no key bound fits, finds a file by the digest first and
  * the text after it.
  */
-export const ResourceHrefOutside = relation.generated(
-  "ResourceHrefOutside",
-  { package: PackageName, path: EntryPath, start: natural, target: anyText },
-  ["package", "path", "start"],
-  (row) => ({ targetDigest: generated(sha256, Crypto.sha256(row.target)) }),
+export const ResourceHrefOutside = law(
+  entryOf("Manifest overlay"),
+  relation.generated(
+    "ResourceHrefOutside",
+    { package: PackageName, path: EntryPath, start: natural, target: anyText },
+    ["package", "path", "start"],
+    (row) => ({
+      targetDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(row.target))),
+    }),
+  ),
 );
 
 /**
@@ -311,21 +333,24 @@ export const ResourceHrefOutside = relation.generated(
  * - **the database's:** `documentType`, its type's (`ResourceDocumentType`), which its `Document`
  *   holds.
  */
-export const ResourceDocument = relation.generated(
-  "ResourceDocument",
-  {
-    package: PackageName,
-    path: EntryPath,
-    rootKind: closedId(NodeKind),
-    type: closedId(ResourceType),
-  },
-  ["package", "path"],
-  (r) => ({
-    documentType: generated(
-      closedId(DocumentType),
-      ResourceDocumentType.at("documentType", r.type),
-    ),
-  }),
+export const ResourceDocument = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "ResourceDocument",
+    {
+      package: PackageName,
+      path: EntryPath,
+      rootKind: closedId(NodeKind),
+      type: closedId(ResourceType),
+    },
+    ["package", "path"],
+    (r) => ({
+      documentType: law(
+        entryOf("E1 derived"),
+        generated(closedId(DocumentType), ResourceDocumentType.at("documentType", r.type)),
+      ),
+    }),
+  ),
 );
 
 /**
@@ -336,10 +361,13 @@ export const ResourceDocument = relation.generated(
  * its `Attribute` row's alone, which no row copies (C18). Its resource is its node's parent, which
  * "Href listed" reads through `Node`.
  */
-export const File = relation(
-  "File",
-  { package: PackageName, path: EntryPath, scope: closedId(HrefScope), start: natural },
-  ["package", "path", "start"],
+export const File = law(
+  entryOf("Manifest overlay"),
+  relation(
+    "File",
+    { package: PackageName, path: EntryPath, scope: closedId(HrefScope), start: natural },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -347,10 +375,13 @@ export const File = relation(
  * path it resolves to, which names an entry ("File exists") and which every entry the manifest
  * lists is ("File listed").
  */
-export const FilePath = relation(
-  "FilePath",
-  { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
-  ["package", "path", "start"],
+export const FilePath = law(
+  entryOf("Manifest overlay"),
+  relation(
+    "FilePath",
+    { package: PackageName, path: EntryPath, start: natural, target: EntryPath },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -358,11 +389,16 @@ export const FilePath = relation(
  * its launch parameters aside, of no bound. `targetDigest`, its SHA-256, is what "Href listed" pays
  * for, as {@link ResourceHrefOutside}'s.
  */
-export const FileOutside = relation.generated(
-  "FileOutside",
-  { package: PackageName, path: EntryPath, start: natural, target: anyText },
-  ["package", "path", "start"],
-  (row) => ({ targetDigest: generated(sha256, Crypto.sha256(row.target)) }),
+export const FileOutside = law(
+  entryOf("Manifest overlay"),
+  relation.generated(
+    "FileOutside",
+    { package: PackageName, path: EntryPath, start: natural, target: anyText },
+    ["package", "path", "start"],
+    (row) => ({
+      targetDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(row.target))),
+    }),
+  ),
 );
 
 /**
@@ -383,21 +419,24 @@ export const FileOutside = relation.generated(
  * `E1_derived` holds what the written form decides: a target with a scheme or a leading `/` is
  * external, and only an empty target names its own document.
  */
-export const Reference = relation(
-  "Reference",
-  {
-    kind: closedId(NodeKind),
-    lead: Space,
-    name: closedId(AttributeName),
-    package: PackageName,
-    params: HrefParams,
-    path: EntryPath,
-    scope: closedId(HrefScope),
-    start: natural,
-    target: anyText,
-    trail: Space,
-  },
-  ["package", "path", "start", "name"],
+export const Reference = law(
+  entryOf("Reference overlay"),
+  relation(
+    "Reference",
+    {
+      kind: closedId(NodeKind),
+      lead: Space,
+      name: closedId(AttributeName),
+      package: PackageName,
+      params: HrefParams,
+      path: EntryPath,
+      scope: closedId(HrefScope),
+      start: natural,
+      target: anyText,
+      trail: Space,
+    },
+    ["package", "path", "start", "name"],
+  ),
 );
 
 /**
@@ -409,17 +448,20 @@ export const Reference = relation(
  * 1.2, InterchangePackage (d)), and a law that reads what a reference names (an item ref's item,
  * Q5.13's) reads it here. `target` is an `EntryPath`: it rides the containment into `Entry`.
  */
-export const ReferencePath = relation(
-  "ReferencePath",
-  {
-    kind: closedId(NodeKind),
-    name: closedId(AttributeName),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    target: EntryPath,
-  },
-  ["package", "path", "start", "name"],
+export const ReferencePath = law(
+  entryOf("Reference overlay"),
+  relation(
+    "ReferencePath",
+    {
+      kind: closedId(NodeKind),
+      name: closedId(AttributeName),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      target: EntryPath,
+    },
+    ["package", "path", "start", "name"],
+  ),
 );
 
 /**
@@ -434,20 +476,23 @@ export const ReferencePath = relation(
  * Its {@link HrefScope} is the importer's resolution of its text (readings 102 and 103): a text
  * reference in the package has its {@link TextReferencePath}, and no other has one.
  */
-export const TextReference = relation(
-  "TextReference",
-  {
-    kind: closedId(NodeKind),
-    lead: Space,
-    package: PackageName,
-    params: HrefParams,
-    path: EntryPath,
-    scope: closedId(HrefScope),
-    start: natural,
-    target: anyText,
-    trail: Space,
-  },
-  ["package", "path", "start"],
+export const TextReference = law(
+  entryOf("Reference overlay"),
+  relation(
+    "TextReference",
+    {
+      kind: closedId(NodeKind),
+      lead: Space,
+      package: PackageName,
+      params: HrefParams,
+      path: EntryPath,
+      scope: closedId(HrefScope),
+      start: natural,
+      target: anyText,
+      trail: Space,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -456,16 +501,19 @@ export const TextReference = relation(
  * (RFC 3986, §5.2 and §2.1; readings 102 and 103), which rides the containment into `Entry` as a
  * {@link ReferencePath}'s does.
  */
-export const TextReferencePath = relation(
-  "TextReferencePath",
-  {
-    kind: closedId(NodeKind),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    target: EntryPath,
-  },
-  ["package", "path", "start"],
+export const TextReferencePath = law(
+  entryOf("Reference overlay"),
+  relation(
+    "TextReferencePath",
+    {
+      kind: closedId(NodeKind),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      target: EntryPath,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -486,18 +534,21 @@ export const TextReferencePath = relation(
  *   so a `srcset` has no byte bound of its own, only each candidate's URL
  *   ({@link SrcsetCandidateUrl}).
  */
-export const Srcset = relation.generated(
-  "Srcset",
-  {
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    tokenText: tokenFields.piecesWas,
-    tokens: tokenFields.at,
-    trail: SrcsetGap,
-  },
-  ["package", "path", "start"],
-  (s) => tokenTextDigest(s),
+export const Srcset = law(
+  entryOf("Reference overlay"),
+  relation.generated(
+    "Srcset",
+    {
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      tokenText: tokenFields.piecesWas,
+      tokens: tokenFields.at,
+      trail: SrcsetGap,
+    },
+    ["package", "path", "start"],
+    (s) => tokenTextDigest(s),
+  ),
 );
 
 /**
@@ -517,25 +568,31 @@ export const Srcset = relation.generated(
  * - **drawn:** `at`;
  * - **accumulated:** `piecesWas` and `piecesAfter`, the concatenation before and after it.
  */
-export const SrcsetCandidate = relation.generated(
-  "SrcsetCandidate",
-  {
-    at: drawn(natural),
-    descriptor: SrcsetDescriptor,
-    lead: SrcsetGap,
-    package: PackageName,
-    path: EntryPath,
-    piecesAfter: tokenFields.piecesAfter,
-    piecesWas: tokenFields.piecesWas,
-    scope: closedId(HrefScope),
-    start: natural,
-    url: SrcsetCandidateUrl,
-  },
-  ["package", "path", "start", "at"],
-  (c) => ({
-    piece: generated(anyText, Text.concat(Text.concat(c.lead, c.url), c.descriptor)),
-    ...piecesDigests(c),
-  }),
+export const SrcsetCandidate = law(
+  entryOf("Reference overlay"),
+  relation.generated(
+    "SrcsetCandidate",
+    {
+      at: drawn(natural),
+      descriptor: SrcsetDescriptor,
+      lead: SrcsetGap,
+      package: PackageName,
+      path: EntryPath,
+      piecesAfter: tokenFields.piecesAfter,
+      piecesWas: tokenFields.piecesWas,
+      scope: closedId(HrefScope),
+      start: natural,
+      url: SrcsetCandidateUrl,
+    },
+    ["package", "path", "start", "at"],
+    (c) => ({
+      piece: law(
+        entryOf("E1 derived"),
+        generated(anyText, Text.concat(Text.concat(c.lead, c.url), c.descriptor)),
+      ),
+      ...piecesDigests(c),
+    }),
+  ),
 );
 
 /**
@@ -543,16 +600,19 @@ export const SrcsetCandidate = relation.generated(
  * candidates: `target`, the entry path the importer resolved its URL to in the row's own package,
  * which rides the containment into `Entry` as a {@link ReferencePath}'s does.
  */
-export const CandidatePath = relation(
-  "CandidatePath",
-  {
-    at: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    target: EntryPath,
-  },
-  ["package", "path", "start", "at"],
+export const CandidatePath = law(
+  entryOf("Reference overlay"),
+  relation(
+    "CandidatePath",
+    {
+      at: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      target: EntryPath,
+    },
+    ["package", "path", "start", "at"],
+  ),
 );
 
 /**

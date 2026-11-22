@@ -27,16 +27,16 @@
  */
 import {
   accumulated,
-  Bits,
   bits,
+  Bits,
   check,
   closed,
   closedId,
   contained,
   drawn,
   generated,
+  law,
   mirrors,
-  natural,
   on,
   pg,
   relation,
@@ -59,7 +59,7 @@ import {
 import { EntryPath, foreignNameBytes, PackageName, xmlNameBytes } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * XML 1.0's `Char` as the body of a class: tab, line feed, carriage return and every scalar from
@@ -144,7 +144,10 @@ const charNoDash =
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const CommentText = str.regex(`^(?:[${charNoDash}]|-[${charNoDash}])*$`);
+export const CommentText = law(
+  entryOf("XML production"),
+  str.regex(`^(?:[${charNoDash}]|-[${charNoDash}])*$`),
+);
 
 /**
  * A processing instruction's target: an NCName other than `xml` in any letter case, which XML
@@ -157,8 +160,11 @@ export const CommentText = str.regex(`^(?:[${charNoDash}]|-[${charNoDash}])*$`);
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const PiTarget = str.regex(
-  `^(?:[${ncStart}][${ncChar}]?|[A-WYZ_a-wyz${nameStartWide}][${ncChar}]{2}|[Xx](?:[\\-.0-9A-LN-Z_a-ln-z${nameStartWide}${nameCharWide}][${ncChar}]|[Mm][\\-.0-9A-KM-Z_a-km-z${nameStartWide}${nameCharWide}])|[${ncStart}][${ncChar}]{3}[${ncChar}]*)$`,
+export const PiTarget = law(
+  entryOf("XML production"),
+  str.regex(
+    `^(?:[${ncStart}][${ncChar}]?|[A-WYZ_a-wyz${nameStartWide}][${ncChar}]{2}|[Xx](?:[\\-.0-9A-LN-Z_a-ln-z${nameStartWide}${nameCharWide}][${ncChar}]|[Mm][\\-.0-9A-KM-Z_a-km-z${nameStartWide}${nameCharWide}])|[${ncStart}][${ncChar}]{3}[${ncChar}]*)$`,
+  ),
 );
 
 /**
@@ -191,8 +197,11 @@ const piDataRest = `(?:[${charNoQuestion}]|\\?+[${charNoClose}])*\\?*`;
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const PiData = str.regex(
-  `^(?:[\\u{21}-\\u{3E}\\u{40}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-\\u{10FFFF}]${piDataRest}|\\?+(?:[${charNoClose}]${piDataRest})?)?$`,
+export const PiData = law(
+  entryOf("XML production"),
+  str.regex(
+    `^(?:[\\u{21}-\\u{3E}\\u{40}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-\\u{10FFFF}]${piDataRest}|\\?+(?:[${charNoClose}]${piDataRest})?)?$`,
+  ),
 );
 
 /**
@@ -203,7 +212,10 @@ export const PiData = str.regex(
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const DoctypeText = str.regex(`^<!DOCTYPE[ \\t\\n\\r][${xmlChar}]*>$`);
+export const DoctypeText = law(
+  entryOf("XML production"),
+  str.regex(`^<!DOCTYPE[ \\t\\n\\r][${xmlChar}]*>$`),
+);
 
 /**
  * An encoding name, as an XML declaration's `encoding` and the reader's charset labels spell it.
@@ -212,7 +224,7 @@ export const DoctypeText = str.regex(`^<!DOCTYPE[ \\t\\n\\r][${xmlChar}]*>$`);
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const EncName = str.regex("^[A-Za-z][A-Za-z0-9._\\-]*$");
+export const EncName = law(entryOf("XML production"), str.regex("^[A-Za-z][A-Za-z0-9._\\-]*$"));
 
 /**
  * The XML declaration's `version`, a `VersionNum`, as {@link XmlDecl} holds it.
@@ -224,7 +236,7 @@ export const EncName = str.regex("^[A-Za-z][A-Za-z0-9._\\-]*$");
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const XmlVersion = str.regex("^1\\.[0-9]+$");
+export const XmlVersion = law(entryOf("XML production"), str.regex("^1\\.[0-9]+$"));
 
 /**
  * The values an XML declaration's `standalone` is written with, as {@link SdDecl} holds them.
@@ -247,9 +259,9 @@ export const XmlStandalone = closed.ordered("XmlStandalone", ["yes", "no"]);
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const NamespacePrefix = str.bytes(
-  xmlNameBytes,
-  str.regex(`^(?:[${ncStart}][${ncChar}]*)?$`),
+export const NamespacePrefix = law(
+  entryOf("Key text bound"),
+  str.bytes(xmlNameBytes, str.regex(`^(?:[${ncStart}][${ncChar}]*)?$`)),
 );
 
 /**
@@ -273,7 +285,7 @@ export const NamespacePrefix = str.bytes(
  * @see {@link https://www.w3.org/TR/xml-names/#ns-decl | Namespaces in XML 1.0, §3 Declaring Namespaces}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-4.1 | RFC 3986, §4.1 URI Reference}
  */
-export const NamespaceUri = str.regex(`^${uriReference}$`);
+export const NamespaceUri = law(entryOf("Namespace name"), str.regex(`^${uriReference}$`));
 
 /**
  * A foreign element's namespace name, empty for none, of XML `Char`s and at most `foreignNameBytes`
@@ -284,7 +296,7 @@ export const NamespaceUri = str.regex(`^${uriReference}$`);
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const ForeignNamespace = str.bytes(foreignNameBytes, Chars);
+export const ForeignNamespace = law(entryOf("Key text bound"), str.bytes(foreignNameBytes, Chars));
 
 /**
  * A foreign element's local name: an NCName of at most `foreignNameBytes` UTF-8 bytes
@@ -296,7 +308,10 @@ export const ForeignNamespace = str.bytes(foreignNameBytes, Chars);
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const ForeignLocal = str.bytes(foreignNameBytes, str.regex(`^${ncName}$`));
+export const ForeignLocal = law(
+  entryOf("Key text bound"),
+  str.bytes(foreignNameBytes, str.regex(`^${ncName}$`)),
+);
 
 /**
  * A foreign element's expanded name as `namespace}local`, its {@link OpenElementName}'s `expanded`:
@@ -305,33 +320,45 @@ export const ForeignLocal = str.bytes(foreignNameBytes, str.regex(`^${ncName}$`)
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const ExpandedName = str.bytes(foreignNameBytes + 1 + foreignNameBytes, Chars);
+export const ExpandedName = law(
+  entryOf("Key text bound"),
+  str.bytes(foreignNameBytes + 1 + foreignNameBytes, Chars),
+);
 
 /**
  * A comment node's text, keyed by its node (`XdmComment`).
  */
-export const Comment = relation(
-  "Comment",
-  { package: PackageName, path: EntryPath, start: natural, value: CommentText },
-  ["package", "path", "start"],
+export const Comment = law(
+  entryOf("comment arm"),
+  relation(
+    "Comment",
+    { package: PackageName, path: EntryPath, start: natural, value: CommentText },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
  * A processing instruction node's target and data, keyed by its node (`XdmPi`).
  */
-export const Pi = relation(
-  "Pi",
-  { data: PiData, package: PackageName, path: EntryPath, start: natural, target: PiTarget },
-  ["package", "path", "start"],
+export const Pi = law(
+  entryOf("pi arm"),
+  relation(
+    "Pi",
+    { data: PiData, package: PackageName, path: EntryPath, start: natural, target: PiTarget },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
  * The document node's doctype child, its declaration as written, keyed by its node (`XdmDoctype`).
  */
-export const Doctype = relation(
-  "Doctype",
-  { package: PackageName, path: EntryPath, start: natural, value: DoctypeText },
-  ["package", "path", "start"],
+export const Doctype = law(
+  entryOf("doctype arm"),
+  relation(
+    "Doctype",
+    { package: PackageName, path: EntryPath, start: natural, value: DoctypeText },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -378,29 +405,32 @@ export const Doctype = relation(
  *   UNIQUE that holds a reference's column set in whatever order it lists the columns, so the
  *   containment shares that UNIQUE on `Node` and adds no index.
  */
-export const Document = relation(
-  "Document",
-  {
-    assembled: pg.boolean,
-    bindings: drawn(natural),
-    charset: EncName,
-    choices: drawn(natural),
-    context: accumulated(bits(Flag), Bits.of(Flag, [])),
-    contextNearest: natural,
-    contextNearestKind: closedId(NodeKind),
-    contextPath: EntryPath,
-    documentType: closedId(DocumentType),
-    exportCharset: EncName,
-    hottexts: drawn(natural),
-    idrefTargets: drawn(natural),
-    ids: drawn(natural),
-    nodeChildren: natural,
-    package: PackageName,
-    path: EntryPath,
-    rootKind: closedId(NodeKind),
-    targetedBy: drawn(natural),
-  },
-  ["package", "path"],
+export const Document = law(
+  entryOf("Document"),
+  relation(
+    "Document",
+    {
+      assembled: pg.boolean,
+      bindings: drawn(natural),
+      charset: EncName,
+      choices: drawn(natural),
+      context: accumulated(bits(Flag), Bits.of(Flag, [])),
+      contextNearest: natural,
+      contextNearestKind: closedId(NodeKind),
+      contextPath: EntryPath,
+      documentType: closedId(DocumentType),
+      exportCharset: EncName,
+      hottexts: drawn(natural),
+      idrefTargets: drawn(natural),
+      ids: drawn(natural),
+      nodeChildren: natural,
+      package: PackageName,
+      path: EntryPath,
+      rootKind: closedId(NodeKind),
+      targetedBy: drawn(natural),
+    },
+    ["package", "path"],
+  ),
 );
 
 /**
@@ -410,10 +440,12 @@ export const Document = relation(
  *
  * @see {@link https://www.w3.org/TR/xml/#NT-XMLDecl | XML 1.0, XMLDecl}
  */
-export const XmlDecl = relation(
-  "XmlDecl",
-  { package: PackageName, path: EntryPath, version: XmlVersion },
-  ["package", "path"],
+export const XmlDecl = law(
+  entryOf("Document"),
+  relation("XmlDecl", { package: PackageName, path: EntryPath, version: XmlVersion }, [
+    "package",
+    "path",
+  ]),
 );
 
 /**
@@ -423,10 +455,12 @@ export const XmlDecl = relation(
  *
  * @see {@link https://www.w3.org/TR/xml/#NT-EncodingDecl | XML 1.0, EncodingDecl}
  */
-export const EncodingDecl = relation(
-  "EncodingDecl",
-  { encoding: EncName, package: PackageName, path: EntryPath },
-  ["package", "path"],
+export const EncodingDecl = law(
+  entryOf("Document"),
+  relation("EncodingDecl", { encoding: EncName, package: PackageName, path: EntryPath }, [
+    "package",
+    "path",
+  ]),
 );
 
 /**
@@ -435,10 +469,13 @@ export const EncodingDecl = relation(
  *
  * @see {@link https://www.w3.org/TR/xml/#NT-SDDecl | XML 1.0, SDDecl}
  */
-export const SdDecl = relation(
-  "SdDecl",
-  { package: PackageName, path: EntryPath, standalone: closedId(XmlStandalone) },
-  ["package", "path"],
+export const SdDecl = law(
+  entryOf("Document"),
+  relation(
+    "SdDecl",
+    { package: PackageName, path: EntryPath, standalone: closedId(XmlStandalone) },
+    ["package", "path"],
+  ),
 );
 
 /**
@@ -448,16 +485,19 @@ export const SdDecl = relation(
  * distinct by name). Its element is its node ("Namespace family"); no law reads how many an element
  * holds, so no count of them is stored.
  */
-export const Namespace = relation(
-  "Namespace",
-  {
-    package: PackageName,
-    path: EntryPath,
-    prefix: NamespacePrefix,
-    start: natural,
-    uri: NamespaceUri,
-  },
-  ["package", "path", "start", "prefix"],
+export const Namespace = law(
+  entryOf("Namespace family"),
+  relation(
+    "Namespace",
+    {
+      package: PackageName,
+      path: EntryPath,
+      prefix: NamespacePrefix,
+      start: natural,
+      uri: NamespaceUri,
+    },
+    ["package", "path", "start", "prefix"],
+  ),
 );
 
 /**
@@ -470,19 +510,25 @@ export const Namespace = relation(
  * foreign parent) are read where its laws need them, through `Node`
  * (`#pantry/qti/overlay-queries/chardata.ts`).
  */
-export const OpenElementName = relation.generated(
-  "OpenElementName",
-  {
-    local: ForeignLocal,
-    namespace: ForeignNamespace,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
-  (o) => ({
-    expanded: generated(ExpandedName, Text.concat(Text.concat(o.namespace, "}"), o.local)),
-  }),
+export const OpenElementName = law(
+  entryOf("OpenElementName"),
+  relation.generated(
+    "OpenElementName",
+    {
+      local: ForeignLocal,
+      namespace: ForeignNamespace,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+    (o) => ({
+      expanded: law(
+        entryOf("E1 derived"),
+        generated(ExpandedName, Text.concat(Text.concat(o.namespace, "}"), o.local)),
+      ),
+    }),
+  ),
 );
 
 /**
@@ -496,10 +542,13 @@ export const OpenElementName = relation.generated(
  *   its parent's namespace, which `TypeAvailable` reads the type against, are read through `Node`
  *   (`#pantry/qti/overlay-queries/chardata.ts`).
  */
-export const OpenElementType = relation(
-  "OpenElementType",
-  { package: PackageName, path: EntryPath, start: natural, type: closedId(TypeName) },
-  ["package", "path", "start"],
+export const OpenElementType = law(
+  entryOf("E1 derived"),
+  relation(
+    "OpenElementType",
+    { package: PackageName, path: EntryPath, start: natural, type: closedId(TypeName) },
+    ["package", "path", "start"],
+  ),
 );
 
 /**

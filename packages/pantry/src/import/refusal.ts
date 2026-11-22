@@ -9,12 +9,10 @@
  *
  * - **Laws by name.** Every law the schema states has a name, the law oracle's (`src/test/oracle.ts`
  *   `LawName`) where the oracle states the law, with its rule and its spec source
- *   ({@link lawTable}). An outcome's law is named one way ({@link lawNameOf}): a check by its own
- *   name ({@link lawOfCheck}), and every other law by its id, the one the outcome carries
- *   (grizzle's `RefusedLaw.id`), in the committed dictionary (`#pantry/vocab/law-names.json`),
- *   which `src/test/law-names.ts` generates from the schema's own naming (`src/test/law-namer.ts`)
- *   and `law-names.committed.test.ts` holds to it, so naming a refusal builds no schema. The
- *   dictionary is keyed by the database's law, never a judge.
+ *   ({@link lawTable}). An outcome's law is named one way ({@link lawNameOf}): by the catalog entry
+ *   it carries, which its declaration declares where the schema states it
+ *   (`#pantry/qti/law-entries.ts`), so naming a refusal builds no schema and keeps no table of its
+ *   own.
  * - **A refusal is what the database said.** A family's axis foreign key discharges the family and
  *   every containment and fold merged into it, and its violation names them all. The refusal
  *   carries how grizzle decided them, every law it named and the set of their rules
@@ -25,15 +23,14 @@
  *   its rule, and the witness grizzle gives, its key or none. There is no catalog of messages.
  */
 
-import type { Law, OwnLaw, Refused, Witness } from "@bjornpagen/grizzle";
-import { Array as Arr, Formatter, Option, pipe, Predicate, Schema } from "effect";
+import type { BrokenLaws, Law, OwnLaw, Witness } from "@bjornpagen/grizzle";
+import { Array as Arr, Formatter, Option, pipe, Predicate } from "effect";
 import type { Types } from "effect";
 
 import type { RefusedLaw, RefusalDecision } from "#pantry/package/refusal-origin.ts";
 
 import { ruleOrder, ImportRefused } from "#pantry/import/rules.ts";
 import type { Rule } from "#pantry/import/rules.ts";
-import lawNamesFile from "#pantry/vocab/law-names.json" with { type: "json" };
 import { lawTable } from "#pantry/vocab/laws.ts";
 
 /**
@@ -98,7 +95,7 @@ export interface RefusalLaw {
 type RefusalLawsOf<Laws> = { readonly [At in keyof Laws]: RefusalLaw };
 
 /**
- * A refusal of laws, as the importer reads one: each shape of grizzle's `Refused`, its kind, its
+ * A refusal of laws, as the importer reads one: each shape of grizzle's `BrokenLaws`, its kind, its
  * `own` where it is `above`, and its laws in their positions, read as {@link RefusalLaw}s, so every
  * shape grizzle states is one here and no other is, each with as many laws: `every` and `first`
  * one or more in `laws`, `some` two or more; `above` one or more in `above`, every law of the
@@ -106,7 +103,7 @@ type RefusalLawsOf<Laws> = { readonly [At in keyof Laws]: RefusalLaw };
  * identities, and, where its `own` is `every` and only there, one or more in `laws`, each own law
  * the first stated row breaks. `every`, `first` and `some` hold the login's own laws.
  */
-export type RefusalOf = Refused extends infer Decided
+export type RefusalOf = BrokenLaws extends infer Decided
   ? Decided extends unknown
     ? {
         readonly [Field in keyof Decided]: Field extends "above" | "laws"
@@ -164,95 +161,32 @@ const decisionOf = (refused: RefusalOf): RefusalDecision<RefusalOf> =>
   refused.kind === "above" ? `above ${refused.own}` : refused.kind;
 
 /**
- * What the dictionary tells of one installed law: its name in {@link lawTable}.
- */
-const LawEntry = Schema.Struct({ name: Schema.String });
-
-/**
- * The law-name dictionary's form, `#pantry/vocab/law-names.json`: each installed law the importer
- * names but a check, keyed by its id, the key a refused law carries (grizzle's `RefusedLaw.id`): a
- * law of the theory's and a text pattern's LawId, and a generated field's law's GeneratedLawId.
- *
- * `src/test/law-names.ts` generates it from the schema's own naming (`src/test/law-namer.ts`) and
- * the id grizzle's `lawsOf` gives each law, and `law-names.committed.test.ts` holds the
- * committed file to it and names every law of `lawsOf(Qti)` through both, so the dictionary is the
- * schema's naming, read without building the schema.
- */
-export const LawNamesFileSchema = Schema.Struct({ laws: Schema.Record(Schema.String, LawEntry) });
-
-/**
- * The law-name dictionary, decoded.
- */
-export type LawNamesFile = typeof LawNamesFileSchema.Type;
-
-/**
  * Read a name of {@link lawTable}.
  *
- * @param name - A name as the dictionary writes it.
+ * @param name - A name as a law's entry writes it.
  * @returns The law name, or none for a name the table lacks.
  */
 const lawNamed = (name: string): Option.Option<LawName> =>
   Option.fromUndefinedOr(lawNames.find((known) => known === name));
 
 /**
- * The namer of a law-name dictionary.
- */
-export interface LawNamer {
-  /**
-   * Name a law an outcome refused.
-   *
-   * @param refused - The refused law: the law, its LawId and the object that refused it.
-   * @returns Its name, or none for a law no row of the dictionary or of the tables states.
-   */
-  readonly nameOf: (refused: RefusalLaw) => Option.Option<LawName>;
-}
-
-/**
- * Build the namer of a law-name dictionary. A law is named as the level that states it states it:
- * the login's own law as it is, and the law of a level above the login's, the first law of an
- * `above` refusal, such as a LOM check (`QtiLom` of `#pantry/qti/lom.ts`) refusing a write of a
- * login over `Qti`, as that level's own law (grizzle's `AboveLaw.law`). A statement's law is then
- * named by the catalog entry its statement declares (`#pantry/qti/law-entries.ts`), which the
- * outcome carries; a check no module files is named by its own name ({@link lawOfCheck}); and
- * every other law, one no statement states, by the dictionary's entry of its id. Nothing reads the
- * schema.
+ * Name a law an outcome refused by the catalog entry it carries. A law is named as the level that
+ * states it states it: the login's own law as it is, and the law of a level above the login's, the
+ * first law of an `above` refusal, such as a LOM check (`QtiLom` of `#pantry/qti/lom.ts`) refusing
+ * a write of a login over `Qti`, as that level's own law (grizzle's `AboveLaw.law`). Its entry is
+ * the one its declaration declares (`#pantry/qti/law-entries.ts`), the law table's row of its name,
+ * or, where nothing declares one, the one grizzle derives, which names a check by its own name
+ * ({@link lawOfCheck}) and a law of any other kind by its shape, which no row of the table holds.
+ * Nothing reads the schema.
  *
- * @param file - The dictionary.
- * @returns Its namer.
+ * @param law - A law of an `invariant-rejected` outcome, or one a schema states.
+ * @returns Its name, or none for a law no row of the table names.
  */
-export const namerFrom = (file: LawNamesFile): LawNamer => {
-  const nameOf = ({ id, law }: Pick<RefusalLaw, "id" | "law">): Option.Option<LawName> => {
-    const stated: OwnLaw = law.kind === "above" ? law.law : law;
+export const lawNameOf = (law: Law): Option.Option<LawName> => {
+  const { entry }: OwnLaw = law.kind === "above" ? law.law : law;
 
-    if (stated.entry.kind === "declared") {
-      return lawNamed(stated.entry.name);
-    }
-
-    return stated.kind === "check"
-      ? lawOfCheck(stated.name)
-      : Option.flatMap(Option.fromUndefinedOr(file.laws[id]), ({ name }) => lawNamed(name));
-  };
-
-  return { nameOf };
+  return entry.kind === "declared" ? lawNamed(entry.name) : lawOfCheck(entry.name);
 };
-
-/**
- * The namer of the committed dictionary, `#pantry/vocab/law-names.json`, built once, when this
- * module loads. The file is trusted as its import types it: the typecheck holds its shape to
- * {@link LawNamesFile}, and `law-names.committed.test.ts` holds it to the one the schema
- * generates, so loading it decodes nothing, and a dictionary of a stale shape
- * still loads for its generator to replace.
- */
-const committedNamer = namerFrom(lawNamesFile);
-
-/**
- * Name a law an outcome over `Qti` refused, by the committed dictionary ({@link namerFrom}).
- *
- * @param refused - A law of an `invariant-rejected` outcome.
- * @returns Its name, or none for a law no row of the dictionary or of the tables states.
- */
-export const lawNameOf = (refused: RefusalLaw): Option.Option<LawName> =>
-  committedNamer.nameOf(refused);
 
 /**
  * Read the name PostgreSQL holds the object that refused a law under, as the outcome names it
@@ -272,11 +206,11 @@ export const installedNameOf = ({ by }: RefusalLaw): Option.Option<string> =>
 /**
  * The rule the law table gives a law: its name's row's ({@link lawNameOf}).
  *
- * @param law - A law as an `invariant-rejected` outcome names it.
+ * @param law - A law as an `invariant-rejected` outcome names it, or as a schema states it.
  * @returns Its rule, or none for a law no row of the table states.
  */
-const ruleOfLaw = (refused: RefusalLaw): Option.Option<Rule> =>
-  Option.map(lawNameOf(refused), (name) => lawTable[name].rule);
+export const ruleOfLaw = (law: Law): Option.Option<Rule> =>
+  Option.map(lawNameOf(law), (name) => lawTable[name].rule);
 
 /**
  * The rules a refusal that names `laws` is refused under: the rule of each law the table states,
@@ -288,10 +222,10 @@ const ruleOfLaw = (refused: RefusalLaw): Option.Option<Rule> =>
  * the table states carries no rule, and still prints its text in the refusal; the census in
  * `refusal.oracle.test.ts` keeps every law the schema states in the table.
  *
- * @param laws - The `laws` of an `invariant-rejected` outcome.
+ * @param laws - The laws of an `invariant-rejected` outcome, or of a schema.
  * @returns The rules, none when no law of the set is in the table.
  */
-export const rulesOf = (laws: readonly RefusalLaw[]): readonly Rule[] =>
+export const rulesOf = (laws: readonly Law[]): readonly Rule[] =>
   Arr.sort(Arr.dedupe(laws.flatMap((law) => Option.toArray(ruleOfLaw(law)))), ruleOrder);
 
 /**
@@ -347,7 +281,7 @@ export const explain = (
   laws: Arr.NonEmptyReadonlyArray<RefusalLaw>,
   witness: Witness,
 ): Explanation => {
-  const named = laws.map((refused) => ({ law: refused.law, name: lawNameOf(refused) }));
+  const named = laws.map(({ law }) => ({ law, name: lawNameOf(law) }));
   const lawText = named
     .map(({ law, name }) =>
       Option.match(name, {
@@ -379,7 +313,7 @@ const lawFactOf = (refused: RefusalLaw): typeof RefusedLaw.Type => {
     fact.installed = installed.value;
   }
 
-  const name = lawNameOf(refused);
+  const name = lawNameOf(refused.law);
   if (Option.isSome(name)) {
     fact.name = name.value;
     fact.rule = lawTable[name.value].rule;
@@ -414,6 +348,6 @@ export const refusalOf = (refused: RefusalOf, witness: Witness): ImportRefused =
       sources,
       witness: witness.kind,
     },
-    rules: rulesOf(laws),
+    rules: rulesOf(laws.map(({ law }) => law)),
   });
 };

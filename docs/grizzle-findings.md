@@ -2995,6 +2995,12 @@ forbids. To delete the dictionary, the name would have to travel with the law: a
 a generated field and a contract each carry, written into the served file and carried on `RefusedLaw` (pantry's ask
 #1(b), a name per statement).
 
+**Deleted** at grizzle's LAWNAMES, 2026-11-21: a statement declares its laws' catalog entry (`3739b5fc1`), and so do a
+relation, a generated field, a text type and a contract (`9ed3385ac`), by `law(entry, …)`; every law and every
+`RefusedLaw.law` carries it. `src/import/refusal.ts` `lawNameOf` names a refusal by it, and the dictionary, its
+generator and the namer's tables are gone. grizzle's own contract `natural` takes one too since `aeb883cb6`
+(`src/qti/law-entries.ts` `natural`), so no law of Qti carries the entry grizzle derives.
+
 - **What pantry needs:** the law-name dictionary (`src/vocab/law-names.json`) names every refused law but a check by
   the id its refusal carries (`RefusedLaw.id`, `packages/engine/src/types/changeset/changeset.ts:1184-1194` at
   `b927d999`), so its generator (`src/test/law-names.ts`) must learn each law's id when it runs.

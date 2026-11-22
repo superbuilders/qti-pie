@@ -98,7 +98,7 @@ import {
   contained,
   Crypto,
   generated,
-  natural,
+  law,
   on,
   relation,
   select,
@@ -113,7 +113,7 @@ import { BaseTypePattern, unjudgedBaseTypes } from "#pantry/qti/expression-types
 import { CopiedLexical, EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { usageValueKind } from "#pantry/vocab/terms/metadata.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * The resource types whose LOM record names its document (reading 62): an item's and a test's.
@@ -143,17 +143,20 @@ export const resourceMetadata = "cp:metadata.resource" satisfies (typeof NodeKin
  * type to state for the one and no declaration to type the other, so it is its governing type's
  * `xs:normalizedString` text, which every text is (spec reading 105).
  */
-export const UsageValue = relation.generated(
-  "UsageValue",
-  {
-    baseTypeLexical: CopiedLexical,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    text: anyText,
-  },
-  ["package", "path", "start"],
-  (u) => ({ textDigest: generated(sha256, Crypto.sha256(u.text)) }),
+export const UsageValue = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "UsageValue",
+    {
+      baseTypeLexical: CopiedLexical,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      text: anyText,
+    },
+    ["package", "path", "start"],
+    (u) => ({ textDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(u.text))) }),
+  ),
 );
 
 /**
@@ -164,18 +167,21 @@ export const UsageValue = relation.generated(
  * has no row, so no base type stands for it, and its value domain refuses it alone (decision 427,
  * as `DeclarationBaseType` holds a declaration's base type only where it has one).
  */
-export const UsageValueBaseType = relation.generated(
-  "UsageValueBaseType",
-  {
-    baseType: closedId(BaseType),
-    baseTypeLexical: CopiedLexical,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    text: anyText,
-  },
-  ["package", "path", "start"],
-  (u) => ({ textDigest: generated(sha256, Crypto.sha256(u.text)) }),
+export const UsageValueBaseType = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "UsageValueBaseType",
+    {
+      baseType: closedId(BaseType),
+      baseTypeLexical: CopiedLexical,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      text: anyText,
+    },
+    ["package", "path", "start"],
+    (u) => ({ textDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(u.text))) }),
+  ),
 );
 
 /**

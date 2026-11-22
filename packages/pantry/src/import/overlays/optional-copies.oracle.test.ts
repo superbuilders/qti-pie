@@ -38,7 +38,7 @@ import { writePackage } from "#pantry/test/gen/every-relation.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
 import { hostVerdictOf } from "#pantry/test/gen/genetic/host-laws.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { schemaLawNameOf } from "#pantry/test/law-namer.ts";
+import { lawNameOf } from "#pantry/import/refusal.ts";
 import { nameOf as packageNameOf } from "#pantry/test/package-name.ts";
 
 /**
@@ -174,7 +174,7 @@ const placeOf = ({ path, start }: { readonly path: string; readonly start: bigin
  */
 const describeLaw = (law: Law): string =>
   `${law.kind === "contained" ? `${law.from.relation} ⊆ ${law.to.relation}` : law.kind}, ${Option.match(
-    schemaLawNameOf(law),
+    lawNameOf(law),
     { onNone: () => "named by no law", onSome: (name) => `"${name}"` },
   )}`;
 

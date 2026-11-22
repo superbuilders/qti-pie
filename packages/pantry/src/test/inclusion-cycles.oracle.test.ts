@@ -31,7 +31,7 @@ import { previewRowsOf, judge as judgeRows, judgedLaws } from "#pantry/test/host
 import { keyBreachesOf } from "#pantry/test/key-breaches.ts";
 import { judge } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
-import { schemaLawNameOf } from "#pantry/test/law-namer.ts";
+import { lawNameOf } from "#pantry/import/refusal.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
@@ -105,7 +105,7 @@ const rowsOfCase = (files: readonly PackageFile[]) =>
           ({ fields, law, relation }) => `${law}: ${relation}(${fields.join(", ")})`,
         ),
         laws: broken.map(({ law }) => Formatter.format(law)),
-        rules: [...new Set(broken.flatMap(({ law }) => Option.toArray(schemaLawNameOf(law))))],
+        rules: [...new Set(broken.flatMap(({ law }) => Option.toArray(lawNameOf(law))))],
         unplaced: rows.AssembledDocument.flatMap(({ path: entry }) =>
           placed.has(entry) ? [] : [entry],
         ),

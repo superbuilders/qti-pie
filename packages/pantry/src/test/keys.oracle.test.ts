@@ -66,7 +66,8 @@ import {
   keyTextFields,
 } from "#pantry/test/key-copies.ts";
 import { judge, ruleOf } from "#pantry/test/oracle.ts";
-import { schemaRuleOfLaw, statedLaws } from "#pantry/test/law-namer.ts";
+import { statedLaws } from "#pantry/test/law-namer.ts";
+import { ruleOfLaw } from "#pantry/import/refusal.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
@@ -883,7 +884,7 @@ const databaseRules = (refused: ReadonlySet<string>): ReadonlySet<string> =>
 
       return statedLaws().flatMap(([law]) =>
         law.kind === "contained" && law.to.relation === relation
-          ? Option.toArray(schemaRuleOfLaw(law))
+          ? Option.toArray(ruleOfLaw(law))
           : [],
       );
     }),

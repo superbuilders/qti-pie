@@ -49,26 +49,29 @@
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Card | QTI 3.0 information model, §5.26 Card}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_CardEntry | QTI 3.0 information model, §5.27 CardEntry}
  */
-import { check, contained, key, natural, on, relation } from "@bjornpagen/grizzle";
+import { check, contained, key, law, on, relation } from "@bjornpagen/grizzle";
 import { attributesOf } from "#pantry/qti/attributes.ts";
 import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * One `qti-catalog` that carries an ID, keyed by its element: its `id`, the ID's value as `IdValue`
  * (`#pantry/qti/names.ts`) holds it (an `xs:ID` collapsed), with `owner` the element's own start,
  * an attribute ID's binding, so its copy shares the superkey `IdValue` reads.
  */
-export const CatalogId = relation(
-  "CatalogId",
-  {
-    id: XmlId,
-    owner: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const CatalogId = law(
+  entryOf("E1 derived"),
+  relation(
+    "CatalogId",
+    {
+      id: XmlId,
+      owner: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -76,16 +79,19 @@ export const CatalogId = relation(
  * the id: the query `AssembledId` of the assembly, its owner, `(path, owner)`, a {@link CatalogId}'s
  * element.
  */
-export const AssembledCatalog = relation(
-  "AssembledCatalog",
-  {
-    assembly: EntryPath,
-    id: XmlId,
-    owner: natural,
-    package: PackageName,
-    path: EntryPath,
-  },
-  ["package", "assembly", "id"],
+export const AssembledCatalog = law(
+  entryOf("E1 derived"),
+  relation(
+    "AssembledCatalog",
+    {
+      assembly: EntryPath,
+      id: XmlId,
+      owner: natural,
+      package: PackageName,
+      path: EntryPath,
+    },
+    ["package", "assembly", "id"],
+  ),
 );
 
 /**

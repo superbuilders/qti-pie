@@ -50,7 +50,7 @@
  * @see {@link https://html.spec.whatwg.org/multipage/media.html#the-track-element | HTML, the track element}
  * @see {@link https://html.spec.whatwg.org/multipage/tables.html#attr-tdth-headers | HTML, the headers attribute}
  */
-import { check, contained, key, mirrors, natural, on, relation, select } from "@bjornpagen/grizzle";
+import { check, contained, key, law, mirrors, on, relation, select } from "@bjornpagen/grizzle";
 import { Attribute, attributesOf, carries } from "#pantry/qti/attributes.ts";
 import { thIdAttributes } from "#pantry/qti/identity.ts";
 import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
@@ -63,7 +63,7 @@ import {
   whitespaceTokens,
 } from "#pantry/qti/token-list.ts";
 import { cellKinds } from "#pantry/vocab/terms/html.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * The kinds of the media elements, whose `source` children carry `src` (reading 124).
@@ -79,10 +79,13 @@ const mediaKinds = ["audio", "video"] as const;
  * The element's kind and parent are its node's, which the scope's laws read through `Node`
  * (`#pantry/qti/overlay-queries/html.ts`).
  */
-export const TableScope = relation(
-  "TableScope",
-  { package: PackageName, path: EntryPath, start: natural, table: natural },
-  ["package", "path", "start"],
+export const TableScope = law(
+  entryOf("E1 derived"),
+  relation(
+    "TableScope",
+    { package: PackageName, path: EntryPath, start: natural, table: natural },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -97,17 +100,20 @@ export const TableScope = relation(
  *
  * Its table is its cell's {@link TableScope}, which "Table headers" reads through a query.
  */
-export const CellHeaders = relation.generated(
-  "CellHeaders",
-  {
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    tokenText: tokenFields.piecesWas,
-    tokens: tokenFields.at,
-  },
-  ["package", "path", "start"],
-  (c) => tokenTextDigest(c),
+export const CellHeaders = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "CellHeaders",
+    {
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      tokenText: tokenFields.piecesWas,
+      tokens: tokenFields.at,
+    },
+    ["package", "path", "start"],
+    (c) => tokenTextDigest(c),
+  ),
 );
 
 /**
@@ -121,7 +127,7 @@ export const CellHeaders = relation.generated(
  *
  * Its cell's table is the cell's {@link TableScope}, which "Table headers" reads through a query.
  */
-export const HeaderToken = listTokens("HeaderToken");
+export const HeaderToken = law(entryOf("E1 derived"), listTokens("HeaderToken"));
 
 /**
  * One `th` that carries an ID, keyed by the `th`: its `id`, the ID's value as `IdValue`
@@ -129,16 +135,19 @@ export const HeaderToken = listTokens("HeaderToken");
  * attribute ID's binding, so its copy shares the superkey `PlacedId` reads. Its table is its
  * {@link TableScope}'s, which "Table headers" and its key read through a query.
  */
-export const TableHeader = relation(
-  "TableHeader",
-  {
-    id: XmlId,
-    owner: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const TableHeader = law(
+  entryOf("E1 derived"),
+  relation(
+    "TableHeader",
+    {
+      id: XmlId,
+      owner: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**

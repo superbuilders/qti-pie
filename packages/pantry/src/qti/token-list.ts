@@ -43,8 +43,8 @@ import {
   fin,
   fold,
   generated,
+  law,
   Monoid,
-  natural,
   on,
   ordered,
   relation,
@@ -54,6 +54,7 @@ import {
 } from "@bjornpagen/grizzle";
 import { EntryPath, PackageName, XmlId } from "#pantry/qti/limits.ts";
 import { anyText } from "#pantry/grammar/install.ts";
+import { entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * XML whitespace `S`, possibly none. A lexical form holds it around its token or value: every
@@ -62,7 +63,7 @@ import { anyText } from "#pantry/grammar/install.ts";
  *
  * @see {@link https://www.w3.org/TR/xml/#NT-S | XML 1.0, S}
  */
-export const Space = str.regex("^[\\t\\n\\r ]*$");
+export const Space = law(entryOf("E1 derived"), str.regex("^[\\t\\n\\r ]*$"));
 
 /**
  * {@link Space}'s language as a pattern a law matches a text against: XML whitespace `S`,
@@ -116,8 +117,8 @@ type TokenRow = RowScalars<Relation<string, typeof tokenFields, readonly ["at"]>
  * @returns Its generated digests.
  */
 export const piecesDigests = (t: Pick<TokenRow, "piecesAfter" | "piecesWas">) => ({
-  piecesAfterDigest: generated(sha256, Crypto.sha256(t.piecesAfter)),
-  piecesWasDigest: generated(sha256, Crypto.sha256(t.piecesWas)),
+  piecesAfterDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(t.piecesAfter))),
+  piecesWasDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(t.piecesWas))),
 });
 
 /**
@@ -137,7 +138,7 @@ type OwnerRow = RowScalars<
  * @returns Its generated digest.
  */
 export const tokenTextDigest = (o: OwnerRow) => ({
-  tokenTextDigest: generated(sha256, Crypto.sha256(o.tokenText)),
+  tokenTextDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(o.tokenText))),
 });
 
 /**
@@ -150,7 +151,10 @@ export const tokenTextDigest = (o: OwnerRow) => ({
 export const tokenPiece = (
   t: Pick<TokenRow, "after" | "before" | "piecesAfter" | "piecesWas" | "token">,
 ) => ({
-  piece: generated(anyText, Text.concat(Text.concat(t.before, t.token), t.after)),
+  piece: law(
+    entryOf("E1 derived"),
+    generated(anyText, Text.concat(Text.concat(t.before, t.token), t.after)),
+  ),
   ...piecesDigests(t),
 });
 

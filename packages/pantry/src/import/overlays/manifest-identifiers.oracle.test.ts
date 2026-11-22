@@ -40,7 +40,7 @@ import { hostVerdictOf } from "#pantry/test/gen/genetic/host-laws.ts";
 import { judge, lawsOf, verdictOf } from "#pantry/test/oracle.ts";
 import { item } from "#pantry/test/probe.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
-import { schemaRulesOf } from "#pantry/test/law-namer.ts";
+import { rulesOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
 /**
@@ -385,7 +385,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                 // rule over the query IdBinding, which the host does not judge either.
                 if ([...oracleLaws].every((law) => judged.has(law))) {
                   assert.strictEqual(
-                    Option.getOrUndefined(Arr.head(schemaRulesOf(host.brokenLaws))),
+                    Option.getOrUndefined(Arr.head(rulesOf(host.brokenLaws))),
                     verdict.verdict === "accepted" ? undefined : verdict.rule,
                     `${manifest}: the import's rows, judged on the host, refused under the oracle's rule`,
                   );

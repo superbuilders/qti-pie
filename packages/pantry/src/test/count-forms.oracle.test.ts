@@ -25,7 +25,7 @@ import { Qti } from "#pantry/qti/schema.ts";
 import { everyRelationPackage, scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
 import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
-import { schemaRulesOf } from "#pantry/test/law-namer.ts";
+import { rulesOf } from "#pantry/import/refusal.ts";
 import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 import { nodePlacesOf, placeKey } from "#pantry/test/places.ts";
@@ -227,7 +227,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("a count's value", (it)
                 const rule =
                   first === undefined
                     ? Option.none()
-                    : Option.orElse(Arr.head(schemaRulesOf([first, ...rest])), () =>
+                    : Option.orElse(Arr.head(rulesOf([first, ...rest])), () =>
                         Option.some("unnamed"),
                       );
                 assert.deepStrictEqual(

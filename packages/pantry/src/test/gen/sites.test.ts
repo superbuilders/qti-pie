@@ -39,7 +39,8 @@ import {
 } from "#pantry/test/gen/sites.ts";
 import type { HrefCase, SiteBox, SiteName } from "#pantry/test/gen/sites.ts";
 import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
-import { schemaRuleOfLaw } from "#pantry/test/law-namer.ts";
+import { ruleOfLaw } from "#pantry/import/refusal.ts";
+import { includeTargetBreachesOf } from "#pantry/test/placed-includes.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
 /**
@@ -194,13 +195,18 @@ const heldPlaceOf = (row: HeldRow): string =>
 /**
  * Judge each site's rows by the schema's own statements, the site laws, over the rows the import's
  * write stores, each breach named by refusal.ts's rule for its law, by the site it is the row of.
+ * "Include target" is a containment out of the query `PlacedIncludePath`, which the host judge
+ * leaves to the database, so its breaches are read from its restatement over the same rows
+ * (`#pantry/test/placed-includes.ts`): an include naming an entry that is no document breaks it
+ * alone, as the database refuses it.
  *
  * @param inputs - The package's import inputs.
  * @returns The rules each site's rows break, by its element's key ({@link heldPlaceOf}); the case fails
  *   where the host leaves a site law unjudged.
  */
 const schemaRules = (inputs: PackageInputs): ReadonlyMap<string, ReadonlySet<string>> => {
-  const { broken, skipped } = judge(previewRowsOf(inputs), siteLaws);
+  const rows = previewRowsOf(inputs);
+  const { broken, skipped } = judge(rows, siteLaws);
   assert.deepStrictEqual(
     skipped.map(({ unjudged }) => unjudged),
     [],
@@ -208,12 +214,16 @@ const schemaRules = (inputs: PackageInputs): ReadonlyMap<string, ReadonlySet<str
   );
 
   const rules = new Map<string, Set<string>>();
-  for (const { law, rows } of broken) {
-    const rule =
-      law.kind === "check"
-        ? "file-exists"
-        : Option.getOrElse(schemaRuleOfLaw(law), () => "unnamed");
-    for (const row of rows) {
+  const breaches = [
+    ...broken.map(({ law, rows: held }) => ({
+      held,
+      rule:
+        law.kind === "check" ? "file-exists" : Option.getOrElse(ruleOfLaw(law), () => "unnamed"),
+    })),
+    { held: includeTargetBreachesOf(rows), rule: "include-target" },
+  ];
+  for (const { held, rule } of breaches) {
+    for (const row of held) {
       const at = heldPlaceOf(row);
       rules.set(at, new Set([...(rules.get(at) ?? []), rule]));
     }

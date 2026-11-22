@@ -10,8 +10,8 @@
  * A query is over the stored level or its views, and no law of either reads one, so the queries and
  * their rules live here, in a module `base.ts` never imports, and `Qti` (`#pantry/qti/schema.ts`)
  * is the level that holds them. Each domain's rules are grouped by the law each states, as every
- * module's are, in {@link queryLawsByName} beside the rules, so the schema's own naming of its laws
- * reads them (`#pantry/test/law-namer.ts` `namedLaws`).
+ * module's are, in {@link queryLawsByName} beside the rules, so the tests' reading of the laws by
+ * name reads them (`#pantry/test/law-namer.ts` `namedLaws`).
  *
  * A derived relation's definition reads only the levels below its own, never another derived
  * relation of this level (grizzle's `admitExtend`), so a definition several queries share is a

@@ -51,9 +51,9 @@ import {
   closedId,
   contained,
   generated,
+  law,
   Logic,
   mirrors,
-  natural,
   on,
   pg,
   relation,
@@ -73,7 +73,7 @@ import {
 } from "#pantry/qti/token-list.ts";
 import { roundingKinds, roundingModes } from "#pantry/vocab/terms/operators.ts";
 import { anyText } from "#pantry/grammar/install.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * Which of reading 119's two inputs a rounding operator has, its {@link Rounding} row's `holds`:
@@ -136,15 +136,18 @@ export const positivePattern = Text.pattern(
  * the one exactly where its `holds` says, and {@link RoundingModeFigures} exactly where it is
  * `both`.
  */
-export const Rounding = relation(
-  "Rounding",
-  {
-    holds: closedId(RoundingHolds),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const Rounding = law(
+  entryOf("E1 derived"),
+  relation(
+    "Rounding",
+    {
+      holds: closedId(RoundingHolds),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -152,13 +155,19 @@ export const Rounding = relation(
  * `figuresLexical` as written, copied from the attribute, and `figures`, that form collapsed, which
  * the database derives.
  */
-export const RoundingFigures = relation.generated(
-  "RoundingFigures",
-  { figuresLexical: CopiedLexical, package: PackageName, path: EntryPath, start: natural },
-  ["package", "path", "start"],
-  (f) => ({
-    figures: generated(CopiedLexical, Text.collapse(f.figuresLexical)),
-  }),
+export const RoundingFigures = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "RoundingFigures",
+    { figuresLexical: CopiedLexical, package: PackageName, path: EntryPath, start: natural },
+    ["package", "path", "start"],
+    (f) => ({
+      figures: law(
+        entryOf("E1 derived"),
+        generated(CopiedLexical, Text.collapse(f.figuresLexical)),
+      ),
+    }),
+  ),
 );
 
 /**
@@ -167,16 +176,19 @@ export const RoundingFigures = relation.generated(
  * with its {@link RoundingFigures}' `figures` and its mode in force, `RoundingMode`'s `mode`, the
  * two reading 119 judges together ({@link roundingFigures}).
  */
-export const RoundingModeFigures = relation(
-  "RoundingModeFigures",
-  {
-    figures: CopiedLexical,
-    mode: anyText,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const RoundingModeFigures = law(
+  entryOf("E1 derived"),
+  relation(
+    "RoundingModeFigures",
+    {
+      figures: CopiedLexical,
+      mode: anyText,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -187,17 +199,20 @@ export const RoundingModeFigures = relation(
  * over the query `ToleranceForm` holds the tokens to it
  * (`#pantry/qti/overlay-queries/expression.ts`).
  */
-export const Tolerance = relation.generated(
-  "Tolerance",
-  {
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    tokenText: tokenFields.piecesWas,
-    tokens: tokenFields.at,
-  },
-  ["package", "path", "start"],
-  (t) => tokenTextDigest(t),
+export const Tolerance = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "Tolerance",
+    {
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      tokenText: tokenFields.piecesWas,
+      tokens: tokenFields.at,
+    },
+    ["package", "path", "start"],
+    (t) => tokenTextDigest(t),
+  ),
 );
 
 /**
@@ -205,7 +220,7 @@ export const Tolerance = relation.generated(
  * `piece` is a stretch of the value and the pieces concatenate to it: a whitespace list's token
  * (`#pantry/qti/token-list.ts`), its family's group the `qti-equal`'s place.
  */
-export const ToleranceToken = listTokens("ToleranceToken");
+export const ToleranceToken = law(entryOf("E1 derived"), listTokens("ToleranceToken"));
 
 /**
  * Every relation this module declares, in one list, as `schema.ts` composes them.

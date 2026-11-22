@@ -36,7 +36,8 @@ import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
 import { declarationQueryLawsOf } from "#pantry/test/declaration-queries.ts";
 import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
 import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
-import { databaseJudgedLawNames, schemaLawNameOf } from "#pantry/test/law-namer.ts";
+import { databaseJudgedLawNames } from "#pantry/test/law-namer.ts";
+import { lawNameOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
 /**
@@ -276,7 +277,7 @@ const packageOf = (drawn: StandCase): PackageEntries => {
  * @returns Their names.
  */
 const named = (laws: readonly { readonly law: Law }[]): ReadonlySet<string> =>
-  new Set(laws.flatMap(({ law }) => Option.toArray(schemaLawNameOf(law))));
+  new Set(laws.flatMap(({ law }) => Option.toArray(lawNameOf(law))));
 
 /**
  * The timeout, in milliseconds, that this file's test states: a hang guard.

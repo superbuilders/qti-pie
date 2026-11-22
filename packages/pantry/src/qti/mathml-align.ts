@@ -72,10 +72,10 @@ import {
   fold,
   generated,
   key,
+  law,
   Logic,
   mirrors,
   Monoid,
-  natural,
   Num,
   on,
   ordered,
@@ -89,6 +89,7 @@ import { anyText } from "#pantry/grammar/install.ts";
 import { CopiedLexical, EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
+import { entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * The `AlignState` roster: where an element stands in its table cell, `closed` where an element
@@ -123,35 +124,41 @@ export const AlignDirectionLexical = closed.relation(
  * - **the database's:** `selection`, the form's integer, collapsed (`Text.collapse`) and read in
  *   {@link integerForm}: 1 where none is written, 0 where it is no integer or a negative one.
  */
-export const MathAction = relation.generated(
-  "MathAction",
-  {
-    package: PackageName,
-    path: EntryPath,
-    selectionLexical: CopiedLexical,
-    selectionWritten: pg.boolean,
-    start: natural,
-  },
-  ["package", "path", "start"],
-  (m) => ({
-    selection: generated(
-      natural,
-      Logic.cond(
-        Logic.eq(m.selectionWritten, false),
-        Type.literal(natural, 1n),
-        Logic.when(
-          Text.matches(Text.collapse(m.selectionLexical), integerForm),
-          (text) =>
+export const MathAction = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "MathAction",
+    {
+      package: PackageName,
+      path: EntryPath,
+      selectionLexical: CopiedLexical,
+      selectionWritten: pg.boolean,
+      start: natural,
+    },
+    ["package", "path", "start"],
+    (m) => ({
+      selection: law(
+        entryOf("E1 derived"),
+        generated(
+          natural,
+          Logic.cond(
+            Logic.eq(m.selectionWritten, false),
+            Type.literal(natural, 1n),
             Logic.when(
-              Num.nonnegative(Type.cast(text, pg.bigint)),
-              (value) => Type.cast(value, natural),
+              Text.matches(Text.collapse(m.selectionLexical), integerForm),
+              (text) =>
+                Logic.when(
+                  Num.nonnegative(Type.cast(text, pg.bigint)),
+                  (value) => Type.cast(value, natural),
+                  Type.literal(natural, 0n),
+                ),
               Type.literal(natural, 0n),
             ),
-          Type.literal(natural, 0n),
+          ),
         ),
       ),
-    ),
-  }),
+    }),
+  ),
 );
 
 /**
@@ -169,30 +176,36 @@ export const MathAction = relation.generated(
  *   spells, else `inherited`, which rules over a query read from the attribute where it stands
  *   (`ScopedDir`, `#pantry/qti/queries.ts`).
  */
-export const MathAlignScope = relation(
-  "MathAlignScope",
-  {
-    cell: natural,
-    chosen: natural,
-    inherited: closedId(AlignDirection),
-    own: closedId(AlignDirection),
-    package: PackageName,
-    passes: closedId(AlignState),
-    path: EntryPath,
-    received: closedId(AlignState),
-    start: natural,
-    state: closedId(AlignState),
-  },
-  ["package", "path", "start"],
+export const MathAlignScope = law(
+  entryOf("E1 derived"),
+  relation(
+    "MathAlignScope",
+    {
+      cell: natural,
+      chosen: natural,
+      inherited: closedId(AlignDirection),
+      own: closedId(AlignDirection),
+      package: PackageName,
+      passes: closedId(AlignState),
+      path: EntryPath,
+      received: closedId(AlignState),
+      start: natural,
+      state: closedId(AlignState),
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
  * One `m:maligngroup` whose state is `open`, keyed by its node, with the `cell` it stands in.
  */
-export const MathAlignGroup = relation(
-  "MathAlignGroup",
-  { cell: natural, package: PackageName, path: EntryPath, start: natural },
-  ["package", "path", "start"],
+export const MathAlignGroup = law(
+  entryOf("E1 derived"),
+  relation(
+    "MathAlignGroup",
+    { cell: natural, package: PackageName, path: EntryPath, start: natural },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -200,17 +213,20 @@ export const MathAlignGroup = relation(
  * the count of its {@link CellLeaf} rows, both drawn, and `lastStart`, the greatest `start` among
  * its leaves, which the fold of their starts proves (0 where it has none).
  */
-export const MathCell = relation(
-  "MathCell",
-  {
-    groups: drawn(natural),
-    lastStart: accumulated(natural, 0n),
-    leaves: drawn(natural),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const MathCell = law(
+  entryOf("E1 derived"),
+  relation(
+    "MathCell",
+    {
+      groups: drawn(natural),
+      lastStart: accumulated(natural, 0n),
+      leaves: drawn(natural),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -224,18 +240,21 @@ export const MathCell = relation(
  * - **accumulated:** `startWas` and `startAfter`, the greatest start of the leaves before it and
  *   through it.
  */
-export const CellLeaf = relation(
-  "CellLeaf",
-  {
-    at: drawn(natural),
-    cell: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    startAfter: accumulated(natural, 0n),
-    startWas: accumulated(natural, 0n),
-  },
-  ["package", "path", "cell", "at"],
+export const CellLeaf = law(
+  entryOf("E1 derived"),
+  relation(
+    "CellLeaf",
+    {
+      at: drawn(natural),
+      cell: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      startAfter: accumulated(natural, 0n),
+      startWas: accumulated(natural, 0n),
+    },
+    ["package", "path", "cell", "at"],
+  ),
 );
 
 /**

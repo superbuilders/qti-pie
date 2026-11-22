@@ -37,7 +37,7 @@
  * - An element's attributes and text are read under its governor ({@link GoverningOf}): its kind, or
  *   the type an `xsi:type` makes govern it (spec readings 60 and 84).
  */
-import { closed, closedId, fin, natural, pg, slot, str } from "@bjornpagen/grizzle";
+import { closed, closedId, fin, law, pg, slot, str } from "@bjornpagen/grizzle";
 import { Array as Arr, Option, pipe, Result } from "effect";
 import { attributeCounts, openDomain } from "#pantry/grammar/attributes.ts";
 import type { AttributeCount } from "#pantry/grammar/attributes.ts";
@@ -50,6 +50,7 @@ import { foreignKinds } from "#pantry/grammar/kinds.ts";
 import { toolLabelKindsOf } from "#pantry/grammar/labels.ts";
 import { patternLiteral } from "#pantry/grammar/names.ts";
 import { typeDerivations } from "#pantry/vocab/inventory/models.ts";
+import { entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * The composed grammar of production, every relation below read from it.
@@ -115,7 +116,7 @@ const charsPattern = "^[\\t\\n\\r\\u{20}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-
  * characters. One declaration, so grizzle analyzes the pattern once. Exported for
  * `src/import/refusal.ts`, which names its pattern law.
  */
-export const Chars = str.regex(charsPattern);
+export const Chars = law(entryOf("XML production"), str.regex(charsPattern));
 
 // Handle lists (C8): membership is `Logic.in`, so these sets are lists, never installed.
 

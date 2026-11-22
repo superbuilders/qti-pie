@@ -120,7 +120,7 @@ import {
   drawn,
   fin,
   key,
-  natural,
+  law,
   on,
   pg,
   relation,
@@ -148,7 +148,7 @@ import {
 } from "#pantry/qti/token-list.ts";
 import { idSpaceAttributes, ssmlReads } from "#pantry/vocab/terms/identity.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * One ID of a document, keyed by the element that carries it, `(package, path, start)`: XML Schema
@@ -168,16 +168,19 @@ import { declared } from "#pantry/qti/law-entries.ts";
  * the text stays complete, and each document's IDs are counted by `Document.ids`; only an admitted
  * element's ID is bound (its `admitted`).
  */
-export const DocumentId = relation(
-  "DocumentId",
-  {
-    admitted: pg.boolean,
-    owner: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const DocumentId = law(
+  entryOf("DocumentId key"),
+  relation(
+    "DocumentId",
+    {
+      admitted: pg.boolean,
+      owner: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -195,17 +198,20 @@ export const DocumentId = relation(
  * - **accumulated:** `tokenText`, the end of its tokens' concatenation;
  * - **generated:** `tokenTextDigest`, its digest, the fold's end on the family's last axis.
  */
-export const IdentityText = relation.generated(
-  "IdentityText",
-  {
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    tokenText: tokenFields.piecesWas,
-    tokens: tokenFields.at,
-  },
-  ["package", "path", "start"],
-  (t) => tokenTextDigest(t),
+export const IdentityText = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "IdentityText",
+    {
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      tokenText: tokenFields.piecesWas,
+      tokens: tokenFields.at,
+    },
+    ["package", "path", "start"],
+    (t) => tokenTextDigest(t),
+  ),
 );
 
 /**
@@ -215,22 +221,25 @@ export const IdentityText = relation.generated(
  * (`#pantry/qti/token-list.ts`), its family's group its element's, which `Idref target` reads. The
  * order is the text's: an `xs:IDREFS` value is an `xs:list`, an ordered sequence of tokens.
  */
-export const TextIdref = listTokens("TextIdref");
+export const TextIdref = law(entryOf("E1 derived"), listTokens("TextIdref"));
 
 /**
  * One `label` on an element of a document that asks for its tool, keyed by the element
  * ({@link labelAttributes}, spec reading 128), with its document's root kind, which says whether
  * Label tools binds it.
  */
-export const LabelUse = relation(
-  "LabelUse",
-  {
-    package: PackageName,
-    path: EntryPath,
-    rootKind: closedId(NodeKind),
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const LabelUse = law(
+  entryOf("Label tools"),
+  relation(
+    "LabelUse",
+    {
+      package: PackageName,
+      path: EntryPath,
+      rootKind: closedId(NodeKind),
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -242,10 +251,13 @@ export const LabelUse = relation(
  * The element's kind and parent are its node's, which the scope's laws read through `Node`
  * (`#pantry/qti/overlay-queries/identity.ts`).
  */
-export const SsmlScope = relation(
-  "SsmlScope",
-  { fragment: natural, package: PackageName, path: EntryPath, start: natural },
-  ["package", "path", "start"],
+export const SsmlScope = law(
+  entryOf("E1 derived"),
+  relation(
+    "SsmlScope",
+    { fragment: natural, package: PackageName, path: EntryPath, start: natural },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -257,10 +269,13 @@ export const SsmlScope = relation(
  * info, and every other element its parent's, so a scope is read up the tree with no copy on
  * `Node`, as {@link SsmlScope} reads a fragment, through its node's kind and parent.
  */
-export const CatalogScope = relation(
-  "CatalogScope",
-  { package: PackageName, path: EntryPath, scope: natural, start: natural },
-  ["package", "path", "start"],
+export const CatalogScope = law(
+  entryOf("E1 derived"),
+  relation(
+    "CatalogScope",
+    { package: PackageName, path: EntryPath, scope: natural, start: natural },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -269,10 +284,13 @@ export const CatalogScope = relation(
  * assembly resolves each in its own IDs; one in an assembly, in its assembly's, once per instance
  * ({@link PlacedIdref}). Its rows count as `Document.idrefTargets`.
  */
-export const IdrefTarget = relation(
-  "IdrefTarget",
-  { assembled: pg.boolean, id: XmlId, package: PackageName, path: EntryPath },
-  ["package", "path", "id"],
+export const IdrefTarget = law(
+  entryOf("E1 derived"),
+  relation(
+    "IdrefTarget",
+    { assembled: pg.boolean, id: XmlId, package: PackageName, path: EntryPath },
+    ["package", "path", "id"],
+  ),
 );
 
 /**
@@ -290,17 +308,20 @@ export const IdrefTarget = relation(
  * IDs, from one in an assembly, whose share resolves once per instance; and `placements`, the count
  * of its `PlacedShareTarget` rows (`#pantry/qti/mathml-share.ts`).
  */
-export const ShareFragment = relation(
-  "ShareFragment",
-  {
-    assembled: pg.boolean,
-    id: XmlId,
-    package: PackageName,
-    path: EntryPath,
-    placements: drawn(natural),
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const ShareFragment = law(
+  entryOf("E1 derived"),
+  relation(
+    "ShareFragment",
+    {
+      assembled: pg.boolean,
+      id: XmlId,
+      package: PackageName,
+      path: EntryPath,
+      placements: drawn(natural),
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -311,19 +332,22 @@ export const ShareFragment = relation(
  * The instance is the copy of the document's elements the assembly's merged document holds it in,
  * so a fragment placed twice holds its IDs twice.
  */
-export const PlacedId = relation(
-  "PlacedId",
-  {
-    assembly: EntryPath,
-    assemblyKind: closedId(NodeKind),
-    id: XmlId,
-    instance: natural,
-    owner: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "assembly", "instance", "start"],
+export const PlacedId = law(
+  entryOf("E1 derived"),
+  relation(
+    "PlacedId",
+    {
+      assembly: EntryPath,
+      assemblyKind: closedId(NodeKind),
+      id: XmlId,
+      instance: natural,
+      owner: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "assembly", "instance", "start"],
+  ),
 );
 
 /**
@@ -331,16 +355,19 @@ export const PlacedId = relation(
  * an {@link IdrefTarget} of the instance's document, `path`, which resolves among its assembly's
  * IDs ("Idref target").
  */
-export const PlacedIdref = relation(
-  "PlacedIdref",
-  {
-    assembly: EntryPath,
-    id: XmlId,
-    instance: natural,
-    package: PackageName,
-    path: EntryPath,
-  },
-  ["package", "assembly", "instance", "id"],
+export const PlacedIdref = law(
+  entryOf("E1 derived"),
+  relation(
+    "PlacedIdref",
+    {
+      assembly: EntryPath,
+      id: XmlId,
+      instance: natural,
+      package: PackageName,
+      path: EntryPath,
+    },
+    ["package", "assembly", "instance", "id"],
+  ),
 );
 
 /**

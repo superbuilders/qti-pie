@@ -61,13 +61,13 @@
  * containments.
  */
 import {
-  Bits,
   bits,
+  Bits,
   check,
   closedId,
   contained,
   generated,
-  natural,
+  law,
   on,
   relation,
   select,
@@ -117,14 +117,14 @@ import {
   valueBaseOf,
   valueCardinalityOf,
 } from "#pantry/vocab/terms/expression-types.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
+import { declared, entryOf, natural } from "#pantry/qti/law-entries.ts";
 
 /**
  * What a reference's lexical form holds around the name it spells: XML whitespace `S`, possibly
  * none, which a collapsing type absorbs, or one brace of a braced reference. Exported for
  * `src/import/refusal.ts`, which names its pattern law.
  */
-export const Affix = str.regex("^(?:[\\t\\n\\r ]*|\\{|\\})$");
+export const Affix = law(entryOf("E1 derived"), str.regex("^(?:[\\t\\n\\r ]*|\\{|\\})$"));
 
 /**
  * One expression element, keyed by its place: the processing language it is written in, the
@@ -132,15 +132,18 @@ export const Affix = str.regex("^(?:[\\t\\n\\r ]*|\\{|\\})$");
  * rules over the query `ExpressionNode` read (`#pantry/qti/overlay-queries/expression.ts`), and its
  * type is each placement's ({@link PlacedExpression}).
  */
-export const Expression = relation(
-  "Expression",
-  {
-    language: closedId(Language),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const Expression = law(
+  entryOf("E1 derived"),
+  relation(
+    "Expression",
+    {
+      language: closedId(Language),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -158,22 +161,31 @@ export const Expression = relation(
  *   operand laws compare by subset: ∅ exactly for `qti-null`'s `any` base type and for an `unknown`
  *   cardinality.
  */
-export const PlacedExpression = relation.generated(
-  "PlacedExpression",
-  {
-    assembly: EntryPath,
-    baseType: closedId(ValueBase),
-    cardinality: closedId(ValueCardinality),
-    instance: natural,
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "assembly", "instance", "path", "start"],
-  (r) => ({
-    baseTypeBit: generated(bits(ValueBase), ValueBaseBit.row(r.baseType)),
-    cardinalityBit: generated(bits(ValueCardinality), ValueCardinalityBit.row(r.cardinality)),
-  }),
+export const PlacedExpression = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "PlacedExpression",
+    {
+      assembly: EntryPath,
+      baseType: closedId(ValueBase),
+      cardinality: closedId(ValueCardinality),
+      instance: natural,
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "assembly", "instance", "path", "start"],
+    (r) => ({
+      baseTypeBit: law(
+        entryOf("E1 derived"),
+        generated(bits(ValueBase), ValueBaseBit.row(r.baseType)),
+      ),
+      cardinalityBit: law(
+        entryOf("E1 derived"),
+        generated(bits(ValueCardinality), ValueCardinalityBit.row(r.cardinality)),
+      ),
+    }),
+  ),
 );
 
 /**
@@ -182,15 +194,18 @@ export const PlacedExpression = relation.generated(
  * node's, which the rules over the query `ProcessingNode` read
  * (`#pantry/qti/overlay-queries/expression.ts`).
  */
-export const Processing = relation(
-  "Processing",
-  {
-    language: closedId(Language),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-  },
-  ["package", "path", "start"],
+export const Processing = law(
+  entryOf("E1 derived"),
+  relation(
+    "Processing",
+    {
+      language: closedId(Language),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -209,20 +224,23 @@ export const Processing = relation(
  * `#pantry/import/names.ts`, which lists every such relation), until it is a query over
  * `Attribute`.
  */
-export const VariableRef = relation(
-  "VariableRef",
-  {
-    after: Affix,
-    attribute: closedId(AttributeName),
-    before: Affix,
-    identifier: QtiIdentifier,
-    language: closedId(Language),
-    package: PackageName,
-    path: EntryPath,
-    rootKind: closedId(NodeKind),
-    start: natural,
-  },
-  ["package", "path", "start", "attribute"],
+export const VariableRef = law(
+  entryOf("E1 derived"),
+  relation(
+    "VariableRef",
+    {
+      after: Affix,
+      attribute: closedId(AttributeName),
+      before: Affix,
+      identifier: QtiIdentifier,
+      language: closedId(Language),
+      package: PackageName,
+      path: EntryPath,
+      rootKind: closedId(NodeKind),
+      start: natural,
+    },
+    ["package", "path", "start", "attribute"],
+  ),
 );
 
 /**
@@ -251,22 +269,25 @@ export const VariableRef = relation(
  * matches the view `PlacedVariableRefNode` (`#pantry/qti/names.ts`), the placed reference beside
  * it.
  */
-export const PlacedVariableRef = relation(
-  "PlacedVariableRef",
-  {
-    assembly: EntryPath,
-    attribute: closedId(AttributeName),
-    baseType: closedId(ValueBase),
-    cardinality: closedId(ValueCardinality),
-    identifier: QtiIdentifier,
-    instance: natural,
-    package: PackageName,
-    path: EntryPath,
-    resolution: closedId(ReferenceResolution),
-    rootKind: closedId(NodeKind),
-    start: natural,
-  },
-  ["package", "assembly", "instance", "path", "start", "attribute"],
+export const PlacedVariableRef = law(
+  entryOf("E1 derived"),
+  relation(
+    "PlacedVariableRef",
+    {
+      assembly: EntryPath,
+      attribute: closedId(AttributeName),
+      baseType: closedId(ValueBase),
+      cardinality: closedId(ValueCardinality),
+      identifier: QtiIdentifier,
+      instance: natural,
+      package: PackageName,
+      path: EntryPath,
+      resolution: closedId(ReferenceResolution),
+      rootKind: closedId(NodeKind),
+      start: natural,
+    },
+    ["package", "assembly", "instance", "path", "start", "attribute"],
+  ),
 );
 
 /**
@@ -275,16 +296,19 @@ export const PlacedVariableRef = relation(
  * ({@link PlacedExpression}), which its {@link LiteralTyped} is held to. The code its `base-type`
  * spells is its optional part, {@link LiteralTyped}.
  */
-export const Literal = relation(
-  "Literal",
-  {
-    baseType: closedId(ValueBase),
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    text: LiteralText,
-  },
-  ["package", "path", "start"],
+export const Literal = law(
+  entryOf("E1 derived"),
+  relation(
+    "Literal",
+    {
+      baseType: closedId(ValueBase),
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      text: LiteralText,
+    },
+    ["package", "path", "start"],
+  ),
 );
 
 /**
@@ -294,17 +318,25 @@ export const Literal = relation(
  * {@link Literal} holds. A base value whose `base-type` spells none has no row here, so no law
  * reads its text in a type it does not have, and AL1's value domain refuses its `base-type` alone.
  */
-export const LiteralTyped = relation.generated(
-  "LiteralTyped",
-  {
-    package: PackageName,
-    path: EntryPath,
-    start: natural,
-    text: LiteralText,
-    typeCode: closedId(BaseType),
-  },
-  ["package", "path", "start"],
-  (l) => ({ baseType: generated(closedId(ValueBase), ValueBaseOf.at("value", l.typeCode)) }),
+export const LiteralTyped = law(
+  entryOf("E1 derived"),
+  relation.generated(
+    "LiteralTyped",
+    {
+      package: PackageName,
+      path: EntryPath,
+      start: natural,
+      text: LiteralText,
+      typeCode: closedId(BaseType),
+    },
+    ["package", "path", "start"],
+    (l) => ({
+      baseType: law(
+        entryOf("E1 derived"),
+        generated(closedId(ValueBase), ValueBaseOf.at("value", l.typeCode)),
+      ),
+    }),
+  ),
 );
 
 /**

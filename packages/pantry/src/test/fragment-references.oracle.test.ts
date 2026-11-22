@@ -27,7 +27,8 @@ import { everyRelationPackage, scopedPackage } from "#pantry/test/gen/every-rela
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
 import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
 import { judge as judgeOracle, lawsOf } from "#pantry/test/oracle.ts";
-import { databaseJudgedLawNames, schemaLawNameOf } from "#pantry/test/law-namer.ts";
+import { databaseJudgedLawNames } from "#pantry/test/law-namer.ts";
+import { lawNameOf } from "#pantry/import/refusal.ts";
 import { nameOf as packageNameOf } from "#pantry/test/package-name.ts";
 
 /**
@@ -169,7 +170,7 @@ const packageOf = (drawn: FragmentCase): PackageEntries => {
  * @returns Their names.
  */
 const named = (laws: readonly { readonly law: Law }[]): ReadonlySet<string> =>
-  new Set(laws.flatMap(({ law }) => Option.toArray(schemaLawNameOf(law))));
+  new Set(laws.flatMap(({ law }) => Option.toArray(lawNameOf(law))));
 
 /**
  * The oracle's law tables over the installed grammar.

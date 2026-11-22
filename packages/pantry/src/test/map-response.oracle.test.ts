@@ -33,7 +33,7 @@ import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
 import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { edit, item, itemResource, manifestOf } from "#pantry/test/probe.ts";
 import { declarationQueryLawsOf } from "#pantry/test/declaration-queries.ts";
-import { schemaRulesOf } from "#pantry/test/law-namer.ts";
+import { rulesOf } from "#pantry/import/refusal.ts";
 import { lawTable } from "#pantry/vocab/laws.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
@@ -170,7 +170,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("an item's map response
                 const host =
                   first === undefined
                     ? Option.getOrElse(queried, () => "accepted")
-                    : Option.getOrElse(Arr.head(schemaRulesOf([first, ...rest])), () => "unnamed");
+                    : Option.getOrElse(Arr.head(rulesOf([first, ...rest])), () => "unnamed");
                 const oracle = verdict.kind === "accepted" ? ["accepted"] : [...verdict.rules];
 
                 return { host, name: drawn.name, oracle };

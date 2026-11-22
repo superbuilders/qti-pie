@@ -20,7 +20,7 @@ import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
 import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { asi, base, edit, item, itemResource, manifestOf, packageOf } from "#pantry/test/probe.ts";
-import { schemaRulesOf } from "#pantry/test/law-namer.ts";
+import { rulesOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
 
 const laws = judgedLaws(Qti);
@@ -106,7 +106,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("xs:boolean written 1 o
 
               return first === undefined
                 ? "accepted"
-                : `${Option.getOrElse(Arr.head(schemaRulesOf([first, ...rest])), () => "unnamed")}: ${Formatter.format(broken.map(({ law }) => law))}`;
+                : `${Option.getOrElse(Arr.head(rulesOf([first, ...rest])), () => "unnamed")}: ${Formatter.format(broken.map(({ law }) => law))}`;
             }),
           );
           assert.strictEqual(rule, "accepted", `${name}="${form}": the import's rows`);
