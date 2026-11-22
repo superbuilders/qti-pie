@@ -1792,22 +1792,19 @@ const holdResponse = (
     const db = yield* Db.open(suite.roles.result_runner, {});
     const timing = timings[c.timing];
     const sitting = { child, stage: 1n };
-    const members = [
-      { path: SHORT, seed: "member" },
-      { path: OTHER, seed: "saved" },
-    ] as const;
+    const members = [SHORT, OTHER] as const;
     const taken = yield* db.workload.sittingFacts.once({
       facts: {
         insert: {
           Attempt: rowsOf("Attempt", []),
           ItemSession: rowsOf(
             "ItemSession",
-            members.map(({ path }) => ({ ...sitting, n: 0n, package: PACKAGE, path })),
+            members.map((path) => ({ ...sitting, package: PACKAGE, path })),
           ),
           ResponseSnapshot: rowsOf("ResponseSnapshot", []),
           SessionSeed: rowsOf(
             "SessionSeed",
-            members.map(({ path, seed }) => ({ ...sitting, package: PACKAGE, path, seed })),
+            members.map((path) => ({ ...sitting, package: PACKAGE, path, seed: SEED })),
           ),
           TestSession: rowsOf("TestSession", [{ ...sitting, package: PACKAGE, path: timing.test }]),
         },
