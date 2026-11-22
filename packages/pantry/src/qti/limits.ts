@@ -223,7 +223,9 @@ export const keyedXmlId = (id: TextTerm) =>
  * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
  * @unit UTF-8 bytes
  * @scope one such text in any key or index grizzle builds over it
- * @constraint LOM and QTI put no bound on these texts; a longer one is refused at import
+ * @constraint LOM and QTI put no bound on these texts; a longer numbered reading's number is refused
+ *   at import, and a longer LOM text is left out of the typed LOM view that keys it
+ *   ({@link fitsKeyMatchedText}), never refused
  * @derivation grizzle's `keyTextBytes` over `NumberedReading`'s key `(package, assembly, path,
  *   start, attribute, scopeInstance, scope, number)`, the number beside a name of
  *   {@link nameMaxBytes}, two paths of {@link entryPathBytes}, three naturals and a code; the QTI
@@ -239,11 +241,21 @@ export const keyMatchedTextBytes = 777;
 export const KeyMatchedText = law(entryOf("Key text bound"), str.bytes(keyMatchedTextBytes, Chars));
 
 /**
+ * Whether a LOM text fits {@link KeyMatchedText}: at most {@link keyMatchedTextBytes} UTF-8 bytes.
+ * A typed LOM view keeps a catalog, entry, taxon source or taxon id only where it fits
+ * (`#pantry/qti/lom.ts`), since LOM bounds none of them and an importer may "ignore or remove the
+ * unsupported data" (QTI 3.0 Conformance §3), never refuse it.
+ *
+ * @param text - The text, a node's string value as the view reads it.
+ * @returns Whether it fits.
+ */
+export const fitsKeyMatchedText = (text: TextTerm) =>
+  Logic.le(Text.octetLength(text), keyMatchedTextBytes);
+
+/**
  * Cast a LOM text a view keys into {@link KeyMatchedText}, under grizzle's byte guard. The guard's
- * other arm, the empty text, is unreachable in every committed state: the LOM level states "Key
- * text bound" over every catalog, entry, taxon source and taxon id its views key (`LomKeyText` of
- * `#pantry/qti/lom.ts`), which refuses at its import a package that holds one past
- * {@link keyMatchedTextBytes}, by name.
+ * other arm, the empty text, is unreachable: the view keeps the text only where it fits
+ * ({@link fitsKeyMatchedText}).
  *
  * @param text - The text, a node's string value as the view reads it.
  * @returns It, as a key holds it.

@@ -125,7 +125,6 @@ import {
   entryPathBytes,
   foreignNameBytes,
   identifierBytes,
-  keyMatchedTextBytes,
   matchedTextBytes,
   parsedDecimalBytes,
   uriBytes,
@@ -3099,105 +3098,6 @@ const idHoldersByKind: ReadonlyMap<string, string> = new Map([
 ]);
 
 /**
- * The children of a node of one kind.
- *
- * @param view - The node's document.
- * @param parent - The node's `start`.
- * @param kind - The children's kind.
- * @returns Them, in document order.
- */
-const childrenOfKind = (
-  view: View,
-  parent: bigint,
-  kind: string,
-): readonly FoldedNode<Composed>[] =>
-  (view.childrenOf.get(parent) ?? []).filter((child) => child.kind === kind);
-
-/**
- * Whether a term's node names a vocabulary of its own: a `lom:source` child whose collapsed
- * string value is no LOM vocabulary's source ({@link lomVocabulary}), as `otherVocabularies`
- * (`#pantry/qti/lom.ts`) reads it.
- *
- * @param view - The record's document.
- * @param term - The term's node, a kind, a purpose, a role or a status.
- * @returns Whether it is another vocabulary's.
- */
-const otherVocabulary = (view: View, term: bigint): boolean =>
-  childrenOfKind(view, term, "lom:source").some(
-    (source) => !lomVocabulary.has(collapsed(source.stringValue)),
-  );
-
-/**
- * Read the manifest's record's LOM texts a view keys, `LomKeyText` of `#pantry/qti/lom.ts`, each by
- * its node: each general identifier's catalog and entry where it writes both; each relation's
- * resource's identifier's catalog and entry where both are written, of a relation whose kind writes
- * a value of LOM's own vocabulary; and each taxon path's source string and taxon id where both are
- * written, of a classification whose purpose writes a value of LOM's own vocabulary. Each category
- * is a child of the manifest's own `lom:lom`, in its `cp:metadata`.
- *
- * @param manifest - The manifest's document.
- * @returns The texts, category by category, each in document order.
- */
-const lomKeyTextsOf = (
-  manifest: View,
-): readonly { readonly node: bigint; readonly value: string }[] => {
-  const categories = (kind: string) =>
-    manifest.members.filter((member) => {
-      const record = manifest.byStart.get(member.parent);
-
-      return (
-        member.kind === kind &&
-        record?.kind === "lom:lom" &&
-        manifest.byStart.get(record.parent)?.kind === "cp:metadata.manifest"
-      );
-    });
-  const identified = (identifier: bigint) => {
-    const catalogs = childrenOfKind(manifest, identifier, "lom:catalog");
-    const entries = childrenOfKind(manifest, identifier, "lom:entry");
-
-    return catalogs.length > 0 && entries.length > 0 ? [...catalogs, ...entries] : [];
-  };
-  const ofOwnVocabulary = (owner: bigint, kind: string) =>
-    childrenOfKind(manifest, owner, kind).some(
-      (term) =>
-        childrenOfKind(manifest, term.start, "lom:value").length > 0 &&
-        !otherVocabulary(manifest, term.start),
-    );
-  const held = [
-    ...categories("lom:general").flatMap((general) =>
-      childrenOfKind(manifest, general.start, "lom:identifier").flatMap(({ start }) =>
-        identified(start),
-      ),
-    ),
-    ...categories("lom:relation")
-      .filter((relation) => ofOwnVocabulary(relation.start, "lom:kind"))
-      .flatMap((relation) =>
-        childrenOfKind(manifest, relation.start, "lom:resource").flatMap((resource) =>
-          childrenOfKind(manifest, resource.start, "lom:identifier").flatMap(({ start }) =>
-            identified(start),
-          ),
-        ),
-      ),
-    ...categories("lom:classification")
-      .filter((classification) => ofOwnVocabulary(classification.start, "lom:purpose"))
-      .flatMap((classification) =>
-        childrenOfKind(manifest, classification.start, "lom:taxonPath").flatMap((path) => {
-          const sources = childrenOfKind(manifest, path.start, "lom:source.langString").flatMap(
-            (source) => childrenOfKind(manifest, source.start, "lom:string"),
-          );
-          const ids = childrenOfKind(manifest, path.start, "lom:taxon").flatMap((taxon) =>
-            childrenOfKind(manifest, taxon.start, "lom:id"),
-          );
-
-          return sources.length > 0 && ids.length > 0 ? [...sources, ...ids] : [];
-        }),
-      ),
-  ];
-
-  return held.map((node) => ({ node: node.start, value: node.stringValue }));
-};
-
-/**
  * Collect the texts of a document the schema holds in a key, each with the field that holds it, its
  * node, and the bound of that field's type (`#pantry/qti/limits.ts`):
  *
@@ -3218,9 +3118,8 @@ const lomKeyTextsOf = (
  *   `IdValue` keys), a `th`'s and a catalog's as their own rows hold it too (`TableHeader.id`,
  *   `CatalogId.id`), each choice's and hottext's identifier (`Choice.identifier`,
  *   `Hottext.identifier`, `identifierBytes`), each interaction's binding that names a variable
- *   (`BindingName.identifier`), each identifier a check holds where a view keys it
- *   ({@link checkedIdentifiers}), and in the manifest each LOM text a view keys (`LomKeyText.text`,
- *   `keyMatchedTextBytes`, {@link lomKeyTextsOf});
+ *   (`BindingName.identifier`), and each identifier a check holds where a view keys it
+ *   ({@link checkedIdentifiers});
  * - As a parse's operand, each ARIA bound of an element that writes both that is an `xs:decimal`
  *   ({@link ariaFields}), at `parsedDecimalBytes`;
  * - And a foreign element's namespace name and local name (`OpenElementName.namespace`,
@@ -3367,14 +3266,6 @@ const keyTexts = (
           : []),
       ];
     }),
-    ...(view.path === manifestEntry
-      ? lomKeyTextsOf(view).map(({ node, value }) => ({
-          bound: keyMatchedTextBytes,
-          field: "LomKeyText.text",
-          node,
-          value,
-        }))
-      : []),
     ...view.rows.attributes.flatMap((attribute) =>
       heldValuesOf(attribute).map((held) => ({
         bound: matchedTextBytes,

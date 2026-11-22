@@ -836,7 +836,7 @@ const codecDisagreements = (oracle: OracleSide, side: ImportSide): readonly Disa
  * document tree computes, and every accumulator's or generated field's of a key text type, such as
  * `Node.stringValue`. A key text the oracle bounds there has no row of the import to be in, so no
  * field the database fills is held on the host; nor is a derived relation's text a "Key text
- * bound" check holds (`DeclaredIdentifierText`, `ManifestIdText`, `LomKeyText` and the like),
+ * bound" check holds (`DeclaredIdentifierText`, `ManifestIdText` and the like),
  * which no row the import writes holds.
  */
 const filledFields: ReadonlySet<string> = new Set([
