@@ -8,7 +8,8 @@
  * database's fold over `Site`), and its nearest interaction is the one interaction a site that
  * names it stands in, else its own document node.
  * Where two sites disagree on the interaction, the first in listing order is written, and the
- * database refuses the other under the stated limit "Fragment context".
+ * database names the other unplaced (`UnplacedInclude`'s `context`): one written element is one
+ * row, judged in one context.
  *
  * A site is an `xi:include` under a parent whose model holds an explicit include particle (spec
  * reading 114), whose href resolves, as its `ReferencePath` does, to a listed document a resource
@@ -29,7 +30,7 @@ import { valueAt } from "#pantry/import/names.ts";
 import { entryPathOf, hrefResolverOf } from "#pantry/import/overlays/package.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import type { NodeRow, XdmDocument } from "#pantry/model/xdm.ts";
-import { assembledRoots, includeKind } from "#pantry/vocab/terms/tests.ts";
+import { assembledRoots, includeKind, sectionRefKind } from "#pantry/vocab/terms/tests.ts";
 
 /**
  * An ancestry flag's handle.
@@ -65,14 +66,30 @@ export interface ListedTarget {
 const includeParents: ReadonlySet<string> = new Set(includeParentKinds);
 
 /**
- * Whether a node is a site: an include under a parent that holds an explicit include particle.
+ * Whether a node is a site: a section ref, which places the section document it refers to in its
+ * test's assembly (information model §7.5: it "functions as a facade for the qti-assessment-section
+ * to which it refers"; spec reading 85), or an include under a parent that holds an explicit
+ * include particle (spec reading 114), that pantry reads. An include that writes an `xpointer`, or
+ * a `parse` of `text`, is valid XInclude (XInclude 1.0 Second Edition, §3.1), which pantry neither
+ * evaluates nor holds the bytes for, so it is stored as written, no site, and never included (spec
+ * reading 85; QTI 3.0 Conformance §3, "ignore or remove the unsupported data"), as the database's
+ * `ReadInclude` reads it.
  *
- * @param kind - The node's kind.
+ * @param document - The node's document, by its attributes' index.
+ * @param node - The node.
  * @param parentKind - Its parent's kind.
  * @returns Whether it is.
  */
-export const isSiteKind = (kind: string, parentKind: string): boolean =>
-  kind === includeKind && includeParents.has(parentKind);
+export const isSite = (
+  document: Pick<FlatDocument, "attributes">,
+  node: NodeRow<Composed>,
+  parentKind: string,
+): boolean =>
+  node.kind === sectionRefKind ||
+  (node.kind === includeKind &&
+    includeParents.has(parentKind) &&
+    Option.isNone(valueAt(document, node, "xpointer")) &&
+    !Option.contains(valueAt(document, node, "parse"), "text"));
 
 /**
  * One listed document as the contexts read it: its path, its tree, and the document flattened, its
@@ -103,7 +120,7 @@ interface SiteOf {
 export interface Judged<L extends Listed> {
   /**
    * Whether the document is in an assembly: a test or a section, or a document that holds a site or
-   * that a site names, each with Q5.13's `TestDocument` row (`Document.assembled`).
+   * that a site names, each with Q5.13's `AssembledDocument` row (`Document.assembled`).
    */
   readonly assembled: boolean;
   readonly context: DocumentContext;
@@ -159,7 +176,7 @@ const readOf = (listed: Listed): Read => {
         ),
     );
   const resolve = hrefResolverOf(listed, path);
-  const written = rows.nodes.filter((node) => isSiteKind(node.kind, parentKindOf(node)));
+  const written = rows.nodes.filter((node) => isSite(listed, node, parentKindOf(node)));
 
   return {
     assembledRoot: assembledRoots.some((root) => root === tree.root.kind),

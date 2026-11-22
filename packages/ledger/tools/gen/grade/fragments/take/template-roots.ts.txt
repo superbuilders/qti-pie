@@ -1,0 +1,23 @@
+/** The subtree each taken item's template processing runs: its own `qti-template-processing`, where it holds a rule
+ * (QTI 3.0.1's template processing names no template, unlike response processing's). An item with none is run with
+ * no program, so its every variable starts at its declared value. */
+const templateRootsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const taken = takenOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(taken, "taken")
+		const { package: source, path: document, start, end, elementChildren } = v(fields.Node, "inline")
+		return r
+			.match(taken, { package: pkg, path: item })
+			.match(fields.Node, {
+				package: source,
+				path: document,
+				start,
+				end,
+				elementChildren,
+				kind: "qti-template-processing",
+				parentKind: "qti-assessment-item"
+			})
+			.where(r.eq(source, pkg), r.eq(document, item), r.gt(elementChildren, 0n))
+			.find({ package: pkg, path: item, source, document, start, end })
+	})
+

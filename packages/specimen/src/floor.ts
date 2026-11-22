@@ -7,7 +7,8 @@
  *
  * @module
  */
-import { Array as Arr } from "effect";
+import { createHash } from "node:crypto";
+import { Array as Arr, pipe } from "effect";
 import { element } from "@bjornpagen/testing/gen";
 import type { CaseList } from "@bjornpagen/testing/gen";
 import { caseSeed, floorSeed, wordsOf } from "@bjornpagen/testing/random";
@@ -39,3 +40,35 @@ export const floorCases: Arr.NonEmptyReadonlyArray<Case> = Arr.makeBy(
  * A draw of one of {@link floorCases}: what the free suites search.
  */
 export const floorCase: CaseList<Case> = element(floorCases);
+
+/**
+ * The name the floor's cases are published under in the QTI database, one package
+ * (`tools/specimen-floor.ts` writes it, and the operator publishes it with
+ * `pnpm db qti publish <folder> specimen-floor`), which the QTI app's lab plays and grades
+ * through the database as staff (grading proposal, Decision 7).
+ */
+export const floorPackage = "specimen-floor";
+
+/**
+ * Where a case's item sits in the floor package: `items/` and the SHA-256 of its XML, so the lab
+ * finds a drawn case's item by its XML alone, and a case the floor does not hold names a path the
+ * package lacks.
+ *
+ * @param held The case.
+ * @returns The item's path in {@link floorPackage}.
+ */
+export const floorPathOf = (held: Case): string =>
+  `items/${createHash("sha256").update(held.item.xml).digest("hex")}.xml`;
+
+/**
+ * The floor package's items: each distinct item of {@link floorCases}, at {@link floorPathOf}'s path,
+ * with its XML. Two cases of one XML are one item.
+ */
+export const floorItems: Arr.NonEmptyReadonlyArray<{
+  readonly path: string;
+  readonly xml: string;
+}> = pipe(
+  floorCases,
+  Arr.map((held) => ({ path: floorPathOf(held), xml: held.item.xml })),
+  Arr.dedupeWith((left, right) => left.path === right.path),
+);

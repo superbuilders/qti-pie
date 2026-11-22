@@ -1064,7 +1064,7 @@ describe("the memberships of a node's own position, by the host judge", () => {
   it.effect(
     "meet a node exactly where the handle of its own Position field is in the tested set, every handle exhausted",
     (ctx) =>
-      // Oracle: the specification, the meaning of the diagonal `Compute.singleton` replaced:
+      // Oracle: the specification, the meaning of the diagonal `Bits.singleton` replaced:
       // {h} ⊆ S exactly where h ∈ S, S read off `install.ts`'s rows, over the predicates grizzle
       // keeps for the laws, evaluated on the host (`#pantry/test/key-copies.ts`).
       // Bound: every handle of the Position roster in each of the four memberships, each judged

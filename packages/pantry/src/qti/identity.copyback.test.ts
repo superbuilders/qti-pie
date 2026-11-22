@@ -35,6 +35,7 @@ import { element } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Duration, Effect, Option } from "effect";
 import { AttributeGrammar, AttributeModelOf, GoverningOf } from "#pantry/grammar/install.ts";
+import { openClasses } from "#pantry/grammar/kinds.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 import { containmentsOf } from "#pantry/test/judged-laws.ts";
@@ -101,9 +102,17 @@ const lexical = " h1 ";
 const paths = [manifestPath, "item.xml"] as const;
 
 /**
+ * The open classes an attribute model admits beside its names (`openClasses`): a `data-*`
+ * attribute and a foreign one are an open attribute's row (`OpenAttribute`), never an
+ * `Attribute` row, so an `Attribute` row of the class's own name is one no document writes.
+ */
+const openClassNames: ReadonlySet<string> = new Set(openClasses);
+
+/**
  * Every attribute row of one kind the grammar admits, at each of {@link paths}: each `GoverningOf`
  * row of the kind, each name its governor's attribute model admits (`AttributeModelOf`,
- * `AttributeGrammar`).
+ * `AttributeGrammar`), but an open class ({@link openClassNames}), whose attributes are no
+ * `Attribute` rows.
  *
  * @param kind - The element's kind.
  * @returns The rows.
@@ -115,6 +124,7 @@ const rowsOf = (kind: string): readonly AttributeCase[] =>
       AttributeModelOf.rows
         .filter((model) => model.governor === governor)
         .flatMap(({ model }) => AttributeGrammar.rows.filter((slot) => slot.model === model))
+        .filter(({ name }) => !openClassNames.has(name))
         .flatMap(({ name }) =>
           paths.map((path) => ({ governor, governs, kind, lexical, name, path })),
         ),

@@ -32,7 +32,6 @@ import {
   check,
   closed,
   closedId,
-  Compute,
   contained,
   drawn,
   generated,
@@ -43,6 +42,7 @@ import {
   relation,
   select,
   str,
+  Text,
 } from "@bjornpagen/grizzle";
 import { uriReference } from "@qti-pie/crust/uri.ts";
 import {
@@ -55,13 +55,7 @@ import {
   openElementClasses,
   TypeName,
 } from "#pantry/grammar/install.ts";
-import {
-  EntryPath,
-  localNameBytes,
-  namespaceBytes,
-  PackageName,
-  prefixBytes,
-} from "#pantry/qti/limits.ts";
+import { EntryPath, foreignNameBytes, PackageName } from "#pantry/qti/limits.ts";
 import { Chars, Node } from "#pantry/qti/node.ts";
 import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
 
@@ -120,12 +114,12 @@ const ncName = `[${ncStart}][${ncChar}]*`;
  *
  * @see {@link https://www.w3.org/TR/xml/#syntax | XML 1.0, §2.4 Character Data and Markup}
  */
-export const textChars = Compute.pattern(`^[${xmlChar}]*[${xmlNonSpace}][${xmlChar}]*$`);
+export const textChars = Text.pattern(`^[${xmlChar}]*[${xmlNonSpace}][${xmlChar}]*$`);
 
 /**
  * The text of a node of kind `ws`: a non-empty run of XML whitespace (`XdmWhitespace`).
  */
-export const whitespaceChars = Compute.pattern("^[ \\t\\n\\r]+$");
+export const whitespaceChars = Text.pattern("^[ \\t\\n\\r]+$");
 
 /**
  * The characters of a node of kind `entityRef`: the reference as written, `&name;`, its name an
@@ -133,7 +127,7 @@ export const whitespaceChars = Compute.pattern("^[ \\t\\n\\r]+$");
  *
  * @see {@link https://www.w3.org/TR/xml/#NT-EntityRef | XML 1.0, EntityRef}
  */
-export const entityRefChars = Compute.pattern(`^&${ncName};$`);
+export const entityRefChars = Text.pattern(`^&${ncName};$`);
 
 /**
  * XML 1.0's `Char` less `-`: a comment's character that no `-` may precede within it.
@@ -240,14 +234,16 @@ export const XmlStandalone = closed.ordered("XmlStandalone", ["yes", "no"]);
 
 /**
  * A namespace declaration's prefix as written: an NCName, or empty for a default declaration
- * (`xmlns="…"`), of at most `prefixBytes` UTF-8 bytes (`#pantry/qti/limits.ts`), what the key
- * `Namespace(package, path, start, prefix)` leaves it beside its element's key.
+ * (`xmlns="…"`), of any length. Namespaces in XML 1.0 makes a prefix an NCName (§4), which XML puts
+ * no bound on (reading 94), and no ordered read orders by one: an element's declarations are a
+ * set, which the model orders by prefix on the host (`#pantry/model/assemble.ts`), so the key
+ * `Namespace(package, path, start, prefix)` holds it by its image where it would outgrow an entry.
  *
  * @see {@link https://www.w3.org/TR/xml-names/#ns-decl | Namespaces in XML 1.0, §3 Declaring Namespaces}
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const NamespacePrefix = str.bytes(prefixBytes, str.regex(`^(?:[${ncStart}][${ncChar}]*)?$`));
+export const NamespacePrefix = str.regex(`^(?:[${ncStart}][${ncChar}]*)?$`);
 
 /**
  * A namespace declaration's value as read, after attribute-value normalization: an RFC 3986
@@ -273,35 +269,36 @@ export const NamespacePrefix = str.bytes(prefixBytes, str.regex(`^(?:[${ncStart}
 export const NamespaceUri = str.regex(`^${uriReference}$`);
 
 /**
- * A foreign element's namespace name, empty for none, of XML `Char`s and at most `namespaceBytes`
- * UTF-8 bytes (`#pantry/qti/limits.ts`): the one bound every key a namespace name rides leaves it,
- * so a name one relation holds is never refused by another. A foreign parent's namespace is read
- * through a containment into `OpenElementName(package, path, start, namespace)`, and an open
- * attribute's element
- * namespace through another.
+ * A foreign element's namespace name, empty for none, of XML `Char`s and at most `foreignNameBytes`
+ * UTF-8 bytes (`#pantry/qti/limits.ts`): half of what the regex engine reads of its expanded name
+ * ({@link ExpandedName}), a stated limit of the representation. A foreign parent's namespace is
+ * read through a containment into `OpenElementName(package, path, start, namespace)`, and an open
+ * attribute's element namespace through another.
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const ForeignNamespace = str.bytes(namespaceBytes, Chars);
+export const ForeignNamespace = str.bytes(foreignNameBytes, Chars);
 
 /**
- * A foreign element's local name: an NCName of at most `localNameBytes` UTF-8 bytes, as an open
- * attribute's local name is (`OpenLocal` of `#pantry/qti/attributes.ts`): XML puts no bound on a
- * name (reading 94), and its {@link OpenElementName}'s `expanded` spelling is matched in a query,
- * which grizzle reads only over a bounded text, so a longer one is refused as a stated limit of the
- * representation, "Key text bound".
+ * A foreign element's local name: an NCName of at most `foreignNameBytes` UTF-8 bytes
+ * (`#pantry/qti/limits.ts`): XML puts no bound on a name (reading 94), and its
+ * {@link OpenElementName}'s `expanded` spelling is matched in a query, which grizzle reads only
+ * over a text of at most the regex engine's bytes, so a longer one is refused as a stated limit of
+ * the representation, "Key text bound". An open attribute's local name is matched by no query and
+ * is of any length (`OpenLocal` of `#pantry/qti/attributes.ts`).
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const ForeignLocal = str.bytes(localNameBytes, str.regex(`^${ncName}$`));
+export const ForeignLocal = str.bytes(foreignNameBytes, str.regex(`^${ncName}$`));
 
 /**
  * A foreign element's expanded name as `namespace}local`, its {@link OpenElementName}'s `expanded`:
- * a namespace name of at most `namespaceBytes` bytes, the brace and a {@link ForeignLocal}.
+ * a {@link ForeignNamespace}, the brace and a {@link ForeignLocal}, within the regex engine's bytes
+ * (`matchedTextBytes`), the subject a query matches its parent's name patterns against.
  *
  * Exported for `src/import/refusal.ts`, which names its pattern law.
  */
-export const ExpandedName = str.bytes(namespaceBytes + 1 + localNameBytes, Chars);
+export const ExpandedName = str.bytes(foreignNameBytes + 1 + foreignNameBytes, Chars);
 
 /**
  * A comment node's text, keyed by its node (`XdmComment`).
@@ -355,16 +352,16 @@ export const Doctype = relation(
  *   `Monoid.or`), empty where none does: a ban is a disjointness, so the union is exact for every
  *   placement. `contextPath`, `contextNearest` and `contextNearestKind` are the host's: its own
  *   path, its document node's position, 0, and `document`, or the document and position of the one
- *   interaction every site that names the document stands in, which Q5.13's "Fragment context"
- *   holds each site to.
+ *   interaction the first site that names the document stands in; a site that stands in another
+ *   places it unjudged, `UnplacedInclude`'s `context` (spec reading 117).
  * - **its assembly** (spec readings 85 and 117): `assembled`, the host's, whether the document is in
- *   an assembly (it has a Q5.13 `TestDocument` row: a test or a section, or a document that holds a
- *   site or that a site names), so its IDREFs resolve per instance of its assemblies rather than in
- *   it alone (Q5.07), and it heads an assembly of its own exactly where no include splices it in
- *   place (the query `HeadDocument` of `#pantry/qti/queries.ts`, spec reading 117); and the counts
- *   its instances copy, drawn: `bindings`, `choices` and `hottexts` (Q5.09's `BindingName`,
- *   `Choice` and `Hottext` rows), `ids` (Q5.07's `DocumentId` rows), `idrefTargets` (Q5.07's
- *   `IdrefTarget` rows) and `variables` (Q5.10's `VariableRef` rows).
+ *   an assembly (it has a Q5.13 `AssembledDocument` row: a test or a section, or a document that
+ *   holds a site or that a site names), so its IDREFs resolve per instance of its assemblies rather
+ *   than in it alone (Q5.07), and it heads an assembly of its own exactly where no include splices
+ *   it in place (the query `HeadDocument` of `#pantry/qti/queries.ts`, spec reading 117); and the
+ *   counts its instances copy, drawn: `bindings`, `choices` and `hottexts` (Q5.09's `BindingName`,
+ *   `Choice` and `Hottext` rows), `ids` (Q5.07's `DocumentId` rows) and `idrefTargets` (Q5.07's
+ *   `IdrefTarget` rows).
  * - **its document node's copies:** `nodeChildren`, the document node's own, so the row states the
  *   node's context. What every document node holds alike is no field: the containment's target is
  *   the document nodes, governed by and of kind `document` under a `document` parent, at start 0,
@@ -395,7 +392,6 @@ export const Document = relation(
     path: EntryPath,
     rootKind: closedId(NodeKind),
     targetedBy: drawn(natural),
-    variables: drawn(natural),
   },
   ["package", "path"],
 );
@@ -478,7 +474,7 @@ export const OpenElementName = relation.generated(
   },
   ["package", "path", "start"],
   (o) => ({
-    expanded: generated(ExpandedName, Compute.concat(Compute.concat(o.namespace, "}"), o.local)),
+    expanded: generated(ExpandedName, Text.concat(Text.concat(o.namespace, "}"), o.local)),
   }),
 );
 
@@ -550,7 +546,7 @@ const documentNodes = select(Node, (n) => n.and(n.eq(n.kind, "document"), n.eq(n
  *   kind its parent admits there, since that name resolves to the kind (XML Schema 1.0 Part 1,
  *   §3.3.4 clauses 1.1.1.2 and 1.1.1.3.2, with §3.10.4 clause 2; shred reads it so).
  *   `KindByNameUnder` holds each parent's names as one pattern over `namespace}local`, the subject
- *   built by `Compute.concat`, since a closed relation's key is closed ids only.
+ *   built by `Text.concat`, since a closed relation's key is closed ids only.
  * - **"XsiType available"** (C15, C36; spec readings 60 and 81): a foreign element's governing type,
  *   its {@link OpenElementType} where it has one, is one its document's schema set holds or XML
  *   Schema's own, read from its parent's namespace through `TypeAvailable`; under a parent of no
@@ -691,7 +687,7 @@ export const chardataLawsByName = {
   ],
   "entityRef arm": [
     check("entityRef_arm", Node, (n) =>
-      n.or(n.ne(n.kind, "entityRef"), Compute.matches(n.chars, entityRefChars)),
+      n.or(n.ne(n.kind, "entityRef"), Text.matches(n.chars, entityRefChars)),
     ),
   ],
   "pi arm": [
@@ -706,12 +702,10 @@ export const chardataLawsByName = {
     ),
   ],
   "text arm": [
-    check("text_arm", Node, (n) => n.or(n.ne(n.kind, "text"), Compute.matches(n.chars, textChars))),
+    check("text_arm", Node, (n) => n.or(n.ne(n.kind, "text"), Text.matches(n.chars, textChars))),
   ],
   "ws arm": [
-    check("ws_arm", Node, (n) =>
-      n.or(n.ne(n.kind, "ws"), Compute.matches(n.chars, whitespaceChars)),
-    ),
+    check("ws_arm", Node, (n) => n.or(n.ne(n.kind, "ws"), Text.matches(n.chars, whitespaceChars))),
   ],
 } as const;
 

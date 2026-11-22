@@ -356,7 +356,10 @@ const toyPairs = {
   "k@a": { kind: "k", name: "a" },
   "k@lang": { kind: "k", name: "lang" },
   "qti-assessment-item@xml:lang": { kind: "qti-assessment-item", name: "xml:lang" },
-  "qti-map-entry@map-key": { kind: "qti-map-entry", name: "map-key" },
+  "qti-interpolation-table-entry@target-value": {
+    kind: "qti-interpolation-table-entry",
+    name: "target-value",
+  },
   "track@lang": { kind: "track", name: "lang" },
   "track@srclang": { kind: "track", name: "srclang" },
 } as const;
@@ -370,7 +373,7 @@ const toyPairNames = [
   "qti-assessment-item@xml:lang",
   "track@srclang",
   "track@lang",
-  "qti-map-entry@map-key",
+  "qti-interpolation-table-entry@target-value",
 ] as const;
 
 /**

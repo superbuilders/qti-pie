@@ -8,11 +8,9 @@
  * @module
  */
 import { Array as Arr, Option } from "effect";
-import { formatPrinted, plainPrinting } from "#plate/engine/format.ts";
-import type { PrintOptions } from "#plate/engine/format.ts";
-import { integerOf } from "#plate/engine/numbers.ts";
-import { own } from "#plate/engine/refs.ts";
-import type { IntegerOrRef } from "#plate/model/expression.ts";
+import { formatPrinted, plainPrinting } from "#plate/redact/format.ts";
+import type { PrintOptions } from "#plate/redact/format.ts";
+import type { IntegerOrRef } from "#plate/model/integer-ref.ts";
 import type {
   BodyElement,
   FeedbackVisibility,
@@ -21,15 +19,14 @@ import type {
   TemplateDeclaration,
   TemplateVisibility,
 } from "#plate/model/item.ts";
-import { outcomeDefaults, outcomeStart } from "#plate/model/record.ts";
 import type { RedactRecord } from "#plate/model/record.ts";
-import { nullOf } from "#plate/model/values.ts";
+import { own } from "#plate/model/values.ts";
 import type { Value } from "#plate/model/values.ts";
 
 /**
  * The text of one printed variable or `param-variable` parameter, not yet formatted: given the most
  * characters it may hold, `formatPrinted`'s text, none when it would pass that or `textBound`
- * (`#plate/engine/format.ts`).
+ * (`#plate/redact/format.ts`).
  */
 export type Printer = (bound: number) => Option.Option<string>;
 
@@ -43,6 +40,20 @@ export type Printer = (bound: number) => Option.Option<string>;
  */
 const heldValue = (record: RedactRecord, identifier: string): Option.Option<Value> =>
   Option.orElse(own(record.templates, identifier), () => own(record.outcomes, identifier));
+
+/**
+ * Give the integer a single integer value holds.
+ *
+ * @param value The value.
+ * @returns The integer, or none when the value is NULL or not a single integer.
+ */
+const integerOf = (value: Value): Option.Option<bigint> => {
+  const [single] = value.values;
+
+  return value.cardinality === "single" && single?.baseType === "integer"
+    ? Option.some(single.value)
+    : Option.none();
+};
 
 /**
  * Resolve a printed variable's `base` or `index`: a literal as written, or the integer the record
@@ -111,48 +122,18 @@ export const printedText = (node: PrintedVariable, record: RedactRecord): Option
   );
 
 /**
- * Give the values a redaction prints from: the record given, its outcomes the attempt's starting
- * values when no response processing has run in it (`attempt` `none`), each outcome at the default
- * template processing set for it, else its starting value ({@link outcomeStart}), whatever the
- * record's `outcomes` hold, since such a page is "the version of the qti-item-body displayed to
- * the candidate at the start of each attempt" (section 7.19.3, `allow-review`), its printed
- * variables as its feedback; or, with none, for an item whose
- * template processing does not run, the values its first attempt starts with: each template
- * variable at its declared default, else NULL, and none where the item has a template processing
- * the engine does not run; and each outcome at its starting value ({@link outcomeDefaults}). An
- * item whose template processing runs has no such values without its record.
+ * Give the values a redaction prints from: the record given, as the QTI database returned it, its
+ * outcomes before any response processing of the attempt shown (`attempt` `none`) the database's
+ * start values, since such a page is "the version of the qti-item-body displayed to the candidate
+ * at the start of each attempt" (section 7.19.3, `allow-review`); or none with no record, so a page
+ * with no record prints no template or outcome value and shows no outcome-driven content. Plate
+ * derives no variable's value.
  *
- * @param item The item.
  * @param record The record, if any.
- * @returns The values, or none for an item whose template processing runs and no record.
+ * @returns The values, or none with no record.
  */
-export const printingOf = (item: Item, record?: RedactRecord): Option.Option<RedactRecord> => {
-  if (record !== undefined) {
-    return Option.some(
-      record.attempt === "none"
-        ? { ...record, outcomes: outcomeStart(item, record.defaults) }
-        : record,
-    );
-  }
-
-  if (item.templateProcessing.kind === "runs") {
-    return Option.none();
-  }
-
-  const templates: RedactRecord["templates"] =
-    item.templateProcessing.kind === "stalled"
-      ? {}
-      : Object.fromEntries(
-          Array.from(item.templates, ([identifier, declaration]) => [
-            identifier,
-            Option.getOrElse(declaration.defaultValue, () =>
-              nullOf(declaration.baseType, declaration.cardinality),
-            ),
-          ]),
-        );
-
-  return Option.some({ attempt: "none", defaults: {}, outcomes: outcomeDefaults(item), templates });
-};
+export const printingOf = (record?: RedactRecord): Option.Option<RedactRecord> =>
+  Option.fromUndefinedOr(record);
 
 /**
  * Decide whether a variable's value shows a part under its `show-hide`, the one rule template
@@ -180,25 +161,6 @@ const shows = (
 };
 
 /**
- * Give the outcome values a page's feedback reads: the record's own once response processing has
- * run in the attempt it shows (`attempt` `submitted`), else each outcome's starting value, the
- * default template processing set for it else its declared one (`outcomeStart`), since before
- * response processing the page is the item body "displayed to the candidate at the start of each
- * attempt", "with the visibility of any integrated feedback determined by the default values of
- * the outcome variables" (the information model's ItemSessionControl `allow-review`, section
- * 7.19.3). A record plate writes with no attempt processed holds exactly those values.
- *
- * @param item The item.
- * @param record The record the page shows.
- * @returns The outcome values, keyed by identifier.
- */
-export const feedbackOutcomes = (
-  item: Pick<Item, "outcomes" | "responses">,
-  record: RedactRecord,
-): RedactRecord["outcomes"] =>
-  record.attempt === "submitted" ? record.outcomes : outcomeStart(item, record.defaults);
-
-/**
  * Decide what the page sees of a feedback block, inline or modal feedback: whether the outcome
  * values show it, or none when they cannot say, because there are no values or they hold no value
  * of its outcome, so it is withheld. `show` hides it "by default and shown only if the associated
@@ -206,8 +168,8 @@ export const feedbackOutcomes = (
  * default and hidden if" the variable does (the information model's FeedbackBlock, section 5.49.3,
  * FeedbackInline, 5.52.3, and ModalFeedback, 5.93.2), by {@link shows}.
  *
- * @param outcomes The outcome values feedback reads ({@link feedbackOutcomes}), none when the
- *   redaction has no values.
+ * @param outcomes The outcome values feedback reads, the record's as the database returned them
+ *   ({@link printingOf}), none when the redaction has no values.
  * @param visibility The element's `outcome-identifier` and `show-hide`.
  * @param identifier The element's `identifier`.
  * @returns Some whether it is shown, or none when it is withheld.
@@ -323,7 +285,7 @@ const parameterOf = (
  * @param value The template variable's value.
  * @param bound The most characters the text may hold, as `formatPrinted` takes it.
  * @returns The text the parameter passes, or none when it would pass `bound` or `formatPrinted`'s
- *   bound (`textBound` (`#plate/engine/format.ts`)), so it is not passed.
+ *   bound (`textBound` (`#plate/redact/format.ts`)), so it is not passed.
  */
 export const parameterText = (value: Value, bound: number): Option.Option<string> =>
   formatPrinted(

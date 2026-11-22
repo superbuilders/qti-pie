@@ -1,7 +1,8 @@
 /**
  * The specimen generator held to plate: every case's item is one plate's `open` accepts with full
- * validation and nothing unsupported, and the response the case draws, posted as a form posts it,
- * decodes and scores as the case predicts. A refusal is a defect of the writer or of plate. Beside
+ * validation and nothing unsupported. A refusal is a defect of the writer or of plate. Whether the
+ * case's response scores as it predicts is the QTI database's to say, which grades it: plate grades
+ * nothing (edullm's `packages/data/qti-database/src/specimen-scores.db.test.ts`). Beside
  * it, a case replays from its token and from what it drew, and an enumeration walks every
  * combination of the dimensions a query leaves at any, each once.
  *
@@ -21,7 +22,6 @@ import type { Answer } from "#specimen/answer.ts";
 import type { Content } from "#specimen/description.ts";
 import { floorCases, floorCase } from "#specimen/floor.ts";
 import { opened } from "#specimen/open.ts";
-import { scoredAs } from "#specimen/scored.ts";
 import { anyQuery, everyCase, page, pairsOf, queryOf, replay, sample } from "#specimen/specimen.ts";
 import type { KindName } from "#specimen/specimen.ts";
 
@@ -37,9 +37,9 @@ describe("a specimen", () => {
   );
 
   it.effect(
-    "opens in plate as content the database admitted, and its response scores as it predicts: 200 draws among the floor's cases a run beside the witnesses",
+    "opens in plate as content the database admitted: 200 draws among the floor's cases a run beside the witnesses",
     (ctx) =>
-      // Oracle: plate's own validator and engine, against each kind's stated score.
+      // Oracle: plate's opening of admitted content, which accepts every case's item.
       searched(
         ctx,
         explore(
@@ -81,14 +81,14 @@ describe("a specimen", () => {
             draw: drawn(floorCase),
             kept: [],
             literal: Formatter.format,
-            oracle: { kind: "universal", name: "plate's open and score" },
+            oracle: { kind: "universal", name: "plate's open" },
             runs: 200,
             shrink: completeShrink,
             steerEvery: 16,
             suite: "specimen/opens",
           },
           (held, c) =>
-            Effect.gen(function* opensAndScores() {
+            Effect.gen(function* opens() {
               const { description } = held;
 
               c.note(description.interaction.kind);
@@ -98,9 +98,7 @@ describe("a specimen", () => {
                 c.note(description.stimulus.content.kind);
               }
 
-              const { accepted } = yield* opened(held.item, Option.none());
-
-              assert.strictEqual(scoredAs(accepted, held), held.response.score);
+              yield* opened(held.item, Option.none());
             }),
         ),
       ),

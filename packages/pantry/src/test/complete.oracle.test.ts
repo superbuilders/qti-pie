@@ -16,8 +16,7 @@
  *   folded rows of one document instead, and judged by `documentBreaches`.
  * - **Every stated law is declared.** Each law of `lawTable` is the oracle's, or the oracle states it
  *   in parts (`statedInParts`), or no host predicate can judge it, with the reason
- *   (`hostlessLaws`), or only a package-media install's policy states it, with the reason
- *   (`policyLaws`).
+ *   (`hostlessLaws`), or only an install's LOM policy states it, with the reason (`policyLaws`).
  *
  * A law no mutation can break alone is a row of {@link owed} with why, a list that only shrinks: a
  * law both owed and mutated fails, and so does a law neither owed nor mutated, so a law that joins

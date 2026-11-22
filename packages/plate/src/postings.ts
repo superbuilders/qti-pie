@@ -12,7 +12,7 @@ import type { Binding, DecodeOptions, Entry } from "#plate/form/encoding.ts";
 import { absentValueOf, interactionsIn } from "#plate/model/interactions.ts";
 import type { Interaction } from "#plate/model/item.ts";
 import type { RedactRecord } from "#plate/model/record.ts";
-import type { ResponseValue } from "#plate/model/values.ts";
+import type { ResponseValue, Value } from "#plate/model/values.ts";
 import { redactStructure } from "#plate/redact/walk.ts";
 import type { RedactedFields, ResponseBinding } from "#plate/redact/walk.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
@@ -97,14 +97,56 @@ const baseOf = (interaction: Interaction): Option.Option<number> =>
 
 /**
  * Tell whether an interaction reads its response's text of XML white space alone as NULL, as
- * QTI's `TextFormatEnum` reads `plain` and `preformatted` text: an Extended Text of either format.
- * Its island posts nothing for such text, so `decode` reads a direct post of it the same way.
+ * QTI's `TextFormatEnum` reads `plain` and `preformatted` text (QTI 3.0.1 information model,
+ * info:85968, `plain`: "Delivery engines should preserve white-space characters in candidate input
+ * except where a response consists only of white-space characters, in which case it should be
+ * treated as an empty string (NULL)"): a Text Entry, whose text is plain, and an Extended Text of
+ * either format (SPEC-AUDIT SV-DESIGN-05). An Extended Text's island posts nothing for such text,
+ * so `decode` reads a direct post of it the same way.
  *
  * @param interaction The first interaction that binds the response.
  * @returns Whether the response's blank text is NULL.
  */
 const blankIsEmptyOf = (interaction: Interaction): boolean =>
-  interaction.kind === "extended-text" && interaction.format !== "xhtml";
+  interaction.kind === "text-entry" ||
+  (interaction.kind === "extended-text" && interaction.format !== "xhtml");
+
+/**
+ * The responses an item's End Attempt interactions bind that no posting carries, each with the
+ * value its module gives a submission without its entry, `false`: an End Attempt the page does not
+ * show, inside hidden feedback or a hidden template block, posts no entry, and its response is
+ * false all the same, whatever its default (QTI 3.0.1 information model §5.45, info:23377: "If
+ * response processing is invoked in any other way, either through a different endAttemptInteraction
+ * or through the default method for the delivery engine, then the associated response variable is
+ * set to 'false'. The default value of the response variable is always ignored."; SPEC-AUDIT
+ * SV-RP-01). A host adds them to what `decode` reads from the posted entries; an End Attempt the
+ * page shows has its posting, whose `absent` gives the same false.
+ *
+ * @param accepted The accepted item.
+ * @param instance The instance token the render used.
+ * @param record The record of the attempt the page shows, as {@link postings} takes it, whose
+ *   values show or hide the content an End Attempt sits in; none to read the item as it reads with
+ *   no record.
+ * @returns Each unposted End Attempt's response and its value, in document order, each once.
+ */
+export const unpostedEndAttempts = (
+  accepted: Accepted,
+  instance: string,
+  record?: RedactRecord,
+): ReadonlyArray<readonly [string, Value]> => {
+  const posted = new Set(postings(accepted, instance, record).map(({ identifier }) => identifier));
+  const unposted = new Map<string, Value>();
+  for (const interaction of interactionsIn(accepted.item.body)) {
+    if (
+      interaction.kind === "end-attempt" &&
+      !posted.has(interaction.response) &&
+      !unposted.has(interaction.response)
+    ) {
+      Option.map(absentValueOf(interaction), (value) => unposted.set(interaction.response, value));
+    }
+  }
+  return [...unposted];
+};
 
 /**
  * Give the postings of a body and its response bindings in one instance, as {@link postings} gives

@@ -6,11 +6,10 @@
  * The rules, for every item of a source and every showing (`#specimen/ui/showing.ts`):
  *
  * - R1: the item renders without throwing.
- * - C1: where the item's source describes the shown response by its score, as a generated case does:
- *   one it calls empty posts what it starts at, the child having changed nothing (a Slider posts
- *   its start); one it calls right is right by `qti-match` ({@link classOf}); and one it calls
- *   wrong or partly right is wrong or partly right by it ({@link describedAs}). A response with no
- *   correct response, such as a Media's count of plays, `qti-match` does not judge.
+ * - C1: where the item's source describes the shown response as empty, as a generated case does, it
+ *   posts what it starts at, the child having changed nothing (a Slider posts its start). Whether a
+ *   response it calls right, wrong or partly right is so is `qti-match`'s, which the database
+ *   grader judges.
  * - I1: every `id` is unique, not empty and holds no white space (HTML, the `id` attribute).
  * - I2: every IDREF the page writes names an id on the page (HTML's and WAI-ARIA's IDREF attributes,
  *   SVG's `url(#id)`): an item stands alone, and names nothing of its host.
@@ -21,9 +20,6 @@
  *   holds it.
  * - P1: in answering, the entries the page's form posts decode, under each response's posting, to the
  *   response drawn, NULL to the posting's absent value where it has one.
- * - S1: in review, the record's SCORE is the one the item's source predicts: for an item scored by
- *   `match_correct`, 1 for a right `RESPONSE` and 0 for any other (QTI's `match_correct` template);
- *   for a generated case, the score its description gives.
  * - M1: a review draws only the marks the shown responses' class allows ({@link marksByClass}), and,
  *   where it withholds the solution, none `missed`.
  * - M2: no page draws a mark but a review; a review that withholds the solution marks only the
@@ -51,23 +47,19 @@
  *   is fine": a review and a solution play their media through plate's own controls, uncounted and
  *   unlimited, and record nothing; until then J1 allowed no island at all (spec reading 229).
  *
+ * The suite grades nothing: plate runs no response processing, so a review shows the responses
+ * drawn under the record the attempt starts from, as the host shows a record the QTI database
+ * returned. Whether a response scores as its source predicts, and whether it matches its correct
+ * response as its source describes it, is the database grader's to say, held to the golden
+ * recording by the database suite.
+ *
  * Test support for plate's UI suite under `src/ui/`; it reads plate through its public entries
  * alone.
  *
  * @module
  */
-import { Array as Arr, Option, Result } from "effect";
-import {
-  begin,
-  credit,
-  decode,
-  encode,
-  format,
-  postings,
-  restore,
-  scoreRecord,
-  solution,
-} from "@qti-pie/plate";
+import { Option, Result } from "effect";
+import { decode, encode, format, postings, restore, solution } from "@qti-pie/plate";
 import type {
   Accepted,
   AcceptedStimulus,
@@ -78,26 +70,13 @@ import type {
   Posting,
   ResponseValue,
   Responses,
-  Value,
 } from "@qti-pie/plate";
+import { recordOf } from "@qti-pie/plate/test/records";
 import type { Graded, ItemProps, Reveals } from "@qti-pie/plate/ui";
 import { render } from "#specimen/ui/rendered.ts";
 import type { InteractionKind, Page, Reference, Showable, Where } from "#specimen/ui/rendered.ts";
-import { classOf, derived, itemClassOf } from "#specimen/ui/showing.ts";
+import { classOf, derived, handedMarks, itemClassOf } from "#specimen/ui/showing.ts";
 import type { Drawable, ResponseClass, Showing, SolutionShown } from "#specimen/ui/showing.ts";
-
-/**
- * How an item's responses are scored, as far as the suite predicts it: by QTI's `match_correct`
- * template, which sets SCORE to 1 when `RESPONSE` matches its correct response and to 0 otherwise;
- * at a score its source predicts for the response it draws, as a generated item's description
- * does; or by any other processing, whose score the suite does not predict.
- *
- * @see https://www.imsglobal.org/spec/qti/v3p0/impl#h.match_correct
- */
-export type Scoring =
-  | { readonly kind: "match-correct" }
-  | { readonly kind: "predicted"; readonly score: number }
-  | { readonly kind: "unpredicted" };
 
 /**
  * A class a source describes a response as, by the score it gives: every class but `unjudged`.
@@ -106,12 +85,12 @@ export type Described = Exclude<ResponseClass, "unjudged">;
 
 /**
  * An item a source hands the suite: the accepted item, where it came from, the configuration it is
- * rendered under, how it is scored, and the record its attempt starts from, `begin`'s, for an item
- * whose template processing runs.
+ * rendered under, and, for an item with template processing, which the QTI database runs at the
+ * take, the record the take gives it (`taken`): the golden grading data's for a corpus item, none
+ * where the source has none, which shows the item with no record.
  */
 export interface SourceItem {
   readonly accepted: Accepted;
-  readonly begun: Option.Option<ItemRecord>;
   readonly configuration: Configuration;
   /**
    * The response the source gives the child, which a `given` showing shows: the entries the form
@@ -140,12 +119,16 @@ export interface SourceItem {
    * `itemFactsOf` reads them from the item's XML (`#specimen/ui/source.ts`).
    */
   readonly offered: ReadonlyMap<string, readonly string[]>;
-  readonly scoring: Scoring;
   /**
    * The stimuli the item's stimulus refs name, as a host hands them to `<Item>`; none for an item
    * that references none.
    */
   readonly stimuli: readonly AcceptedStimulus[];
+  /**
+   * The record the database's take gives an item with template processing, none for any other
+   * item or where the source has none.
+   */
+  readonly taken: Option.Option<ItemRecord>;
 }
 
 /**
@@ -160,14 +143,12 @@ export interface DrawnResponse {
 }
 
 /**
- * What became of a showing: the page it rendered, with the SCORE its reviewed record holds; no
- * page, for a `part` showing of an item no response of which can be partly right, or a review of
- * responses `score` refuses, which no host shows; or what rendering threw.
+ * What became of a showing: the page it rendered; no page, for a `part` showing of an item no
+ * response of which can be partly right; or what rendering threw.
  */
 export type Outcome =
-  | { readonly kind: "rendered"; readonly page: Page; readonly score: Option.Option<number> }
+  | { readonly kind: "rendered"; readonly page: Page }
   | { readonly kind: "underived" }
-  | { readonly kind: "refused"; readonly reason: string }
   | { readonly kind: "threw"; readonly reason: string };
 
 /**
@@ -188,7 +169,6 @@ export interface Seen {
   readonly itemClass: ResponseClass;
   readonly kinds: readonly InteractionKind[];
   readonly outcome: Outcome;
-  readonly scoring: Scoring;
   readonly showing: Showing;
 }
 
@@ -232,41 +212,6 @@ const noticedOf = (item: SourceItem): readonly string[] => [
     .filter((kind) => kind === "portable-custom")
     .map(() => "qti-portable-custom-interaction"),
 ];
-
-/**
- * Give the SCORE a record holds, when it is a single number.
- *
- * @param outcomes The record's outcomes.
- * @returns SCORE's number, or none.
- */
-const scoreOf = (outcomes: Readonly<Record<string, Value>>): Option.Option<number> =>
-  Option.fromUndefinedOr(outcomes["SCORE"]).pipe(
-    Option.flatMap((value) => Arr.head(value.values)),
-    Option.flatMap((single) => {
-      switch (single.baseType) {
-        case "float": {
-          return Option.some(single.value);
-        }
-        case "integer": {
-          return Option.some(Number(single.value));
-        }
-        case "boolean":
-        case "directedPair":
-        case "duration":
-        case "file":
-        case "identifier":
-        case "pair":
-        case "point":
-        case "string":
-        case "uri": {
-          return Option.none();
-        }
-        default: {
-          return single satisfies never;
-        }
-      }
-    }),
-  );
 
 /**
  * One response the page posts, with what the suite draws it from: its identifier, its correct
@@ -329,9 +274,46 @@ const revealed = {
 } as const satisfies Readonly<Record<SolutionShown, Reveals>>;
 
 /**
+ * The record a review shows: the record the attempt starts from, with the responses drawn, the
+ * attempt `submitted`. Its outcomes are the ones it starts with, since plate runs no response
+ * processing; the QTI database's statement sets them in a host's review.
+ *
+ * @param before The record the attempt starts from.
+ * @param values The responses drawn, by identifier, a record response's a record.
+ * @returns The record.
+ */
+const attempted = (
+  before: ItemRecord,
+  values: Readonly<Record<string, ResponseValue>>,
+): ItemRecord => {
+  const entries = Object.entries(values);
+
+  return {
+    ...before,
+    attempt: "submitted",
+    records: {
+      ...before.records,
+      ...Object.fromEntries(
+        entries.flatMap(([identifier, value]) =>
+          value.cardinality === "record" ? [[identifier, value] as const] : [],
+        ),
+      ),
+    },
+    responses: {
+      ...before.responses,
+      ...Object.fromEntries(
+        entries.flatMap(([identifier, value]) =>
+          value.cardinality === "record" ? [] : [[identifier, value] as const],
+        ),
+      ),
+    },
+  };
+};
+
+/**
  * Show an item in one showing, as a host would: draw its responses from its correct ones by the
- * showing's derivation, post them in answering, score and restore them in review, and render the
- * page.
+ * showing's derivation, post them in answering, restore them in review under the record the
+ * attempt starts from, as a host restores the record the database returned, and render the page.
  *
  * @param item The item.
  * @param showing The showing.
@@ -345,7 +327,19 @@ export const see = (
   clients: ReadonlyMap<unknown, string>,
 ): Seen => {
   const { accepted, configuration } = item;
-  const record = Option.getOrUndefined(item.begun);
+  // The suite holds no database: the record a page shows is the take's (`taken`), else one that
+  // holds each outcome the item declares at NULL, as the database's record holds an outcome no
+  // processing set, so a page shows no outcome-driven content and withholds none.
+  const record = Option.getOrElse(item.taken, () =>
+    recordOf({
+      outcomes: Object.fromEntries(
+        Array.from(accepted.item.outcomes, ([identifier, declared]) => [
+          identifier,
+          { baseType: declared.baseType, cardinality: declared.cardinality, values: [] },
+        ]),
+      ),
+    }),
+  );
   const posted = postings(accepted, instance, record);
   const correct: Responses = solution(accepted, record);
   const drawables = posted.map((posting) => ({
@@ -369,6 +363,9 @@ export const see = (
         };
       }),
   });
+  const handed = Object.fromEntries(
+    drawn.map((each) => [each.posting.identifier, handedMarks(each.value, each.correct)] as const),
+  );
   const base = {
     described:
       showing.mode !== "solution" && showing.derived === "given" ? item.given : Option.none(),
@@ -376,27 +373,30 @@ export const see = (
     expectedNotices: noticedOf(item),
     itemClass: itemClassOf(drawn.map((each) => each.class)),
     kinds: item.kinds,
-    scoring: item.scoring,
     showing,
   };
   const propsIn = (mode: ItemProps["mode"]): ItemProps => {
     const { stimuli } = item;
-    const plain: ItemProps = Option.match(item.host, {
-      onNone: () => ({ configuration, instance, item: accepted, mode, stimuli }),
-      onSome: (host) => ({ configuration, host, instance, item: accepted, mode, stimuli }),
+    const plain = Option.match(item.host, {
+      onNone: (): ItemProps => ({ configuration, instance, item: accepted, mode, stimuli }),
+      onSome: (host): ItemProps => ({
+        configuration,
+        host,
+        instance,
+        item: accepted,
+        mode,
+        stimuli,
+      }),
     });
 
-    return Option.match(item.begun, {
-      onNone: () => plain,
-      onSome: (begun): ItemProps => ({ ...plain, record: begun }),
-    });
+    return { ...plain, record };
   };
-  const rendered = (showable: Showable, scored: Option.Option<number>): Outcome =>
+  const rendered = (showable: Showable): Outcome =>
     Result.match(
       Result.try(() => render(showable, clients)),
       {
         onFailure: (cause): Outcome => ({ kind: "threw", reason: reasonOf(cause) }),
-        onSuccess: (page): Outcome => ({ kind: "rendered", page, score: scored }),
+        onSuccess: (page): Outcome => ({ kind: "rendered", page }),
       },
     );
 
@@ -419,56 +419,34 @@ export const see = (
 
       return {
         ...base,
-        outcome: rendered(
-          { entries, mode: "answering", props: propsIn("answering") },
-          Option.none(),
-        ),
+        outcome: rendered({ entries, mode: "answering", props: propsIn("answering") }),
       };
     }
     case "solution": {
       return {
         ...base,
-        outcome: rendered(
-          { mode: "solution", props: { ...propsIn("solution"), values } },
-          Option.none(),
-        ),
+        outcome: rendered({ mode: "solution", props: { ...propsIn("solution"), values } }),
       };
     }
     case "review": {
-      const reviewed = Result.flatMap(
-        Result.flatMap(
-          Option.match(item.begun, {
-            onNone: () => begin(accepted, { instance, seed: instance }),
-            onSome: (begun) => Result.succeed(begun),
-          }),
-          (before) => scoreRecord(accepted, values, before),
-        ),
-        (after) => restore(accepted, after),
-      );
+      // The suite holds no database, so nothing grades the drawn response: the record it reviews
+      // is the one the page shows.
+      const before = record;
+
+      const restored = restore(accepted, attempted(before, values));
+      const graded: Graded = {
+        marks: { parts: handed, reveals: revealed[showing.solution] },
+      };
 
       return {
         ...base,
-        outcome: Result.match(reviewed, {
-          onFailure: (failure): Outcome => ({ kind: "refused", reason: reasonOf(failure) }),
-          onSuccess: (restored): Outcome => {
-            const props: ItemProps = {
-              ...propsIn("review"),
-              record: restored.record,
-              values: restored.values,
-            };
-
-            const graded: Graded = Option.match(credit(accepted, restored.record), {
-              onNone: () => ({ marks: { against: correct, reveals: revealed[showing.solution] } }),
-              onSome: (earned) => ({
-                credit: earned,
-                marks: { against: correct, reveals: revealed[showing.solution] },
-              }),
-            });
-
-            return rendered(
-              { mode: "review", props: { ...props, graded } },
-              scoreOf(restored.record.outcomes),
-            );
+        outcome: rendered({
+          mode: "review",
+          props: {
+            ...propsIn("review"),
+            graded,
+            record: restored.record,
+            values: restored.values,
           },
         }),
       };
@@ -519,27 +497,6 @@ const marksAllowed = (
   const allowed = marksByClass[responseClass];
 
   return shown === "shown" ? allowed : { never: [...allowed.never, "missed"], oneOfAny: [] };
-};
-
-/**
- * The classes `qti-match` may judge a response of each class a source describes by its score: a
- * right one right, and a wrong or a partly right one either, since a source that scores all or
- * nothing calls a response with some values in place wrong, and `qti-match` credits those values.
- */
-const describedAs: Readonly<Record<Exclude<Described, "empty">, readonly ResponseClass[]>> = {
-  partial: ["partial", "wrong"],
-  right: ["right"],
-  wrong: ["partial", "wrong"],
-};
-
-/**
- * The SCORE `match_correct` sets, by the class of `RESPONSE`: 1 for a match, 0 for anything else.
- */
-const matchCorrectScore: Readonly<Record<Exclude<ResponseClass, "unjudged">, number>> = {
-  empty: 0,
-  partial: 0,
-  right: 1,
-  wrong: 0,
 };
 
 /**
@@ -667,19 +624,7 @@ export interface Rule {
 /**
  * The rules' names.
  */
-export type RuleName =
-  | "A1"
-  | "C1"
-  | "I1"
-  | "I2"
-  | "J1"
-  | "M1"
-  | "M2"
-  | "M3"
-  | "N1"
-  | "P1"
-  | "R1"
-  | "S1";
+export type RuleName = "A1" | "C1" | "I1" | "I2" | "J1" | "M1" | "M2" | "M3" | "N1" | "P1" | "R1";
 
 /**
  * Every rule of plate's UI suite, by name, as the module's list states them.
@@ -700,11 +645,12 @@ export const rules: Readonly<Record<RuleName, Rule>> = {
   },
   C1: {
     check: (seen) =>
-      Option.match(seen.described, {
-        onNone: () => [],
-        onSome: ({ described, entries }) => {
-          if (described === "empty") {
-            return seen.drawn.flatMap(({ posting }) => {
+      seen.described.pipe(
+        Option.filter(({ described }) => described === "empty"),
+        Option.match({
+          onNone: () => [],
+          onSome: ({ entries }) =>
+            seen.drawn.flatMap(({ posting }) => {
               const own = entries.filter(([name]) => name === posting.binding.name);
 
               return JSON.stringify(own) === JSON.stringify(posting.start)
@@ -714,19 +660,10 @@ export const rules: Readonly<Record<RuleName, Rule>> = {
                       `the source describes the response as empty, and ${posting.identifier} posts ${JSON.stringify(own)}, where it starts at ${JSON.stringify(posting.start)}`,
                     ),
                   ];
-            });
-          }
-
-          return seen.itemClass === "unjudged" || describedAs[described].includes(seen.itemClass)
-            ? []
-            : [
-                inItem(
-                  `the source describes the response as ${described}, and qti-match judges it ${seen.itemClass}: ${seen.drawn.map((each) => `${each.posting.identifier} ${shownValue(each.value)}`).join("; ")}`,
-                ),
-              ];
-        },
-      }),
-    says: "a response the item's source describes as empty posts what it starts at, and any other is of a class qti-match allows it, where qti-match judges one",
+            }),
+        }),
+      ),
+    says: "a response the item's source describes as empty posts what it starts at",
   },
   I1: {
     check: (seen) =>
@@ -932,53 +869,5 @@ export const rules: Readonly<Record<RuleName, Rule>> = {
     check: (seen) =>
       seen.outcome.kind === "threw" ? [inItem(`throws ${seen.outcome.reason}`)] : [],
     says: "the item renders without throwing",
-  },
-  S1: {
-    check: (seen) => {
-      if (seen.showing.mode !== "review" || seen.outcome.kind !== "rendered") {
-        return [];
-      }
-
-      const actual = seen.outcome.score;
-      const said = Option.match(actual, { onNone: () => "no SCORE", onSome: String });
-
-      switch (seen.scoring.kind) {
-        case "match-correct": {
-          const response = seen.drawn.find((each) => each.posting.identifier === "RESPONSE");
-
-          if (response === undefined || response.class === "unjudged") {
-            return [];
-          }
-
-          const expected = matchCorrectScore[response.class];
-
-          return Option.exists(actual, (value) => value === expected)
-            ? []
-            : [
-                inItem(
-                  `a ${response.class} RESPONSE (${shownValue(response.value)}) scores ${said}, where match_correct gives ${String(expected)}`,
-                ),
-              ];
-        }
-        case "predicted": {
-          const expected = seen.scoring.score;
-
-          return Option.exists(actual, (value) => value === expected)
-            ? []
-            : [
-                inItem(
-                  `the response scores ${said}, where its description predicts ${String(expected)}`,
-                ),
-              ];
-        }
-        case "unpredicted": {
-          return [];
-        }
-        default: {
-          return seen.scoring satisfies never;
-        }
-      }
-    },
-    says: "in review, the record's SCORE is the one the item's source predicts",
   },
 };

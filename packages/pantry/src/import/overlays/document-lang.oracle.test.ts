@@ -259,7 +259,7 @@ const recordDocumentsOf = (rowsOf: (relation: string) => readonly HeldRow[]): Re
   );
 
 /**
- * Fold a text's ASCII capitals to small letters, as `Compute.lowerAscii` does (RFC 5646 §2.1.1).
+ * Fold a text's ASCII capitals to small letters, as `Text.lowerAscii` does (RFC 5646 §2.1.1).
  *
  * @param text - The text.
  * @returns The folded text.

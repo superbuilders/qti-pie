@@ -1,0 +1,14 @@
+  /**
+   * The graded sittings: the call's `sittings` relation parameter (`#ledger/sitting-queries.ts`
+   * sittingHeading), which a program binds once, to its caller's sittings. Every item session of a
+   * sitting whose earliest attempt its response processing has not run for is graded, all in one
+   * evaluation: an item's stage serves one session (the app's decideStage), a test's one per member
+   * (qti-pie's takeMembers).
+   */
+  const gradedSitting = sittingHeading;
+  type GradedSession = typeof gradedSitting;
+
+  /**
+   * A query over the graded sittings, bound in the rule that reads it to the call's own `sittings`.
+   */
+  const bySession = (r: Rule<DeliveryLevel>) => ({ sittings: r.relation("sittings", gradedSitting) });

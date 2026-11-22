@@ -86,6 +86,11 @@ export const shredGrammarOf = (grammar: ComposedGrammar): ShredGrammar<Composed>
   const named: ReadonlySet<string> = new Set(
     grammar.kinds.elementName.rows.map(({ local, namespace }) => `${namespace} ${local}`),
   );
+  const replacing: ReadonlySet<string> = new Set(
+    grammar.attributes.valueDomain.rows.flatMap(({ domain, whiteSpace }) =>
+      whiteSpace === "replace" ? [domain] : [],
+    ),
+  );
 
   return {
     admitsChild: (parent, child) => Option.isSome(grammar.admission.lookup({ child, parent })),
@@ -107,6 +112,10 @@ export const shredGrammarOf = (grammar: ComposedGrammar): ShredGrammar<Composed>
             ({ domain }) => domain,
           )
       ).pipe(Option.flatMap((domain) => Option.fromNullishOr(qualifiedOf.get(domain)))),
+    replacesText: (kind, governs) =>
+      Option.exists(textDomainOf(grammar.attributes, { governs, kind }), (domain) =>
+        replacing.has(domain),
+      ),
     resolve: (namespace, local, parent) =>
       grammar.kinds.resolve(namespace, local, parent).pipe(Option.flatMap(elementKindOf)),
     strictlyHeld: (parent, kind) =>

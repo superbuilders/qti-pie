@@ -50,9 +50,7 @@ export const documentLaws = [
   "Max strings required",
   "Dependency target",
   "XML production",
-  "Item key",
   "Template needs",
-  "Printed variable type",
 ] as const;
 
 /**
@@ -79,10 +77,6 @@ export const addedLaws = {
     explain: (keys) =>
       `a dependency names ${field(keys, "identifier")}, which no resource of its manifest is`,
   },
-  "Item key": {
-    explain: (keys) =>
-      `two assessment objects of one package share the identifier ${field(keys, "identifier")}, where an item is its package and its identifier`,
-  },
   "Max strings required": {
     explain: (keys) =>
       `the extended text interaction binds the ${field(keys, "cardinality")} response ${field(keys, "identifier")} and writes no max-strings`,
@@ -108,15 +102,11 @@ export const addedLaws = {
 const valueSetKinds: ReadonlySet<string> = new Set(["qti-default-value", "qti-correct-response"]);
 
 /**
- * The outcome names the specification types (§2.2.2.3, Outcomes Variable: "SCORE MUST be a float",
- * "MAXSCORE MUST be a float", "PASSED MUST be a boolean"), each its base type, binding every
- * declaration, since pantry stores no test (reading 228).
+ * /**
+ * The root of a test document, whose declarations the reserved names bind as a test's (spec
+ * readings 163 and 168).
  */
-const reservedBaseTypes: ReadonlyMap<string, string> = new Map([
-  ["MAXSCORE", "float"],
-  ["PASSED", "boolean"],
-  ["SCORE", "float"],
-]);
+const testRootKind = "qti-assessment-test";
 
 /**
  * `xs:double`'s lexical space as XML Schema 1.0 writes it (Part 2 §3.2.5.1, reading 71's edition,
@@ -215,11 +205,12 @@ const masteryRangeOf = (rows: View, node: Row): readonly Breach[] => {
  * Judge one value set by the O2 laws: `Value_cardinality` over its count and its fields, `Record
  * field key` over its fields' identifiers, and `Typed_value` over each value's text.
  *
- * A value writes a `field-identifier` and a `base-type` both, as a record's field, or neither
- * (§7.46.1, §7.46.2: each "is only used for" a record's field), whatever its declaration's
- * cardinality, and its fields' names are distinct whatever it is; the rest reads the cardinality,
- * so a set of a declaration whose cardinality is unwritten or spells nothing is judged by no more
- * (spec reading 158).
+ * A record's value is a field, with its `field-identifier` and its `base-type` both, and its
+ * fields' names are distinct (§8.16, record: "a set of independent values each identified by its
+ * own identifier and having its own base-type"); a value of any other set may write either, which
+ * names and types nothing there (§7.46.1, §7.46.2: each "is only used for" a value that forms part
+ * of a record). Every law reads the cardinality, so a set of a declaration whose cardinality is
+ * unwritten or spells nothing is judged by none of them (spec reading 158).
  *
  * @param rows - The document.
  * @param set - The value set.
@@ -240,20 +231,19 @@ const valueSetLawsOf = (
     Option.isSome(valueOf(rows, start, "field-identifier")),
   );
   const baseTyped = values.filter(({ start }) => Option.isSome(valueOf(rows, start, "base-type")));
-  // A record's value is a field, with its field-identifier and its base-type both, and any other
-  // variable's value carries neither (§7.46.1, §7.46.2: each is "only used for" a record's field).
+  // A record's value is a field, with its field-identifier and its base-type both (§8.16); any
+  // other variable's value may carry either, which names and types nothing there (§7.46.1,
+  // §7.46.2: each is "only used for" a value that forms part of a record).
   const whole = fields.filter(({ start }) => Option.isSome(valueOf(rows, start, "base-type")));
-  const paired = whole.length === fields.length && whole.length === baseTyped.length;
+  const record = Option.exists(cardinality, (held) => held === "record");
   const counted = Option.match(cardinality, {
-    onNone: () => paired,
+    onNone: () => true,
     onSome: (held) =>
       (held !== "single" || set.elementChildren === 1n) &&
-      (held === "record"
-        ? BigInt(whole.length) === set.elementChildren
-        : fields.length === 0 && baseTyped.length === 0),
+      (held !== "record" || BigInt(whole.length) === set.elementChildren),
   });
   const named = Map.groupBy(
-    fields.flatMap((value) =>
+    (record ? fields : []).flatMap((value) =>
       Option.toArray(typedOr(rows, value.start, "field-identifier", "")).map((identifier) => ({
         identifier,
         value,
@@ -313,7 +303,8 @@ const valueSetLawsOf = (
  *
  * @param rows - The document.
  * @param node - The declaration.
- * @param sessionVariables - An item's three built-in session variables, which no declaration may name
+ * @param sessionVariables - The built-in session variables of the document's root, which no
+ *   declaration may name
  *   (reading 168).
  * @param grammar - The composed grammar.
  * @returns The breaches.
@@ -339,25 +330,20 @@ const declarationLawsOf = (
     ...Option.match(identifier, { onNone: () => ({}), onSome: (held) => ({ identifier: held }) }),
     ...Option.match(cardinality, { onNone: () => ({}), onSome: (held) => ({ cardinality: held }) }),
   };
-  // A typed name (SCORE, MAXSCORE, PASSED) is no record, its whole value judged by its cardinality
-  // alone, where it has one, and has its type where it has a base type; QTI_CONTEXT is declared as
-  // the context record. A record has no base type, and every variable of another cardinality
+  // QTI_CONTEXT is declared as the context record (reading 74). SCORE, MAXSCORE and PASSED are typed
+  // by no normative rule (§4.5's "needs to be" is no RFC 2119 keyword, §1.3; §2.2.2.3 is NOT
+  // NORMATIVE), so each is admitted of any type (J1). A record has no base type, and every variable
+  // of another cardinality
   // writes one (tables 4.5.3, 5.34.3, 5.115.3 and 5.151.3): one that writes none is Declaration
   // base type's (lane NIL's audit, B12), and one that writes a form spelling nothing its value
   // domain's alone.
   const isRecord = cardinality.pipe(Option.map((held) => held === "record"));
-  const reservedBroken = Option.exists(identifier, (name) => {
-    const reserved = reservedBaseTypes.get(name);
-
-    return (
-      (node.kind === "qti-outcome-declaration" &&
-        reserved !== undefined &&
-        (Option.contains(isRecord, true) ||
-          Option.exists(baseType, (held) => held !== reserved))) ||
-      (name === "QTI_CONTEXT" &&
-        (node.kind !== "qti-context-declaration" || Option.contains(isRecord, false)))
-    );
-  });
+  const reservedBroken = Option.exists(
+    identifier,
+    (name) =>
+      name === "QTI_CONTEXT" &&
+      (node.kind !== "qti-context-declaration" || Option.contains(isRecord, false)),
+  );
   const writesBaseType = Option.isSome(valueOf(rows, node.start, "base-type"));
   const baseBroken = Option.exists(isRecord, (record) =>
     record ? Option.isSome(baseType) : !writesBaseType,
@@ -523,7 +509,7 @@ const mappingTemplates: ReadonlySet<string> = new Set(["map_response", "CC2_map_
  * @param uri - The `template` attribute as written.
  * @returns The template's name, none for a URI that names no published template.
  */
-const publishedTemplateOf = (uri: string): Option.Option<string> => {
+export const publishedTemplateOf = (uri: string): Option.Option<string> => {
   const written = collapsed(uri);
 
   return Option.fromUndefinedOr(
@@ -608,76 +594,6 @@ const templateNeedsOf = (rows: View): readonly Breach[] => {
         : []),
     ]);
   });
-};
-
-/**
- * An NCName, as Namespaces in XML 1.0 §3 writes it, over the characters of XML Schema 1.0 (spec
- * reading 94): what an `IntegerOrVariableRef` holds where it names a variable rather than writes
- * an integer (information model §9.3.3, §9.3.5's VariableString).
- */
-const variableName =
-  /^[A-Z_a-z\u{C0}-\u{D6}\u{D8}-\u{F6}\u{F8}-\u{2FF}\u{370}-\u{37D}\u{37F}-\u{1FFF}\u{200C}-\u{200D}\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}][-.0-9A-Z_a-z\u{B7}\u{C0}-\u{D6}\u{D8}-\u{F6}\u{F8}-\u{37D}\u{37F}-\u{1FFF}\u{200C}-\u{200D}\u{203F}-\u{2040}\u{2070}-\u{218F}\u{2C00}-\u{2FEF}\u{3001}-\u{D7FF}\u{F900}-\u{FDCF}\u{FDF0}-\u{FFFD}]*$/u;
-
-/**
- * Hold an item's printed variables' `base` and `index` to "Printed variable type" (information
- * model §9.3.3: "attributes of integer type that may be replaced with the value of a template or
- * outcome variable of base type integer and single cardinality"): where one names an outcome or a
- * template declaration of the item, that declaration's cardinality, where it spells one, is single
- * and its base type, where it spells one, integer (spec readings 158 and 159). A name no
- * declaration bears is "Printed variable reference"'s.
- *
- * @param rows - The document.
- * @returns The breaches.
- */
-const printedVariableTypesOf = (rows: View): readonly Breach[] => {
-  const root = Option.getOrUndefined(rows.root);
-  if (root?.kind !== "qti-assessment-item") {
-    return [];
-  }
-
-  const declarations = new Map(
-    rows.members.flatMap((node) =>
-      (node.kind === "qti-outcome-declaration" || node.kind === "qti-template-declaration") &&
-      node.parent === root.start
-        ? Option.toArray(valueOf(rows, node.start, "identifier")).map(
-            (identifier) => [collapsed(identifier), node] as const,
-          )
-        : [],
-    ),
-  );
-
-  return rows.members.flatMap((node): readonly Breach[] =>
-    node.kind === "qti-printed-variable"
-      ? (["base", "index"] as const).flatMap((attribute): readonly Breach[] =>
-          Option.toArray(valueOf(rows, node.start, attribute))
-            .map(collapsed)
-            .filter((identifier) => variableName.test(identifier))
-            .flatMap((identifier) => {
-              const declaration = declarations.get(identifier);
-              if (declaration === undefined) {
-                return [];
-              }
-
-              const cardinality = typedValueOf(rows, declaration.start, "cardinality");
-              const baseType = typedValueOf(rows, declaration.start, "base-type");
-              const types = [
-                ...Option.toArray(cardinality).filter((held) => held !== "single"),
-                ...Option.toArray(baseType).filter((held) => held !== "integer"),
-              ];
-
-              return types.length > 0
-                ? [
-                    breachAt(rows, node, "Printed variable type", {
-                      attribute,
-                      identifier,
-                      type: types.join(" "),
-                    }),
-                  ]
-                : [];
-            }),
-        )
-      : [],
-  );
 };
 
 /**
@@ -775,11 +691,15 @@ export const documentDocumentBreaches = (
   rows: View,
   grammar: ComposedGrammar,
 ): readonly Breach[] => {
+  // A declaration may not name a built-in session variable of its document's root (readings 72 and
+  // 168): an item's three in any document but a test, and a test's `duration` alone in a test.
+  const root = Option.exists(rows.root, ({ kind }) => kind === testRootKind)
+    ? testRootKind
+    : "qti-assessment-item";
   const sessionVariables = new Set(
     grammar.references.builtIn.rows
       .filter(
-        ({ declaration, root }) =>
-          root === "qti-assessment-item" && declaration !== "qti-context-declaration",
+        ({ declaration, root: held }) => held === root && declaration !== "qti-context-declaration",
       )
       .map(({ variable }) => variable),
   );
@@ -792,7 +712,6 @@ export const documentDocumentBreaches = (
     ),
     ...interactionLawsOf(rows, grammar),
     ...templateNeedsOf(rows),
-    ...printedVariableTypesOf(rows),
     ...productionLawsOf(rows),
   ];
 };
@@ -991,37 +910,6 @@ const dependencyLawsOf = (manifest: View): readonly Breach[] => {
 };
 
 /**
- * Judge `Item key` (metadata.ts `ObjectIdentifier`): no two assessment objects of one package, an
- * item's or a test's root ({@link objectRoots}) in any document it lists, share an identifier
- * compared collapsed. Each object after the first of one identifier breaks it, at its root; a
- * root that writes no identifier has none to share, which AL3 refuses alone.
- *
- * @param input - The package.
- * @returns The breaches.
- */
-const itemKeyLawsOf = (input: PackageRows): readonly Breach[] => {
-  const held = new Set<string>();
-
-  return input.documents.flatMap(({ rows }): readonly Breach[] => {
-    const root = Option.getOrUndefined(rows.root);
-    if (root === undefined || !objectRoots.has(root.kind)) {
-      return [];
-    }
-
-    return Option.toArray(valueOf(rows, root.start, "identifier")).flatMap((lexical) => {
-      const identifier = collapsed(lexical);
-      if (!held.has(identifier)) {
-        held.add(identifier);
-
-        return [];
-      }
-
-      return [breachAt(rows, root, "Item key", { identifier })];
-    });
-  });
-};
-
-/**
  * Judge a package by the laws of this module over more than one document: the LOM title and the
  * manifest's dependencies.
  *
@@ -1032,8 +920,4 @@ const itemKeyLawsOf = (input: PackageRows): readonly Breach[] => {
 export const documentPackageBreaches = (
   input: PackageRows,
   _grammar: ComposedGrammar,
-): readonly Breach[] => [
-  ...lomTitleLawsOf(input),
-  ...dependencyLawsOf(input.manifest),
-  ...itemKeyLawsOf(input),
-];
+): readonly Breach[] => [...lomTitleLawsOf(input), ...dependencyLawsOf(input.manifest)];

@@ -10,7 +10,7 @@
 import { Option } from "effect";
 import { createElement } from "react";
 import type { Key, ReactNode } from "react";
-import type { Credit } from "#plate/credit.ts";
+import type { Credit } from "#plate/ui/item/context.ts";
 import { message } from "#plate/messages.ts";
 import type { Locale, MessageKey } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel } from "#plate/model/item.ts";

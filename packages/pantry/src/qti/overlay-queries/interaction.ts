@@ -10,16 +10,20 @@
  */
 import {
   check,
-  Compute,
   contained,
   decimalText,
   derived,
   key,
+  Logic,
   mirrors,
+  Num,
   on,
   query,
   select,
+  Text,
+  Type,
   v,
+  Xml,
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import { Option } from "effect";
@@ -56,7 +60,14 @@ import {
   PlacedChoice,
 } from "#pantry/qti/interactions.ts";
 import { doublesInOrder } from "#pantry/qti/declarations.ts";
-import { DeclarationName, QtiViews, TypedDeclarationName } from "#pantry/qti/names.ts";
+import { parsedDecimalBytes } from "#pantry/qti/limits.ts";
+import { VariableRef } from "#pantry/qti/expressions.ts";
+import {
+  attributeValues,
+  DeclarationName,
+  QtiViews,
+  TypedDeclarationName,
+} from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
 import {
   choiceKinds,
@@ -698,7 +709,7 @@ const leastBounds = (l: RowScalars<typeof LeastChoiceBound>) =>
     l.ne(ChoiceBound.at("zero", l.kind), "counted"),
     l.eq(l.minWritten, false),
     l.not(l.in(l.kind, choiceCountKinds)),
-    l.le(l.leastValue, Compute.base(l.choices)),
+    l.le(l.leastValue, Type.base(l.choices)),
   );
 
 /**
@@ -713,7 +724,7 @@ const mostBounds = (m: RowScalars<typeof MostChoiceBound>) =>
     m.ne(ChoiceBound.at("zero", m.kind), "counted"),
     m.eq(m.minWritten, false),
     m.not(m.in(m.kind, choiceCountKinds)),
-    m.le(m.mostValue, Compute.base(m.choices)),
+    m.le(m.mostValue, Type.base(m.choices)),
   );
 
 /**
@@ -767,10 +778,56 @@ const lastWhere = (h: RowScalars<typeof HotspotNode>) =>
   );
 
 /**
+ * Each text entry's and extended text interaction's `pattern-mask`, by its element's place.
+ */
+const patternMasks = attributeValues("pattern-mask", [
+  "qti-text-entry-interaction",
+  extendedTextKind,
+]);
+
+/**
+ * Each pattern match's `pattern`, by its element's place, whatever it spells.
+ */
+const matchPatterns = attributeValues("pattern", ["qti-pattern-match"]);
+
+/**
+ * Every regular expression a document writes, by its element's place: a text entry's or an
+ * extended text interaction's `pattern-mask` ("The regular expression language used is defined in
+ * Appendix F of [XSCHEMA, 01]", information model §5.162.5 and §5.48.4), and a pattern match's
+ * `pattern` where it is a literal ("The syntax for the regular expression language is as defined in
+ * Appendix F of [XSCHEMA, 01]", §5.104.1). A `pattern` is a `StringOrVariableRef`: one that names a
+ * variable in braces is a `VariableRef` row, judged by the variable it names (rules P8 and P24),
+ * never as a pattern. Each value is its attribute's as written, an `xs:string`'s whiteSpace keeping
+ * it.
+ */
+export const PatternText = derived(
+  "PatternText",
+  query(QtiBase)
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(patternMasks, "mask");
+
+      return r
+        .match(patternMasks, { package: pkg, path, start, value })
+        .find({ package: pkg, path, pattern: value, start });
+    })
+    .rule((r) => {
+      const { package: pkg, path, start, value } = v(matchPatterns, "pattern");
+
+      return r
+        .match(matchPatterns, { package: pkg, path, start, value })
+        .where(r.not(VariableRef, { attribute: "pattern", package: pkg, path, start }))
+        .find({ package: pkg, path, pattern: value, start });
+    }),
+);
+
+/**
  * The interaction overlays' rules over their node, each named by its oracle law:
  *
  * - **"Aria value range"** (§5.2.31, reading 91) and **"Slider bounds"** (reading 9) over each
- *   element's two read bounds.
+ *   element's two read bounds; and **"Key text bound"** over a pair's ARIA bound that is an
+ *   `xs:decimal` past the bytes `Text.parseDecimal` reads (`parsedDecimalBytes`), which can name a
+ *   decimal PostgreSQL's numeric does not hold: a stated limit of the representation, where "Aria
+ *   value range" holds by its own arm.
  * - **"Binding cardinality"** (reading 92): a single response bound by an interaction whose most
  *   count decides its cardinality takes a most of 1, where that most has a value; and a gap match
  *   bound to a single response encloses at most one gap (spec reading 169), a key over its gaps.
@@ -790,6 +847,10 @@ const lastWhere = (h: RowScalars<typeof HotspotNode>) =>
  *   has its {@link Interaction} of that kind, and a hottext whose nearest stands in another
  *   document names its document's context.
  * - **"PCI module source"** (R10-a): a portable custom interaction names its module in some form.
+ * - **"Pattern language"** (information model §5.162.5, §5.48.4 and §5.104.1): every `pattern-mask`
+ *   and every literal `qti-pattern-match` `pattern` is a regular expression of XML Schema 1.0 Part
+ *   2's Appendix F, `{` and `}` metacharacters (reading 58), judged by grizzle's `Xml.isPattern`
+ *   over {@link PatternText}.
  * - **the default hotspot** (reading 80): "Graphic gap match default hotspot" and "default hotspot
  *   last slot" over each hotspot's shape, its rank and its parent's count.
  */
@@ -797,11 +858,31 @@ export const interactionOverlayLawsByName = {
   "Aria value range": [
     check("Aria_value_range", AriaBounds, (r) =>
       r.or(
-        r.not(Compute.matches(r.min, decimalText)),
-        r.not(Compute.matches(r.max, decimalText)),
+        r.not(Text.matches(r.min, decimalText)),
+        r.not(Text.matches(r.max, decimalText)),
+        r.gt(Text.octetLength(r.min), parsedDecimalBytes),
+        r.gt(Text.octetLength(r.max), parsedDecimalBytes),
         r.le(
-          Compute.when(Compute.matches(r.min, decimalText), (min) => Compute.parseDecimal(min), 0n),
-          Compute.when(Compute.matches(r.max, decimalText), (max) => Compute.parseDecimal(max), 0n),
+          Logic.when(
+            Text.matches(r.min, decimalText),
+            (min) =>
+              Logic.when(
+                Num.within(Text.octetLength(min), 0, parsedDecimalBytes),
+                () => Text.parseDecimal(min),
+                0n,
+              ),
+            0n,
+          ),
+          Logic.when(
+            Text.matches(r.max, decimalText),
+            (max) =>
+              Logic.when(
+                Num.within(Text.octetLength(max), 0, parsedDecimalBytes),
+                () => Text.parseDecimal(max),
+                0n,
+              ),
+            0n,
+          ),
         ),
       ),
     ),
@@ -969,6 +1050,20 @@ export const interactionOverlayLawsByName = {
       ),
     ),
   ],
+  "Key text bound": [
+    check("Key_text_bound", AriaBounds, (r) =>
+      r.and(
+        r.or(
+          r.not(Text.matches(r.min, decimalText)),
+          r.le(Text.octetLength(r.min), parsedDecimalBytes),
+        ),
+        r.or(
+          r.not(Text.matches(r.max, decimalText)),
+          r.le(Text.octetLength(r.max), parsedDecimalBytes),
+        ),
+      ),
+    ),
+  ],
   "Max strings required": [
     contained(
       on(
@@ -1042,6 +1137,9 @@ export const interactionOverlayLawsByName = {
       i.or(i.ne(i.kind, pciKind), i.gt(i.moduleForms, 0n)),
     ),
   ],
+  "Pattern language": [
+    check("Pattern_language", PatternText, (p) => p.eq(Xml.isPattern(p.pattern), true)),
+  ],
   RecordBindingFit: [
     contained(
       on(
@@ -1091,6 +1189,7 @@ export const interactionOverlayRelations = [
   LeastCountNode,
   MostChoiceBound,
   MostCountNode,
+  PatternText,
   PlacedBindingBaseTypeNode,
   PlacedBindingCardinalityNode,
   PlacedChoiceNode,

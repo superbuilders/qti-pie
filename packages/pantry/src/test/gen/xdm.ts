@@ -49,7 +49,9 @@ import { followPairsOf } from "#pantry/grammar/content.ts";
 import { foreignKinds, isForeignKind, openClasses } from "#pantry/grammar/kinds.ts";
 import type { ForeignKind } from "#pantry/grammar/kinds.ts";
 import { expandedNameOf, typeHandle } from "#pantry/grammar/xsi.ts";
+import { shredGrammarOf } from "#pantry/model/composed.ts";
 import type { Composed } from "#pantry/model/composed.ts";
+import type { ShredGrammar } from "#pantry/model/shred.ts";
 import type { FoldedNode, FoldedRows } from "#pantry/model/folds.ts";
 import { closedName, flatten, handlePrefixes, handlePrefixOf } from "#pantry/model/xdm.ts";
 import { admittedOf, symbolRowsOf } from "#pantry/test/indexes.ts";
@@ -230,6 +232,12 @@ export interface Index {
    */
   readonly governors: ReadonlySet<string>;
   readonly names: ReadonlyMap<string, ExpandedName>;
+  /**
+   * Whether an element's text is an `xs:normalizedString`'s, which shred stores replaced, no tab,
+   * line feed or carriage return in it (`ShredGrammar.replacesText`), so the generator draws none
+   * there: a row set holds what shred stores.
+   */
+  readonly replaces: ShredGrammar<Composed>["replacesText"];
   readonly open: ReadonlyMap<string, ReadonlySet<OpenClass>>;
   /**
    * How far below each kind each child class can first appear: 1 where the kind admits
@@ -866,6 +874,7 @@ export const indexOf = (grammar: ComposedGrammar): Index => {
       ]),
     ),
     reach: reachOf(children),
+    replaces: shredGrammarOf(grammar).replacesText,
     roots: rootsOf(children, size),
     size,
   };
@@ -1705,6 +1714,7 @@ const parentKindOf = (context: Context, site: Site): Kind =>
  * @param context - The case.
  * @param drawn - Its class.
  * @param site - Where it is drawn.
+ * @param replaced - Whether its element's text is stored replaced ({@link Index.replaces}).
  * @returns A generator of the node.
  */
 const placedCharacter =
@@ -1712,11 +1722,16 @@ const placedCharacter =
     context: Context,
     drawn: Exclude<ChildClass, "element" | "wildcard">,
     site: Site,
+    replaced: boolean,
   ): Gen<XdmCharacter> =>
   (source) => {
     place(context, { at: site.at, kind: drawn, parent: site.parent });
 
-    return source.draw(characterOf(drawn));
+    const character = source.draw(characterOf(drawn));
+
+    return replaced && (character._tag === "text" || character._tag === "ws")
+      ? { ...character, value: character.value.replaceAll(/[\t\n\r]/gu, " ") }
+      : character;
   };
 
 /**
@@ -1727,6 +1742,10 @@ interface Owner {
   readonly kind: ElementKind<Composed> | ForeignKind;
   readonly namespace: string;
   readonly number: number;
+  /**
+   * Whether the element's text is stored replaced ({@link Index.replaces}).
+   */
+  readonly replaced: boolean;
   readonly scope: Scope;
   /**
    * Whether a simple type governs the element: a foreign element whose `xsi:type` names one of its
@@ -1788,7 +1807,7 @@ const familyUnder = (
         case "comment":
         case "pi":
         case "entityRef": {
-          return placedCharacter(context, candidate.class, below);
+          return placedCharacter(context, candidate.class, below, owner.replaced);
         }
         default: {
           return candidate satisfies never;
@@ -1827,6 +1846,7 @@ const foreignOf =
       kind,
       namespace: name.namespace,
       number: entry.start,
+      replaced: context.index.replaces(kind, governs),
       scope: declared.scope,
       simple: Option.exists(governs, (type) => context.index.governors.has(`${kind} ${type}`)),
     };
@@ -1870,7 +1890,14 @@ const closedOf =
       attributesOf(context, kind, namespace, parentKindOf(context, site)),
     );
     const declared = source.draw(declarationsOf(context, site.scope, namespace, needed));
-    const owner = { kind, namespace, number: entry.start, scope: declared.scope, simple: false };
+    const owner = {
+      kind,
+      namespace,
+      number: entry.start,
+      replaced: context.index.replaces(kind, governs),
+      scope: declared.scope,
+      simple: false,
+    };
     const children = source.draw(familyUnder(context, owner, site.depth, completing));
     close(context, entry);
 

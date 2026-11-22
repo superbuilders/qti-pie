@@ -303,11 +303,15 @@ const attributesOf = (node: NodeInput) =>
 
 /**
  * Build an element's attributes of open names (`data-*`, foreign, no-namespace and own-namespace
- * attributes), a set keyed by expanded name, each with its class and its entity references by
- * offset, correlated to its key `(package, path, start, uri, local)` as {@link attributesOf}'s are.
+ * attributes), a set keyed by expanded name, delivered in no order, each with its class and its
+ * entity references by offset, correlated to its key `(package, path, start, uri, local)` as
+ * {@link attributesOf}'s are. XML gives an element's attributes no order, and a namespace name and
+ * a local name are of any length, so no index orders by them: the model orders them on the host
+ * (`#pantry/model/assemble.ts`), and the key holds each by its image where it would outgrow an
+ * entry.
  *
  * @param node - The element's key.
- * @returns The open attributes in key order, with `entities` attached.
+ * @returns The open attributes, with `entities` attached.
  */
 const openAttributesOf = (node: NodeInput) =>
   query(Qti)
@@ -357,31 +361,31 @@ const openAttributesOf = (node: NodeInput) =>
           })
           .orderBy(["offset", "asc"]),
       "array",
-    )
-    .orderBy(["uri", "asc"], ["local", "asc"]);
+    );
 
 /**
- * Build an element's namespace declarations, a set keyed by prefix.
+ * Build an element's namespace declarations, a set keyed by prefix, delivered in no order.
+ * Namespaces in XML gives an element's declarations no order, and a prefix is of any length, so no
+ * index orders by one: the model orders them on the host (`#pantry/model/assemble.ts`), and the
+ * key holds a prefix by its image where it would outgrow an entry.
  *
  * @param node - The element's key.
- * @returns The declarations' prefixes and URIs, in key order.
+ * @returns The declarations' prefixes and URIs.
  */
 const namespacesOf = (node: NodeInput) =>
-  query(Qti)
-    .rule((r) => {
-      const { prefix, uri } = v(Namespace, "namespace");
+  query(Qti).rule((r) => {
+    const { prefix, uri } = v(Namespace, "namespace");
 
-      return r
-        .match(Namespace, {
-          package: node.package,
-          path: node.path,
-          prefix,
-          start: node.start,
-          uri,
-        })
-        .find({ prefix, uri });
-    })
-    .orderBy(["prefix", "asc"]);
+    return r
+      .match(Namespace, {
+        package: node.package,
+        path: node.path,
+        prefix,
+        start: node.start,
+        uri,
+      })
+      .find({ prefix, uri });
+  });
 
 /**
  * The scan of one document: its `Node` rows where `package = $package` and `path = $path`, ordered
@@ -471,10 +475,12 @@ export const documentScanOf = (document: DocumentInput) =>
     .orderBy(["start", "asc"]);
 
 /**
- * A package's entries: every entry's path and kind, a set keyed by path, delivered in path order,
- * each media entry with its `Media` row's digest, the name its bytes have in the content-addressed
- * store, attached exactly where its kind is `media` ("Entry kind", grizzle's `arm`). A `document`
- * entry is the `Document` at its package and path, the parameter of its {@link documentScan}.
+ * A package's entries: every entry's path and kind, a set keyed by path, delivered in no order (IMS
+ * Content Packaging gives a package's entries none, so no index orders by a path and a path of any
+ * length is held by its image; the export orders them on the host), each media entry with its
+ * `Media` row's digest, the name its bytes have in the content-addressed store, attached exactly
+ * where its kind is `media` ("Entry kind", grizzle's `arm`). A `document` entry is the `Document`
+ * at its package and path, the parameter of its {@link documentScan}.
  *
  * `package` is in the head, fixed by its parameter, so the attachment correlates to it, as
  * {@link documentScan}'s `package` is.
@@ -499,5 +505,4 @@ export const entriesOf = query(Qti)
           .find({ digest });
       }),
     arm("kind", "media"),
-  )
-  .orderBy(["path", "asc"]);
+  );

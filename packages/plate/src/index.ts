@@ -3,24 +3,23 @@
  * the functions a host serving items calls, the types their signatures name and the errors they
  * fail with.
  *
- * `openAdmitted` opens a document the database admitted, and `acceptedItem`
- * takes the accepted item from its verdict. `configure` decodes the host's settings. `itemSeeds`
- * derives a served item's shuffle and processing seeds from its decision's one seed, and
- * `stageOrder` the order a stage's items show in. `begin` starts the record of an item's first
- * attempt, drawing the values its template processing sets under the processing seed; `scoreRecord`
- * runs one attempt from a record and gives the record after it, `attemptOf` reads the facts a host
- * records of that attempt, and `recordAfter` rebuilds the next attempt's record from `begin`'s and
- * the attempts made, each with its clock reading. `numAttempts` counts those attempts as QTI's
- * built-in does, and `itemSessionOpen` says whether the item session takes another, by the stage's
- * limit or, for an adaptive item, its completion. `redact` copies the item into the form a page may
- * know, `postings` gives the bindings its responses post under, and `entryName` (with its inverse
- * `responseOf`), `partition`, `decode` and `encode` carry a response between its value and the
- * entries a form posts. `format` writes a value in its base type's lexical form, which
- * `parseLexical` reads back, and `readIeeeDouble` reads an `xs:double` as plate reads every one.
- * `checkResponses` validates the answers as the item's interactions do, `score` is `scoreRecord`
- * over an optional record, `restore` reads a record's shown values back, and `solution` gives the
- * item's correct responses. `assetPaths` names the package files an item body's URL attribute
- * names.
+ * `openAdmitted` opens a document the database admitted, and `acceptedItem` takes the accepted item
+ * from its verdict. `configure` decodes the host's settings. `shuffleSeed` derives a served item's
+ * shuffle seed from its decision's one seed, and `stageOrder` the order a stage's items show in.
+ * Plate grades nothing: the QTI database runs template processing at the take, and response
+ * processing, openness and credit in the statement that records an attempt, and the host hands
+ * plate the values that statement returns, as an {@link ItemRecord} and a review's `graded`.
+ * `redact` copies the item into the form a page may know, `postings` gives the bindings its
+ * responses post under, and `entryName` (with its inverse `responseOf`), `partition`, `decode` and
+ * `encode` carry a response between its value and the entries a form posts. `format` writes a value
+ * in its base type's lexical form, which `parseLexical` reads back, and `readIeeeDouble` reads an
+ * `xs:double` as plate reads every one. The QTI database admits or refuses the answers in the
+ * statement that grades them, and `refusalMessages` words a refused answer's reasons for its page.
+ * `restore` reads a record's shown values back, and `solution` gives the item's correct responses
+ * as its interactions show them. `assetPaths` names the package files an item body's URL attribute
+ * names. `Supports` is the accessibility supports a host enables for one candidate, `<Item>`'s
+ * `supports`, and `noSupports` enables none, from which a host enables the spoken support at a
+ * reading type, as a candidate's read-aloud setting asks.
  *
  * A Portable Custom Interaction runs where the host says: `pciModulesIn` gives each PCI of an item
  * with its module facts as written, `resolvePciModules` resolves them against the package's files
@@ -38,36 +37,32 @@
  * `openAdmitted` and `configure` return Effects. Every other function is plain, callable with no
  * Effect runtime: it returns its value, or a `Result` when a caller can make it fail.
  *
- * Nothing else under `src/` is reachable from outside the package but the UI's four entries and
- * `./test/admitted`, the test support that tells a document the database admitted, which specimen's
- * UI suite sweeps the corpus by as plate's own sweeps do. The tests' seams (`acceptForTest` and its
+ * Nothing else under `src/` is reachable from outside the package but the UI's four entries,
+ * `./admission-codes`, the reason codes `refusalMessages` words, the one list (generated from the
+ * QTI database's machine) the ledger builds its closed roster `AdmissionCode` from without loading
+ * the rest of plate, `./test/admitted`, the test support that tells a document the database admitted, which specimen's
+ * UI suite sweeps the corpus by as plate's own sweeps do, and `./test/records`, the record a test
+ * shows an item by before its first attempt. The tests' seams (`acceptForTest` and its
  * kin) and the redacted item's brand constructor (`brandRedacted`) are never exported, so a host
  * holds an `Accepted` only from `openAdmitted`, and a `Redacted` only from `redact`.
  *
  * @module
  */
-export type { Attempt, ClockedAttempt } from "#plate/attempts.ts";
+export type {
+  AdmissionCode,
+  Refusal,
+  RefusalCount,
+  RefusalMessage,
+  RefusalNumber,
+  RefusalReason,
+  RefusalWord,
+} from "#plate/admission.ts";
 
-export { attemptOf, itemSessionOpen, numAttempts, recordAfter } from "#plate/attempts.ts";
-
-export { begin } from "#plate/begin.ts";
+export { refusalMessages } from "#plate/admission.ts";
 
 export type { Configuration } from "#plate/configuration.ts";
 
 export { configure, InvalidConfiguration } from "#plate/configuration.ts";
-
-export type { Credit } from "#plate/credit.ts";
-
-export { credit } from "#plate/credit.ts";
-
-export type { EngineFailure } from "#plate/engine/evaluate.ts";
-
-export {
-  OutcomeMismatchError,
-  RecordOperandError,
-  UnknownIdentifierError,
-  UnmappedResponseError,
-} from "#plate/engine/failures.ts";
 
 export type {
   Binding,
@@ -86,8 +81,6 @@ export {
   partition,
   responseOf,
 } from "#plate/form/encoding.ts";
-
-export type { ValidationMessage } from "#plate/interactions/contract.ts";
 
 export { collapseXmlSpace } from "#plate/model/attributes.ts";
 
@@ -119,31 +112,25 @@ export { resolvePciModules } from "#plate/pci/resolve.ts";
 
 export type { Posting } from "#plate/postings.ts";
 
-export { postings } from "#plate/postings.ts";
+export { postings, unpostedEndAttempts } from "#plate/postings.ts";
 
 export { redact } from "#plate/redact.ts";
 
 export type { Redacted } from "#plate/redact/walk.ts";
 
-export { checkResponses } from "#plate/responses.ts";
-
 export type { Restored } from "#plate/restore.ts";
 
 export { restore } from "#plate/restore.ts";
 
-export {
-  InvalidRecord,
-  InvalidResponses,
-  RecordMismatch,
-  ResponsesRefused,
-  scoreRecord,
-} from "#plate/score.ts";
+export type { ItemIdentity } from "#plate/seed.ts";
 
-export type { ItemIdentity, ItemSeeds } from "#plate/seed.ts";
-
-export { itemSeeds, stageOrder } from "#plate/seed.ts";
+export { shuffleSeed, stageOrder } from "#plate/seed.ts";
 
 export { solution } from "#plate/solution.ts";
+
+export type { Supports } from "#plate/supports.ts";
+
+export { noSupports } from "#plate/supports.ts";
 
 export { openAdmitted } from "#plate/validate/admitted.ts";
 

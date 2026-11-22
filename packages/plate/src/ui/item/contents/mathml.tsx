@@ -30,7 +30,7 @@ import type { MathAttribute, MathChild, MathElement } from "#plate/content/mathm
 import { elementAttributes } from "#plate/content/mathml-attributes.ts";
 import type { ContentPayload } from "#plate/content/modules.ts";
 import { mathmlNamespace } from "#plate/document/source.ts";
-import { addressUrl, classifyUrl, urlContextOf } from "#plate/model/url.ts";
+import { addressUrl, classifyUrl, missingPathOf, urlContextOf } from "#plate/model/url.ts";
 import type { KeptUrl, UrlContext } from "#plate/model/url.ts";
 import type { ContentWalk } from "#plate/ui/item/content.tsx";
 import type { Addressing } from "#plate/ui/item/html.ts";
@@ -254,7 +254,10 @@ export const missingInMath = (
       Option.filter(fetchedContext(element.local, name), () => admits(element.local, name)),
       (context) =>
         Option.flatMap(keptUrl(context, value), (url) =>
-          Result.getFailure(addressUrl(url, addressing.document, addressing.assets)),
+          Option.flatMap(
+            Result.getFailure(addressUrl(url, addressing.document, addressing.assets)),
+            missingPathOf,
+          ),
         ),
     );
 

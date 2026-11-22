@@ -5,7 +5,7 @@
  * it closes and no instance repeats a document, whose placements would break the assembly's keys
  * (a binding per response, a hottext per identifier) before the cycle's law. A cycle no item
  * places, and a fragment only that cycle places, are in no assembly at all, which the containment
- * of every `TestDocument` into the query `InstanceDocument` refuses under the same law (spec
+ * of every `AssembledDocument` into the query `InstanceDocument` refuses under the same law (spec
  * readings 85 and 117), a rule over a query that the database alone judges.
  *
  * Oracle: the inclusion graph as each case writes it, a cycle or none, so no expected verdict is
@@ -106,7 +106,7 @@ const rowsOfCase = (files: readonly PackageFile[]) =>
         ),
         laws: broken.map(({ law }) => Formatter.format(law)),
         rules: [...new Set(broken.flatMap(({ law }) => Option.toArray(schemaLawNameOf(law))))],
-        unplaced: rows.TestDocument.flatMap(({ path: entry }) =>
+        unplaced: rows.AssembledDocument.flatMap(({ path: entry }) =>
           placed.has(entry) ? [] : [entry],
         ),
       };

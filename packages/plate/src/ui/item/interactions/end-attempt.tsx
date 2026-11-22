@@ -4,7 +4,8 @@
  * in `review` and `solution`. It stands where phrasing content does, inside the author's sentence.
  *
  * Its island takes the button's text and names from the payload node alone: the response holds
- * nothing an island could be handed, and how the attempt counts (`count-attempt`) is the engine's.
+ * nothing an island could be handed, and how the attempt counts (`count-attempt`) is the QTI
+ * database's.
  * A review or a solution shows the button's title where it stood, as words and no button, with no
  * mark (ruling R4): the response says only how the attempt ended, so there is no answer to mark,
  * and the attempt is over, so there is nothing to press. QTI's `title` is "displayed to the

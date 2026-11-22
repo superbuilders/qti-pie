@@ -343,9 +343,10 @@ const isProperty = (local: string, attribute: SourceAttribute): boolean =>
  * `data-qti-a11y-content-role`, reading 200) is removed and marked, so an author's attribute never
  * reaches plate's own marker; `data-ssml`, `data-qti-suppress-tts` and `data-catalog-idref` are the
  * XSD's own, and the table keeps them first. On a `qti-portable-custom-interaction` every `data-*`
- * is kept, reserved or not, as one of its properties ({@link isProperty}). Reading 10 accepts both
- * `aria-keyshorts` and `aria-keyshortcuts` where the table declares `aria-keyshorts` (the empty
- * elements), so `aria-keyshortcuts` is kept there too. Names compare exactly, as XML's do.
+ * is kept, reserved or not, as one of its properties ({@link isProperty}). Reading 10 admits
+ * `aria-keyshorts` alone where the table declares it (the empty elements, information model
+ * §7.1.44), so an `aria-keyshortcuts` there is removed as any undeclared name is. Names compare
+ * exactly, as XML's do.
  *
  * @param local The element's local name.
  * @param table The table that governs the element, none when no declaration governs it, as in
@@ -361,14 +362,7 @@ const isKept = (
   isKeptEverywhere(attribute) ||
   (attribute.namespace === "" && isAuthorData(attribute.local)) ||
   isProperty(local, attribute) ||
-  Option.exists(
-    table,
-    (declared) =>
-      declares(declared, attribute.namespace, attribute.local) ||
-      (attribute.namespace === "" &&
-        attribute.local === "aria-keyshortcuts" &&
-        declares(declared, "", "aria-keyshorts")),
-  );
+  Option.exists(table, (declared) => declares(declared, attribute.namespace, attribute.local));
 
 /**
  * Secure one element's attributes: remove each one only a wildcard admits and pass each URL

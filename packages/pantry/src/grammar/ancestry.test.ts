@@ -51,7 +51,11 @@ const same = (left: ReadonlySet<Flag>, right: ReadonlySet<Flag>): boolean =>
  * The reference model of the flag sets, written from the QTI readings by the kinds' categories
  * rather than from `ancestry.ts`'s blocks: which flags a kind enters, which it may not sit under,
  * and which it needs. MathML's `m:math` enters `math` and may not sit under it: "it is an error for
- * one math element to contain another" (MathML 3 §2.2, spec reading 2).
+ * one math element to contain another" (MathML 3 §2.2, spec reading 2). A test's rubric block and
+ * its test feedback enter `test`, under which no interaction and no template sits (spec reading 25:
+ * test feedback "must not contain an interaction object, either directly or indirectly", §5.157;
+ * rubric blocks "MUST NOT contain interactions", §2.8.6; and the test profile holds no template
+ * there).
  *
  * @param kind - The kind.
  * @param interaction - Whether it is an interaction, by the `Interaction` set.
@@ -59,6 +63,7 @@ const same = (left: ReadonlySet<Flag>, right: ReadonlySet<Flag>): boolean =>
  */
 const referenceOf = (kind: string, interaction: boolean): FlagSets => {
   const templateBlock = kind.startsWith("qti-template-block");
+  const template = templateBlock || kind.startsWith("qti-template-inline");
   const enters = new Set<Flag>([
     ...(interaction ? ["int" as const] : []),
     ...(kind === "qti-gap-match-interaction" ? ["gap" as const] : []),
@@ -70,10 +75,12 @@ const referenceOf = (kind: string, interaction: boolean): FlagSets => {
     ...(kind.startsWith("qti-feedback-block") || kind === "qti-feedback-inline"
       ? ["fb" as const]
       : []),
+    ...(kind === "qti-rubric-block.test" || kind === "qti-test-feedback" ? ["test" as const] : []),
     ...(kind === "m:math" ? ["math" as const] : []),
   ]);
   const banned = new Set<Flag>([
-    ...(interaction ? (["int", "choice", "htx", "rubric", "tmpl", "modal"] as const) : []),
+    ...(interaction ? (["int", "choice", "htx", "rubric", "tmpl", "modal", "test"] as const) : []),
+    ...(template ? ["test" as const] : []),
     ...(kind === "qti-rubric-block" ? ["rubric" as const] : []),
     ...(kind === "qti-hottext" ? ["htx" as const] : []),
     ...(kind === "m:math" ? ["math" as const] : []),

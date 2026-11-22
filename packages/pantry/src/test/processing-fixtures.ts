@@ -260,12 +260,12 @@ const simpleItemName: ProcessingEdit = {
 
 /**
  * The edits that give a package the document `response.xml`'s `xi:include` names:
- * `include/shared-rules.xml` written at the package root as `shared-rules.xml`, and listed by a
+ * `valid/shared-rules.xml` written at the package root as `shared-rules.xml`, and listed by a
  * resource of its own of type `imsqti_fragment_xmlv3p0`, so it is a document the manifest lists
  * (spec readings 114 and 115). The `xi:fallback` does not lift that rule.
  */
 const sharedRulesEdits: readonly ProcessingEdit[] = [
-  { _tag: "replaceFile", fromFile: "include/shared-rules.xml", path: "shared-rules.xml" },
+  { _tag: "replaceFile", fromFile: "valid/shared-rules.xml", path: "shared-rules.xml" },
   {
     _tag: "addResource",
     href: "shared-rules.xml",
@@ -282,7 +282,7 @@ const sharedRulesEdits: readonly ProcessingEdit[] = [
  * as `simple`'s do.
  */
 const listedFileEdits: readonly ProcessingEdit[] = [
-  { _tag: "replaceFile", fromFile: "include/shared-rules.xml", path: "shared-rules.xml" },
+  { _tag: "replaceFile", fromFile: "valid/shared-rules.xml", path: "shared-rules.xml" },
   {
     _tag: "replaceText",
     file: "imsmanifest.xml",

@@ -1,6 +1,6 @@
 /**
- * Gap Match: its model node, parse, redaction and response validation, on the module shape
- * the interaction-module contract states.
+ * Gap Match: its model node, parse and redaction, on the module shape the interaction-module
+ * contract states. The QTI database judges its responses when an answer is posted.
  *
  * Three readings of `docs/spec-readings.md` bind it. Reading 38, "A `qti-gap` appears only within a
  * gap-match interaction, and a `qti-hottext` may appear in any flow or inline …": the database
@@ -15,7 +15,7 @@
  * Reading 190, "An unwritten `max-associations` is 1, and a response holding more associations
  * than its `max-associations` is refused whatever `validate-responses` says": the XSD's default 1
  * caps the pairs in tier (a), and `min-associations`, which `GapMatchInteractionDType` gives no
- * default, is a least only under `validateResponses`; reading 53 keeps `0` as no limit. So the
+ * default, is a least only under `validate-responses`; reading 53 keeps `0` as no limit. So the
  * correct response of an item that writes several pairs and no `max-associations`, such as the
  * 1EdTech examples `jumble-gapMatch.xml` and `multi-input.xml`, is refused as any response over the
  * cap is.
@@ -25,15 +25,10 @@
  * to show, each as posted, `"<choice> <gap>"`; the server shell renders it, each gap a client
  * `Gap` (`#plate/ui/item/interactions/`).
  *
- * {@link gapMatchModule}'s `validate` checks a value the caller decoded, in two tiers: tier (a)
- * always, tier (b) only under `validateResponses`.
- *
  * @module
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceChild, SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import {
   boundIn,
   choiceRegions,
@@ -49,15 +44,11 @@ import type {
   OwnRegion,
   Parsed,
   ReaderKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { countsOf } from "#plate/interactions/counts.ts";
-import { exclusionOf, listedIn, matchGroupOf } from "#plate/interactions/match-group.ts";
+import { listedIn, matchGroupOf } from "#plate/interactions/match-group.ts";
 import type { MatchGroup } from "#plate/interactions/match-group.ts";
-import { pairsOf, pairText } from "#plate/interactions/pair.ts";
+import { pairsOf } from "#plate/interactions/pair.ts";
 import type { Pair } from "#plate/interactions/pair.ts";
-import { selectionWords } from "#plate/interactions/selection.ts";
-import { counted, message } from "#plate/messages.ts";
 import { bodyAttributeOf, xsBooleanOf } from "#plate/model/attributes.ts";
 import type {
   BodyNode,
@@ -68,7 +59,6 @@ import type {
   ReferencingChoice,
 } from "#plate/model/item.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
-import type { Value } from "#plate/model/values.ts";
 import { presentedOrder } from "#plate/shuffle.ts";
 
 /**
@@ -173,9 +163,8 @@ interface GapMatchByLevel extends ByLevel {
 }
 
 /**
- * One `qti-gap` of the gapped content, read once from the element the body walk kept there, as
- * validation reads it: its identifier, the choices it may hold, whether a valid response fills it,
- * and the element's path.
+ * One `qti-gap` of the gapped content, read once from the element the body walk kept there: its
+ * identifier, the choices it may hold, whether a valid response fills it, and the element's path.
  */
 interface Gap {
   readonly identifier: string;
@@ -253,8 +242,8 @@ interface GapMatchPayload {
 
 /**
  * Read the gaps of the gapped content, in document order, below elements: each `qti-gap` the module
- * owns, as a {@link Gap}. They are read from the content at its own level, so validation
- * knows the gaps the model holds and the payload the gaps the redaction left shown. The structure
+ * owns, as a {@link Gap}. They are read from the content at its own level, so the model knows the
+ * gaps it holds and the payload the gaps the redaction left shown. The structure
  * check holds a gap's `identifier` required, so a gap reads as one whenever the content holds it.
  *
  * @param nodes The gapped content, at either level.
@@ -383,7 +372,7 @@ const isBlank = (child: SourceChild): boolean =>
  * gapped content are read by the body walk, the gapped content with `qti-gap` let through as the
  * module's own element. The features it reads and does not render are recorded as marks:
  * `data-choices-container-width`, and `template-identifier` on a gap and on a choice. A gap's
- * `match-group` is read, as a choice's is, and validation holds both.
+ * `match-group` is read, as a choice's is, and the payload carries both.
  *
  * @param source The interaction's source element.
  * @param context The element's path, the reader kit and the declaration it is bound to.
@@ -439,138 +428,6 @@ const parse = (source: SourceElement, context: ModuleParseContext): Parsed<GapMa
     response,
     shuffle,
   };
-};
-
-/**
- * Check a Gap Match's response, which the caller decoded, in two tiers.
- *
- * The caller decodes the posted entries with `decode`, under the entry name its form gave the
- * hidden inputs and the binding a `directedPair` response travels under, and passes the value, or
- * the {@link Malformed} `decode` gave; the entry name stays the caller's, while the messages and
- * the author's overrides stay here.
- *
- * - A {@link Malformed} input: `atMost` 1 when a single response was posted more than once, else
- *   `unknownChoice`.
- * - Tier (a), always: a pair that names no choice or no gap (`unknownChoice`); a gap that holds more
- *   than one choice; a choice that fills more gaps than its `match-max` (0 is no limit); a pair
- *   outside the choice's `match-group` or the gap's, each side's group, when absent or empty,
- *   admitting any ("a set of choices that this choice may be associated with, all others are
- *   excluded. If no matchGroup is given, or if it is empty, then all other choices may be
- *   associated"); and `max-associations` above 0 capping the pairs (`atMost`).
- * - Tier (b), only under `validateResponses`: fewer pairs than `min-associations` (`atLeast`), a
- *   `required` gap with no choice, and a choice that fills fewer gaps than its `match-min`.
- *
- * The author's `data-max-selections-message` and `data-min-selections-message` replace the
- * renderer's text for `atMost` and `atLeast`. The messages of the other limits are the catalog's
- * `gapMatch…` keys, and each names the gap or the choice at fault.
- *
- * @param interaction The Gap Match.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validate = (
-  interaction: GapMatchInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const { malformed, say, tooFew, tooMany } = selectionWords(interaction, locale);
-
-  if (input instanceof Malformed) {
-    return [malformed(input)];
-  }
-
-  const pairs = pairsOf(input.values);
-  const choices = new Map(interaction.choices.map((choice) => [choice.identifier, choice]));
-  const gaps = gapsIn(interaction.gapped);
-  const named = new Map(gaps.map((gap) => [gap.identifier, gap]));
-  const perGap = countsOf(pairs.map((pair) => pair.target));
-  const perChoice = countsOf(pairs.map((pair) => pair.chip));
-  const outside = pairs.flatMap((pair) => {
-    const { chip: source, target } = pair;
-
-    return Option.match(exclusionOf(choices, source, target), {
-      onNone: () =>
-        Option.match(exclusionOf(named, target, source), {
-          onNone: () => [],
-          onSome: (group) => [
-            [
-              pairText(pair),
-              message(locale, "gapMatchNotInGapGroup", {
-                choice: source,
-                gap: target,
-                group: group.join(", "),
-              }),
-            ] as const,
-          ],
-        }),
-      onSome: (group) => [
-        [
-          pairText(pair),
-          message(locale, "gapMatchNotInChoiceGroup", {
-            choice: source,
-            gap: target,
-            group: group.join(", "),
-          }),
-        ] as const,
-      ],
-    });
-  });
-  const tierA = [
-    ...(pairs.some((pair) => !choices.has(pair.chip) || !named.has(pair.target))
-      ? [say(message(locale, "unknownChoice"))]
-      : []),
-    ...[...perGap]
-      .filter(([, count]) => count > 1n)
-      .map(([gap]) => say(message(locale, "gapMatchGapFull", { gap }))),
-    ...interaction.choices.flatMap((choice) =>
-      choice.matchMax > 0n && (perChoice.get(choice.identifier) ?? 0n) > choice.matchMax
-        ? [
-            say(
-              counted(
-                locale,
-                choice.matchMax,
-                { many: "gapMatchChoiceAtMost", one: "gapMatchChoiceAtMostOne" },
-                { choice: choice.identifier },
-              ),
-            ),
-          ]
-        : [],
-    ),
-    ...[...new Map(outside).values()].map(say),
-    ...(interaction.maxAssociations > 0n && BigInt(pairs.length) > interaction.maxAssociations
-      ? [tooMany(interaction.maxAssociations)]
-      : []),
-  ];
-
-  if (!configuration.validateResponses) {
-    return tierA;
-  }
-
-  return [
-    ...tierA,
-    ...(BigInt(pairs.length) < interaction.minAssociations
-      ? [tooFew(interaction.minAssociations)]
-      : []),
-    ...gaps
-      .filter((gap) => gap.required && !perGap.has(gap.identifier))
-      .map((gap) => say(message(locale, "gapMatchGapRequired", { gap: gap.identifier }))),
-    ...interaction.choices.flatMap((choice) =>
-      (perChoice.get(choice.identifier) ?? 0n) < choice.matchMin
-        ? [
-            say(
-              counted(
-                locale,
-                choice.matchMin,
-                { many: "gapMatchChoiceAtLeast", one: "gapMatchChoiceAtLeastOne" },
-                { choice: choice.identifier },
-              ),
-            ),
-          ]
-        : [],
-    ),
-  ];
 };
 
 /**
@@ -644,5 +501,4 @@ export const gapMatchModule: InteractionModule<"gap-match", GapMatchByLevel, Gap
    * and the gapped content.
    */
   regions: ownRegions,
-  validate,
 };

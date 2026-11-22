@@ -12,7 +12,6 @@ import { schema } from "@bjornpagen/grizzle";
 import { grammarRelations, grammarRosters } from "#pantry/grammar/install.ts";
 import { attributeLaws, attributeRelations } from "#pantry/qti/attributes.ts";
 import { chardataLaws, chardataRelations } from "#pantry/qti/chardata.ts";
-import { declarationLaws, declarationRelations } from "#pantry/qti/declarations.ts";
 import { catalogLaws, catalogRelations } from "#pantry/qti/catalog.ts";
 import { dataSsmlLaws, dataSsmlRelations } from "#pantry/qti/data-ssml.ts";
 import { htmlLaws, htmlRelations } from "#pantry/qti/html.ts";
@@ -38,7 +37,6 @@ type QtiStatement =
   | (typeof attributeLaws)[number]
   | (typeof packageLaws)[number]
   | (typeof identityLaws)[number]
-  | (typeof declarationLaws)[number]
   | (typeof testLaws)[number]
   | (typeof mappingLaws)[number]
   | (typeof interactionLaws)[number]
@@ -52,7 +50,7 @@ type QtiStatement =
 
 /**
  * Every module's statements, in module order, each module's list one element: a list of lists
- * holds sixteen types, where a list literal of every statement would hold them all.
+ * holds fifteen types, where a list literal of every statement would hold them all.
  */
 const moduleLaws: readonly (readonly QtiStatement[])[] = [
   nodeLaws,
@@ -60,7 +58,6 @@ const moduleLaws: readonly (readonly QtiStatement[])[] = [
   attributeLaws,
   packageLaws,
   identityLaws,
-  declarationLaws,
   testLaws,
   mappingLaws,
   interactionLaws,
@@ -86,7 +83,6 @@ export const qtiRelations = [
   ...attributeRelations,
   ...packageRelations,
   ...identityRelations,
-  ...declarationRelations,
   ...testRelations,
   ...mappingRelations,
   ...interactionRelations,

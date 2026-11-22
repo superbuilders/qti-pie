@@ -11,7 +11,7 @@
  * the page holds the correct points only in solution mode, as values.
  *
  * It follows three readings of `docs/spec-readings.md`, each cited by its wording, all enforced by
- * the engine's `areaHolds` when the response processing maps the points:
+ * the QTI database's area test when its response processing maps the points:
  *
  * - "A point on an area's boundary is inside it." A point on the circle's edge takes its mapped
  *   value.
@@ -26,19 +26,15 @@
  * counts say; a shown response with more points than that is offered one per point, so a restored
  * response is never cut. An interaction whose image (`img`, the `img` of a `picture`, or `object`)
  * carries no positive integer `width` and `height` gives its own notice naming the two attributes,
- * since its points have no bounds. `min-choices` and `max-choices` are validated as written,
- * `max-choices` of 0 being no limit. A negative coordinate is refused always; one above the image's
- * width or height only under `validateResponses`, since `score` runs the always-on tier and the
- * corpus scores such a point at the mapping's `default-value` ({@link validateSelectPoint}).
- *
- * The validation messages are English and live here ({@link words}; D7).
+ * since its points have no bounds. The QTI database's admission judges `min-choices` and
+ * `max-choices` as written, `max-choices` of 0 being no limit. It refuses a negative coordinate
+ * always, and one above the image's width or height only under `validate-responses`, since the
+ * corpus scores such a point at the mapping's `default-value`.
  *
  * @module
  * @see https://html.spec.whatwg.org/multipage/image-maps.html#image-map-processing-model
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { boundIn, contentRegion, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
@@ -46,12 +42,10 @@ import type {
   ModuleInteraction,
   OwnRegion,
   RedactKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
 import { authoredSizeOf, imageElementOf, sizeCarrierOf } from "#plate/interactions/image-size.ts";
-import { counted, message, numeral } from "#plate/messages.ts";
 import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
-import type { Single, Value } from "#plate/model/values.ts";
+import type { Single } from "#plate/model/values.ts";
 
 /**
  * Select Point's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -156,28 +150,6 @@ interface SelectPointPayload {
 }
 
 /**
- * An axis a coordinate is measured along, which a message names and which picks the bound.
- */
-type Axis = "x" | "y";
-
-/**
- * The two axes, in the order a point writes them.
- */
-const axes: readonly Axis[] = ["x", "y"];
-
-/**
- * Give the bound of an axis: the image's width for x, its height for y.
- *
- * @param size The image's size.
- * @param size.height The image's height.
- * @param size.width The image's width.
- * @param axis The axis.
- * @returns The greatest coordinate inside the image along it.
- */
-const boundOf = (size: { readonly height: number; readonly width: number }, axis: Axis): number =>
-  axis === "x" ? size.width : size.height;
-
-/**
  * Keep a count that constrains something: one above zero.
  *
  * @param count The count, 0 when the author wrote none.
@@ -212,18 +184,6 @@ const groupsOf = (
 };
 
 /**
- * Give the most points a response may hold: one under a `single` binding, else `max-choices` when
- * above 0, else no limit.
- *
- * @param interaction The binding's cardinality and the `max-choices`, 0 when absent.
- * @returns The most, none for no limit.
- */
-const mostOf = (
-  interaction: Pick<SelectPointInteraction, "cardinality" | "maxChoices">,
-): Option.Option<bigint> =>
-  interaction.cardinality === "single" ? Option.some(1n) : aboveZero(interaction.maxChoices);
-
-/**
  * Give the texts of a shown point value's coordinates.
  *
  * @param singles The values the view shows.
@@ -233,96 +193,6 @@ const shownPoints = (singles: readonly Single[]): readonly PointText[] =>
   singles.flatMap((single) =>
     single.baseType === "point" ? [{ x: String(single.value[0]), y: String(single.value[1]) }] : [],
   );
-
-/**
- * Check a Select Point's response, which the caller decoded, in two tiers.
- *
- * - A {@link Malformed} input: text that is not two whole numbers separated by white space gives one
- *   message naming both bounds.
- * - Tier (a), always: no coordinate is negative, which no image has a pixel for (the message names
- *   the point, the axis and the bound), and the most points ({@link mostOf}) caps the count.
- * - Tier (b), only under `validateResponses`: no coordinate is above the image's width or height (the
- *   same message), and `min-choices`, when written above 0.
- *
- * The upper bound is tier (b), not (a), because `score` runs tier (a) on every response it maps,
- * and the 1EdTech corpus items score a point beyond the image's `width` and `height` at the
- * mapping's `default-value` (`src/engine/templates.test.ts`): those attributes are the image's
- * display size, and a point past them is still a point of the image's plane, which the area
- * mapping reads. A host that wants such a point refused sets `validateResponses`.
- *
- * @param interaction The Select Point.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validateSelectPoint = (
-  interaction: SelectPointInteraction,
-  input: Value | Malformed,
-  configuration: Pick<Configuration, "locale" | "validateResponses">,
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const problem = (written: string): ValidationMessage => ({
-    response: interaction.response,
-    text: written,
-  });
-
-  if (input instanceof Malformed) {
-    return [
-      problem(
-        message(locale, "selectPointMalformed", {
-          height: numeral(locale, interaction.height),
-          width: numeral(locale, interaction.width),
-        }),
-      ),
-    ];
-  }
-
-  const points = shownPoints(input.values);
-  const outside = points.flatMap((point, index) =>
-    axes.flatMap((axis) => {
-      const coordinate = BigInt(point[axis]);
-      const bound = boundOf(interaction, axis);
-      const beyond = configuration.validateResponses && coordinate > BigInt(bound);
-
-      return coordinate < 0n || beyond
-        ? [
-            problem(
-              message(locale, "selectPointOutside", {
-                axis,
-                bound: numeral(locale, bound),
-                n: numeral(locale, index + 1),
-              }),
-            ),
-          ]
-        : [];
-    }),
-  );
-  const count = BigInt(points.length);
-  const most = mostOf(interaction);
-  const least = aboveZero(interaction.minChoices);
-
-  return [
-    ...outside,
-    ...most.pipe(
-      Option.filter((max) => count > max),
-      Option.map((max) =>
-        problem(counted(locale, max, { many: "selectPointAtMost", one: "selectPointAtMostOne" })),
-      ),
-      Option.toArray,
-    ),
-    ...(configuration.validateResponses
-      ? least.pipe(
-          Option.filter((min) => count < min),
-          Option.map((min) =>
-            problem(
-              counted(locale, min, { many: "selectPointAtLeast", one: "selectPointAtLeastOne" }),
-            ),
-          ),
-          Option.toArray,
-        )
-      : []),
-  ];
-};
 
 /**
  * The elements of the content the interaction holds, by the part of the region that holds them.
@@ -456,8 +326,4 @@ export const selectPointModule: InteractionModule<
    * The Prompt's region, when it has a Prompt, then the image's.
    */
   regions: ownRegions,
-  /**
-   * Check a Select Point's response: {@link validateSelectPoint}.
-   */
-  validate: validateSelectPoint,
 };

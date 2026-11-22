@@ -1,0 +1,6 @@
+  const answeredKey = {
+    child: param("child", LearnerId),
+    n: param("n", fields.Attempt.fields.n),
+    package: param("package", fields.ItemSession.fields.package),
+    path: param("path", fields.ItemSession.fields.path),
+  } as const;

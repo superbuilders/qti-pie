@@ -520,10 +520,11 @@ describe("import/overlays/tests.ts, names", () => {
       }),
   );
 
-  it("writes no Named row in a document no assembly holds, so a test's names are its stated limit's alone", () => {
-    // Oracle: reading 85's assembled documents, written out by hand: a test is no bank and holds
-    // no include, so no assembly holds it and its section and item ref have no row, and "Test
-    // structure" alone refuses them. Bound: one test of one part, section and item ref.
+  it("writes a Named row for each name of a test, which heads an assembly of its own", () => {
+    // Oracle: reading 85's assembled documents, written out by hand: a test is assembled whether or
+    // not it holds a site (`assembledRoots`), so its part, its section and its item ref each have a
+    // Named row (reading 86), and the test its AssembledDocument row. Bound: one test of one part,
+    // section and item ref.
     const test = documentOf(
       el(
         "qti-assessment-test",
@@ -557,8 +558,11 @@ describe("import/overlays/tests.ts, names", () => {
     );
 
     assert.deepStrictEqual(
-      rowsOfPackage([["t.xml", test]]).map((rows) => [rows.Named.size, rows.TestDocument.size]),
-      [[0, 0]],
+      rowsOfPackage([["t.xml", test]]).map((rows) => [
+        rows.Named.size,
+        rows.AssembledDocument.size,
+      ]),
+      [[3, 1]],
     );
   });
 });

@@ -261,32 +261,6 @@ export const known: readonly Known[] = [
       [
         "imsmanifest.xml",
         "xml",
-        '<?xml version="1.0" encoding="UTF-8"?>\n<manifest identifier="MANIFEST" xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1"><metadata><schemaversion>3.0.1</schemaversion></metadata><resources><resource type="imsqti_item_xmlv3p0" href="rtest01/rtest01-set03.xml"/><resource type="imsqti_fragment_xmlv3p0" href="rtest01/rtest01-fragment.xml"/></resources></manifest>',
-      ],
-      [
-        "rtest01/rtest01-fragment.xml",
-        "xml",
-        '<?xml version="1.0" encoding="UTF-8"?>\n<p xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"/>',
-      ],
-      [
-        "rtest01/rtest01-set03.xml",
-        "xml",
-        '<?xml version="1.0" encoding="UTF-8"?>\n<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude"><qti-item-body><xi:include href="rtest01-fragment.xml"><p><qti-template-inline template-identifier="Kxx𝔸xéé語語語語éééxé𝔸x𝔸ééééx𝔸𝔸語語é𝔸𝔸xxé𝔸𝔸éxx𝔸x𝔸𝔸ééé語x語é語𝔸éé𝔸語𝔸xé語xéxx語𝔸𝔸xééxxéxx𝔸𝔸𝔸éé語𝔸𝔸x語éé語é𝔸𝔸𝔸x語xé語語é𝔸語xéxx𝔸éx語語x語語ééxé語語xxx語語é𝔸xéé𝔸𝔸語語ééé𝔸é𝔸𝔸𝔸語語𝔸語xx𝔸𝔸xé語xx語語x𝔸x𝔸x語xéé語éxxééxé語𝔸éxx𝔸x語é語xx𝔸éx𝔸𝔸語x𝔸語xxéx語éxéx𝔸𝔸é語語語é語é𝔸𝔸𝔸ééx𝔸é語𝔸xx𝔸語語ééééé𝔸𝔸𝔸éé語x𝔸éx語xé𝔸語é𝔸𝔸éé語語𝔸xxé𝔸éxxx𝔸é語xéé𝔸éx𝔸xéé𝔸é𝔸éééx𝔸é語x語éxéx𝔸𝔸語x𝔸語éééé𝔸語xxé語éé語xx𝔸é語éééx𝔸𝔸𝔸ééé𝔸語x𝔸xxéx語xx語x語x語語𝔸𝔸語語xxxéx語x語𝔸x𝔸𝔸語é𝔸語𝔸語𝔸xx語語é𝔸𝔸𝔸𝔸xé𝔸é𝔸𝔸ééééé𝔸𝔸é語xééx語𝔸é語xé𝔸ééx𝔸𝔸𝔸語𝔸x𝔸語𝔸語x𝔸𝔸語xéé𝔸𝔸éxéx語𝔸𝔸éé語éx語x𝔸éxxéx語ééx語xé𝔸x𝔸x𝔸𝔸xé𝔸語語語é語éxx語𝔸𝔸語ééxéx語é𝔸é𝔸𝔸é𝔸é𝔸ééx語éx𝔸語xx𝔸語x𝔸éx𝔸é𝔸xx語語語éé𝔸語ééxxxxéx語語𝔸éé語語𝔸𝔸𝔸𝔸語𝔸ééx𝔸𝔸x𝔸x語𝔸語éx語𝔸éé𝔸xéxé𝔸語𝔸語𝔸𝔸語𝔸é語𝔸é𝔸語éxx𝔸é𝔸𝔸é𝔸𝔸x語xé𝔸xéé𝔸x𝔸𝔸xéé語語語語é語é語語xxéx𝔸éxx𝔸éx語語語語語𝔸é語𝔸xxééxéxx𝔸xx語𝔸x𝔸𝔸éééxéxx語éé𝔸語語語語xxé語xx𝔸éx語語𝔸𝔸𝔸語xxxé語𝔸𝔸ééx𝔸語𝔸xxx𝔸語語é𝔸語éxéxéxé𝔸𝔸𝔸𝔸𝔸𝔸𝔸éx𝔸xééééxx語é語x語語𝔸語x語xéx𝔸𝔸語語xx𝔸𝔸éx語x語𝔸𝔸語語é𝔸𝔸é語𝔸語x語xx𝔸éxé𝔸x𝔸𝔸𝔸x語語𝔸x𝔸x語𝔸x語語語語x語語xéxé語é語語𝔸𝔸é𝔸x𝔸x𝔸𝔸𝔸𝔸x語語語x語éé𝔸xx語xxx語xxééx𝔸é語語語é𝔸𝔸語x語𝔸語xxéééé𝔸x𝔸xé語x語é語語𝔸é語語語𝔸𝔸𝔸語語é語x𝔸語語語x𝔸𝔸𝔸𝔸語𝔸語語𝔸語x𝔸xé𝔸語𝔸é語𝔸𝔸𝔸語𝔸éé語𝔸é語𝔸é𝔸𝔸xéx語x語xx𝔸x𝔸𝔸éx𝔸x語é𝔸𝔸語語語𝔸𝔸ééé𝔸𝔸é𝔸𝔸é語語語é𝔸é語語xx語xxx𝔸𝔸𝔸𝔸𝔸é𝔸xé𝔸𝔸é語𝔸é語𝔸xé𝔸語xxxéé𝔸é𝔸x𝔸語𝔸𝔸𝔸ééx𝔸éxxé語語𝔸𝔸語é𝔸𝔸𝔸𝔸é𝔸x語é𝔸𝔸語𝔸xxééx語語x語"/></p></xi:include></qti-item-body></qti-assessment-item>',
-      ],
-    ],
-    fix: "reading 118 decided 2026-11-09; the law oracle should assess content outside xi:fallback laxly, as the importer does (#66)",
-    owner: "decision 467",
-    signature: {
-      kind: "import-only-law",
-      law: { kind: "check", name: "value_domain", relation: "Attribute" },
-      limit: "content outside xi:fallback (#66)",
-    },
-  },
-  {
-    files: [
-      [
-        "imsmanifest.xml",
-        "xml",
         '<?xml version="1.0" encoding="UTF-8"?>\n<manifest identifier="MANIFEST" xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1"><metadata><schemaversion>3.0.1</schemaversion></metadata><resources><resource type="imsqti_fragment_xmlv3p0" href="items/media/pic.png"/><resource type="imsqti_test_xmlv3p0" href="test.xml"/></resources></manifest>',
       ],
       [
@@ -327,6 +301,31 @@ export const known: readonly Known[] = [
  * fixed it, the fix, and the package that showed it, which must never show it again.
  */
 export const fixed: readonly Known[] = [
+  {
+    files: [
+      [
+        "imsmanifest.xml",
+        "xml",
+        '<?xml version="1.0" encoding="UTF-8"?>\n<manifest identifier="MANIFEST" xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1"><metadata><schemaversion>3.0.1</schemaversion></metadata><resources><resource type="imsqti_item_xmlv3p0" href="rtest01/rtest01-set03.xml"/><resource type="imsqti_fragment_xmlv3p0" href="rtest01/rtest01-fragment.xml"/></resources></manifest>',
+      ],
+      [
+        "rtest01/rtest01-fragment.xml",
+        "xml",
+        '<?xml version="1.0" encoding="UTF-8"?>\n<p xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0"/>',
+      ],
+      [
+        "rtest01/rtest01-set03.xml",
+        "xml",
+        '<?xml version="1.0" encoding="UTF-8"?>\n<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" xmlns:xi="http://www.w3.org/2001/XInclude"><qti-item-body><xi:include href="rtest01-fragment.xml"><p><qti-template-inline template-identifier="Kxx𝔸xéé語語語語éééxé𝔸x𝔸ééééx𝔸𝔸語語é𝔸𝔸xxé𝔸𝔸éxx𝔸x𝔸𝔸ééé語x語é語𝔸éé𝔸語𝔸xé語xéxx語𝔸𝔸xééxxéxx𝔸𝔸𝔸éé語𝔸𝔸x語éé語é𝔸𝔸𝔸x語xé語語é𝔸語xéxx𝔸éx語語x語語ééxé語語xxx語語é𝔸xéé𝔸𝔸語語ééé𝔸é𝔸𝔸𝔸語語𝔸語xx𝔸𝔸xé語xx語語x𝔸x𝔸x語xéé語éxxééxé語𝔸éxx𝔸x語é語xx𝔸éx𝔸𝔸語x𝔸語xxéx語éxéx𝔸𝔸é語語語é語é𝔸𝔸𝔸ééx𝔸é語𝔸xx𝔸語語ééééé𝔸𝔸𝔸éé語x𝔸éx語xé𝔸語é𝔸𝔸éé語語𝔸xxé𝔸éxxx𝔸é語xéé𝔸éx𝔸xéé𝔸é𝔸éééx𝔸é語x語éxéx𝔸𝔸語x𝔸語éééé𝔸語xxé語éé語xx𝔸é語éééx𝔸𝔸𝔸ééé𝔸語x𝔸xxéx語xx語x語x語語𝔸𝔸語語xxxéx語x語𝔸x𝔸𝔸語é𝔸語𝔸語𝔸xx語語é𝔸𝔸𝔸𝔸xé𝔸é𝔸𝔸ééééé𝔸𝔸é語xééx語𝔸é語xé𝔸ééx𝔸𝔸𝔸語𝔸x𝔸語𝔸語x𝔸𝔸語xéé𝔸𝔸éxéx語𝔸𝔸éé語éx語x𝔸éxxéx語ééx語xé𝔸x𝔸x𝔸𝔸xé𝔸語語語é語éxx語𝔸𝔸語ééxéx語é𝔸é𝔸𝔸é𝔸é𝔸ééx語éx𝔸語xx𝔸語x𝔸éx𝔸é𝔸xx語語語éé𝔸語ééxxxxéx語語𝔸éé語語𝔸𝔸𝔸𝔸語𝔸ééx𝔸𝔸x𝔸x語𝔸語éx語𝔸éé𝔸xéxé𝔸語𝔸語𝔸𝔸語𝔸é語𝔸é𝔸語éxx𝔸é𝔸𝔸é𝔸𝔸x語xé𝔸xéé𝔸x𝔸𝔸xéé語語語語é語é語語xxéx𝔸éxx𝔸éx語語語語語𝔸é語𝔸xxééxéxx𝔸xx語𝔸x𝔸𝔸éééxéxx語éé𝔸語語語語xxé語xx𝔸éx語語𝔸𝔸𝔸語xxxé語𝔸𝔸ééx𝔸語𝔸xxx𝔸語語é𝔸語éxéxéxé𝔸𝔸𝔸𝔸𝔸𝔸𝔸éx𝔸xééééxx語é語x語語𝔸語x語xéx𝔸𝔸語語xx𝔸𝔸éx語x語𝔸𝔸語語é𝔸𝔸é語𝔸語x語xx𝔸éxé𝔸x𝔸𝔸𝔸x語語𝔸x𝔸x語𝔸x語語語語x語語xéxé語é語語𝔸𝔸é𝔸x𝔸x𝔸𝔸𝔸𝔸x語語語x語éé𝔸xx語xxx語xxééx𝔸é語語語é𝔸𝔸語x語𝔸語xxéééé𝔸x𝔸xé語x語é語語𝔸é語語語𝔸𝔸𝔸語語é語x𝔸語語語x𝔸𝔸𝔸𝔸語𝔸語語𝔸語x𝔸xé𝔸語𝔸é語𝔸𝔸𝔸語𝔸éé語𝔸é語𝔸é𝔸𝔸xéx語x語xx𝔸x𝔸𝔸éx𝔸x語é𝔸𝔸語語語𝔸𝔸ééé𝔸𝔸é𝔸𝔸é語語語é𝔸é語語xx語xxx𝔸𝔸𝔸𝔸𝔸é𝔸xé𝔸𝔸é語𝔸é語𝔸xé𝔸語xxxéé𝔸é𝔸x𝔸語𝔸𝔸𝔸ééx𝔸éxxé語語𝔸𝔸語é𝔸𝔸𝔸𝔸é𝔸x語é𝔸𝔸語𝔸xxééx語語x語"/></p></xi:include></qti-item-body></qti-assessment-item>',
+      ],
+    ],
+    fix: "reading 118 lifted under J1 (2026-11-20): the content of a resolving include outside its xi:fallback is skipped, never assessed (facets.ts ignoredContent, XInclude 1.0 section 3.1), as the law oracle ignores it (#66)",
+    owner: "lane PANTRY-CONFORM",
+    signature: {
+      kind: "import-only-law",
+      law: { kind: "check", name: "value_domain", relation: "Attribute" },
+    },
+  },
   {
     files: [
       [
@@ -700,12 +699,13 @@ export const fixed: readonly Known[] = [
     // His key, "contained Attribute(node) in ItemRefTarget(node)", is the law this fix split: an
     // item ref's href is held to its ItemRefHref, and its ItemRefHref to its targets, which the
     // database now derives (the query ItemRefTarget). Its class, an item ref href the rows leave
-    // unheld, is the href's containment in ItemRefHref.
+    // unheld, is the href's containment in ItemRefHref, which reads the href's Reference since an
+    // href outside the package names no path (SV-LAW-02, `internalItemRefHrefs`).
     signature: {
       kind: "import-only-law",
       law: {
         from: {
-          relation: "Attribute",
+          relation: "Reference",
           selection: {
             conjuncts: [
               {
@@ -719,6 +719,12 @@ export const fixed: readonly Known[] = [
                 left: { field: "name", kind: "field" },
                 op: "eq",
                 right: { kind: "literal", value: "href" },
+              },
+              {
+                kind: "compare",
+                left: { field: "scope", kind: "field" },
+                op: "ne",
+                right: { kind: "literal", value: "external" },
               },
             ],
           },

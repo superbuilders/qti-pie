@@ -1,6 +1,6 @@
 file	verdict	rule
 QTI3_BPIG_Examples/BPIG_22April.zip	refused	root-type-reverse
-QTI3_BeginnersGuide_Examples/BegGuide_March2025.zip	refused	test-structure|required-attribute
+QTI3_BeginnersGuide_Examples/BegGuide_March2025.zip	accepted	
 qtiv2p2-examples/items/items.zip	refused	unmodeled-vocabulary
 qtiv3-examples/CAT/CAT_Test01_Adaptive_EchoAdapt.zip	refused	unmodeled-vocabulary
 qtiv3-examples/PCI/sample_pci.zip	refused	unmodeled-vocabulary
@@ -26,5 +26,5 @@ qtiv3-examples/packaging/sharedStimulus/sharedStimulus.zip	refused	text-copy
 qtiv3-examples/packaging/simple/simple.zip	refused	text-copy
 qtiv3-examples/packaging/svg/svg.zip	refused	text-copy
 qtiv3-examples/packaging/testWithLti/testWithLti.zip	refused	text-copy
-qtiv3-examples/packaging/test_package_minfiles/test_package_minfiles.zip	refused	P8
+qtiv3-examples/packaging/test_package_minfiles/test_package_minfiles.zip	refused	text-copy
 qtiv3-examples/packaging/usageData/usageData.zip	refused	unmodeled-vocabulary

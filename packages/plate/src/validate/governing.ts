@@ -30,7 +30,7 @@ import {
 } from "#plate/document/source.ts";
 import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
 import { collapseXmlSpace } from "#plate/model/attributes.ts";
-import { isNcName } from "#plate/model/values.ts";
+import { isNcName } from "@qti-pie/crust/text.ts";
 import { manifestNamespace } from "#plate/vocabulary.ts";
 
 /**

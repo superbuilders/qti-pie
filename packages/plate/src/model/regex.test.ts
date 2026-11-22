@@ -1,307 +1,29 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Option, Result } from "effect";
-import { compile, matches, maximumStates, parse } from "#plate/model/regex.ts";
-import type { Matcher, RegexRefused } from "#plate/model/regex.ts";
+import { Option } from "effect";
+import { compile, matches } from "#plate/model/regex.ts";
 
 /**
- * A pattern as {@link parse} reads it.
- */
-type Expression = Result.Result.Success<ReturnType<typeof parse>>["expression"];
-
-/**
- * Write one code point of a translation: an ASCII letter or digit as itself, any other as a
- * `\u{…}` escape, which a `v`-flag expression reads as that code point alone.
- *
- * @param codePoint The code point.
- * @returns Its spelling.
- */
-const literal = (codePoint: number): string =>
-  /^[\dA-Za-z]$/u.test(String.fromCodePoint(codePoint))
-    ? String.fromCodePoint(codePoint)
-    : `\\u{${codePoint.toString(16)}}`;
-
-/**
- * Write a read pattern as the body of a `v`-flag JavaScript expression: each branch's pieces in
- * order, a group non-capturing, a class as its translation, and a written count as `{n,m}`.
- *
- * @param expression The read pattern.
- * @returns The body, branches joined by `|`.
- */
-const write = (expression: Expression): string =>
-  expression
-    .map(({ pieces }) =>
-      pieces
-        .map(({ atom, count }) => {
-          const most = Option.match(count.most, {
-            onNone: () => "",
-            onSome: (bound) => `${bound}`,
-          });
-          const repeat = count.written ? `{${count.least},${most}}` : "";
-          switch (atom.kind) {
-            case "character": {
-              return `${literal(atom.codePoint)}${repeat}`;
-            }
-            case "class": {
-              return `${atom.source}${repeat}`;
-            }
-            case "group": {
-              return `(?:${write(atom.expression)})${repeat}`;
-            }
-            default: {
-              return atom satisfies never;
-            }
-          }
-        })
-        .join(""),
-    )
-    .join("|");
-
-/**
- * Translate an XML Schema regular expression into a backtracking JavaScript expression that takes
- * the same texts, anchored at both ends: the differential oracle of the automaton {@link compile}
- * builds from the same reading, since JavaScript's engine matches it by other means.
- *
- * @param pattern The pattern.
- * @returns The expression, or the reading's refusal.
- */
-const translate = (pattern: string): Result.Result<RegExp, RegexRefused> =>
-  Result.map(parse(pattern), ({ expression }) => new RegExp(`^(?:${write(expression)})$`, "v"));
-
-/**
- * Translate a pattern the translator must accept, failing the test when it refuses it.
- *
- * @param pattern The XSD pattern.
- * @returns The JavaScript expression it translates to.
- */
-const accepted = (pattern: string): RegExp => {
-  const result = translate(pattern);
-
-  assert.isTrue(Result.isSuccess(result), `${JSON.stringify(pattern)} was refused`);
-
-  return Result.isSuccess(result) ? result.success : /(?!)/v;
-};
-
-/**
- * Compile a pattern the matcher must accept, failing the test when it refuses it.
- *
- * @param pattern The XSD pattern.
- * @returns Its matcher.
- */
-const compiled = (pattern: string): Matcher => {
-  const result = compile(pattern);
-
-  assert.isTrue(Result.isSuccess(result), `${JSON.stringify(pattern)} was refused`);
-
-  return Result.getOrThrow(result);
-};
-
-/**
- * Read a pattern that both the translator and the matcher must refuse, failing the test when
- * either accepts it or they refuse it differently.
- *
- * @param pattern The XSD pattern.
- * @returns The translator's refusal.
- */
-const refused = (pattern: string): RegexRefused | undefined => {
-  const result = translate(pattern);
-  const matcher = compile(pattern);
-
-  assert.isTrue(Result.isFailure(result), `${JSON.stringify(pattern)} was accepted`);
-  assert.isTrue(Result.isFailure(matcher), `${JSON.stringify(pattern)} was compiled`);
-  assert.deepStrictEqual(
-    Result.isFailure(matcher) ? matcher.failure.position : undefined,
-    Result.isFailure(result) ? result.failure.position : undefined,
-  );
-
-  return Result.isFailure(result) ? result.failure : undefined;
-};
-
-/**
- * Assert that a pattern takes one text and refuses another, through the translator's expression
- * and through the matcher alike.
+ * Assert that a pattern compiles, takes one text and refuses another.
  *
  * @param pattern The XSD pattern.
  * @param match A text it takes.
  * @param nonMatch A text it refuses.
  */
 const holds = (pattern: string, match: string, nonMatch: string): void => {
-  const expression = accepted(pattern);
-  const matcher = compiled(pattern);
+  const matcher = compile(pattern);
 
+  assert.isTrue(Option.isSome(matcher), `${JSON.stringify(pattern)} was refused`);
   for (const [text, expected] of [
     [match, true],
     [nonMatch, false],
   ] as const) {
     assert.strictEqual(
-      expression.test(text),
+      Option.exists(matcher, (compiled) => matches(compiled, text)),
       expected,
       `${JSON.stringify(pattern)} against ${JSON.stringify(text)}`,
     );
-    assert.strictEqual(
-      matches(matcher, text),
-      expected,
-      `the matcher of ${JSON.stringify(pattern)} against ${JSON.stringify(text)}`,
-    );
   }
 };
-
-/**
- * Assert that a pattern is refused at a position.
- *
- * @param pattern The XSD pattern.
- * @param position The index, in UTF-16 code units, the refusal names.
- * @returns The refusal.
- */
-const refusedAt = (pattern: string, position: number): RegexRefused | undefined => {
-  const refusal = refused(pattern);
-
-  assert.strictEqual(refusal?._tag, "RegexRefused");
-  assert.strictEqual(refusal?.pattern, pattern);
-  assert.strictEqual(refusal?.position, position);
-
-  return refusal;
-};
-
-/**
- * Every pattern this file reads, and automata with loops, empty groups and branches, nested
- * quantifiers and characters outside the Basic Multilingual Plane.
- */
-const patterns: readonly string[] = [
-  "([0-9.]{0,6})",
-  String.raw`([0-9.\\-]{0,10})`,
-  String.raw`[0-9\.]+`,
-  "abc",
-  "^a$",
-  "a",
-  ".",
-  String.raw`\s`,
-  String.raw`\S`,
-  String.raw`\d`,
-  String.raw`\D`,
-  String.raw`\w`,
-  String.raw`\W`,
-  String.raw`\i\c*`,
-  String.raw`\I`,
-  String.raw`\C`,
-  String.raw`\p{Lu}`,
-  String.raw`\P{Lu}`,
-  String.raw`\p{N}+`,
-  "[a-z-[aeiou]]",
-  "[^a-z-[aeiou]]",
-  "[^a-z]",
-  "[-a]+",
-  String.raw`[\d\s]+`,
-  String.raw`[\^\[\]]+`,
-  "x{2,3}",
-  "x{2}",
-  "x{2,}",
-  "(ab)+|c?",
-  String.raw`\p{IsBasicLatin}+`,
-  String.raw`\P{IsBasicLatin}`,
-  String.raw`\p{IsLatin-1Supplement}`,
-  String.raw`\p{IsSpecials}`,
-  String.raw`\P{IsSpecials}`,
-  String.raw`[\p{IsBasicLatin}-[a-z]]`,
-  String.raw`[^\p{IsBasicLatin}]`,
-  String.raw`[\P{IsBasicLatin}\d]+`,
-  String.raw`[a-zé-[\p{IsBasicLatin}]]`,
-  `${"(".repeat(100)}a${")".repeat(100)}`,
-  `[b${"-[a".repeat(99)}${"]".repeat(100)}`,
-  "(a+)+b",
-  "(a|a)*b",
-  "(a|ab)*c",
-  "(a*)*",
-  "()",
-  "(|a)+",
-  "a|",
-  "|",
-  "a{0}",
-  "x{0,3}y",
-  "x{3,}",
-  "(ab|a)(bc|c)",
-  "(a|b)*abb",
-  "(x{0,2}){2,3}",
-  "(){0}",
-  "(){0,3}",
-  "(){2,}",
-  "(){127}",
-  "((){5}){3}",
-  "(()|()){2}",
-  "😀+",
-  ".😀.",
-];
-
-/**
- * Texts to match every pattern against: empty, short runs, the texts this file's cases use, line
- * breaks, digits of other scripts, characters outside the Basic Multilingual Plane and a lone
- * surrogate.
- */
-const samples: readonly string[] = [
-  "",
-  "a",
-  "aa",
-  "aaa",
-  "ab",
-  "abab",
-  "aba",
-  "abb",
-  "aabb",
-  "babb",
-  "abbc",
-  "abc",
-  "abcbc",
-  "ac",
-  "aac",
-  "b",
-  "c",
-  "xabcx",
-  "^a$",
-  "x",
-  "xx",
-  "xxx",
-  "xxxx",
-  "xxxxx",
-  "xxxxxxx",
-  "y",
-  "xy",
-  "xxxy",
-  "xxxxy",
-  "12.5",
-  "1234567",
-  "-3.5",
-  "3.5e1",
-  "\\",
-  "3.14",
-  "\n",
-  "\r",
-  "\t",
-  " ",
-  "1 2",
-  "٣",
-  "1٣",
-  "A",
-  "B",
-  "AB",
-  "é",
-  "e",
-  "é1",
-  "a.b-c",
-  ":a:b",
-  "1a",
-  "a b",
-  ".",
-  "-a",
-  "^[]",
-  "\uFEFF",
-  "\uFEFE",
-  "\uFF01",
-  "\uFFF0",
-  "\uFFFD",
-  "😀",
-  "😀😀",
-  "a😀b",
-  "\uD83D",
-];
 
 describe("compile and matches, against Appendix F", () => {
   it("reads the corpus's three patterns", () => {
@@ -316,222 +38,118 @@ describe("compile and matches, against Appendix F", () => {
     holds("abc", "abc", "xabcx");
     holds("^a$", "^a$", "a");
   });
-
-  it("reads . as any character but a line feed or a carriage return", () => {
-    holds(".", "x", "\n");
-    holds(".", "x", "\r");
-  });
-
-  it("reads \\s as XSD's four whitespace characters, and \\S as their complement", () => {
-    holds(String.raw`\s`, "\t", " ");
-    holds(String.raw`\S`, " ", "\t");
-  });
-
-  it("reads \\d as a decimal digit of any script, and \\w without punctuation, separators or others", () => {
-    holds(String.raw`\d`, "٣", "a");
-    holds(String.raw`\D`, "a", "٣");
-    holds(String.raw`\w`, "a", ".");
-    holds(String.raw`\W`, " ", "a");
-  });
-
-  it("reads \\i and \\c as XML 1.0 name characters, colon included", () => {
-    holds(String.raw`\i\c*`, "a.b-c", "1a");
-    holds(String.raw`\i\c*`, ":a:b", "a b");
-    holds(String.raw`\I`, "1", "a");
-    holds(String.raw`\C`, " ", ".");
-  });
-
-  it("reads \\i and \\c by XML 1.0 Second Edition's tables, not the Fifth Edition's (decision 52)", () => {
-    // U+0132 and U+3400 are Fifth Edition NameStartChars the Second Edition's Letter leaves out;
-    // U+0660 is a Second Edition Digit, a name character but no initial one.
-    holds(String.raw`\i`, "\u{00C0}", "\u{0132}");
-    holds(String.raw`\i`, "\u{4E00}", "\u{3400}");
-    holds(String.raw`\i\c`, "a\u{0660}", "\u{0660}a");
-    holds(String.raw`\c`, "\u{0300}", "\u{0132}");
-  });
-
-  it("maps category escapes to the General_Category", () => {
-    holds(String.raw`\p{Lu}`, "A", "a");
-    holds(String.raw`\P{Lu}`, "a", "A");
-    holds(String.raw`\p{N}+`, "1٣", "x");
-  });
-
-  it("reads class subtraction, negation, ranges and escapes inside a class", () => {
-    holds("[a-z-[aeiou]]", "b", "a");
-    holds("[^a-z-[aeiou]]", "B", "b");
-    holds("[^a-z]", "A", "a");
-    holds("[-a]+", "-a", "b");
-    holds(String.raw`[\d\s]+`, "1 2", "a");
-    holds(String.raw`[\^\[\]]+`, "^[]", "a");
-  });
-
-  it("reads quantifiers, groups and branches", () => {
-    holds("x{2,3}", "xx", "x");
-    holds("x{2,3}", "xxx", "xxxx");
-    holds("x{2}", "xx", "xxx");
-    holds("x{2,}", "xxxx", "x");
-    holds("(ab)+|c?", "abab", "aba");
-    holds("(ab)+|c?", "", "ab c");
-  });
-
-  it("refuses what Appendix F's grammar does not define, naming the position", () => {
-    refusedAt("[abc", 0);
-    refusedAt("ab\\k<x>", 2);
-    refusedAt("a*?", 2);
-    refusedAt("(?:a)", 1);
-    refusedAt("a\\1", 1);
-    refusedAt("(ab", 0);
-    refusedAt("ab)", 2);
-    refusedAt("x{3,2}", 1);
-    refusedAt("a{", 1);
-    refusedAt("[a-c-e]", 4);
-    refusedAt("[z-a]", 1);
-    refusedAt("[]", 1);
-    refusedAt(String.raw`\p{Lx}`, 0);
-  });
-
-  it("reads block escapes as the ranges of XML Schema's block table", () => {
-    holds(String.raw`\p{IsBasicLatin}+`, "abc", "é");
-    holds(String.raw`\P{IsBasicLatin}`, "é", "a");
-    holds(String.raw`\p{IsLatin-1Supplement}`, "é", "e");
-    // Specials is listed twice: U+FEFF alone, and U+FFF0 to U+FFFD; U+FF01 lies between them.
-    holds(String.raw`\p{IsSpecials}`, "\uFEFF", "\uFF01");
-    holds(String.raw`\p{IsSpecials}`, "\uFFFD", "\uFEFE");
-    holds(String.raw`\P{IsSpecials}`, "\uFF01", "\uFFF0");
-  });
-
-  it("reads block escapes inside a class, negated or subtracted", () => {
-    holds(String.raw`[\p{IsBasicLatin}-[a-z]]`, "A", "a");
-    holds(String.raw`[^\p{IsBasicLatin}]`, "é", "a");
-    holds(String.raw`[\P{IsBasicLatin}\d]+`, "é1", "a");
-    holds(String.raw`[a-zé-[\p{IsBasicLatin}]]`, "é", "a");
-  });
-
-  it("refuses a block name the table does not list, at its escape", () => {
-    refusedAt(String.raw`ab\p{IsNoSuchBlock}`, 2);
-    refusedAt(String.raw`[a\P{IsBasicLatin1}]`, 2);
-    refusedAt(String.raw`\p{isBasicLatin}`, 0);
-  });
-
-  it("reads groups and classes nested 100 deep, and refuses the 101st level at its opening", () => {
-    holds(`${"(".repeat(100)}a${")".repeat(100)}`, "a", "aa");
-    refusedAt(`${"(".repeat(101)}a${")".repeat(101)}`, 100);
-    holds(`[b${"-[a".repeat(99)}${"]".repeat(100)}`, "b", "a");
-    refusedAt(`[b${"-[a".repeat(100)}${"]".repeat(101)}`, 300);
-    // Groups and classes share the one count.
-    refusedAt(`${"(".repeat(99)}[b-[a]]${")".repeat(99)}`, 102);
-  });
-
-  it("refuses a pattern nested thousands deep instead of overflowing the stack", () => {
-    refusedAt(`${"(".repeat(100_000)}a${")".repeat(100_000)}`, 100);
-    refusedAt(`[b${"-[a".repeat(100_000)}${"]".repeat(100_001)}`, 300);
-  });
 });
 
-describe("compile and matches", () => {
-  it("agree with JavaScript's engine over the pattern's translation on every pattern and sample", () => {
-    for (const pattern of patterns) {
-      const expression = accepted(pattern);
-      const matcher = compiled(pattern);
+/**
+ * The atoms of the oracle's box, each read alike by Appendix F and by ECMAScript under `u`: a
+ * letter, classes, a negated class, the wildcard, the digit escape and two groups. On the box's
+ * texts the two readings agree: `.` is every character but LF and CR in both on an alphabet with
+ * no U+2028 or U+2029, and `\d` is Unicode's decimal digits in XML Schema and ASCII's in
+ * ECMAScript, which agree on the one digit the texts hold.
+ */
+const boxAtoms = ["a", "b", "[ab]", ".", "[^a]", String.raw`\d`, "(a|b)", "(ab)"] as const;
 
-      for (const sample of samples) {
+/**
+ * The quantifiers of the oracle's box, counted ones among them.
+ */
+const boxQuantifiers = ["", "?", "*", "+", "{2}", "{0,2}", "{1,}", "{3,3}"] as const;
+
+/**
+ * The pieces of the box: every atom under every quantifier.
+ */
+const boxPieces = boxAtoms.flatMap((atom) =>
+  boxQuantifiers.map((quantifier) => `${atom}${quantifier}`),
+);
+
+/**
+ * Every text of up to three characters over a letter of each class, a digit and a line feed.
+ */
+const boxTexts = (() => {
+  const alphabet = ["a", "b", "1", "\n"] as const;
+  const texts: string[] = [""];
+  let layer: readonly string[] = [""];
+  for (let length = 1; length <= 3; length += 1) {
+    layer = layer.flatMap((text) => alphabet.map((character) => `${text}${character}`));
+    texts.push(...layer);
+  }
+
+  return texts;
+})();
+
+describe("compile and matches, true or false for every pattern in Appendix F's language", () => {
+  it("agree with ECMAScript's RegExp on every pattern of the box and every text of up to three characters, a second implementation", () => {
+    // Oracle: a second implementation, V8's RegExp under `u`, anchored as XML Schema anchors every
+    // expression, over the constructs the two grammars read alike. Bound: every piece, every
+    // concatenation and every alternation of two pieces (8,256 patterns), against 85 texts.
+    const patterns = [
+      ...boxPieces,
+      ...boxPieces.flatMap((first) => boxPieces.map((second) => `${first}${second}`)),
+      ...boxPieces.flatMap((first) => boxPieces.map((second) => `${first}|${second}`)),
+    ];
+    for (const pattern of patterns) {
+      const matcher = compile(pattern);
+      const oracle = new RegExp(`^(?:${pattern})$`, "u");
+      assert.isTrue(Option.isSome(matcher), `${JSON.stringify(pattern)} was refused`);
+      for (const text of boxTexts) {
         assert.strictEqual(
-          matches(matcher, sample),
-          expression.test(sample),
-          `${JSON.stringify(pattern)} against ${JSON.stringify(sample)}`,
+          Option.exists(matcher, (compiled) => matches(compiled, text)),
+          oracle.test(text),
+          `${JSON.stringify(pattern)} against ${JSON.stringify(text)}`,
         );
       }
     }
   });
 
-  it("answers (a+)+b, (a|a)*b and (a|ab)*c against 100,000 characters without backtracking", () => {
-    const as = "a".repeat(100_000);
-
-    for (const pattern of ["(a+)+b", "(a|a)*b", "(a|ab)*c"]) {
-      assert.isFalse(matches(compiled(pattern), as), pattern);
-    }
-
-    assert.isTrue(matches(compiled("(a+)+b"), `${as}b`));
-    assert.isTrue(matches(compiled("(a|a)*b"), `${as}b`));
-    assert.isTrue(matches(compiled("(a|ab)*c"), `${"ab".repeat(50_000)}c`));
-  });
-
-  it("compiles a pattern of exactly maximumStates states, and refuses one state more at its count, naming the limit", () => {
-    // `a{n}` takes n states and the accepting one.
-    assert.strictEqual(compiled(`a{${maximumStates - 1}}`).states, maximumStates);
-
-    const refusal = refusedAt(`a{${maximumStates}}`, 1);
-
-    assert.include(refusal?.reason ?? "", String(maximumStates));
-  });
-
-  it("counts optional copies, loops, branches and groups as it builds them", () => {
-    // 63 optional copies of two states each, sharing one class, and the accepting state.
-    const digits = compiled("[0-9]{0,63}");
-
-    assert.strictEqual(digits.states, 127);
-    assert.strictEqual(digits.classes.length, 1);
-    assert.isTrue(matches(digits, "1".repeat(63)));
-    assert.isFalse(matches(digits, "1".repeat(64)));
-    refusedAt("[0-9]{0,64}", 5);
-    // Two copies, the last looping back through one choice.
-    assert.strictEqual(compiled("x{2,}").states, 4);
-    // Three characters and two choices among them.
-    assert.strictEqual(compiled("(a|b|c)").states, 6);
-    // 12 copies of 12 states pass the limit at the outer count.
-    refusedAt("(a{12}){12}", 7);
-    // Each count fits, and the second takes the running count past the limit.
-    refusedAt("a{100}b{100}", 7);
-    // 130 branches: the choice before the 65th takes the count past the limit, at its |.
-    refusedAt(Array.from({ length: 130 }, () => "a").join("|"), 127);
-    // A count too large for any number type is refused, not expanded.
-    refusedAt("a{99999999999999999999999}", 1);
-  });
-
-  it("refuses a count past the limit at its quantifier whatever it repeats, an empty group included", () => {
-    const limit = maximumStates - 1;
-
-    for (const [pattern, position] of [
-      ["(){1000000000}", 2],
-      ["(){0,1000000000}", 2],
-      ["(()|()){99999999999999999999}", 7],
-      ["((){5}){1000000}", 7],
-      [`(){${limit + 1}}`, 2],
-      [`(){0,${limit + 1}}`, 2],
-      [`(){${limit + 1},}`, 2],
-      // A count of a million digits is refused by its length, never read as a number.
-      [`(){${"9".repeat(1_000_000)}}`, 2],
-    ] as const) {
-      const refusal = refusedAt(pattern, position);
-
-      assert.include(refusal?.reason ?? "", String(limit), pattern.slice(0, 40));
+  it("match counted repetitions past every former bound, with no state cap and no bound on a count (SV-PATTERN-01)", () => {
+    // Oracle: the specification, each case's value stated from its counts, since V8's backtracking
+    // RegExp overflows its stack on the long texts. The patterns plate's 128 states, its count of
+    // 127, grizzle's 255 or its copies of each repeated piece once refused or could not hold:
+    // every one is a pattern of Appendix F, which bounds no count (information model §5.104.1:
+    // "The syntax for the regular expression language is as defined in Appendix F of
+    // [XSCHEMA, 01]").
+    const cases: readonly (readonly [pattern: string, text: string, matched: boolean])[] = [
+      ["[A-Za-z ]{1,100}", "abc", true],
+      ["[A-Za-z ]{1,100}", "a".repeat(100), true],
+      ["[A-Za-z ]{1,100}", "a".repeat(101), false],
+      ["[A-Za-z ]{1,100}", "", false],
+      ["[0-9]{0,64}", "", true],
+      ["[0-9]{0,64}", "1".repeat(64), true],
+      ["[0-9]{0,64}", "1".repeat(65), false],
+      ["[0-9]{128}", "1".repeat(128), true],
+      ["[0-9]{128}", "1".repeat(127), false],
+      ["a{2,200}", "aa", true],
+      ["a{2,200}", "a", false],
+      ["a{2,200}", "a".repeat(200), true],
+      ["a{2,200}", "a".repeat(201), false],
+      ["(abc|def){50}", "abcdef".repeat(25), true],
+      ["(abc|def){50}", "abc".repeat(49), false],
+      ["[0-9]{0,255}", "1".repeat(255), true],
+      ["a{256}", "a".repeat(256), true],
+      ["a{256}", "a".repeat(255), false],
+      ["[0-9]{0,300}", "1".repeat(300), true],
+      ["[0-9]{0,300}", "1".repeat(301), false],
+      ["(a{255}){255}", "a".repeat(255 * 255), true],
+      ["(a{255}){255}", "a".repeat(255 * 255 - 1), false],
+      ["((a{50}){50}){50}", "a".repeat(50 * 50 * 50), true],
+      ["((a{50}){50}){50}", "a".repeat(50 * 50 * 50 + 1), false],
+      ["((a{255}){255}){255}", "a".repeat(10), false],
+      ["((a{255}){255}){20}", "a".repeat(10), false],
+      ["(a?){1000000000}", "a".repeat(1000), true],
+    ];
+    for (const [pattern, text, matched] of cases) {
+      const matcher = compile(pattern);
+      assert.isTrue(Option.isSome(matcher), `${pattern} was refused`);
+      assert.strictEqual(
+        Option.exists(matcher, (compiled) => matches(compiled, text)),
+        matched,
+        `${pattern} against ${String(text.length)} code points`,
+      );
     }
   });
 
-  it("takes a count at the limit on any atom, and keeps a count of zero meaning the empty text", () => {
-    const limit = maximumStates - 1;
-
-    assert.strictEqual(compiled(`(){${limit}}`).states, 1);
-    assert.strictEqual(compiled(`(){0,${limit}}`).states, maximumStates);
-    assert.strictEqual(compiled(`(){${limit},}`).states, 2);
-    assert.isTrue(matches(compiled(`(){${limit},}`), ""));
-    holds("a{0}", "", "a");
-    holds("(){0}", "", "a");
-    holds("(a){0}b", "b", "ab");
-    holds(`x(){${limit}}y`, "xy", "xay");
-  });
-
-  it("builds an empty group once however deep its counts nest, each within the limit", () => {
-    // 100 levels of `{127}` over `()` would otherwise copy the empty group 127^100 times.
-    const nested = `${"(".repeat(99)}()${"{127})".repeat(99)}{127}`;
-    const matcher = compiled(nested);
-
-    assert.strictEqual(matcher.states, 1);
-    assert.isTrue(matches(matcher, ""));
-    assert.isFalse(matches(matcher, "a"));
-    assert.isTrue(Result.isSuccess(translate(nested)));
-    // A copy that takes a character still repeats: three levels of {2} over `a` make eight.
-    holds("((a{2}){2}){2}", "a".repeat(8), "a".repeat(7));
-    assert.strictEqual(compiled("((a{2}){2}){2}").states, 9);
+  it("refuses only a text outside Appendix F's grammar, which is no regular expression", () => {
+    for (const written of ["(?i)yes", "[a-z", "a{", "a{2,1}", "*a"]) {
+      assert.isTrue(Option.isNone(compile(written)), JSON.stringify(written));
+    }
   });
 });

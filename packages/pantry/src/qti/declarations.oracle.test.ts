@@ -2,7 +2,7 @@
  * The O2 overlays' free tests: the reserved names are the specification's, and each base type's
  * pattern admits exactly the lexical forms the specification gives it.
  *
- * The builder's tests (`#pantry/import/overlays/declarations.test.ts`) check its rows and codes.
+ * The views read the scale from the attributes where they stand (`#pantry/qti/names.ts`).
  */
 import { NodeServices } from "@effect/platform-node";
 import { assert, describe, it } from "@effect/vitest";
@@ -24,7 +24,6 @@ import { readEntries } from "#pantry/package/read.ts";
 import {
   contextVariable,
   itemSessionVariables,
-  reservedBaseTypes,
   sessionVariables,
 } from "#pantry/qti/declarations.ts";
 import {
@@ -65,18 +64,6 @@ describe("qti/declarations.ts, reserved names", () => {
       assert.notInclude(sessionVariables, alias, alias);
       assert.notInclude(BuiltIn.handles, alias, alias);
     }
-
-    // §2.2.2.3: "SCORE MUST be a float", "MAXSCORE MUST be a float", "PASSED MUST be a boolean"
-    // (info.txt:4663, :4664, :4665), each binding every declaration pantry stores, which holds no
-    // test (reading 228).
-    assert.sameDeepMembers(
-      reservedBaseTypes.map(({ baseType, identifier }) => [identifier, baseType]),
-      [
-        ["SCORE", "float"],
-        ["MAXSCORE", "float"],
-        ["PASSED", "boolean"],
-      ],
-    );
   });
 });
 
@@ -123,7 +110,8 @@ const patternOf = (baseType: string): RegExp => {
 const texts: readonly { readonly text: string; readonly values: readonly string[] }[] = [
   { text: "true", values: ["boolean", "identifier"] },
   { text: " false\n", values: ["boolean", "identifier"] },
-  { text: "1", values: ["integer", "float", "duration"] },
+  { text: "1", values: ["boolean", "integer", "float", "duration"] },
+  { text: " 0\n", values: ["boolean", "integer", "float", "duration"] },
   { text: "\t-12 ", values: ["integer", "float", "duration"] },
   { text: "+7", values: ["integer", "float", "duration"] },
   { text: "123456789012345678901234567890", values: ["integer", "float", "duration"] },
@@ -169,9 +157,10 @@ const typedCases = ((): readonly [TypedCase, ...TypedCase[]] => {
 
 /**
  * A situation the box must reach: an admitted and a refused text, and the texts that tell
- * reading 34 and reading 45 apart from `xs:boolean` and a bounded integer.
+ * reading 34, `xs:boolean`'s four literals, and reading 45 apart from `true`/`false` alone and a
+ * bounded integer.
  */
-type TypedSituation = "admitted" | "refused" | "boolean 1 refused" | "long integer admitted";
+type TypedSituation = "admitted" | "refused" | "boolean 1 admitted" | "long integer admitted";
 
 describe("qti/declarations.ts, typed values", () => {
   it.effect(
@@ -180,18 +169,18 @@ describe("qti/declarations.ts, typed values", () => {
       // Oracle: the specification as a checker: each text's base types, constructed from readings
       // 7, 34 and 45, xs:double's lexical space and §8.13's pairs and points, against the pattern
       // `Typed_value` reads for the base type, read by a JavaScript host.
-      // Bound: every judged base type but uri (8) against 24 texts, 192 cases.
+      // Bound: every judged base type but uri (8) against 25 texts, 200 cases.
       searched(
         ctx,
         exhaust(
           {
-            box: "every judged base type but uri against 24 constructed texts",
+            box: "every judged base type but uri against 25 constructed texts",
             caseHang: Duration.seconds(10),
             concurrency: searchWidth,
             coverage: requiredInSpace<TypedSituation>([
               "admitted",
               "refused",
-              "boolean 1 refused",
+              "boolean 1 admitted",
               "long integer admitted",
             ]),
             generator: element<TypedCase>(typedCases),
@@ -207,8 +196,8 @@ describe("qti/declarations.ts, typed values", () => {
               const expected = values.includes(baseType);
               const admitted = patternOf(baseType).test(text);
               c.note(admitted ? "admitted" : "refused");
-              if (baseType === "boolean" && text === "1" && !admitted) {
-                c.note("boolean 1 refused");
+              if (baseType === "boolean" && text === "1" && admitted) {
+                c.note("boolean 1 admitted");
               }
 
               if (baseType === "integer" && text.length > 19 && admitted) {

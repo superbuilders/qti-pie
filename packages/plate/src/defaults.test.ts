@@ -12,10 +12,8 @@ import path from "node:path";
  *   start with no entry whatever their default: NULL, and End Attempt's `false`.
  * - **No secret.** Neither the entries nor the redacted item holds a correct value or a mapping key
  *   the default does not hold.
- * - **Counted once.** Scoring the start gives the outcomes scoring nothing gives, since an attempt
- *   starts each response at its default; Match's two mapped pairs score 2, each once.
- * - **Restored values win.** After an attempt that cleared a defaulted response, the record holds
- *   NULL for it, which posts nothing, not the default.
+ * - **Restored values win.** After an attempt that cleared a defaulted response, the record the
+ *   database returns holds NULL for it, which posts nothing, not the default.
  *
  * The items are every fixture and every accepted corpus item whose response declares a default,
  * and the fixtures of each other kind with a default written into a response here, each a value
@@ -26,11 +24,11 @@ import path from "node:path";
  */
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option, Result } from "effect";
-import { own } from "#plate/engine/refs.ts";
 import { decode, encode } from "#plate/form/encoding.ts";
 import type { Entry } from "#plate/form/encoding.ts";
 import { interactionsIn } from "#plate/model/interactions.ts";
-import { format, match, nullOf } from "#plate/model/values.ts";
+import { recordOf } from "#plate/test/records.ts";
+import { format, match, nullOf, own } from "#plate/model/values.ts";
 import type { ResponseValue, Value } from "#plate/model/values.ts";
 import { postings } from "#plate/postings.ts";
 import type { Posting } from "#plate/postings.ts";
@@ -39,7 +37,6 @@ import type { Redacted } from "#plate/redact/walk.ts";
 import { restore } from "#plate/restore.ts";
 import { jsonField } from "#plate/test/fixtures.ts";
 import { shownToCandidate } from "#plate/test/page.ts";
-import { score } from "#plate/test/score.ts";
 import { acceptedOf, openCorpus } from "#plate/test/sweep.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
@@ -333,19 +330,6 @@ const decodedFrom = (posting: Posting, entries: readonly Entry[]): ResponseValue
   );
 
 /**
- * Give the outcomes an attempt sets, scored from responses with no record.
- *
- * @param accepted The item.
- * @param responses The responses.
- * @returns The outcomes.
- */
-const outcomesOf = (accepted: Accepted, responses: Readonly<Record<string, Value>>) =>
-  Result.getOrElse(
-    Result.flatMap(score(accepted, responses), (stored) => restore(accepted, stored)),
-    (failure) => assert.fail(`score or restore: ${failure.message}`),
-  ).record.outcomes;
-
-/**
  * Write a value as JSON, a bigint as its digits.
  *
  * @param value The value.
@@ -356,7 +340,7 @@ const jsonOf = (value: Redacted): string => JSON.stringify(value, jsonField);
 /**
  * Hold one item's start to the reading: each response it declares a default for starts at that
  * default, or with no entry where it starts empty; neither the start nor the redacted item holds a
- * secret; and the start scores as the record it starts from.
+ * secret.
  *
  * @param accepted The item.
  * @param starts How the information model starts each response declaring a default.
@@ -372,7 +356,6 @@ const holdsStart = (
   const byResponse = new Map(
     postings(accepted, instance).map((posting) => [posting.identifier, posting]),
   );
-  const decoded = new Map<string, Value>();
 
   for (const [response, start] of starts) {
     const posting = byResponse.get(response) ?? assert.fail(`${where}: no posting of ${response}`);
@@ -393,7 +376,6 @@ const holdsStart = (
         match(value, expected) || (value.values.length === 0 && expected.values.length === 0),
         `${where}: ${response} starts at ${JSON.stringify(value.values.map(format))}, not ${JSON.stringify(expected.values.map(format))}`,
       );
-      decoded.set(response, value);
     }
   }
 
@@ -407,16 +389,6 @@ const holdsStart = (
     [],
     `${where}: a secret in the start or the redacted item`,
   );
-
-  const fromDefault = [...decoded].filter(([response]) => starts.get(response)?.kind === "default");
-
-  if (fromDefault.length > 0) {
-    assert.deepStrictEqual(
-      outcomesOf(accepted, Object.fromEntries(fromDefault)),
-      outcomesOf(accepted, {}),
-      `${where}: the start scores as the record it starts from`,
-    );
-  }
 };
 
 /**
@@ -492,31 +464,6 @@ describe("a fresh attempt's start", () => {
     }),
   );
 
-  it.effect("counts a Match's two defaulted pairs once each", () =>
-    Effect.gen(function* matchCount() {
-      const known = cases.find((each) => each.location === "m3d/items/match.xml");
-      const accepted = yield* openCase(known ?? assert.fail("no match case"));
-      const posting =
-        postings(accepted, instance).find((each) => each.identifier === "RESPONSE") ??
-        assert.fail("no posting of RESPONSE");
-      const value = decodedFrom(posting, posting.start);
-
-      assert.isFalse("fields" in value);
-
-      if (!("fields" in value)) {
-        // The mapping gives each correct pair 1, so the two pairs the default holds score 2.
-        assert.deepStrictEqual(
-          own(outcomesOf(accepted, { RESPONSE: value }), "SCORE"),
-          Option.some<Value>({
-            baseType: "float",
-            cardinality: "single",
-            values: [{ baseType: "float", value: 2 }],
-          }),
-        );
-      }
-    }),
-  );
-
   it.effect("gives way to a restored NULL, which posts nothing", () =>
     Effect.gen(function* restoredWins() {
       const known = cases.find((each) => each.location === "m2/items/p1-text-entry.xml");
@@ -524,11 +471,9 @@ describe("a fresh attempt's start", () => {
       const posting =
         postings(accepted, instance).find((each) => each.identifier === "RESPONSE") ??
         assert.fail("no posting of RESPONSE");
-      const restored = Result.getOrElse(
-        Result.flatMap(score(accepted, { RESPONSE: nullOf("string", "single") }), (stored) =>
-          restore(accepted, stored),
-        ),
-        (failure) => assert.fail(`score or restore: ${failure.message}`),
+      const restored = restore(
+        accepted,
+        recordOf({ attempt: "submitted", responses: { RESPONSE: nullOf("string", "single") } }),
       );
       const shown = Option.getOrElse(own(restored.values, "RESPONSE"), () =>
         assert.fail("the record holds no RESPONSE"),

@@ -1,8 +1,9 @@
 /**
  * Feedback as a candidate sees it: `qti-modal-feedback`, `qti-feedback-block` and
  * `qti-feedback-inline` shown, hidden or withheld by the outcome values of the attempt a page
- * shows, through the host's own round trip, `score`, `restore`, then `redact(…)` and the page it
- * gives in review.
+ * shows, through the host's own round trip: the record the database returns after an attempt,
+ * `restore`, then `redact(…)` and the page it gives in review. Each case states the outcomes the
+ * item's response processing sets for its answer, which the QTI database computes.
  *
  * The rule each case holds, from the information model: a
  * feedback element's outcome value matches its `identifier` when it holds a single of base type
@@ -22,25 +23,23 @@
  * @module
  */
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Option, Result } from "effect";
-import { begin } from "#plate/begin.ts";
+import { Effect, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 import type { Configuration } from "#plate/configuration.ts";
 import { qtiNamespace } from "#plate/document/source.ts";
-import { message } from "#plate/messages.ts";
 import type { BodyNode } from "#plate/model/item.ts";
 import type { ItemRecord } from "#plate/model/record.ts";
-import type { ResponseValue, Value } from "#plate/model/values.ts";
+import { nullOf } from "#plate/model/values.ts";
+import type { Value } from "#plate/model/values.ts";
 import { postings } from "#plate/postings.ts";
 import { redact } from "#plate/redact.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
-import { checkResponses } from "#plate/responses.ts";
 import { restore } from "#plate/restore.ts";
 import { readCorpusFile, readCorpusPackage } from "#plate/test/corpus.ts";
 import { float, identifier, identifiers, jsonField } from "#plate/test/fixtures.ts";
 import { shownToCandidate, textOf } from "#plate/test/page.ts";
-import { score } from "#plate/test/score.ts";
+import { documentDigest, goldenRecords, recordOf } from "#plate/test/records.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
@@ -158,34 +157,53 @@ const shownBy = (accepted: Accepted, configuration: Configuration, record?: Item
 };
 
 /**
- * Score an attempt and restore its record, as a host does between the post and the next page.
- *
- * @param accepted The accepted item.
- * @param responses The responses posted.
- * @param stored The record before the attempt, none for an item delivered alone and unbegun.
- * @returns The restored record and responses.
- */
-const scoredBy = (
-  accepted: Accepted,
-  responses: Readonly<Record<string, ResponseValue>>,
-  stored?: Parameters<typeof score>[2],
-) =>
-  Result.getOrElse(
-    Result.flatMap(score(accepted, responses, stored), (scored) => restore(accepted, scored)),
-    (failure) => assert.fail(`scoring failed: ${failure._tag}`),
-  );
-
-/**
- * Begin an item's record and restore it, as a host shows an item's first attempt.
+ * Give an item's record before its first attempt, as the database's take returns it, and restore
+ * it, as a host shows an item's first attempt: for a corpus item, the golden recording's first
+ * record of its document (`goldenRecords`), which holds every outcome and response at the start the
+ * database gives it, the database grader being held to the recording; for an item the corpus does
+ * not hold, as a hand-built grid, no value (`recordOf`), each case stating the values it shows.
  *
  * @param accepted The accepted item.
  * @returns The record, attempt `none`.
  */
-const begun = (accepted: Accepted): ItemRecord =>
-  Result.getOrElse(
-    Result.flatMap(begin(accepted, { instance, seed: "1" }), (stored) => restore(accepted, stored)),
-    (failure) => assert.fail(`begin failed: ${failure._tag}`),
-  ).record;
+const begun = Effect.fnUntraced(function* begun(accepted: Accepted) {
+  const bytes = yield* Effect.option(readCorpusFile(accepted.item.document));
+  const golden = yield* goldenRecords;
+  const start = Option.match(bytes, {
+    onNone: () => recordOf(),
+    onSome: (read) =>
+      Option.getOrElse(Option.fromUndefinedOr(golden.get(documentDigest(read))?.[0]), () =>
+        assert.fail(`the golden recording holds no record of ${accepted.item.document}`),
+      ),
+  });
+
+  return restore(accepted, start).record;
+});
+
+/**
+ * Give the record an attempt leaves, as the database returns it after grading the answer, and
+ * restore it, as a host does between the post and the next page: the item's first record with the
+ * answer's responses and the outcomes its response processing set.
+ *
+ * @param accepted The accepted item.
+ * @param responses The responses posted.
+ * @param outcomes The outcomes the item's response processing sets for them.
+ * @returns The restored record and responses.
+ */
+const answered = Effect.fnUntraced(function* answered(
+  accepted: Accepted,
+  responses: Readonly<Record<string, Value>>,
+  outcomes: Readonly<Record<string, Value>>,
+) {
+  const start = yield* begun(accepted);
+
+  return restore(accepted, {
+    ...start,
+    attempt: "submitted",
+    outcomes: { ...start.outcomes, ...outcomes },
+    responses: { ...start.responses, ...responses },
+  });
+});
 
 /**
  * Give a record whose response processing has run with an outcome set, or left out.
@@ -225,15 +243,23 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
     "Example01-modalFeedback shows only correct after the right answer, only incorrect after a wrong one, and neither before scoring",
     () =>
       Effect.gen(function* modalExample() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openCorpusItem(bpig.modal);
-        const right = scoredBy(accepted, { RESPONSE: identifier("true") });
-        const wrong = scoredBy(accepted, { RESPONSE: identifier("false") });
+        const right = yield* answered(
+          accepted,
+          { RESPONSE: identifier("true") },
+          { FEEDBACK: identifier("correct") },
+        );
+        const wrong = yield* answered(
+          accepted,
+          { RESPONSE: identifier("false") },
+          { FEEDBACK: identifier("incorrect") },
+        );
 
         assert.deepStrictEqual(accepted.item.unsupported, []);
         assert.deepStrictEqual(shownBy(accepted, configuration, right.record).modal, ["correct"]);
         assert.deepStrictEqual(shownBy(accepted, configuration, wrong.record).modal, ["incorrect"]);
-        assert.deepStrictEqual(shownBy(accepted, configuration, begun(accepted)).modal, []);
+        assert.deepStrictEqual(shownBy(accepted, configuration, yield* begun(accepted)).modal, []);
         assert.deepStrictEqual(shownBy(accepted, configuration).modal, []);
       }),
   );
@@ -242,9 +268,13 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
     "Example01-modalFeedback shows the same modal feedback in answering as in review, with no title when it has none",
     () =>
       Effect.gen(function* modalModes() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openCorpusItem(bpig.modal);
-        const right = scoredBy(accepted, { RESPONSE: identifier("true") });
+        const right = yield* answered(
+          accepted,
+          { RESPONSE: identifier("true") },
+          { FEEDBACK: identifier("correct") },
+        );
         const redacted = redact(accepted, { ...shownToCandidate, configuration }, right.record);
         const answering = redacted;
         const reviewed = shownBy(accepted, configuration, right.record);
@@ -265,17 +295,25 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
     "Example02-feedbackInline shows neither choice's inline feedback before scoring, only That's correct after true, and only That's not correct after false",
     () =>
       Effect.gen(function* inlineExample() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openCorpusItem(bpig.inline);
-        const right = scoredBy(accepted, { RESPONSE: identifier("true") });
-        const wrong = scoredBy(accepted, { RESPONSE: identifier("false") });
+        const right = yield* answered(
+          accepted,
+          { RESPONSE: identifier("true") },
+          { FEEDBACK: identifier("true") },
+        );
+        const wrong = yield* answered(
+          accepted,
+          { RESPONSE: identifier("false") },
+          { FEEDBACK: identifier("false") },
+        );
         const shownRight = shownBy(accepted, configuration, right.record).text;
         const shownWrong = shownBy(accepted, configuration, wrong.record).text;
 
         assert.deepStrictEqual(accepted.item.unsupported, []);
         for (const before of [
           shownBy(accepted, configuration).text,
-          shownBy(accepted, configuration, begun(accepted)).text,
+          shownBy(accepted, configuration, yield* begun(accepted)).text,
         ]) {
           assert.notInclude(before, "That's");
           assert.include(before, "True");
@@ -292,11 +330,23 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
     "Example03-feedbackBlock-solution shows a block or inline when the multiple FEEDBACK contains its identifier, and its solution button's block until processing clears ASKSOLUTION",
     () =>
       Effect.gen(function* solutionExample() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openCorpusItem(bpig.solution);
-        const start = shownBy(accepted, configuration, begun(accepted));
-        const right = scoredBy(accepted, { RESPONSE: float(7.389) });
-        const wrong = scoredBy(accepted, { RESPONSE: float(1) });
+        const start = shownBy(accepted, configuration, yield* begun(accepted));
+        const ended = {
+          ASKSOLUTION: identifier("null"),
+          completionStatus: identifier("completed"),
+        };
+        const right = yield* answered(
+          accepted,
+          { RESPONSE: float(7.389) },
+          { ...ended, FEEDBACK: identifiers("CORRECT"), SCORE: float(2) },
+        );
+        const wrong = yield* answered(
+          accepted,
+          { RESPONSE: float(1) },
+          { ...ended, FEEDBACK: identifiers("INCORRECT"), SCORE: float(0) },
+        );
         const shownRight = shownBy(accepted, configuration, right.record);
         const shownWrong = shownBy(accepted, configuration, wrong.record);
         const solution = shownBy(
@@ -337,13 +387,13 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
   );
 
   it.effect(
-    "Example04-feedbackBlock-templateBlock withholds every feedback block and inline with no record, naming none of the template parts inside them, and under begin's record shows only the blocks its outcome defaults show",
+    "Example04-feedbackBlock-templateBlock withholds every feedback block and inline with no record, naming none of the template parts inside them, and under its first record shows only the blocks its outcome defaults show",
     () =>
       Effect.gen(function* templateBlockExample() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openCorpusItem(bpig.templateBlock);
         const withheld = shownBy(accepted, configuration);
-        const start = shownBy(accepted, configuration, begun(accepted));
+        const start = shownBy(accepted, configuration, yield* begun(accepted));
 
         assert.notInclude(withheld.text, "Incorrect");
 
@@ -368,10 +418,14 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
     "Example05-feedbackBlock-adaptive posts only the interaction of the part its BODY shows: RESPONSE1 at the start, the drop-downs of option2 after choosing them",
     () =>
       Effect.gen(function* adaptiveExample() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openCorpusItem(bpig.adaptive);
-        const start = begun(accepted);
-        const chosen = scoredBy(accepted, { RESPONSE1: identifier("OPTION2") });
+        const start = yield* begun(accepted);
+        const chosen = yield* answered(
+          accepted,
+          { RESPONSE1: identifier("OPTION2") },
+          { BODY: identifiers("part2", "option2") },
+        );
         const posted = (record: ItemRecord): readonly string[] =>
           postings(accepted, instance, record).map((posting) => posting.identifier);
         const second = shownBy(accepted, configuration, chosen.record).text;
@@ -381,36 +435,6 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
         assert.include(second, "OK, this is the type of input you have chosen");
         assert.notInclude(second, "Which of these input methods");
         assert.notInclude(second, "Choose the correct saying");
-      }),
-  );
-
-  it.effect(
-    "Example05-feedbackBlock-adaptive ignores, in checkResponses and score, a response only hidden feedback binds, and judges a shown one",
-    () =>
-      Effect.gen(function* adaptiveHiddenResponses() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
-        const accepted = yield* openCorpusItem(bpig.adaptive);
-        const start = begun(accepted);
-        const chosen = scoredBy(accepted, { RESPONSE1: identifier("OPTION2") });
-        const stray = identifier("ZZZ");
-        const forged = scoredBy(accepted, {
-          RESPONSE1: identifier("OPTION2"),
-          RESPONSE21: identifier("OPTION210"),
-        });
-
-        assert.deepStrictEqual(
-          checkResponses(accepted, { RESPONSE22: stray }, configuration, start),
-          [],
-        );
-        assert.deepStrictEqual(
-          checkResponses(accepted, { RESPONSE22: stray }, configuration, chosen.record),
-          [{ response: "RESPONSE22", text: message("en", "unknownChoice") }],
-        );
-        assert.deepStrictEqual(
-          forged.values["RESPONSE21"],
-          start.responses["RESPONSE21"],
-          "score keeps the record's value of a response only hidden feedback binds",
-        );
       }),
   );
 });
@@ -516,9 +540,9 @@ describe("feedback visibility over a grid of values", () => {
       `shows each block, inline and modal feedback over a ${cardinality} FB exactly as the rule decides, for every value once processing has run`,
       () =>
         Effect.gen(function* gridSubmitted() {
-          const configuration = yield* configure({ seed: "", validateResponses: false });
+          const configuration = yield* configure({ seed: "" });
           const accepted = yield* openXml("items/grid.xml", gridXml(cardinality, Option.none()));
-          const record = begun(accepted);
+          const record = yield* begun(accepted);
 
           assert.deepStrictEqual(accepted.item.unsupported, []);
           for (const value of gridValues[cardinality]) {
@@ -538,41 +562,19 @@ describe("feedback visibility over a grid of values", () => {
     );
 
     it.effect(
-      `before processing runs, shows the blocks and inlines a ${cardinality} FB's starting value shows, whatever the record's outcomes hold, and no modal feedback`,
+      `before processing runs, shows the blocks and inlines a ${cardinality} FB at the database's start value shows, and no modal feedback; with no record, none`,
       () =>
         Effect.gen(function* gridBefore() {
-          const configuration = yield* configure({ seed: "", validateResponses: false });
-          const unset = yield* openXml("items/grid.xml", gridXml(cardinality, Option.none()));
-          const preset = yield* openXml("items/grid.xml", gridXml(cardinality, Option.some("A")));
-          const starting = cardinality === "single" ? identifier("A") : identifiers("A");
-          const nothing = gridValues[cardinality][0] ?? assert.fail("the grid has no NULL value");
+          const configuration = yield* configure({ seed: "" });
+          const accepted = yield* openXml("items/grid.xml", gridXml(cardinality, Option.none()));
 
-          for (const [accepted, start] of [
-            [unset, nothing],
-            [preset, starting],
-          ] as const) {
-            const record = begun(accepted);
-
+          assert.deepStrictEqual(gridShown(shownBy(accepted, configuration)), []);
+          for (const value of gridValues[cardinality]) {
             assert.deepStrictEqual(
-              gridShown(shownBy(accepted, configuration)),
-              gridExpected(start, false),
+              gridShown(shownBy(accepted, configuration, recordOf({ outcomes: { FB: value } }))),
+              gridExpected(value, false),
+              `attempt none, FB ${JSON.stringify(value.values)}`,
             );
-            assert.deepStrictEqual(
-              gridShown(shownBy(accepted, configuration, record)),
-              gridExpected(start, false),
-            );
-            for (const value of gridValues[cardinality]) {
-              assert.deepStrictEqual(
-                gridShown(
-                  shownBy(accepted, configuration, {
-                    ...record,
-                    outcomes: { ...record.outcomes, FB: value },
-                  }),
-                ),
-                gridExpected(start, false),
-                `attempt none, FB ${JSON.stringify(value.values)}`,
-              );
-            }
           }
         }),
     );
@@ -582,12 +584,12 @@ describe("feedback visibility over a grid of values", () => {
     "withholds a block and an inline whose outcome a submitted record holds no value of as their notices, and a modal feedback as a section holding only its notice",
     () =>
       Effect.gen(function* withheldGrid() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openXml("items/grid.xml", gridXml("single", Option.none()));
         const shown = shownBy(
           accepted,
           configuration,
-          submittedWith(begun(accepted), "FB", Option.none()),
+          submittedWith(yield* begun(accepted), "FB", Option.none()),
         );
         assert.deepStrictEqual(gridShown(shown), []);
         assert.deepStrictEqual(
@@ -651,6 +653,15 @@ const nestedXml = (): string =>
   ].join("");
 
 /**
+ * The record {@link nestedXml}'s take returns: its template value `T` at its declared `on`, and
+ * both outcomes NULL.
+ */
+const nestedStart: ItemRecord = recordOf({
+  outcomes: { INNER: nullOf("identifier", "single"), OUTER: nullOf("identifier", "single") },
+  templates: { T: identifier("on") },
+});
+
+/**
  * Give the markers of {@link nestedXml}'s three feedback contents a render shows.
  *
  * @param shown The render.
@@ -670,16 +681,18 @@ const responsesOf = (redacted: Redacted): readonly string[] =>
 
 describe("feedback in its place", () => {
   it.effect(
-    "before an attempt, feedback reads the default template processing set, and with no record an item whose template processing runs withholds every block",
+    "before an attempt, feedback reads the outcome the take's record holds, the default template processing set, and with no record an item with template processing withholds every block",
     () =>
       Effect.gen(function* templatedDefault() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openXml("items/templated.xml", templatedXml());
-        const record = begun(accepted);
+        const { record } = restore(
+          accepted,
+          recordOf({ defaults: { FB: identifier("B") }, outcomes: { FB: identifier("B") } }),
+        );
         const started = shownBy(accepted, configuration, record);
         const unrecorded = shownBy(accepted, configuration);
 
-        assert.deepStrictEqual(record.defaults["FB"], identifier("B"));
         assert.include(started.text, "SHOWS-B");
         assert.notInclude(started.text, "SHOWS-A");
         assert.notInclude(unrecorded.text, "SHOWS-A");
@@ -691,9 +704,9 @@ describe("feedback in its place", () => {
     "shows a feedback inline inside a feedback block only where both show, and a feedback block inside a template block only where the template block shows",
     () =>
       Effect.gen(function* nested() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openXml("items/nested.xml", nestedXml());
-        const record = begun(accepted);
+        const { record } = restore(accepted, nestedStart);
         const both = submittedWith(
           submittedWith(record, "OUTER", Option.some(identifier("O"))),
           "INNER",
@@ -721,9 +734,9 @@ describe("feedback in its place", () => {
     "lists the response of a notice inside a shown feedback block, and not one inside a hidden block, whose response is then hidden-only",
     () =>
       Effect.gen(function* noticeInFeedback() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openXml("items/nested.xml", nestedXml());
-        const record = begun(accepted);
+        const { record } = restore(accepted, nestedStart);
         const shown = shownBy(
           accepted,
           configuration,
@@ -744,9 +757,9 @@ describe("feedback in its place", () => {
     "gives a shown block's content in its place inside its own element, which carries its identifier alone, so the page gets none of its id, class or lang, and the redacted JSON no hidden content",
     () =>
       Effect.gen(function* contentInPlace() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openXml("items/nested.xml", nestedXml());
-        const record = begun(accepted);
+        const { record } = restore(accepted, nestedStart);
         const shown = shownBy(
           accepted,
           configuration,
@@ -792,7 +805,7 @@ describe("feedback in its place", () => {
     "gives a titled modal feedback its title, and shows a hide modal feedback once processing has run and not before",
     () =>
       Effect.gen(function* titledModal() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openXml(
           "items/titled.xml",
           [
@@ -803,7 +816,7 @@ describe("feedback in its place", () => {
             "</qti-assessment-item>",
           ].join(""),
         );
-        const record = begun(accepted);
+        const record = yield* begun(accepted);
         const after = shownBy(
           accepted,
           configuration,
@@ -824,7 +837,7 @@ describe("feedback in its place", () => {
     "shows a feedback inline inside an Inline Choice's choice by its outcome, the interaction built",
     () =>
       Effect.gen(function* inlineChoiceFeedback() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openXml(
           "items/picker.xml",
           [
@@ -839,7 +852,7 @@ describe("feedback in its place", () => {
             "</qti-assessment-item>",
           ].join(""),
         );
-        const record = begun(accepted);
+        const record = yield* begun(accepted);
         const before = shownBy(accepted, configuration, record);
         const after = shownBy(
           accepted,

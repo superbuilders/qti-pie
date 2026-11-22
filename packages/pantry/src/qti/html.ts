@@ -37,10 +37,10 @@
  * attributes (`idAttributes` of `#pantry/qti/identity.ts`), which the key over them holds to one
  * per element, and the way back meets them at the `th` kind ({@link thIdAttributes}). Every overlay
  * is keyed by its element, `(package, path, start)`, and names another element of its document by
- * its position. Every copied text that takes part in a cross-row equality is `keyText`
- * (`#pantry/qti/limits.ts`).
- * Every check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written
- * as underscores.
+ * its position. Every copied text that takes part in a cross-row equality is of any length, a key,
+ * a containment's target and a lookup holding it by its image (`#pantry/qti/limits.ts`). Every
+ * check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written as
+ * underscores.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Source | QTI 3.0 information model, §5.135 Source}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Track | QTI 3.0 information model, §5.163 Track}
@@ -63,10 +63,11 @@ import {
 } from "@bjornpagen/grizzle";
 import { Attribute, attributesOf, carries } from "#pantry/qti/attributes.ts";
 import { thIdAttributes } from "#pantry/qti/identity.ts";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { listTokens, tokenList, whitespaceTokens } from "#pantry/qti/token-list.ts";
 import { cellKinds } from "#pantry/vocab/terms/html.ts";
+import { anyText } from "#pantry/grammar/install.ts";
 
 /**
  * The kinds of the media elements, whose `source` children carry `src` (reading 124).
@@ -105,7 +106,7 @@ export const CellHeaders = relation(
     package: PackageName,
     path: EntryPath,
     start: natural,
-    tokenText: accumulated(keyText, ""),
+    tokenText: accumulated(anyText, ""),
     tokens: drawn(natural),
   },
   ["package", "path", "start"],
@@ -133,7 +134,7 @@ export const HeaderToken = listTokens("HeaderToken");
 export const TableHeader = relation(
   "TableHeader",
   {
-    id: keyText,
+    id: anyText,
     owner: natural,
     package: PackageName,
     path: EntryPath,

@@ -15,7 +15,6 @@ import type {
 } from "@bjornpagen/grizzle";
 import { assert } from "@effect/vitest";
 import { Option, Result } from "effect";
-import { keyTextBytes } from "#pantry/qti/limits.ts";
 
 /**
  * Compile a schema's row evaluator.
@@ -78,13 +77,3 @@ export const brokenIn = <A, R>(
   Result.isSuccess(evaluation)
     ? Option.some(isBroken(verdict(evaluation.success), what))
     : Option.none();
-
-/**
- * Whether a text is past keyText's bound, the domain every copied text is held to
- * (`#pantry/qti/limits.ts`): its domain refuses a row that holds it, so no check reads that row.
- *
- * @param text - The text.
- * @returns Whether its UTF-8 bytes are more than {@link keyTextBytes}.
- */
-export const pastKeyText = (text: string): boolean =>
-  new TextEncoder().encode(text).length > keyTextBytes;

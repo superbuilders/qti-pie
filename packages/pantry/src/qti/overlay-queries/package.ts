@@ -9,7 +9,7 @@
  * form its
  * attribute's `lexical`, read beside its split ({@link SrcsetForm}).
  */
-import { check, Compute, contained, derived, on, query, v } from "@bjornpagen/grizzle";
+import { check, contained, derived, on, query, Text, Type, v } from "@bjornpagen/grizzle";
 import { ReferenceAttribute } from "#pantry/grammar/install.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
@@ -148,11 +148,10 @@ const DependencyResolved = derived(
 /**
  * Each `srcset`'s split beside its form, by its element's place: its {@link Srcset}'s `tokenText`
  * and `trail`, and its attribute's kind, name and `lexical`, the form as written, which no row
- * copies (C18). The attribute is the element's of the census's form `srcset`
- * (`ReferenceAttribute`, spec reading 103), so the join delivers its kind and name, which the media
- * laws read (`#pantry/qti/media.ts`), and an element has one such attribute, so a `srcset` is one
- * row. The form is read as written, never as its `value`: a `srcset`'s domain replaces each tab,
- * line feed and carriage return, and its candidates' pieces hold them.
+ * copies (C18). The attribute is the element's of the census's form `srcset` (`ReferenceAttribute`,
+ * spec reading 103), so the join delivers its kind and name, and an element has one such attribute,
+ * so a `srcset` is one row. The form is read as written, never as its `value`: a `srcset`'s domain
+ * replaces each tab, line feed and carriage return, and its candidates' pieces hold them.
  */
 export const SrcsetForm = derived(
   "SrcsetForm",
@@ -186,7 +185,7 @@ export const packageOverlayLawsByName = {
   ],
   "E1 derived": [
     check("E1_derived", SrcsetForm, (s) =>
-      s.eq(s.lexical, Compute.concat(Compute.base(s.tokenText), Compute.base(s.trail))),
+      s.eq(s.lexical, Text.concat(Type.base(s.tokenText), Type.base(s.trail))),
     ),
   ],
   "File listed": [

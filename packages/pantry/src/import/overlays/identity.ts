@@ -506,9 +506,7 @@ const nodesOf = (
  *
  * Each overlay holds one row per element it describes, keyed by the element, `(package, path,
  * start)`, and each projection one row per value, so a value an element repeats is one row. A
- * copied text past `keyText`'s bound keeps its row, whatever its length: `keyText`'s own check
- * refuses it in the database under "Key text bound", the one rule a key text past its bound is
- * refused by, as the law oracle names it.
+ * copied text is of any length, a key holding it by its image (`#pantry/qti/limits.ts`).
  *
  * @param view - The document's view, whose tree and rows it reads.
  * @param ids - Where it stands in its package.
@@ -565,7 +563,7 @@ export type IdValueRow = Addition<typeof DocumentId> & { readonly id: string };
 
 /**
  * Read a document's text IDs with their values, `IdValue`'s rule for a text: each beside its
- * element's string value collapsed (`Compute.collapse`, an `xs:ID`'s whiteSpace).
+ * element's string value collapsed (`Text.collapse`, an `xs:ID`'s whiteSpace).
  *
  * @param rows - The document's rows.
  * @param texts - Its `DocumentId` rows bound to another element than their own, its texts' IDs.

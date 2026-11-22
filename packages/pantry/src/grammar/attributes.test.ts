@@ -956,10 +956,12 @@ describe("The spec readings", () => {
     }
   });
 
-  it("read 15: a variable-identifier-ref is an identifier, not an IDREF", () => {
+  it("read 15: a variable-identifier-ref is an IDREF, as the XSD and the information model type it", () => {
+    // Oracle: the XSD's `UniqueIdentifierRefDType`, an `xs:IDREF` restriction (xsd:24140), and the
+    // information model's §4.5.11 data type, `UniqueIdentifierRef`.
     const ref = Option.getOrThrow(domainAt("qti-outcome-declaration", "variable-identifier-ref"));
 
-    assert.isTrue(Option.isNone(ref.identity));
+    assert.deepStrictEqual(ref.identity, Option.some("IDREF"));
     assert.isTrue(matches(ref, " EXT "));
     assert.isFalse(matches(ref, "1EXT"));
   });
@@ -1054,13 +1056,15 @@ describe("The spec readings", () => {
     }
   });
 
-  it("read 85: an xi:include's parse is xml alone, its whitespace collapsed as the XSD's token", () => {
-    // Information model §2.12: "all included fragments must be treated as parsed xml"; the XSD's
-    // `xi:parseType` admits `xml` and `text` (`w3/XInclude.xsd` lines 31 to 36).
+  it("read 85: an xi:include's parse is the XSD's xml or text, its whitespace collapsed as its token", () => {
+    // The XSD's `xi:parseType` admits `xml` and `text` (`w3/XInclude.xsd` lines 31 to 36); "Values
+    // other than "xml" and "text" are a fatal error" (XInclude 1.0 §3.1). Section 2.12 of the
+    // information model, which would admit `xml` alone, is not normative (§2).
     const domain = Option.getOrThrow(domainAt("xi:include", "parse"));
 
     assert.isTrue(matches(domain, "xml") && matches(domain, " xml "));
-    assert.isFalse(matches(domain, "text") || matches(domain, "XML"));
+    assert.isTrue(matches(domain, "text") && matches(domain, " text "));
+    assert.isFalse(matches(domain, "XML") || matches(domain, "html"));
   });
 
   it("read 2: every MathML kind's xref is an IDREF, so it names an id of its document", () => {
@@ -1422,10 +1426,11 @@ describe("The spec readings", () => {
     );
   });
 
-  it("read 9: a source carries no role, and the only declarations the readings drop are it and reading 85's xpointer", () => {
+  it("read 9: a source carries no role, and it is the only declaration the readings drop", () => {
     // ASI binding §5.3.1, RULE ARIA ROLE 1a: "The 'source' tag must not have an ARIA role
-    // attribute", where the XSD declares it; information model §2.12 for `xpointer`. Oracle: the
-    // leaf's declarations, every one, against those `readDeclarations` keeps.
+    // attribute", where the XSD declares it; an `xi:include`'s `xpointer`, which the XSD declares,
+    // is kept (reading 85). Oracle: the leaf's declarations, every one, against those
+    // `readDeclarations` keeps.
     const kept = new Set(
       readDeclarations(attributeDeclarations).map(({ kind, name }) => `${kind} ${name}`),
     );
@@ -1433,8 +1438,9 @@ describe("The spec readings", () => {
       .filter((declared) => !kept.has(declared))
       .toSorted();
 
-    assert.deepStrictEqual(dropped, ["source role", "xi:include xpointer"]);
+    assert.deepStrictEqual(dropped, ["source role"]);
     assert.isTrue(kept.has("h1 role") && kept.has("video role") && kept.has("source type"));
+    assert.isTrue(kept.has("xi:include xpointer"));
   });
 
   it.effect(
@@ -1845,11 +1851,8 @@ describe("The attribute grammar's structure", () => {
 
   it("derives each domain's identity from the built-in its type restricts, and from nothing else", () => {
     for (const declared of attributeDeclarations) {
-      // Readings 15 and 2 read these as other than their type: no identity, and an IDREF.
-      if (
-        declared.name !== "variable-identifier-ref" &&
-        !(declared.kind.startsWith("m:") && declared.name === "xref")
-      ) {
+      // Reading 2 reads MathML's `xref` as other than its type, an IDREF.
+      if (!(declared.kind.startsWith("m:") && declared.name === "xref")) {
         assert.deepStrictEqual(
           Option.getOrThrow(domainAt(declared.kind, declared.name)).identity,
           identityOf(declared.domain),
@@ -2017,19 +2020,9 @@ describe("The XSD's attribute uses", () => {
               }
             }
 
-            // Spec reading 10: ARIA's `aria-keyshortcuts` beside the XSD's `aria-keyshorts`, with
-            // its use; spec reading 85: an `xi:include` carries no `xpointer` (§2.12); spec reading
-            // 9: a `source` carries no `role` (the Schematron's RULE ARIA ROLE 1a); spec reading
-            // 123: a `bdo` carries `dir` (§5.11).
-            const misspelled = expected.get("aria-keyshorts");
-            if (misspelled !== undefined) {
-              expected.set("aria-keyshortcuts", misspelled);
-            }
-
-            if (kind === "xi:include") {
-              expected.delete("xpointer");
-            }
-
+            // Spec reading 10: the XSD's `aria-keyshorts` alone, no second spelling beside it;
+            // spec reading 9: a `source` carries no `role` (the Schematron's RULE ARIA ROLE 1a);
+            // spec reading 123: a `bdo` carries `dir` (§5.11).
             if (kind === "source") {
               expected.delete("role");
             }
@@ -2093,9 +2086,13 @@ describe("The document layer", () => {
         const { attributes, kinds } = yield* Effect.fromResult(composed());
         const byHandle = new Map(attributes.domains.map((domain) => [domain.handle, domain]));
         // Spec reading 90: on an element the Schematron's extension rules cover, an `xml:` name
-        // the kind does not declare is no `data-` extension, so it is refused there.
+        // the kind does not declare is no `data-` extension, so it is refused there; but on
+        // `qti-custom-interaction`, whose `extension` characteristic is a `NamespaceLax`
+        // (information model §5.36.1), it is one of that characteristic's.
         const covered = new Set(
-          coveredElements.map(({ element: covers }) => `{${covers.namespace}}${covers.local}`),
+          coveredElements
+            .filter(({ element: covers }) => covers.local !== "qti-custom-interaction")
+            .map(({ element: covers }) => `{${covers.namespace}}${covers.local}`),
         );
         const coveredAt = (kind: string): boolean =>
           Option.exists(kinds.elementName.lookup({ kind }), ({ local, namespace }) =>
@@ -2108,6 +2105,12 @@ describe("The document layer", () => {
           ({ namespace }) => namespace !== "##local",
         )) {
           for (const global of xmlGlobals) {
+            // XML Schema 1.0 Part 1 §3.4.4 clause 5.2 (spec reading 109): a custom interaction
+            // declares an ID-typed `id`, so its `##other` wildcard admits no wild `xml:id`.
+            if (wildcard.kind === "qti-custom-interaction" && global.name === "xml:id") {
+              continue;
+            }
+
             const row = attributes.admission.lookup({ kind: wildcard.kind, name: global.name });
             const declared = attributeDeclarations.some(
               ({ kind, name }) => kind === wildcard.kind && name === global.name,

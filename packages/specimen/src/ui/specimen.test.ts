@@ -17,8 +17,7 @@ import { required } from "@bjornpagen/testing/features";
 import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
-import { Effect, Option, Record as Rec, Result } from "effect";
-import { begin } from "@qti-pie/plate";
+import { Effect, Option, Record as Rec } from "effect";
 import { opened } from "#specimen/open.ts";
 import { kindDimension } from "#specimen/kinds/index.ts";
 import { floorCase } from "#specimen/floor.ts";
@@ -77,10 +76,6 @@ const sourceOf = (held: Specimen) =>
 
     return {
       accepted,
-      begun:
-        accepted.item.templateProcessing.kind === "runs"
-          ? Option.some(Result.getOrThrow(begin(accepted, { instance, seed: "1" })))
-          : Option.none(),
       configuration,
       given: Option.some({
         described: held.description.answer,
@@ -90,8 +85,8 @@ const sourceOf = (held: Specimen) =>
       kinds: facts.kinds,
       location: held.item.location,
       offered: facts.offered,
-      scoring: { kind: "predicted", score: held.response.score },
       stimuli: [],
+      taken: Option.none(),
     };
   });
 

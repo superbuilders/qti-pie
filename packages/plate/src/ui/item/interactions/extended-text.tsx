@@ -6,15 +6,16 @@
  * The island takes its binding, `base`, its boxes and their size from `expected-length` and
  * `expected-lines`, `format`, `pattern-mask` with the author's `data-patternmask-message` in place
  * of the catalog's, its placeholder, prompt and name. The review shows each string in a read-only
- * textarea, sized and named as the island's boxes are, and against the host's solution marks each
+ * textarea, sized and named as the island's boxes are, and by the host's marks marks each
  * box and writes the right answers the strings miss ({@link marksOf}). Where `min-strings` asks for
  * more boxes than plate shows, both are the cap's notice in its place.
  *
  * @module
  */
-import { Option } from "effect";
+import { Array as Arr, Option } from "effect";
 import type { ReactNode } from "react";
 import { controlCap } from "#plate/control-cap.ts";
+import type { ExtendedTextInteraction } from "#plate/interactions/extended-text.ts";
 import { writeIn } from "#plate/interactions/text-entry.ts";
 import { textOfXhtml } from "#plate/interactions/xhtml-text.ts";
 import { message, messageText } from "#plate/messages.ts";
@@ -35,7 +36,7 @@ import {
   promptAt,
   rootOf,
 } from "#plate/ui/item/interactions/labels.ts";
-import { bagMarks, markingOf, missedShown } from "#plate/ui/item/interactions/marks.ts";
+import { bagMarks, markingOf, partsMarked } from "#plate/ui/item/interactions/marks.ts";
 import type { AnswerMark, Marking } from "#plate/ui/item/interactions/marks.ts";
 import { markPart, wordsOfMark } from "#plate/ui/item/interactions/words.tsx";
 import { fillLabel } from "#plate/ui/labels.ts";
@@ -136,35 +137,36 @@ interface BoxMarks {
 }
 
 /**
- * Mark the strings an Extended Text's review shows against the correct response, as `qti-match`
- * compares them: a `multiple` response as a bag, each string right while the correct bag still
- * holds a copy of it, the copies left over written after the boxes; a `single` or `ordered` one as
- * a sequence, each string right where the correct sequence holds it at its place, the correct
- * string of a box whose string is not right, or that holds none, written after that box, and those
- * past the last box after it. A review that marks the candidate's own answers alone writes no right
- * answer (`missedShown` in `#plate/ui/item/interactions/marks.ts`). Nothing marks a review with
- * nothing to mark against, a solution, or a record, which `qti-match` does not compare.
+ * Lay the marks the host handed for an Extended Text's response on its boxes: a `multiple`
+ * response as a bag ({@link bagMarks}), each string with the mark handed its value, the values
+ * handed `missed` written after the boxes; a `single` or `ordered` one by place, each string with
+ * the mark handed at its place, the value handed `missed` at a box's place written after that box,
+ * and those past the last box after it. Nothing marks a review with no marks, or a solution.
  *
  * @param shown The value shown, none for no value.
- * @param marking How the review marks the response.
+ * @param marking The marks handed for the response.
  * @param count How many boxes the review shows.
+ * @param cardinality The bound response's cardinality.
  * @returns The marks.
  */
-const marksOf = (shown: ResponseValue | undefined, marking: Marking, count: number): BoxMarks => {
-  const unmarked = { after: [], boxes: Array.from({ length: count }, () => none) };
-
-  if (marking.kind !== "against" || (shown !== undefined && isRecordValue(shown))) {
-    return unmarked;
+const marksOf = (
+  shown: ResponseValue | undefined,
+  marking: Marking,
+  count: number,
+  cardinality: ExtendedTextInteraction["cardinality"],
+): BoxMarks => {
+  if (marking.kind !== "marked") {
+    return { after: [], boxes: Array.from({ length: count }, () => none) };
   }
 
-  const given = shown === undefined || isNullResponse(shown) ? [] : shown.values;
-  const correct = marking.correct.values;
+  const given =
+    shown === undefined || isNullResponse(shown) || isRecordValue(shown) ? [] : shown.values;
 
-  if (marking.correct.cardinality === "multiple") {
-    const marks = bagMarks(given, correct, format);
+  if (cardinality === "multiple") {
+    const marks = bagMarks(given, marking, (values) => values, format);
 
     return {
-      after: missedShown(marking, marks.missed),
+      after: marks.missed,
       boxes: Array.from({ length: count }, (_, index) => ({
         mark: marks.given[index],
         missed: Option.none(),
@@ -172,22 +174,23 @@ const marksOf = (shown: ResponseValue | undefined, marking: Marking, count: numb
     };
   }
 
-  const shownMissed = missedShown(marking, correct);
+  const missed = (place: number): Option.Option<Single> =>
+    Arr.findFirst(partsMarked(marking, "missed"), (part) => part.place === place).pipe(
+      Option.map((part) => part.value),
+    );
 
   return {
-    after: shownMissed.slice(count),
+    after: partsMarked(marking, "missed")
+      .filter((part) => part.place >= count)
+      .map((part) => part.value),
     boxes: Array.from({ length: count }, (_, index): BoxMark => {
-      const string = given[index];
-      const right = Option.fromUndefinedOr(correct[index]);
-      const missed = Option.fromUndefinedOr(shownMissed[index]);
-
-      if (string === undefined) {
-        return { mark: undefined, missed };
+      if (given[index] === undefined) {
+        return { mark: undefined, missed: missed(index) };
       }
 
-      return Option.exists(right, (value) => format(value) === format(string))
+      return partsMarked(marking, "right").some((part) => part.place === index)
         ? { mark: "right", missed: Option.none() }
-        : { mark: "wrong", missed };
+        : { mark: "wrong", missed: missed(index) };
     }),
   };
 };
@@ -210,7 +213,7 @@ const answerPart = (single: Single, base: number, locale: Locale, key: string): 
 /**
  * Render an Extended Text's review: each string in a read-only textarea in its
  * `plate-extended-text-box`, an `xhtml` one as the text its XHTML was typed from, named as the
- * island names its boxes, marked against the host's solution with the mark's words, each right
+ * island names its boxes, marked by the host's marks with the mark's words, each right
  * answer it misses after its box or after the last ({@link marksOf}); or the cap's notice where its
  * `min-strings` asks for more boxes than plate shows.
  *
@@ -239,6 +242,7 @@ export const review = (
     context.values.get(node.response),
     markingOf(node.response, context),
     node.restores.length,
+    model.cardinality,
   );
 
   return (

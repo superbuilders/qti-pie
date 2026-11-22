@@ -21,7 +21,7 @@
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Q | QTI 3.0 ASI information model, §5.111 Q}
  */
-import { check, Compute, derived, query, v } from "@bjornpagen/grizzle";
+import { check, derived, Num, query, Type, v } from "@bjornpagen/grizzle";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
 
@@ -68,7 +68,7 @@ const QuotationEnd = derived(
         })
         .where(
           r.ne(before.start, documentStart),
-          r.eq(Compute.add(Compute.base(before.at), 1n), Compute.base(q.at)),
+          r.eq(Num.add(Type.base(before.at), 1n), Type.base(q.at)),
         )
         .find({ end: before.last, package: q.package, path: q.path, start: q.start });
     })
@@ -95,7 +95,7 @@ const QuotationEnd = derived(
         })
         .where(
           r.ne(after.start, documentStart),
-          r.eq(Compute.base(after.at), Compute.add(Compute.base(q.at), 1n)),
+          r.eq(Type.base(after.at), Num.add(Type.base(q.at), 1n)),
         )
         .find({ end: after.first, package: q.package, path: q.path, start: q.start });
     })
@@ -135,7 +135,7 @@ const QuotationEnd = derived(
           path: q.path,
           start: child.start,
         })
-        .where(r.eq(Compute.add(Compute.base(child.at), 1n), Compute.base(q.children)))
+        .where(r.eq(Num.add(Type.base(child.at), 1n), Type.base(q.children)))
         .find({ end: child.last, package: q.package, path: q.path, start: q.start });
     }),
 );

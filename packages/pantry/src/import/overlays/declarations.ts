@@ -1,64 +1,26 @@
 /**
- * The O2 overlay rows of a document (plan §1.7, §C's `rowsOf`): from a document's view (its rows,
- * each node at its `start`, and their folds) and its place in its package, the rows of every
- * overlay `#pantry/qti/declarations.ts` declares, each relation's rows a keyed set by its element's
- * place, `(package, path, start)`: an outcome declaration's mastery value, normal minimum and
- * normal maximum.
- *
- * The rows restate what the tree says and nothing else: each attribute's lexical form as written,
- * and a normal minimum the declaration does not write as the XSD's default. A declaration's name,
- * cardinality and base type, and a value's field and base type, are their attributes' values,
- * which the database reads where they stand (`#pantry/qti/names.ts`), so no row holds them; the
- * other builders read a declaration as its views do ({@link typedDeclarationOf}). The database
- * proves every row (`declarationLaws`), so a row this builder gets wrong is refused, never
- * accepted.
+ * A document's declarations as the import's other builders read them (plan §1.7): a declaration's
+ * name, cardinality and base type, and a value's field and base type, are their attributes'
+ * values, which the database reads where they stand (`#pantry/qti/names.ts`), so no row holds
+ * them, and the builders read a declaration as its views do ({@link typedDeclarationOf}). An
+ * outcome declaration's normal scale is its attributes' values too, read by the views
+ * `MasteryValue`, `NormalMaximum` and `NormalMinimum` (`#pantry/qti/names.ts`), so this module
+ * writes no row of its own.
  */
 import type { Addition } from "@bjornpagen/grizzle";
-import { Array as Arr, Option, Struct } from "effect";
-import { lexicalOf } from "#pantry/import/fold.ts";
-import type { AttributeIndex, DocumentView } from "#pantry/import/fold.ts";
+import { Array as Arr, Option } from "effect";
+import type { DocumentView } from "#pantry/import/fold.ts";
 import { spelledBaseTypes } from "#pantry/grammar/attributes.ts";
 import type { BaseType } from "#pantry/grammar/install.ts";
 import { Cardinality, DeclarationKind } from "#pantry/grammar/install.ts";
 import { namedBy, valueAt } from "#pantry/import/names.ts";
-import type { Composed } from "#pantry/model/composed.ts";
-import type { NodeRow } from "#pantry/model/xdm.ts";
-import type { MasteryValue, NormalMaximum, NormalMinimum } from "#pantry/qti/declarations.ts";
-import { normalMinimumDefault } from "#pantry/vocab/terms/declarations.ts";
-
-/**
- * A document's O2 overlay rows, one keyed set per relation: each map from the text of its row's
- * key, its element's place ({@link keyTextOf}), to the row as its writer writes it.
- */
-export interface DeclarationRows {
-  readonly MasteryValue: ReadonlyMap<string, Addition<typeof MasteryValue>>;
-  readonly NormalMaximum: ReadonlyMap<string, Addition<typeof NormalMaximum>>;
-  readonly NormalMinimum: ReadonlyMap<string, Addition<typeof NormalMinimum>>;
-}
-
-/**
- * A row of one of the builder's relations, as its writer writes it.
- */
-type RowOf<Relation extends keyof DeclarationRows> =
-  DeclarationRows[Relation] extends ReadonlyMap<string, infer Row> ? Row : never;
-
-/**
- * One relation's rows of a document, each at its element's `start`, as the relation's keyed set
- * holds them, by the text of the row's key ({@link keyTextOf}): a type-level function of the rows,
- * so `Struct.map` gives each relation of {@link DeclarationRows} its own row type.
- */
-interface Keyed extends Struct.Lambda {
-  <Row>(rows: ReadonlyMap<bigint, Row>): ReadonlyMap<string, Row>;
-  readonly "~lambda.out": this["~lambda.in"] extends ReadonlyMap<bigint, infer Row>
-    ? ReadonlyMap<string, Row>
-    : never;
-}
+import type { Document } from "#pantry/qti/chardata.ts";
 
 /**
  * Where a document stands in its package, as its rows hold it: its package's name and its path
  * there, which every row holds beside its element's `start`.
  */
-export type Place = Pick<Addition<typeof MasteryValue>, "package" | "path">;
+export type Place = Pick<Addition<typeof Document>, "package" | "path">;
 
 /**
  * The text of a row's key in its relation's keyed set: its document's package and path and its
@@ -85,12 +47,6 @@ type CardinalityHandle = (typeof Cardinality.handles)[number];
  * The declaration kinds, each a `NodeKind` handle that is its own `DeclarationKind` handle.
  */
 const declarationKinds: ReadonlySet<string> = new Set(DeclarationKind.handles);
-
-/**
- * The declaration kind that writes a normal scale, `mastery-value`, `normal-minimum` and
- * `normal-maximum` (QTI 3.0 information model §4.5.7 to §4.5.9, OutcomeDeclaration).
- */
-const outcomeKind = "qti-outcome-declaration";
 
 /**
  * Read the code a `base-type` spells (C17): its lexical form, where that is one of
@@ -200,100 +156,3 @@ export const documentNamesOf = (view: DocumentView, place: Place): readonly Docu
         ).map((name) => ({ name, path: place.path }))
       : [],
   );
-
-/**
- * What every row builder reads of a document: its place in its package, its attributes, and the
- * rows built so far, each by its element's `start`.
- */
-interface Reading {
-  readonly attributes: AttributeIndex;
-  readonly place: Place;
-  readonly rows: { readonly [Relation in keyof DeclarationRows]: Map<bigint, RowOf<Relation>> };
-}
-
-/**
- * Write a node's place, the key of every row of it: its document's package and path and its own
- * `start`.
- *
- * @param reading - The document.
- * @param node - The node.
- * @returns The place.
- */
-const placeOf = (reading: Reading, node: NodeRow<Composed>) => ({
-  package: reading.place.package,
-  path: reading.place.path,
-  start: node.start,
-});
-
-/**
- * Read an outcome declaration's normal minimum, which every one has (spec reading 149): its
- * `normal-minimum` as written, and else the XSD's default (`normalMinimumDefault`).
- *
- * @param reading - The document.
- * @param node - The declaration's node.
- * @returns The minimum's lexical form and whether it is written.
- */
-const minimumOf = (
-  reading: Reading,
-  node: NodeRow<Composed>,
-): { readonly lexical: string; readonly written: boolean } =>
-  Option.match(lexicalOf(reading, node.start, "normal-minimum"), {
-    onNone: () => ({ lexical: normalMinimumDefault, written: false }),
-    onSome: (lexical) => ({ lexical, written: true }),
-  });
-
-/**
- * Add an outcome declaration's scale rows: each of its `mastery-value` and `normal-maximum` it
- * writes, and its normal minimum, written or the XSD's default ({@link minimumOf}, spec reading
- * 149). A value it does not have has no row; each pair of them `Mastery_range` orders is their
- * join.
- *
- * @param reading - The document.
- * @param node - The declaration's node.
- */
-const addScale = (reading: Reading, node: NodeRow<Composed>): void => {
-  const place = placeOf(reading, node);
-  for (const lexical of Option.toArray(lexicalOf(reading, node.start, "mastery-value"))) {
-    reading.rows.MasteryValue.set(node.start, { ...place, lexical });
-  }
-
-  reading.rows.NormalMinimum.set(node.start, { ...place, ...minimumOf(reading, node) });
-
-  for (const lexical of Option.toArray(lexicalOf(reading, node.start, "normal-maximum"))) {
-    reading.rows.NormalMaximum.set(node.start, { ...place, lexical });
-  }
-};
-
-/**
- * Build the O2 overlay rows of a document: per scale attribute of an outcome declaration it
- * writes, and its normal minimum, written or the XSD's default.
- *
- * @param view - The document's view: its rows, each node at its `start`, and their folds under its
- *   context (spec reading 117), its own or, for an included fragment, the interaction its includes
- *   stand in, which its nodes take as their nearest.
- * @param place - Where the document stands in its package, the key every row holds.
- * @returns Every overlay's rows.
- */
-export const rowsOf = (view: DocumentView, place: Place): DeclarationRows => {
-  const reading: Reading = {
-    attributes: view.attributes,
-    place,
-    rows: {
-      MasteryValue: new Map(),
-      NormalMaximum: new Map(),
-      NormalMinimum: new Map(),
-    },
-  };
-
-  for (const node of view.rows.nodes) {
-    if (node.kind === outcomeKind) {
-      addScale(reading, node);
-    }
-  }
-
-  return Struct.map(
-    Struct.lambda<Keyed>(
-      (rows) => new Map([...rows].map(([start, row]) => [keyTextOf(place, start), row] as const)),
-    ),
-  )(reading.rows);
-};

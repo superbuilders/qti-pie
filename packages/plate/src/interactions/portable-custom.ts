@@ -547,8 +547,4 @@ export const portableCustomModule: InteractionModule<
    * The regions, in document order: the Prompt, the markup, then each template's content.
    */
   regions: regionsOfPci,
-  /**
-   * No message: the response's JSON binding is judged by issue pci-05.
-   */
-  validate: () => [],
 };

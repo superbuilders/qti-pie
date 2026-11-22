@@ -15,9 +15,8 @@
  * writes a notice for any other `qti-*` element, the marks it records, and the declaration its
  * `response-identifier` names. Its `redact` gives the payload node the server shell renders the
  * interaction with, from the view's facts the payload hands it ({@link RedactKit}); its `regions`
- * give the content it holds, which every walk of the body enters it through; and its `validate`
- * judges a response the caller decoded. Its optional members (`absentValue`, `countsAttempt`,
- * `shown`) are set by the kinds whose rule differs from the general one.
+ * give the content it holds, which every walk of the body enters it through. Its optional members
+ * (`absentValue`, `shown`) are set by the kinds whose rule differs from the general one.
  *
  * An element no module declares, `qti-drawing-interaction` and `qti-upload-interaction` among them,
  * is the notice the body walk gives any `qti-*` element it does not read. The modules form no
@@ -61,16 +60,14 @@
  * by putting each region's redacted content back into the hollow node. Its type is the check that
  * it empties every field: a field it keeps holds the model's content, which does not compile as
  * the redacted body's, as `prompt` would not above. The members that only read the node
- * (`absentValue`, `countsAttempt`, `shown`, `validate`) take it at `ModelLevel`, and a
+ * (`absentValue`, `shown`) take it at `ModelLevel`, and a
  * node at `RedactedLevel` is one, since a redacted body's nodes are model nodes.
  *
  * @module
  */
 import { Data, Option } from "effect";
 
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceChild, SourceElement } from "#plate/document/source.ts";
-import type { Malformed } from "#plate/form/encoding.ts";
 import type {
   BodyAttribute,
   BodyNode,
@@ -85,18 +82,6 @@ import type { AttributeReaders } from "#plate/model/reader.ts";
 import type { ResponseValue, Single, Value } from "#plate/model/values.ts";
 import type { HostFacts } from "#plate/pci/host.ts";
 import type { BaseType, Cardinality } from "#plate/vocabulary.ts";
-
-/**
- * A message response validation gives one response, in the locale's text or the author's: what a
- * module's `validate` gives and `checkResponses` (`#plate/responses.ts`) collects.
- */
-export interface ValidationMessage {
-  /**
-   * The identifier of the response it concerns.
-   */
-  readonly response: string;
-  readonly text: string;
-}
 
 /**
  * The module kinds, each once: the one place that names them. The table of modules in
@@ -802,26 +787,6 @@ export interface InteractionModule<
    */
   readonly binding: ModuleBinding;
   /**
-   * Whether a submission through the item counts an attempt, read once per processed attempt with
-   * the responses the submission set. `countsAttempt` in `#plate/model/interactions.ts` folds every
-   * interaction's answer, and `runAttempt` (`#plate/engine/attempt.ts`) raises `numAttempts` by
-   * one only when every answer is true; otherwise the record keeps its count while the responses
-   * are still set and the rules still run. Absent means true, almost every kind's answer: every
-   * submission counts. End Attempt sets it:
-   * with `count-attempt` false, the attempt the candidate ends through its button is not counted.
-   *
-   * @param interaction The model node.
-   * @param posted The submission's responses, by identifier, as `runAttempt` is given them: the
-   *   module reads the value of the response its node binds from them, absent when the submission
-   *   did not set it.
-   * @returns Whether the attempt is counted.
-   * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_EndAttemptInteraction
-   */
-  readonly countsAttempt?: (
-    interaction: NodeAt<F>,
-    posted: Readonly<Record<string, Value>>,
-  ) => boolean;
-  /**
    * The interaction's QTI element name, which the body walk dispatches on.
    */
   readonly element: `qti-${string}-interaction`;
@@ -873,12 +838,4 @@ export interface InteractionModule<
    * is; Graphic Associate and Graphic Order keep a value to the hotspots they hold.
    */
   readonly shown?: (interaction: NodeAt<F>, value: ResponseValue) => ResponseValue;
-  /**
-   * Check a response the caller decoded, as `validateInlineChoice` does.
-   */
-  readonly validate: (
-    interaction: NodeAt<F>,
-    input: Value | Malformed,
-    configuration: Configuration,
-  ) => readonly ValidationMessage[];
 }

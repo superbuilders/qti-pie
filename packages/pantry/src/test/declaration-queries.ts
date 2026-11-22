@@ -30,14 +30,13 @@ import {
   contextVariable,
   declarationKinds,
   itemSessionVariables,
-  reservedBaseTypes,
   valueSetKinds,
 } from "#pantry/qti/declarations.ts";
 import { BaseTypePattern, unjudgedBaseTypes } from "#pantry/qti/expression-types.ts";
 import { builtInResponses, silentBases } from "#pantry/qti/expressions.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
-import { exactValuePattern, lookupEntryKinds, lookupTableKinds } from "#pantry/qti/mapping.ts";
+import { lookupEntryKinds, lookupTableKinds } from "#pantry/qti/mapping.ts";
 import { MasteryCeiling, MasteryFloor } from "#pantry/qti/overlay-queries/declaration.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { evaluatorFor, readingsOf, textOfField } from "#pantry/test/host-judge.ts";
@@ -194,11 +193,6 @@ const grandparentOf = (index: Index, row: HeldRow): string | undefined => {
 };
 
 /**
- * A text with no whitespace before or after it, as the host reads `exactValuePattern`.
- */
-const exactValue = new RegExp(exactValuePattern.source, "u");
-
-/**
  * Read the place of a lookup value's declaration: its table's node's parent, the table its own
  * node for a table's default and its node's parent for an entry's target.
  *
@@ -327,48 +321,6 @@ const declarationKindAt = (index: Index, place: string): string | undefined => {
 };
 
 /**
- * State "E1 derived" over a query: a normal minimum not written is the XSD's default, and a
- * reference's table claim names a table its declaration's node holds.
- *
- * @param index - The index.
- * @returns Whether it holds.
- */
-const derivedHolds = (index: Index): boolean =>
-  index
-    .all("NormalMinimum")
-    .every(
-      (minimum) => minimum["written"] === true || minimum["lexical"] === normalMinimumDefault,
-    ) &&
-  index.all("VariableRefTable").every((claim) => {
-    const claimed = JSON.stringify([
-      placeOf(claim),
-      textOfField("VariableRefTable", "attribute", claim["attribute"]),
-    ]);
-    const reference = index
-      .all("VariableRef")
-      .find(
-        (held) =>
-          JSON.stringify([
-            placeOf(held),
-            textOfField("VariableRef", "attribute", held["attribute"]),
-          ]) === claimed,
-      );
-    const declaration =
-      reference === undefined
-        ? undefined
-        : resolvedIn(
-            index,
-            documentKeyOf(claim["package"], claim["path"]),
-            textOfField("VariableRef", "identifier", reference["identifier"]),
-          );
-
-    return (
-      declaration === undefined ||
-      index.holdsChild([claim["package"], claim["path"], declaration, claim["table"]])
-    );
-  });
-
-/**
  * The built-in response variables, by `root variable`: none declares a mapping or an area mapping
  * (decision 431, spec reading 166).
  */
@@ -377,50 +329,19 @@ const builtInResponseNames: ReadonlySet<string> = new Set(
 );
 
 /**
- * State "Mapped response" over a query: a map response or map response point by `identifier`
- * names no built-in response, and a declared one claims its table (`VariableRefTable`) and names a
- * response declaration, a map response point's of base type point or one its typing leaves silent;
- * and a placed one's table is one its declaration's node holds.
+ * State "Mapped response" over a query, under each placement (spec reading 117): a map response or
+ * map response point by `identifier` names no built-in response, and a declared one names a
+ * response declaration of its assembly's root whose node holds its table, a map response point's
+ * of base type point or one its typing leaves silent.
  *
  * @param index - The index.
  * @returns Whether it holds.
  */
 const mappedHolds = (index: Index): boolean =>
-  index.all("VariableRef").every((reference) => {
-    // A reference's element's kind is its node's, as the view `VariableRefNode` reads it.
-    const referrer = textOfField("Node", "kind", index.kindAt(placeOf(reference)));
-    const declaration =
-      reference["resolution"] === "declared"
-        ? resolvedIn(
-            index,
-            documentKeyOf(reference["package"], reference["path"]),
-            textOfField("VariableRef", "identifier", reference["identifier"]),
-          )
-        : undefined;
-    const kind =
-      declaration === undefined
-        ? undefined
-        : declarationKindAt(
-            index,
-            placeKeyOf([reference["package"], reference["path"], declaration]),
-          );
-
-    return (
-      !mappedTables.has(referrer) ||
-      reference["attribute"] !== "identifier" ||
-      (reference["resolution"] === "builtIn"
-        ? !builtInResponseNames.has(
-            `${textOfField("VariableRef", "rootKind", reference["rootKind"])} ${textOfField("VariableRef", "identifier", reference["identifier"])}`,
-          )
-        : declaration === undefined) ||
-      (index.at("VariableRefTable").has(placeOf(reference)) &&
-        kind === "qti-response-declaration" &&
-        (referrer !== "qti-map-response-point" ||
-          ["point", ...silentBases].some((base) => base === reference["baseType"])))
-    );
-  }) &&
   index.all("PlacedVariableRef").every((placed) => {
-    const table = mappedTables.get(textOfField("Node", "kind", index.kindAt(placeOf(placed))));
+    // A reference's element's kind is its node's, as the view `PlacedVariableRefNode` reads it.
+    const referrer = textOfField("Node", "kind", index.kindAt(placeOf(placed)));
+    const table = mappedTables.get(referrer);
     const declaration =
       placed["resolution"] === "declared"
         ? resolvedIn(
@@ -429,12 +350,26 @@ const mappedHolds = (index: Index): boolean =>
             textOfField("PlacedVariableRef", "identifier", placed["identifier"]),
           )
         : undefined;
+    const kind =
+      declaration === undefined
+        ? undefined
+        : declarationKindAt(
+            index,
+            placeKeyOf([placed["package"], placed["assembly"], declaration]),
+          );
 
     return (
       table === undefined ||
       placed["attribute"] !== "identifier" ||
-      declaration === undefined ||
-      index.holdsChild([placed["package"], placed["assembly"], declaration, table])
+      (placed["resolution"] === "builtIn"
+        ? !builtInResponseNames.has(
+            `${textOfField("PlacedVariableRef", "rootKind", placed["rootKind"])} ${textOfField("PlacedVariableRef", "identifier", placed["identifier"])}`,
+          )
+        : declaration === undefined ||
+          (index.holdsChild([placed["package"], placed["assembly"], declaration, table]) &&
+            kind === "qti-response-declaration" &&
+            (referrer !== "qti-map-response-point" ||
+              ["point", ...silentBases].some((base) => base === placed["baseType"]))))
     );
   });
 
@@ -448,26 +383,25 @@ const bracedReferences: ReadonlySet<string> = new Set(
 );
 
 /**
- * State "Variable declared" over a query: an item's unresolved reference, its own or one placed in
- * its assembly, is braced by its element's kind and its attribute, a string value (reading R15-k);
- * the kind is its node's, as the views `VariableRefNode` and `PlacedVariableRefNode` read it.
+ * State "Variable declared" over a query: an item's unresolved reference under any placement, its
+ * own document's, a fragment's or a located template's, is braced by its element's kind and its
+ * attribute, a string value (reading R15-k); the kind is its node's, as the view
+ * `PlacedVariableRefNode` reads it.
  *
  * @param index - The index.
  * @returns Whether it holds.
  */
 const variableDeclaredHolds = (index: Index): boolean =>
-  (["VariableRef", "PlacedVariableRef"] as const).every((relation) =>
-    index
-      .all(relation)
-      .every(
-        (reference) =>
-          reference["rootKind"] !== itemKind ||
-          reference["resolution"] !== "unresolved" ||
-          bracedReferences.has(
-            `${textOfField("Node", "kind", index.kindAt(placeOf(reference)))} ${textOfField(relation, "attribute", reference["attribute"])}`,
-          ),
-      ),
-  );
+  index
+    .all("PlacedVariableRef")
+    .every(
+      (reference) =>
+        reference["rootKind"] !== itemKind ||
+        reference["resolution"] !== "unresolved" ||
+        bracedReferences.has(
+          `${textOfField("Node", "kind", index.kindAt(placeOf(reference)))} ${textOfField("PlacedVariableRef", "attribute", reference["attribute"])}`,
+        ),
+    );
 
 /**
  * The place of a value's or a field's declaration, where its node's parent is a value set of a
@@ -600,8 +534,8 @@ const lookupCardinalityHolds = (index: Index): boolean =>
 
 /**
  * State that an attribute's typed value is a lexical form of a base type, as
- * `Typed_attribute_value` reads it: it matches the base type's `BaseTypePattern`, written with no
- * whitespace around it unless the base type is `string`.
+ * `Typed_attribute_value` reads it: it matches the base type's `BaseTypePattern`, as written for
+ * `string` and collapsed for every other base type (reading 7).
  *
  * @param baseType - The base type.
  * @param written - The value as written, its field's text (`#pantry/test/host-judge.ts`
@@ -613,8 +547,7 @@ const typedAttribute = (baseType: string, written: string): boolean => {
 
   return (
     pattern !== undefined &&
-    new RegExp(pattern, "u").test(written) &&
-    (baseType === "string" || exactValue.test(written))
+    new RegExp(pattern, "u").test(baseType === "string" ? written : collapse(written))
   );
 };
 
@@ -658,9 +591,9 @@ const valueNodes = (index: Index): readonly HeldRow[] =>
   index.all("Node").filter((node) => node["kind"] === "qti-value");
 
 /**
- * State "Value cardinality" over a query: a single variable's value set holds one value, every
- * value of a record's set is a field, and every field stands in a record's set, where its set's
- * declaration has a cardinality.
+ * State "Value cardinality" over a query: a single variable's value set holds one value, and every
+ * value of a record's set is a field, with its `field-identifier` and its `base-type` both. A value
+ * of any other set may write either (information model §7.46.1, §7.46.2).
  *
  * @param index - The index.
  * @returns Whether it holds.
@@ -677,26 +610,24 @@ const cardinalityHolds = (index: Index): boolean =>
   valueNodes(index).every(
     (value) =>
       cardinalityAt(index, setDeclarationOf(index, value)) !== "record" ||
-      index.attributeAt(placeOf(value), "field-identifier") !== undefined,
-  ) &&
-  valueNodes(index)
-    .filter((value) => index.attributeAt(placeOf(value), "field-identifier") !== undefined)
-    .every((field) => {
-      const cardinality = cardinalityAt(index, setDeclarationOf(index, field));
-
-      return cardinality === undefined || cardinality === "record";
-    });
+      (index.attributeAt(placeOf(value), "field-identifier") !== undefined &&
+        index.attributeAt(placeOf(value), "base-type") !== undefined),
+  );
 
 /**
- * State "Record field key" over a query: a set's named fields, each whose `field-identifier` names
- * something once collapsed, are distinct by name.
+ * State "Record field key" over a query: a record's set's named fields, each whose
+ * `field-identifier` names something once collapsed, are distinct by name. A `field-identifier`
+ * on a value of any other set names no field (information model §7.46.1).
  *
  * @param index - The index.
  * @returns Whether it holds.
  */
 const fieldKeyHolds = (index: Index): boolean => {
   const names = valueNodes(index).flatMap((field) => {
-    const name = nameAt(index, placeOf(field), "field-identifier");
+    const name =
+      cardinalityAt(index, setDeclarationOf(index, field)) === "record"
+        ? nameAt(index, placeOf(field), "field-identifier")
+        : undefined;
 
     return name === undefined ? [] : [JSON.stringify([index.parentOf(field), name])];
   });
@@ -753,10 +684,8 @@ const typedValueHolds = (index: Index): boolean =>
   });
 
 /**
- * State "Reserved type" over a query: a typed outcome name has its specified base type where it has
- * one and is no record where it has a cardinality, and QTI_CONTEXT is a context declaration and,
- * where it has a cardinality, a record (reading 153), each name beside its declaration's kind,
- * cardinality and base type.
+ * State "Reserved type" over a query: QTI_CONTEXT is a context declaration and, where it has a
+ * cardinality, a record (reading 74), each name beside its declaration's kind and cardinality.
  *
  * @param index - The index.
  * @returns Whether it holds.
@@ -765,20 +694,13 @@ const reservedHolds = (index: Index): boolean =>
   declaredNamesOf(index).every(({ name, node }) => {
     const place = placeOf(node);
     const kind = declarationKindAt(index, place);
-    const baseType = baseTypeAt(index, place);
     const cardinality = cardinalityAt(index, place);
-    const typed = reservedBaseTypes.every(
-      (reserved) =>
-        kind !== reserved.kind ||
-        name !== reserved.identifier ||
-        ((baseType === undefined || baseType === reserved.baseType) && cardinality !== "record"),
-    );
-    const context =
+
+    return (
       name !== contextVariable.identifier ||
       (kind === contextVariable.kind &&
-        (cardinality === undefined || cardinality === contextVariable.cardinality));
-
-    return typed && context;
+        (cardinality === undefined || cardinality === contextVariable.cardinality))
+    );
   });
 
 /**
@@ -826,35 +748,77 @@ const notReservedHolds = (index: Index): boolean =>
   declaredNamesOf(index).every(({ name }) => !itemSessionVariables.includes(name));
 
 /**
+ * Grizzle's `doubleText` as the host reads it: a decimal mantissa with an optional exponent, or
+ * `INF`, `-INF` or `NaN`, XML Schema 1.1's `xs:double` lexical space without `+INF`.
+ */
+const doubleForm = /^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$/u;
+
+/**
+ * Read an attribute's lexical form as the scale views read it (`attributeDoubles` of
+ * `#pantry/qti/names.ts`): collapsed, then the double it names where it is in {@link doubleForm},
+ * as `Text.parseDouble` maps it (the nearest double, which `Number` computes), and none
+ * otherwise.
+ *
+ * @param lexical - The form as written, none where the attribute is unwritten.
+ * @returns The double, none where it names none.
+ */
+const doubleOf = (lexical: string | undefined): Option.Option<number> => {
+  const form = lexical === undefined ? undefined : collapse(lexical);
+  if (form === undefined || !doubleForm.test(form)) {
+    return Option.none();
+  }
+
+  if (form === "INF") {
+    return Option.some(Number.POSITIVE_INFINITY);
+  }
+
+  return Option.some(form === "-INF" ? Number.NEGATIVE_INFINITY : Number(form));
+};
+
+/**
  * State "Mastery range" over a query: each pair of an outcome's scale, its normal minimum's and its
  * mastery value's (`MasteryFloor`) and its mastery value's and its normal maximum's
- * (`MasteryCeiling`), each the join of its two stored ends at the declaration's place, holds
- * `Mastery_range`'s check as grizzle's evaluator judges it (`#pantry/test/row-evaluation.ts`
- * `brokenIn`).
+ * (`MasteryCeiling`), each the double its attribute names as the views read it, the minimum the
+ * XSD's default where the declaration writes none (spec reading 149), holds `Mastery_range`'s check
+ * as grizzle's evaluator judges it (`#pantry/test/row-evaluation.ts` `brokenIn`).
  *
  * @param index - The index.
  * @returns Whether it holds.
  */
 const masteryHolds = (index: Index): boolean => {
   const evaluate = evaluatorFor(Qti);
-  const { MasteryValue, NormalMaximum, NormalMinimum } = index.rows;
-  const masteries = new Map(
-    MasteryValue.map((mastery) => [placeOf(mastery), mastery.lexical] as const),
+  const scales = index.rows.Node.filter(({ kind }) => kind === "qti-outcome-declaration").map(
+    (node) => {
+      const place = placeKeyOf([node.package, node.path, node.start]);
+      const minimum = index.attributeAt(place, "normal-minimum");
+
+      return {
+        mastery: doubleOf(index.attributeAt(place, "mastery-value")),
+        maximum: doubleOf(index.attributeAt(place, "normal-maximum")),
+        minimum:
+          minimum === undefined ? Option.some(Number(normalMinimumDefault)) : doubleOf(minimum),
+        node,
+      };
+    },
   );
-  const floors = NormalMinimum.flatMap(({ lexical, package: pkg, path, start }) => {
-    const masteryValue = masteries.get(placeKeyOf([pkg, path, start]));
-
-    return masteryValue === undefined
-      ? []
-      : [{ masteryValue, normalMinimum: lexical, package: pkg, path, start }];
-  });
-  const ceilings = NormalMaximum.flatMap(({ lexical, package: pkg, path, start }) => {
-    const masteryValue = masteries.get(placeKeyOf([pkg, path, start]));
-
-    return masteryValue === undefined
-      ? []
-      : [{ masteryValue, normalMaximum: lexical, package: pkg, path, start }];
-  });
+  const floors = scales.flatMap(({ mastery, minimum, node }) =>
+    Option.toArray(Option.all([minimum, mastery])).map(([normalMinimum, masteryValue]) => ({
+      masteryValue,
+      normalMinimum,
+      package: node.package,
+      path: node.path,
+      start: node.start,
+    })),
+  );
+  const ceilings = scales.flatMap(({ mastery, maximum, node }) =>
+    Option.toArray(Option.all([mastery, maximum])).map(([masteryValue, normalMaximum]) => ({
+      masteryValue,
+      normalMaximum,
+      package: node.package,
+      path: node.path,
+      start: node.start,
+    })),
+  );
 
   return (
     floors.every(
@@ -885,9 +849,9 @@ const masteryHolds = (index: Index): boolean => {
 /**
  * Name the declaration and mapping overlays' rules over a query that the rows break, each as its
  * own law names it: "AreaMapping base type", "Declaration base type", "Declaration key",
- * "Declaration not reserved", "E1 derived", "Lookup table cardinality", "MappableBaseType",
- * "Mapped response", "Mastery range", "Record field key", "Reserved type", "Typed attribute value",
- * "Typed value" and "Value cardinality".
+ * "Declaration not reserved", "Lookup table cardinality", "MappableBaseType", "Mapped response",
+ * "Mastery range", "Record field key", "Reserved type", "Typed attribute value", "Typed value" and
+ * "Value cardinality".
  *
  * @param rows - The rows the import's write stores (`#pantry/test/host-judge.ts`).
  * @returns The laws' names, each once.
@@ -899,7 +863,6 @@ export const declarationQueryLawsOf = (rows: PreviewRows<typeof Qti>): readonly 
     ["Declaration base type", declaredTypeHolds],
     ["Declaration key", declarationKeyHolds],
     ["Declaration not reserved", notReservedHolds],
-    ["E1 derived", derivedHolds],
     ["Lookup table cardinality", lookupCardinalityHolds],
     ["MappableBaseType", mappableHolds],
     ["Mapped response", mappedHolds],

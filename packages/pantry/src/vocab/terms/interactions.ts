@@ -9,15 +9,19 @@ import { Option } from "effect";
 import type { Kind, Name } from "#pantry/grammar/compose.ts";
 import { ChoiceBound, ContentReference, interactionKinds } from "#pantry/grammar/install.ts";
 import { attributeDeclarations } from "#pantry/vocab/inventory/attributes.ts";
-import { itemKind } from "#pantry/vocab/terms/tests.ts";
+import { itemKind, testKind } from "#pantry/vocab/terms/tests.ts";
 
 /**
  * The root kinds of the documents whose content references resolve in their own declarations: an
- * item's (`itemKind` of `#pantry/vocab/terms/tests.ts`), whose bindings and references the
- * item-only laws read. Every other document's resolve once per assembly that places it: an
- * included fragment's in each item's that includes it (spec reading 117).
+ * item's and a test's (`itemKind` and `testKind` of `#pantry/vocab/terms/tests.ts`). A test's
+ * feedback names "an outcome variable" (information model §5.157.2) and a printed variable in its
+ * rubric "The outcome variable or template variable [that] must have been defined" (§7.30.6), each
+ * one the test declares (spec reading 1's former under-refusal, closed 2026-11-20). Every other
+ * document's resolve once per assembly that places it: an included fragment's in each item's or
+ * test's that includes it, and a section document's in each test's that references it (spec
+ * readings 117 and 145).
  */
-export const referringRoots = [itemKind] as const satisfies readonly Kind[];
+export const referringRoots = [itemKind, testKind] as const satisfies readonly Kind[];
 
 /**
  * The choices: the kinds whose `identifier` names a value of their interaction's response, each a
@@ -43,6 +47,37 @@ export const choiceKinds = [
  * The hottext's kind.
  */
 export const hottextKind = "qti-hottext" satisfies Kind;
+
+/**
+ * The choice classes whose identifier "must not be used by any other choice or item variable"
+ * (information model §5.132.1 SimpleChoice, §5.73.1 InlineChoice, §5.67.1 HotspotChoice and
+ * §5.131.1 SimpleAssociableChoice): the four whose sentence names the noun "choice", and so bars
+ * every element the information model calls a choice (spec reading 104).
+ *
+ * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier | QTI 3.0 information model, §5.132.1}
+ */
+export const choiceNounKinds = [
+  "qti-simple-choice",
+  "qti-inline-choice",
+  "qti-hotspot-choice",
+  "qti-simple-associable-choice",
+] as const satisfies readonly Kind[];
+
+/**
+ * The other elements the information model calls choices, each of whose own sentence bars only its
+ * own noun: a gap text and a gap image, "gap choices" (§6.17 GapChoice; §5.57, "an associated set
+ * of choices"), whose sentences say "any other text" (§5.58.1) and "any other image" (§5.56.1); an
+ * associable hotspot, one of "a corresponding set of choices that are defined as areas of the
+ * graphic image" (§5.59), "any other hotspot" (§5.7.1); and a hottext, a "hottext choice"
+ * (§5.65.1), held by `Hottext` beside them. A {@link choiceNounKinds} element bars each, and none
+ * bars another's class. A gap, "any other gap" (§5.55.1), is no choice: a gap match interaction's
+ * gaps are filled "from an associated set of choices" (§5.57) (spec reading 104).
+ */
+export const otherChoiceKinds = [
+  "qti-associable-hotspot",
+  "qti-gap-text",
+  "qti-gap-img",
+] as const satisfies readonly Kind[];
 
 /**
  * The kinds that carry a `shape` the default-hotspot laws read (reading 80).

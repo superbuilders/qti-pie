@@ -9,8 +9,9 @@
  * attribute's class cannot live there, since that module is the grammar's compiler, which the
  * installed grammar imports.
  */
+import { isNcName } from "@bjornpagen/grizzle-text/regex/xml";
 import { Option } from "effect";
-import { isNcName, normalizedIn, patternFlags } from "#pantry/grammar/domains.ts";
+import { normalizedIn, patternFlags } from "#pantry/grammar/domains.ts";
 import type { WhiteSpaceClass } from "#pantry/grammar/domains.ts";
 import { attributeRows, grammar } from "#pantry/grammar/install.ts";
 import { governorOf, lexicalOf } from "#pantry/import/fold.ts";

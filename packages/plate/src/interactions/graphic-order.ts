@@ -32,14 +32,11 @@
  * `aria-label`, and one with neither is marked on the item's verdict ({@link areaLabel}), as
  * Hotspot marks its own (WCAG 2.2, 1.1.1).
  *
- * The validation messages are English and live here ({@link words}; D7).
- *
  * @module
  * @see https://html.spec.whatwg.org/multipage/image-maps.html#image-map-processing-model
  */
 import { Array as Arr, Option } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { areaLabel, coordinatesOf } from "#plate/interactions/area.ts";
 import type { AreaCoordinate } from "#plate/interactions/area.ts";
 import { contentRegion, markTemplate, promptRegion } from "#plate/interactions/contract.ts";
@@ -50,12 +47,9 @@ import type {
   OwnRegion,
   ReaderKit,
   RedactKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
 import { authoredSizeOf, imageElementOf } from "#plate/interactions/image-size.ts";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
-import { counted, message, numeral } from "#plate/messages.ts";
-import type { Locale } from "#plate/messages.ts";
 import type {
   BodyNode,
   Level,
@@ -65,7 +59,7 @@ import type {
   ReferencingChoice,
 } from "#plate/model/item.ts";
 import { format, isRecordValue } from "#plate/model/values.ts";
-import type { ResponseValue, Value } from "#plate/model/values.ts";
+import type { ResponseValue } from "#plate/model/values.ts";
 import { areaGeometries } from "#plate/vocabulary.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";
 
@@ -173,33 +167,6 @@ interface GraphicOrderPayload {
   readonly response: string;
   readonly size: AuthoredSize;
 }
-
-/**
- * Give a hotspot's name: its label ({@link areaLabel}) when that holds anything but whitespace,
- * else its position, "Area 2 of 4".
- *
- * @param hotspots The interaction's hotspots, in document order.
- * @param index The hotspot's index among them.
- * @param locale The locale of the name.
- * @returns The name a message gives the hotspot.
- */
-const nameOf = (
-  hotspots: readonly GraphicOrderHotspot[],
-  index: number,
-  locale: Locale,
-): string => {
-  const label = Option.filter(
-    Option.flatMap(Option.fromUndefinedOr(hotspots[index]), (hotspot) => hotspot.label),
-    (written) => /[^\t\n\r ]/u.test(written),
-  );
-
-  return Option.getOrElse(label, () =>
-    message(locale, "graphicAreaOf", {
-      count: numeral(locale, hotspots.length),
-      n: numeral(locale, index + 1),
-    }),
-  );
-};
 
 /**
  * The least and the most hotspots an interaction orders.
@@ -315,75 +282,6 @@ const hotspotOf = (read: ReaderKit, choice: SourceElement): GraphicOrderHotspot 
     identifier,
     label,
   };
-};
-
-/**
- * Check a Graphic Order's response, which the caller decoded, in two tiers.
- *
- * - A {@link Malformed} input: the identifiers did not decode, so a hotspot the image does not show.
- * - Tier (a), always: every identifier names a hotspot (the same message), no hotspot repeats (the
- *   message names it by its label or position), and the effective `max-choices` caps the count.
- * - Tier (b), only under `validateResponses`: the effective `min-choices`, which is every hotspot
- *   when the author wrote no `min-choices`.
- *
- * @param interaction The Graphic Order.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validateGraphicOrder = (
-  interaction: GraphicOrderInteraction,
-  input: Value | Malformed,
-  configuration: { readonly locale: Locale; readonly validateResponses: boolean },
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const problem = (written: string): ValidationMessage => ({
-    response: interaction.response,
-    text: written,
-  });
-
-  if (input instanceof Malformed) {
-    return [problem(message(locale, "graphicOrderUnknown"))];
-  }
-
-  const { max, min } = boundsOf(interaction);
-  const chosen = input.values.map(format);
-  const names = new Map(
-    interaction.hotspots.map((hotspot, index) => [
-      hotspot.identifier,
-      nameOf(interaction.hotspots, index, locale),
-    ]),
-  );
-  const stray = chosen.some((identifier) => !names.has(identifier));
-  const repeated = [
-    ...new Set(chosen.filter((identifier, index) => chosen.indexOf(identifier) !== index)),
-  ];
-  const count = BigInt(chosen.length);
-
-  return [
-    ...(stray ? [problem(message(locale, "graphicOrderUnknown"))] : []),
-    ...repeated.flatMap((identifier) =>
-      Option.toArray(
-        Option.map(Option.fromUndefinedOr(names.get(identifier)), (name) =>
-          problem(message(locale, "graphicOrderTwice", { name })),
-        ),
-      ),
-    ),
-    ...(count > max
-      ? [
-          problem(
-            counted(locale, max, { many: "graphicOrderAtMost", one: "graphicOrderAtMostOne" }),
-          ),
-        ]
-      : []),
-    ...(configuration.validateResponses && count < min
-      ? [
-          problem(
-            counted(locale, min, { many: "graphicOrderAtLeast", one: "graphicOrderAtLeastOne" }),
-          ),
-        ]
-      : []),
-  ];
 };
 
 /**
@@ -516,8 +414,4 @@ export const graphicOrderModule: InteractionModule<
    * The value the interaction shows for a stored or correct value ({@link shownValue}).
    */
   shown: shownValue,
-  /**
-   * Check a Graphic Order's response: {@link validateGraphicOrder}.
-   */
-  validate: validateGraphicOrder,
 };

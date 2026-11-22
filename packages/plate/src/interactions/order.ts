@@ -1,6 +1,6 @@
 /**
- * Order, the `qti-order-interaction`: its model node, parse, redaction and response
- * validation, on the module shape the interaction-module contract states.
+ * Order, the `qti-order-interaction`: its model node, parse and redaction, on the module shape the
+ * interaction-module contract states.
  *
  * Two readings of `docs/spec-readings.md` bind this module.
  *
@@ -23,9 +23,7 @@
  * @module
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { choiceRegions, markTemplate, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
@@ -35,10 +33,8 @@ import type {
   OwnRegion,
   Parsed,
   RedactKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
 import { presented } from "#plate/interactions/choice.ts";
-import { counted, message } from "#plate/messages.ts";
 import type {
   BodyNode,
   Level,
@@ -49,7 +45,6 @@ import type {
   SimpleChoice,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
-import type { Value } from "#plate/model/values.ts";
 
 /**
  * Order's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -340,80 +335,9 @@ const redactOrder = (
 };
 
 /**
- * Check an Order's response, which the caller decoded, in two tiers.
- *
- * The caller decodes the posted entries with `decode`, under the entry name its form gave the
- * hidden inputs and the Order's binding (identifiers of `ordered` cardinality), and passes the
- * value, or the {@link Malformed} `decode` gave.
- *
- * - A {@link Malformed} input: `unknownChoice`.
- * - Tier (a), always: an identifier that names no choice gives `unknownChoice`, a choice more than
- *   once gives one message naming it, and more distinct choices than the effective maximum give the
- *   too-many message (reading 18: the number of choices without `min-choices`, else
- *   `max-choices`).
- * - Tier (b), only under `validateResponses`: fewer distinct choices than the effective minimum,
- *   which is every choice without `min-choices`, give the too-few message.
- *
- * The author's `data-max-selections-message` and `data-min-selections-message` replace the
- * renderer's text for the too-many and the too-few message.
- *
- * @param interaction The Order.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validateOrder = (
-  interaction: OrderInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const say = (text: string): ValidationMessage => ({ response: interaction.response, text });
-
-  if (input instanceof Malformed) {
-    return [say(message(locale, "unknownChoice"))];
-  }
-
-  const known = new Set(interaction.choices.map((choice) => choice.identifier));
-  const chosen = input.values.map(format);
-  const repeated = [
-    ...new Set(chosen.filter((identifier, index) => chosen.indexOf(identifier) < index)),
-  ];
-  const ordered = BigInt(new Set(chosen.filter((identifier) => known.has(identifier))).size);
-  const { least, most } = boundsOf(interaction);
-
-  return [
-    ...(chosen.some((identifier) => !known.has(identifier))
-      ? [say(message(locale, "unknownChoice"))]
-      : []),
-    ...repeated.map((identifier) => say(message(locale, "orderRepeated", { choice: identifier }))),
-    ...(ordered > most
-      ? [
-          say(
-            Option.getOrElse(interaction.messages.max, () =>
-              counted(locale, most, { many: "orderAtMost", one: "orderAtMostOne" }),
-            ),
-          ),
-        ]
-      : []),
-    ...(configuration.validateResponses && ordered < least
-      ? [
-          say(
-            Option.getOrElse(interaction.messages.min, () =>
-              Option.isNone(interaction.minChoices)
-                ? counted(locale, least, { many: "orderAll", one: "orderAllOne" })
-                : counted(locale, least, { many: "orderAtLeast", one: "orderAtLeastOne" }),
-            ),
-          ),
-        ]
-      : []),
-  ];
-};
-
-/**
  * The Order module (kind `order`): it reads a `qti-order-interaction` bound to an `identifier`
- * response of `ordered` cardinality, renders it, restores and solves it, binds and validates its
- * response, and gives the notice for any other binding (reading 172).
+ * response of `ordered` cardinality, renders it, restores and solves it, binds its response, and
+ * gives the notice for any other binding (reading 172).
  */
 export const orderModule: InteractionModule<"order", OrderByLevel, OrderPayload> = {
   binding,
@@ -441,8 +365,4 @@ export const orderModule: InteractionModule<"order", OrderByLevel, OrderPayload>
    * The regions of Order's own content: its Prompt and each choice's content.
    */
   regions: regionsOfOrder,
-  /**
-   * Order's response validation ({@link validateOrder}).
-   */
-  validate: (interaction, input, configuration) => validateOrder(interaction, input, configuration),
 };

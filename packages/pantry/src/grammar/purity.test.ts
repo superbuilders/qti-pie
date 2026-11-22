@@ -16,15 +16,49 @@ const sourceRoot = path.resolve(import.meta.dirname, "..");
 const pureLayers = "{vocab,grammar,model}/**/*.ts";
 
 /**
+ * Grizzle's packages that build statements or talk to the database, by package name: the builders
+ * (`@bjornpagen/grizzle`, every subpath of it included), the engine that compiles them, and the
+ * PostgreSQL driver. grizzle-text is none of them: a text library that builds no statement and
+ * opens no connection, the one implementation of XML's text rules crust re-exports, which a pure
+ * layer may load.
+ */
+const grizzlePackages: ReadonlySet<string> = new Set([
+  "@bjornpagen/grizzle",
+  "@bjornpagen/grizzle-engine",
+  "@bjornpagen/grizzle-pg",
+]);
+
+/**
+ * Name the package a module specifier names: its scope and name for a scoped package, its first
+ * segment for any other, the specifier itself for a relative or a subpath import (`#pantry/…`).
+ *
+ * @param specifier - The module specifier.
+ * @returns The package's name.
+ */
+const packageOf = (specifier: string): string =>
+  specifier
+    .split("/")
+    .slice(0, specifier.startsWith("@") ? 2 : 1)
+    .join("/");
+
+/**
+ * Decide whether a module specifier names one of {@link grizzlePackages}.
+ *
+ * @param specifier - The module specifier.
+ * @returns Whether it does.
+ */
+const reachesGrizzle = (specifier: string): boolean => grizzlePackages.has(packageOf(specifier));
+
+/**
  * The pure-layer module that builds with grizzle: it declares the generators' closed relations to
  * it.
  */
 const install = "grammar/install.ts";
 
 /**
- * Every other pure-layer import of grizzle, each `module: statement`: `domains.ts` writes a
- * repetition's bound within the limit grizzle publishes, `regexMaxRepeat`, which it reads rather
- * than restates, and nothing else.
+ * Every other pure-layer import of {@link grizzlePackages}, each `module: statement`: `domains.ts`
+ * writes a repetition's bound within the limit grizzle publishes, `regexMaxRepeat`, which it reads
+ * rather than restates, and nothing else.
  */
 const publishedLimits: readonly string[] = [
   'grammar/domains.ts: import { regexMaxRepeat } from "@bjornpagen/grizzle"',
@@ -122,11 +156,11 @@ const oracleModules = (read: (file: string) => string): readonly string[] => {
 
 /**
  * The prefixes of the modules that state the schema's laws or the importer's and exporter's
- * judgments, and grizzle, which builds statements: the law oracle reads none of their values, so
- * it never decides a breach by a selection or a check the schema states. `vocab/` holds judgments
- * as well as data (the importer's `data-ssml` check among them), so its prefix is forbidden and its
- * data modules are listed one by one ({@link oracleDataModules}), beside the stated bounds of
- * `#pantry/qti/limits.ts`.
+ * judgments, which, with {@link grizzlePackages}, the packages that build statements, the law
+ * oracle reads none of the values of, so it never decides a breach by a selection or a check the
+ * schema states. `vocab/` holds judgments as well as data (the importer's `data-ssml` check among
+ * them), so its prefix is forbidden and its data modules are listed one by one
+ * ({@link oracleDataModules}), beside the stated bounds of `#pantry/qti/limits.ts`.
  */
 const oracleForbidden = [
   "#pantry/qti/",
@@ -134,7 +168,6 @@ const oracleForbidden = [
   "#pantry/export/",
   "#pantry/db/",
   "#pantry/vocab/",
-  "@bjornpagen/grizzle",
 ];
 
 /**
@@ -190,7 +223,8 @@ const readSourceModule = (file: string): string =>
 
 /**
  * Find the law oracle's reads of a statement module: each value import of one of its modules that
- * names an {@link oracleForbidden} prefix and is no {@link oracleDataModules} module.
+ * names an {@link oracleForbidden} prefix or one of {@link grizzlePackages}, and is no
+ * {@link oracleDataModules} module.
  *
  * @param read - Reads a module's text by its path relative to `src`.
  * @returns Each read as `module: specifier`, sorted.
@@ -202,7 +236,8 @@ const statementReads = (read: (file: string) => string): readonly string[] =>
         valueSpecifiers(read(file))
           .filter(
             (specifier) =>
-              oracleForbidden.some((prefix) => specifier.startsWith(prefix)) &&
+              (oracleForbidden.some((prefix) => specifier.startsWith(prefix)) ||
+                reachesGrizzle(specifier)) &&
               !oracleDataModules.has(specifier),
           )
           .map((specifier) => `${file}: ${specifier}`),
@@ -220,17 +255,63 @@ const statementReads = (read: (file: string) => string): readonly string[] =>
 const mayReachOracle = (file: string): boolean =>
   file.endsWith(".test.ts") ? /\.oracle(?:\.db)?\.test\.ts$/u.test(file) : file.startsWith("test/");
 
+/**
+ * Find the pure layers' imports of {@link grizzlePackages} outside {@link install}.
+ *
+ * @param files - The pure-layer modules, relative to `src`.
+ * @param read - Reads a module's text by its path relative to `src`.
+ * @returns Each import as `module: statement`, in the modules' order.
+ */
+const grizzleImports = (
+  files: readonly string[],
+  read: (file: string) => string,
+): readonly string[] =>
+  files
+    .filter((file) => file !== install)
+    .flatMap((file) =>
+      moduleImports(read(file))
+        .filter(({ specifier }) => reachesGrizzle(specifier))
+        .map(({ text }) => `${file}: ${text}`),
+    );
+
 describe("the pure layers", () => {
   it("import grizzle only in install.ts, and its published regexMaxRepeat in domains.ts", () => {
-    const imports = modules(pureLayers)
-      .filter((file) => file !== install)
-      .flatMap((file) =>
-        moduleImports(readFileSync(path.join(sourceRoot, file), "utf-8"))
-          .filter(({ specifier }) => specifier.startsWith("@bjornpagen/grizzle"))
-          .map(({ text }) => `${file}: ${text}`),
-      );
+    assert.deepStrictEqual(
+      grizzleImports(modules(pureLayers), (file) =>
+        readFileSync(path.join(sourceRoot, file), "utf-8"),
+      ),
+      publishedLimits,
+    );
+  });
 
-    assert.deepStrictEqual(imports, publishedLimits);
+  it("find a pure layer's import of grizzle's builders, engine or driver by package, and none of grizzle-text", () => {
+    // Oracle: the rule above on planted modules. Live: the builders, a subpath of them, the engine
+    // and the driver, each refused. Stale: grizzle-text, at its root and at a subpath, and
+    // `install.ts`, which declares the generators' relations with grizzle.
+    const planted = new Map([
+      ["grammar/builder.ts", 'import { select } from "@bjornpagen/grizzle";'],
+      ["grammar/install.ts", 'import { relation } from "@bjornpagen/grizzle";'],
+      ["model/runtime.ts", 'import { run } from "@bjornpagen/grizzle/runtime";'],
+      ["model/text.ts", 'import { collapsed } from "@bjornpagen/grizzle-text/text";'],
+      [
+        "vocab/engine.ts",
+        [
+          'import { lower } from "@bjornpagen/grizzle-engine";',
+          'import { connect } from "@bjornpagen/grizzle-pg";',
+          'import { isNcName } from "@bjornpagen/grizzle-text";',
+        ].join("\n"),
+      ],
+    ]);
+
+    assert.deepStrictEqual(
+      grizzleImports([...planted.keys()], (file) => planted.get(file) ?? ""),
+      [
+        'grammar/builder.ts: import { select } from "@bjornpagen/grizzle"',
+        'model/runtime.ts: import { run } from "@bjornpagen/grizzle/runtime"',
+        'vocab/engine.ts: import { lower } from "@bjornpagen/grizzle-engine"',
+        'vocab/engine.ts: import { connect } from "@bjornpagen/grizzle-pg"',
+      ],
+    );
   });
 
   it("import no schema, importer or exporter module", () => {
@@ -276,7 +357,7 @@ describe("the test helpers", () => {
     // Oracle: the rule above on a planted module graph. Live: the oracle's own module, a law module
     // it reaches and the host predicates it reaches, each reading a schema statement, one of them by
     // a dynamic import. Stale: a type-only import of a schema module and of grizzle, a read of the
-    // data module, and of the law catalog. Wild: a module the oracle does not reach, which reads a
+    // data module, of the law catalog, and of grizzle-text, which builds no statement. Wild: a module the oracle does not reach, which reads a
     // statement and is no part of it.
     const planted = new Map([
       ["test/elsewhere.ts", 'import { Qti } from "#pantry/qti/schema.ts";'],
@@ -304,6 +385,7 @@ describe("the test helpers", () => {
           'import { selectedBy } from "#pantry/test/predicates.ts";',
           'import { Node } from "#pantry/qti/node.ts";',
           'import { select } from "@bjornpagen/grizzle";',
+          'import { collapsed } from "@bjornpagen/grizzle-text/text";',
         ].join("\n"),
       ],
     ]);

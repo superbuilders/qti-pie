@@ -74,7 +74,8 @@ import type { OutcomeView } from "#plate/vocabulary.ts";
 
 /**
  * What `<Item>` takes: the opened item, the configuration, the instance the host names, the mode,
- * the engine's results the page shows, and what the host knows of where the item's scripts run.
+ * the QTI database's results the page shows, and what the host knows of where the item's scripts
+ * run.
  */
 export interface ItemProps {
   /**
@@ -114,11 +115,11 @@ export interface ItemProps {
    */
   readonly record?: RedactRecord;
   /**
-   * How the attempt a review shows did, read in `review` alone: the credit its feedback carries,
-   * plate's `credit` of the record where the host shows the review's feedback, and the correct
-   * responses it marks the candidate's answers against, `solution`'s, with what it reveals of them:
-   * the solution where the host may show it (`show-solution`), else the candidate's own answers
-   * alone. None marks nothing and carries no credit.
+   * How the attempt a review shows did, read in `review` alone: the credit its feedback carries
+   * where the host shows the review's feedback, and the marks it draws, the database's
+   * `AttemptMark` rows of the attempt, revealing the solution where the host may show it
+   * (`show-solution`), else marking the candidate's own answers alone. None marks nothing and
+   * carries no credit.
    */
   readonly graded?: Graded;
   /**
@@ -170,8 +171,8 @@ const viewOf = (props: ItemProps): View => ({
 
 /**
  * Give what a render shows of each response: in `solution` the correct responses; in `review`, and
- * in `answering`, whose islands read none of it, the candidate's answers against the correct
- * responses the host graded them by, revealing what it says, none where it handed none.
+ * in `answering`, whose islands read none of it, the candidate's answers with the marks the host
+ * handed, none where it handed none.
  *
  * @param props The props: the mode and what the host graded.
  * @returns What the render shows.
@@ -179,11 +180,7 @@ const viewOf = (props: ItemProps): View => ({
 const showsOf = (props: Pick<ItemProps, "graded" | "mode">): Shows =>
   props.mode === "solution"
     ? { kind: "solution" }
-    : {
-        against: mapOf(props.graded?.marks?.against),
-        kind: "answers",
-        reveals: props.graded?.marks?.reveals ?? "own",
-      };
+    : { kind: "answers", marks: Option.fromUndefinedOr(props.graded?.marks) };
 
 /**
  * Check everything `<Item>` refuses, before it renders any of the item.
@@ -306,7 +303,7 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  * @example
  *   <Item item={accepted} configuration={configuration} instance="sitting-42.1" mode="answering" />
  *
- * @param props The item, the configuration, the instance, the mode and the engine's results.
+ * @param props The item, the configuration, the instance, the mode and the database's results.
  * @returns The item's root.
  * @throws {InvalidInstance} When the instance breaks a requirement of `checkInstance`.
  * @throws {OutputTooLarge} When a printed variable on content the page shows printed nothing,

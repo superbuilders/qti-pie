@@ -12,7 +12,7 @@ import { constraintNamesOf, lawsByStatement, lawsOf, sameLaw } from "@bjornpagen
 import type { AnySchema, Law, RegexText, Statement } from "@bjornpagen/grizzle";
 import { Array as Arr, Function as Fn, Match, Option, pipe, Schema } from "effect";
 import { attributeLawsByName, EntityName, OpenLocal } from "#pantry/qti/attributes.ts";
-import { Affix, expressionLawsByName, referenceRelations } from "#pantry/qti/expressions.ts";
+import { Affix, expressionLawsByName, placedRelations } from "#pantry/qti/expressions.ts";
 import {
   chardataLawsByName,
   CommentText,
@@ -27,12 +27,11 @@ import {
   PiTarget,
   XmlVersion,
 } from "#pantry/qti/chardata.ts";
-import { EntryPath, keyText, PackageName, namespaceText } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { interactionLawsByName, interactionRelations } from "#pantry/qti/interactions.ts";
-import { attributeValueText, mappingLawsByName } from "#pantry/qti/mapping.ts";
+import { mappingLawsByName } from "#pantry/qti/mapping.ts";
 import { metadataLawsByName, metadataRelations } from "#pantry/qti/metadata.ts";
 import { Chars, EndCharacter, nodeLawsByName, Prefix } from "#pantry/qti/node.ts";
-import { declarationLawsByName } from "#pantry/qti/declarations.ts";
 import { catalogLawsByName, catalogRelations } from "#pantry/qti/catalog.ts";
 import { dataSsmlLawsByName, dataSsmlRelations } from "#pantry/qti/data-ssml.ts";
 import { htmlLawsByName, htmlRelations } from "#pantry/qti/html.ts";
@@ -130,8 +129,7 @@ export const namedBy = (
  *
  * - An IDREF token's piece, a header's, a tolerance value's and a `srcset` image candidate's is its
  *   own whitespace or separator and its token concatenated, its concat fold's step: written texts,
- *   none NULL, so the term is never NULL. A piece or a token past its keyText bound is refused by
- *   its own pattern law, named by keyText's row of {@link textLaws}, "Key text bound".
+ *   none NULL, so the term is never NULL, and of any length.
  * - An operand's type bits read `ValueBaseBit.row` and `ValueCardinalityBit.row`, closed reads of a
  *   set keyed by the row's own NOT NULL `baseType` and `cardinality`: ∅ where the diagonal holds no
  *   row (`any`, `unknown`), never NULL, which only a NULL key, an absent `C.at`, reads
@@ -157,8 +155,8 @@ export const generatedNames: readonly (readonly [string, LawName])[] = [
     "HeaderToken.piece",
     "ToleranceToken.piece",
     "SrcsetCandidate.piece",
-    "Expression.baseTypeBit",
-    "Expression.cardinalityBit",
+    "PlacedExpression.baseTypeBit",
+    "PlacedExpression.cardinalityBit",
   ),
   ...namedBy(
     "E1 derived",
@@ -209,20 +207,27 @@ const namedWhole = (
 /**
  * The law each primary key of `tests.ts`'s relations is named by: an overlay's "Test overlay", and
  * the assembly's instances' (Q5.13) the law their key states. The record is total over the names of
- * `testRelations`, so a relation `tests.ts` gains is named here or fails to compile.
+ * `testRelations`' stored relations, so a relation `tests.ts` gains is named here or fails to
+ * compile; a roster beside them (`UnplacedCause`) has no primary key.
  */
 const testKeyNames = {
+  AssembledDocument: "Test overlay",
   Inclusion: "Test overlay",
   Instance: "Inclusion cycle",
   ItemRefDocument: "Test overlay",
   ItemRefHref: "Item ref target",
+  LinkReading: "E1 derived",
   Named: "Test overlay",
+  NumberedReading: "E1 derived",
   Site: "Test overlay",
   SitePath: "Test overlay",
   SiteTarget: "Test overlay",
   StimulusRef: "Test overlay",
-  TestDocument: "Test overlay",
-} as const satisfies { readonly [Name in (typeof testRelations)[number]["name"]]: LawName };
+} as const satisfies {
+  readonly [
+    Name in Extract<(typeof testRelations)[number], { readonly kind: "relation" }>["name"]
+  ]: LawName;
+};
 
 /**
  * The law each primary key of Qti's stored relations is named by, by the relation's name: grizzle's
@@ -271,14 +276,13 @@ export const keyNames: readonly (readonly [string, LawName])[] = [
   ...namedBy("DocumentId key", "DocumentId"),
   ...namedBy("E1 derived", "CatalogScope", "ShareFragment", "SsmlScope"),
   ...namedBy("Label tools", "LabelUse"),
-  ...namedBy("Declaration overlay", "MasteryValue", "NormalMinimum", "NormalMaximum"),
   ...Object.entries(testKeyNames),
   ...namedBy("Mapping overlay", "MapKey", "LookupValue"),
   ...namedBy("E1 derived", "Expression", "Literal", "LiteralTyped", "Processing", "VariableRef"),
   ...namedWhole(
     "E1 derived",
     interactionRelations,
-    referenceRelations,
+    placedRelations,
     metadataRelations,
     htmlRelations,
     operatorRelations,
@@ -360,18 +364,20 @@ export const patternNameIn = (
  * field's pattern law is named by its type's row ({@link patternNameIn}), in the classes of the
  * orchestrator's ruling of 2026-11-06:
  *
- * - A bound on a text is "Key text bound", a stated limit. `keyText`, `namespaceText` and
- *   `attributeValueText`, a map key's and a lookup value's, the most a query's match reads, hold
- *   any text; the bounded names and paths also carry a production no package the reader accepts
- *   breaks, so their refusal means the bound alone. A prefix and a local name are NCNames because
- *   crust reads with saxes's `xmlns` on, which refuses a name that is no QName (Namespaces in XML
- *   1.0, §4); a foreign namespace name is `Char`s because crust reads no other; an entry path
- *   begins with no `/` because the directory reader lists paths relative to the package root and
- *   `zip.ts` refuses an absolute name; and a `srcset` candidate's URL is the host's own split of
- *   the value (`srcsetCandidatesOf`), so its bound alone can refuse it;
+ * - A bound on a text is "Key text bound", a stated limit. `matchedText`, a map key's, a lookup
+ *   value's and an interaction attribute's copy, the most a query's match reads, holds any text; a
+ *   foreign element's names, whose expanded name a query matches, and the paths also carry a
+ *   production no package the reader accepts breaks, so their refusal means the bound alone. A
+ *   foreign local name is an NCName because crust reads with saxes's `xmlns` on, which refuses a
+ *   name that is no QName (Namespaces in XML 1.0, §4); a foreign namespace name is `Char`s because
+ *   crust reads no other; an entry path begins with no `/` because the directory reader lists paths
+ *   relative to the package root and `zip.ts` refuses an absolute name; and a `srcset` candidate's
+ *   URL is the host's own split of the value (`srcsetCandidatesOf`), so its bound alone can refuse
+ *   it;
  * - An unbounded XML production (a node's or an attribute's `Char*`, a comment, an instruction, a
- *   doctype, an encoding name, a version number, an NCName) is "XML production", which crust
- *   refuses before any row exists;
+ *   doctype, an encoding name, a version number, an NCName, among them a prefix and an open
+ *   attribute's local name, each of any length) is "XML production", which crust refuses before any
+ *   row exists;
  * - A namespace declaration's value is "Namespace name": an RFC 3986 URI reference (reading 131),
  *   which crust does not check, so the domain is the law;
  * - The whitespace around an IDREF token is the host's own split, "E1 derived", as is every other
@@ -386,17 +392,12 @@ export const textLaws: ReadonlyMap<RegexText<string>, LawName> = new Map<
   RegexText<string>,
   LawName
 >([
-  [keyText, "Key text bound"],
-  [namespaceText, "Key text bound"],
-  [Prefix, "Key text bound"],
-  [OpenLocal, "Key text bound"],
-  [NamespacePrefix, "Key text bound"],
   [ForeignNamespace, "Key text bound"],
   [ForeignLocal, "Key text bound"],
   [ExpandedName, "Key text bound"],
   [EntryPath, "Key text bound"],
   [SrcsetCandidateUrl, "Key text bound"],
-  [attributeValueText, "Key text bound"],
+  [matchedText, "Key text bound"],
   [PackageName, "Package key"],
   [NamespaceUri, "Namespace name"],
   [Chars, "XML production"],
@@ -407,6 +408,9 @@ export const textLaws: ReadonlyMap<RegexText<string>, LawName> = new Map<
   [EncName, "XML production"],
   [XmlVersion, "XML production"],
   [EntityName, "XML production"],
+  [Prefix, "XML production"],
+  [NamespacePrefix, "XML production"],
+  [OpenLocal, "XML production"],
   [Space, "E1 derived"],
   [Affix, "E1 derived"],
   [HrefParams, "E1 derived"],
@@ -436,7 +440,6 @@ export const namedLaws: readonly LawsByName[] = [
   attributeLawsByName,
   packageLawsByName,
   identityLawsByName,
-  declarationLawsByName,
   mappingLawsByName,
   interactionLawsByName,
   expressionLawsByName,
@@ -681,9 +684,9 @@ const statedChecksOf = Fn.memoize(
  * relation's triggers by a digest (grizzle `b34dfbf9`).
  *
  * Grizzle's lookup throws for a law that is no check of the schema, and a refusal may name one: a
- * package-media install's stored level states checks the default `Qti` does not
- * (`#pantry/qti/media.ts`), so a refusal read against another schema than the one the database
- * installed names a check this one lacks. Such a check has no installed name here, so the refusal
+ * LOM install's stored level states checks the default `Qti` does not (`#pantry/qti/lom.ts`), so a
+ * refusal read against another schema than the one the database installed names a check this one
+ * lacks. Such a check has no installed name here, so the refusal
  * still prints, with its text and the name and rule the table gives it. Only a check the schema
  * states is asked for, so a refusal that names none compiles nothing.
  *

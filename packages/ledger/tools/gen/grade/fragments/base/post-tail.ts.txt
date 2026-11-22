@@ -1,0 +1,37 @@
+/** The attempt processed: its completion status after the run, a handle of QTI's four (§2.2.2.3), one insert each. */
+const statusOf = (session: GradedSession, status: (typeof CompletionStatus.handles)[number]) =>
+	query(Learner).rule((r) => {
+		const out = runOf(session)
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(out.texts, {
+				child,
+				package: pkg,
+				path,
+				stage,
+				holds: "value",
+				identifier: "completionStatus",
+				place: 0n,
+				base: "identifier",
+				value: status
+			})
+			.find({ child, package: pkg, path, n, at, completionStatus: CompletionStatus.handle(status) })
+	})
+
+const processed = (session: GradedSession) =>
+	ChangeSet.empty(Learner)
+		.insert(mine.ProcessedAttempt, statusOf(session, "completed"))
+		.insert(mine.ProcessedAttempt, statusOf(session, "incomplete"))
+		.insert(mine.ProcessedAttempt, statusOf(session, "not_attempted"))
+		.insert(mine.ProcessedAttempt, statusOf(session, "unknown"))
+
+	return ChangeSet.union(
+		ChangeSet.union(processed(gradedSitting), gradedSingles(gradedSitting)),
+		ChangeSet.union(
+			ChangeSet.union(gradedMultiples(gradedSitting), gradedOrdereds(gradedSitting)),
+			gradedRecords(gradedSitting)
+		)
+	)
+}

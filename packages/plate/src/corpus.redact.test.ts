@@ -11,12 +11,12 @@ import type {
   SimpleChoice,
   TemplateVisibility,
 } from "#plate/model/item.ts";
-import type { Expression, Rule } from "#plate/model/expression.ts";
 import type { ItemRecord } from "#plate/model/record.ts";
-import { format } from "#plate/model/values.ts";
+import { format, isModelled, parseLexical } from "#plate/model/values.ts";
 import { redact } from "#plate/redact.ts";
 import type { RedactedFields } from "#plate/redact/walk.ts";
 import { shownToCandidate } from "#plate/test/page.ts";
+import { goldenRecords, recordOf } from "#plate/test/records.ts";
 import { acceptedOf, noRecord, openCorpus, recordStates, templated } from "#plate/test/sweep.ts";
 import type { Member, RecordState } from "#plate/test/sweep.ts";
 import { admitted } from "#plate/test/admitted.ts";
@@ -40,25 +40,19 @@ const hiddenResponseFields = [
 ] as const satisfies readonly (keyof ResponseDeclaration)[];
 
 /**
- * The fields of an item that hold what the page must not know: its outcome declarations, its
- * response processing, its template declarations and its template rules.
+ * The fields of an item that hold what the page must not know: its outcome declarations and its
+ * template declarations.
  */
-const hiddenItemFields = [
-  "outcomes",
-  "processing",
-  "templateProcessing",
-  "templates",
-] as const satisfies readonly (keyof Item)[];
+const hiddenItemFields = ["outcomes", "templates"] as const satisfies readonly (keyof Item)[];
 
 /**
- * The fields of a record that hold what the page must not know: the seed, the template values, the
+ * The fields of a record that hold what the page must not know: the template values, the
  * correct responses and defaults template processing set, and the outcome values.
  */
 const hiddenRecordFields = [
   "correct",
   "defaults",
   "outcomes",
-  "seed",
   "templates",
 ] as const satisfies readonly (keyof ItemRecord)[];
 
@@ -119,6 +113,11 @@ interface Subject {
    */
   readonly bodySource: string;
   readonly item: Item;
+  /**
+   * The attribute literals the item's `qti-response-processing` writes that may give the answer
+   * away ({@link processingLiteralsOf}), read from its source, since plate models no processing.
+   */
+  readonly processing: readonly Secret[];
   /**
    * The texts plate's own normalisation writes into the body before the walk reads it
    * ({@link normalisedTexts}), which no secret of the item can be.
@@ -242,66 +241,74 @@ const occursIn = (markup: string, text: string): boolean =>
   spellingsOf(text).some((spelling) => markup.includes(spelling));
 
 /**
- * Give the attribute literals an expression holds itself that may give the answer away: a
- * `qti-base-value`'s values, a `qti-inside`'s `coords`, joined as an area-map entry's are, and a
- * `qti-pattern-match`'s literal `pattern` (one that names a variable gives nothing away itself).
+ * Give the attribute literals one element of response processing writes itself that may give the
+ * answer away: a `qti-base-value`'s value, in the lexical form plate writes it, a `qti-inside`'s
+ * `coords`, joined as an area-map entry's are, and a `qti-pattern-match`'s literal `pattern` (one
+ * written `{name}` names a variable and gives nothing away itself).
  *
- * @param expression The expression.
- * @returns The literals as candidates, in written order; none for any other kind.
+ * @param element The element.
+ * @returns The literals as candidates, in written order; none for any other element.
  */
-const ownCandidatesOf = (expression: Expression): readonly Secret[] => {
-  if (expression.kind === "base-value") {
-    return expression.value.values.map((single) => ({
-      origin: "processing base value",
-      text: format(single),
-    }));
+const ownLiteralsOf = (element: SourceElement): readonly Secret[] => {
+  const attribute = (name: string) =>
+    Option.fromUndefinedOr(element.attributes.find((written) => written.local === name)?.value);
+  if (element.local === "qti-base-value") {
+    const text = element.children.flatMap((child) => (child.kind === "text" ? [child.text] : []));
+    const written = text.join("").trim();
+
+    return Option.match(attribute("base-type"), {
+      onNone: () => [],
+      onSome: (baseType) =>
+        isModelled(baseType)
+          ? Result.match(parseLexical(baseType, written), {
+              onFailure: () => [],
+              onSuccess: (single) => [{ origin: "processing base value", text: format(single) }],
+            })
+          : [],
+    });
   }
 
-  if (expression.kind === "inside") {
-    return [{ origin: "processing inside coords", text: expression.coords.join(",") }];
+  if (element.local === "qti-inside") {
+    return Option.match(attribute("coords"), {
+      onNone: () => [],
+      onSome: (coords) => [
+        {
+          origin: "processing inside coords",
+          text: coords
+            .split(",")
+            .map((coordinate) => String(Number(coordinate.trim())))
+            .join(","),
+        },
+      ],
+    });
   }
 
-  return expression.kind === "pattern-match" && expression.pattern._tag === "literal"
-    ? [{ origin: "processing pattern", text: expression.pattern.value }]
+  return element.local === "qti-pattern-match"
+    ? Option.match(attribute("pattern"), {
+        onNone: () => [],
+        onSome: (pattern) =>
+          /^\{.*\}$/su.test(pattern) ? [] : [{ origin: "processing pattern", text: pattern }],
+      })
     : [];
 };
 
 /**
- * Collect the attribute literals an expression and its sub-expressions hold at any depth that may
- * give the answer away ({@link ownCandidatesOf}).
+ * Collect every attribute literal a member's `qti-response-processing` writes that may give the
+ * answer away ({@link ownLiteralsOf}), at any depth, from its source: plate models no processing,
+ * and the database grades from the stored document.
  *
- * Sub-expressions sit in `operands`, as in every expression the model holds, so an expression kind
- * the engine gains later is walked without a change here.
- *
- * @param expression The expression.
- * @returns The literals as candidates, in document order.
+ * @param member The member.
+ * @returns The literals as candidates, in document order; none when its source does not read.
  */
-const expressionCandidatesOf = (expression: Expression): readonly Secret[] => [
-  ...ownCandidatesOf(expression),
-  ...expression.operands.flatMap((operand) => expressionCandidatesOf(operand)),
-];
-
-/**
- * Collect every attribute literal the expressions of a run of response rules hold that may give
- * the answer away ({@link expressionCandidatesOf}), at any depth: a lookup's expression as a
- * set's, and nothing of an exit.
- *
- * @param rules The rules, the item's response processing or a branch of it.
- * @returns The literals as candidates, in document order.
- */
-const processingCandidatesOf = (rules: readonly Rule[]): readonly Secret[] =>
-  rules.flatMap((rule) => {
-    if (rule.kind === "condition") {
-      return [
-        ...rule.branches.flatMap((branch) => [
-          ...expressionCandidatesOf(branch.when),
-          ...processingCandidatesOf(branch.rules),
-        ]),
-        ...processingCandidatesOf(Option.getOrElse(rule.otherwise, () => [])),
-      ];
-    }
-
-    return rule.kind === "exit" ? [] : expressionCandidatesOf(rule.expression);
+const processingLiteralsOf = (member: Member): readonly Secret[] =>
+  Exit.match(Effect.runSyncExit(readSource(member.location, member.bytes)), {
+    onFailure: () => [],
+    onSuccess: (source) =>
+      [...walkSource(source)]
+        .filter(({ path }) =>
+          path.split("/").some((step) => step.startsWith("qti-response-processing")),
+        )
+        .flatMap(({ element }) => ownLiteralsOf(element)),
   });
 
 /**
@@ -310,10 +317,13 @@ const processingCandidatesOf = (rules: readonly Rule[]): readonly Secret[] =>
  * area-map entry's and processing `qti-inside`'s `coords`, and each processing
  * `qti-pattern-match`'s literal `pattern`.
  *
- * @param item The item.
+ * @param subject The item, with its processing's literals.
  * @returns Each candidate, with where the item holds it.
  */
-const candidatesOf = (item: Item): readonly Secret[] => [
+const candidatesOf = ({
+  item,
+  processing,
+}: Pick<Subject, "item" | "processing">): readonly Secret[] => [
   ...[...item.responses.values()].flatMap((declaration): readonly Secret[] => [
     ...Option.match(declaration.correct, {
       onNone: () => [],
@@ -340,10 +350,7 @@ const candidatesOf = (item: Item): readonly Secret[] => [
         })),
     }),
   ]),
-  ...Option.match(item.processing, {
-    onNone: () => [],
-    onSome: processingCandidatesOf,
-  }),
+  ...processing,
 ];
 
 /**
@@ -387,7 +394,7 @@ const secretsOf = (subject: Subject): readonly Secret[] => {
   const seen = new Set<string>();
   const publicPairs = publicPairsOf(subject);
 
-  return candidatesOf(subject.item).filter((candidate) => {
+  return candidatesOf(subject).filter((candidate) => {
     const secret =
       longEnough.test(candidate.text) &&
       !seen.has(candidate.text) &&
@@ -509,6 +516,7 @@ const subjectOf = (member: Member, state?: RecordState): Option.Option<Subject> 
     item: accepted.item,
     location,
     normalised: normalisedTexts(member),
+    processing: processingLiteralsOf(member),
     record,
     redacted: redact(accepted, shownToCandidate, Option.getOrUndefined(record)),
     state: name,
@@ -532,36 +540,23 @@ const corpusSubjects = Effect.runSync(
 );
 
 /**
- * Every templated corpus item (one whose template processing runs) made into the subjects the
- * template sweep checks: one per record state, a record `begin` started under each sweep seed and
- * no record, with a problem for each item whose record could not be begun. It runs once per test
- * file, as {@link corpusSubjects} does.
+ * Every templated corpus item (one with template processing) made into the subjects the template
+ * sweep checks: one per record state, a record the golden recording holds for each of its seeds
+ * and no record (`recordStates`). It runs once per test file, as {@link corpusSubjects} does.
  */
 const templatedSubjects = Effect.runSync(
   Effect.cached(
     Effect.gen(function* templatedSubjects() {
       const members = yield* openCorpus;
+      const golden = yield* goldenRecords;
       const swept = members.filter((member) => Option.exists(acceptedOf(member), templated));
-      const made = swept.flatMap((member) =>
-        Option.toArray(acceptedOf(member)).flatMap(
-          (accepted): readonly Result.Result<Subject, string>[] =>
-            Result.match(recordStates(accepted), {
-              onFailure: (error) => [
-                Result.fail(`${member.location}: no record could be begun: ${error.message}`),
-              ],
-              onSuccess: (states) =>
-                states.flatMap((state) =>
-                  Option.toArray(Option.map(subjectOf(member, state), Result.succeed)),
-                ),
-            }),
+      const subjects = swept.flatMap((member) =>
+        recordStates(member.bytes, golden).flatMap((state) =>
+          Option.toArray(subjectOf(member, state)),
         ),
       );
 
-      return {
-        files: swept.length,
-        problems: made.flatMap((result) => (Result.isFailure(result) ? [result.failure] : [])),
-        subjects: made.flatMap((result) => (Result.isSuccess(result) ? [result.success] : [])),
-      };
+      return { files: swept.length, subjects };
     }),
   ),
 );
@@ -672,9 +667,10 @@ describe("the allowlist sweep over the corpus", () => {
 const templateControlLocation = "template-control.xml";
 
 /**
- * The template control, built by hand: template processing sets `SHOWN` to `A` and `NUMBER` to
- * 123; the body prints `NUMBER`, holds a template inline `SHOWN` shows (`A`) and one it hides
- * (`B`), and a Choice whose choices `A` and `B` the same variable shows and hides.
+ * The template control, built by hand: template processing sets `SHOWN` to `A` and `NUMBER` to 123,
+ * the record the database's take gives it (`taken` below); the body prints `NUMBER`, holds a
+ * template inline `SHOWN` shows (`A`) and one it hides (`B`), and a Choice whose choices `A` and
+ * `B` the same variable shows and hides.
  */
 const templateControlBytes = new TextEncoder().encode(
   '<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="template-control" title="Pick the shown one" adaptive="false" time-dependent="false"><qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier"/><qti-template-declaration identifier="SHOWN" cardinality="single" base-type="identifier"/><qti-template-declaration identifier="NUMBER" cardinality="single" base-type="integer"/><qti-template-processing><qti-set-template-value identifier="SHOWN"><qti-base-value base-type="identifier">A</qti-base-value></qti-set-template-value><qti-set-template-value identifier="NUMBER"><qti-base-value base-type="integer">123</qti-base-value></qti-set-template-value></qti-template-processing><qti-item-body><p>Number <qti-printed-variable identifier="NUMBER"/>: <qti-template-inline template-identifier="SHOWN" show-hide="show" identifier="A">shown words</qti-template-inline><qti-template-inline template-identifier="SHOWN" show-hide="show" identifier="B">hidden words</qti-template-inline></p><qti-choice-interaction response-identifier="RESPONSE" max-choices="1"><qti-simple-choice identifier="A" template-identifier="SHOWN" show-hide="show">Alpha</qti-simple-choice><qti-simple-choice identifier="B" template-identifier="SHOWN" show-hide="show">Beta</qti-simple-choice></qti-choice-interaction></qti-item-body></qti-assessment-item>',
@@ -682,20 +678,20 @@ const templateControlBytes = new TextEncoder().encode(
 
 describe("the template sweep over the corpus", () => {
   it.effect(
-    "no accepted corpus item records a printed variable or param-variable parameter past its bound, with no record or under a sweep seed, so <Item> refuses none for it",
+    "no accepted corpus item records a printed variable or param-variable parameter past its bound, with no record or under a golden record, so <Item> refuses none for it",
     () =>
       Effect.gen(function* noUnprinted() {
         const members = yield* openCorpus;
+        const golden = yield* goldenRecords;
         const redactions = members.flatMap((member) =>
           Option.toArray(acceptedOf(member)).flatMap((accepted) =>
-            (templated(accepted)
-              ? Result.getOrElse(recordStates(accepted), (): readonly RecordState[] => [noRecord])
-              : [noRecord]
-            ).map((state) => ({
-              location: `${member.location} (${state.name})`,
-              unprinted: redact(accepted, shownToCandidate, Option.getOrUndefined(state.record))
-                .unprinted,
-            })),
+            (templated(accepted) ? recordStates(member.bytes, golden) : [noRecord]).map(
+              (state) => ({
+                location: `${member.location} (${state.name})`,
+                unprinted: redact(accepted, shownToCandidate, Option.getOrUndefined(state.record))
+                  .unprinted,
+              }),
+            ),
           ),
         );
 
@@ -707,40 +703,34 @@ describe("the template sweep over the corpus", () => {
           [],
         );
       }),
-    { tags: ["corpus"], timeout: sweepTimeoutMs },
+    { tags: ["corpus", "grading-golden"], timeout: sweepTimeoutMs },
   );
   it.effect(
-    "every templated corpus item, redacted under two seeds and with no record, shows a template value only as a printed variable's text, and no hidden template content, template-set correct response, seed, template rule or template visibility, nor any of the core set",
+    "every templated corpus item, redacted under each golden record and with no record, shows a template value only as a printed variable's text, and no hidden template content, template-set correct response, template rule or template visibility, nor any of the core set",
     () =>
       Effect.gen(function* templateSweep() {
-        const { files, problems, subjects } = yield* templatedSubjects;
+        const { files, subjects } = yield* templatedSubjects;
         const swept: Record<string, number> = {};
         for (const subject of subjects) {
           swept[subject.state] = (swept[subject.state] ?? 0) + 1;
         }
 
         assert.isAbove(files, 0, "no accepted corpus item has template processing");
-        assert.deepStrictEqual(swept, {
-          "no record": files,
-          'seed "1"': files,
-          'seed "2"': files,
-        });
+        assert.strictEqual(swept["no record"], files);
+        assert.isAbove(swept["golden 1"] ?? 0, 0, "no templated item has a golden record");
         assert.deepStrictEqual(
-          [
-            ...problems,
-            ...subjects.flatMap((subject) => [
-              ...keyProblems(subject),
-              ...leakProblems(subject, secretsOf(subject)),
-            ]),
-          ],
+          subjects.flatMap((subject) => [
+            ...keyProblems(subject),
+            ...leakProblems(subject, secretsOf(subject)),
+          ]),
           [],
         );
       }),
-    { tags: ["corpus"], timeout: sweepTimeoutMs },
+    { tags: ["corpus", "grading-golden"], timeout: sweepTimeoutMs },
   );
 
   it.effect(
-    "a forged redaction of a hand-built templated item that shows a template visibility or the seed is caught, and the honest redactions are not",
+    "a forged redaction of a hand-built templated item that shows a template visibility is caught, and the honest redactions are not",
     () =>
       Effect.gen(function* templateControl() {
         const verdict = yield* admitted(templateControlLocation, templateControlBytes);
@@ -749,10 +739,31 @@ describe("the template sweep over the corpus", () => {
           location: templateControlLocation,
           verdict: Exit.succeed(verdict),
         };
-        const accepted = Option.getOrElse(acceptedOf(member), () =>
-          assert.fail(`the template control is ${verdict.verdict}`),
+        assert.isTrue(
+          Option.isSome(acceptedOf(member)),
+          `the template control is ${verdict.verdict}`,
         );
-        const subjects = Result.getOrThrow(recordStates(accepted)).map((state) =>
+
+        const taken: RecordState = {
+          name: "taken",
+          record: Option.some(
+            recordOf({
+              templates: {
+                NUMBER: {
+                  baseType: "integer",
+                  cardinality: "single",
+                  values: [{ baseType: "integer", value: 123n }],
+                },
+                SHOWN: {
+                  baseType: "identifier",
+                  cardinality: "single",
+                  values: [{ baseType: "identifier", value: "A" }],
+                },
+              },
+            }),
+          ),
+        };
+        const subjects = [taken, noRecord].map((state) =>
           Option.getOrElse(subjectOf(member, state), () =>
             assert.fail(`the template control is not accepted under ${state.name}`),
           ),
@@ -776,11 +787,11 @@ describe("the template sweep over the corpus", () => {
               }
             : node,
         );
-        const forged = { ...honest.redacted, body: forgedBody, seed: "1" };
+        const forged = { ...honest.redacted, body: forgedBody };
 
         assert.deepStrictEqual(
           subjects.map((subject) => subject.state),
-          ['seed "1"', 'seed "2"', "no record"],
+          ["taken", "no record"],
         );
         assert.deepStrictEqual(
           subjects.flatMap((subject) => [
@@ -790,7 +801,6 @@ describe("the template sweep over the corpus", () => {
           [],
         );
         assert.deepStrictEqual(hiddenKeysOf(forged), [
-          "seed",
           "templateVisibility",
           "showHide",
           "templateIdentifier",

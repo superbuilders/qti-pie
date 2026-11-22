@@ -1,6 +1,6 @@
 /**
- * Hotspot (Q-10), the `qti-hotspot-interaction`: its model node, parse, redaction, response
- * validation and bindings, on the module shape the interaction-module contract states.
+ * Hotspot (Q-10), the `qti-hotspot-interaction`: its model node, parse, redaction and bindings, on
+ * the module shape the interaction-module contract states.
  *
  * The readings that bind this module, by their wording:
  *
@@ -28,15 +28,10 @@
  * and name, `max-choices`, and the identifiers to show as chosen; the server shell
  * renders it (`#plate/ui/item/interactions/`).
  *
- * {@link hotspotModule}'s `validate` checks a value the caller decoded, in two tiers: tier (a)
- * always, tier (b) only under `validateResponses` (D5).
- *
  * @module
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import type { Malformed } from "#plate/form/encoding.ts";
 import { areaLabel, coordinatesOf } from "#plate/interactions/area.ts";
 import type { AreaCoordinate } from "#plate/interactions/area.ts";
 import { boundIn, contentRegion, promptRegion } from "#plate/interactions/contract.ts";
@@ -46,11 +41,9 @@ import type {
   ModuleInteraction,
   OwnRegion,
   ReaderKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
 import { authoredSizeOf, imageElementOf } from "#plate/interactions/image-size.ts";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
-import { validatePicks } from "#plate/interactions/selection.ts";
 import type {
   BodyNode,
   Level,
@@ -61,7 +54,6 @@ import type {
   TemplateVisibility,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
-import type { Value } from "#plate/model/values.ts";
 import { areaGeometries } from "#plate/vocabulary.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";
 
@@ -183,35 +175,6 @@ interface HotspotPayload {
   readonly restore: readonly string[];
   readonly size: AuthoredSize;
 }
-
-/**
- * Check a Hotspot's response, which the caller decoded, in two tiers, as Choice checks its own.
- *
- * - A {@link Malformed} input: `atMost` 1 when a single response was posted more than once, else
- *   `unknownChoice`.
- * - Tier (a), always: every identifier names a presented hotspot and none repeats (`unknownChoice`),
- *   and `max-choices` above 0 caps the count (`atMost`).
- * - Tier (b), only under `validateResponses`: `min-choices` (`atLeast`).
- *
- * The author's `data-max-selections-message` and `data-min-selections-message` replace plate's
- * own text for `atMost` and `atLeast`.
- *
- * @param interaction The Hotspot.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validate = (
-  interaction: HotspotInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] =>
-  validatePicks(
-    interaction,
-    new Set(interaction.choices.map((choice) => choice.identifier)),
-    input,
-    configuration,
-  );
 
 /**
  * Read one `qti-hotspot-choice` through the kit.
@@ -386,5 +349,4 @@ export const hotspotModule: InteractionModule<"hotspot", HotspotByLevel, Hotspot
    * template visibility ({@link visibilityRegions}).
    */
   regions: ownRegions,
-  validate,
 };

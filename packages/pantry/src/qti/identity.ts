@@ -84,7 +84,7 @@
  * written; BCP 47 compares tags without regard to case ("At all times, language tags and their
  * subtags … are to be treated as case insensitive", RFC 5646 §2.1.1, which XML 1.0 §2.12 names for
  * `xml:lang`). A tag's subtags are ASCII letters, digits and hyphens (RFC 5646 §2.1), so its case
- * is ASCII's, and both sides compare by `Compute.lowerAscii`: `ListedLang`'s `lang` and
+ * is ASCII's, and both sides compare by `Text.lowerAscii`: `ListedLang`'s `lang` and
  * `LangValue`'s `value`. A form states a language exactly where its value is not empty. An empty
  * `xml:lang` states none ("there is no language information available", XML 1.0 §2.12), and every
  * form AL1 admits has a tag or the empty text for its value, since each of the three `xml:lang`
@@ -101,9 +101,8 @@
  * name)` (`#pantry/qti/attributes.ts`), whose index over the selection's element serves the copy's
  * reverse probe, so no index holds `Attribute.lexical`. Every overlay is keyed by its element,
  * `(package, path, start)`, and names another element of its document by its position alone. Every
- * copied text that takes part in a cross-row equality is `keyText` (`#pantry/qti/limits.ts`): a
- * value past its bound has no overlay row, so its copy's foreign key refuses it beside the schema's
- * one limit law.
+ * copied text that takes part in a cross-row equality is of any length, a key, a containment's
+ * target and a lookup holding it by its image (`#pantry/qti/limits.ts`).
  *
  * Every check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written
  * as underscores. The overlays' agreement with what the tree holds is "E1 derived" (rule
@@ -129,6 +128,7 @@ import {
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import {
+  anyText,
   Identity,
   NodeKind,
   TextDomain,
@@ -137,7 +137,7 @@ import {
 } from "#pantry/grammar/install.ts";
 import { Attribute, attributesOf, identityIn, Idref, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { admitsHere, Node } from "#pantry/qti/node.ts";
 import { Instance } from "#pantry/qti/tests.ts";
 import { listTokens, tokenFields, tokenList, whitespaceTokens } from "#pantry/qti/token-list.ts";
@@ -263,7 +263,7 @@ export const CatalogScope = relation(
  */
 export const IdrefTarget = relation(
   "IdrefTarget",
-  { assembled: pg.boolean, id: keyText, package: PackageName, path: EntryPath },
+  { assembled: pg.boolean, id: anyText, package: PackageName, path: EntryPath },
   ["package", "path", "id"],
 );
 
@@ -286,7 +286,7 @@ export const ShareFragment = relation(
   "ShareFragment",
   {
     assembled: pg.boolean,
-    id: keyText,
+    id: anyText,
     package: PackageName,
     path: EntryPath,
     placements: drawn(natural),
@@ -308,7 +308,7 @@ export const PlacedId = relation(
   {
     assembly: EntryPath,
     assemblyKind: closedId(NodeKind),
-    id: keyText,
+    id: anyText,
     instance: natural,
     owner: natural,
     package: PackageName,
@@ -327,7 +327,7 @@ export const PlacedIdref = relation(
   "PlacedIdref",
   {
     assembly: EntryPath,
-    id: keyText,
+    id: anyText,
     instance: natural,
     package: PackageName,
     path: EntryPath,

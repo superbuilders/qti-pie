@@ -43,8 +43,8 @@ const db = yield* Db.open(AuthorServed.roles.author, {})
 const outcome = yield* db.workload.insertWrite.once({ facts: { insert }, params: {} })
 ```
 
-A package is stored under the name `readPackage` is given (an NCName of at most 425 UTF-8 bytes, refused as
-`BadPackageName` before anything is read), never under its manifest's identifier, which IMS Content Packaging makes
+A package is stored under the name `readPackage` is given (an NCName of any length, refused as `BadPackageName`
+before anything is read where it is no NCName), never under its manifest's identifier, which IMS Content Packaging makes
 unique within one manifest alone (spec reading 178). A name is one revision for as long as it stands: a package under a
 new name is `accepted`, the same package again under its name is `unchanged`, and another package under a stored name
 is refused on the keys the two share. A refusal is grizzle's `refused` call error; `rulesOf(error.refused.laws)` names
@@ -120,13 +120,28 @@ item-prefixed names that pass through it, because the package declares nothing t
 
 Package-media mode is no setting of pantry's: an application lists `QtiMedia` (or a level of its own over it) in its
 grizzle config and writes its policy as `MediaType` rows, one per entry of its `policy.json`. Write them through a
-role of their own, one that writes nothing a READ COMMITTED reader reads: the media laws read `MediaType`, so a role
-that writes it beside relations a reader reads makes grizzle's certifier lift that reader to SERIALIZABLE. The database alone
-judges its laws: every address a player fetches is a path to a file of the package, with an extension a `MediaType`
-row lists; no address is a `data:` one; no `style` holds `url(`, `@import`, `image-set(`, `src(` or a CSS escape; no
-foreign markup is kept; and every entry is used. Each media entry's `Media.digest`, the SHA-256 of its bytes that the
-import states and under which it put them in the application's content-addressed store, is what such an application
-serves the file by.
+role of their own, one that writes nothing a READ COMMITTED reader reads: `ServedFile` reads `MediaType`, so a role
+that writes it beside relations a reader reads makes grizzle's certifier lift that reader to SERIALIZABLE. The level
+refuses nothing `Qti` admits (QTI 3.0 Conformance §3: an application must "ignore or remove the unsupported data", never
+refuse a valid package); it says which files a player is given. `ServedFile` is each media file a document names, in
+the package, whose extension a `MediaType` row lists (in any ASCII case), with its digest and media type;
+`WithheldFile` is each one whose extension none lists, stored and never served. An address outside the package, a
+`data:` one among them, is stored unresolved and names no file. Each media entry's `Media.digest`, the SHA-256 of its
+bytes that the import states and under which it put them in the application's content-addressed store, is what such an
+application serves the file by.
+
+## Limits
+
+A key holds a text of any length: grizzle installs a key, a containment's target and a family's axes whose
+B-tree entry a text would outgrow over the text's image, its SHA-256 digest, and every lookup, rule probe and seek over
+the texts it fixes by equality whose entry they would outgrow over their md5, so none bounds a package's name or any
+text a store compares by equality. A text a query reads by a pattern keeps only PostgreSQL's regex limit
+(`matchedTextBytes`, grizzle's `regexTextMaxBytes`): a LOM text, a node's string value, a map key, a lookup value, an
+interaction attribute's value. A decimal a query parses keeps the parse's (`parsedDecimalBytes`, grizzle's
+`decimalTextMaxBytes`): an ARIA bound of a pair, which "Aria value range" parses under its own byte guard and "Key text
+bound" refuses past it. The texts an ordered read reads in their own order keep the bytes that read's index leaves
+them as themselves (`src/qti/limits.ts`): the names and prefixes a node's open attributes and namespaces are read in.
+An entry's path is of any length: a package's entries are read as a set and ordered on the host.
 
 ## Development
 

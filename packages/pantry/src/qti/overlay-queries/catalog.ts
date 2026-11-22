@@ -81,11 +81,12 @@ const catalogReferences = query(QtiBase).rule((r) => {
  * document whose `assembled` is false, which resolves among the document's own catalogs. A document
  * is assembled exactly where an `Instance` places it, both ways stated laws
  * (`#pantry/qti/tests.ts`, `#pantry/qti/queries.ts`): every instance's document has its
- * `TestDocument` (the family counted by `TestDocument.instances`, "Inclusion cycle") and every
- * `TestDocument`'s document is assembled ("E1 derived"); every assembled document has its
- * `TestDocument` ("Test overlay") and every `TestDocument` is a document some instance places
- * (`InstanceDocument`, "Inclusion cycle"). So these tokens and {@link PlacedReference}'s are of
- * disjoint documents, and every token of every document is in one of the two.
+ * `AssembledDocument` (the family counted by `AssembledDocument.instances`, "Inclusion cycle") and
+ * every `AssembledDocument`'s document is assembled ("E1 derived"); every assembled document has
+ * its `AssembledDocument` ("Test overlay") and every `AssembledDocument` is a document some
+ * instance places (`InstanceDocument`, "Inclusion cycle"). So these tokens and
+ * {@link PlacedReference}'s are of disjoint documents, and every token of every document is in one
+ * of the two.
  */
 const UnassembledReference = derived(
   "UnassembledReference",

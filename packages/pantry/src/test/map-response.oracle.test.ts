@@ -8,7 +8,13 @@
  * mapping, or of a built-in variable such as `numAttempts`, which no declaration holds, and its map
  * response point of a point response with no area mapping, are refused under "Mapped response"
  * (P27); and its map response of a mapped response, and map response point of an area-mapped one,
- * are accepted.
+ * are accepted. A `qti-correct` needs no correct response: the information model defines its
+ * value where none is declared (§7.10, Correct: "looks up the declaration of a response variable
+ * and returns the associated correctResponse or NULL if no correct value was declared"), so an
+ * item that reads one is valid and accepted. Only its variable's kind binds it, a response's
+ * ("Variable kind", §7.10.1), whose refusal of a correct of an outcome the complete oracle draws
+ * (`#pantry/test/oracle-complete/expressions.ts`), a query law this file's host judge does not
+ * restate.
  *
  * Each case is judged twice: by the law oracle over the package as written, and by the schema's own
  * laws over the import's rows on the host (`#pantry/test/host-judge.ts`), the first broken law's
@@ -93,7 +99,8 @@ interface MapResponseCase {
 }
 
 /**
- * The cases: the refusals of decisions 429, 430 and 431, and their controls.
+ * The cases: the refusals of decisions 429, 430 and 431, and their controls; and a correct of a
+ * response that declares no correct response, NULL by §7.10.
  */
 const cases: readonly MapResponseCase[] = [
   {
@@ -121,6 +128,11 @@ const cases: readonly MapResponseCase[] = [
     name: "a map response point of a point response with no area mapping",
     rule: "P27",
   },
+  {
+    item: edit(item, "<qti-correct-response><qti-value>A</qti-value></qti-correct-response>", ""),
+    name: "a correct of a response that declares no correct response, NULL by §7.10",
+    rule: "accepted",
+  },
 ];
 
 /**
@@ -138,7 +150,7 @@ const entriesOf = (drawn: MapResponseCase): ReadonlyMap<string, Uint8Array> =>
 
 layer(NodeServices.layer, { excludeTestServices: true })("an item's map response", (it) => {
   it.effect(
-    "refuses a map response of no mapped response and a map response point of no area-mapped one, the law oracle and the import's rows alike",
+    "refuses a map response of no mapped response and a map response point of no area-mapped one, and admits a correct of a response with no correct response, the law oracle and the import's rows alike",
     () =>
       Effect.gen(function* allCases() {
         const verdicts = yield* Effect.all(

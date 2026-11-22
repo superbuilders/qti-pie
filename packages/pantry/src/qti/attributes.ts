@@ -18,23 +18,23 @@
  *
  * - **AL1, admission** (`AL1_admission`, rule `attribute-admission`): the name is one its element's
  *   governor admits, `{name} ⊆ AttributeGrammar.row(model)`, with `{name}` the name's
- *   `Compute.singleton`. It is a named check, not a generated column's NOT NULL: the governor it
- *   reads is `governor`, an accumulated copy, and a generated field's term reads only the fields
- *   its caller writes (grizzle's README, "How a field is written"). An unadmitted name is refused
+ *   `Bits.singleton`. It is a named check, not a generated column's NOT NULL: the governor it reads
+ *   is `governor`, an accumulated copy, and a generated field's term reads only the fields its
+ *   caller writes (grizzle's README, "How a field is written"). An unadmitted name is refused
  *   `invariant-rejected` on the check's own law.
  * - **AL1, the lexical half** (`value_domain`, rule `attribute-lexical`): the lexical form as written
  *   matches its domain's compiled pattern, `ValueDomainOf.at("pattern", domain)`, through grizzle's
- *   `Compute.matches`. A universal domain, whose pattern admits every value (`universalDomains` of
+ *   `Text.matches`. A universal domain, whose pattern admits every value (`universalDomains` of
  *   `#pantry/grammar/install.ts`: `xs:anySimpleType`, and `xs:string`, `xs:normalizedString` and
  *   `xs:token` as written), states nothing and is not matched, so the backend's 32-entry regex
  *   cache holds only the patterns that judge something. An empty domain (today `xs:NOTATION`'s,
  *   whose value space is the notations a schema declares, and no pinned XSD declares one, XML
  *   Schema 1.0 Part 2 §3.2.19) holds no value: its pattern is the empty language's, which no text
  *   matches, so a value in one is refused by the match (C47).
- * - **AL2** (C9): `slot` is the singleton of the name's slot, `Compute.singleton(slot)`. It is
- *   written by the host and proved by `E1_derived`, because a generated field reads the caller's
- *   fields alone and `governor` is a copy. The `or` fold over the closed attributes' counted family
- *   ends in `Node.attrs`, which AL3 reads. Distinctness is `Attribute`'s key over `(package, path,
+ * - **AL2** (C9): `slot` is the singleton of the name's slot, `Bits.singleton(slot)`. It is written
+ *   by the host and proved by `E1_derived`, because a generated field reads the caller's fields
+ *   alone and `governor` is a copy. The `or` fold over the closed attributes' counted family ends
+ *   in `Node.attrs`, which AL3 reads. Distinctness is `Attribute`'s key over `(package, path,
  *   start, name)`: `AttributeGrammar` is keyed `(model, name)` and its slot is injective within a
  *   model (no two names of one model share a slot, over all of its 6,167 rows), and a node has one
  *   governor, so no repeated slot among a node's closed attributes is no repeated name among them.
@@ -48,17 +48,18 @@
  *   governor's model has an `AttributeCountOf` row carries from `min` to `max` of its `CountedSlot`
  *   attributes, `|attrs ∩ CountedSlot.row(model)|` (spec readings 41 and 43); a model of no count
  *   states nothing. `attrs` holds only the attributes written, so a defaulted one counts nothing.
- * - **AL4** (C14): an `Attribute`'s name is no open class and an `OpenAttribute`'s class is one
- *   (`AL4_open_names`); open names are distinct by expanded name on an element, `OpenAttribute`'s
- *   key `(package, path, start, uri, local)`; and `Foreign_attribute_class` holds each open name's
- *   stored namespace to its class against its element's namespace (XML Schema 1.0 Part 1 §3.10.4);
- *   and `AL4_data_name` holds a `data-*` name to reading 13's language (`dataName` of
- *   `#pantry/vocab/open.ts`, matched by its source) and a no-namespace name of an element that is
- *   not foreign to not begin `data-`; and `AL4_declared_data_name` keeps a `data-*` name from being
- *   a custom one where the element's governor admits it as a declared attribute (goal part E): a
- *   declared name is its closed attribute, never an open name beside or instead of it. An element
- *   an `xsi:type` governs is judged by its governor, the element's `governor`, which its kind and
- *   its named type give.
+ * - **AL4** (C14): an `Attribute`'s name is no open class and an `OpenAttribute`'s class is one, each
+ *   column's type (`closedId(AttributeName, { except: openClasses })` and `{ only: openClasses }`,
+ *   whose column CHECK holds a direct writer to it and whose codec refuses any other handle); open
+ *   names are distinct by expanded name on an element, `OpenAttribute`'s key `(package, path,
+ *   start, uri, local)`; and `Foreign_attribute_class` holds each open name's stored namespace to
+ *   its class against its element's namespace (XML Schema 1.0 Part 1 §3.10.4); and `AL4_data_name`
+ *   holds a `data-*` name to reading 13's language (`dataName` of `#pantry/vocab/open.ts`, matched
+ *   by its source) and a no-namespace name of an element that is not foreign to not begin `data-`;
+ *   and `AL4_declared_data_name` keeps a `data-*` name from being a custom one where the element's
+ *   governor admits it as a declared attribute (goal part E): a declared name is its closed
+ *   attribute, never an open name beside or instead of it. An element an `xsi:type` governs is
+ *   judged by its governor, the element's `governor`, which its kind and its named type give.
  * - **The prefix** (`Attribute_prefix`, C54): every attribute keeps the prefix its name is written
  *   with, so the export writes it back byte for byte (spec reading 47), and the prefix agrees with
  *   the namespace its name is in: none for a name in no namespace, `xml` for the XML namespace's,
@@ -76,8 +77,8 @@
  *   `xsi:type` names `xs:NOTATION`, whose domain's pattern is the empty language's, is refused
  *   whatever its text (spec reading 60). It is stated under Q5.03's own predicate,
  *   `holdsCheckedText`, the one its fold steps under, so the two cannot drift: a universal domain
- *   states nothing, and a checked value past `keyText`'s byte bound is refused by the fold's own
- *   accumulator type.
+ *   states nothing, and a checked value past `matchedText`'s byte bound is refused by the fold's
+ *   own accumulator type.
  *
  * Every check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written
  * as underscores, since a check's name is an identifier; no law name holds an underscore.
@@ -92,7 +93,6 @@ import {
   bits,
   check,
   closedId,
-  Compute,
   contained,
   counted,
   doubleText,
@@ -100,6 +100,7 @@ import {
   fin,
   fold,
   generated,
+  Logic,
   Monoid,
   natural,
   on,
@@ -107,10 +108,12 @@ import {
   relation,
   select,
   str,
+  Text,
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import type { Identity } from "#pantry/grammar/install.ts";
 import {
+  anyText,
   AttributeCountOf,
   AttributeGrammar,
   AttributeModelOf,
@@ -133,13 +136,7 @@ import { namingText, referenceIdentities } from "#pantry/grammar/domains.ts";
 import { openClasses } from "#pantry/grammar/kinds.ts";
 import { handlePrefixes } from "#pantry/model/xdm.ts";
 import { NamespacePrefix, OpenElementName } from "#pantry/qti/chardata.ts";
-import {
-  EntryPath,
-  keyText,
-  localNameBytes,
-  PackageName,
-  namespaceText,
-} from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Chars, holdsCheckedText, Node } from "#pantry/qti/node.ts";
 import { tokenFields, tokenPiece, whitespaceTokens } from "#pantry/qti/token-list.ts";
 import { dataName } from "#pantry/vocab/open.ts";
@@ -152,13 +149,13 @@ import { dataName } from "#pantry/vocab/open.ts";
  * Any other form names nothing, and its value domain refuses it alone. Every module of the schema
  * reads it here, one pattern.
  */
-export const namingPattern = Compute.pattern<string>(namingText);
+export const namingPattern = Text.pattern<string>(namingText);
 
 /**
  * Reading 13's `data-*` names (`dataName` of `#pantry/vocab/open.ts`), as the pattern
- * `Compute.matches` reads, made once from the host's expression's source.
+ * `Text.matches` reads, made once from the host's expression's source.
  */
-const dataNamePattern = Compute.pattern(dataName.source);
+const dataNamePattern = Text.pattern(dataName.source);
 
 /**
  * An NCName's first character: XML 1.0's `NameStartChar` without the colon.
@@ -176,14 +173,15 @@ const ncStart =
 const ncChar = `\\-.0-9\\u{B7}\\u{300}-\\u{36F}\\u{203F}-\\u{2040}${ncStart}`;
 
 /**
- * An open attribute's local name: an NCName of at most `localNameBytes` UTF-8 bytes
- * (`#pantry/qti/limits.ts`), the bound `(package, path, start, uri, local)` reads it at. Its
- * pattern is read under `su`, which reads an NCName exactly as `u` does (it holds no `.`), so its
- * law, the byte bound's, is no other type's: {@link EntityName} writes the same NCName under `u`,
- * and a refusal names each by its pattern. Exported for `src/import/refusal.ts`, which names its
- * pattern law.
+ * An open attribute's local name: an NCName of any length, which XML puts no bound on (reading 94).
+ * No ordered read orders by it, since an element's attributes are a set the model orders on the
+ * host (`#pantry/model/assemble.ts`), so the key `(package, path, start, uri, local)` holds it by
+ * its image where it would outgrow an entry. Its pattern is read under `su`, which reads an NCName
+ * exactly as `u` does (it holds no `.`), so it is no other type's pattern: {@link EntityName} writes
+ * the same NCName under `u`, and a refusal names each by its pattern. Exported for
+ * `src/import/refusal.ts`, which names its pattern law.
  */
-export const OpenLocal = str.bytes(localNameBytes, str.regex(`^[${ncStart}][${ncChar}]*$`, "su"));
+export const OpenLocal = str.regex(`^[${ncStart}][${ncChar}]*$`, "su");
 
 /**
  * An entity's name inside an attribute's lexical form: an NCName, since no entity name holds a
@@ -233,19 +231,18 @@ export const EntityName = str.regex(`^[${ncStart}][${ncChar}]*$`);
  *   `identifier` and `TableHeader`'s and `CatalogId`'s `id`, each held to its attribute's value
  *   through `InteractionAttribute`'s copy or by a rule over a query, past the first hop `keyCopies`
  *   reads; and a copy of another row's copy, which the cut-over records for later. No law of `Qti`
- *   reads whether its lexical form is an address. The package-media level states those laws as row
- *   checks over this relation (`#pantry/qti/media.ts`), installed on its table only where the level
- *   is.
+ *   reads whether its lexical form is an address, and no level above it does either: the
+ *   package-media level (`#pantry/qti/media.ts`) states no law.
  */
 export const Attribute = relation.generated(
   "Attribute",
   {
     governor: accumulated(closedId(Governor), "document"),
-    idrefText: accumulated(keyText, ""),
+    idrefText: accumulated(anyText, ""),
     idrefs: drawn(natural),
     kind: accumulated(closedId(NodeKind), "document"),
     lexical: Chars,
-    name: closedId(AttributeName),
+    name: closedId(AttributeName, { except: openClasses }),
     package: PackageName,
     path: EntryPath,
     prefix: NamespacePrefix,
@@ -255,29 +252,25 @@ export const Attribute = relation.generated(
   ["package", "path", "start", "name"],
   (a) => {
     const domain = AttributeGrammar.at("domain", AttributeModelOf.at("model", a.governor), a.name);
-    const leading = Compute.and(
+    const leading = Logic.and(
       LeadingMembers.has(domain),
-      Compute.matches(a.lexical, LeadingMembers.at("pattern", domain)),
+      Text.matches(a.lexical, LeadingMembers.at("pattern", domain)),
     );
     const leadingClass = LeadingMembers.at("whiteSpace", domain);
     const normalized = (whiteSpace: typeof leadingClass) =>
-      Compute.cond(
-        Compute.eq(whiteSpace, "collapse"),
-        Compute.collapse(a.lexical),
-        Compute.cond(
-          Compute.eq(whiteSpace, "replace"),
-          Compute.replaceWhitespace(a.lexical),
-          a.lexical,
-        ),
+      Logic.cond(
+        Logic.eq(whiteSpace, "collapse"),
+        Text.collapse(a.lexical),
+        Logic.cond(Logic.eq(whiteSpace, "replace"), Text.replaceWhitespace(a.lexical), a.lexical),
       );
 
     return {
       value: generated(
         Chars,
-        Compute.cond(
+        Logic.cond(
           leading,
           normalized(leadingClass),
-          Compute.cond(
+          Logic.cond(
             ValueDomainOf.has(domain),
             normalized(ValueDomainOf.at("whiteSpace", domain)),
             a.lexical,
@@ -304,8 +297,8 @@ export const Attribute = relation.generated(
 export const OpenAttribute = relation(
   "OpenAttribute",
   {
-    class: closedId(AttributeName),
-    elementNamespace: namespaceText,
+    class: closedId(AttributeName, { only: openClasses }),
+    elementNamespace: anyText,
     governor: accumulated(closedId(Governor), "document"),
     kind: accumulated(closedId(NodeKind), "document"),
     lexical: Chars,
@@ -315,7 +308,7 @@ export const OpenAttribute = relation(
     prefix: NamespacePrefix,
     slot: bits(AttributeSlot),
     start: natural,
-    uri: namespaceText,
+    uri: anyText,
   },
   ["package", "path", "start", "uri", "local"],
 );
@@ -383,7 +376,7 @@ export const OpenAttributeEntity = relation(
     package: PackageName,
     path: EntryPath,
     start: natural,
-    uri: namespaceText,
+    uri: anyText,
   },
   ["package", "path", "start", "uri", "local", "offset"],
 );
@@ -438,10 +431,8 @@ type AttributeRow = RowScalars<typeof Attribute>;
  */
 export const carries = (n: RowScalars<typeof Node>, name: (typeof AttributeName.handles)[number]) =>
   n.eq(
-    Compute.subset(
-      Compute.singleton(
-        AttributeGrammar.at("slot", AttributeModelOf.at("model", n.governor), name),
-      ),
+    Bits.subset(
+      Bits.singleton(AttributeGrammar.at("slot", AttributeModelOf.at("model", n.governor), name)),
       n.attrs,
     ),
     true,
@@ -536,14 +527,13 @@ const slotOf = (a: NamedRow) => AttributeGrammar.at("slot", attributeModelOf(a),
 /**
  * State that an attribute's name is one its element's governor admits: the singleton of the name
  * inside `AttributeGrammar`'s row of names for the governor's model. It reads no NULL where the
- * name is unadmitted, so it is the admission law itself, not a closed read's absence. Exported for
- * `#pantry/qti/media.ts`, whose laws read an admitted attribute's domain.
+ * name is unadmitted, so it is the admission law itself, not a closed read's absence.
  *
  * @param a - The row.
  * @returns The predicate.
  */
-export const admitted = (a: AttributeRow) =>
-  a.eq(Compute.subset(Compute.singleton(a.name), AttributeGrammar.row(attributeModelOf(a))), true);
+const admitted = (a: AttributeRow) =>
+  a.eq(Bits.subset(Bits.singleton(a.name), AttributeGrammar.row(attributeModelOf(a))), true);
 
 /**
  * State that an open attribute's class is one its element's governor admits, as {@link admitted}
@@ -553,16 +543,15 @@ export const admitted = (a: AttributeRow) =>
  * @returns The predicate.
  */
 const openAdmitted = (o: OpenAttributeRow) =>
-  o.eq(Compute.subset(Compute.singleton(o.class), AttributeGrammar.row(openModelOf(o))), true);
+  o.eq(Bits.subset(Bits.singleton(o.class), AttributeGrammar.row(openModelOf(o))), true);
 
 /**
- * Read an admitted attribute's value domain under its element's governor. Exported for
- * `#pantry/qti/media.ts`, whose laws read it.
+ * Read an admitted attribute's value domain under its element's governor.
  *
  * @param a - The row.
  * @returns The closed read, absent for an unadmitted name.
  */
-export const domainOf = (a: NamedRow) => AttributeGrammar.at("domain", attributeModelOf(a), a.name);
+const domainOf = (a: NamedRow) => AttributeGrammar.at("domain", attributeModelOf(a), a.name);
 
 /**
  * Read an admitted open attribute's value domain: its class's under its element's governor.
@@ -665,7 +654,7 @@ const textDomainOf = (n: NodeRow) => TextDomain.at("domain", n.governor);
  *   distinctness and AL4's open name key are `Attribute`'s and `OpenAttribute`'s primary keys;
  * - **Double bound** (reading 144): an admitted attribute's, or a checked element text's, value in a
  *   bounded domain's lexical space is judged by the domain's `DoubleBound` on the double PostgreSQL
- *   reads from its collapsed form by grizzle's `Compute.parseDouble`, XML Schema 1.1's
+ *   reads from its collapsed form by grizzle's `Text.parseDouble`, XML Schema 1.1's
  *   doubleLexicalMap (Part 2 §3.3.5.2): the decimal rounded once to the nearest double, ties to
  *   even, an overflow an infinity of its sign and an underflow a zero of its sign, `-0` equal to 0.
  *   The domain's lexical space lies inside grizzle's `doubleText`, so the match the parse's guard
@@ -698,17 +687,17 @@ export const attributeLawsByName = {
   ],
   "AL3 required": [
     check("AL3_required", Node, (n) =>
-      n.eq(Compute.subset(Required.row(AttributeModelOf.at("model", n.governor)), n.attrs), true),
+      n.eq(Bits.subset(Required.row(AttributeModelOf.at("model", n.governor)), n.attrs), true),
     ),
   ],
   "AL4 data name": [
     check("AL4_data_name", OpenAttribute, (o) =>
       o.and(
-        o.or(o.ne(o.class, "data-*"), Compute.matches(o.local, dataNamePattern)),
+        o.or(o.ne(o.class, "data-*"), Text.matches(o.local, dataNamePattern)),
         o.or(
           o.ne(o.class, "no-namespace"),
           o.in(o.kind, openElementClasses),
-          o.eq(Compute.startsWith(o.local, "data-"), false),
+          o.eq(Text.startsWith(o.local, "data-"), false),
         ),
       ),
     ),
@@ -722,10 +711,7 @@ export const attributeLawsByName = {
             o.or(
               o.ne(o.local, name),
               o.eq(
-                Compute.disjoint(
-                  AttributeGrammar.row(openModelOf(o)),
-                  Bits.of(AttributeName, [name]),
-                ),
+                Bits.disjoint(AttributeGrammar.row(openModelOf(o)), Bits.of(AttributeName, [name])),
                 true,
               ),
             ),
@@ -734,17 +720,13 @@ export const attributeLawsByName = {
       ),
     ),
   ],
-  "AL4 open names": [
-    check("AL4_open_names", Attribute, (a) => a.not(a.in(a.name, openClasses))),
-    check("AL4_open_names", OpenAttribute, (o) => o.in(o.class, openClasses)),
-  ],
   "AL5 attribute count": [
     check("AL5_attribute_count", Node, (n) => {
       const model = AttributeModelOf.at("model", n.governor);
       // attrs ∩ counted, written attrs ∖ (attrs ∖ counted): the same set, in the algebra the host
       // judge reads (`#pantry/test/key-copies.ts` `computers`), which holds no intersection.
-      const held = Compute.cardinality(
-        Compute.difference(n.attrs, Compute.difference(n.attrs, CountedSlot.row(model))),
+      const held = Bits.cardinality(
+        Bits.difference(n.attrs, Bits.difference(n.attrs, CountedSlot.row(model))),
       );
 
       return n.or(
@@ -784,10 +766,10 @@ export const attributeLawsByName = {
   "Double bound": [
     check("Double_bound", Attribute, (a) => {
       const domain = domainOf(a);
-      const form = Compute.collapse(a.lexical);
-      const value = Compute.when(
-        Compute.matches(form, doubleText),
-        (double) => Compute.parseDouble(double),
+      const form = Text.collapse(a.lexical);
+      const value = Logic.when(
+        Text.matches(form, doubleText),
+        (double) => Text.parseDouble(double),
         0,
       );
 
@@ -796,11 +778,11 @@ export const attributeLawsByName = {
           a.and(
             admitted(a),
             DoubleBound.has(domain),
-            Compute.matches(a.lexical, ValueDomainOf.at("pattern", domain)),
+            Text.matches(a.lexical, ValueDomainOf.at("pattern", domain)),
           ),
         ),
         a.and(
-          Compute.matches(form, doubleText),
+          Text.matches(form, doubleText),
           a.or(
             a.and(
               a.eq(DoubleBound.at("facet", domain), "minInclusive"),
@@ -816,10 +798,10 @@ export const attributeLawsByName = {
     }),
     check("Double_bound", OpenAttribute, (o) => {
       const domain = openDomainOf(o);
-      const form = Compute.collapse(o.lexical);
-      const value = Compute.when(
-        Compute.matches(form, doubleText),
-        (double) => Compute.parseDouble(double),
+      const form = Text.collapse(o.lexical);
+      const value = Logic.when(
+        Text.matches(form, doubleText),
+        (double) => Text.parseDouble(double),
         0,
       );
 
@@ -828,11 +810,11 @@ export const attributeLawsByName = {
           o.and(
             openAdmitted(o),
             DoubleBound.has(domain),
-            Compute.matches(o.lexical, ValueDomainOf.at("pattern", domain)),
+            Text.matches(o.lexical, ValueDomainOf.at("pattern", domain)),
           ),
         ),
         o.and(
-          Compute.matches(form, doubleText),
+          Text.matches(form, doubleText),
           o.or(
             o.and(
               o.eq(DoubleBound.at("facet", domain), "minInclusive"),
@@ -848,10 +830,10 @@ export const attributeLawsByName = {
     }),
     check("Double_bound", Node, (n) => {
       const domain = textDomainOf(n);
-      const form = Compute.collapse(n.stringValue);
-      const value = Compute.when(
-        Compute.matches(form, doubleText),
-        (double) => Compute.parseDouble(double),
+      const form = Text.collapse(n.stringValue);
+      const value = Logic.when(
+        Text.matches(form, doubleText),
+        (double) => Text.parseDouble(double),
         0,
       );
 
@@ -860,11 +842,11 @@ export const attributeLawsByName = {
           n.and(
             holdsCheckedText(n),
             DoubleBound.has(domain),
-            Compute.matches(n.stringValue, ValueDomainOf.at("pattern", domain)),
+            Text.matches(n.stringValue, ValueDomainOf.at("pattern", domain)),
           ),
         ),
         n.and(
-          Compute.matches(form, doubleText),
+          Text.matches(form, doubleText),
           n.or(
             n.and(
               n.eq(DoubleBound.at("facet", domain), "minInclusive"),
@@ -885,7 +867,7 @@ export const attributeLawsByName = {
       a.or(
         a.not(admitted(a)),
         a.and(
-          a.eq(a.slot, Compute.singleton(slotOf(a))),
+          a.eq(a.slot, Bits.singleton(slotOf(a))),
           a.or(
             a.and(carriesIdrefs(a), a.eq(a.lexical, a.idrefText)),
             a.and(a.not(carriesIdrefs(a)), a.eq(a.idrefs, 0n)),
@@ -896,7 +878,7 @@ export const attributeLawsByName = {
     check("E1_derived", OpenAttribute, (o) =>
       o.or(
         o.not(openAdmitted(o)),
-        o.eq(o.slot, Compute.singleton(AttributeGrammar.at("slot", openModelOf(o), o.class))),
+        o.eq(o.slot, Bits.singleton(AttributeGrammar.at("slot", openModelOf(o), o.class))),
       ),
     ),
     fold(
@@ -936,7 +918,7 @@ export const attributeLawsByName = {
     check("TextDomain", Node, (n) =>
       n.or(
         n.not(holdsCheckedText(n)),
-        Compute.matches(n.stringValue, ValueDomainOf.at("pattern", textDomainOf(n))),
+        Text.matches(n.stringValue, ValueDomainOf.at("pattern", textDomainOf(n))),
       ),
     ),
   ],
@@ -945,14 +927,14 @@ export const attributeLawsByName = {
       a.or(
         a.not(admitted(a)),
         a.in(domainOf(a), universalDomains),
-        Compute.matches(a.lexical, ValueDomainOf.at("pattern", domainOf(a))),
+        Text.matches(a.lexical, ValueDomainOf.at("pattern", domainOf(a))),
       ),
     ),
     check("value_domain", OpenAttribute, (o) =>
       o.or(
         o.not(openAdmitted(o)),
         o.in(openDomainOf(o), universalDomains),
-        Compute.matches(o.lexical, ValueDomainOf.at("pattern", openDomainOf(o))),
+        Text.matches(o.lexical, ValueDomainOf.at("pattern", openDomainOf(o))),
       ),
     ),
   ],

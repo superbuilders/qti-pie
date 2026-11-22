@@ -16,7 +16,7 @@ import { NodeServices } from "@effect/platform-node";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { Effect, Formatter, Option } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
-import { integerMathOperators, valueBases } from "#pantry/grammar/expression.ts";
+import { integerMathOperators, referencedTables, valueBases } from "#pantry/grammar/expression.ts";
 import {
   BaseTypeLexical,
   BuiltInVariable,
@@ -31,8 +31,8 @@ import {
 import { testRoots } from "#pantry/grammar/references.ts";
 import { keyTextOf } from "#pantry/import/key-text.ts";
 import { collapse } from "#pantry/grammar/domains.ts";
-import { rowsOf } from "#pantry/import/overlays/expressions.ts";
-import type { ExpressionRows } from "#pantry/import/overlays/expressions.ts";
+import { placedRowsOf, placingPackageOf, rowsOf } from "#pantry/import/overlays/expressions.ts";
+import type { ExpressionRows, Typed } from "#pantry/import/overlays/expressions.ts";
 import { ownViewOf } from "#pantry/import/fold.ts";
 import type { Place } from "#pantry/import/write.ts";
 import type { Composed } from "#pantry/model/composed.ts";
@@ -272,16 +272,42 @@ interface NodeFacts {
 }
 
 /**
- * A document's rows beside each node's facts and attributes, by its start: its expression rows, and
- * its declarations' attributes, which a reference resolves its name against.
+ * An expression's row beside its type under its document's own placement (`PlacedExpression`).
  */
-type Rows = ExpressionRows & {
+type TypedExpression = (ExpressionRows["Expression"] extends ReadonlyMap<string, infer R>
+  ? R
+  : never) &
+  Typed;
+
+/**
+ * A reference's row beside what it names under its document's own placement (`PlacedVariableRef`),
+ * its resolution and its variable's type, and its element's type there, the expression's own.
+ */
+type TypedReference = (ExpressionRows["VariableRef"] extends ReadonlyMap<string, infer R>
+  ? R
+  : never) &
+  Typed & {
+    readonly elementBase: Typed["baseType"];
+    readonly elementCardinality: Typed["cardinality"];
+    readonly resolution: "builtIn" | "declared" | "read" | "unresolved";
+  };
+
+/**
+ * A document's rows beside each node's facts and attributes, by its start: its expression rows,
+ * each expression and reference typed under the document's own placement, a document in no
+ * assembly (spec reading 117), and its declarations' attributes, which a reference resolves its
+ * name against.
+ */
+type Rows = Omit<ExpressionRows, "Expression" | "VariableRef"> & {
   readonly attributes: ReadonlyMap<bigint, ReadonlyMap<string, string>>;
+  readonly Expression: ReadonlyMap<string, TypedExpression>;
   readonly nodes: ReadonlyMap<bigint, NodeFacts>;
+  readonly VariableRef: ReadonlyMap<string, TypedReference>;
 };
 
 /**
- * Build a document's rows as the importer writes them, beside its nodes' facts.
+ * Build a document's rows as the importer writes them, its own placement's beside its own, and
+ * beside its nodes' facts.
  *
  * @param tree - The document's tree.
  * @returns Its rows.
@@ -291,9 +317,53 @@ const rowsOfTree = (tree: XdmDocument<Composed>): Rows => {
   const kinds = new Map(view.rows.nodes.map(({ kind, start }) => [start, kind] as const));
   const elementsBefore = new Map<bigint, bigint>();
   const nonElements: ReadonlySet<string> = new Set(nonElementKinds);
+  const own = rowsOf(view, place);
+  const placed = placedRowsOf({
+    instances: [],
+    placing: placingPackageOf([
+      {
+        ids: { ...place, assembled: false },
+        paths: [],
+        references: own.VariableRef.values(),
+        view,
+      },
+    ]),
+    readingsOf: () => [],
+  });
+  const typeAt = (start: bigint): Typed => {
+    const typed = placed.PlacedExpression.get(keyTextOf(place.path, 0n, place.path, start));
+
+    return {
+      baseType: typed?.baseType ?? "unknown",
+      cardinality: typed?.cardinality ?? "unknown",
+    };
+  };
 
   return {
-    ...rowsOf(view, place),
+    ...own,
+    Expression: new Map(
+      [...own.Expression].map(([key, row]) => [key, { ...row, ...typeAt(row.start) }] as const),
+    ),
+    VariableRef: new Map(
+      [...own.VariableRef].map(([key, row]) => {
+        const found = placed.PlacedVariableRef.get(
+          keyTextOf(place.path, 0n, place.path, row.start, row.attribute),
+        );
+        const element = typeAt(row.start);
+
+        return [
+          key,
+          {
+            ...row,
+            baseType: found?.baseType ?? "unknown",
+            cardinality: found?.cardinality ?? "unknown",
+            elementBase: element.baseType,
+            elementCardinality: element.cardinality,
+            resolution: found?.resolution ?? "unresolved",
+          },
+        ] as const;
+      }),
+    ),
     attributes: new Map(
       [...Map.groupBy(view.rows.attributes, ({ start }) => start)].map(
         ([start, held]) =>
@@ -341,7 +411,7 @@ interface Folded {
   readonly count: number;
   readonly lead: ReadonlySet<string>;
   readonly node: NodeFacts;
-  readonly row: ExpressionRows["Expression"] extends ReadonlyMap<string, infer R> ? R : never;
+  readonly row: TypedExpression;
   readonly tail: ReadonlySet<string>;
   readonly tailCardinalities: ReadonlySet<string>;
 }
@@ -510,12 +580,10 @@ const writtenAt = (rows: Rows, start: bigint, name: string): string | undefined 
   rows.attributes.get(start)?.get(name);
 
 /**
- * A `VariableRef` row beside its element's kind and its attribute's lexical form, as the view
- * `VariableRefNode` joins it (`#pantry/qti/names.ts`).
+ * A typed reference beside its element's kind and its attribute's lexical form, as the views
+ * `VariableRefNode` and `PlacedVariableRefNode` join it (`#pantry/qti/names.ts`).
  */
-type Reference = (ExpressionRows["VariableRef"] extends ReadonlyMap<string, infer R>
-  ? R
-  : never) & { readonly kind: string; readonly lexical: string };
+type Reference = TypedReference & { readonly kind: string; readonly lexical: string };
 
 /**
  * Each reference of the rows beside its element's kind and its attribute's lexical form.
@@ -632,7 +700,7 @@ const resolves = (v: Reference, rows: Rows): boolean => {
   switch (v.resolution) {
     case "declared": {
       // A declared variable with no base type, a record, is `unknown`; one with a base type has its
-      // declaration's, which `VariableRefBaseType` reads. Its cardinality is its declaration's
+      // declaration's, which `PlacedVariableBase` reads. Its cardinality is its declaration's
       // image where it has one (spec reading 159); one with none is refused by AL3 or its value
       // domain alone, since `cardinality` is required and enumerated.
       return (
@@ -649,6 +717,11 @@ const resolves = (v: Reference, rows: Rows): boolean => {
         v.cardinality === builtIn.cardinality
       );
     }
+    case "read": {
+      // Its type is its one reading's under a test (spec reading 167), which
+      // `overlay-queries/readings.ts` states; its name is neither declared nor built in there.
+      return testRootSet.has(v.rootKind) && declared === undefined && builtIn === undefined;
+    }
     case "unresolved": {
       return (
         declared === undefined &&
@@ -664,64 +737,58 @@ const resolves = (v: Reference, rows: Rows): boolean => {
 };
 
 /**
- * The table a reference claims of its declaration (`VariableRefTable`), none where it claims none.
- *
- * @param v - The reference.
- * @param rows - The rows.
- * @returns The table, if any.
+ * The tables a declaration may hold that a reference reads.
  */
-const tableOf = (v: Reference, rows: ExpressionRows): string | undefined =>
-  rows.VariableRefTable.get(keyTextOf(v.package, v.path, v.start, v.attribute))?.table;
+const tableKinds: ReadonlySet<string> = new Set(referencedTables);
 
 /**
- * `E1_derived`'s claimed table: none, or, by a declared reference's `identifier`, one its element
- * reads, of the declaration its name resolves to.
+ * The tables the declaration a reference names holds, its node's children of a table's kind, none
+ * where it names none (`DeclarationTable` of `#pantry/qti/overlay-queries/declaration.ts`).
  *
  * @param v - The reference.
  * @param rows - The rows.
- * @returns Whether its claim is lawful.
+ * @returns The tables' kinds.
  */
-const claims = (v: Reference, rows: Rows): boolean => {
-  const claim = rows.VariableRefTable.get(keyTextOf(v.package, v.path, v.start, v.attribute));
-  if (claim === undefined) {
-    return true;
-  }
+const tablesOf = (v: Reference, rows: Rows): ReadonlySet<string> => {
+  const declared = declarationOf(v, rows);
 
-  const wanted =
-    v.kind === lookupKindHandle
-      ? ["qti-match-table", "qti-interpolation-table"]
-      : [v.kind === "qti-map-response" ? "qti-mapping" : "qti-area-mapping"];
-
-  return (
-    v.attribute === "identifier" &&
-    v.resolution === "declared" &&
-    ["qti-map-response", "qti-map-response-point", lookupKindHandle].includes(v.kind) &&
-    wanted.includes(claim.table) &&
-    declarationOf(v, rows) !== undefined
+  return new Set(
+    declared === undefined
+      ? []
+      : [...rows.nodes.values()].flatMap(({ kind, parent }) =>
+          parent === declared.declaration && tableKinds.has(kind) ? [kind] : [],
+        ),
   );
 };
 
 /**
- * `E1_derived`'s copies: the element's type and language, and a declared kind's typing.
+ * `E1_derived`'s copies: the element's language, and a declared kind's typing: an unweighted read
+ * typed as its variable (`UnweightedRead`), and a weighted one, a `qti-variable` that writes a
+ * `weight-identifier`, typed as its variable but float where the variable is integer
+ * (`WeightedRead`; information model §7.47.2: "When applying a weight to the value of a variable
+ * with base-type integer the value is subject to type promotion and the result of the expression
+ * has base-type float").
  *
  * @param v - The reference.
  * @param rows - The rows.
  * @returns Whether every copy agrees.
  */
-const copies = (v: Reference, rows: ExpressionRows): boolean => {
+const copies = (v: Reference, rows: Rows): boolean => {
   const element = rows.Expression.get(keyTextOf(v.package, v.path, v.start));
   const copied =
     element === undefined
       ? rows.Processing.get(keyTextOf(v.package, v.path, v.start))?.language === v.language
-      : element.baseType === v.elementBase &&
-        element.cardinality === v.elementCardinality &&
-        element.language === v.language;
+      : element.language === v.language;
+  const read =
+    writtenAt(rows, v.start, "weight-identifier") !== undefined && v.baseType === "integer"
+      ? "float"
+      : v.baseType;
 
   return (
     copied &&
     (v.attribute !== "identifier" ||
       !declaredTyped.has(v.kind) ||
-      (v.elementBase === v.baseType && v.elementCardinality === v.cardinality))
+      (v.elementBase === read && v.elementCardinality === v.cardinality))
   );
 };
 
@@ -729,7 +796,7 @@ const copies = (v: Reference, rows: ExpressionRows): boolean => {
  * Each reference law, judged over a reference.
  */
 const referenceLawsOnHost: readonly (readonly [Law, (v: Reference, rows: Rows) => boolean])[] = [
-  ["E1_derived", (v, rows) => spells(v) && resolves(v, rows) && claims(v, rows) && copies(v, rows)],
+  ["E1_derived", (v, rows) => spells(v) && resolves(v, rows) && copies(v, rows)],
   [
     "Variable_declared",
     (v) =>
@@ -752,7 +819,7 @@ const referenceLawsOnHost: readonly (readonly [Law, (v: Reference, rows: Rows) =
       v.attribute !== "identifier" ||
       v.kind !== lookupKindHandle ||
       v.resolution !== "declared" ||
-      ["qti-match-table", "qti-interpolation-table"].includes(tableOf(v, rows) ?? ""),
+      ["qti-match-table", "qti-interpolation-table"].some((table) => tablesOf(v, rows).has(table)),
   ],
   [
     "Reference_type",
@@ -784,9 +851,9 @@ const referenceLawsOnHost: readonly (readonly [Law, (v: Reference, rows: Rows) =
       !["qti-map-response", "qti-map-response-point"].includes(v.kind) ||
       v.resolution !== "declared" ||
       (declarationKindOf(v, rows) === "qti-response-declaration" &&
-        ((v.kind === "qti-map-response" && tableOf(v, rows) === "qti-mapping") ||
+        ((v.kind === "qti-map-response" && tablesOf(v, rows).has("qti-mapping")) ||
           (v.kind === "qti-map-response-point" &&
-            tableOf(v, rows) === "qti-area-mapping" &&
+            tablesOf(v, rows).has("qti-area-mapping") &&
             ["point", "any", "unknown"].includes(v.baseType)))),
   ],
 ];
@@ -805,6 +872,7 @@ interface Held {
   readonly path: string;
   readonly resolution: string;
   readonly start: bigint;
+  readonly tables: ReadonlySet<string>;
 }
 
 /**
@@ -835,15 +903,16 @@ const heldTypesOnHost = (rows: Rows): readonly Held[] =>
           path: v.path,
           resolution: v.resolution,
           start: v.start,
+          tables: tablesOf(v, rows),
         }))
         .toArray(),
     );
 
 /**
- * Each law over a setter's or a lookup's held type, judged over its row and the table its lookup
- * claims, by its element's place and `identifier`.
+ * Each law over a setter's or a lookup's held type, judged over its row and the tables its lookup's
+ * declaration holds, by its element's place and `identifier`.
  */
-const heldLawsOnHost: readonly (readonly [Law, (h: Held, rows: ExpressionRows) => boolean])[] = [
+const heldLawsOnHost: readonly (readonly [Law, (h: Held) => boolean])[] = [
   [
     "Set_type",
     (h) =>
@@ -855,13 +924,13 @@ const heldLawsOnHost: readonly (readonly [Law, (h: Held, rows: ExpressionRows) =
   ],
   [
     "Lookup_type",
-    (h, rows) =>
+    (h) =>
       h.kind !== lookupKindHandle ||
       (["single", "unknown"].includes(h.heldCardinality) &&
         ["duration", "float", "integer", "any", "unknown"].includes(h.heldBase) &&
-        (rows.VariableRefTable.get(keyTextOf(h.package, h.path, h.start, "identifier"))?.table !==
-          "qti-match-table" ||
-          ["integer", "any", "unknown"].includes(h.heldBase))),
+        (h.resolution !== "declared" ||
+          ["integer", "any", "unknown"].includes(h.heldBase) ||
+          h.tables.has("qti-interpolation-table"))),
   ],
 ];
 
@@ -876,10 +945,7 @@ const heldLawsOnHost: readonly (readonly [Law, (h: Held, rows: ExpressionRows) =
  * @param e - The expression's row.
  * @returns Whether its base type is the one its typing attribute gives, true where it has none.
  */
-const attributeDerives = (
-  rows: Rows,
-  e: ExpressionRows["Expression"] extends ReadonlyMap<string, infer R> ? R : never,
-): boolean => {
+const attributeDerives = (rows: Rows, e: TypedExpression): boolean => {
   const { kind } = nodeAt(rows, e.start);
   const baseType = writtenAt(rows, e.start, "base-type");
   const name = writtenAt(rows, e.start, "name");
@@ -978,7 +1044,7 @@ const breachesOf = (rows: Rows): ReadonlySet<Law> => {
 
   for (const h of heldTypesOnHost(rows)) {
     for (const [law, holds] of heldLawsOnHost) {
-      if (!holds(h, rows)) {
+      if (!holds(h)) {
         broken.add(law);
       }
     }
@@ -1281,16 +1347,14 @@ const documentOfRoot = (root: XdmClosedElement<Composed>): XdmDocument<Composed>
 });
 
 /**
- * The declarations a document holds as its own tree says: each declaration element's collapsed
- * identifier, and the tables it holds as children.
+ * The names a document declares as its own tree says: each declaration element's collapsed
+ * identifier.
  *
  * @param tree - The document's tree.
- * @returns Each identifier with its declaration's tables, the first of a repeated identifier.
+ * @returns The identifiers.
  */
-const declarationsInTree = (
-  tree: XdmDocument<Composed>,
-): ReadonlyMap<string, ReadonlySet<string>> => {
-  const declared = new Map<string, ReadonlySet<string>>();
+const declarationsInTree = (tree: XdmDocument<Composed>): ReadonlySet<string> => {
+  const declared = new Set<string>();
   const visit = (node: XdmChild<Composed>): void => {
     if (node._tag !== "element") {
       return;
@@ -1306,13 +1370,9 @@ const declarationsInTree = (
         "qti-response-declaration",
         "qti-template-declaration",
       ].includes(node.kind) &&
-      identifier !== undefined &&
-      !declared.has(identifier.trim())
+      identifier !== undefined
     ) {
-      declared.set(
-        identifier.trim(),
-        new Set(node.children.flatMap((child) => (child._tag === "element" ? [child.kind] : []))),
-      );
+      declared.add(identifier.trim());
     }
 
     for (const child of node.children) {
@@ -1382,15 +1442,77 @@ describe("import/overlays/expressions.ts, the claims a reference proves", () => 
     }
   });
 
+  it("types a weighted read of an integer variable float, and every other read as its variable", () => {
+    // Oracle: the information model's Variable (§7.47: "The result has the base-type and
+    // cardinality declared for the variable subject to the type promotion of weighted outcomes";
+    // §7.47.2: "When applying a weight to the value of a variable with base-type integer the value
+    // is subject to type promotion and the result of the expression has base-type float", and "If
+    // the item variable is of any other type the weight is ignored"), and E1_derived's
+    // `UnweightedRead` and `WeightedRead`, which hold the element so.
+    // Bound: an integer, a float and an identifier variable, each read weighted and unweighted.
+    for (const [base, weighted] of [
+      ["integer", false],
+      ["integer", true],
+      ["float", false],
+      ["float", true],
+      ["identifier", false],
+      ["identifier", true],
+    ] as const) {
+      const tree = documentOfRoot(
+        el(
+          "qti-assessment-test",
+          [
+            ["identifier", "T"],
+            ["title", "T"],
+          ],
+          [
+            el("qti-outcome-declaration", [
+              ["identifier", "READ"],
+              ["cardinality", "single"],
+              ["base-type", base],
+            ]),
+            el(
+              "qti-outcome-processing",
+              [],
+              [
+                el(
+                  "qti-set-outcome-value",
+                  [["identifier", "OUT"]],
+                  [
+                    el("qti-variable", [
+                      ["identifier", "READ"],
+                      ...(weighted ? ([["weight-identifier", "W"]] as const) : []),
+                    ]),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      const rows = rowsOfTree(tree);
+      const read = [...rows.Expression.values()].find(
+        ({ start }) => nodeAt(rows, start).kind === "qti-variable",
+      );
+
+      assert.strictEqual(
+        read?.baseType,
+        weighted && base === "integer" ? "float" : base,
+        `${base}${weighted ? " weighted" : ""}`,
+      );
+      assert.strictEqual(read?.cardinality, "single");
+      assert.isFalse(breachesOf(rows).has("E1_derived"), `${base}${weighted ? " weighted" : ""}`);
+    }
+  });
+
   it.effect(
-    "resolves a reference to a declaration exactly where its document declares its name, types every unwritten unweighted base type unknown, and reads every table a declaration holds",
+    "resolves a reference to a declaration exactly where its document declares its name, and types every unwritten unweighted base type unknown",
     () =>
       // Oracle: each document's own tree (`declarationsInTree`), a second reading of what it
-      // declares and which tables each declaration holds, against the references the builder
-      // writes (M2, `DeclaredReference` of `#pantry/qti/queries.ts`): a reference is declared
-      // exactly where its document declares its name, every test variables that writes neither a
-      // `base-type` nor a weight is `unknown`, and every table a map response claims is the table
-      // its declaration holds, no claim row where it holds none.
+      // declares, against the references the builder writes under the document's own placement
+      // (M2, `DeclaredPlacement` of `#pantry/qti/queries.ts`): a reference is declared exactly
+      // where its document declares its name, and every test variables that writes neither a
+      // `base-type` nor a weight is `unknown`.
       // Bound: every fixture, 36 documents.
       Effect.gen(function* claimsProved() {
         for (const { file } of frozen) {
@@ -1415,28 +1537,6 @@ describe("import/overlays/expressions.ts, the claims a reference proves", () => 
               !written("weight-identifier")
             ) {
               assert.strictEqual(expression.baseType, "unknown", file);
-            }
-          }
-
-          for (const reference of referencesOf(rows)) {
-            const holds = declared.get(reference.identifier) ?? new Set<string>();
-            if (
-              reference.resolution === "declared" &&
-              reference.attribute === "identifier" &&
-              reference.kind === "qti-map-response"
-            ) {
-              assert.strictEqual(
-                rows.VariableRefTable.get(
-                  keyTextOf(
-                    reference.package,
-                    reference.path,
-                    reference.start,
-                    reference.attribute,
-                  ),
-                )?.table,
-                holds.has("qti-mapping") ? "qti-mapping" : undefined,
-                file,
-              );
             }
           }
         }

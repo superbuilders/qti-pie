@@ -5,21 +5,30 @@
  * (`#pantry/qti/expressions.ts`, `#pantry/qti/operators.ts`, `#pantry/qti/mathml-*.ts`); and the
  * operators' laws over an attribute no row copies (C18), each a rule over a query that reads it:
  * a rounding operator's mode in force (`RoundingMode`) and a tolerance's form (`ToleranceForm`).
+ *
+ * The placements (spec reading 117) are stated here once, {@link placedDocuments}: every type law
+ * reads an expression's type where a placement gives it, `PlacedExpression`, so each law is stated
+ * once over the placed rows and judges each placement of a document on its own.
  */
 import type { RelationName } from "@bjornpagen/grizzle";
 import {
+  Bits,
   check,
-  Compute,
   contained,
   derived,
   key,
+  Logic,
   mirrors,
   on,
   query,
   select,
   v,
 } from "@bjornpagen/grizzle";
-import { mathHeadQualifiers, mathQualifiers } from "#pantry/grammar/expression.ts";
+import {
+  binaryMathOperators,
+  mathHeadQualifiers,
+  mathQualifiers,
+} from "#pantry/grammar/expression.ts";
 import {
   HeadQualifier,
   MathArity,
@@ -32,6 +41,7 @@ import {
 } from "#pantry/grammar/install.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
+import { Document } from "#pantry/qti/chardata.ts";
 import {
   conditionKindHandles,
   containerKinds,
@@ -48,7 +58,14 @@ import {
   secondKinds,
   TailCardinality,
 } from "#pantry/qti/expression-types.ts";
-import { Expression, LiteralTyped, Processing, silentBases } from "#pantry/qti/expressions.ts";
+import {
+  Expression,
+  Literal,
+  LiteralTyped,
+  PlacedExpression,
+  Processing,
+  silentBases,
+} from "#pantry/qti/expressions.ts";
 import {
   CellLeaf,
   MathAction,
@@ -62,9 +79,16 @@ import {
   PlacedShareTarget,
   ShareTarget,
 } from "#pantry/qti/mathml-share.ts";
-import { attributeValues, listForms, spelledByTokens } from "#pantry/qti/names.ts";
+import {
+  attributeValues,
+  listForms,
+  LocatedTemplate,
+  QtiViews,
+  spelledByTokens,
+} from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Rounding, RoundingModeFigures, Tolerance } from "#pantry/qti/operators.ts";
+import { Instance } from "#pantry/qti/tests.ts";
 import { attributeTypedKinds } from "#pantry/vocab/terms/expressions.ts";
 import { equalRoundedMode, roundingKinds } from "#pantry/vocab/terms/operators.ts";
 import {
@@ -74,37 +98,148 @@ import {
 } from "#pantry/vocab/terms/expression-types.ts";
 
 /**
+ * Each document in no assembly as its own one placement (spec reading 117), by its path: numbered
+ * as an assembly's root instance is, its `instance` the place of its document node, 0, its site.
+ */
+const standalonePlacements = query(QtiBase).rule((r) => {
+  const { package: pkg, path } = v(Document, "document");
+  const { start: instance } = v(Node, "documentNode");
+
+  return r
+    .match(Document, { assembled: false, package: pkg, path })
+    .match(Node, { kind: "document", package: pkg, path, start: instance })
+    .find({ instance, package: pkg, path });
+});
+
+/**
+ * Each document's own placement, by its path: the root instance of the assembly it heads, the one
+ * instance of that assembly that places its head, or its standalone one. A spliced fragment, which
+ * heads no assembly, has none.
+ */
+const ownPlacements = query(QtiBase)
+  .rule((r) => {
+    const { document: path, package: pkg, start: instance } = v(Instance, "root");
+
+    return r
+      .match(Instance, { assembly: path, document: path, package: pkg, start: instance })
+      .find({ instance, package: pkg, path });
+  })
+  .rule((r) => {
+    const { instance, package: pkg, path } = v(standalonePlacements, "standalone");
+
+    return r
+      .match(standalonePlacements, { instance, package: pkg, path })
+      .find({ instance, package: pkg, path });
+  });
+
+/**
+ * Each document each placement types, by the placement, `(package, assembly, instance)`, and the
+ * document's path (spec reading 117): the one document an instance of an assembly places
+ * (`Instance`); a document in no assembly under its own one placement, its path its assembly's
+ * ({@link standalonePlacements}); and, under an item's own placement, the response processing
+ * template the item locates (`LocatedTemplate`, information model §4.6.1: "The rules obtained from
+ * the external template may be used instead of the rules defined within the item itself"), whose
+ * rules run as the item's own. Every type law reads a placed expression or reference, so a document
+ * placed twice is judged under each placement: two tests that place one section document, two items
+ * that splice one rules fragment, and an item and the template it locates, each typed in the
+ * assembly that places it.
+ */
+export const placedDocuments = query(QtiViews)
+  .rule((r) => {
+    const { assembly, document: path, package: pkg, start: instance } = v(Instance, "instance");
+
+    return r
+      .match(Instance, { assembly, document: path, package: pkg, start: instance })
+      .find({ assembly, instance, package: pkg, path });
+  })
+  .rule((r) => {
+    const { instance, package: pkg, path } = v(standalonePlacements, "standalone");
+
+    return r
+      .match(standalonePlacements, { instance, package: pkg, path })
+      .find({ assembly: path, instance, package: pkg, path });
+  })
+  .rule((r) => {
+    const { instance, package: pkg, path: item } = v(ownPlacements, "item");
+    const { template: path } = v(LocatedTemplate, "located");
+
+    return r
+      .match(ownPlacements, { instance, package: pkg, path: item })
+      .match(LocatedTemplate, { package: pkg, path: item, template: path })
+      .find({ assembly: item, instance, package: pkg, path });
+  });
+
+/**
+ * The expressions each placement types, by the placement and the expression's place: every
+ * expression of every document it places ({@link placedDocuments}). "E1 derived" holds
+ * `PlacedExpression` to it both ways, so a placement types each of its expressions once, and
+ * nothing else.
+ */
+const PlacedExpressionSite = derived(
+  "PlacedExpressionSite",
+  query(QtiViews).rule((r) => {
+    const { assembly, instance, package: pkg, path } = v(placedDocuments, "placement");
+    const { start } = v(Expression, "expression");
+
+    return r
+      .match(placedDocuments, { assembly, instance, package: pkg, path })
+      .match(Expression, { package: pkg, path, start })
+      .find({ assembly, instance, package: pkg, path, start });
+  }),
+);
+
+/**
  * Each expression beside its node's kind, parent and parent's kind, by its place: its
- * {@link Expression} row and its type, matched with `Node` at its key.
+ * {@link Expression} row and its language, matched with `Node` at its key.
  */
 const ExpressionNode = derived(
   "ExpressionNode",
   query(QtiBase).rule((r) => {
-    const {
-      baseType,
-      cardinality,
-      language,
-      package: pkg,
-      path,
-      start,
-    } = v(Expression, "expression");
+    const { language, package: pkg, path, start } = v(Expression, "expression");
     const { kind, parent, parentKind } = v(Node, "node");
 
     return r
-      .match(Expression, {
+      .match(Expression, { language, package: pkg, path, start })
+      .match(Node, { kind, package: pkg, parent, parentKind, path, start })
+      .find({ kind, language, package: pkg, parent, parentKind, path, start });
+  }),
+);
+
+/**
+ * Each placed expression beside its node's kind, parent and parent's kind, by its placement and
+ * place: its {@link PlacedExpression} row and its type there, matched with `Node` at its key.
+ */
+const PlacedExpressionNode = derived(
+  "PlacedExpressionNode",
+  query(QtiBase).rule((r) => {
+    const {
+      assembly,
+      baseType,
+      cardinality,
+      instance,
+      package: pkg,
+      path,
+      start,
+    } = v(PlacedExpression, "expression");
+    const { kind, parent, parentKind } = v(Node, "node");
+
+    return r
+      .match(PlacedExpression, {
+        assembly,
         baseType,
         cardinality,
-        language,
+        instance,
         package: pkg,
         path,
         start,
       })
       .match(Node, { kind, package: pkg, parent, parentKind, path, start })
       .find({
+        assembly,
         baseType,
         cardinality,
+        instance,
         kind,
-        language,
         package: pkg,
         parent,
         parentKind,
@@ -133,50 +268,76 @@ const ProcessingNode = derived(
 
 /**
  * Each operand, by its place (C16): an expression whose node's parent is an expression, its
- * `operator`, with its `rank`, its node's element rank among its siblings, 1 to n, and its own type
- * (`baseType`, `cardinality`, and their one-bit sets), beside its operator's node's kind and its
- * operator's type. Every operand law is a rule over it or over a query that matches it, so no row
- * stores an operator's count or its operands' types (grizzle, 2026-11-18). An expression's element
- * children are its operands, so the ranks of an operator's operands are 1 to its count.
+ * `operator`, with its `rank`, its node's element rank among its siblings, 1 to n, beside its
+ * operator's node's kind. An expression's element children are its operands, so the ranks of an
+ * operator's operands are 1 to its count. It is its document's fact, the same in every placement:
+ * "Arity" reads it ({@link ExpressionOperand}), and each placement types it ({@link operands}).
  */
-const operands = query(QtiBase).rule((r) => {
-  const {
-    baseType,
-    baseTypeBit,
-    cardinality,
-    cardinalityBit,
-    package: pkg,
-    path,
-    start,
-  } = v(Expression, "operand");
+const operandRows = query(QtiBase).rule((r) => {
+  const { package: pkg, path, start } = v(Expression, "operand");
   const { elements: rank, parent: operator } = v(Node, "operandNode");
-  const { baseType: operatorBase, cardinality: operatorCardinality } = v(Expression, "operator");
   const { kind: operatorKind } = v(Node, "operatorNode");
 
   return r
-    .match(Expression, {
+    .match(Expression, { package: pkg, path, start })
+    .match(Node, { elements: rank, package: pkg, parent: operator, path, start })
+    .match(Expression, { package: pkg, path, start: operator })
+    .match(Node, { kind: operatorKind, package: pkg, path, start: operator })
+    .find({ operator, operatorKind, package: pkg, path, rank, start });
+});
+
+/**
+ * {@link operandRows} as a relation of the schema, which "Arity" reads.
+ */
+const ExpressionOperand = derived("ExpressionOperand", operandRows);
+
+/**
+ * Each operand under each placement of its document, by the placement and its place: its
+ * {@link operandRows} row, its own type there (`baseType`, `cardinality`, and their one-bit sets)
+ * and its operator's (`operatorBase`, `operatorCardinality`), both its {@link PlacedExpression}
+ * rows under the one placement. Every operand type law is a rule over it or over a query that
+ * matches it, so no row stores an operator's count or its operands' types (grizzle, 2026-11-18).
+ */
+const operands = query(QtiBase).rule((r) => {
+  const { operator, operatorKind, package: pkg, path, rank, start } = v(operandRows, "operand");
+  const { assembly, baseType, baseTypeBit, cardinality, cardinalityBit, instance } = v(
+    PlacedExpression,
+    "placedOperand",
+  );
+  const { baseType: operatorBase, cardinality: operatorCardinality } = v(
+    PlacedExpression,
+    "placedOperator",
+  );
+
+  return r
+    .match(operandRows, { operator, operatorKind, package: pkg, path, rank, start })
+    .match(PlacedExpression, {
+      assembly,
       baseType,
       baseTypeBit,
       cardinality,
       cardinalityBit,
+      instance,
       package: pkg,
       path,
       start,
     })
-    .match(Node, { elements: rank, package: pkg, parent: operator, path, start })
-    .match(Expression, {
+    .match(PlacedExpression, {
+      assembly,
       baseType: operatorBase,
       cardinality: operatorCardinality,
+      instance,
       package: pkg,
       path,
       start: operator,
     })
-    .match(Node, { kind: operatorKind, package: pkg, path, start: operator })
     .find({
+      assembly,
       baseType,
       baseTypeBit,
       cardinality,
       cardinalityBit,
+      instance,
       operator,
       operatorBase,
       operatorCardinality,
@@ -189,8 +350,8 @@ const operands = query(QtiBase).rule((r) => {
 });
 
 /**
- * {@link operands} as a relation of the schema, which the operand laws' checks and containments
- * read.
+ * {@link operands} as a relation of the schema, which the operand type laws' checks and
+ * containments read.
  */
 const OperandOf = derived("OperandOf", operands);
 
@@ -200,48 +361,73 @@ const OperandOf = derived("OperandOf", operands);
 const unknownBases = ["any", "unknown"] as const;
 
 /**
- * Each operator's known operand bases, `(operator, base)`, of an operator that takes one base
- * (`oneBaseKinds`): an operand's base that is neither `any` nor `unknown`. "One base" keys it by
- * its operator.
+ * Each operator's known operand bases under each placement, `(operator, base)`, of an operator
+ * that takes one base (`oneBaseKinds`): an operand's base that is neither `any` nor `unknown`. "One
+ * base" keys it by its operator's placement and place.
  */
 const KnownOperandBase = derived(
   "KnownOperandBase",
   query(QtiBase).rule((r) => {
-    const { baseType, operator, operatorKind, package: pkg, path } = v(operands, "operand");
+    const {
+      assembly,
+      baseType,
+      instance,
+      operator,
+      operatorKind,
+      package: pkg,
+      path,
+    } = v(operands, "operand");
 
     return r
-      .match(operands, { baseType, operator, operatorKind, package: pkg, path })
-      .where(r.in(operatorKind, oneBaseKinds), Compute.not(r.in(baseType, unknownBases)))
-      .find({ baseType, operator, package: pkg, path });
+      .match(operands, { assembly, baseType, instance, operator, operatorKind, package: pkg, path })
+      .where(r.in(operatorKind, oneBaseKinds), Logic.not(r.in(baseType, unknownBases)))
+      .find({ assembly, baseType, instance, operator, package: pkg, path });
   }),
 );
 
 /**
- * Each operator's known operand cardinalities, `(operator, cardinality)`, of an operator that
- * takes one cardinality (`oneCardinalityKinds`): an operand's cardinality that is not `unknown`.
+ * Each operator's known operand cardinalities under each placement, `(operator, cardinality)`, of
+ * an operator that takes one cardinality (`oneCardinalityKinds`): an operand's cardinality that is
+ * not `unknown`.
  */
 const KnownOperandCardinality = derived(
   "KnownOperandCardinality",
   query(QtiBase).rule((r) => {
-    const { cardinality, operator, operatorKind, package: pkg, path } = v(operands, "operand");
+    const {
+      assembly,
+      cardinality,
+      instance,
+      operator,
+      operatorKind,
+      package: pkg,
+      path,
+    } = v(operands, "operand");
 
     return r
-      .match(operands, { cardinality, operator, operatorKind, package: pkg, path })
+      .match(operands, {
+        assembly,
+        cardinality,
+        instance,
+        operator,
+        operatorKind,
+        package: pkg,
+        path,
+      })
       .where(r.in(operatorKind, oneCardinalityKinds), r.ne(cardinality, "unknown"))
-      .find({ cardinality, operator, package: pkg, path });
+      .find({ assembly, cardinality, instance, operator, package: pkg, path });
   }),
 );
 
 /**
- * The operators of the given kinds whose operands, of rank at least `least`, hold two different
- * bases neither of which is `any`, or one of base `unknown`: those whose result is `unknown` under
- * a typing by their operands' one base (a container's, an Index's, a Random's, a Delete's later
- * operands').
+ * The operators of the given kinds whose operands under a placement, of rank at least `least`,
+ * hold two different bases neither of which is `any`, or one of base `unknown`: those whose result
+ * is `unknown` there under a typing by their operands' one base (a container's, an Index's, a
+ * Random's, a Delete's later operands').
  *
  * @param name - The derived relation's name.
  * @param kinds - The operator kinds it reads.
  * @param least - The least rank of the operands it reads.
- * @returns The derived relation, by the operator's place.
+ * @returns The derived relation, by the operator's placement and place.
  */
 const unknownOfBases = <Name extends string>(
   name: RelationName<Name>,
@@ -252,12 +438,38 @@ const unknownOfBases = <Name extends string>(
     name,
     query(QtiBase)
       .rule((r) => {
-        const { baseType, operator, operatorKind, package: pkg, path, rank } = v(operands, "first");
+        const {
+          assembly,
+          baseType,
+          instance,
+          operator,
+          operatorKind,
+          package: pkg,
+          path,
+          rank,
+        } = v(operands, "first");
         const { baseType: other, rank: otherRank } = v(operands, "second");
 
         return r
-          .match(operands, { baseType, operator, operatorKind, package: pkg, path, rank })
-          .match(operands, { baseType: other, operator, package: pkg, path, rank: otherRank })
+          .match(operands, {
+            assembly,
+            baseType,
+            instance,
+            operator,
+            operatorKind,
+            package: pkg,
+            path,
+            rank,
+          })
+          .match(operands, {
+            assembly,
+            baseType: other,
+            instance,
+            operator,
+            package: pkg,
+            path,
+            rank: otherRank,
+          })
           .where(
             r.in(operatorKind, kinds),
             r.ge(rank, least),
@@ -266,14 +478,24 @@ const unknownOfBases = <Name extends string>(
             r.ne(other, "any"),
             r.ne(baseType, other),
           )
-          .find({ operator, package: pkg, path });
+          .find({ assembly, instance, operator, package: pkg, path });
       })
       .rule((r) => {
-        const { operator, operatorKind, package: pkg, path, rank } = v(operands, "operand");
+        const {
+          assembly,
+          instance,
+          operator,
+          operatorKind,
+          package: pkg,
+          path,
+          rank,
+        } = v(operands, "operand");
 
         return r
           .match(operands, {
+            assembly,
             baseType: "unknown",
+            instance,
             operator,
             operatorKind,
             package: pkg,
@@ -281,12 +503,12 @@ const unknownOfBases = <Name extends string>(
             rank,
           })
           .where(r.in(operatorKind, kinds), r.ge(rank, least))
-          .find({ operator, package: pkg, path });
+          .find({ assembly, instance, operator, package: pkg, path });
       }),
   );
 
 /**
- * The containers, Indexes and Randoms whose operands' bases make them `unknown`.
+ * The containers, Indexes and Randoms whose operands' bases make them `unknown` under a placement.
  */
 const UnknownOperandBase = unknownOfBases(
   "UnknownOperandBase",
@@ -295,36 +517,54 @@ const UnknownOperandBase = unknownOfBases(
 );
 
 /**
- * The Deletes whose later operands' bases make them `unknown`.
+ * The Deletes whose later operands' bases make them `unknown` under a placement.
  */
 const UnknownTailBase = unknownOfBases("UnknownTailBase", secondKinds, 2n);
 
 /**
- * The operands of a numeric aggregate whose base is neither `integer` nor `any`, by their
- * operator: a numeric aggregate with one of them is no integer.
+ * The operands of a numeric aggregate under a placement whose base is neither `integer` nor `any`,
+ * by their operator: a numeric aggregate with one of them is no integer there.
  */
 const nonIntegerOperands = query(QtiBase).rule((r) => {
-  const { baseType, operator, operatorKind, package: pkg, path } = v(operands, "operand");
+  const {
+    assembly,
+    baseType,
+    instance,
+    operator,
+    operatorKind,
+    package: pkg,
+    path,
+  } = v(operands, "operand");
 
   return r
-    .match(operands, { baseType, operator, operatorKind, package: pkg, path })
-    .where(r.in(operatorKind, numericKinds), Compute.not(r.in(baseType, ["integer", "any"])))
-    .find({ operator, package: pkg, path });
+    .match(operands, { assembly, baseType, instance, operator, operatorKind, package: pkg, path })
+    .where(r.in(operatorKind, numericKinds), Logic.not(r.in(baseType, ["integer", "any"])))
+    .find({ assembly, instance, operator, package: pkg, path });
 });
 
 /**
- * The numeric aggregates whose operands are all `integer` or `any`, one at least `integer`, with
- * their base type: each is an integer (§6.9, the numeric aggregates' result is integer where every
- * operand is).
+ * The numeric aggregates under a placement whose operands are all `integer` or `any`, one at least
+ * `integer`, with their base type there: each is an integer (§6.9, the numeric aggregates' result
+ * is integer where every operand is).
  */
 const IntegerAggregate = derived(
   "IntegerAggregate",
   query(QtiBase).rule((r) => {
-    const { operator, operatorBase, operatorKind, package: pkg, path } = v(operands, "operand");
+    const {
+      assembly,
+      instance,
+      operator,
+      operatorBase,
+      operatorKind,
+      package: pkg,
+      path,
+    } = v(operands, "operand");
 
     return r
       .match(operands, {
+        assembly,
         baseType: "integer",
+        instance,
         operator,
         operatorBase,
         operatorKind,
@@ -332,52 +572,94 @@ const IntegerAggregate = derived(
         path,
       })
       .where(r.in(operatorKind, numericKinds))
-      .where(r.not(nonIntegerOperands, { operator, package: pkg, path }))
-      .find({ operator, operatorBase, package: pkg, path });
+      .where(r.not(nonIntegerOperands, { assembly, instance, operator, package: pkg, path }))
+      .find({ assembly, instance, operator, operatorBase, package: pkg, path });
   }),
 );
 
 /**
- * The later operands of a Delete whose cardinality is known, by their operator, with it.
+ * The later operands of a Delete under a placement whose cardinality is known, by their operator,
+ * with it.
  */
 const tailCardinalities = query(QtiBase).rule((r) => {
-  const { cardinality, operator, operatorKind, package: pkg, path, rank } = v(operands, "operand");
+  const {
+    assembly,
+    cardinality,
+    instance,
+    operator,
+    operatorKind,
+    package: pkg,
+    path,
+    rank,
+  } = v(operands, "operand");
 
   return r
-    .match(operands, { cardinality, operator, operatorKind, package: pkg, path, rank })
+    .match(operands, {
+      assembly,
+      cardinality,
+      instance,
+      operator,
+      operatorKind,
+      package: pkg,
+      path,
+      rank,
+    })
     .where(r.in(operatorKind, secondKinds), r.gt(rank, 1n), r.ne(cardinality, "unknown"))
-    .find({ cardinality, operator, package: pkg, path });
+    .find({ assembly, cardinality, instance, operator, package: pkg, path });
 });
 
 /**
- * The Deletes whose later operands hold two different known cardinalities, by their operator.
+ * The Deletes under a placement whose later operands hold two different known cardinalities, by
+ * their operator.
  */
 const tailCardinalityPairs = query(QtiBase).rule((r) => {
-  const { cardinality, operator, package: pkg, path } = v(tailCardinalities, "first");
+  const {
+    assembly,
+    cardinality,
+    instance,
+    operator,
+    package: pkg,
+    path,
+  } = v(tailCardinalities, "first");
   const { cardinality: other } = v(tailCardinalities, "second");
 
   return r
-    .match(tailCardinalities, { cardinality, operator, package: pkg, path })
-    .match(tailCardinalities, { cardinality: other, operator, package: pkg, path })
+    .match(tailCardinalities, { assembly, cardinality, instance, operator, package: pkg, path })
+    .match(tailCardinalities, {
+      assembly,
+      cardinality: other,
+      instance,
+      operator,
+      package: pkg,
+      path,
+    })
     .where(r.ne(cardinality, other))
-    .find({ operator, package: pkg, path });
+    .find({ assembly, instance, operator, package: pkg, path });
 });
 
 /**
- * The Deletes whose later operands hold exactly one known cardinality, with their own: each takes
- * it (Table 6.9.20, a Delete's result is a container derived from its second sub-expression).
+ * The Deletes under a placement whose later operands hold exactly one known cardinality there, with
+ * their own: each takes it (Table 6.9.20, a Delete's result is a container derived from its second
+ * sub-expression).
  */
 const OneTailCardinality = derived(
   "OneTailCardinality",
   query(QtiBase).rule((r) => {
-    const { operator, package: pkg, path } = v(tailCardinalities, "tail");
-    const { cardinality } = v(Expression, "operator");
+    const { assembly, instance, operator, package: pkg, path } = v(tailCardinalities, "tail");
+    const { cardinality } = v(PlacedExpression, "operator");
 
     return r
-      .match(tailCardinalities, { operator, package: pkg, path })
-      .match(Expression, { cardinality, package: pkg, path, start: operator })
-      .where(r.not(tailCardinalityPairs, { operator, package: pkg, path }))
-      .find({ cardinality, operator, package: pkg, path });
+      .match(tailCardinalities, { assembly, instance, operator, package: pkg, path })
+      .match(PlacedExpression, {
+        assembly,
+        cardinality,
+        instance,
+        package: pkg,
+        path,
+        start: operator,
+      })
+      .where(r.not(tailCardinalityPairs, { assembly, instance, operator, package: pkg, path }))
+      .find({ assembly, cardinality, instance, operator, package: pkg, path });
   }),
 );
 
@@ -398,6 +680,45 @@ const ArityFloor = derived(
       .match(OperatorArity, { kind, min })
       .where(r.ge(min, 1n))
       .find({ min, package: pkg, path, start });
+  }),
+);
+
+/**
+ * Each math operator's `name`, by its element's place, with its value.
+ */
+const mathOperatorNames = attributeValues("name", ["qti-math-operator"]);
+
+/**
+ * Each operand of a math operator, by its operator's place and its rank, with the operator's
+ * `name`: "Arity" holds its rank to 2 where the name is one of `binaryMathOperators`
+ * (`#pantry/grammar/expression.ts`) and to 1 under every other (spec reading 242).
+ */
+const MathOperand = derived(
+  "MathOperand",
+  query(QtiBase).rule((r) => {
+    const { operator, package: pkg, path, rank } = v(operandRows, "operand");
+    const { value: name } = v(mathOperatorNames, "name");
+
+    return r
+      .match(operandRows, { operator, operatorKind: "qti-math-operator", package: pkg, path, rank })
+      .match(mathOperatorNames, { package: pkg, path, start: operator, value: name })
+      .find({ name, operator, package: pkg, path, rank });
+  }),
+);
+
+/**
+ * Each math operator whose `name` takes two sub-expressions (`binaryMathOperators`), by its
+ * element's place: "Arity" holds each to an operand of rank 2 (spec reading 242).
+ */
+const BinaryMathOperator = derived(
+  "BinaryMathOperator",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start, value } = v(mathOperatorNames, "name");
+
+    return r
+      .match(mathOperatorNames, { package: pkg, path, start, value })
+      .where(r.in(value, binaryMathOperators))
+      .find({ package: pkg, path, start });
   }),
 );
 
@@ -813,8 +1134,8 @@ const unownedQualifiers = query(QtiBase)
       .where(
         r.in(kind, headQualifierKinds),
         r.gt(elements, 1n),
-        Compute.not(r.in(head, nonElementKinds)),
-        Compute.not(r.in(head, headOperatorKinds)),
+        Logic.not(r.in(head, nonElementKinds)),
+        Logic.not(r.in(head, headOperatorKinds)),
       )
       .find({ package: pkg, parent, path });
   });
@@ -889,8 +1210,8 @@ const ApplyArgument = derived(
       })
       .where(
         r.gt(elements, 1n),
-        Compute.not(r.in(kind, nonElementKinds)),
-        Compute.not(r.in(kind, qualifierKinds)),
+        Logic.not(r.in(kind, nonElementKinds)),
+        Logic.not(r.in(kind, qualifierKinds)),
       )
       .find({ apply, package: pkg, path, start });
   }),
@@ -926,11 +1247,11 @@ const ApplyArgumentPair = derived(
       })
       .where(
         r.gt(elements, 1n),
-        Compute.not(r.in(kind, nonElementKinds)),
-        Compute.not(r.in(kind, qualifierKinds)),
+        Logic.not(r.in(kind, nonElementKinds)),
+        Logic.not(r.in(kind, qualifierKinds)),
         r.gt(laterElements, elements),
-        Compute.not(r.in(laterKind, nonElementKinds)),
-        Compute.not(r.in(laterKind, qualifierKinds)),
+        Logic.not(r.in(laterKind, nonElementKinds)),
+        Logic.not(r.in(laterKind, qualifierKinds)),
       )
       .find({ apply, first, package: pkg, path, second });
   }),
@@ -959,8 +1280,8 @@ const MostOneArgument = derived(
       .where(
         r.in(operator, mostOneKinds),
         r.gt(elements, 1n),
-        Compute.not(r.in(kind, nonElementKinds)),
-        Compute.not(r.in(kind, qualifierKinds)),
+        Logic.not(r.in(kind, nonElementKinds)),
+        Logic.not(r.in(kind, qualifierKinds)),
       )
       .where(r.not(unownedQualifiers, { package: pkg, parent: apply, path }))
       .find({ apply, package: pkg, path, start });
@@ -999,11 +1320,11 @@ const MostTwoArgumentPair = derived(
       .where(
         r.in(operator, mostTwoKinds),
         r.gt(elements, 1n),
-        Compute.not(r.in(kind, nonElementKinds)),
-        Compute.not(r.in(kind, qualifierKinds)),
+        Logic.not(r.in(kind, nonElementKinds)),
+        Logic.not(r.in(kind, qualifierKinds)),
         r.gt(laterElements, elements),
-        Compute.not(r.in(laterKind, nonElementKinds)),
-        Compute.not(r.in(laterKind, qualifierKinds)),
+        Logic.not(r.in(laterKind, nonElementKinds)),
+        Logic.not(r.in(laterKind, qualifierKinds)),
       )
       .where(r.not(unownedQualifiers, { package: pkg, parent: apply, path }))
       .find({ apply, first, package: pkg, path, second });
@@ -1030,21 +1351,26 @@ const HeadQualifierPair = derived(
 );
 
 /**
- * The expressions `ResultBase` judges: every one but an attribute-typed expression of an `unknown`
- * base type, the type the import gives one whose typing attribute spells no base, which AL1's value
- * domain refuses alone and the query `ExpressionAttribute` types nothing by. `ResultBase` is the
- * information model's table of each kind's result bases, and states no `unknown` for a kind whose
- * attribute must spell one.
+ * The placed expressions `ResultBase` judges: every one but an attribute-typed expression of an
+ * `unknown` base type, the type the import gives one whose typing attribute spells no base, which
+ * AL1's value domain refuses alone and the query `ExpressionAttribute` types nothing by.
+ * `ResultBase` is the information model's table of each kind's result bases, and states no
+ * `unknown` for a kind whose attribute must spell one.
  */
-const resultTyped = select(ExpressionNode, (e) =>
+const resultTyped = select(PlacedExpressionNode, (e) =>
   e.or(e.not(e.in(e.kind, attributeTypedKinds)), e.ne(e.baseType, "unknown")),
 );
 
 /**
- * The base values whose `base-type` spells a base: each has its {@link LiteralTyped}. A base value
- * of an `unknown` base has none, since its text has no type to be read in.
+ * The placed base values, each typed as its {@link Literal}.
  */
-const typedBaseValues = select(ExpressionNode, (e) =>
+const baseValues = select(PlacedExpressionNode, (e) => e.eq(e.kind, "qti-base-value"));
+
+/**
+ * The placed base values whose `base-type` spells a base: each has its {@link LiteralTyped}. A base
+ * value of an `unknown` base has none, since its text has no type to be read in.
+ */
+const typedBaseValues = select(PlacedExpressionNode, (e) =>
   e.and(e.eq(e.kind, "qti-base-value"), e.ne(e.baseType, "unknown")),
 );
 
@@ -1057,37 +1383,54 @@ const operandExpressions = select(ExpressionNode, (e) => e.in(e.parentKind, expr
 /**
  * The expression, operator and MathML laws that read an overlay's node's kind, parent or parent's
  * kind (`#pantry/qti/expressions.ts`, `#pantry/qti/operators.ts`, `#pantry/qti/mathml-share.ts`),
- * each named by its oracle law: `Arity` (P2), `Condition_type`
- * (P21), `One_base` and `Operand_fit` (P23) and `Outcome_only` (P25) over {@link ExpressionNode};
- * and `E1_derived`, the result type each kind derives, each expression's language its parent's or
- * a rule's root's, every operand's row, each operand's operator and rank its node's, a rounding
- * operator's `holds` by its mode in force ({@link RoundingMode}), its `both` arm's mode its own, a
- * tolerance's values spelling its form ({@link ToleranceForm}), and each ranked MathML element's
- * rank below its parent's; `MathML_share_cycle`, a share's rank above its target's; "MathML
- * arity" (MathML 3 §4.3.4.5 and §4.3.4.6, each operator's class from its §4.4 syntax table): a
- * judged application, one whose every qualifier its head owns, holds at least one argument where
- * its class takes one and a pair of them where it takes two, and at most one argument where its
- * class takes one and one pair where it takes two, so no count is stored; and "MathML head
- * qualifier" (spec reading R6-head-qualifiers): each head qualifier beside a head operator is a
- * pair its syntax table lists.
+ * each named by its oracle law: `Arity` (P2; a math operator's count by its name, spec reading 241,
+ * over {@link ExpressionOperand}, {@link MathOperand} and {@link BinaryMathOperator}),
+ * `Condition_type` (P21) over {@link PlacedExpressionNode}, `One_base` and `Operand_fit` (P23) over
+ * {@link OperandOf}, and `Outcome_only` (P25) over {@link ExpressionNode}; and `E1_derived`, each
+ * placement's expressions exactly its documents' ({@link PlacedExpressionSite}), the result type
+ * each kind derives under each placement, a base value's its literal's, each expression's language
+ * its parent's or a rule's root's, every operand's row, each operand's operator and rank its
+ * node's, a rounding operator's `holds` by its mode in force ({@link RoundingMode}), its `both`
+ * arm's mode its own, a tolerance's values spelling its form ({@link ToleranceForm}), and each
+ * ranked MathML element's rank below its parent's; `MathML_share_cycle`, a share's rank above its
+ * target's; "MathML arity" (MathML 3 §4.3.4.5 and §4.3.4.6, each operator's class from its §4.4
+ * syntax table): a judged application, one whose every qualifier its head owns, holds at least one
+ * argument where its class takes one and a pair of them where it takes two, and at most one
+ * argument where its class takes one and one pair where it takes two, so no count is stored; and
+ * "MathML head qualifier" (spec reading R6-head-qualifiers): each head qualifier beside a head
+ * operator is a pair its syntax table lists.
  */
 const expressionLawsByName = {
   Arity: [
     // At least its least number: an operand of that rank.
     contained(
       on(ArityFloor, "package", "path", "start", "min"),
-      on(OperandOf, "package", "path", "operator", "rank"),
+      on(ExpressionOperand, "package", "path", "operator", "rank"),
     ),
     // At most its greatest: no operand past it.
-    check("Arity", OperandOf, (o) =>
+    check("Arity", ExpressionOperand, (o) =>
       o.or(
         o.not(OperatorMax.has(o.operatorKind)),
         o.le(o.rank, OperatorMax.at("max", o.operatorKind)),
       ),
     ),
+    // A math operator's name fixes its count (spec reading 242): two sub-expressions for atan2,
+    // one for every other name.
+    contained(
+      on(BinaryMathOperator, "package", "path", "start"),
+      on(
+        select(ExpressionOperand, (o) => o.eq(o.rank, 2n)),
+        "package",
+        "path",
+        "operator",
+      ),
+    ),
+    check("Arity", MathOperand, (o) =>
+      o.or(o.le(o.rank, 1n), o.and(o.in(o.name, binaryMathOperators), o.le(o.rank, 2n))),
+    ),
   ],
   "Condition type": [
-    check("Condition_type", ExpressionNode, (e) =>
+    check("Condition_type", PlacedExpressionNode, (e) =>
       e.or(
         e.not(e.in(e.parentKind, conditionKindHandles)),
         e.and(
@@ -1098,6 +1441,10 @@ const expressionLawsByName = {
     ),
   ],
   "E1 derived": [
+    mirrors(
+      on(PlacedExpression, "package", "assembly", "instance", "path", "start"),
+      on(PlacedExpressionSite, "package", "assembly", "instance", "path", "start"),
+    ),
     contained(
       on(
         select(ExpressionNode, (e) => e.in(e.parentKind, ruleKindHandles)),
@@ -1114,7 +1461,7 @@ const expressionLawsByName = {
     ),
     contained(on(resultTyped, "kind", "baseType"), on(ResultBase, "kind", "base")),
     contained(
-      on(ExpressionNode, "kind", "cardinality"),
+      on(PlacedExpressionNode, "kind", "cardinality"),
       on(ResultCardinality, "kind", "cardinality"),
     ),
     check("E1_derived", ExpressionNode, (e) =>
@@ -1168,32 +1515,40 @@ const expressionLawsByName = {
     // containment together state the numeric typing's three arms.
     contained(
       on(
-        select(ExpressionNode, (e) =>
+        select(PlacedExpressionNode, (e) =>
           e.and(e.in(e.kind, numericKinds), e.eq(e.baseType, "unknown")),
         ),
         "package",
+        "assembly",
+        "instance",
         "path",
         "start",
       ),
       on(
         select(OperandOf, (o) => o.eq(o.baseType, "unknown")),
         "package",
+        "assembly",
+        "instance",
         "path",
         "operator",
       ),
     ),
     contained(
       on(
-        select(ExpressionNode, (e) =>
+        select(PlacedExpressionNode, (e) =>
           e.and(e.in(e.kind, numericKinds), e.eq(e.baseType, "integer")),
         ),
         "package",
+        "assembly",
+        "instance",
         "path",
         "start",
       ),
       on(
         select(OperandOf, (o) => o.eq(o.baseType, "integer")),
         "package",
+        "assembly",
+        "instance",
         "path",
         "operator",
       ),
@@ -1203,74 +1558,99 @@ const expressionLawsByName = {
     // and one that is unknown has two operands of two bases, or an unknown one.
     contained(
       on(
-        select(ExpressionNode, (e) => e.and(e.in(e.kind, baseTypedKinds), e.ne(e.baseType, "any"))),
+        select(PlacedExpressionNode, (e) =>
+          e.and(e.in(e.kind, baseTypedKinds), e.ne(e.baseType, "any")),
+        ),
         "package",
+        "assembly",
+        "instance",
         "path",
         "start",
       ),
       on(
         select(OperandOf, (o) => o.ne(o.baseType, "any")),
         "package",
+        "assembly",
+        "instance",
         "path",
         "operator",
       ),
     ),
     contained(
       on(
-        select(ExpressionNode, (e) =>
+        select(PlacedExpressionNode, (e) =>
           e.and(e.in(e.kind, baseTypedKinds), e.eq(e.baseType, "unknown")),
         ),
         "package",
+        "assembly",
+        "instance",
         "path",
         "start",
       ),
-      on(UnknownOperandBase, "package", "path", "operator"),
+      on(UnknownOperandBase, "package", "assembly", "instance", "path", "operator"),
     ),
     // A Delete the same way over its later operands, and its cardinality known where exactly one
     // known cardinality stands among them.
     contained(
       on(
-        select(ExpressionNode, (e) => e.and(e.in(e.kind, secondKinds), e.ne(e.baseType, "any"))),
+        select(PlacedExpressionNode, (e) =>
+          e.and(e.in(e.kind, secondKinds), e.ne(e.baseType, "any")),
+        ),
         "package",
+        "assembly",
+        "instance",
         "path",
         "start",
       ),
       on(
         select(OperandOf, (o) => o.and(o.gt(o.rank, 1n), o.ne(o.baseType, "any"))),
         "package",
+        "assembly",
+        "instance",
         "path",
         "operator",
       ),
     ),
     contained(
       on(
-        select(ExpressionNode, (e) =>
+        select(PlacedExpressionNode, (e) =>
           e.and(e.in(e.kind, secondKinds), e.eq(e.baseType, "unknown")),
         ),
         "package",
+        "assembly",
+        "instance",
         "path",
         "start",
       ),
-      on(UnknownTailBase, "package", "path", "operator"),
+      on(UnknownTailBase, "package", "assembly", "instance", "path", "operator"),
     ),
     contained(
       on(
-        select(ExpressionNode, (e) =>
+        select(PlacedExpressionNode, (e) =>
           e.and(e.in(e.kind, secondKinds), e.ne(e.cardinality, "unknown")),
         ),
         "package",
+        "assembly",
+        "instance",
         "path",
         "start",
       ),
       on(
         select(OperandOf, (o) => o.and(o.gt(o.rank, 1n), o.ne(o.cardinality, "unknown"))),
         "package",
+        "assembly",
+        "instance",
         "path",
         "operator",
       ),
     ),
     check("E1_derived", OneTailCardinality, (t) => t.ne(t.cardinality, "unknown")),
-
+    // A base value is typed as its literal in every placement, and one of a base its literal's
+    // code.
+    contained(
+      on(baseValues, "package", "path", "start", "baseType"),
+      on(Literal, "package", "path", "start", "baseType"),
+    ),
     contained(
       on(typedBaseValues, "package", "path", "start"),
       on(LiteralTyped, "package", "path", "start"),
@@ -1435,20 +1815,20 @@ const expressionLawsByName = {
     check("MathML_share_cycle", PlacedShareRanks, (s) => s.gt(s.shareRank, s.targetRank)),
   ],
   "One base": [
-    key(on(KnownOperandBase, "package", "path", "operator")),
-    key(on(KnownOperandCardinality, "package", "path", "operator")),
+    key(on(KnownOperandBase, "package", "assembly", "instance", "path", "operator")),
+    key(on(KnownOperandCardinality, "package", "assembly", "instance", "path", "operator")),
   ],
   "Operand fit": [
     check("Operand_fit", OperandOf, (o) =>
       o.and(
-        o.eq(Compute.subset(o.baseTypeBit, OperandBase.row(o.operatorKind)), true),
+        o.eq(Bits.subset(o.baseTypeBit, OperandBase.row(o.operatorKind)), true),
         o.or(
           o.ne(o.rank, 1n),
-          o.eq(Compute.subset(o.cardinalityBit, LeadCardinality.row(o.operatorKind)), true),
+          o.eq(Bits.subset(o.cardinalityBit, LeadCardinality.row(o.operatorKind)), true),
         ),
         o.or(
           o.le(o.rank, 1n),
-          o.eq(Compute.subset(o.cardinalityBit, TailCardinality.row(o.operatorKind)), true),
+          o.eq(Bits.subset(o.cardinalityBit, TailCardinality.row(o.operatorKind)), true),
         ),
       ),
     ),
@@ -1470,6 +1850,7 @@ export const expressionOverlayLawsByName = expressionLawsByName;
  */
 export const expressionOverlayRelations = [
   ArityFloor,
+  BinaryMathOperator,
   IntegerAggregate,
   KnownOperandBase,
   KnownOperandCardinality,
@@ -1480,15 +1861,19 @@ export const expressionOverlayRelations = [
   ApplyArgumentPair,
   CellLeafNode,
   ExpressionNode,
+  ExpressionOperand,
   HeadQualifierPair,
   LeastOneApply,
   LeastTwoApply,
   MathActionNode,
+  MathOperand,
   MathRankNode,
   MathRankStep,
   MostOneArgument,
   MostTwoArgumentPair,
   OperandOf,
+  PlacedExpressionNode,
+  PlacedExpressionSite,
   PlacedMathRankNode,
   PlacedMathRankStep,
   PlacedShareRanks,

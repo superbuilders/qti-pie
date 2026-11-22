@@ -5,7 +5,9 @@ import type { SourceChild, SourceElement } from "#plate/document/source.ts";
 import { admittedItem } from "#plate/test/admitted.ts";
 import type { BodyNode } from "#plate/model/item.ts";
 import { redactItem } from "#plate/redact/walk.ts";
+import { integer } from "#plate/test/fixtures.ts";
 import { shownToCandidate } from "#plate/test/page.ts";
+import { recordOf } from "#plate/test/records.ts";
 import { attr, doc, el, text } from "#plate/test/source.ts";
 
 /**
@@ -112,7 +114,10 @@ describe("MathML's template variables", () => {
         ),
       ),
     );
-    const trees = mathIn(redactItem(built, shownToCandidate).body);
+    // The template values the database's take gives the item session (its record), which the page
+    // shows: plate draws none.
+    const record = recordOf({ templates: { CALC0: integer(7n), PLAIN: integer(3n) } });
+    const trees = mathIn(redactItem(built, shownToCandidate, record).body);
 
     assert.deepStrictEqual(
       trees.map((tree) => tree.children),

@@ -1,0 +1,5 @@
+  const keyIn = <S>(r: Rule<S>) => ({
+    child: r.param("child", LearnerId),
+    item: r.param("item", fields.Named.fields.identifier),
+    stage: r.param("stage", pg.bigint),
+  });

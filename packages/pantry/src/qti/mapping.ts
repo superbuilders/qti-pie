@@ -21,7 +21,7 @@
  * - {@link LookupValue} copies each table entry's `target-value` and each table's `default-value`.
  *
  * A map key and a lookup value are held to no bound of QTI's, a string mapping's expected answer
- * being of any length, but PostgreSQL's ({@link attributeValueText}): no key holds either, and a
+ * being of any length, but PostgreSQL's ({@link matchedText}): no key holds either, and a
  * rule over a query holds each copy to its source (`#pantry/qti/queries.ts`, "Mapping overlay").
  *
  * The laws, by the rule each states, all rules over a query but the copies' own:
@@ -42,49 +42,21 @@
  * - **Typed attribute values** (`attribute-lexical`, readings 7 and 8): a map key, a table entry's
  *   target and a table's default are lexical forms of their base type, `BaseTypePattern`'s
  *   (`#pantry/qti/expression-types.ts`, the one source `qti-value` and `qti-base-value` are judged
- *   by), written with no whitespace around them unless the base type is `string`.
+ *   by), read as written for `string` and after XML Schema's `collapse` for every other base type,
+ *   whose simple type fixes that whitespace facet (reading 7).
  *
  * A string's, identifier's and URI's value is its lexical form, whitespace included (reading 7), so
- * the lexical key is their typed key; a boolean is `true` or `false` alone (reading 34), so it is
- * too. Every check is named by its oracle law with spaces written as underscores.
+ * the lexical key is their typed key. A boolean's lexical forms are `xs:boolean`'s, `1` and `true`
+ * one value and `0` and `false` another (reading 34), and map keys may repeat (reading 165), so no
+ * law compares them. Every check is named by its oracle law with spaces written as underscores.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Mapping | QTI 3.0 information model, §5.88 Mapping}
  */
-import {
-  Compute,
-  contained,
-  key,
-  natural,
-  on,
-  regexTextMaxBytes,
-  relation,
-  select,
-  str,
-} from "@bjornpagen/grizzle";
-import { anyText } from "#pantry/grammar/install.ts";
+import { contained, key, natural, on, relation, select } from "@bjornpagen/grizzle";
+
 import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
-
-/**
- * A text with no whitespace before or after it: an XML `Char` other than whitespace at each end,
- * any `Char`s between, or nothing. An attribute's typed value of every base type but `string` is
- * written so (reading 7), since `BaseTypePattern` reads a value as XML Schema's collapse leaves it,
- * outer whitespace absorbed.
- */
-export const exactValuePattern = Compute.pattern(
-  "^(?:[\\u{21}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-\\u{10FFFF}](?:[\\t\\n\\r\\u{20}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-\\u{10FFFF}]*[\\u{21}-\\u{D7FF}\\u{E000}-\\u{FFFD}\\u{10000}-\\u{10FFFF}])?)?$",
-);
-
-/**
- * The text of a map key and of a lookup value: any text, of at most grizzle's `regexTextMaxBytes`,
- * the most UTF-8 bytes a query's `Compute.matches` reads, since PostgreSQL's regex engine widens
- * its subject to four bytes for every byte. "Typed attribute value" matches a map key and a lookup
- * value against their base type's lexical forms in a rule over a query
- * (`#pantry/qti/overlay-queries/declaration.ts`), so each is a text of at most that many bytes. A
- * longer one is refused under "Key text bound", a stated limit.
- */
-export const attributeValueText = str.bytes(regexTextMaxBytes, anyText);
 
 /**
  * A map entry's overlay, keyed by its `qti-map-entry` element's place: its `map-key` as written.
@@ -97,7 +69,7 @@ export const attributeValueText = str.bytes(regexTextMaxBytes, anyText);
 export const MapKey = relation(
   "MapKey",
   {
-    key: attributeValueText,
+    key: matchedText,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -115,7 +87,7 @@ export const MapKey = relation(
  *
  * The value is copied (C18) because `Typed_attribute_value` reads it beside its declaration's base
  * type (reading 8). QTI bounds no value, so it is held to no bound of QTI's but PostgreSQL's regex
- * limit ({@link attributeValueText}, grizzle's `regexTextMaxBytes`), and no key holds it, its copy
+ * limit ({@link matchedText}, grizzle's `regexTextMaxBytes`), and no key holds it, its copy
  * held to its attribute by a rule over a query (`#pantry/qti/queries.ts`, "Mapping overlay").
  */
 export const LookupValue = relation(
@@ -124,7 +96,7 @@ export const LookupValue = relation(
     package: PackageName,
     path: EntryPath,
     start: natural,
-    value: attributeValueText,
+    value: matchedText,
   },
   ["package", "path", "start"],
 );

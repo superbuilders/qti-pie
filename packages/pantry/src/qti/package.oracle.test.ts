@@ -601,10 +601,12 @@ layer(TestLayer, { excludeTestServices: true })("qti/package.ts, text references
   );
 
   suite.effect(
-    "holds a digital material's file to nothing, and resolves a card file under the xml:base in scope",
+    "holds a digital material's file to the package as a card's, and resolves a card file under the xml:base in scope",
     () =>
-      // Oracle: the information model (§5.80.3: a digital material's file is not one the package must
-      // hold) and RFC 3986, §5.2, read by hand: `video/` merged with `clip.mp4` is `video/clip.mp4`.
+      // Oracle: the information model (§5.80.3: a digital material's file is "the URI for the
+      // associated content file", which spec reading R9-b reads as an href), IMS Content Packaging
+      // 1.2, InterchangePackage (d) (a path that resolves in the package names a file it holds),
+      // and RFC 3986, §5.2, read by hand: `video/` merged with `clip.mp4` is `video/clip.mp4`.
       // Bound: `card-files` with a digital material's file naming an absent path, and with a card file
       // `clip.mp4` under an `xml:base` of `video/` on its feedback block, and without it.
       Effect.gen(function* unbound() {
@@ -640,7 +642,7 @@ layer(TestLayer, { excludeTestServices: true })("qti/package.ts, text references
           },
         );
 
-        assert.notInclude(material.laws, "File exists");
+        assert.include(material.missing, "choice.xml images/absent.png");
         assert.deepStrictEqual(based, { laws: [], missing: [] });
         assert.include(unbased.missing, "choice.xml clip.mp4");
       }),

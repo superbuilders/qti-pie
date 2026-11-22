@@ -1,0 +1,22 @@
+  /**
+   * The item session the call answers: the child's, at the place the call names, with the stage that holds it.
+   */
+  const answeredOf = query(delivery).rule((r) => {
+    const { stage } = v(fields.ItemSession, "answered");
+
+    return r
+      .match(fields.ItemSession, {
+        child: answeredKey.child,
+        n: answeredKey.n,
+        package: answeredKey.package,
+        path: answeredKey.path,
+        stage,
+      })
+      .find({
+        child: answeredKey.child,
+        n: answeredKey.n,
+        package: answeredKey.package,
+        path: answeredKey.path,
+        stage,
+      });
+  });

@@ -1,7 +1,7 @@
 /**
- * The mapping overlays' free tests: a value written exactly, as `exactValuePattern` reads it, and
- * the law oracle's mapping laws, which admit a repeated key (spec reading 165) and refuse a typed
- * value no lexical form of its base type spells.
+ * The mapping overlays' free tests: the law oracle's mapping laws, which admit a repeated key (spec
+ * reading 165) and a typed value written with whitespace its simple type collapses (reading 7), and
+ * refuse a typed value no lexical form of its base type spells.
  *
  * The builder's rows are `#pantry/import/overlays/mapping.test.ts`'s.
  */
@@ -17,66 +17,9 @@ import { grammar } from "#pantry/grammar/install.ts";
 import { foldGrammarOf, shredGrammarOf } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
-import { exactValuePattern } from "#pantry/qti/mapping.ts";
 import { searchTimeout } from "#pantry/test/gen/xdm.ts";
 import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
 import { searchWidth } from "#pantry/test/settings.ts";
-
-/**
- * `exactValuePattern` as JavaScript's engine reads it.
- */
-const exactValue = new RegExp(exactValuePattern.source, "u");
-
-/**
- * The characters the exactness box draws texts from: digits and signs, letters, one outside ASCII,
- * a character no identifier holds, and both whitespace a value may carry.
- */
-const valueAlphabet = ["0", "1", "-", "A", "é", "!", " ", "\t"] as const;
-
-/**
- * Every text of at most 4 characters over an alphabet.
- *
- * @param alphabet - The characters.
- * @returns The generator.
- */
-const textsOver = (alphabet: readonly [string, ...string[]]): Gen<string> => {
-  const letters = array(element(alphabet), { max: 4, min: 0 });
-
-  return (source) => source.draw(letters).join("");
-};
-
-describe("qti/mapping.ts, exact values", { timeout: searchTimeout }, () => {
-  it.effect("judges exactness as XML whitespace at neither end", (ctx) =>
-    // Oracle: the specification as a checker, reading 7's exactness, here a JavaScript trim of XML
-    // whitespace, against `exactValuePattern`.
-    // Bound: every text of at most 4 characters over 8 characters, 4,681.
-    searched(
-      ctx,
-      exhaust(
-        {
-          box: "every text of at most 4 characters over 0 1 - A é ! space and tab",
-          caseHang: Duration.seconds(10),
-          concurrency: searchWidth,
-          coverage: requiredInSpace<"exact" | "padded">(["exact", "padded"]),
-          generator: textsOver(valueAlphabet),
-          literal: (text) => JSON.stringify(text),
-          oracle: {
-            kind: "specification",
-            name: "reading 7's exactness, a trim of XML whitespace",
-          },
-          suite: "qti/mapping-exact-value",
-        },
-        (text: string, c) =>
-          Effect.sync(() => {
-            const exact = text.replaceAll(/^[\t\n\r ]+|[\t\n\r ]+$/gu, "") === text;
-            c.note(exact ? "exact" : "padded");
-
-            assert.strictEqual(exactValue.test(text), exact, JSON.stringify(text));
-          }),
-      ),
-    ),
-  );
-});
 
 /**
  * The oracle's tables, read from the composed grammar once.
@@ -167,16 +110,28 @@ describe("qti/mapping.ts, the oracle's mapping laws", { timeout: searchTimeout }
           },
           { breaks: [], keys: ["A B", "B A"], name: "pair undirected", type: "pair" },
           { breaks: [], keys: ["A B", "A\tB"], name: "tab", type: "directedPair" },
-          {
-            breaks: ["Typed attribute value"],
-            keys: ["A  B"],
-            name: "two spaces",
-            type: "directedPair",
-          },
+          { breaks: [], keys: ["A  B"], name: "two spaces, collapsed", type: "directedPair" },
           { breaks: [], keys: ["1 2", "01 +2"], name: "point", type: "point" },
           { breaks: ["Typed attribute value"], keys: ["abc"], name: "no integer", type: "integer" },
-          { breaks: ["Typed attribute value"], keys: [" 1"], name: "padded", type: "integer" },
-          { breaks: ["Typed attribute value"], keys: ["1"], name: "boolean 1", type: "boolean" },
+          { breaks: [], keys: [" 1"], name: "padded", type: "integer" },
+          {
+            breaks: [],
+            keys: ["\t1 \n"],
+            name: "padded by a tab and a line feed",
+            type: "integer",
+          },
+          { breaks: [], keys: [" 1.5 "], name: "padded float", type: "float" },
+          { breaks: [], keys: [" A "], name: "padded identifier", type: "identifier" },
+          { breaks: [], keys: [" true "], name: "padded boolean", type: "boolean" },
+          {
+            breaks: ["Typed attribute value"],
+            keys: [" 1 2"],
+            name: "two integers, padded",
+            type: "integer",
+          },
+          { breaks: [], keys: ["1", "true"], name: "boolean 1 beside true", type: "boolean" },
+          { breaks: [], keys: ["0"], name: "boolean 0", type: "boolean" },
+          { breaks: ["Typed attribute value"], keys: ["2"], name: "boolean 2", type: "boolean" },
           { breaks: [], keys: [" x "], name: "padded string", type: "string" },
         ] as const;
 
@@ -211,5 +166,68 @@ describe("qti/mapping.ts, the oracle's mapping laws", { timeout: searchTimeout }
           `an integer outcome's target x: ${target.join("; ")}`,
         );
       }),
+  );
+});
+
+/**
+ * The characters the collapse box draws a map key from: a digit, a sign, a letter, and the space
+ * XML attribute-value normalization leaves of every whitespace character an attribute writes.
+ */
+const keyAlphabet = ["1", "-", "A", " "] as const;
+
+/**
+ * Every text of at most 4 characters over an alphabet.
+ *
+ * @param alphabet - The characters.
+ * @returns The generator.
+ */
+const textsOver = (alphabet: readonly [string, ...string[]]): Gen<string> => {
+  const letters = array(element(alphabet), { max: 4, min: 0 });
+
+  return (source) => source.draw(letters).join("");
+};
+
+describe("qti/mapping.ts, a typed map key read collapsed", { timeout: searchTimeout }, () => {
+  it.effect("admits an integer key exactly where its collapsed text is an integer", (ctx) =>
+    // Oracle: the specification as a checker: XML Schema 1.0 Part 2 §4.3.6, `xs:integer`'s
+    // `whiteSpace` is `collapse`, and §3.3.13's lexical space, an optional sign and digits, so a
+    // key is an integer exactly where its text, its XML whitespace at either end removed and each
+    // inner run one space, is that (reading 7). Bound: every text of at most 4 characters over
+    // 1 - A and space, 341.
+    searched(
+      ctx,
+      exhaust(
+        {
+          box: "every map key of at most 4 characters over 1 - A and space, in an integer mapping",
+          caseHang: Duration.seconds(10),
+          concurrency: searchWidth,
+          coverage: requiredInSpace<"padded integer" | "bare integer" | "no integer">([
+            "padded integer",
+            "bare integer",
+            "no integer",
+          ]),
+          generator: textsOver(keyAlphabet),
+          literal: (text) => JSON.stringify(text),
+          oracle: {
+            kind: "specification",
+            name: "XML Schema 1.0 Part 2 §4.3.6 collapse and §3.3.13 xs:integer",
+          },
+          suite: "qti/mapping-collapsed-key",
+        },
+        (text: string, c) =>
+          Effect.gen(function* collapsedKey() {
+            const read = text.replaceAll(/ +/gu, " ").replace(/^ /u, "").replace(/ $/u, "");
+            const integer = /^[+-]?[0-9]+$/u.test(read);
+            c.note(integer ? (read === text ? "bare integer" : "padded integer") : "no integer");
+            const found = yield* mappingBreachesOf(mappedItem("integer", [text], "7"));
+
+            assert.strictEqual(
+              found.length === 0,
+              integer,
+              `${JSON.stringify(text)}: ${found.join("; ")}`,
+            );
+          }),
+      ),
+    ),
   );
 });

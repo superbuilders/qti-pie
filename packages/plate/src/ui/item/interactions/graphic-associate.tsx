@@ -102,7 +102,7 @@ export const island = (
  * hotspot with copies, `data-used` once it is in as many pairs as its `match-max` allows, and
  * `data-missed` with the mark's words while it has a use left and a missed box shows it), and
  * `plate-placement-boxes`, each `plate-placement-box`
- * `data-paired`, with its `data-mark` and its mark's words in `review` against the host's solution,
+ * `data-paired`, with its `data-mark` and its mark's words in `review` by the host's marks,
  * holding its two halves, each a `plate-placement-target` named as the island names it with its
  * hotspot's `plate-placement-chip`.
  *

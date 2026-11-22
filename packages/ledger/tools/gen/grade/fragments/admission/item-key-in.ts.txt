@@ -1,0 +1,6 @@
+  const keyIn = <S>(r: Rule<S>) => ({
+    child: r.param("child", LearnerId),
+    n: r.param("n", fields.Attempt.fields.n),
+    package: r.param("package", fields.ItemSession.fields.package),
+    path: r.param("path", fields.ItemSession.fields.path),
+  });

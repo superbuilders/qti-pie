@@ -320,7 +320,8 @@ describe("the composition", () => {
  * The attributes the reading-90 property writes on an element, each a named variant: a valid
  * `data-` name; an undeclared name in no namespace; a name in another namespace; a name in the
  * element's own namespace; `xml:id` and `xml:space`, which `xml.xsd` declares; an `xsi:` name;
- * and ARIA's `aria-keyshortcuts`.
+ * and ARIA's `aria-keyshortcuts`, read only where a kind declares it (spec reading 10: the empty
+ * elements declare `aria-keyshorts` alone, and refuse it).
  */
 const extensionVariants = [
   "data",
@@ -405,7 +406,7 @@ const pathTo = (production: ComposedGrammar, kind: string): Option.Option<readon
 
 describe("spec reading 90, through the codec", () => {
   it.effect(
-    "reads on every covered element exactly its declared names, data-*, xsi: names and aria-keyshortcuts beside aria-keyshorts",
+    "reads on every covered element exactly its declared names, data-* and xsi: names, and aria-keyshortcuts only where declared",
     (ctx) =>
       Effect.gen(function* covered() {
         const production = yield* grammar;
@@ -419,7 +420,7 @@ describe("spec reading 90, through the codec", () => {
         const declared = new Set(attributeDeclarations.map(({ kind, name }) => `${kind} ${name}`));
         // Oracle: reading 90 restated: on a covered element an attribute its XSD does not
         // declare is read only when it is a `data-` name in no namespace or an `xsi:` name
-        // (reading 47), and reading 10 adds `aria-keyshortcuts` wherever the XSD declares
+        // (reading 47), and reading 10 adds no `aria-keyshortcuts` where the XSD declares
         // `aria-keyshorts`; every covered element holds a `##any` `lax` wildcard, so a `data-`
         // name is in its namespace constraint.
         const readOf = (kind: string, variant: ExtensionVariant): boolean => {
@@ -428,8 +429,7 @@ describe("spec reading 90, through the codec", () => {
           return (
             variant === "data" ||
             variant === "xsi" ||
-            (name !== "" && declared.has(`${kind} ${name}`)) ||
-            (variant === "aria-keyshortcuts" && declared.has(`${kind} aria-keyshorts`))
+            (name !== "" && declared.has(`${kind} ${name}`))
           );
         };
         // The box: the kinds whose element the Schematron's extension rules cover, read from the

@@ -6,7 +6,7 @@
  * The island takes the first set's choices as its chips and the second's as its groups, each as
  * presented, `max-associations` and the author's `data-max-selections-message` in place of the
  * catalog's. The review shows the bank under the author's `data-first-column-header`, and each
- * group holding the chips the response puts there, each pair marked against the host's solution.
+ * group holding the chips the response puts there, each pair marked by the host's marks.
  *
  * @module
  */

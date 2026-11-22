@@ -970,8 +970,8 @@ export const recorded: readonly Recorded[] = [
     reason: {
       _tag: "reading",
       reading: 104,
-      says: "A choice's identifier is used by no other choice of any class in its document",
-      why: "no two choices of the nine classes in a document share an identifier, whichever interactions hold them and whatever their classes; the XSD states no key over choice identifiers",
+      says: 'A choice\'s identifier is used by no other element of its own noun in its document, a "choice" by no other choice of any class',
+      why: "no two elements of one choice class in a document share an identifier, and a simple, inline, hotspot or simple associable choice shares one with no other choice of any class, whichever interactions hold them; the XSD states no key over choice identifiers",
     },
     rule: "choice-identifier-distinct",
   },
@@ -996,17 +996,6 @@ export const recorded: readonly Recorded[] = [
       why: "a setter's expression has its variable's base type and cardinality; the XSD types no expression",
     },
     rule: "P20",
-  },
-  {
-    class: "beyond",
-    direction: "beyond",
-    reason: {
-      _tag: "specification",
-      source:
-        "https://www.imsglobal.org/spec/qti/v3p0/info#Root_OutcomeDeclaration (§4.5, OutcomeDeclaration, normative: 'SCORE needs to be a float.' 'MAXSCORE needs to be a float.' 'PASSED needs to be a boolean.')",
-      why: "SCORE and MAXSCORE are declared float and PASSED boolean; the XSD admits any base type on any outcome declaration",
-    },
-    rule: "reserved-type",
   },
   {
     class: "beyond",
@@ -1098,6 +1087,21 @@ const mathmlSegment = (() => {
 const coveredMessages = new RegExp(String.raw`^${mathmlSegment}(?: \| ${mathmlSegment})*$`, "u");
 
 /**
+ * One message of xmllint's refusing an element at a `##other` wildcard of QTI's namespace, which
+ * spec reading 61 reads as `##any` at `qti-ordering`: `line N`, the element's name, in braces with
+ * its namespace where it has one, and the wildcard's expectation.
+ */
+const orderingSlotSegment = String.raw`line \d+ (?:\{[^}]*\})?[^\s:]+: This element is not expected\. Expected is \( ##other\{http:\/\/www\.imsglobal\.org\/xsd\/imsqtiasi_v3p0\}\* \)\.`;
+
+/**
+ * A difference every message of which is {@link orderingSlotSegment}'s.
+ */
+const orderingSlotMessages = new RegExp(
+  String.raw`^${orderingSlotSegment}(?: \| ${orderingSlotSegment})*$`,
+  "u",
+);
+
+/**
  * One message of reading 2's MathML classes ({@link mathmlSegment}), alone.
  */
 const mathmlMessage = new RegExp(String.raw`^${mathmlSegment}$`, "u");
@@ -1160,6 +1164,17 @@ const targetValueMessage = String.raw`line \d+ \{http://www\.imsglobal\.org/xsd/
  * here may match nothing in a run, and none goes stale.
  */
 export const generatedRecorded: readonly Recorded[] = [
+  {
+    class: "content",
+    detail: orderingSlotMessages,
+    direction: "xsd-only",
+    reason: {
+      _tag: "reading",
+      reading: 61,
+      says: "An element in QTI's own namespace inside `qti-ordering`'s extension slot is valid.",
+      why: "the information model says the ordering's extension child tags 'may be new tags and reused QTI ASI tags' (§5.98.3), so the slot reads as ##any, laxly; the XSD writes ##other there, and xmllint refuses an element of QTI's namespace or of none. Every message must be that refusal: the grammar keeps ##other at every other slot, so it shows only where qti-ordering holds the element",
+    },
+  },
   {
     class: "attribute-required",
     detail: /^AL3 required at \S*\/bdo(?:\[\d+\])?: bdo lacks \{dir\}, which Required holds$/u,
@@ -1722,8 +1737,8 @@ export const generatedRecorded: readonly Recorded[] = [
     reason: {
       _tag: "specification",
       source:
-        "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_CardinalityEnum (§8.16, CardinalityEnum, normative, of single: 'A cardinality of single i.e. a single value.') and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Value (§7.46.1, of field-identifier: 'This characterisic is only used for specifying the field identifier for a value that forms part of a record.'; §7.46.2, of base-type: 'This characteristic is only used for specifying the base-type of a value that forms part of a record.')",
-      why: "a single variable's value set holds one value, and a value writes a field-identifier and a base-type exactly when it is a record's field, both or neither whatever its declaration's cardinality spells (reading 158); the XSD admits any number of qti-value children, each with either attribute, under any declaration",
+        "https://www.imsglobal.org/spec/qti/v3p0/info#Enumerated_CardinalityEnum (§8.16, CardinalityEnum, normative, of single: 'A cardinality of single i.e. a single value.'; of record: 'a set of independent values each identified by its own identifier and having its own base-type')",
+      why: "a single variable's value set holds one value, and each value of a record's value set is a field, with its field-identifier and its base-type both; the XSD admits any number of qti-value children, each with either attribute or none, under any declaration, and pantry admits either attribute on a value of any other cardinality, where it names and types nothing (§7.46.1, §7.46.2)",
     },
     rule: "value-cardinality",
   },

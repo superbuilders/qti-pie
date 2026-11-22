@@ -26,14 +26,19 @@ import {
   acceptedItem,
   acceptedStimulus,
   assetPaths,
-  begin,
   configure,
   openAdmitted,
 } from "@qti-pie/plate";
-import type { Accepted, AcceptedStimulus, Configuration, Verdict } from "@qti-pie/plate";
+import type {
+  Accepted,
+  AcceptedStimulus,
+  Configuration,
+  ItemRecord,
+  Verdict,
+} from "@qti-pie/plate";
 import { isAdmitted } from "@qti-pie/plate/test/admitted";
-import { Config, Data, Effect, Option, Result } from "effect";
-import { instance } from "#specimen/ui/rules.ts";
+import { documentDigest, goldenRecords } from "@qti-pie/plate/test/records";
+import { Config, Data, Effect, Option } from "effect";
 import type { SourceItem } from "#specimen/ui/rules.ts";
 import { itemFactsOf } from "#specimen/ui/source.ts";
 
@@ -50,11 +55,6 @@ const corpusDirectory = "qti-examples-0a92fbbb6d2e620a1f7fad19977be4c418246bc0";
  * digest, so a replayed pass is a pass on this corpus.
  */
 const corpusDigest = "3ee408912ab0b1d6fd7edbbc19ba9085fad26e0f394de1d1368fa1c1664369ce";
-
-/**
- * The seed every templated item's record begins under, so a run repeats.
- */
-const recordSeed = "1";
 
 /**
  * The corpus root: `PLATE_CORPUS_DIR` when it is set and not empty, otherwise the extraction
@@ -135,7 +135,6 @@ const configurationOf = (files: readonly string[], placeholders: readonly string
       ...placeholders.map((file) => [file, addressOf("/corpus-placeholder/", file)] as const),
     ],
     seed: "",
-    validateResponses: false,
   });
 
 /**
@@ -165,9 +164,9 @@ const filesNamed = (document: string, nodes: readonly StimulusNode[]): readonly 
 
 /**
  * Give one opened corpus document as the suite shows it: its verdict's accepted item, none for a
- * refused or unchecked one or a document that is no item, with the record `begin` starts for an
- * item whose template processing runs, the stimuli its refs name, and what the suite reads of its
- * XML.
+ * refused or unchecked one or a document that is no item, with the record the database's take gives
+ * an item with template processing, the golden grading data's first for it, the stimuli its refs
+ * name, and what the suite reads of its XML.
  *
  * @param opened The document's path from the root, its bytes and its verdict.
  * @param opened.bytes Its bytes.
@@ -175,6 +174,8 @@ const filesNamed = (document: string, nodes: readonly StimulusNode[]): readonly 
  * @param opened.verdict Its verdict.
  * @param configuration The configuration every corpus item renders under.
  * @param stimuli The corpus's accepted stimuli, by their paths from the root.
+ * @param golden The golden grading data's records of the corpus's items, by the digest of their
+ *   bytes.
  * @returns The item, or none.
  */
 const itemAt = (
@@ -185,26 +186,25 @@ const itemAt = (
   }: { readonly bytes: Uint8Array; readonly location: string; readonly verdict: Verdict },
   configuration: Configuration,
   stimuli: ReadonlyMap<string, AcceptedStimulus>,
+  golden: ReadonlyMap<string, readonly ItemRecord[]>,
 ): Option.Option<SourceItem> =>
   Option.map(acceptedItem(verdict), (accepted: Accepted): SourceItem => {
     const facts = itemFactsOf(new TextDecoder().decode(bytes));
 
     return {
       accepted,
-      begun:
-        accepted.item.templateProcessing.kind === "runs"
-          ? Option.some(Result.getOrThrow(begin(accepted, { instance, seed: recordSeed })))
-          : Option.none(),
       configuration,
       given: Option.none(),
       host: Option.none(),
       kinds: facts.kinds,
       location,
       offered: facts.offered,
-      scoring: facts.scoring,
       stimuli: accepted.item.content["qti-assessment-stimulus-ref"].flatMap(({ target }) =>
         Option.toArray(Option.fromUndefinedOr(stimuli.get(target))),
       ),
+      taken: accepted.item.templated
+        ? Option.fromUndefinedOr(golden.get(documentDigest(bytes))?.[0])
+        : Option.none(),
     };
   });
 
@@ -286,8 +286,9 @@ export const corpusItems = Effect.runSync(
         ),
       ].filter((file) => !held.has(file));
       const configuration = yield* configurationOf(paths, placeholders);
+      const golden = yield* goldenRecords;
 
-      return opened.flatMap((each) => Option.toArray(itemAt(each, configuration, stimuli)));
+      return opened.flatMap((each) => Option.toArray(itemAt(each, configuration, stimuli, golden)));
     }),
   ),
 );

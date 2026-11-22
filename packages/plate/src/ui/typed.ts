@@ -233,10 +233,7 @@ export const useBoxes = (options: {
     seen: texts,
   }));
   const matcher = useMemo(
-    () =>
-      Option.fromUndefinedOr(patternMask).pipe(
-        Option.flatMap((pattern) => Result.getSuccess(compile(pattern))),
-      ),
+    () => Option.fromUndefinedOr(patternMask).pipe(Option.flatMap(compile)),
     [patternMask],
   );
   const failing = (text: string) =>

@@ -35,9 +35,10 @@
  * it by. Every copy of an attribute into an overlay follows C18 the other way round, as
  * `identity.ts` states it: from `select(Attribute, φ)` into the overlay, keyed by `Attribute`'s key
  * `(package, path, start, name)` once the selection fixes the name, whose index serves the copy's
- * reverse probe. Every copied text that takes part in a cross-row equality is `keyText`
- * (`#pantry/qti/limits.ts`). Every check is named by its oracle law (`#pantry/test/oracle.ts`
- * `LawName`) with spaces written as underscores.
+ * reverse probe. Every copied text that takes part in a cross-row equality is of any length, a key,
+ * a containment's target and a lookup holding it by its image (`#pantry/qti/limits.ts`). Every
+ * check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written as
+ * underscores.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_EqualRounded | QTI 3.0 information model, §5.47 EqualRounded}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_RoundTo | QTI 3.0 information model, §5.119 RoundTo}
@@ -49,22 +50,25 @@ import {
   check,
   closed,
   closedId,
-  Compute,
   contained,
   drawn,
   generated,
+  Logic,
   mirrors,
   natural,
   on,
   pg,
   relation,
   select,
+  Text,
+  Type,
 } from "@bjornpagen/grizzle";
 import { Attribute, attributesOf } from "#pantry/qti/attributes.ts";
-import { EntryPath, integerForm, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { listTokens, tokenList, whitespaceTokens } from "#pantry/qti/token-list.ts";
 import { roundingKinds, roundingModes } from "#pantry/vocab/terms/operators.ts";
+import { anyText } from "#pantry/grammar/install.ts";
 
 /**
  * Which of reading 119's two inputs a rounding operator has, its {@link Rounding} row's `holds`:
@@ -95,7 +99,7 @@ const rangeModes = ["absolute", "relative"] as const;
  * which this space refuses, the stricter of the two (readings 144 and 154).
  *
  * It lies inside grizzle's `doubleText`, 1.1's grammar, which is this pattern with `+INF`, so
- * `Compute.parseDouble` reads every form of it total: a value of it is the double that parse maps
+ * `Text.parseDouble` reads every form of it total: a value of it is the double that parse maps
  * it to, XML Schema 1.1's doubleLexicalMap (Part 2 §3.3.5.2, reading 144), and every double pantry
  * reads from a form in the database is read by that parse, guarded by this pattern or typed by it
  * (`Slider_bounds`, `Mastery_range`, `MapKeyFloat`). A tolerance value in it is a number; any other
@@ -103,7 +107,7 @@ const rangeModes = ["absolute", "relative"] as const;
  *
  * @see {@link https://www.w3.org/TR/xmlschema-2/#double | XML Schema Part 2, 3.2.5 double}
  */
-export const doublePattern = Compute.pattern(
+export const doublePattern = Text.pattern(
   "^(?:[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$",
 );
 
@@ -116,7 +120,7 @@ export const doublePattern = Compute.pattern(
  * though binary64 rounds it to 0: "positive" is read of the number the value names, not of its
  * nearest double.
  */
-export const positivePattern = Compute.pattern(
+export const positivePattern = Text.pattern(
   "^(?:\\+?(?:[0-9]*[1-9][0-9]*(?:\\.[0-9]*)?|[0-9]*\\.[0-9]*[1-9][0-9]*)(?:[Ee][+-]?[0-9]+)?|INF)$",
 );
 
@@ -145,10 +149,10 @@ export const Rounding = relation(
  */
 export const RoundingFigures = relation.generated(
   "RoundingFigures",
-  { figuresLexical: keyText, package: PackageName, path: EntryPath, start: natural },
+  { figuresLexical: anyText, package: PackageName, path: EntryPath, start: natural },
   ["package", "path", "start"],
   (f) => ({
-    figures: generated(keyText, Compute.cast(Compute.collapse(f.figuresLexical), keyText)),
+    figures: generated(anyText, Text.collapse(f.figuresLexical)),
   }),
 );
 
@@ -161,8 +165,8 @@ export const RoundingFigures = relation.generated(
 export const RoundingModeFigures = relation(
   "RoundingModeFigures",
   {
-    figures: keyText,
-    mode: keyText,
+    figures: anyText,
+    mode: anyText,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -183,7 +187,7 @@ export const Tolerance = relation(
     package: PackageName,
     path: EntryPath,
     start: natural,
-    tokenText: accumulated(keyText, ""),
+    tokenText: accumulated(anyText, ""),
     tokens: drawn(natural),
   },
   ["package", "path", "start"],
@@ -253,15 +257,15 @@ const leastFigures = { decimalPlaces: 0n, significantFigures: 1n } as const;
  */
 const roundingFigures = check("Rounding_figures", RoundingModeFigures, (m) =>
   m.or(
-    m.not(Compute.matches(m.figures, integerForm)),
+    m.not(Text.matches(m.figures, integerForm)),
     m.and(
       ...roundingModes.map((mode) =>
         m.or(
           m.ne(m.mode, mode),
           m.ge(
-            Compute.when(
-              Compute.matches(m.figures, integerForm),
-              (figures) => Compute.cast(figures, pg.bigint),
+            Logic.when(
+              Text.matches(m.figures, integerForm),
+              (figures) => Type.cast(figures, pg.bigint),
               leastFigures[mode],
             ),
             leastFigures[mode],
@@ -296,7 +300,7 @@ const toleranceCount = check("Equal_tolerance", Tolerance, (t) => t.in(t.tokens,
  * read at run time.
  */
 const tolerancePositive = check("Equal_tolerance", ToleranceToken, (x) =>
-  x.or(x.not(Compute.matches(x.token, doublePattern)), Compute.matches(x.token, positivePattern)),
+  x.or(x.not(Text.matches(x.token, doublePattern)), Text.matches(x.token, positivePattern)),
 );
 
 /**

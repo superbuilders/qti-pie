@@ -1,0 +1,82 @@
+/**
+ * The item's grading statement: the response processing of an attempt run by the QTI database's SQL
+ * grader (`@qti-pie/ledger/grading.ts`'s flat entry, `responseProcessingOf`) in the transaction
+ * that records the attempt, its outcomes written beside the attempt's responses in the sidecars of
+ * their declared cardinality and base type, and the run's completion status in `ProcessedAttempt`.
+ * Nothing in TypeScript evaluates, compares or rounds a QTI value (Bjorn, 2026-11-18: "ZERO GRADING
+ * IN TS ALLOWED").
+ *
+ * `gradeAttemptOf(delivery)` is a ChangeSet over Delivery, keyed by the sitting (its `child` and
+ * `stage` parameters), that a write sequences after the stratum that records its attempts
+ * (`ChangeSet.sequence`), so every value it reads is stored: each item session of the sitting whose
+ * earliest attempt has no `ProcessedAttempt`, that attempt's responses as the ledger's sidecars
+ * hold them, the session's template values, correct responses and defaults, and the item's grader
+ * tree as pantry stores it. The call's every argument is a query over the sitting's key, so one
+ * statement evaluates the machine once (`Fn.row`), whichever of its fields each insert reads:
+ *
+ * - The program: the subtree of the item's own `qti-response-processing` where it holds a rule, else
+ *   of the template document its `template-location` locates (pantry's `LocatedTemplate`), else of
+ *   the published template its `template` names (`PublishedTemplateUri`, as the reference package
+ *   `qti-rptemplates` holds it, `PublishedTemplateDocument`), each element of a processing kind by
+ *   the machine's token (`ProgramNodeKind`), with the attributes the machine reads
+ *   (`GradedAttributeName`) and each base value's text (`Literal`);
+ * - The declarations: every node of the item's declarations of a kind the machine reads
+ *   (`DeclarationNodeKind`), with their attributes and each `qti-value`'s string value;
+ * - The run: the seed the session draws under (`SessionSeed`, its take's `processingSeed`) and the
+ *   label of the attempt's ordinal (`responseLabel`);
+ * - The values: each declared response (a NULL one no single row) and `numAttempts`, the attempt's
+ *   ordinal from 1, held `value`; the session's template values held `value`, and the correct
+ *   responses and defaults its template processing set held `correct` and `default`; and, for an
+ *   adaptive item's session with an attempt processed before this one, each declared outcome held
+ *   `value` with its values after that attempt (a NULL one no row). A multiple's bag crosses as its
+ *   copies, each at its own place.
+ *
+ * QTI 3.0.1 §2.2.2.2 and Table 5.115: response processing "takes place each time the candidate
+ * submits the responses"; the outcomes start at their defaults for a non-adaptive item (the
+ * machine's `start_of`), and an adaptive item's from where the previous attempt left them, a value
+ * given held `value` overriding its default ("For Adaptive Items the outcome variables retain the
+ * values that were assigned to them during the previous invocation of response processing", info
+ * §2.2.2.3).
+ *
+ * A test's outcome processing reads the same trees and values over its sitting
+ * (`#ledger/test-run-call.ts`): `testTreeOf`, the test's `qti-outcome-processing` and the
+ * declarations of the test and its members, and `memberValuesOf`, each member's state after its
+ * latest attempt.
+ *
+ * Response admission (`#ledger/grading.ts` admissionOf, QTI 3.0.1 §7.19.7) reads the same values of
+ * the item session an answer posts to, from the same readers: `admissionArgumentsOf` over the item
+ * session by its place and `memberAdmissionArgumentsOf` over a test member by its item ref, one
+ * template; with the item's body, its element nodes and the attributes admission reads; the posted
+ * responses, from the call's own parameter lists; and the values in force, the latest attempt's
+ * outcomes and completion status and the session's template values. An answer's write guards every
+ * row on no reason of it (`answerAdmissionOf`, `memberAnswerAdmissionOf`).
+ *
+ * Grizzle's types admit no helper generic over a relation's heading, so each sidecar's read and
+ * write is written out, generated from one table by packages/ledger/tools/gen/grade.ts, whose
+ * stages (tools/gen/grade/) each read what the one before wrote: `pnpm generate` in
+ * packages/ledger regenerates this file byte for byte, and its `generate:check`, which edullm's
+ * gate runs, fails on any edit made here by hand.
+ */
+import { ChangeSet, Fn, Num, param, pg, query, Type, v } from "@bjornpagen/grizzle";
+import { BaseType } from "@qti-pie/pantry/grammar/install.ts";
+import type { deliveryOf } from "#ledger/delivery.ts";
+import {
+  copies,
+  DocBase,
+  DocReplyFloat,
+  DocReplyText,
+  DocText,
+  DocVar,
+  responseLabel,
+  responseProcessingOf,
+} from "#ledger/grading.ts";
+import { LearnerId } from "#ledger/keys.ts";
+import { CompletionStatus } from "#ledger/ledger.ts";
+import { QtiInteger } from "#ledger/scalars.ts";
+
+/**
+ * The Delivery level, which the grading statement reads and writes: the ledger's relations and
+ * pantry's below them.
+ */
+type DeliveryLevel = ReturnType<typeof deliveryOf>;
+

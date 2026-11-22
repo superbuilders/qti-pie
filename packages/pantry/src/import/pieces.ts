@@ -1,6 +1,6 @@
 /**
  * The host's text splits: every lexical form the import writes in pieces is cut here, since no
- * grizzle `Compute` term splits a text (no substring, split or pattern group at the vendored
+ * grizzle scalar term splits a text (no substring, split or pattern group at the vendored
  * commit; grizzle's Q7). Each overlay writes the pieces as fields beside the form, and its
  * `E1_derived` proves they concatenate to it, so a wrong split is refused, never stored.
  *
@@ -16,7 +16,7 @@
 import type { Addition } from "@bjornpagen/grizzle";
 import type { Qti } from "#pantry/qti/schema.ts";
 
-// GRIZZLE-PENDING: Q7: a total Compute text split (substring, pattern group or k-th token) generates each piece from its form, and this module goes.
+// GRIZZLE-PENDING: Q7: a total Text split (substring, pattern group or k-th token) generates each piece from its form, and this module goes.
 
 /**
  * XML whitespace `S`, possibly none, as the schema's one `Space` type holds every lead, trail and

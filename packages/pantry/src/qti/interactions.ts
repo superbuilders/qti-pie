@@ -4,7 +4,7 @@
  *
  * Every attribute an O3 law reads is copied once, from one selection of `Attribute`, into
  * {@link InteractionAttribute}, keyed by its element's place and its name, with its lexical form
- * and its value, the form collapsed (`Compute.collapse`, XML Schema Part 2 §4.3.6). Every
+ * and its value, the form collapsed (`Text.collapse`, XML Schema Part 2 §4.3.6). Every
  * identifier, count, number and flag these laws read is an atomic XSD type whose whiteSpace is
  * `collapse` (spec reading 7: "An attribute the XSD itself types ... is read as the XSD reads it,
  * outer whitespace collapsed"), so the value is the form its type's lexical space is read on, the
@@ -55,11 +55,11 @@
  *   hottexts are its choices; elsewhere a hottext is valid and owned by none (reading 38). Its
  *   identifier is distinct among its document's hottexts (§5.65.1, reading 104), and among its
  *   document's choices by that key.
- * - **choice names**, rules over queries (`#pantry/qti/queries.ts`): the nine choice classes share
- *   one space of identifiers, a name borne by one choice or hottext of a document or its assembly
- *   and by no other ("Choice identifier key"), and a choice's identifier is no item variable's: no
- *   declaration's of its document, and in an item no built-in variable's (reading 104, "Choice not
- *   variable").
+ * - **choice names**, rules over queries (`#pantry/qti/queries.ts`): each class's sentence bars its
+ *   own noun, and a simple, inline, hotspot or simple associable choice bears a name no other
+ *   choice or hottext of its document or its assembly bears ("Choice identifier key"), a gap being
+ *   no choice; and a choice's identifier is no item variable's: no declaration's of its document,
+ *   and in an item no built-in variable's (reading 104, "Choice not variable").
  * - The hotspot choices and associable hotspots: their read `shape`, which the default-hotspot laws
  *   read beside their node's element rank and their parent's element count (reading 80).
  * - {@link CountBound}: every element whose counts `ChoiceBound` pairs, and whether it writes each;
@@ -104,9 +104,9 @@
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Main2p4 | QTI 3.0 information model, §2.4 Interactions}
  */
 import {
+  Bits,
   check,
   closedId,
-  Compute,
   contained,
   counted,
   drawn,
@@ -114,17 +114,21 @@ import {
   generated,
   key,
   lexicalForm,
+  Logic,
   mirrors,
   natural,
   on,
   pg,
   relation,
   select,
+  Text,
+  Type,
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import { pipe, Record as Rec } from "effect";
 import { booleanTrue } from "#pantry/grammar/domains.ts";
 import {
+  anyText,
   AttributeName,
   BindingFit,
   BuiltInVariable,
@@ -139,7 +143,7 @@ import {
 import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
 import { namePattern } from "#pantry/qti/declarations.ts";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Instance, itemInstances } from "#pantry/qti/tests.ts";
 
@@ -266,14 +270,16 @@ export const templateVariableKind = "qti-template-variable" satisfies Kind;
  * whatever the form: a value with whitespace inside is held as its type's whiteSpace reads it, and
  * is no value of its type, which its value domain refuses alone.
  *
- * Copied text is `keyText` (`#pantry/qti/limits.ts`): the lexical form and the value each sit in a
- * containment's index, and a longer value is refused under the schema's one limit law.
+ * Copied text is `matchedText` (`#pantry/qti/limits.ts`), the longest a query reads by a pattern:
+ * a key holds it at any length by its image. A parse that reads a value bounds its own operand
+ * where it reads it ("Aria value range", `#pantry/qti/overlay-queries/interaction.ts`), so no
+ * identifier O3 reads is held to a decimal's bound.
  */
 export const InteractionAttribute = relation.generated(
   "InteractionAttribute",
   {
     kind: closedId(NodeKind),
-    lexical: keyText,
+    lexical: matchedText,
     name: closedId(AttributeName),
     package: PackageName,
     path: EntryPath,
@@ -281,7 +287,9 @@ export const InteractionAttribute = relation.generated(
     start: natural,
   },
   ["package", "path", "start", "name"],
-  (v) => ({ value: generated(keyText, Compute.cast(Compute.collapse(v.lexical), keyText)) }),
+  (v) => ({
+    value: generated(matchedText, Text.collapse(v.lexical)),
+  }),
 );
 
 /**
@@ -326,7 +334,7 @@ export const BoundVariable = relation(
   {
     adaptive: pg.boolean,
     attribute: closedId(AttributeName),
-    identifier: keyText,
+    identifier: anyText,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -350,7 +358,7 @@ export const BindingName = relation(
   "BindingName",
   {
     attribute: closedId(AttributeName),
-    identifier: keyText,
+    identifier: anyText,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -378,7 +386,7 @@ export const PlacedBinding = relation(
     adaptive: pg.boolean,
     assembly: EntryPath,
     attribute: closedId(AttributeName),
-    identifier: keyText,
+    identifier: anyText,
     instance: natural,
     package: PackageName,
     path: EntryPath,
@@ -400,7 +408,7 @@ export const PlacedChoice = relation(
   "PlacedChoice",
   {
     assembly: EntryPath,
-    identifier: keyText,
+    identifier: anyText,
     instance: natural,
     package: PackageName,
     path: EntryPath,
@@ -417,7 +425,7 @@ export const PlacedHottext = relation(
   "PlacedHottext",
   {
     assembly: EntryPath,
-    identifier: keyText,
+    identifier: anyText,
     instance: natural,
     package: PackageName,
     path: EntryPath,
@@ -447,7 +455,7 @@ const placedBindingFamily = counted(
 export const Choice = relation(
   "Choice",
   {
-    identifier: keyText,
+    identifier: anyText,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -553,7 +561,7 @@ const elementForms = select(PciModuleForm, (f) => f.eq(f.element, true));
 export const Hottext = relation(
   "Hottext",
   {
-    identifier: keyText,
+    identifier: anyText,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -629,7 +637,7 @@ export const CountBound = relation(
 export const LeastCount = relation(
   "LeastCount",
   {
-    least: keyText,
+    least: anyText,
     leastValue: pg.bigint,
     package: PackageName,
     path: EntryPath,
@@ -645,7 +653,7 @@ export const LeastCount = relation(
 export const MostCount = relation(
   "MostCount",
   {
-    most: keyText,
+    most: anyText,
     mostValue: pg.bigint,
     package: PackageName,
     path: EntryPath,
@@ -678,7 +686,7 @@ export const ItemMode = relation(
 const referenceFields = {
   assemblyKind: closedId(NodeKind),
   attribute: closedId(AttributeName),
-  identifier: keyText,
+  identifier: anyText,
   kind: closedId(NodeKind),
   package: PackageName,
   path: EntryPath,
@@ -742,7 +750,7 @@ export const ContextRef = relation("ContextRef", referenceFields, [
  */
 const fragmentNameFields = {
   attribute: closedId(AttributeName),
-  identifier: keyText,
+  identifier: anyText,
   kind: closedId(NodeKind),
   package: PackageName,
   path: EntryPath,
@@ -848,7 +856,8 @@ const fragmentContextNameFamily = counted(
 );
 
 /**
- * One placement of an included fragment under an item (spec reading 117), keyed by its `Instance`
+ * One placement of an included fragment, or of a section document a test references, under an item
+ * or a test (spec readings 117 and 145), keyed by its `Instance`
  * (`package`, `assembly`, `instance`): the document it places, `document`, the instance's, and the
  * assembly's root kind, whose built-in variables its references read, and its counts
  * of {@link FragmentFeedbackRef}, {@link FragmentPrintedRef}, {@link FragmentTemplateRef} and
@@ -882,7 +891,7 @@ const fragmentReferenceFields = {
   assembly: EntryPath,
   assemblyKind: closedId(NodeKind),
   attribute: closedId(AttributeName),
-  identifier: keyText,
+  identifier: anyText,
   instance: natural,
   kind: closedId(NodeKind),
   package: PackageName,
@@ -1059,7 +1068,7 @@ const namedBinding = (v: AttributeRow) =>
   v.and(
     v.in(v.name, bindingAttributes),
     v.in(v.kind, interactionKinds),
-    Compute.matches(v.value, namePattern),
+    Text.matches(v.value, namePattern),
   );
 
 /**
@@ -1076,7 +1085,7 @@ const itemBindings = select(InteractionAttribute, (v) =>
 
 /**
  * Select the read attributes of some names on some kinds that name a variable ({@link namePattern})
- * in the documents whose references resolve in their own declarations, items.
+ * in the documents whose references resolve in their own declarations, items and tests.
  *
  * @param names - The attributes' names.
  * @param kinds - Their elements' kinds.
@@ -1088,15 +1097,15 @@ const referenceReadOf = (names: readonly Name[], kinds: readonly Kind[]) =>
       v.in(v.name, names),
       v.in(v.kind, kinds),
       v.in(v.rootKind, referringRoots),
-      Compute.matches(v.value, namePattern),
+      Text.matches(v.value, namePattern),
     ),
   );
 
 /**
- * The lexical form of a count that `Compute.cast` reads exactly: `xs:integer`'s, within the signed
- * 64-bit range a count is held to (reading 46). A count's value is copied text, `keyText`, since
- * the form's leading zeros bound no length and a copied text sits in an index, so the cast is
- * guarded by the form and the form is required beside it.
+ * The lexical form of a count that `Type.cast` reads exactly: `xs:integer`'s, within the signed
+ * 64-bit range a count is held to (reading 46). A count's value is copied text, an
+ * {@link InteractionAttribute}'s `matchedText`, whose form's leading zeros bound no length, so the
+ * cast is guarded by the form and the form is required beside it.
  */
 const bigintForm = lexicalForm(pg.bigint);
 
@@ -1109,7 +1118,7 @@ const bigintForm = lexicalForm(pg.bigint);
  * its own map (`countValueOf` in `#pantry/import/overlays/interactions.ts`), and the law oracle by
  * its own (`integerOf` in `#pantry/test/oracle-view.ts`).
  */
-const countSign = Compute.pattern("^(?:[^-]|-0+$)");
+const countSign = Text.pattern("^(?:[^-]|-0+$)");
 
 /**
  * Select the read count attributes of some names, on the kinds whose counts `ChoiceBound` pairs,
@@ -1124,8 +1133,8 @@ export const integerReadOf = (names: readonly Name[]) =>
     v.and(
       v.in(v.name, names),
       v.in(v.kind, boundKinds),
-      Compute.matches(v.value, countSign),
-      Compute.matches(v.value, bigintForm),
+      Text.matches(v.value, countSign),
+      Text.matches(v.value, bigintForm),
     ),
   );
 
@@ -1145,7 +1154,7 @@ const responseIdentifiers = readOf(["response-identifier"], interactionKinds);
 const outsideFeedback = select(Node, (n) =>
   n.and(
     n.in(n.kind, interactionKinds),
-    n.eq(Compute.disjoint(n.ancestry, Enters.row(feedbackKind)), true),
+    n.eq(Bits.disjoint(n.ancestry, Enters.row(feedbackKind)), true),
   ),
 );
 
@@ -1165,7 +1174,7 @@ const adaptiveTrue = select(InteractionAttribute, (v) =>
  */
 const printedReference = (v: AttributeRow) =>
   v.and(
-    Compute.matches(v.value, namePattern),
+    Text.matches(v.value, namePattern),
     v.or(
       v.and(v.in(v.name, references.printed.attributes), v.in(v.kind, references.printed.kinds)),
       v.and(v.in(v.name, references.variable.attributes), v.in(v.kind, references.variable.kinds)),
@@ -1173,8 +1182,8 @@ const printedReference = (v: AttributeRow) =>
   );
 
 /**
- * The read attributes each content reference relation holds: those that name a variable, in items,
- * each resolving in its own document's declarations.
+ * The read attributes each content reference relation holds: those that name a variable, in items
+ * and tests, each resolving in its own document's declarations.
  */
 const referenceSources = {
   context: referenceReadOf(references.context.attributes, references.context.kinds),
@@ -1202,7 +1211,7 @@ const fragmentReferenceOf = (reference: {
       v.not(v.in(v.rootKind, referringRoots)),
       v.in(v.name, reference.attributes),
       v.in(v.kind, reference.kinds),
-      Compute.matches(v.value, namePattern),
+      Text.matches(v.value, namePattern),
     ),
   );
 
@@ -1221,9 +1230,10 @@ const fragmentSources = {
 
 /**
  * The placements `FragmentScope` holds: every instance of an assembly whose root's references
- * resolve in its own declarations, an item's ({@link referringRoots}), whose document's resolve in
- * no declarations of its own: an included fragment's, one per placement (spec reading 117). A bank
- * heads its own assembly, which resolves nothing.
+ * resolve in its own declarations, an item's or a test's ({@link referringRoots}), whose document's
+ * resolve in no declarations of its own: an included fragment's, and a section document's a test
+ * references, one per placement (spec readings 117 and 145). A bank heads its own assembly, which
+ * resolves nothing.
  */
 const fragmentPlacements = select(Instance, (i) =>
   i.and(i.in(i.assemblyKind, referringRoots), i.not(i.in(i.rootKind, referringRoots))),
@@ -1413,8 +1423,8 @@ const onContext = on(Document, "package", "path", "contextPath", "contextNearest
  *   place (spec reading 117), under each instance of each assembly, as many {@link PlacedChoice}
  *   and {@link PlacedHottext} rows as its document has choices and hottexts, each its document's,
  *   their identifiers distinct over the assembly. Across the classes, "Choice identifier key" holds
- *   each name to one choice or hottext, in the document and over its assembly, and "Choice not
- *   variable" each to no variable of its document, both rules over queries
+ *   a "choice"'s name to no other choice or hottext, in the document and over its assembly, and
+ *   "Choice not variable" each to no variable of its document, both rules over queries
  *   (`#pantry/qti/queries.ts`, reading 104).
  * - **the default hotspot** (reading 80): each hotspot's read shape, which
  *   `default_hotspot_last_slot` and `Graphic_gap_match_default_hotspot` read beside its node's rank
@@ -1427,13 +1437,15 @@ const onContext = on(Document, "package", "path", "contextPath", "contextNearest
  *   bounds, each value collapsed and read where it is in `xs:decimal`'s lexical space, grizzle's
  *   `decimalText`, the language pantry's own value domain admits (`decimalLexical` of
  *   `#pantry/grammar/domains.ts`): the decimal it names, exactly and of any digits, by grizzle's
- *   `Compute.parseDecimal` (XML Schema 1.1's decimalLexicalMap, Part 2 §3.3.3.1), so a value past
- *   256 integer or 255 fraction digits is ordered as any other. A pair with a value that is no
+ *   `Text.parseDecimal` (XML Schema 1.1's decimalLexicalMap, Part 2 §3.3.3.1), so a value past 256
+ *   integer or 255 fraction digits is ordered as any other. A pair with a value that is no
  *   `xs:decimal` holds the law by its own arm, since its value domain alone refuses it; each
- *   parse's otherwise is never read, since that arm holds wherever its guard fails. A value is a
- *   `keyText`, at most `keyTextBytes`, below the 16,384 bytes the parse reads
- *   (`decimalTextMaxBytes`), and a match guard keeps its subject's byte bound in its branch, so the
- *   parse needs no byte guard (grizzle's README, "Parsing text", `Compute.parseDecimal`).
+ *   parse's otherwise is never read, since that arm holds wherever its guard fails. The parse reads
+ *   a text of at most grizzle's `decimalTextMaxBytes`, 16,384 (grizzle's README, "Parsing text",
+ *   `Text.parseDecimal`), each value a `matchedText` of any length, so the parse stands under its
+ *   own byte guard, and an ARIA bound past it, which names a decimal PostgreSQL's numeric may not
+ *   hold, holds "Aria value range" by its own arm and is refused under "Key text bound", a stated
+ *   limit of the representation.
  * - **fragments' references:** each one's row, counted per document and class; one placement row per
  *   instance of an item's assembly whose document is no item, an included fragment's (spec reading
  *   117), counting as many resolutions of each class as its document has references; each
@@ -1630,15 +1642,11 @@ export const interactionLawsByName = {
     ),
     check("E1_derived", LeastCount, (l) =>
       l.and(
-        Compute.matches(l.least, countSign),
-        Compute.matches(l.least, bigintForm),
+        Text.matches(l.least, countSign),
+        Text.matches(l.least, bigintForm),
         l.eq(
           l.leastValue,
-          Compute.when(
-            Compute.matches(l.least, bigintForm),
-            (least) => Compute.cast(least, pg.bigint),
-            0n,
-          ),
+          Logic.when(Text.matches(l.least, bigintForm), (least) => Type.cast(least, pg.bigint), 0n),
         ),
       ),
     ),
@@ -1648,15 +1656,11 @@ export const interactionLawsByName = {
     ),
     check("E1_derived", MostCount, (m) =>
       m.and(
-        Compute.matches(m.most, countSign),
-        Compute.matches(m.most, bigintForm),
+        Text.matches(m.most, countSign),
+        Text.matches(m.most, bigintForm),
         m.eq(
           m.mostValue,
-          Compute.when(
-            Compute.matches(m.most, bigintForm),
-            (most) => Compute.cast(most, pg.bigint),
-            0n,
-          ),
+          Logic.when(Text.matches(m.most, bigintForm), (most) => Type.cast(most, pg.bigint), 0n),
         ),
       ),
     ),

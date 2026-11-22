@@ -1,0 +1,3 @@
+/** A variable as the ledger keys it. */
+const VariableName = fields.Attribute.fields.value.type
+

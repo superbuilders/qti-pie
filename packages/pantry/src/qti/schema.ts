@@ -12,7 +12,7 @@
  * Every reader of the schema, the author role, its login and the importer among them, reads `Qti`,
  * the top level, so a refusal by a rule over a query is its own law, never a law of a level above.
  * An application that adds laws or relations of its own stacks its level over `Qti` with grizzle's
- * `schema.extend`, as `#pantry/qti/media.ts` does for the package-media laws.
+ * `schema.extend`, as `#pantry/qti/media.ts` does for the package-media level's relations.
  */
 import { schema } from "@bjornpagen/grizzle";
 import { QtiViews } from "#pantry/qti/names.ts";
@@ -22,4 +22,4 @@ import { queryLaws, queryRelations } from "#pantry/qti/queries.ts";
  * The QTI 3.0 schema: every relation of `QtiBase`, every shared view of `QtiViews` and every query
  * of `QtiQueries`, each public and typed under `Qti.relations`, and every law over them.
  */
-export const Qti = schema.extend(QtiViews, "QtiQueries", queryRelations, queryLaws);
+export const Qti = schema.extend([QtiViews], "QtiQueries", queryRelations, queryLaws);

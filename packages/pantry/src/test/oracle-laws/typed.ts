@@ -8,7 +8,8 @@
  *   `xs:integer` (reading 45), `xs:double` (§8.13: durations "are represented using the
  *   'xsd:double' datatype"), `IdentifierDType` and `xs:anyURI` (reading 71), each absorbing the
  *   whitespace its type collapses;
- * - Boolean: `true` or `false` (reading 34), outer whitespace formatting (reading 7);
+ * - Boolean: `xs:boolean`'s `true`, `false`, `1` or `0` (reading 34; XML Schema Part 2 §3.2.2.1),
+ *   outer whitespace formatting (reading 7);
  * - Point: two integers, one whitespace character between them (§8.13);
  * - Pair and directed pair: two NCNames, one whitespace character between them (§8.13);
  * - String, file and the null object none: any text (reading 7: a string's whitespace is its
@@ -38,7 +39,7 @@ const ncChar = `\\-.0-9\\u{B7}\\u{300}-\\u{36F}\\u{203F}-\\u{2040}${ncStart}`;
  * The patterns of the base types no value domain states.
  */
 const ownPatterns: ReadonlyMap<string, string> = new Map([
-  ["boolean", "^[\\t\\n\\r ]*(?:true|false)[\\t\\n\\r ]*$"],
+  ["boolean", "^[\\t\\n\\r ]*(?:true|false|1|0)[\\t\\n\\r ]*$"],
   [
     "directedPair",
     `^[\\t\\n\\r ]*[${ncStart}][${ncChar}]*[\\t\\n\\r ][${ncStart}][${ncChar}]*[\\t\\n\\r ]*$`,

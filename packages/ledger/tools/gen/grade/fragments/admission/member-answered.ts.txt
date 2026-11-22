@@ -1,0 +1,26 @@
+  /**
+   * The item session the call answers: the sitting's member that the call's item ref names, by its
+   * item document.
+   */
+  const answeredOf = query(delivery).rule((r) => {
+    const { package: pkg, path: test } = v(fields.TestSession, "answeredSitting");
+    const { document } = v(fields.TestMember, "answeredMember");
+    const { n } = v(fields.ItemSession, "answeredSession");
+
+    return r
+      .match(fields.TestSession, {
+        child: answeredKey.child,
+        package: pkg,
+        path: test,
+        stage: answeredKey.stage,
+      })
+      .match(fields.TestMember, { document, item: answeredKey.item, package: pkg, path: test })
+      .match(fields.ItemSession, {
+        child: answeredKey.child,
+        n,
+        package: pkg,
+        path: document,
+        stage: answeredKey.stage,
+      })
+      .find({ child: answeredKey.child, n, package: pkg, path: document, stage: answeredKey.stage });
+  });

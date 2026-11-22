@@ -10,8 +10,11 @@
  * ({@link positives}), so a set holds only the negative's own breaches; the bank negatives and
  * `test-document` are built over `stimulus-shared`, which the stimulus negatives share.
  *
- * Phase 5's test positives are 1EdTech test packages, and pantry stores no test (spec reading
- * 228): each is refused under "Test structure" alone ({@link tests}).
+ * Phase 5's test positives are 1EdTech test packages, and pantry stores every valid test (owner,
+ * 2026-11-20, J1): each is accepted but the two whose 1EdTech test names its items under other
+ * identifiers than their own, which "Item ref identifier" refuses alone (QTI §4.1.1: "the values of
+ * the two 'identifier' characteristics MUST be the same"), as it refuses the corpus tests that do
+ * so ({@link tests}).
  */
 import path from "node:path";
 import { NodeServices } from "@effect/platform-node";
@@ -34,15 +37,15 @@ const workDirectory = path.resolve(import.meta.dirname, "../../work");
 const positives = ["stimulus-301"] as const satisfies readonly FixtureName[];
 
 /**
- * Phase 5's test positives the oracle once accepted, each a test whose content is otherwise valid
- * QTI, so each breaks spec reading 1's "Test structure" and nothing else.
+ * Phase 5's test positives, each with the oracle's verdict: `rtest01` names its item sets `set01`
+ * to `set03` and `rtest26` its items by names other than the items' own, which §4.1.1 refuses.
  */
-const tests = [
-  "test-content",
-  "test-include",
-  "test-lti",
-  "test-mapping",
-] as const satisfies readonly FixtureName[];
+const tests: readonly (readonly [FixtureName, "accepted" | readonly string[]])[] = [
+  ["test-content", "accepted"],
+  ["test-include", ["item-ref-identifier"]],
+  ["test-lti", "accepted"],
+  ["test-mapping", ["item-ref-identifier"]],
+];
 
 /**
  * Materialize a fixture in a root of its own and judge it by the oracle.
@@ -94,11 +97,14 @@ layer(NodeServices.layer, { excludeTestServices: true })(
       );
     }
 
-    for (const name of tests) {
-      it.effect(`refuses the test ${name} under Test structure alone`, () =>
-        Effect.gen(function* refusesTest() {
-          assert.deepStrictEqual(yield* verdictOf(name), ["test-structure"], name);
-        }).pipe(Effect.scoped),
+    for (const [name, expected] of tests) {
+      it.effect(
+        `judges the test ${name} ${expected === "accepted" ? "accepted" : `refused under ${expected.join(", ")}`}`,
+        () =>
+          Effect.gen(function* judgesTest() {
+            const verdict: "accepted" | readonly string[] = yield* verdictOf(name);
+            assert.deepStrictEqual(verdict, expected, name);
+          }).pipe(Effect.scoped),
       );
     }
   },

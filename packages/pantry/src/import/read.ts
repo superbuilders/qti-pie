@@ -40,7 +40,7 @@ import { shredGrammarOf } from "#pantry/model/composed.ts";
 import { shred } from "#pantry/model/shred.ts";
 import { PackageReadError, readEntries } from "#pantry/package/read.ts";
 import type { PackageFile } from "#pantry/package/read.ts";
-import { identityBytes, isPackageName } from "#pantry/qti/limits.ts";
+import { isPackageName } from "#pantry/qti/limits.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
 
 /**
@@ -83,7 +83,8 @@ const packagePath = Brand.nominal<PackagePath>();
  *   entry's are a media file's, which the import puts in its content-addressed store under their
  *   SHA-256 (`MediaStore` of `#pantry/package/media.ts`) and states that digest as its `Media` row.
  *   No entry's bytes are stored in the database. Its `type` is empty, since the reader knows no
- *   media type; a package-media install's policy gives an extension's.
+ *   media type; a package-media install's policy (`MediaType` of `#pantry/qti/media.ts`) gives an
+ *   extension's.
  * - `referenced`: every path a reference of a document resolves to in the package, the attributes of
  *   the reference census, each image candidate of a `srcset` and the texts of the text census
  *   alike: exactly the paths of the `ReferencePath`, `CandidatePath` and `TextReferencePath` rows
@@ -99,27 +100,23 @@ export interface QtiPackage {
 
 /**
  * The name a caller gave a package is no name a package can be stored under: an NCName, an XML name
- * with no colon, of at most `identityBytes` UTF-8 bytes (`PackageName`, `#pantry/qti/limits.ts`).
+ * with no colon (`PackageName`, `#pantry/qti/limits.ts`).
  * Nothing was read.
  */
 export class BadPackageName extends Schema.TaggedError<BadPackageName>()("BadPackageName", {
-  /**
-   * The most UTF-8 bytes a name holds.
-   */
-  maxBytes: Schema.Number,
   name: Schema.String,
 }) {
   /**
    * The name, why no package can be stored under it, and what a name is.
    */
   override get message(): string {
-    return `No package can be stored under the name ${JSON.stringify(this.name)}: a package's name is an XML name with no colon and no space (an NCName), such as g3-science or MANIFEST-1, of at most ${String(this.maxBytes)} UTF-8 bytes. Name the package with one.`;
+    return `No package can be stored under the name ${JSON.stringify(this.name)}: a package's name is an XML name with no colon and no space (an NCName), such as g3-science or MANIFEST-1. Name the package with one.`;
   }
 }
 
 /**
  * Hold a caller's name for a package to `PackageName`'s language, an NCName of at most
- * `identityBytes` UTF-8 bytes (`isPackageName`, `#pantry/qti/limits.ts`), before anything is read,
+ * (`isPackageName`, `#pantry/qti/limits.ts`), before anything is read,
  * so no row is built under a name the database would refuse.
  *
  * @param name - The name the caller gave.
@@ -128,9 +125,7 @@ export class BadPackageName extends Schema.TaggedError<BadPackageName>()("BadPac
 export const requirePackageName = (
   name: string,
 ): Effect.Effect<QtiPackage["name"], BadPackageName> =>
-  isPackageName(name)
-    ? Effect.succeed(name)
-    : Effect.fail(new BadPackageName({ maxBytes: identityBytes, name }));
+  isPackageName(name) ? Effect.succeed(name) : Effect.fail(new BadPackageName({ name }));
 
 /**
  * Read and shred one document of the package.
@@ -276,7 +271,7 @@ const referencedOf = (
  *
  * @param dir - The package directory or `.zip` file.
  * @param name - The package's name, the key it is stored under: an NCName of at most
- *   `identityBytes` UTF-8 bytes (`PackageName`).
+ *   (`PackageName`).
  * @returns The package. Fails with `BadPackageName` before anything is read where no package can be
  *   stored under `name`; with `ImportRefused` naming the rule the reader, the container or the
  *   codec refused the package under; and with the platform's error when the package cannot be

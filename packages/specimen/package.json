@@ -7,8 +7,8 @@
     "#specimen/*": "./src/*"
   },
   "exports": {
+    "./floor": "./src/floor.ts",
     "./open": "./src/open.ts",
-    "./scored": "./src/scored.ts",
     "./specimen": "./src/specimen.ts"
   },
   "scripts": {

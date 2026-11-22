@@ -1,27 +1,40 @@
 /**
  * The LOM level's checks (`#pantry/qti/lom.ts`), each judged by grizzle's evaluator of the level
  * over a whole row (`rowEvaluator`), a row breaking a check where its predicate is false or NULL:
- * the vocabulary narrowing and the vCard form over a record document's node (`RecordNode`), and the
- * credit, source and version checks over their derived relations' rows: a check over a derived
- * relation holds over each row its query delivers, so the evaluator judges it over a row of that
- * query's heading. The importer's rows of a manifest written as the producers write theirs show
- * the string value's fold reaching every LOM leaf a view reads, and no check refusing it. Which
- * documents a record is read from, and the containments and keys over derived relations, are
+ * the vocabulary over a term of LOM's own vocabulary (`LomTerm`) and the vCard form over a record
+ * document's node (`RecordNode`): a check over a derived relation holds over each row its query
+ * delivers, so the evaluator judges it over a row of that query's heading. The typed views of what
+ * a package may state hold no check of their own, and the level asks a package for nothing: it
+ * states no containment and no key. The importer's rows of a manifest written as the producers
+ * write theirs show the string value's fold reaching every LOM leaf a view reads, and no check
+ * refusing it. Which documents a record is read from, and which terms name another vocabulary, are
  * queries only the database evaluates, so the database is their judge, as it is the media level's
  * (`policyLaws` of `#pantry/test/oracle-laws.ts`).
  */
 import type { CheckVerdict, EvaluatedRow, Unevaluated } from "@bjornpagen/grizzle";
+import { exhaust } from "@bjornpagen/testing/explore";
+import { requiredInSpace } from "@bjornpagen/testing/features";
+import { element } from "@bjornpagen/testing/gen";
+import type { Gen } from "@bjornpagen/testing/gen";
+import { searched } from "@bjornpagen/testing/vitest";
 import { NodeServices } from "@effect/platform-node";
 import { assert, describe, it, layer } from "@effect/vitest";
-import { Effect, FileSystem, Option, Record as Rec, Result } from "effect";
+import { Duration, Effect, FileSystem, Option, Record as Rec, Result } from "effect";
 import { lawOfCheck } from "#pantry/import/refusal.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import {
+  ClassificationPurpose,
+  ContributeRole,
+  LomTerm,
   lomLawsByName,
+  PackageClassification,
   PackageCredit,
+  PackageRelation,
   packageScheme,
   QtiLom,
   QtiLomVocabulary,
+  RelationKind,
+  TaxonEntry,
 } from "#pantry/qti/lom.ts";
 import { RecordNode } from "#pantry/qti/names.ts";
 import { previewRowsOf } from "#pantry/test/host-judge.ts";
@@ -67,44 +80,50 @@ const heldBy = (verdict: Result.Result<CheckVerdict, Unevaluated>, what: string)
     : assert.fail(`${what}: ${verdict.failure.why}`);
 
 /**
- * Whether a row of `RecordNode` holds one of the level's checks over it, as the check's rule over
- * the query holds it.
+ * Whether a row of `RecordNode` holds LOM vCard, as the check's rule over the query holds it.
  *
- * @param name - The check.
  * @param row - The row.
  * @returns Whether it holds the check.
  */
-const recordHolds = (name: "LOM_vCard" | "LOM_vocabulary", row: RecordRow): boolean =>
+const vcardHolds = (row: RecordRow): boolean =>
   heldBy(
     insideDomains(
       Result.map(evaluate.admit(RecordNode, row), (admitted) => evaluate(RecordNode, admitted)),
-      name,
-      // oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- The check's declared name keys its verdict.
-    ).checks[name],
-    name,
+      "LOM_vCard",
+    ).checks.LOM_vCard,
+    "LOM_vCard",
   );
 
 /**
- * Whether a package's credit holds the level's check of it.
+ * A row of `LomTerm`, a value of a term of LOM's own vocabulary, as LOM vocabulary reads one.
+ */
+type TermRow = EvaluatedRow<typeof LomTerm>;
+
+/**
+ * Whether a value of a term of LOM's own vocabulary holds LOM vocabulary, as the check's rule over
+ * the query holds it.
  *
- * @param name - The check.
- * @param row - The credit's row, of `PackageCredit`'s heading.
+ * @param parentKind - Its term's element.
+ * @param stringValue - Its folded text.
  * @returns Whether it holds the check.
  */
-const creditHolds = (
-  name: "Author_credit" | "Publisher_credit",
-  row: EvaluatedRow<typeof PackageCredit>,
-): boolean =>
-  heldBy(
+const termHolds = (parentKind: TermRow["parentKind"], stringValue: string): boolean => {
+  const row: TermRow = {
+    package: "p",
+    parentKind,
+    path: "imsmanifest.xml",
+    start: 8n,
+    stringValue,
+  };
+
+  return heldBy(
     insideDomains(
-      Result.map(evaluate.admit(PackageCredit, row), (admitted) =>
-        evaluate(PackageCredit, admitted),
-      ),
-      name,
-      // oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- The check's declared name keys its verdict.
-    ).checks[name],
-    name,
+      Result.map(evaluate.admit(LomTerm, row), (admitted) => evaluate(LomTerm, admitted)),
+      "LOM_vocabulary",
+    ).checks.LOM_vocabulary,
+    "LOM_vocabulary",
   );
+};
 
 /**
  * LOM's vocabularies as the standard lists them, the oracle the narrowing is held to: IEEE
@@ -178,67 +197,40 @@ const writtenValues = [
 ];
 
 /**
- * Every source the vocabulary box writes: LOM's own, written, padded or empty (the binding's
- * `default="LOMv1.0"`), and two other vocabularies'.
- */
-const writtenSources = ["LOMv1.0", " LOMv1.0\n", "", "LOMv2.0", "http://purl.org/dc/terms/"];
-
-/**
- * A `lom:value` or `lom:source` node of a manifest's record, as the check reads it.
+ * Whether a node's parent is a term of a vocabulary LOM vocabulary reads.
  *
- * @param kind - The node's kind.
- * @param parentKind - Its vocabulary element.
- * @param stringValue - Its folded text.
- * @returns The row.
+ * @param kind - The parent's kind.
+ * @returns Whether it is a status, a role, a kind or a purpose.
  */
-const termRow = (
-  kind: "lom:source" | "lom:value",
-  parentKind: RecordRow["parentKind"],
-  stringValue: string,
-): RecordRow => ({ ...recordNode, kind, parentKind, stringValue });
+const isVocabularyKind = (kind: string): kind is keyof typeof vocabularies =>
+  Object.hasOwn(vocabularies, kind);
 
 describe("LOM vocabulary", () => {
-  it("admits in a status, a role, a kind and a purpose exactly LOM's terms and LOM's own source", () => {
+  it("holds a status, a role, a kind and a purpose of LOM's own vocabulary to exactly LOM's terms", () => {
     // Oracle: IEEE 1484.12.1-2002 §4.4 ("If the source is "LOMv1.0", then the value space is
     // described by this edition of this Standard") over the vocabularies of 2.2, 2.3.1, 3.2.1, 7.1
-    // and 9.1, and QTI 3.0 Metadata §2.7.7.1's precludes; the binding's default source, LOMv1.0
-    // (imsmd_loose_v1p3p2.xsd line 1392). Bound: each of the four elements × every written value
-    // and every written source, exhausted; a learning resource type's terms, which the level does
-    // not narrow, alike.
+    // and 9.1, and QTI 3.0 Metadata §2.7.7.1's precludes. A term of another source is no row of
+    // `LomTerm`, the loose binding enforcing no default vocabulary (§3.6), so no source is judged
+    // here: which terms name another vocabulary is `LomTerm`'s query, the database's to evaluate.
+    // Bound: each of the four elements × every written value, exhausted.
     for (const parent of Rec.keys(vocabularies)) {
       const terms: readonly string[] = vocabularies[parent];
       for (const value of writtenValues) {
         assert.strictEqual(
-          recordHolds("LOM_vocabulary", termRow("lom:value", parent, value)),
+          termHolds(parent, value),
           terms.includes(value),
           `${JSON.stringify(value)} in ${parent}`,
         );
       }
-
-      for (const source of writtenSources) {
-        assert.strictEqual(
-          recordHolds("LOM_vocabulary", termRow("lom:source", parent, source)),
-          source.trim() === "" || source.trim() === "LOMv1.0",
-          `source ${JSON.stringify(source)} in ${parent}`,
-        );
-      }
-    }
-
-    for (const value of writtenValues) {
-      assert.isTrue(
-        recordHolds("LOM_vocabulary", termRow("lom:value", "lom:learningResourceType", value)),
-        `${JSON.stringify(value)} in a learning resource type`,
-      );
     }
   });
 });
 
 /**
- * RFC 2426's properties a vCard 3.0 "MUST" hold (§3.1.1 FN, §3.1.2 N, §3.6.9 VERSION) and the ones
- * a credit needs (decisions 14 and 16: EMAIL, ORG), read the way RFC 2425 §5.8.2 reads a content
- * line, the oracle the patterns are held to: the lines between the first, `BEGIN:VCARD`, and the
- * last, `END:VCARD`, each a name, optionally after a group and a dot and followed by parameters,
- * before its first colon, compared without regard to case.
+ * RFC 2426's properties a vCard 3.0 "MUST" hold (§3.1.1 FN, §3.1.2 N, §3.6.9 VERSION), read the way
+ * RFC 2425 §5.8.2 reads a content line, the oracle the patterns are held to: the lines between the
+ * first, `BEGIN:VCARD`, and the last, `END:VCARD`, each a name, optionally after a group and a dot
+ * and followed by parameters, before its first colon, compared without regard to case.
  */
 interface ReadVcard {
   readonly framed: boolean;
@@ -281,22 +273,6 @@ const has = (vcard: ReadVcard, name: string, value: (text: string) => boolean): 
   (vcard.properties.get(name) ?? []).some(value);
 
 /**
- * Whether a value names something: some character other than a space or a tab.
- *
- * @param text - The value.
- * @returns Whether it does.
- */
-const named = (text: string): boolean => /[^ \t]/u.test(text);
-
-/**
- * Whether a value is an address: a local part and a domain around one `@` (RFC 5322 §3.4.1).
- *
- * @param text - The value.
- * @returns Whether it is.
- */
-const address = (text: string): boolean => /^[^@]+@[^@]+$/u.test(text);
-
-/**
  * The vCards of the box: the producers' own (RAM's author and publisher, decision 12), LOM's own
  * example (IEEE 1484.12.1 2.3.2, which writes no N and no VERSION), and each one property away from
  * them, in case, group, line ending and frame.
@@ -316,16 +292,18 @@ const vcards = [
   "BEGIN:VCARD\nVERSION:3.0\nN:Family;Given\nFN:Given Family\nEMAIL:given@example.org",
   "BEGIN:VCARD\nVERSION:3.0\nN:Family;Given\nFN:Given Family\nEND:VCARD\nNOTE:after the end",
   "Given Family <given@example.org>",
-];
+] as const;
 
 describe("LOM vCard", () => {
-  it("holds every contribute's entity to a vCard 3.0 with its N, its FN and its frame", () => {
+  it("holds every contribute's entity to a vCard 3.0 with its N, its FN and its frame, each of any value", () => {
     // Oracle: RFC 2426 §3.1.1, §3.1.2 and §3.6.9 ("MUST be present") and §5's BEGIN and END, read
-    // by `readVcard`, RFC 2425 §5.8.2's content line. Bound: the box's fourteen entities.
+    // by `readVcard`, RFC 2425 §5.8.2's content line; an FN's and an N's value is a text-value,
+    // `*(SAFE-CHAR / ":" / DQUOTE / ESCAPED-CHAR)` (§4), the blank one among them. Bound: the
+    // box's fourteen entities.
     for (const text of vcards) {
       const vcard = readVcard(text);
       assert.strictEqual(
-        recordHolds("LOM_vCard", {
+        vcardHolds({
           ...recordNode,
           kind: "lom:entity",
           parentKind: "lom:contribute",
@@ -334,90 +312,23 @@ describe("LOM vCard", () => {
         vcard.framed &&
           has(vcard, "VERSION", (value) => value === "3.0") &&
           has(vcard, "N", () => true) &&
-          has(vcard, "FN", named),
+          has(vcard, "FN", () => true),
         JSON.stringify(text),
       );
     }
   });
-
-  it("holds an author's vCard to an EMAIL and a publisher's to an ORG", () => {
-    // Oracle: decisions 14 ("The database refuses a package whose author contribute vCard lacks an
-    // EMAIL") and 16 ("a publisher contribute whose vCard has an ORG"), an address read as RFC 5322's
-    // local part and domain around one @. Bound: the box's entities × the two credited roles and
-    // one role neither law reads.
-    for (const text of vcards) {
-      const vcard = readVcard(text);
-      for (const role of ["author", "publisher", "editor"] as const) {
-        const row = { entity: 1n, package: "p", role, vcard: text };
-        assert.strictEqual(
-          creditHolds("Author_credit", row),
-          role !== "author" || has(vcard, "EMAIL", address),
-          `${role} ${JSON.stringify(text)}`,
-        );
-        assert.strictEqual(
-          creditHolds("Publisher_credit", row),
-          role !== "publisher" || has(vcard, "ORG", named),
-          `${role} ${JSON.stringify(text)}`,
-        );
-      }
-    }
-  });
 });
 
-describe("Source pointer and Version lesson", () => {
-  it("names a source by a SHA-256 and an earlier revision in the package scheme", () => {
-    // Oracle: decision 7 ("naming its source file by digest", a SHA-256's 64 lowercase hex digits)
-    // and decision 4 (one fixed scheme for our packages). Bound: a digest, and four texts a digit,
-    // a case or a length away from one; the scheme and three other catalogs.
-    const digest = "0123456789abcdef".repeat(4);
-    const entries: readonly (readonly [string, boolean])[] = [
-      [digest, true],
-      [digest.toUpperCase(), false],
-      [digest.slice(1), false],
-      [`${digest}0`, false],
-      [`sha256:${digest}`, false],
-    ];
-    for (const [entry, expected] of entries) {
-      const row = { catalog: "c", entry, package: "p", relation: 1n };
-      assert.strictEqual(
-        heldBy(
-          insideDomains(
-            Result.map(evaluate.admit(QtiLom.relations.SourcePointer, row), (admitted) =>
-              evaluate(QtiLom.relations.SourcePointer, admitted),
-            ),
-            entry,
-          ).checks.Source_pointer,
-          entry,
-        ),
-        expected,
-        entry,
-      );
-    }
-
-    const catalogs: readonly (readonly [string, boolean])[] = [
-      [packageScheme, true],
-      [`${packageScheme}/`, false],
-      ["https://alphascience-grade-3.alpha-beta.app", false],
-      ["URI", false],
-    ];
-    for (const [catalog, expected] of catalogs) {
-      const row = { catalog, entry: "e", package: "p", relation: 1n };
-      assert.strictEqual(
-        heldBy(
-          insideDomains(
-            Result.map(evaluate.admit(QtiLom.relations.VersionOf, row), (admitted) =>
-              evaluate(QtiLom.relations.VersionOf, admitted),
-            ),
-            catalog,
-          ).checks.Version_lesson,
-          catalog,
-        ),
-        expected,
-        catalog,
-      );
-    }
-  });
-});
+/**
+ * The typed views of what a package may state: its classifications (its grades and subjects among
+ * them) with their taxa's names, its credits and its relations (its sources among them).
+ */
+const statedViews = new Set<unknown>([
+  PackageClassification,
+  TaxonEntry,
+  PackageCredit,
+  PackageRelation,
+]);
 
 describe("the LOM level", () => {
   it("states each law of lomLawsByName and no other, each check named by its law", () => {
@@ -433,6 +344,241 @@ describe("the LOM level", () => {
       }
     }
   });
+
+  it("asks a package for nothing, and judges only a record's terms and vCards", () => {
+    // Oracle: IEEE 1484.12.1-2002 §4.2 ("All data elements are optional"), QTI 3.0 Metadata
+    // §2.7.2.3, §2.7.7.2 and §2.7.9 ("Usage as defined by [LOM, 02]"; "There may be multiple
+    // instances of the classification category"), and QTI 3.0 Conformance §3 ("the applications
+    // must be able to ignore or remove the unsupported data"): no identity, grade, subject, credit,
+    // source or version is required, counted or held to a chain, so the level states no
+    // containment and no key, and its checks read a term of LOM's own vocabulary or a record's node
+    // alone, never a view of what a package may state. Bound: every statement of the level.
+    for (const statement of Object.values(lomLawsByName).flat()) {
+      assert.strictEqual(statement.kind, "check");
+      assert.include([LomTerm, RecordNode] as readonly unknown[], statement.relation);
+      assert.isFalse(statedViews.has(statement.relation), statement.name);
+    }
+  });
+});
+
+/**
+ * One row of a view of what a package may state, as the view delivers it: a credit, of a role
+ * and a vCard; a classification, of a purpose and a taxon; or a relation, of a kind and an entry.
+ */
+type StatedRow =
+  | {
+      readonly role: (typeof ContributeRole.handles)[number];
+      readonly vcard: (typeof vcards)[number];
+      readonly view: "credit";
+    }
+  | {
+      readonly id: string;
+      readonly purpose: (typeof ClassificationPurpose.handles)[number];
+      readonly view: "classification";
+    }
+  | {
+      readonly entry: string;
+      readonly kind: (typeof RelationKind.handles)[number];
+      readonly view: "relation";
+    };
+
+/**
+ * A SHA-256 as the producers name a source file by one: 64 lowercase hex digits.
+ */
+const digest = "0123456789abcdef".repeat(4);
+
+/**
+ * Every row of the box: each role of LOM 2.3.1 with each vCard of {@link vcards}, each purpose of
+ * LOM 9.1 with a taxon id of the shared grade scheme, of Ram's topics and of none of ours, and
+ * each relation kind of LOM 7.1 with QTI's `precludes`, its entry a SHA-256, one a case away, a
+ * URL and a name.
+ */
+const statedRows: Gen<StatedRow> = (source) => {
+  const view = source.draw(element(["credit", "classification", "relation"] as const));
+  switch (view) {
+    case "credit": {
+      return {
+        role: source.draw(element(ContributeRole.handles)),
+        vcard: source.draw(element(vcards)),
+        view,
+      };
+    }
+
+    case "classification": {
+      return {
+        id: source.draw(element(["03", "t01", "Grade 3"] as const)),
+        purpose: source.draw(element(ClassificationPurpose.handles)),
+        view,
+      };
+    }
+
+    case "relation": {
+      return {
+        entry: source.draw(
+          element([digest, digest.toUpperCase(), "https://example.org/source.json", "e"] as const),
+        ),
+        kind: source.draw(element(RelationKind.handles)),
+        view,
+      };
+    }
+
+    default: {
+      return view satisfies never;
+    }
+  }
+};
+
+/**
+ * A situation the box must reach: a credit, a grade, a subject or a source that a law of the level
+ * once refused or required, each now a row no check reads.
+ */
+type StatedSituation =
+  | "an author whose vCard writes no EMAIL"
+  | "a publisher whose vCard writes no ORG"
+  | "a grade"
+  | "a subject"
+  | "a source named by no SHA-256";
+
+/**
+ * The situations a row reaches.
+ *
+ * @param row - The row.
+ * @returns Each situation of {@link StatedSituation} it is.
+ */
+const situationsOf = (row: StatedRow): readonly StatedSituation[] => {
+  const reached: readonly (readonly [StatedSituation, boolean])[] = [
+    [
+      "an author whose vCard writes no EMAIL",
+      row.view === "credit" &&
+        row.role === "author" &&
+        !readVcard(row.vcard).properties.has("EMAIL"),
+    ],
+    [
+      "a publisher whose vCard writes no ORG",
+      row.view === "credit" &&
+        row.role === "publisher" &&
+        !readVcard(row.vcard).properties.has("ORG"),
+    ],
+    ["a grade", row.view === "classification" && row.purpose === "educational level"],
+    ["a subject", row.view === "classification" && row.purpose === "discipline"],
+    [
+      "a source named by no SHA-256",
+      row.view === "relation" && row.kind === "isbasedon" && row.entry !== digest,
+    ],
+  ];
+
+  return reached.flatMap(([situation, holds]) => (holds ? [situation] : []));
+};
+
+/**
+ * The names of the checks the level judges a stated view's row by.
+ *
+ * @param row - The row.
+ * @returns Each check's name.
+ */
+const checksOver = (row: StatedRow): readonly string[] => {
+  const what = JSON.stringify(row);
+  switch (row.view) {
+    case "credit": {
+      return Object.keys(
+        insideDomains(
+          Result.map(
+            evaluate.admit(PackageCredit, {
+              entity: 1n,
+              package: "p",
+              role: row.role,
+              vcard: row.vcard,
+            }),
+            (admitted) => evaluate(PackageCredit, admitted),
+          ),
+          what,
+        ).checks,
+      );
+    }
+
+    case "classification": {
+      return Object.keys(
+        insideDomains(
+          Result.map(
+            evaluate.admit(PackageClassification, {
+              id: row.id,
+              package: "p",
+              purpose: row.purpose,
+              source: "https://qti.edullm.ai/grade",
+            }),
+            (admitted) => evaluate(PackageClassification, admitted),
+          ),
+          what,
+        ).checks,
+      );
+    }
+
+    case "relation": {
+      return Object.keys(
+        insideDomains(
+          Result.map(
+            evaluate.admit(PackageRelation, {
+              catalog: "c",
+              entry: row.entry,
+              kind: row.kind,
+              package: "p",
+              relation: 1n,
+            }),
+            (admitted) => evaluate(PackageRelation, admitted),
+          ),
+          what,
+        ).checks,
+      );
+    }
+
+    default: {
+      return row satisfies never;
+    }
+  }
+};
+
+describe("what a package may state", () => {
+  it.effect(
+    "holds no credit, classification or relation to a check of its own, whatever its role, purpose, kind, vCard or entry",
+    (ctx) =>
+      // Oracle: IEEE 1484.12.1-2002 §4.2 ("All data elements are optional"), 2.3.2 (an entity's
+      // value space is a vCard 3.0, which LOM vCard judges at its node; RFC 2426 asks it for no
+      // EMAIL, §3.3.2, and no ORG, §3.5.5), 7.2.1.2 (an entry is any CharacterString) and 9, with
+      // QTI 3.0 Metadata §2.7.2.3, §2.7.7.2 and §2.7.9 ("Usage as defined by [LOM, 02]"). Bound:
+      // 15 roles × 14 vCards, 9 purposes × 3 ids and 13 kinds × 4 entries, 289 rows, exhausted.
+      searched(
+        ctx,
+        exhaust(
+          {
+            box: "every role with every vCard, every purpose with 3 ids, every relation kind with 4 entries",
+            caseHang: Duration.seconds(10),
+            concurrency: 1,
+            coverage: requiredInSpace<StatedSituation>([
+              "an author whose vCard writes no EMAIL",
+              "a publisher whose vCard writes no ORG",
+              "a grade",
+              "a subject",
+              "a source named by no SHA-256",
+            ]),
+            generator: statedRows,
+            literal: (row) => JSON.stringify(row),
+            oracle: {
+              kind: "specification",
+              name: "IEEE 1484.12.1-2002 §4.2, 2.3.2, 7.2.1.2 and 9, QTI 3.0 Metadata §2.7.2.3, §2.7.7.2 and §2.7.9",
+            },
+            suite: "pantry/qti/lom-stated-views",
+          },
+          (row: StatedRow, c) =>
+            Effect.sync(() => {
+              for (const situation of situationsOf(row)) {
+                c.note(situation);
+              }
+
+              assert.deepStrictEqual(checksOver(row), [], JSON.stringify(row));
+            }),
+        ),
+      ),
+  );
 });
 
 /**
@@ -454,17 +600,17 @@ const manifest = `<?xml version="1.0" encoding="UTF-8"?>
       <imsmd:lifeCycle>
         <imsmd:contribute>
           <imsmd:role><imsmd:source>LOMv1.0</imsmd:source><imsmd:value>author</imsmd:value></imsmd:role>
-          <imsmd:entity>${vcards[0] ?? ""}</imsmd:entity>
+          <imsmd:entity>${vcards[0]}</imsmd:entity>
         </imsmd:contribute>
         <imsmd:contribute>
           <imsmd:role><imsmd:source>LOMv1.0</imsmd:source><imsmd:value>publisher</imsmd:value></imsmd:role>
-          <imsmd:entity>${vcards[1] ?? ""}</imsmd:entity>
+          <imsmd:entity>${vcards[1]}</imsmd:entity>
         </imsmd:contribute>
       </imsmd:lifeCycle>
       <imsmd:metaMetadata>
         <imsmd:contribute>
           <imsmd:role><imsmd:source>LOMv1.0</imsmd:source><imsmd:value>creator</imsmd:value></imsmd:role>
-          <imsmd:entity>${vcards[1] ?? ""}</imsmd:entity>
+          <imsmd:entity>${vcards[1]}</imsmd:entity>
         </imsmd:contribute>
       </imsmd:metaMetadata>
       <imsmd:relation>
@@ -509,7 +655,7 @@ const folded: readonly (readonly [string, string, string])[] = [
   ["lom:string", "lom:title", "Say Where It Is"],
   ["lom:value", "lom:role", "author"],
   ["lom:source", "lom:role", "LOMv1.0"],
-  ["lom:entity", "lom:contribute", vcards[0] ?? ""],
+  ["lom:entity", "lom:contribute", vcards[0]],
   ["lom:value", "lom:kind", "isversionof"],
   ["lom:entry", "lom:identifier", "as-g3-t01-l01-say-where-it-is-aa0d3ff1d085"],
   ["lom:value", "lom:purpose", "educational level"],
@@ -558,8 +704,10 @@ layer(NodeServices.layer, { excludeTestServices: true })("the producers' manifes
         // delivers it.
         for (const { kind, package: pkg, parent, parentKind, path, start, stringValue } of nodes) {
           const row = { kind, package: pkg, parent, parentKind, path, start, stringValue };
-          assert.isTrue(recordHolds("LOM_vocabulary", row), `LOM vocabulary at ${String(start)}`);
-          assert.isTrue(recordHolds("LOM_vCard", row), `LOM vCard at ${String(start)}`);
+          assert.isTrue(vcardHolds(row), `LOM vCard at ${String(start)}`);
+          if (kind === "lom:value" && isVocabularyKind(parentKind)) {
+            assert.isTrue(termHolds(parentKind, stringValue), `LOM vocabulary at ${String(start)}`);
+          }
         }
       }).pipe(Effect.scoped),
   );

@@ -25,8 +25,7 @@ import { defaultView } from "#plate/content/contract.ts";
 import type { ContentRedactKit } from "#plate/content/contract.ts";
 import { redactContent, redactItemContent } from "#plate/content/modules.ts";
 import type { ItemNodesKept } from "#plate/content/modules.ts";
-import { textBound } from "#plate/engine/format.ts";
-import { own } from "#plate/engine/refs.ts";
+import { textBound } from "#plate/redact/format.ts";
 import {
   decideRegions,
   interactionsIn,
@@ -47,11 +46,10 @@ import type {
   TemplateContent,
 } from "#plate/model/item.ts";
 import type { RedactRecord } from "#plate/model/record.ts";
-import { isNull } from "#plate/model/values.ts";
+import { isNull, own } from "#plate/model/values.ts";
 import type { ModelledBaseType, RecordValue, Value } from "#plate/model/values.ts";
 import {
   expandedParameter,
-  feedbackOutcomes,
   feedbackShownBy,
   mathText,
   mathValueOf,
@@ -410,7 +408,7 @@ const printBody = (
   supports: Supports,
   view: OutcomeView,
 ): RedactedBody => {
-  const outcomes = printing.pipe(Option.map((record) => feedbackOutcomes(item, record)));
+  const outcomes = printing.pipe(Option.map((record) => record.outcomes));
   // The responses an interaction the page sees binds, and those content it does not see binds.
   const shownBound = new Set<string>();
   const unseenBound = new Set<string>();
@@ -776,26 +774,27 @@ const startingResponses = (body: readonly BodyNode[]): ReadonlySet<string> => {
 
 /**
  * Give the value a response starts at, as the page shows it (spec reading 183): the default the
- * record's template processing set for it, else its declared `qti-default-value`, as an attempt
- * starts it (`firstAttempt` in `#plate/engine/attempt.ts`). None for NULL, and none for an item
- * whose template processing runs and that has no record, since its processing may set another
- * default and nothing has run it.
+ * record holds for it, which the QTI database's template processing set at the take, else its
+ * declared `qti-default-value`. None for NULL, and none for an item with template processing and
+ * no record, since its processing may set another default and nothing here runs it.
  *
+ * @param item The item, whose template processing's presence decides a record-less start.
  * @param identifier The response.
  * @param declared Its declared default.
- * @param printing The values the redaction prints from ({@link printingOf}), none for an item
- *   whose template processing runs and that has no record.
+ * @param printing The record the redaction prints from ({@link printingOf}), none for a page with
+ *   no record.
  * @returns The value it starts at, or none.
  */
 const startOf = (
+  item: Pick<Item, "templated">,
   identifier: string,
   declared: Option.Option<Value>,
   printing: Option.Option<RedactRecord>,
 ): Option.Option<Value> =>
-  printing.pipe(
-    Option.flatMap((record) => Option.orElse(own(record.defaults, identifier), () => declared)),
-    Option.filter((value) => !isNull(value)),
-  );
+  Option.match(printing, {
+    onNone: () => (item.templated ? Option.none() : declared),
+    onSome: (record) => Option.orElse(own(record.defaults, identifier), () => declared),
+  }).pipe(Option.filter((value) => !isNull(value)));
 
 /**
  * Give the response bindings a redaction lists: each response the item declares but the
@@ -832,7 +831,7 @@ const bindingsShown = (
                 baseType,
                 cardinality,
                 defaultValue: starting.has(identifier)
-                  ? startOf(identifier, defaultValue, printing)
+                  ? startOf(item, identifier, defaultValue, printing)
                   : Option.none(),
                 identifier,
               },
@@ -884,7 +883,7 @@ export interface RedactOptions {
  * where an interaction the page shows starts at it ({@link bindingsShown}), and the first text past
  * its bound (`unprinted`). Each printed variable of the body is
  * copied as the text it prints: the value the record holds for the variable it names, its template
- * value else its outcome value, written by `formatPrinted` (`#plate/engine/format.ts`) through its
+ * value else its outcome value, written by `formatPrinted` (`#plate/redact/format.ts`) through its
  * `format`, `base`, `index`, `power-form` and `delimiter`, a `base` or `index` written as a name
  * read from the record too. A NULL value prints nothing. A printed variable whose value, or whose
  * named `base`'s or `index`'s, the record does not hold stays its notice, `qti-printed-variable`.
@@ -926,19 +925,16 @@ export interface RedactOptions {
  * never builds more printed text than the budget, and one member more, however much the item would
  * print.
  *
- * With no record, an item whose template processing does not run reads as the record its first
- * attempt starts with: each template variable at its declared default, else NULL (none where the
- * item has a `qti-template-processing` the engine does not run, since nothing computed them), and
- * each outcome at its starting value. An item whose template processing runs has no values
- * without its record, so each of its printed variables, template blocks, template inlines and
- * `param-variable` parameters stays its notice and each of its choices with a template visibility
- * is absent.
+ * With no record, an item has no values: the QTI database gives every value a page shows, so each
+ * of its printed variables, template blocks, template inlines and `param-variable` parameters stays
+ * its notice, each of its choices with a template visibility is absent, and no outcome-driven
+ * content shows.
  *
  * It never copies an outcome declaration, a correct response, a mapping, the default of a response
  * no interaction it shows starts at, a processing rule, a template rule, a template value or an
  * outcome value it does not print or pass to a parameter, a block's, inline's or choice's template
- * visibility, the seed or an override template processing set (the record's part it reads holds
- * neither), or a field it does not name.
+ * visibility, an override template processing set (the record's part it reads holds none), or a
+ * field it does not name.
  *
  * @param item The item.
  * @param options The output budget, the supports and the view ({@link RedactOptions}).
@@ -948,7 +944,7 @@ export interface RedactOptions {
  * @returns The redacted item.
  */
 export const redactItem = (item: Item, options: RedactOptions, record?: RedactRecord): Redacted => {
-  const printing = printingOf(item, record);
+  const printing = printingOf(record);
   const { body, content, hiddenOnly, modalFeedback, unprinted } = printBody(
     item,
     itemPath,
@@ -1000,10 +996,10 @@ export interface RedactedStructure {
  * and choices of its body, its responses and its hidden-only responses are `redactItem`'s, and its
  * cost does not follow the length of what the item prints.
  *
- * It is for plate's own callers that read only what the page shows, such as `checkResponses`,
- * `results` and a session's skip rule; `src/index.ts` does not export it. It reads the item as the
- * candidate sees it with no support enabled, as {@link hiddenOnlyResponses} does: no content
- * module binds a response, so the supports and the view change none of what it reads.
+ * It is for plate's own callers that read only what the page shows, such as `results` and a
+ * session's skip rule; `src/index.ts` does not export it. It reads the item as the candidate sees
+ * it with no support enabled, as {@link hiddenOnlyResponses} does: no content module binds a
+ * response, so the supports and the view change none of what it reads.
  *
  * @example
  *   interactionsIn(redactStructure(item, record).body);
@@ -1015,7 +1011,7 @@ export interface RedactedStructure {
  * @returns The item's structure as the page is shown it, with no printed text.
  */
 export const redactStructure = (item: Item, record?: RedactRecord): RedactedStructure => {
-  const printing = printingOf(item, record);
+  const printing = printingOf(record);
   const { body, hiddenOnly } = printBody(
     item,
     itemPath,
@@ -1051,8 +1047,7 @@ export const redactStructure = (item: Item, record?: RedactRecord): RedactedStru
  * @returns The responses, in the order the walk first meets them.
  */
 export const hiddenOnlyResponses = (item: Item, record?: RedactRecord): ReadonlySet<string> =>
-  printBody(item, itemPath, printingOf(item, record), structureOnly, noSupports, defaultView)
-    .hiddenOnly;
+  printBody(item, itemPath, printingOf(record), structureOnly, noSupports, defaultView).hiddenOnly;
 
 /**
  * The fields of a stimulus the page may know, which {@link redactStimulus} copies by name.

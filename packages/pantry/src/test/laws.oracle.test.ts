@@ -279,12 +279,6 @@ const overlayCases: readonly LawCase[] = [
     rule: "lom-identifier",
   },
   {
-    files: withItem("<qti-value>A</qti-value>", '<qti-value base-type="identifier">A</qti-value>'),
-    law: "Value cardinality",
-    name: "a single variable's value that writes a base-type, as only a record's field does",
-    rule: "value-cardinality",
-  },
-  {
     files: withItem(
       `<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>`,
       `<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="TALLY" cardinality="record"><qti-default-value><qti-value field-identifier="count">1</qti-value></qti-default-value></qti-outcome-declaration>`,
@@ -301,8 +295,8 @@ const overlayCases: readonly LawCase[] = [
       "item.xml": item,
       "test.xml": edit(
         edit(test, `select="1"`, `select="2"`),
-        `<qti-assessment-item-ref identifier="I" href="item.xml"/>`,
-        `<qti-assessment-item-ref identifier="I" href="item.xml"/><qti-assessment-item-ref identifier="G" href="ghost.xml"/>`,
+        `<qti-assessment-item-ref identifier="item" href="item.xml"/>`,
+        `<qti-assessment-item-ref identifier="item" href="item.xml"/><qti-assessment-item-ref identifier="G" href="ghost.xml"/>`,
       ),
     },
     law: "Item ref target",
@@ -325,9 +319,9 @@ describe("the base packages", () => {
     }),
   );
 
-  it.effect("a test, its item and their manifest break Test structure alone", () =>
-    // Oracle: spec reading 1's stated limit "Test structure": a test's part, sections and item refs
-    // outside a bank break it, and nothing else of the base test breaks any law.
+  it.effect("a test, its item and their manifest break no law", () =>
+    // Oracle: the information model's test (§4.4): one part of one section placing the item by its
+    // own identifier is valid QTI, and pantry stores every valid test (owner, 2026-11-20, J1).
     Effect.gen(function* baseTest() {
       const breaches = breachesOf(
         yield* judged({
@@ -339,12 +333,7 @@ describe("the base packages", () => {
         }),
       );
 
-      assert.isNotEmpty(breaches, "a test breaks its stated limit");
-      assert.deepStrictEqual(
-        [...new Set(breaches.map(({ law }) => law))],
-        ["Test structure"],
-        shown(breaches),
-      );
+      assert.deepStrictEqual(breaches, [], shown(breaches));
     }),
   );
 });
@@ -458,6 +447,39 @@ const printedWith = (attributes: string) =>
     `<p id="intro">Pick one. <qti-printed-variable identifier="SCORE" ${attributes}/></p>`,
   ] as const;
 
+/**
+ * Judge the base item with a text entry interaction whose `pattern-mask` is `mask`, bound to a
+ * string response declared for it, and decide whether "Pattern language" refuses it.
+ *
+ * @param mask - The pattern mask, as written.
+ * @returns The verdict.
+ */
+const masked = (mask: string) =>
+  refusedBy(
+    "Pattern language",
+    [
+      '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>',
+      '<qti-response-declaration identifier="TEXT" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>',
+    ],
+    [
+      '<p id="intro">Pick one.</p>',
+      `<p id="intro">Pick one. <qti-text-entry-interaction response-identifier="TEXT" pattern-mask="${mask}"/></p>`,
+    ],
+  );
+
+/**
+ * Judge the base item with its response condition matching the response against `pattern`, and
+ * decide whether "Pattern language" refuses it.
+ *
+ * @param pattern - The pattern match's `pattern`, as written.
+ * @returns The verdict.
+ */
+const matched = (pattern: string) =>
+  refusedBy("Pattern language", [
+    '<qti-match><qti-variable identifier="RESPONSE"/><qti-correct identifier="RESPONSE"/></qti-match>',
+    `<qti-pattern-match pattern="${pattern}"><qti-base-value base-type="string">yes</qti-base-value></qti-pattern-match>`,
+  ]);
+
 describe("the information model's rules RD found unowned (unowned-readings.md §13)", () => {
   it.effect(
     "Binding cardinality: a most of 2 or 0 binds a multiple response, and a single one breaks it",
@@ -526,7 +548,7 @@ describe("the information model's rules RD found unowned (unowned-readings.md §
   );
 
   it.effect(
-    "Reserved type: SCORE and MAXSCORE are a float and PASSED a boolean (§2.2.2.3: 'SCORE MUST be a float'), in every declaration, since pantry stores no test (reading 228)",
+    "Reserved type: QTI_CONTEXT is the context record, and SCORE, MAXSCORE and PASSED are admitted of any base type, typed by no normative rule (§4.5's 'needs to be' is no RFC 2119 keyword, §1.3; §2.2.2.3 is NOT NORMATIVE)",
     () =>
       Effect.gen(function* reservedType() {
         const score = `<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>`;
@@ -540,11 +562,40 @@ describe("the information model's rules RD found unowned (unowned-readings.md §
         const itemMaxScore = yield* itemOutcome("MAXSCORE", "integer");
         const itemPassed = yield* itemOutcome("PASSED", "integer");
         const itemFloat = yield* itemOutcome("SCORE", "float");
+        const context = yield* refusedBy("Reserved type", [
+          score,
+          `${score}<qti-outcome-declaration identifier="QTI_CONTEXT" cardinality="record"/>`,
+        ]);
 
-        assert.isTrue(itemScore.held, itemScore.breaches);
-        assert.isTrue(itemMaxScore.held, itemMaxScore.breaches);
-        assert.isTrue(itemPassed.held, itemPassed.breaches);
+        assert.isFalse(itemScore.held, itemScore.breaches);
+        assert.isFalse(itemMaxScore.held, itemMaxScore.breaches);
+        assert.isFalse(itemPassed.held, itemPassed.breaches);
         assert.isFalse(itemFloat.held, itemFloat.breaches);
+        assert.isTrue(context.held, context.breaches);
+      }),
+  );
+
+  it.effect(
+    "Pattern language: a pattern-mask, and a qti-pattern-match's literal pattern, outside XML Schema's Appendix F is refused, and a pattern naming a variable in braces is no pattern",
+    () =>
+      // Oracle: the information model (§5.162.5, §5.48.4 and §5.104.1: "The regular expression
+      // language used is defined in Appendix F of [XSCHEMA, 01]"), reading 58's `{` and `}`.
+      Effect.gen(function* patternLanguage() {
+        for (const mask of ["(?i)yes", "[a-z", "a{"]) {
+          const verdict = yield* masked(mask);
+          assert.isTrue(verdict.held, `pattern-mask ${mask}: ${verdict.breaches}`);
+        }
+        for (const mask of ["[0-9]*", "\\{x\\}", "\\p{L}+"]) {
+          const verdict = yield* masked(mask);
+          assert.isFalse(verdict.held, `pattern-mask ${mask}: ${verdict.breaches}`);
+        }
+        const unclosed = yield* matched("[a-z");
+        const reference = yield* matched("{T}");
+        const literal = yield* matched("[a-z]+");
+
+        assert.isTrue(unclosed.held, unclosed.breaches);
+        assert.isFalse(reference.held, reference.breaches);
+        assert.isFalse(literal.held, literal.breaches);
       }),
   );
 
@@ -946,6 +997,39 @@ describe("each law, on a package that breaks it", () => {
   );
 });
 
+/**
+ * The UTF-8 bytes the long-names case writes a name, a namespace name and a prefix at: one past
+ * each bound an ordered index once held them to as themselves (LIMITS6's local name, 1,290 bytes;
+ * namespace name, 1,291; prefix, 2,588), which no index holds any longer, and 64 KiB.
+ */
+const longNameBytes = [1291, 1292, 2589, 65_536] as const;
+
+/**
+ * The base item's edits that write each name at `bytes` UTF-8 bytes, in ASCII: the paragraph's
+ * element prefix and the declaration that binds it, a `data-*` attribute's local name, and, in a
+ * custom interaction bound to a string response of its own, a foreign element's local name and
+ * namespace name, with a foreign attribute whose local name and namespace name are as long.
+ *
+ * @param bytes - The bytes, at least 5.
+ * @returns The edits, in order.
+ */
+const longNamed = (bytes: number): readonly (readonly [string, string])[] => {
+  const prefix = `p${"a".repeat(bytes - 1)}`;
+  const local = `l${"a".repeat(bytes - 1)}`;
+  const namespace = `urn:${"a".repeat(bytes - 4)}`;
+
+  return [
+    [
+      '<qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>',
+      '<qti-response-declaration identifier="WIDGET" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/>',
+    ],
+    [
+      '<p id="intro">Pick one.</p>',
+      `<${prefix}:p xmlns:${prefix}="${asi}" id="intro" data-${"a".repeat(bytes - 5)}="v">Pick one.</${prefix}:p><qti-custom-interaction response-identifier="WIDGET"><w:${local} xmlns:w="${namespace}" xmlns:f="${namespace}f" f:${local}="v">W</w:${local}></qti-custom-interaction>`,
+    ],
+  ];
+};
+
 describe("open names and attribute entity references", () => {
   it.effect("two data-* names and an entity reference in an attribute value break no law", () =>
     Effect.gen(function* openRows() {
@@ -969,6 +1053,26 @@ describe("open names and attribute entity references", () => {
         "crust keeps an undeclared reference unexpanded, so the item holds an AttributeEntity row",
       );
     }),
+  );
+
+  it.effect(
+    "a prefix, an open attribute's names and a foreign element's are of any length: one byte past the bytes an ordered index once held each to, and 64 KiB, break no law",
+    () =>
+      // Oracle: Namespaces in XML 1.0 §4 and XML 1.0, which put no bound on a prefix or a name
+      // (reading 94); a foreign element's names are bounded only at `foreignNameBytes`, half of the
+      // regex engine's bytes, far past these. Bound: the four lengths.
+      Effect.gen(function* longNames() {
+        for (const bytes of longNameBytes) {
+          let text = item;
+          for (const [passage, replacement] of longNamed(bytes)) {
+            text = edit(text, passage, replacement);
+          }
+
+          const breaches = breachesOf(yield* judged({ ...base, "item.xml": text }));
+
+          assert.deepStrictEqual(breaches, [], `${String(bytes)} bytes: ${shown(breaches)}`);
+        }
+      }),
   );
 });
 
@@ -2972,7 +3076,7 @@ const includingTest = (attributes: string) => ({
     `${resourceOf("RT", "imsqti_test_xmlv3p0", "test.xml")}${itemResource}`,
   ),
   "item.xml": `<qti-assessment-item xmlns="${asi}" identifier="item" title="Item" time-dependent="false"/>`,
-  "test.xml": `<qti-assessment-test xmlns="${asi}" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="T" title="Test"><qti-test-part identifier="P" navigation-mode="linear" submission-mode="individual"><qti-assessment-section identifier="S" title="Section" visible="true"><qti-assessment-item-ref identifier="I" href="item.xml"/><xi:include href="s.xml" ${attributes}/></qti-assessment-section></qti-test-part></qti-assessment-test>`,
+  "test.xml": `<qti-assessment-test xmlns="${asi}" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="T" title="Test"><qti-test-part identifier="P" navigation-mode="linear" submission-mode="individual"><qti-assessment-section identifier="S" title="Section" visible="true"><qti-assessment-item-ref identifier="item" href="item.xml"/><xi:include href="s.xml" ${attributes}/></qti-assessment-section></qti-test-part></qti-assessment-test>`,
 });
 
 describe("the laws readings 18, 74, 85 and 92 state, over generated packages", () => {
@@ -3441,27 +3545,33 @@ describe("the laws readings 18, 74, 85 and 92 state, over generated packages", (
   );
 
   it.effect(
-    'reading 85: an xi:include\'s xpointer is refused by the codec, and parse="text" by its value domain',
+    'reading 85: an xi:include\'s xpointer and parse="text" are admitted and include nothing, and the two together break Include parse',
     () =>
+      // Oracle: XInclude 1.0 Second Edition §3.1, by hand: `xpointer` and `parse="text"` are each
+      // valid ("The xpointer attribute must not be present when parse="text"" is the one rule that
+      // joins them), and QTI 3.0 Conformance §3 ignores what a system does not read. An include of
+      // `s.xml`, which the package lacks, is File exists's alone, whichever it is; one with an xpointer
+      // or parse="text" is no site, so no include law reads it either.
       Effect.gen(function* xpointer() {
+        const includeLaws = new Set(["Include target", "Include root", "Include parse"]);
+        const lawsOf = (breaches: readonly Breach[]) =>
+          breaches.flatMap(({ keys, law }) =>
+            includeLaws.has(law) || (law === "value domain" && keys["name"] === "parse")
+              ? [law]
+              : [],
+          );
         const pointed = yield* judged(includingTest(`xpointer="element(/1)"`));
         const text = breachesOf(yield* judged(includingTest(`parse="text"`)));
+        const both = breachesOf(
+          yield* judged(includingTest(`parse="text" xpointer="element(/1)"`)),
+        );
         const plain = breachesOf(yield* judged(includingTest(`parse="xml"`)));
 
-        assert.deepInclude(
-          pointed._tag === "CodecRefusal"
-            ? [pointed.rule]
-            : breachesOf(pointed).map(({ law }) => law),
-          "attribute-admission",
-        );
-        assert.isTrue(
-          text.some(({ keys, law }) => law === "value domain" && keys["name"] === "parse"),
-          shown(text),
-        );
-        assert.isFalse(
-          plain.some(({ keys, law }) => law === "value domain" && keys["name"] === "parse"),
-          shown(plain),
-        );
+        assert.strictEqual(pointed._tag, "Judged");
+        assert.deepStrictEqual(lawsOf(breachesOf(pointed)), [], shown(breachesOf(pointed)));
+        assert.deepStrictEqual(lawsOf(text), [], shown(text));
+        assert.deepStrictEqual(lawsOf(both), ["Include parse"], shown(both));
+        assert.deepStrictEqual(lawsOf(plain), [], shown(plain));
       }),
   );
 });
@@ -4064,7 +4174,10 @@ describe("reading 117: an included fragment judged in place", () => {
                 missing: "File exists",
                 "rule variable": "Variable declared",
                 "template reference": "Template reference",
-                "two interactions": "Fragment context",
+                // One fragment placed in two interactions holds its hottexts twice in the merged
+                // item, which no two choices of one class may (information model §5.65.1); its
+                // second placement is unplaced (reading 117, `UnplacedInclude`'s `context`).
+                "two interactions": "Choice identifier key",
                 valid: undefined,
               };
               const breaches = breachesOf(yield* judged(packages[variant]));

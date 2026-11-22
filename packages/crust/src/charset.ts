@@ -1,3 +1,4 @@
+import { compareCodePoints } from "@bjornpagen/grizzle-text/text";
 import { Array as Arr, Option, Order, Result } from "effect";
 import { EncodeError, WriteRefusal } from "#crust/errors.ts";
 import type { CharRule, MiscHolder } from "#crust/errors.ts";
@@ -414,44 +415,10 @@ export const exportCharset = (label: string, doc: XmlDocument): string => {
 };
 
 /**
- * Rank a UTF-16 code unit in code point order: a surrogate, half of a code point above U+FFFF,
- * ranks above every unit from U+E000 to U+FFFF, and every other unit keeps its own place.
- *
- * @param unit - The code unit.
- * @returns Its rank.
- */
-const codePointRank = (unit: number): number => {
-  if (unit >= 0xe0_00) {
-    return unit - 0x8_00;
-  }
-
-  return unit >= 0xd8_00 ? unit + 0x20_00 : unit;
-};
-
-/**
  * Strings in code point order, which is the byte order of their UTF-8 form: Canonical XML 1.0's
  * lexicographic order (§2.2, "based on the UCS codepoint values"), and qti-pie's one code point
- * order. `Order.String` reads UTF-16 code units, which put a code point above U+FFFF before one
- * from U+E000 to U+FFFF.
- *
- * The strings are read as UTF-16 code units. Two strings first differ at a unit; below U+D800 the
- * units order as their code points do, and only a surrogate, which stands for a code point above
- * U+FFFF, sorts below a unit from U+E000 to U+FFFF where its code point sorts above, which
- * {@link codePointRank} rights.
+ * order, grizzle's own (`compareCodePoints` of `@bjornpagen/grizzle-text`), as an Effect order.
+ * `Order.String` reads UTF-16 code units, which put a code point above U+FFFF before one from
+ * U+E000 to U+FFFF.
  */
-export const codePointOrder: Order.Order<string> = Order.make((left, right) => {
-  const shared = Math.min(left.length, right.length);
-
-  for (let index = 0; index < shared; index += 1) {
-    const order = Order.Number(
-      codePointRank(left.charCodeAt(index)),
-      codePointRank(right.charCodeAt(index)),
-    );
-
-    if (order !== 0) {
-      return order;
-    }
-  }
-
-  return Order.Number(left.length, right.length);
-});
+export const codePointOrder: Order.Order<string> = Order.make(compareCodePoints);

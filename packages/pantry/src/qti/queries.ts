@@ -20,10 +20,27 @@
  * the resolution of a declared name or a node of a record document, which a query over that level
  * matches.
  */
-import { check, Compute, contained, derived, key, on, query, select, v } from "@bjornpagen/grizzle";
+import {
+  check,
+  contained,
+  derived,
+  key,
+  Logic,
+  on,
+  query,
+  select,
+  Text,
+  Type,
+  v,
+} from "@bjornpagen/grizzle";
 import { integerMathOperators } from "#pantry/grammar/expression.ts";
 import type { DeclarationKind } from "#pantry/grammar/install.ts";
-import { documentTypes, nonElementKinds, ResourceTypeLexical } from "#pantry/grammar/install.ts";
+import {
+  anyText,
+  documentTypes,
+  nonElementKinds,
+  ResourceTypeLexical,
+} from "#pantry/grammar/install.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { DataSsmlMember, DataSsmlProperty } from "#pantry/qti/data-ssml.ts";
@@ -34,11 +51,10 @@ import {
   DeclarationName,
   LangValue,
   NamedDeclaration,
+  PlacedVariableRefNode,
   QtiViews,
   RecordNode,
-  TypedDeclarationName,
   valueBasesOf,
-  VariableRefNode,
 } from "#pantry/qti/names.ts";
 import {
   BoundVariable,
@@ -53,8 +69,6 @@ import {
   PrintedVariableRef,
 } from "#pantry/qti/interactions.ts";
 import {
-  conditionKindHandles,
-  declaredKinds,
   heldKinds,
   lookupKindHandle,
   setKindHandles,
@@ -62,12 +76,10 @@ import {
 } from "#pantry/qti/expression-types.ts";
 import {
   Expression,
+  PlacedExpression,
   PlacedVariableRef,
   silentBases,
-  VariableRef,
-  VariableRefTable,
 } from "#pantry/qti/expressions.ts";
-import { keyText } from "#pantry/qti/limits.ts";
 import {
   forbiddenResourceTypes,
   lomVocabularySources,
@@ -78,15 +90,20 @@ import {
 import { Reference, ResourceDocument, ResourceHref, TextReference } from "#pantry/qti/package.ts";
 import { Document } from "#pantry/qti/chardata.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
+import type { PublishedTemplate } from "#pantry/qti/templates.ts";
+import { publishedTemplates, urisOf } from "#pantry/qti/templates.ts";
 import {
   overlayQueryLaws,
   overlayQueryLawsByName,
   overlayQueryRelations,
 } from "#pantry/qti/overlay-queries.ts";
+import { declarationTables } from "#pantry/qti/overlay-queries/declaration.ts";
+import { placedDocuments } from "#pantry/qti/overlay-queries/expression.ts";
 import {
   referenceBaseTypeOf,
   referenceCardinalityOf,
 } from "#pantry/qti/overlay-queries/reference.ts";
+import { NamedItemRef } from "#pantry/qti/overlay-queries/tests.ts";
 import { AlignDirectionLexical, MathAlignScope } from "#pantry/qti/mathml-align.ts";
 import {
   Instance,
@@ -95,7 +112,7 @@ import {
   ItemRefHref,
   Named,
   SiteTarget,
-  TestDocument,
+  AssembledDocument,
 } from "#pantry/qti/tests.ts";
 import {
   itemKind,
@@ -104,6 +121,7 @@ import {
   linkResourceTypes,
   sectionKind,
 } from "#pantry/vocab/terms/tests.ts";
+import { choiceNounKinds, otherChoiceKinds } from "#pantry/vocab/terms/interactions.ts";
 import { noLanguage, objectKinds, usageValueKind } from "#pantry/vocab/terms/metadata.ts";
 
 /**
@@ -335,13 +353,13 @@ const TextReferenceStringValue = derived(
 const MapKeyAttributeText = derived(
   "MapKeyAttributeText",
   query(QtiBase).rule((r) => {
-    const { kind, lexical, name, package: pkg, path, start } = v(Attribute, "attribute");
+    const { kind, name, package: pkg, path, start, value } = v(Attribute, "attribute");
 
     return r
-      .match(Attribute, { kind, lexical, name, package: pkg, path, start })
+      .match(Attribute, { kind, name, package: pkg, path, start, value })
       .where(r.eq(name, "map-key"))
       .where(r.eq(kind, "qti-map-entry"))
-      .find({ lexical, package: pkg, path, start });
+      .find({ package: pkg, path, start, value });
   }),
 );
 
@@ -372,7 +390,7 @@ const mappingQueryLawsByName = {
   "Mapping overlay": [
     contained(
       on(MapKey, "package", "path", "start", "key"),
-      on(MapKeyAttributeText, "package", "path", "start", "lexical"),
+      on(MapKeyAttributeText, "package", "path", "start", "value"),
     ),
     contained(
       on(LookupValue, "package", "path", "start", "value"),
@@ -412,24 +430,18 @@ const packageQueryLawsByName = {
     check("E1_derived", ReferenceLexical, (s) =>
       s.eq(
         s.lexical,
-        Compute.concat(
-          Compute.concat(
-            Compute.concat(Compute.base(s.lead), Compute.base(s.target)),
-            Compute.base(s.params),
-          ),
-          Compute.base(s.trail),
+        Text.concat(
+          Text.concat(Text.concat(Type.base(s.lead), Type.base(s.target)), Type.base(s.params)),
+          Type.base(s.trail),
         ),
       ),
     ),
     check("E1_derived", TextReferenceStringValue, (s) =>
       s.eq(
         s.stringValue,
-        Compute.concat(
-          Compute.concat(
-            Compute.concat(Compute.base(s.lead), Compute.base(s.target)),
-            Compute.base(s.params),
-          ),
-          Compute.base(s.trail),
+        Text.concat(
+          Text.concat(Text.concat(Type.base(s.lead), Type.base(s.target)), Type.base(s.params)),
+          Type.base(s.trail),
         ),
       ),
     ),
@@ -542,10 +554,19 @@ const generalEntries = query(QtiViews).rule((r) => {
 const objectIdentifiers = attributeValues("identifier", objectKinds);
 
 /**
- * {@link objectIdentifiers} as a relation of `Qti`, which "Item key" keys, a rule reads and the
- * ledger's item sessions are contained in.
+ * {@link objectIdentifiers} as a relation of `Qti`, by its item document's place: a rule reads it,
+ * "Item ref identifier" holds an item ref's identifier to it, and a ledger's item sessions are
+ * contained in it by `(package, path)`, an item's document, never by its identifier. QTI makes an
+ * item's identifier unique nowhere, its type `Identifier` and not `UniqueIdentifier` (information
+ * model §4.1.1, info:6346; §7.43, info:83233, "unique within the scope of the instance"), so two
+ * items of one package may share one; one test's items are distinct by the base rule, a ref's
+ * identifier its item's (info:6346) and unique within the test (info:7241). A test's identifier is
+ * `TestRoot`'s (`#pantry/qti/overlay-queries/tests.ts`).
  */
-export const ObjectIdentifier = derived("ObjectIdentifier", objectIdentifiers);
+export const ObjectIdentifier = derived(
+  "ObjectIdentifier",
+  attributeValues("identifier", [itemKind]),
+);
 
 /**
  * A usage statistic's value's `baseType`, by its `ud:value` node, whether or not the value forms
@@ -596,7 +617,7 @@ const MatchedIdentifier = derived(
     return r
       .match(generalEntries, { document, package: pkg, path, record, text })
       .match(objectIdentifiers, { package: pkg, path: document, value: identifier })
-      .where(r.eq(Compute.collapse(text), identifier))
+      .where(r.eq(Text.collapse(text), identifier))
       .find({ package: pkg, path, record });
   }),
 );
@@ -644,7 +665,7 @@ const titledStrings = query(QtiViews).rule((r) => {
     .match(Node, { kind: "lom:title", package: pkg, parent: general, path, start: title })
     .match(namingGenerals, { document, general, package: pkg, path, record })
     .match(objectTitles, { package: pkg, path: document, start: root, value: titleValue })
-    .where(r.eq(Compute.replaceWhitespace(text), titleValue))
+    .where(r.eq(Text.replaceWhitespace(text), titleValue))
     .find({ document, package: pkg, path, record, root, string });
 });
 
@@ -690,7 +711,7 @@ const MatchedTitle = derived(
         .match(titledStrings, { document, package: pkg, path, record, root, string })
         .match(LangValue, { package: pkg, path: document, start: root, value })
         .match(Attribute, { lexical, name: "language", package: pkg, path, start: string })
-        .where(r.or(r.eq(lexical, noLanguage), r.eq(Compute.lowerAscii(lexical), value)))
+        .where(r.or(r.eq(lexical, noLanguage), r.eq(Text.lowerAscii(lexical), value)))
         .find({ package: pkg, path, record });
     })
     .rule((r) => {
@@ -750,7 +771,7 @@ const DescribedAssembledLang = derived(
  * The languages each LOM `general` category of a record document ({@link RecordNode}) lists, one
  * row per (category, language), by the category's place: each
  * `lom:language` child's folded string value (`copiedTextKinds` of `#pantry/qti/node.ts`)
- * case-folded (`Compute.lowerAscii`, RFC 5646 §2.1.1), so two listings that differ only in case
+ * case-folded (`Text.lowerAscii`, RFC 5646 §2.1.1), so two listings that differ only in case
  * are one language. It is keyed by the category's element, not by a resource: one hop from a
  * `lom:language` cannot tell a resource's record from the manifest's, a file's or an external one,
  * and R26 reads the categories of the records that name a document (`namingGenerals`).
@@ -771,7 +792,7 @@ const ListedLang = derived(
       })
       .find({
         general,
-        lang: Compute.cast(Compute.lowerAscii(stringValue), keyText),
+        lang: Type.cast(Text.lowerAscii(stringValue), anyText),
         package: pkg,
         path,
       });
@@ -834,7 +855,7 @@ const ForbiddenResourceType = derived(
     return r
       .match(resourceTypeTerms("lom:value"), { package: pkg, path, text, type })
       .where(
-        r.or(...forbiddenResourceTypes.map((forbidden) => r.eq(Compute.collapse(text), forbidden))),
+        r.or(...forbiddenResourceTypes.map((forbidden) => r.eq(Text.collapse(text), forbidden))),
       )
       .find({ package: pkg, path, type });
   }),
@@ -852,7 +873,7 @@ const OtherVocabularyType = derived(
 
     return r
       .match(resourceTypeTerms("lom:source"), { package: pkg, path, text, type })
-      .where(r.and(...lomVocabularySources.map((source) => r.ne(Compute.collapse(text), source))))
+      .where(r.and(...lomVocabularySources.map((source) => r.ne(Text.collapse(text), source))))
       .find({ package: pkg, path, type });
   }),
 );
@@ -863,11 +884,6 @@ const OtherVocabularyType = derived(
  *
  * - **`E1 derived`:** a record usage value's `baseTypeLexical` is its `baseType`'s value
  *   ({@link UsageBaseType});
- * - **`Item key`:** no two items of one package share an identifier, collapsed
- *   ({@link ObjectIdentifier}): an item is `(package, identifier)`, QTI's own identity and never
- *   its path, which a ledger's item sessions are held to. QTI makes the identifier unique nowhere
- *   (`IdentifierDType`), so this narrows its slot. A key over a query, judged once per written
- *   package;
  * - **`lom-identifier`:** a record that names a document and lists a general identifier names that
  *   document's identifier ("LomObjectIdentifier");
  * - **`lom-title`:** a record that names a document and has a general title names that document's
@@ -882,7 +898,6 @@ const metadataQueryLawsByName = {
       on(UsageBaseType, "package", "path", "start", "value"),
     ),
   ],
-  "Item key": [key(on(ObjectIdentifier, "package", "value"))],
   "LOM learning resource type": [
     contained(
       on(ForbiddenResourceType, "package", "path", "type"),
@@ -904,97 +919,124 @@ const metadataQueryLawsByName = {
 } as const;
 
 /**
- * The type a setter or a lookup sets its variable to, one row per expression it holds, by the
- * setter's place: its reference by `identifier` (`kind`, `baseType`, `cardinality` and
- * `resolution`, its `VariableRefNode`'s) joined with each `Expression` whose node's parent it is,
- * in its own document (`heldBase` and `heldCardinality`, that expression's type). Its content
- * model allows one expression, and a second breaks N5's `Follow`, so a lawful setter or lookup has
- * one row. `Set_type` (P20) and `Lookup_type` (P22) read it.
+ * The type a setter or a lookup sets its variable to under each placement, one row per expression
+ * it holds, by the placement and the setter's place: its placed reference by `identifier` (`kind`,
+ * `identifier`, `baseType`, `cardinality` and `resolution`, its `PlacedVariableRefNode`'s) joined
+ * with each placed expression whose node's parent it is, in its own document under the same
+ * placement (`heldBase` and `heldCardinality`, that expression's type there). Its content model
+ * allows one expression, and a second breaks N5's `Follow`, so a lawful setter or lookup has one
+ * row per placement. `Set_type` (P20) and `Lookup_type` (P22) read it.
  *
  * A setter whose `identifier` names no variable, unwritten or no NCName (spec reading 152), has
  * no reference, and one that holds no expression holds no type, so neither has a row, and AL3,
  * its value domain or its content model refuses it alone.
  */
-const HeldType = derived(
-  "HeldType",
-  query(QtiViews).rule((r) => {
-    const {
+const heldTypes = query(QtiViews).rule((r) => {
+  const {
+    assembly,
+    baseType,
+    cardinality,
+    identifier,
+    instance,
+    kind,
+    package: pkg,
+    path,
+    resolution,
+    start,
+  } = v(PlacedVariableRefNode, "reference");
+  const { start: held } = v(Node, "heldNode");
+  const { baseType: heldBase, cardinality: heldCardinality } = v(PlacedExpression, "held");
+
+  return r
+    .match(PlacedVariableRefNode, {
+      assembly,
+      attribute: "identifier",
       baseType,
       cardinality,
+      identifier,
+      instance,
       kind,
       package: pkg,
       path,
       resolution,
       start,
-    } = v(VariableRefNode, "reference");
-    const { baseType: heldBase, cardinality: heldCardinality, start: held } = v(Expression, "held");
-
-    return r
-      .match(VariableRefNode, {
-        attribute: "identifier",
-        baseType,
-        cardinality,
-        kind,
-        package: pkg,
-        path,
-        resolution,
-        start,
-      })
-      .match(Node, { package: pkg, parent: start, path, start: held })
-      .match(Expression, {
-        baseType: heldBase,
-        cardinality: heldCardinality,
-        package: pkg,
-        path,
-        start: held,
-      })
-      .where(r.in(kind, heldKinds))
-      .find({
-        baseType,
-        cardinality,
-        heldBase,
-        heldCardinality,
-        kind,
-        package: pkg,
-        path,
-        resolution,
-        start,
-      });
-  }),
-);
-
-/**
- * A reference to a name its document declares: each `VariableRef` joined with its document's
- * `NamedDeclaration` of the name it spells (`#pantry/qti/names.ts`), whatever the declaration's
- * cardinality spells (spec reading 159). A reference resolves to a declaration exactly where its
- * document declares its name (M2), so `E1_derived` holds every row's `resolution` to `declared`,
- * and a reference that resolves to a built-in or to nothing is none of them.
- */
-const DeclaredReference = derived(
-  "DeclaredReference",
-  query(QtiViews).rule((r) => {
-    const {
-      attribute,
+    })
+    .match(Node, { package: pkg, parent: start, path, start: held })
+    .match(PlacedExpression, {
+      assembly,
+      baseType: heldBase,
+      cardinality: heldCardinality,
+      instance,
+      package: pkg,
+      path,
+      start: held,
+    })
+    .where(r.in(kind, heldKinds))
+    .find({
+      assembly,
+      baseType,
+      cardinality,
+      heldBase,
+      heldCardinality,
       identifier,
+      instance,
+      kind,
       package: pkg,
       path,
       resolution,
       start,
-    } = v(VariableRef, "reference");
+    });
+});
+
+/**
+ * {@link heldTypes} as a relation of the schema.
+ */
+const HeldType = derived("HeldType", heldTypes);
+
+/**
+ * Each declared lookup under each placement whose held value is of a base a match table does not
+ * map, by the placement and the lookup's place, with its declaration's place in the assembly's root
+ * (`declaration`): a match table maps an integer (§5.87.2: "Integer type is required when the
+ * associated table is a matchTable"), so its declaration's lookup table is an interpolation table.
+ */
+const InterpolatedLookup = derived(
+  "InterpolatedLookup",
+  query(QtiViews).rule((r) => {
+    const {
+      assembly,
+      heldBase,
+      identifier,
+      instance,
+      package: pkg,
+      path,
+      start,
+    } = v(heldTypes, "lookup");
+    const { start: declaration } = v(NamedDeclaration, "name");
 
     return r
-      .match(VariableRef, { attribute, identifier, package: pkg, path, resolution, start })
-      .match(NamedDeclaration, { identifier, package: pkg, path })
-      .find({ attribute, package: pkg, path, resolution, start });
+      .match(heldTypes, {
+        assembly,
+        heldBase,
+        identifier,
+        instance,
+        kind: lookupKindHandle,
+        package: pkg,
+        path,
+        resolution: "declared",
+        start,
+      })
+      .match(NamedDeclaration, { identifier, package: pkg, path: assembly, start: declaration })
+      .where(Logic.not(r.in(heldBase, ["integer", ...silentBases])))
+      .find({ assembly, declaration, instance, package: pkg, path, start });
   }),
 );
 
 /**
- * A placed reference to a name its assembly's item declares (spec reading 117), as
- * {@link DeclaredReference} is a document's own: each `PlacedVariableRef` joined with the item's
- * `NamedDeclaration` of the name it spells, the item the document at the assembly's path,
- * every row `declared`. A row is the placed reference: its element's place, its instance in its
- * assembly, and its attribute.
+ * A placed reference to a name its assembly's root declares (spec reading 117): each
+ * `PlacedVariableRef` joined with the root's `NamedDeclaration` of the name it spells, the root the
+ * document at the assembly's path, every row `declared`: a name the root declares names its
+ * declaration, before any built-in or reading. A row is the placed reference: its element's place,
+ * its instance in its assembly, and its attribute.
  */
 const DeclaredPlacement = derived(
   "DeclaredPlacement",
@@ -1023,75 +1065,6 @@ const DeclaredPlacement = derived(
       })
       .match(NamedDeclaration, { identifier, package: pkg, path: assembly })
       .find({ assembly, attribute, instance, package: pkg, path, resolution, start });
-  }),
-);
-
-/**
- * A declared placed reference's type in its item (spec reading 117), keyed as the placed
- * reference: each declared `PlacedVariableRef`, and `declaration`, its name's place in the item,
- * the document at the assembly's path, joined with its element's `Node`, for `kind`, its element's
- * kind, and `parentKind`, its parent's, and with the name views `DeclarationName` and
- * `TypedDeclarationName` (`#pantry/qti/names.ts`), for `cardinality` and `baseType`, as a placed
- * binding's are read (`#pantry/qti/overlay-queries/interaction.ts`). A reference
- * in an included rules fragment is typed in the fragment's own document, where its name is
- * undeclared, so its `VariableRef`'s type is `unknown`; a row here types it in the item, and
- * "Condition type" reads it. The item's own document is an instance too, so an inline reference
- * has a row as well, and an inline condition is held twice, here and over its `Expression`, under
- * the one law.
- *
- * A declaration's type is never silent: a declaration whose cardinality spells nothing, or a
- * record, which writes no base type, has no row of either relation (spec readings 158 and 159),
- * so its references have none here, and no rule reads a type the declaration does not have.
- */
-const PlacedReferenceType = derived(
-  "PlacedReferenceType",
-  query(QtiViews).rule((r) => {
-    const {
-      assembly,
-      attribute,
-      identifier,
-      instance,
-      package: pkg,
-      path,
-      start,
-    } = v(PlacedVariableRef, "placed");
-    const { cardinality, start: declaration } = v(DeclarationName, "name");
-    const { kind, parentKind } = v(Node, "element");
-    const { baseType } = v(TypedDeclarationName, "typed");
-
-    return r
-      .match(PlacedVariableRef, {
-        assembly,
-        attribute,
-        identifier,
-        instance,
-        package: pkg,
-        path,
-        resolution: "declared",
-        start,
-      })
-      .match(DeclarationName, {
-        cardinality,
-        identifier,
-        package: pkg,
-        path: assembly,
-        start: declaration,
-      })
-      .match(TypedDeclarationName, { baseType, identifier, package: pkg, path: assembly })
-      .match(Node, { kind, package: pkg, parentKind, path, start })
-      .find({
-        assembly,
-        attribute,
-        baseType,
-        cardinality,
-        declaration,
-        instance,
-        kind,
-        package: pkg,
-        parentKind,
-        path,
-        start,
-      });
   }),
 );
 
@@ -1145,119 +1118,106 @@ const mathOperatorNames = attributeValues("name", ["qti-math-operator"]);
  * model §2.11.3.32). Each attribute is an `xs:string` enumeration, `whiteSpace` preserve, so its
  * value is its lexical form, compared by its exact spellings. A `base-type` is an enumeration of
  * exactly the bases `BaseTypeLexical` spells, so one that spells none is AL1's alone, and types
- * nothing here. No row copies an attribute (C18): "E1 derived" holds each such expression's base
- * type to its row. An element holds at most one typing attribute, a base value and a test
- * variables a `base-type` and a math operator a `name`, so the query has at most one row per
- * element.
+ * nothing here. No row copies an attribute (C18). An element holds at most one typing attribute, a
+ * base value and a test variables a `base-type` and a math operator a `name`, so the query has at
+ * most one row per element.
+ */
+const attributeBases = query(QtiBase)
+  .rule((r) => {
+    const { package: pkg, path, start, valueBase: baseType } = v(spelledBaseTypes, "spelled");
+
+    return r
+      .match(spelledBaseTypes, { package: pkg, path, start, valueBase: baseType })
+      .find({ baseType, package: pkg, path, start });
+  })
+  .rule((r) => {
+    const { package: pkg, path, start, value } = v(mathOperatorNames, "integer");
+
+    return r
+      .match(mathOperatorNames, { package: pkg, path, start, value })
+      .where(r.in(value, integerMathOperators))
+      .find({ baseType: ValueBase.handle("integer"), package: pkg, path, start });
+  })
+  .rule((r) => {
+    const { package: pkg, path, start, value } = v(mathOperatorNames, "float");
+
+    return r
+      .match(mathOperatorNames, { package: pkg, path, start, value })
+      .where(Logic.not(r.in(value, integerMathOperators)))
+      .find({ baseType: ValueBase.handle("float"), package: pkg, path, start });
+  });
+
+/**
+ * The base type each attribute-typed expression's typing attribute gives it under each placement of
+ * its document ({@link attributeBases}, `placedDocuments` of
+ * `#pantry/qti/overlay-queries/expression.ts`), by the placement and the expression's place: "E1
+ * derived" holds its placed type to it, the same in every placement.
  */
 const ExpressionAttribute = derived(
   "ExpressionAttribute",
-  query(QtiBase)
-    .rule((r) => {
-      const { package: pkg, path, start, valueBase: baseType } = v(spelledBaseTypes, "spelled");
+  query(QtiViews).rule((r) => {
+    const { assembly, instance, package: pkg, path } = v(placedDocuments, "placement");
+    const { baseType, start } = v(attributeBases, "typed");
 
-      return r
-        .match(spelledBaseTypes, { package: pkg, path, start, valueBase: baseType })
-        .find({ baseType, package: pkg, path, start });
-    })
-    .rule((r) => {
-      const { package: pkg, path, start, value } = v(mathOperatorNames, "integer");
-
-      return r
-        .match(mathOperatorNames, { package: pkg, path, start, value })
-        .where(r.in(value, integerMathOperators))
-        .find({ baseType: ValueBase.handle("integer"), package: pkg, path, start });
-    })
-    .rule((r) => {
-      const { package: pkg, path, start, value } = v(mathOperatorNames, "float");
-
-      return r
-        .match(mathOperatorNames, { package: pkg, path, start, value })
-        .where(Compute.not(r.in(value, integerMathOperators)))
-        .find({ baseType: ValueBase.handle("float"), package: pkg, path, start });
-    }),
+    return r
+      .match(placedDocuments, { assembly, instance, package: pkg, path })
+      .match(attributeBases, { baseType, package: pkg, path, start })
+      .find({ assembly, baseType, instance, package: pkg, path, start });
+  }),
 );
 
 /**
  * The test variables that write neither a `base-type` nor a `weight-identifier`, each with its
- * expression's base type, by its place: no attribute types it, so its type is `unknown`, which
- * matches every integer and float variable (information model §7.39.6; spec reading 167).
+ * base type under each placement, by the placement and its place: no attribute types it, so its
+ * type is `unknown`, which matches every integer and float variable (information model §7.39.6;
+ * spec reading 167).
  */
 const UntypedUnweighted = derived(
   "UntypedUnweighted",
   query(QtiBase).rule((r) => {
-    const { baseType, package: pkg, path, start } = v(Expression, "variables");
+    const {
+      assembly,
+      baseType,
+      instance,
+      package: pkg,
+      path,
+      start,
+    } = v(PlacedExpression, "variables");
 
     return r
-      .match(Expression, { baseType, package: pkg, path, start })
+      .match(PlacedExpression, { assembly, baseType, instance, package: pkg, path, start })
       .match(Node, { kind: "qti-test-variables", package: pkg, path, start })
       .where(r.not(Attribute, { name: "base-type", package: pkg, path, start }))
       .where(r.not(Attribute, { name: "weight-identifier", package: pkg, path, start }))
-      .find({ baseType, package: pkg, path, start });
+      .find({ assembly, baseType, instance, package: pkg, path, start });
   }),
 );
 
 /**
- * The test variables that write a `weight-identifier` and no `base-type`, each with its
- * expression's base type, by its place: "When a weighting is specified the result of the
- * expression always has base-type float" (information model §7.39.5; decision 434).
+ * The test variables that write a `weight-identifier` and no `base-type`, each with its base type
+ * under each placement, by the placement and its place: "When a weighting is specified the result
+ * of the expression always has base-type float" (information model §7.39.5; decision 434).
  */
 const UntypedWeighted = derived(
   "UntypedWeighted",
   query(QtiBase).rule((r) => {
-    const { baseType, package: pkg, path, start } = v(Expression, "variables");
+    const {
+      assembly,
+      baseType,
+      instance,
+      package: pkg,
+      path,
+      start,
+    } = v(PlacedExpression, "variables");
 
     return r
-      .match(Expression, { baseType, package: pkg, path, start })
+      .match(PlacedExpression, { assembly, baseType, instance, package: pkg, path, start })
       .match(Node, { kind: "qti-test-variables", package: pkg, path, start })
       .match(Attribute, { name: "weight-identifier", package: pkg, path, start })
       .where(r.not(Attribute, { name: "base-type", package: pkg, path, start }))
-      .find({ baseType, package: pkg, path, start });
+      .find({ assembly, baseType, instance, package: pkg, path, start });
   }),
 );
-
-/**
- * The response processing templates the information model publishes, by name (spec reading 51,
- * from section 2.5.1's list): `match_correct`, `map_response` and `map_response_point`, and the
- * Common Cartridge templates `CC2_match`, `CC2_match_basic` and `CC2_map_response`. A `template`
- * URI names one by {@link urisOf}.
- */
-const publishedTemplates = [
-  "match_correct",
-  "map_response",
-  "map_response_point",
-  "CC2_match",
-  "CC2_match_basic",
-  "CC2_map_response",
-] as const;
-
-/**
- * A published template's name.
- */
-type PublishedTemplate = (typeof publishedTemplates)[number];
-
-/**
- * The URI prefixes a published template is named under (spec reading 51): the information model's
- * and the implementation guide's examples'.
- */
-const templatePrefixes = [
-  "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/",
-  "https://www.imsglobal.org/question/qti_v3p0/rptemplates/",
-] as const;
-
-/**
- * The `template` URIs that name some published templates (spec reading 51): each template's four,
- * either of {@link templatePrefixes} followed by its name, with or without `.xml`. A `template`'s
- * `value` is its lexical form collapsed, as `xs:anyURI`'s whitespace facet collapses it, so it
- * names a template exactly where it is one of these.
- *
- * @param templates - The templates.
- * @returns Their URIs.
- */
-const urisOf = (templates: readonly PublishedTemplate[]) =>
-  templates.flatMap((template) =>
-    templatePrefixes.flatMap((prefix) => [`${prefix}${template}`, `${prefix}${template}.xml`]),
-  );
 
 /**
  * Each `qti-response-processing`'s `template`, by its element's place, with its `value`
@@ -1365,34 +1325,22 @@ const templateNeeds: readonly {
 
 /**
  * The rules over the expression overlays' queries, grouped by the law each states, each `check`
- * named by its oracle law: `Condition_type` (P21) over {@link PlacedReferenceType}; `E1_derived`,
- * each reference's resolution and each test variables' unwritten base type proved from what they
- * are derived from; and `Lookup_type` (P22) and `Set_type` (P20) over {@link HeldType}.
+ * named by its oracle law: `E1_derived`, each placed reference's resolution and each
+ * attribute-typed expression's base type under each placement proved from what they are derived
+ * from; `Lookup_type` (P22) and `Set_type` (P20) over {@link HeldType}, and a declared lookup of a
+ * value a match table does not map reading an interpolation table ({@link InterpolatedLookup}); and
+ * `Outcome_only` (P25) over {@link WeightedVariable}.
  */
 const expressionQueryLawsByName = {
-  "Condition type": [
-    // The placed twin, per placement (spec reading 117): a variable, correct or default reference
-    // that is a whole condition is typed as its item's declaration, never silent, since the row
-    // exists only where the declaration has a base type and a cardinality. A composite condition
-    // over a fragment's references stays reading 117's stated limit.
-    check("Condition_type", PlacedReferenceType, (r) =>
-      r.or(
-        r.not(r.in(r.kind, declaredKinds)),
-        r.not(r.in(r.parentKind, conditionKindHandles)),
-        r.and(r.eq(r.baseType, "boolean"), r.eq(r.cardinality, "single")),
-      ),
-    ),
-  ],
   "E1 derived": [
-    // A reference, or a placed one, to a name its document or its assembly's item declares
-    // resolves to that declaration.
-    check("E1_derived", DeclaredReference, (d) => d.eq(d.resolution, "declared")),
+    // A placed reference to a name its assembly's root declares resolves to that declaration.
     check("E1_derived", DeclaredPlacement, (d) => d.eq(d.resolution, "declared")),
-    // An attribute-typed expression is of the base type its typing attribute gives it; a test
-    // variables that writes no `base-type` is `unknown`, or float where it is weighted.
+    // An attribute-typed expression is of the base type its typing attribute gives it in every
+    // placement; a test variables that writes no `base-type` is `unknown`, or float where it is
+    // weighted.
     contained(
-      on(ExpressionAttribute, "package", "path", "start", "baseType"),
-      on(Expression, "package", "path", "start", "baseType"),
+      on(ExpressionAttribute, "package", "assembly", "instance", "path", "start", "baseType"),
+      on(PlacedExpression, "package", "assembly", "instance", "path", "start", "baseType"),
     ),
     check("E1_derived", UntypedUnweighted, (u) => u.eq(u.baseType, "unknown")),
     check("E1_derived", UntypedWeighted, (u) => u.eq(u.baseType, "float")),
@@ -1407,29 +1355,11 @@ const expressionQueryLawsByName = {
         ),
       ),
     ),
-    // A match table maps an integer: a declared lookup of a value of another base claims an
-    // interpolation table, its declaration's one lookup table where it claims one.
+    // A match table maps an integer: a declared lookup of a value of another base reads an
+    // interpolation table of its declaration, its one lookup table (§2.5.1.4).
     contained(
-      on(
-        select(HeldType, (h) =>
-          h.and(
-            h.eq(h.kind, lookupKindHandle),
-            h.eq(h.resolution, "declared"),
-            h.not(h.in(h.heldBase, ["integer", ...silentBases])),
-          ),
-        ),
-        "package",
-        "path",
-        "start",
-      ),
-      on(
-        select(VariableRefTable, (t) =>
-          t.and(t.eq(t.table, "qti-interpolation-table"), t.eq(t.attribute, "identifier")),
-        ),
-        "package",
-        "path",
-        "start",
-      ),
+      on(InterpolatedLookup, "package", "assembly", "declaration"),
+      on(declarationTables("qti-interpolation-table"), "package", "path", "declaration"),
     ),
   ],
   "Outcome only": [
@@ -1492,8 +1422,8 @@ const expressionQueryLawsByName = {
 
 /**
  * The documents that head an assembly, by the document's package and path (spec reading 117): each
- * assembled document (`Document.assembled`, it has its `TestDocument`) that no include splices in
- * place, no `SiteTarget` that splices naming it as its `target` (`Inclusion.splices`: an include
+ * assembled document (`Document.assembled`, it has its `AssembledDocument`) that no include splices
+ * in place, no `SiteTarget` that splices naming it as its `target` (`Inclusion.splices`: an include
  * under one of `splicingParents` that may stand for its target's root). An included fragment is
  * judged where it is included and not alone, and every other assembled document, a test, a section,
  * an item, a stimulus, a response processing template or a fragment no include splices, is judged
@@ -1527,29 +1457,29 @@ const InstanceDocument = derived(
 );
 
 /**
- * The members of the banks (the placement mandate, rulings 2 and 7; spec reading 228), by QTI's own
- * identity: each item ref a bank's root section holds that names something, by its package, the
- * bank's identifier (`bank`, its root's) and its own (`identifier`), with the path of the item
- * document it names (`item`, its `ItemRefDocument`'s target). "Bank shape" makes every item ref of
- * a bank one its root holds, and "Item ref identifier" holds its identifier to its item's, so a
- * member is `(package, bank, item identifier)`; "Bank key" and "Structure identifier" make that
- * identity a key. Every column is its rows' own, never a copy: a bank's members are read here,
- * from the names, their nodes' kind and place in the tree, and the items the import already
- * writes.
+ * The members of the banks (the placement mandate, ruling 2; spec reading 228): each item ref a
+ * section document holds, at any depth, that names something, by its package, the bank's path
+ * (`bank`, the section document's: a bank is `(package, path)`, as an item is, SV-KEY-01, since
+ * QTI makes a section's identifier unique only within its test, §4.2.1) and the ref's identifier
+ * (`identifier`), with the path of the item document it names (`item`, its `ItemRefDocument`'s
+ * target). QTI puts no restriction on a section document's shape (§7.5), so a member may sit in a
+ * nested section. "Item ref identifier" holds its identifier to its item's, and "Structure
+ * identifier" makes `(package, bank, identifier)` a key. Every column is its rows' own, never a
+ * copy: a bank's members are read here, from the names, their nodes' kind and document, and the
+ * items the import already writes.
  */
 export const BankMember = derived(
   "BankMember",
   query(QtiBase).rule((r) => {
-    const { identifier: bank, package: pkg, path, start: root } = v(Named, "bank");
+    const { package: pkg, path: bank } = v(Document, "bank");
     const { identifier, start } = v(Named, "member");
     const { target: item } = v(ItemRefDocument, "item");
 
     return r
-      .match(Named, { identifier: bank, package: pkg, path, start: root })
-      .match(Node, { kind: sectionKind, package: pkg, parentKind: "document", path, start: root })
-      .match(Named, { identifier, package: pkg, path, start })
-      .match(Node, { kind: itemRefKind, package: pkg, parent: root, path, start })
-      .match(ItemRefDocument, { package: pkg, path, start, target: item })
+      .match(Document, { package: pkg, path: bank, rootKind: sectionKind })
+      .match(Named, { identifier, package: pkg, path: bank, start })
+      .match(Node, { kind: itemRefKind, package: pkg, path: bank, start })
+      .match(ItemRefDocument, { package: pkg, path: bank, start, target: item })
       .find({ bank, identifier, item, package: pkg });
   }),
 );
@@ -1561,8 +1491,10 @@ export const BankMember = derived(
  * - **"Inclusion cycle"** (reading 85): each document that heads an assembly is the root of one, and
  *   every assembled document is one some instance places ({@link InstanceDocument}), so a chain no
  *   head reaches is refused;
- * - **"Item ref identifier"** (QTI §4.1.1): each bank member's identifier is its item's
- *   ({@link BankMember} into `ObjectIdentifier`).
+ * - **"Item ref identifier"** (QTI §4.1.1: "When an Item is referenced using a
+ *   'qti-assesasment-item-ref' the values of the two 'identifier' characteristics MUST be the
+ *   same"): each named item ref's identifier, a test's or a bank's, is the identifier of the item
+ *   it names (`NamedItemRef` of `#pantry/qti/overlay-queries/tests.ts` into `ObjectIdentifier`).
  */
 const testQueryLawsByName = {
   "E1 derived": [
@@ -1570,11 +1502,14 @@ const testQueryLawsByName = {
   ],
   "Inclusion cycle": [
     contained(on(HeadDocument, "package", "path"), on(instanceRoots, "package", "document")),
-    contained(on(TestDocument, "package", "path"), on(InstanceDocument, "package", "document")),
+    contained(
+      on(AssembledDocument, "package", "path"),
+      on(InstanceDocument, "package", "document"),
+    ),
   ],
   "Item ref identifier": [
     contained(
-      on(BankMember, "package", "item", "identifier"),
+      on(NamedItemRef, "package", "item", "identifier"),
       on(ObjectIdentifier, "package", "path", "value"),
     ),
   ],
@@ -1582,12 +1517,8 @@ const testQueryLawsByName = {
 
 /**
  * Each choice and each hottext of a document, by its place, `(package, path, start)`, with the
- * identifier it bears: the nine choice classes' `Choice` rows and `Hottext`'s. Every choice class
- * says of its identifier "This identifier must not be used by any other choice or item variable"
- * (§5.132.1; §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1 and §5.131.1 alike), and
- * the nine share one space of identifiers (spec reading 104 as amended, the stricter normative
- * reading), so "Choice identifier key" keys these rows by (package, path, identifier): at most one
- * choice or hottext of a document bears a name, of whichever class.
+ * identifier it bears: the nine choice classes' `Choice` rows and `Hottext`'s, each of which "must
+ * not be used by any ... item variable", which "Choice not variable" holds.
  */
 const choicesAndHottexts = query(QtiBase)
   .rule((r) => {
@@ -1606,15 +1537,14 @@ const choicesAndHottexts = query(QtiBase)
   });
 
 /**
- * {@link choicesAndHottexts} as a relation of the schema, which "Choice identifier key" keys.
+ * {@link choicesAndHottexts} as a relation of the schema, which "Choice not variable" reads.
  */
 const ChoiceOrHottext = derived("ChoiceOrHottext", choicesAndHottexts);
 
 /**
  * Each choice and each hottext an assembly places, by its assembly, its instance there and its
  * element's place, with the identifier it bears (spec reading 117): an included fragment's choices
- * are its item's, so "Choice identifier key" keys these rows by (package, assembly, identifier),
- * and a fragment placed twice in one item names each of its choices twice.
+ * are its item's, and a fragment placed twice in one item names each of its choices twice.
  */
 const placedChoicesAndHottexts = query(QtiBase)
   .rule((r) => {
@@ -1640,10 +1570,141 @@ const placedChoicesAndHottexts = query(QtiBase)
   });
 
 /**
- * {@link placedChoicesAndHottexts} as a relation of the schema, which "Choice identifier key"
- * keys.
+ * {@link placedChoicesAndHottexts} as a relation of the schema, which "Choice not variable" reads.
  */
 const PlacedChoiceOrHottext = derived("PlacedChoiceOrHottext", placedChoicesAndHottexts);
+
+/**
+ * Each choice of a document whose class's sentence names the noun "choice" ({@link
+ * choiceNounKinds}: "This identifier must not be used by any other choice or item variable",
+ * §5.132.1, §5.73.1, §5.67.1 and §5.131.1), by its place, with the identifier it bears.
+ */
+const nounChoices = query(QtiBase).rule((r) => {
+  const { identifier, package: pkg, path, start } = v(Choice, "choice");
+  const { kind } = v(Node, "node");
+
+  return r
+    .match(Choice, { identifier, package: pkg, path, start })
+    .match(Node, { kind, package: pkg, path, start })
+    .where(r.in(kind, choiceNounKinds))
+    .find({ identifier, package: pkg, path, start });
+});
+
+/**
+ * Each choice an assembly places whose class's sentence names the noun "choice", as
+ * {@link nounChoices} reads a document's, by its assembly, its instance and its element's place.
+ */
+const placedNounChoices = query(QtiBase).rule((r) => {
+  const { assembly, identifier, instance, package: pkg, path, start } = v(PlacedChoice, "choice");
+  const { kind } = v(Node, "node");
+
+  return r
+    .match(PlacedChoice, { assembly, identifier, instance, package: pkg, path, start })
+    .match(Node, { kind, package: pkg, path, start })
+    .where(r.in(kind, choiceNounKinds))
+    .find({ assembly, identifier, instance, package: pkg, path, start });
+});
+
+/**
+ * The names a "choice" bars in its document (spec reading 104 as amended): every choice of the four
+ * classes whose sentence bars "any other choice" ({@link nounChoices}), and every other element the
+ * information model calls a choice (`otherChoiceKinds` of `#pantry/vocab/terms/interactions.ts`,
+ * and a hottext) that bears the identifier of one of them, by its place, with the identifier.
+ * "Choice identifier key" keys it by (package, path, identifier), so a choice of the four bears a
+ * name no other choice of its document bears, of its class or of another. Two elements of the other
+ * classes that share a name no choice of the four bears are not here: neither's sentence bars the
+ * other's class (a gap text's "any other text", a hottext's "any other hottext choice"), and each
+ * class's own key holds its own. A gap is no choice (§5.57: gaps filled "from an associated set of
+ * choices"), so a gap and a gap text of one gap match may share a name.
+ */
+const ChoiceSpaceName = derived(
+  "ChoiceSpaceName",
+  query(QtiBase)
+    .rule((r) => {
+      const { identifier, package: pkg, path, start } = v(nounChoices, "choice");
+
+      return r
+        .match(nounChoices, { identifier, package: pkg, path, start })
+        .find({ identifier, package: pkg, path, start });
+    })
+    .rule((r) => {
+      const { identifier, package: pkg, path, start } = v(Choice, "other");
+      const { kind } = v(Node, "node");
+
+      return r
+        .match(Choice, { identifier, package: pkg, path, start })
+        .match(Node, { kind, package: pkg, path, start })
+        .where(r.in(kind, otherChoiceKinds))
+        .match(nounChoices, { identifier, package: pkg, path })
+        .find({ identifier, package: pkg, path, start });
+    })
+    .rule((r) => {
+      const { identifier, package: pkg, path, start } = v(Hottext, "hottext");
+
+      return r
+        .match(Hottext, { identifier, package: pkg, path, start })
+        .match(nounChoices, { identifier, package: pkg, path })
+        .find({ identifier, package: pkg, path, start });
+    }),
+);
+
+/**
+ * The names a "choice" bars over its assembly (spec reading 117), as {@link ChoiceSpaceName} reads a
+ * document's: every choice of the four an assembly places, and every other choice or hottext it
+ * places that bears the identifier of one of them, by the assembly, the instance and the element's
+ * place. "Choice identifier key" keys it by (package, assembly, identifier).
+ */
+const PlacedChoiceSpaceName = derived(
+  "PlacedChoiceSpaceName",
+  query(QtiBase)
+    .rule((r) => {
+      const {
+        assembly,
+        identifier,
+        instance,
+        package: pkg,
+        path,
+        start,
+      } = v(placedNounChoices, "choice");
+
+      return r
+        .match(placedNounChoices, { assembly, identifier, instance, package: pkg, path, start })
+        .find({ assembly, identifier, instance, package: pkg, path, start });
+    })
+    .rule((r) => {
+      const {
+        assembly,
+        identifier,
+        instance,
+        package: pkg,
+        path,
+        start,
+      } = v(PlacedChoice, "other");
+      const { kind } = v(Node, "node");
+
+      return r
+        .match(PlacedChoice, { assembly, identifier, instance, package: pkg, path, start })
+        .match(Node, { kind, package: pkg, path, start })
+        .where(r.in(kind, otherChoiceKinds))
+        .match(placedNounChoices, { assembly, identifier, package: pkg })
+        .find({ assembly, identifier, instance, package: pkg, path, start });
+    })
+    .rule((r) => {
+      const {
+        assembly,
+        identifier,
+        instance,
+        package: pkg,
+        path,
+        start,
+      } = v(PlacedHottext, "hottext");
+
+      return r
+        .match(PlacedHottext, { assembly, identifier, instance, package: pkg, path, start })
+        .match(placedNounChoices, { assembly, identifier, package: pkg })
+        .find({ assembly, identifier, instance, package: pkg, path, start });
+    }),
+);
 
 /**
  * The names a document's choices and hottexts bear, and those its assembly places, that no item
@@ -1666,7 +1727,7 @@ const UnclaimedName = derived(
         .match(choicesAndHottexts, { identifier, package: pkg, path })
         .match(Document, { package: pkg, path, rootKind })
         .where(r.not(NamedDeclaration, { identifier, package: pkg, path }))
-        .where(r.or(r.ne(rootKind, itemKind), Compute.not(r.in(identifier, itemBuiltInNames))))
+        .where(r.or(r.ne(rootKind, itemKind), Logic.not(r.in(identifier, itemBuiltInNames))))
         .find({ identifier, package: pkg, path });
     })
     .rule((r) => {
@@ -1677,7 +1738,7 @@ const UnclaimedName = derived(
         .match(placedChoicesAndHottexts, { assembly, identifier, package: pkg })
         .match(Document, { package: pkg, path: assembly, rootKind })
         .where(r.not(NamedDeclaration, { identifier, package: pkg, path: assembly }))
-        .where(r.or(r.ne(rootKind, itemKind), Compute.not(r.in(identifier, itemBuiltInNames))))
+        .where(r.or(r.ne(rootKind, itemKind), Logic.not(r.in(identifier, itemBuiltInNames))))
         .find({ identifier, package: pkg, path: assembly });
     }),
 );
@@ -1788,17 +1849,18 @@ const PrintedIntegerBaseType = referenceBaseTypeOf(
  * - **"Printed variable type"** (information model §9.3.3): a printed variable's `base` or `index`
  *   that names a variable names a single integer one ({@link PrintedIntegerCardinality},
  *   {@link PrintedIntegerBaseType});
- * - **"Choice identifier key"** (reading 104 as amended): across the nine choice classes, at most one
- *   choice or hottext of a document bears a name, and at most one its assembly places; the
- *   per-class keys are `#pantry/qti/interactions.ts`'s;
+ * - **"Choice identifier key"** (reading 104 as amended): a choice of the four classes whose sentence
+ *   bars "any other choice" bears a name no other choice or hottext of its document bears, and none
+ *   its assembly places ({@link ChoiceSpaceName}, {@link PlacedChoiceSpaceName}); the per-class
+ *   keys are `#pantry/qti/interactions.ts`'s;
  * - **"Choice not variable"**: every name a choice or a hottext bears, its document's own or one its
  *   assembly places, is one no item variable of the document bears ({@link UnclaimedName}).
  */
 const interactionQueryLawsByName = {
   "Choice bounds": [check("Choice_bounds", NonContainerStrings, (s) => s.le(s.leastValue, 1n))],
   "Choice identifier key": [
-    key(on(ChoiceOrHottext, "package", "path", "identifier")),
-    key(on(PlacedChoiceOrHottext, "package", "assembly", "identifier")),
+    key(on(ChoiceSpaceName, "package", "path", "identifier")),
+    key(on(PlacedChoiceSpaceName, "package", "assembly", "identifier")),
   ],
   "Choice not variable": [
     contained(
@@ -1948,8 +2010,8 @@ export const queryRelations = [
   BankMember,
   CellChild,
   ChoiceOrHottext,
+  ChoiceSpaceName,
   DeclaredPlacement,
-  DeclaredReference,
   DescribedAssembledLang,
   DescribedLang,
   ExpressionAttribute,
@@ -1957,6 +2019,7 @@ export const queryRelations = [
   HeadDocument,
   HeldType,
   InstanceDocument,
+  InterpolatedLookup,
   ItemRefTarget,
   ListedIdentifier,
   ListedLang,
@@ -1970,7 +2033,7 @@ export const queryRelations = [
   ObjectIdentifier,
   OtherVocabularyType,
   PlacedChoiceOrHottext,
-  PlacedReferenceType,
+  PlacedChoiceSpaceName,
   PrintedIntegerBaseType,
   PrintedIntegerCardinality,
   ReferenceLexical,

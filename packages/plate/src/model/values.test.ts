@@ -3,7 +3,6 @@ import { Effect, Option, Result } from "effect";
 import {
   format,
   isModelled,
-  isNcName,
   isNull,
   isNullResponse,
   isRecordValue,
@@ -269,17 +268,22 @@ describe("parseLexical", () => {
     }),
   );
 
-  it.effect("reads true and false and refuses 1 and 0 as booleans", () =>
+  it.effect("reads xs:boolean's true, false, 1 and 0 as booleans, and refuses any other", () =>
+    // Oracle: XML Schema Part 2 §3.2.2.1, boolean's lexical space "{true, false, 1, 0}", which
+    // the information model's boolean base type is (§8.14; reading 34).
     Effect.gen(function* booleanLexicalSpace() {
-      assert.deepStrictEqual(yield* Effect.fromResult(parseLexical("boolean", "true")), {
-        baseType: "boolean",
-        value: true,
-      });
-      assert.deepStrictEqual(yield* Effect.fromResult(parseLexical("boolean", "false")), {
-        baseType: "boolean",
-        value: false,
-      });
-      for (const lexical of ["1", "0", "TRUE"]) {
+      for (const [lexical, read] of [
+        ["true", true],
+        ["false", false],
+        ["1", true],
+        ["0", false],
+      ] as const) {
+        assert.deepStrictEqual(yield* Effect.fromResult(parseLexical("boolean", lexical)), {
+          baseType: "boolean",
+          value: read,
+        });
+      }
+      for (const lexical of ["TRUE", "2", "yes"]) {
         const error = yield* Effect.flip(Effect.fromResult(parseLexical("boolean", lexical)));
         assert.strictEqual(error._tag, "InvalidValue");
         assert.strictEqual(error.lexical, lexical);
@@ -543,63 +547,6 @@ describe("format", () => {
         assert.strictEqual(format({ baseType: "float", value: 0.1 + 0.2 }), "0.30000000000000004");
       }),
   );
-});
-
-describe("isNcName", () => {
-  it("accepts NCNames and refuses colons, leading digits and empty text", () => {
-    for (const name of ["completed", "_x", "a-b.c", "é1", "χ", "RESPONSE_1"]) {
-      assert.isTrue(isNcName(name), name);
-    }
-    for (const text of ["", "1", "6", "a:b", "-a", ".a", "a b", "a\n"]) {
-      assert.isFalse(isNcName(text), JSON.stringify(text));
-    }
-  });
-
-  it("refuses a character XML 1.0 Second Edition's tables do not hold, and one they admit only later written first (readings 94 and 152)", () => {
-    const refused = [
-      // A letter Unicode assigned after version 2.0 (probe a94_ncname_u3400).
-      "R\u{3400}",
-      "\u{3400}",
-      // A character of the supplementary planes (probe a94_ncname_supp).
-      "R\u{10000}",
-      "\u{10000}",
-      // A letter the Second Edition leaves out on purpose (probe a94_ncname_IJ).
-      "\u{132}",
-      "a\u{132}",
-      // A digit written first: ARABIC-INDIC DIGIT ZERO (probe r152-arabic-digit).
-      "\u{660}a",
-      // An extender written first (probe a94_ncname_extender_first).
-      "\u{2D0}a",
-      "\u{B7}a",
-      // A combining character written first.
-      "\u{300}a",
-    ];
-    for (const text of refused) {
-      assert.isFalse(isNcName(text), JSON.stringify(text));
-    }
-  });
-
-  it("accepts ASCII names and the Second Edition's letters, digits, combining characters and extenders where its production puts them", () => {
-    const accepted = [
-      "RESPONSE_1",
-      "a-b.c",
-      // BaseChar: LATIN CAPITAL LETTER A WITH GRAVE, first and alone.
-      "\u{C0}",
-      // Ideographic, first, then an Extender (IDEOGRAPHIC ITERATION MARK).
-      "\u{4E00}\u{3005}",
-      // An Extender after the first (probe a94_ncname_extender_later), and MIDDLE DOT.
-      "a\u{2D0}",
-      "a\u{B7}",
-      // A Digit and a CombiningChar after the first.
-      "a\u{660}",
-      "\u{C0}\u{300}",
-      // Hangul, the last BaseChar range.
-      "\u{AC00}\u{D7A3}",
-    ];
-    for (const name of accepted) {
-      assert.isTrue(isNcName(name), JSON.stringify(name));
-    }
-  });
 });
 
 describe("isXmlText", () => {

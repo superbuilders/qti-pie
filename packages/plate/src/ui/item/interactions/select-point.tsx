@@ -25,8 +25,8 @@ import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
-import { markingOf } from "#plate/ui/item/interactions/marks.ts";
-import { markPart } from "#plate/ui/item/interactions/words.tsx";
+import { markingOf, pointMarksOf } from "#plate/ui/item/interactions/marks.ts";
+import { markPart, wordsOfMark } from "#plate/ui/item/interactions/words.tsx";
 import type { Words } from "#plate/ui/item/interactions/words.tsx";
 import { picksOf } from "#plate/ui/picks/picks.ts";
 import type { Picks } from "#plate/ui/picks/picks.ts";
@@ -94,9 +94,10 @@ const shownOf = (node: PayloadOf<"select-point">): readonly Point[] =>
 /**
  * Render a Select Point's review or solution: the stage's frame, its scale the image's, each point
  * it shows as its marker over the image, and the points listed after it, each "Point n, x across
- * and y down" with "Right answer" in a solution, whose points are the correct ones, and "Your
- * answer" otherwise, for a screen reader. No point is marked right or wrong, whatever the review
- * marks against.
+ * and y down" with "Right answer" in a solution, whose points are the correct ones, and in a
+ * review each with the mark the host handed it and its words, "Your answer" where it handed none,
+ * then each correct point handed missed, for a screen reader (proposal 2026-11-18-grading-in-sql,
+ * Decision 6: a Select Point's review marks each point by area).
  *
  * @param paired The Select Point and its payload node.
  * @param paired.model The redacted model node: its `data-*`.
@@ -111,7 +112,15 @@ export const review = (
   const { locale } = context;
   const prompt = promptAt(node.prompt, node.response, context);
   const names = groupNameOf(prompt, node, context);
-  const words: Words = markingOf(node.response, context).kind === "solution" ? "correct" : "given";
+  const marking = markingOf(node.response, context);
+  const marks = pointMarksOf(node.points, marking);
+  const wordsAt = (index: number): Words => {
+    if (marking.kind === "solution") {
+      return "correct";
+    }
+
+    return marking.kind === "marked" ? wordsOfMark(marks.given[index]) : "given";
+  };
   const size = { height: node.height, width: node.width };
   const points = shownOf(node);
 
@@ -132,17 +141,32 @@ export const review = (
         }
         stage={{ kind: "sized", scale: selectPointScaleOf(size), size }}
       />
-      {points.length === 0 ? null : (
+      {points.length === 0 && marks.missed.length === 0 ? null : (
         <ol data-slot="plate-select-point-points" role="list">
           {points.map((point, index) => (
             // A point's number is its place among the points: its place is its key.
-            <li key={index} data-slot="plate-select-point-point">
+            <li key={index} data-mark={marks.given[index]} data-slot="plate-select-point-point">
               {message(locale, "selectPointShown", {
                 n: numeral(locale, index + 1),
                 x: numeral(locale, point.x),
                 y: numeral(locale, point.y),
               })}
-              {markPart(words, locale)}
+              {markPart(wordsAt(index), locale)}
+            </li>
+          ))}
+          {marks.missed.map((point, index) => (
+            // A missed point follows the points shown, numbered after them: its place is its key.
+            <li
+              key={`missed-${String(index)}`}
+              data-mark="missed"
+              data-slot="plate-select-point-point"
+            >
+              {message(locale, "selectPointShown", {
+                n: numeral(locale, points.length + index + 1),
+                x: numeral(locale, Number(point.x)),
+                y: numeral(locale, Number(point.y)),
+              })}
+              {markPart(wordsOfMark("missed"), locale)}
             </li>
           ))}
         </ol>

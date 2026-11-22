@@ -49,6 +49,7 @@ import {
   references,
 } from "#pantry/vocab/terms/interactions.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
+import { nodePlacesOf, placeKey } from "#pantry/test/places.ts";
 
 /**
  * The fixtures the global setup materializes: `simple` among them.
@@ -274,12 +275,53 @@ const choiceNameCases: readonly {
     name: "an inline choice and a simple choice named ChoiceA, two classes",
   },
   {
-    breaks: ["Choice identifier key"],
+    breaks: [],
     edits: [
       ["</qti-choice-interaction>", `</qti-choice-interaction>${gapMatch("G", "G")}`],
       ["<qti-item-body>", `${responseDeclaration("RESPONSE2", "directedPair")}<qti-item-body>`],
     ],
-    name: "a gap and a gap text of one gap match named G, two classes",
+    name: "a gap and a gap text of one gap match named G, each its own noun",
+  },
+  {
+    breaks: [],
+    edits: [
+      ["</qti-choice-interaction>", `</qti-choice-interaction>${gapMatch("T", "ChoiceA")}`],
+      ["<qti-item-body>", `${responseDeclaration("RESPONSE2", "directedPair")}<qti-item-body>`],
+    ],
+    name: "a gap and a simple choice named ChoiceA, a gap no choice",
+  },
+  {
+    breaks: ["Choice identifier key"],
+    edits: [
+      ["</qti-choice-interaction>", `</qti-choice-interaction>${gapMatch("ChoiceA", "G")}`],
+      ["<qti-item-body>", `${responseDeclaration("RESPONSE2", "directedPair")}<qti-item-body>`],
+    ],
+    name: "a gap text and a simple choice named ChoiceA, a gap text a choice",
+  },
+  {
+    breaks: [],
+    edits: [
+      [
+        "</qti-choice-interaction>",
+        `</qti-choice-interaction>${gapMatch("H", "G")}<qti-hottext-interaction response-identifier="RESPONSE3" max-choices="1"><p><qti-hottext identifier="H">x</qti-hottext></p></qti-hottext-interaction>`,
+      ],
+      [
+        "<qti-item-body>",
+        `${responseDeclaration("RESPONSE2", "directedPair")}${responseDeclaration("RESPONSE3", "identifier")}<qti-item-body>`,
+      ],
+    ],
+    name: "a gap text and a hottext named H, neither's noun the other's",
+  },
+  {
+    breaks: ["Choice identifier key"],
+    edits: [
+      [
+        "</qti-choice-interaction>",
+        `</qti-choice-interaction><qti-gap-match-interaction response-identifier="RESPONSE2" max-associations="1"><qti-gap-text identifier="T" match-max="1">x</qti-gap-text><qti-gap-text identifier="T" match-max="1">y</qti-gap-text><p>Fill <qti-gap identifier="G"/>.</p></qti-gap-match-interaction>`,
+      ],
+      ["<qti-item-body>", `${responseDeclaration("RESPONSE2", "directedPair")}<qti-item-body>`],
+    ],
+    name: "two gap texts of one gap match named T, one class",
   },
   {
     breaks: [],
@@ -368,31 +410,81 @@ const nameKey = (pkg: string, path: string, identifier: string): string =>
   JSON.stringify([pkg, path, identifier]);
 
 /**
- * Whether a list of names holds one name twice.
- *
- * @param names - The names.
- * @returns Whether one repeats.
+ * The classes whose identifier sentence names the noun "choice" (§5.132.1, §5.73.1, §5.67.1 and
+ * §5.131.1), restated apart from the schema's list.
  */
-const repeats = (names: readonly string[]): boolean => new Set(names).size < names.length;
+const choiceNouns: ReadonlySet<string> = new Set([
+  "qti-hotspot-choice",
+  "qti-inline-choice",
+  "qti-simple-associable-choice",
+  "qti-simple-choice",
+]);
+
+/**
+ * The classes a "choice" bars: every class the information model calls a choice, all but the gap
+ * (§6.17 GapChoice, §5.59, §5.65.1; §5.57's gaps are filled "from ... choices").
+ */
+const barredByChoice: ReadonlySet<string> = new Set([
+  ...choiceNouns,
+  "qti-associable-hotspot",
+  "qti-gap-img",
+  "qti-gap-text",
+  "qti-hottext",
+]);
+
+/**
+ * Whether some name of a scope is borne by two elements of one class, or by a "choice" and by
+ * another element its sentence bars.
+ *
+ * @param named - Each element of the scope: its name's key and its kind.
+ * @returns Whether a name is shared where reading 104 bars it.
+ */
+const choiceShares = (named: readonly { readonly key: string; readonly kind: string }[]): boolean =>
+  [...Map.groupBy(named, ({ key }) => key).values()].some(
+    (held) =>
+      new Set(held.map(({ kind }) => kind)).size < held.length ||
+      (held.some(({ kind }) => choiceNouns.has(kind)) &&
+        held.filter(({ kind }) => barredByChoice.has(kind)).length > 1),
+  );
 
 /**
  * The names of reading 104's two rules over queries (`#pantry/qti/queries.ts`) that the import's
  * rows break, restated on the host, which judges no derived relation (`#pantry/test/predicates.ts`
- * `judgedKinds`): "Choice identifier key" where two choices or hottexts of one document bear one
- * name, of whichever class, or two its assembly places (`ChoiceOrHottext`,
- * `PlacedChoiceOrHottext`); and "Choice not variable" where a name one bears is a declaration's of
+ * `judgedKinds`): "Choice identifier key" where a simple, inline, hotspot or simple associable
+ * choice of a document bears the name of another element the information model calls a choice, of
+ * whichever class, or one its assembly places does (`ChoiceSpaceName`, `PlacedChoiceSpaceName`);
+ * the per-class keys over `ChoiceNode` and `PlacedChoiceNode`, derived too, where two elements of
+ * one class share a name; and "Choice not variable" where a name one bears is a declaration's of
  * its document, or in an item a built-in variable's (`UnclaimedName`).
  *
  * @param inputs - The import's rows.
  * @returns The laws' names.
  */
 const queryNameLawsOf = (inputs: PackageInputs): readonly string[] => {
-  const chosen = [...inputs.Choice.values(), ...inputs.Hottext.values()].map(
-    ({ identifier, package: pkg, path }) => nameKey(pkg, path, identifier),
+  const places = nodePlacesOf(inputs);
+  const kindAt = (path: string, start: bigint): string =>
+    places.get(placeKey(path, start))?.kind ?? "";
+  const chosenRows = [...inputs.Choice.values(), ...inputs.Hottext.values()];
+  const placedRows = [...inputs.PlacedChoice.values(), ...inputs.PlacedHottext.values()];
+  const chosen = chosenRows.map(({ identifier, package: pkg, path }) =>
+    nameKey(pkg, path, identifier),
   );
-  const placed = [...inputs.PlacedChoice.values(), ...inputs.PlacedHottext.values()].map(
-    ({ assembly, identifier, package: pkg }) => nameKey(pkg, assembly, identifier),
+  const placed = placedRows.map(({ assembly, identifier, package: pkg }) =>
+    nameKey(pkg, assembly, identifier),
   );
+  const shared =
+    choiceShares(
+      chosenRows.map(({ identifier, package: pkg, path, start }) => ({
+        key: nameKey(pkg, path, identifier),
+        kind: kindAt(path, start),
+      })),
+    ) ||
+    choiceShares(
+      placedRows.map(({ assembly, identifier, package: pkg, path, start }) => ({
+        key: nameKey(pkg, assembly, identifier),
+        kind: kindAt(path, start),
+      })),
+    );
   const declared = new Set(
     viewedDeclarationsOf(inputs).flatMap(({ name, package: pkg, path }) =>
       name === undefined ? [] : [nameKey(pkg, path, name)],
@@ -406,7 +498,7 @@ const queryNameLawsOf = (inputs: PackageInputs): readonly string[] => {
   const claimed = [...chosen, ...placed].some((name) => declared.has(name) || builtIns.has(name));
 
   return [
-    ...(repeats(chosen) || repeats(placed) ? ["Choice identifier key"] : []),
+    ...(shared ? ["Choice identifier key"] : []),
     ...(claimed ? ["Choice not variable"] : []),
   ];
 };
@@ -416,14 +508,17 @@ describe("qti/interactions.ts, reading 104 by the law oracle", () => {
     "breaks Choice not variable and Choice identifier key exactly where reading 104 says, over edits of simple's item",
     () =>
       // Oracle: the specification as a checker, reading 104 as amended (§5.132.1, §5.55.1, §5.58.1,
-      // §5.65.1, §5.67.1, §5.73.1, §7.16, §2.2.2): the nine choice classes share one space of
-      // identifiers, so a choice's identifier names one choice of any class in its document, and
-      // no item variable, declared or built in; each case's expected laws are read off its edit.
-      // Bound: the `simple` fixture as it is and 11 edits of its item: a choice named as a declared
-      // outcome, a declared response padded and a built-in, two choices of one interaction and of
-      // two named alike, two interactions' choices named apart, a hottext, an inline choice beside
-      // a simple choice of one name, a gap and a gap text of one gap match named alike and apart,
-      // and a hotspot choice beside a hottext of one name.
+      // §5.65.1, §5.67.1, §5.73.1, §6.17, §7.16, §2.2.2): each class's sentence bars its own noun,
+      // so two elements of one class never share a name in a document, and the four whose noun is
+      // "choice" share theirs with no other choice of any class, a gap being none; and no choice
+      // names an item variable, declared or built in; each case's expected laws are read off its
+      // edit. Bound: the `simple` fixture as it is and 15 edits of its item: a choice named as a
+      // declared outcome, a declared response padded and a built-in, two choices of one
+      // interaction and of two named alike, two interactions' choices named apart, a hottext, an
+      // inline choice beside a simple choice of one name, a gap and a gap text of one gap match
+      // named alike and apart, a gap and a gap text each beside a simple choice of its name, a gap
+      // text beside a hottext of one name, two gap texts of one name, and a hotspot choice beside
+      // a hottext of one name.
       Effect.gen(function* choiceNames() {
         const files = yield* readEntries(fixtures.simple);
         for (const { breaks, edits, name } of choiceNameCases) {
@@ -455,7 +550,7 @@ describe("qti/interactions.ts, reading 104 by the law oracle", () => {
       // import's rows (`#pantry/test/host-judge.ts`): the per-class keys, and the two rules over
       // queries restated on the host ({@link queryNameLawsOf}), which the host judge reads none
       // of; each must break exactly the case's laws among reading 104's two, and judge both.
-      // Bound: the same 12 packages as the oracle's own test above.
+      // Bound: the same 16 packages as the oracle's own test above.
       Effect.gen(function* choiceNamesByRows() {
         const files = yield* readEntries(fixtures.simple);
         for (const { breaks, edits, name } of choiceNameCases) {

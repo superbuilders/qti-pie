@@ -541,8 +541,9 @@ const startOrder = Order.mapInput(Order.BigInt, (row: { readonly start: bigint }
 const handleOrder = Order.mapInput(Order.String, (row: { readonly name: string }) => row.name);
 
 /**
- * The order the read lists an element's attributes of open names in, after its closed ones: by
- * namespace name, then local name, the read's own as {@link handleOrder} is.
+ * The order the model lists an element's attributes of open names in, after its closed ones: by
+ * namespace name, then local name. The read delivers them as a set (`#pantry/export/scan.ts`),
+ * since no index orders by a name of any length, so the order is the host's alone.
  */
 const expandedOrder = Order.combine(
   Order.mapInput(Order.String, (row: OpenAttributeRow) => row.uri),
@@ -550,8 +551,9 @@ const expandedOrder = Order.combine(
 );
 
 /**
- * The order the read lists an element's namespace declarations in: by prefix, the read's own as
- * {@link handleOrder} is.
+ * The order the model lists an element's namespace declarations in: by prefix. The read delivers
+ * them as a set (`#pantry/export/scan.ts`), since no index orders by a prefix of any length, so the
+ * order is the host's alone.
  */
 const prefixOrder = Order.mapInput(Order.String, (row: NamespaceRow) => row.prefix);
 

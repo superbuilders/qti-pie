@@ -1,0 +1,69 @@
+
+/** Each reply a machine gave an application of the graded attempt (OperatorReply), by the run key, at the start of the
+ * application's operator: the score `rubric-score` reads, as the machine's `score` field. A decline, or a request with no
+ * reply yet, gives none, and the gradable gate holds a pending one back. */
+const replyFloatsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const { operator, score } = v(fields.OperatorReply, "reply")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(fields.OperatorReply, { child, package: pkg, path, n, at, operator, score })
+			.find({ child, package: pkg, path, stage, field: Type.literal(DocReplyFloat.fields.field, "score"), start: operator, value: score })
+	})
+
+/** Each feedback a machine's reply gave (OperatorFeedback, which holds none for an empty one), as the machine's
+ * `feedback` field, a string. */
+const replyTextsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const { operator, feedback } = v(fields.OperatorFeedback, "feedback")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(fields.OperatorFeedback, { child, package: pkg, path, n, at, operator, feedback })
+			.find({ child, package: pkg, path, stage, base: Type.literal(DocReplyText.fields.base, "string"), field: Type.literal(DocReplyText.fields.field, "feedback"), start: operator, value: feedback })
+	})
+
+/** The registry's table bindings (RegistryBinding): content, the same rows for every run, each closed id by its name
+ * (OperatorClassToken, TableRoleToken, RegistryTableName). */
+const tableBindingsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const { class: operatorClass, place, role, table } = v(fields.RegistryBinding, "binding")
+		const { token: classToken } = v(fields.OperatorClassToken, "bindingClass")
+		const { token: roleToken } = v(fields.TableRoleToken, "bindingRole")
+		const { name: identifier } = v(fields.RegistryTableName, "bindingTable")
+		return r
+			.match(fields.RegistryBinding, { class: operatorClass, place, role, table })
+			.match(fields.OperatorClassToken, { class: operatorClass, token: classToken })
+			.match(fields.TableRoleToken, { role, token: roleToken })
+			.match(fields.RegistryTableName, { name: identifier, table })
+			.find({ class: classToken, identifier, place, role: roleToken })
+	})
+
+/** Every entry of the registry's tables (RegistryEntry), maps' and lists' alike, by its table's name and its key's text. */
+const tableEntriesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const { key, place, table } = v(fields.RegistryEntry, "entry")
+		const { name: identifier } = v(fields.RegistryTableName, "entryTable")
+		const { text } = v(fields.RegistryWordText, "entryKey")
+		return r
+			.match(fields.RegistryEntry, { key, place, table })
+			.match(fields.RegistryTableName, { name: identifier, table })
+			.match(fields.RegistryWordText, { key, text })
+			.find({ identifier, key: text, place })
+	})
+
+/** Each map table's value of each of its keys (RegistryValue), by its table's name and its key's text. */
+const tableValuesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const { key, table, value } = v(fields.RegistryValue, "value")
+		const { name: identifier } = v(fields.RegistryTableName, "valueTable")
+		const { text } = v(fields.RegistryWordText, "valueKey")
+		return r
+			.match(fields.RegistryValue, { key, table, value })
+			.match(fields.RegistryTableName, { name: identifier, table })
+			.match(fields.RegistryWordText, { key, text })
+			.find({ identifier, key: text, value })
+	})

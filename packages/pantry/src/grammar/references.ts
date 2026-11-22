@@ -380,19 +380,27 @@ const textKind = (kind: string, source: string): TextReferenceKind => {
 
 /**
  * Spec reading R9-b's census of element text: the elements whose text, as an attribute's value does
- * in {@link asiCensus}, names a file the package must hold (IMS Content Packaging 1.2,
- * InterchangePackage (d), `imscp_infov1p2pd2.txt:411`): a card's or a card entry's `qti-file-href`
- * (the kind `qti-file-href.card`, an `xs:anyURI`) and a `qti-resource-icon` (a `URLDType`, an
- * `xs:normalizedString`). An element's text is its string value, read as a URI reference under its
- * type's whitespace class, and resolved against the `xml:base` in scope at the element.
- *
- * Left out: the `qti-file-href` of a calculator and of a digital material (kind `qti-file-href`),
- * which the information model does not state the package must hold (§5.80.3).
+ * in {@link asiCensus}, is a URI reference to a file, one that names a file the package holds where
+ * it resolves in the package (IMS Content Packaging 1.2, InterchangePackage (d),
+ * `imscp_infov1p2pd2.txt:411`): a card's or a card entry's `qti-file-href` (the kind
+ * `qti-file-href.card`, an `xs:anyURI`), a calculator's or a digital material's `qti-file-href`
+ * (the kind `qti-file-href`, `FileHrefDType`, "<xs:restriction base="xs:anyURI" />",
+ * xsd:24100-24102), and a `qti-resource-icon` (a `URLDType`, an `xs:normalizedString`). An
+ * element's text is its string value, read as a URI reference under its type's whitespace class,
+ * and resolved against the `xml:base` in scope at the element: a path is the file of the package it
+ * resolves to, which File exists holds the package to hold, and an address outside the package is
+ * stored unresolved (its `HrefScope` `external`), never refused, since the information model asks
+ * only that a calculator's or a material's file be "the URI for the associated content file"
+ * (§5.80.3), "an external file" (§5.80).
  */
 export const textReferenceKinds: readonly TextReferenceKind[] = [
   textKind(
     "qti-file-href.card",
     "information model §6.6: a card's file, which the package must hold",
+  ),
+  textKind(
+    "qti-file-href",
+    "information model §5.80.3: the URI of a calculator's or a digital material's content file",
   ),
   textKind(
     "qti-resource-icon",

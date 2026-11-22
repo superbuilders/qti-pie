@@ -23,12 +23,13 @@
  *   default hotspot's coordinates are read and kept as written; its area is the whole image,
  *   whatever they say.
  *
- * Two defaults of this module, in tier (a) of its validation: a hotspot never pairs with itself,
- * and one pair given twice, in either order, is refused. An unwritten `max-associations` reads as
- * the XSD's default on this interaction, 1, and 0 is no limit; an unwritten `min-associations` is
- * no minimum; `match-max` is required of each hotspot and 0 is no limit; `match-min` is 0 when
- * absent. A hotspot's `match-group`, when written, names the hotspots it may pair with, and a
- * pair is outside the group when either side names a group the other is not in.
+ * Two defaults of this interaction, in tier (a) of the QTI database's admission: a hotspot never
+ * pairs with itself, and one pair given twice, in either order, is refused. An unwritten
+ * `max-associations` reads as the XSD's default on this interaction, 1, and 0 is no limit; an
+ * unwritten `min-associations` is no minimum; `match-max` is required of each hotspot and 0 is no
+ * limit; `match-min` is 0 when absent. A hotspot's `match-group`, when written, names the hotspots
+ * it may pair with, and a pair is outside the group when either side names a group the other is
+ * not in.
  *
  * A coordinate written with `%` is kept as written, a percentage of the image, whose size is the
  * `width` and `height` the payload's image nodes carry (a circle's radius of the smaller of the
@@ -36,15 +37,11 @@
  * `hotspot-label`, else its `aria-label`, and one with neither is marked on the item's verdict
  * ({@link areaLabel}), as Hotspot marks its own (WCAG 2.2, 1.1.1).
  *
- * The validation messages are English and live here ({@link words}; D7).
- *
  * @module
  * @see https://html.spec.whatwg.org/multipage/image-maps.html#image-map-processing-model
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { areaLabel, coordinatesOf } from "#plate/interactions/area.ts";
 import type { AreaCoordinate } from "#plate/interactions/area.ts";
 import {
@@ -60,17 +57,13 @@ import type {
   OwnRegion,
   ReaderKit,
   RedactKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { countsOf } from "#plate/interactions/counts.ts";
-import { listedIn, matchGroupOf, unorderedExclusionOf } from "#plate/interactions/match-group.ts";
+import { listedIn, matchGroupOf } from "#plate/interactions/match-group.ts";
 import type { MatchGroup } from "#plate/interactions/match-group.ts";
 import { authoredSizeOf, imageElementOf } from "#plate/interactions/image-size.ts";
 import { unorderedKey, unorderedPairsOf } from "#plate/interactions/pair.ts";
 import type { UnorderedPair } from "#plate/interactions/pair.ts";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
-import { counted, message, numeral } from "#plate/messages.ts";
-import type { Locale } from "#plate/messages.ts";
 import type {
   BodyNode,
   Level,
@@ -80,7 +73,7 @@ import type {
   ReferencingChoice,
 } from "#plate/model/item.ts";
 import { isRecordValue } from "#plate/model/values.ts";
-import type { ResponseValue, Single, Value } from "#plate/model/values.ts";
+import type { ResponseValue, Single } from "#plate/model/values.ts";
 import { areaGeometries } from "#plate/vocabulary.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";
 
@@ -224,49 +217,6 @@ interface GraphicAssociatePayload {
 }
 
 /**
- * A hotspot as the two steps that name one read it: its label ({@link areaLabel}).
- */
-interface Labelled {
-  readonly label: Option.Option<string>;
-}
-
-/**
- * Give a hotspot's name: its label ({@link areaLabel}) when that holds anything but whitespace,
- * else its position, "Area 2 of 4".
- *
- * @param hotspots The interaction's hotspots, in document order.
- * @param index The hotspot's index among them.
- * @param locale The locale of the name.
- * @returns The name a message gives the hotspot.
- */
-const nameOf = (hotspots: readonly Labelled[], index: number, locale: Locale): string => {
-  const label = Option.filter(
-    Option.flatMap(Option.fromUndefinedOr(hotspots[index]), (hotspot) => hotspot.label),
-    (written) => /[^\t\n\r ]/u.test(written),
-  );
-
-  return Option.getOrElse(label, () =>
-    message(locale, "graphicAreaOf", {
-      count: numeral(locale, hotspots.length),
-      n: numeral(locale, index + 1),
-    }),
-  );
-};
-
-/**
- * Give the name of each hotspot by its identifier.
- *
- * @param hotspots The interaction's hotspots, in document order.
- * @param locale The locale of the names.
- * @returns Each identifier with the name {@link nameOf} gives it.
- */
-const namesOf = (
-  hotspots: readonly (Labelled & { readonly identifier: string })[],
-  locale: Locale,
-): ReadonlyMap<string, string> =>
-  new Map(hotspots.map((hotspot, index) => [hotspot.identifier, nameOf(hotspots, index, locale)]));
-
-/**
  * Keep the pairs the page can show: each names two different hotspots, each association once at
  * its first place whichever order it came in, and at most as many as the interaction allows when
  * `max-associations` is above 0.
@@ -360,135 +310,6 @@ const hotspotOf = (read: ReaderKit, choice: SourceElement): GraphicAssociateHots
     matchMax: Option.getOrElse(matchMax, () => 0n),
     matchMin: Option.getOrElse(matchMin, () => 0n),
   };
-};
-
-/**
- * Check a Graphic Associate's response, which the caller decoded, in two tiers.
- *
- * - A {@link Malformed} input: `atMost` 1 when a single response was posted more than once, else the
- *   pairs did not decode, so a hotspot the image does not show.
- * - Tier (a), always: every identifier names a hotspot (one message), no hotspot pairs with itself,
- *   no association is given twice in either order, no hotspot is in more pairs than its `match-max`
- *   (0 is no limit), no pair is outside a `match-group` either side names, and `max-associations`
- *   above 0 caps the pairs. Each message but the first names the hotspots by their labels or
- *   positions.
- * - Tier (b), only under `validateResponses`: `min-associations`, and each hotspot's `match-min`.
- *
- * @param interaction The Graphic Associate.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validateGraphicAssociate = (
-  interaction: GraphicAssociateInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const problem = (written: string): ValidationMessage => ({
-    response: interaction.response,
-    text: written,
-  });
-
-  if (input instanceof Malformed) {
-    return [
-      input.reason === "single-many"
-        ? problem(message(locale, "pairsAtMostOne"))
-        : problem(message(locale, "graphicAssociateUnknown")),
-    ];
-  }
-
-  const pairs = unorderedPairsOf(input.values);
-  const names = namesOf(interaction.hotspots, locale);
-  const nameFor = (identifier: string): string => names.get(identifier) ?? identifier;
-  const hotspots = new Map(interaction.hotspots.map((hotspot) => [hotspot.identifier, hotspot]));
-  const stray = pairs.some(([a, b]) => !names.has(a) || !names.has(b));
-  const selves = [...new Set(pairs.filter(([a, b]) => a === b).map(([a]) => a))];
-  const keys = pairs.map(unorderedKey);
-  const repeated = pairs.filter((pair, index) => keys.indexOf(unorderedKey(pair)) !== index);
-  const twice = repeated.filter(
-    (pair, index) =>
-      repeated.findIndex((earlier) => unorderedKey(earlier) === unorderedKey(pair)) === index,
-  );
-  const perHotspot = countsOf(pairs.flat());
-  const outside = pairs.flatMap(([a, b]) =>
-    a === b ? [] : Option.toArray(unorderedExclusionOf(hotspots, a, b)),
-  );
-  const count = BigInt(pairs.length);
-  const tierA = [
-    ...(stray ? [problem(message(locale, "graphicAssociateUnknown"))] : []),
-    ...selves.map((identifier) =>
-      problem(message(locale, "graphicAssociateSelf", { name: nameFor(identifier) })),
-    ),
-    ...twice.map(([a, b]) =>
-      problem(message(locale, "graphicAssociateTwice", { a: nameFor(a), b: nameFor(b) })),
-    ),
-    ...interaction.hotspots.flatMap((hotspot) =>
-      hotspot.matchMax > 0n && (perHotspot.get(hotspot.identifier) ?? 0n) > hotspot.matchMax
-        ? [
-            problem(
-              counted(
-                locale,
-                hotspot.matchMax,
-                { many: "graphicAssociateMatchMax", one: "graphicAssociateMatchMaxOne" },
-                { name: nameFor(hotspot.identifier) },
-              ),
-            ),
-          ]
-        : [],
-    ),
-    ...outside.map(([side, other, group]) =>
-      problem(
-        message(locale, "graphicAssociateOutside", {
-          allowed: group.map(nameFor).join(", "),
-          name: nameFor(side),
-          other: nameFor(other),
-        }),
-      ),
-    ),
-    ...(interaction.maxAssociations > 0n && count > interaction.maxAssociations
-      ? [
-          problem(
-            counted(locale, interaction.maxAssociations, {
-              many: "pairsAtMost",
-              one: "pairsAtMostOne",
-            }),
-          ),
-        ]
-      : []),
-  ];
-
-  if (!configuration.validateResponses) {
-    return tierA;
-  }
-
-  return [
-    ...tierA,
-    ...(count < interaction.minAssociations
-      ? [
-          problem(
-            counted(locale, interaction.minAssociations, {
-              many: "pairsAtLeast",
-              one: "pairsAtLeastOne",
-            }),
-          ),
-        ]
-      : []),
-    ...interaction.hotspots.flatMap((hotspot) =>
-      (perHotspot.get(hotspot.identifier) ?? 0n) < hotspot.matchMin
-        ? [
-            problem(
-              counted(
-                locale,
-                hotspot.matchMin,
-                { many: "graphicAssociateMatchMin", one: "graphicAssociateMatchMinOne" },
-                { name: nameFor(hotspot.identifier) },
-              ),
-            ),
-          ]
-        : [],
-    ),
-  ];
 };
 
 /**
@@ -623,8 +444,4 @@ export const graphicAssociateModule: InteractionModule<
    * The value the interaction shows for a stored or correct value ({@link shownValue}).
    */
   shown: shownValue,
-  /**
-   * Check a Graphic Associate's response: {@link validateGraphicAssociate}.
-   */
-  validate: validateGraphicAssociate,
 };

@@ -3,12 +3,13 @@
  * with the lexical parse and format of each base type and the equality `qti-match` uses. A record
  * is its own type, {@link RecordValue}: named fields, each a single, with no base type of its own.
  *
- * The session record, the engine and the form encoding all carry a {@link Value}, and a record
+ * The session record and the form encoding both carry a {@link Value}, and a record
  * response's {@link RecordValue} beside it, so this module owns the one value representation, and
  * the one NCName rule.
  *
  * @module
  */
+import { isNcName, replaced, trimmed } from "@qti-pie/crust/text.ts";
 import { Data, Option, Result } from "effect";
 
 /**
@@ -51,460 +52,22 @@ export const isModelled = (baseType: string): baseType is ModelledBaseType =>
   modelledBaseTypes.some((name) => name === baseType);
 
 /**
- * A range of code points, its first and its last.
+ * Read an `xs:normalizedString`'s text as its value: "All occurrences of #x9 (tab), #xA (line
+ * feed) and #xD (carriage return) are replaced with #x20 (space)", nothing trimmed (XML Schema 1.0
+ * Part 2, §4.3.6, whiteSpace `replace`). A `qti-value` is one, a `ValueDType`, which extends
+ * `xs:normalizedString` (the ASI XSD), so its text is read through this before
+ * {@link parseElementText} reads it (spec reading 7): a string value holds no tab or line break,
+ * as pantry stores it. It is grizzle-text's `replaced`, the one implementation crust re-exports.
  */
-export type CodeRange = readonly [first: number, last: number];
+export const replaceXmlSpace = replaced;
 
 /**
- * The body of a `u`-flag character class: each range of code points as `\u{…}-\u{…}`, so a range
- * holds exactly its code points whatever characters they are.
- *
- * @param ranges Ranges of code points, each its first and last.
- * @returns The class's body, which `[${…}]` encloses.
+ * Remove outer XML whitespace from text: space, tab, carriage return and line feed, and no other
+ * character, so a no-break space stays part of the value it pads. Element text sheds it before
+ * {@link parseElementText} reads a value, and an XSD-typed attribute value before its lexical
+ * check. It is grizzle-text's `trimmed`, the one implementation crust re-exports.
  */
-const classBody = (ranges: readonly CodeRange[]): string =>
-  ranges.map(([first, last]) => `\\u{${first.toString(16)}}-\\u{${last.toString(16)}}`).join("");
-
-/**
- * XML 1.0 (Second Edition)'s `BaseChar` (Appendix B, production 85), as the specification lists
- * it. XML 1.0 (Fifth Edition) keeps the same tables in its Appendix B, no longer used for its own
- * names. This table and the four after it are the classes XML Schema 1.0 reads `xs:NCName` and its
- * regular expressions' `\i` and `\c` by (Part 2, F.1.1, citing the Second Edition; decision 52):
- * {@link isNcName} here, and `#plate/model/regex.ts`.
- *
- * @see https://www.w3.org/TR/2000/REC-xml-20001006#CharClasses
- */
-export const baseChar: readonly CodeRange[] = [
-  [0x41, 0x5a],
-  [0x61, 0x7a],
-  [0xc0, 0xd6],
-  [0xd8, 0xf6],
-  [0xf8, 0xff],
-  [0x1_00, 0x1_31],
-  [0x1_34, 0x1_3e],
-  [0x1_41, 0x1_48],
-  [0x1_4a, 0x1_7e],
-  [0x1_80, 0x1_c3],
-  [0x1_cd, 0x1_f0],
-  [0x1_f4, 0x1_f5],
-  [0x1_fa, 0x2_17],
-  [0x2_50, 0x2_a8],
-  [0x2_bb, 0x2_c1],
-  [0x3_86, 0x3_86],
-  [0x3_88, 0x3_8a],
-  [0x3_8c, 0x3_8c],
-  [0x3_8e, 0x3_a1],
-  [0x3_a3, 0x3_ce],
-  [0x3_d0, 0x3_d6],
-  [0x3_da, 0x3_da],
-  [0x3_dc, 0x3_dc],
-  [0x3_de, 0x3_de],
-  [0x3_e0, 0x3_e0],
-  [0x3_e2, 0x3_f3],
-  [0x4_01, 0x4_0c],
-  [0x4_0e, 0x4_4f],
-  [0x4_51, 0x4_5c],
-  [0x4_5e, 0x4_81],
-  [0x4_90, 0x4_c4],
-  [0x4_c7, 0x4_c8],
-  [0x4_cb, 0x4_cc],
-  [0x4_d0, 0x4_eb],
-  [0x4_ee, 0x4_f5],
-  [0x4_f8, 0x4_f9],
-  [0x5_31, 0x5_56],
-  [0x5_59, 0x5_59],
-  [0x5_61, 0x5_86],
-  [0x5_d0, 0x5_ea],
-  [0x5_f0, 0x5_f2],
-  [0x6_21, 0x6_3a],
-  [0x6_41, 0x6_4a],
-  [0x6_71, 0x6_b7],
-  [0x6_ba, 0x6_be],
-  [0x6_c0, 0x6_ce],
-  [0x6_d0, 0x6_d3],
-  [0x6_d5, 0x6_d5],
-  [0x6_e5, 0x6_e6],
-  [0x9_05, 0x9_39],
-  [0x9_3d, 0x9_3d],
-  [0x9_58, 0x9_61],
-  [0x9_85, 0x9_8c],
-  [0x9_8f, 0x9_90],
-  [0x9_93, 0x9_a8],
-  [0x9_aa, 0x9_b0],
-  [0x9_b2, 0x9_b2],
-  [0x9_b6, 0x9_b9],
-  [0x9_dc, 0x9_dd],
-  [0x9_df, 0x9_e1],
-  [0x9_f0, 0x9_f1],
-  [0xa_05, 0xa_0a],
-  [0xa_0f, 0xa_10],
-  [0xa_13, 0xa_28],
-  [0xa_2a, 0xa_30],
-  [0xa_32, 0xa_33],
-  [0xa_35, 0xa_36],
-  [0xa_38, 0xa_39],
-  [0xa_59, 0xa_5c],
-  [0xa_5e, 0xa_5e],
-  [0xa_72, 0xa_74],
-  [0xa_85, 0xa_8b],
-  [0xa_8d, 0xa_8d],
-  [0xa_8f, 0xa_91],
-  [0xa_93, 0xa_a8],
-  [0xa_aa, 0xa_b0],
-  [0xa_b2, 0xa_b3],
-  [0xa_b5, 0xa_b9],
-  [0xa_bd, 0xa_bd],
-  [0xa_e0, 0xa_e0],
-  [0xb_05, 0xb_0c],
-  [0xb_0f, 0xb_10],
-  [0xb_13, 0xb_28],
-  [0xb_2a, 0xb_30],
-  [0xb_32, 0xb_33],
-  [0xb_36, 0xb_39],
-  [0xb_3d, 0xb_3d],
-  [0xb_5c, 0xb_5d],
-  [0xb_5f, 0xb_61],
-  [0xb_85, 0xb_8a],
-  [0xb_8e, 0xb_90],
-  [0xb_92, 0xb_95],
-  [0xb_99, 0xb_9a],
-  [0xb_9c, 0xb_9c],
-  [0xb_9e, 0xb_9f],
-  [0xb_a3, 0xb_a4],
-  [0xb_a8, 0xb_aa],
-  [0xb_ae, 0xb_b5],
-  [0xb_b7, 0xb_b9],
-  [0xc_05, 0xc_0c],
-  [0xc_0e, 0xc_10],
-  [0xc_12, 0xc_28],
-  [0xc_2a, 0xc_33],
-  [0xc_35, 0xc_39],
-  [0xc_60, 0xc_61],
-  [0xc_85, 0xc_8c],
-  [0xc_8e, 0xc_90],
-  [0xc_92, 0xc_a8],
-  [0xc_aa, 0xc_b3],
-  [0xc_b5, 0xc_b9],
-  [0xc_de, 0xc_de],
-  [0xc_e0, 0xc_e1],
-  [0xd_05, 0xd_0c],
-  [0xd_0e, 0xd_10],
-  [0xd_12, 0xd_28],
-  [0xd_2a, 0xd_39],
-  [0xd_60, 0xd_61],
-  [0xe_01, 0xe_2e],
-  [0xe_30, 0xe_30],
-  [0xe_32, 0xe_33],
-  [0xe_40, 0xe_45],
-  [0xe_81, 0xe_82],
-  [0xe_84, 0xe_84],
-  [0xe_87, 0xe_88],
-  [0xe_8a, 0xe_8a],
-  [0xe_8d, 0xe_8d],
-  [0xe_94, 0xe_97],
-  [0xe_99, 0xe_9f],
-  [0xe_a1, 0xe_a3],
-  [0xe_a5, 0xe_a5],
-  [0xe_a7, 0xe_a7],
-  [0xe_aa, 0xe_ab],
-  [0xe_ad, 0xe_ae],
-  [0xe_b0, 0xe_b0],
-  [0xe_b2, 0xe_b3],
-  [0xe_bd, 0xe_bd],
-  [0xe_c0, 0xe_c4],
-  [0xf_40, 0xf_47],
-  [0xf_49, 0xf_69],
-  [0x10_a0, 0x10_c5],
-  [0x10_d0, 0x10_f6],
-  [0x11_00, 0x11_00],
-  [0x11_02, 0x11_03],
-  [0x11_05, 0x11_07],
-  [0x11_09, 0x11_09],
-  [0x11_0b, 0x11_0c],
-  [0x11_0e, 0x11_12],
-  [0x11_3c, 0x11_3c],
-  [0x11_3e, 0x11_3e],
-  [0x11_40, 0x11_40],
-  [0x11_4c, 0x11_4c],
-  [0x11_4e, 0x11_4e],
-  [0x11_50, 0x11_50],
-  [0x11_54, 0x11_55],
-  [0x11_59, 0x11_59],
-  [0x11_5f, 0x11_61],
-  [0x11_63, 0x11_63],
-  [0x11_65, 0x11_65],
-  [0x11_67, 0x11_67],
-  [0x11_69, 0x11_69],
-  [0x11_6d, 0x11_6e],
-  [0x11_72, 0x11_73],
-  [0x11_75, 0x11_75],
-  [0x11_9e, 0x11_9e],
-  [0x11_a8, 0x11_a8],
-  [0x11_ab, 0x11_ab],
-  [0x11_ae, 0x11_af],
-  [0x11_b7, 0x11_b8],
-  [0x11_ba, 0x11_ba],
-  [0x11_bc, 0x11_c2],
-  [0x11_eb, 0x11_eb],
-  [0x11_f0, 0x11_f0],
-  [0x11_f9, 0x11_f9],
-  [0x1e_00, 0x1e_9b],
-  [0x1e_a0, 0x1e_f9],
-  [0x1f_00, 0x1f_15],
-  [0x1f_18, 0x1f_1d],
-  [0x1f_20, 0x1f_45],
-  [0x1f_48, 0x1f_4d],
-  [0x1f_50, 0x1f_57],
-  [0x1f_59, 0x1f_59],
-  [0x1f_5b, 0x1f_5b],
-  [0x1f_5d, 0x1f_5d],
-  [0x1f_5f, 0x1f_7d],
-  [0x1f_80, 0x1f_b4],
-  [0x1f_b6, 0x1f_bc],
-  [0x1f_be, 0x1f_be],
-  [0x1f_c2, 0x1f_c4],
-  [0x1f_c6, 0x1f_cc],
-  [0x1f_d0, 0x1f_d3],
-  [0x1f_d6, 0x1f_db],
-  [0x1f_e0, 0x1f_ec],
-  [0x1f_f2, 0x1f_f4],
-  [0x1f_f6, 0x1f_fc],
-  [0x21_26, 0x21_26],
-  [0x21_2a, 0x21_2b],
-  [0x21_2e, 0x21_2e],
-  [0x21_80, 0x21_82],
-  [0x30_41, 0x30_94],
-  [0x30_a1, 0x30_fa],
-  [0x31_05, 0x31_2c],
-  [0xac_00, 0xd7_a3],
-];
-
-/**
- * XML 1.0 (Second Edition)'s `Ideographic` (Appendix B, production 86).
- */
-export const ideographic: readonly CodeRange[] = [
-  [0x4e_00, 0x9f_a5],
-  [0x30_07, 0x30_07],
-  [0x30_21, 0x30_29],
-];
-
-/**
- * XML 1.0 (Second Edition)'s `CombiningChar` (Appendix B, production 87).
- */
-export const combiningChar: readonly CodeRange[] = [
-  [0x3_00, 0x3_45],
-  [0x3_60, 0x3_61],
-  [0x4_83, 0x4_86],
-  [0x5_91, 0x5_a1],
-  [0x5_a3, 0x5_b9],
-  [0x5_bb, 0x5_bd],
-  [0x5_bf, 0x5_bf],
-  [0x5_c1, 0x5_c2],
-  [0x5_c4, 0x5_c4],
-  [0x6_4b, 0x6_52],
-  [0x6_70, 0x6_70],
-  [0x6_d6, 0x6_dc],
-  [0x6_dd, 0x6_df],
-  [0x6_e0, 0x6_e4],
-  [0x6_e7, 0x6_e8],
-  [0x6_ea, 0x6_ed],
-  [0x9_01, 0x9_03],
-  [0x9_3c, 0x9_3c],
-  [0x9_3e, 0x9_4c],
-  [0x9_4d, 0x9_4d],
-  [0x9_51, 0x9_54],
-  [0x9_62, 0x9_63],
-  [0x9_81, 0x9_83],
-  [0x9_bc, 0x9_bc],
-  [0x9_be, 0x9_be],
-  [0x9_bf, 0x9_bf],
-  [0x9_c0, 0x9_c4],
-  [0x9_c7, 0x9_c8],
-  [0x9_cb, 0x9_cd],
-  [0x9_d7, 0x9_d7],
-  [0x9_e2, 0x9_e3],
-  [0xa_02, 0xa_02],
-  [0xa_3c, 0xa_3c],
-  [0xa_3e, 0xa_3e],
-  [0xa_3f, 0xa_3f],
-  [0xa_40, 0xa_42],
-  [0xa_47, 0xa_48],
-  [0xa_4b, 0xa_4d],
-  [0xa_70, 0xa_71],
-  [0xa_81, 0xa_83],
-  [0xa_bc, 0xa_bc],
-  [0xa_be, 0xa_c5],
-  [0xa_c7, 0xa_c9],
-  [0xa_cb, 0xa_cd],
-  [0xb_01, 0xb_03],
-  [0xb_3c, 0xb_3c],
-  [0xb_3e, 0xb_43],
-  [0xb_47, 0xb_48],
-  [0xb_4b, 0xb_4d],
-  [0xb_56, 0xb_57],
-  [0xb_82, 0xb_83],
-  [0xb_be, 0xb_c2],
-  [0xb_c6, 0xb_c8],
-  [0xb_ca, 0xb_cd],
-  [0xb_d7, 0xb_d7],
-  [0xc_01, 0xc_03],
-  [0xc_3e, 0xc_44],
-  [0xc_46, 0xc_48],
-  [0xc_4a, 0xc_4d],
-  [0xc_55, 0xc_56],
-  [0xc_82, 0xc_83],
-  [0xc_be, 0xc_c4],
-  [0xc_c6, 0xc_c8],
-  [0xc_ca, 0xc_cd],
-  [0xc_d5, 0xc_d6],
-  [0xd_02, 0xd_03],
-  [0xd_3e, 0xd_43],
-  [0xd_46, 0xd_48],
-  [0xd_4a, 0xd_4d],
-  [0xd_57, 0xd_57],
-  [0xe_31, 0xe_31],
-  [0xe_34, 0xe_3a],
-  [0xe_47, 0xe_4e],
-  [0xe_b1, 0xe_b1],
-  [0xe_b4, 0xe_b9],
-  [0xe_bb, 0xe_bc],
-  [0xe_c8, 0xe_cd],
-  [0xf_18, 0xf_19],
-  [0xf_35, 0xf_35],
-  [0xf_37, 0xf_37],
-  [0xf_39, 0xf_39],
-  [0xf_3e, 0xf_3e],
-  [0xf_3f, 0xf_3f],
-  [0xf_71, 0xf_84],
-  [0xf_86, 0xf_8b],
-  [0xf_90, 0xf_95],
-  [0xf_97, 0xf_97],
-  [0xf_99, 0xf_ad],
-  [0xf_b1, 0xf_b7],
-  [0xf_b9, 0xf_b9],
-  [0x20_d0, 0x20_dc],
-  [0x20_e1, 0x20_e1],
-  [0x30_2a, 0x30_2f],
-  [0x30_99, 0x30_99],
-  [0x30_9a, 0x30_9a],
-];
-
-/**
- * XML 1.0 (Second Edition)'s `Digit` (Appendix B, production 88).
- */
-export const xmlDigit: readonly CodeRange[] = [
-  [0x30, 0x39],
-  [0x6_60, 0x6_69],
-  [0x6_f0, 0x6_f9],
-  [0x9_66, 0x9_6f],
-  [0x9_e6, 0x9_ef],
-  [0xa_66, 0xa_6f],
-  [0xa_e6, 0xa_ef],
-  [0xb_66, 0xb_6f],
-  [0xb_e7, 0xb_ef],
-  [0xc_66, 0xc_6f],
-  [0xc_e6, 0xc_ef],
-  [0xd_66, 0xd_6f],
-  [0xe_50, 0xe_59],
-  [0xe_d0, 0xe_d9],
-  [0xf_20, 0xf_29],
-];
-
-/**
- * XML 1.0 (Second Edition)'s `Extender` (Appendix B, production 89).
- */
-export const extender: readonly CodeRange[] = [
-  [0xb7, 0xb7],
-  [0x2_d0, 0x2_d0],
-  [0x2_d1, 0x2_d1],
-  [0x3_87, 0x3_87],
-  [0x6_40, 0x6_40],
-  [0xe_46, 0xe_46],
-  [0xe_c6, 0xe_c6],
-  [0x30_05, 0x30_05],
-  [0x30_31, 0x30_35],
-  [0x30_9d, 0x30_9e],
-  [0x30_fc, 0x30_fe],
-];
-
-/**
- * The characters an NCName may start with: the Second Edition's `Letter` (`BaseChar |
- * Ideographic`, production 84) and `_`.
- */
-const ncNameStart: readonly CodeRange[] = [...baseChar, ...ideographic, [0x5f, 0x5f]];
-
-/**
- * The characters an NCName may hold after its first, Namespaces in XML 1.0's `NCNameChar`: a
- * `Letter`, a `Digit`, `.`, `-`, `_`, a `CombiningChar` or an `Extender`.
- */
-const ncNameCharacter: readonly CodeRange[] = [
-  ...ncNameStart,
-  ...xmlDigit,
-  ...combiningChar,
-  ...extender,
-  [0x2d, 0x2e],
-];
-
-/**
- * An NCName as XML Schema 1.0 reads `xs:NCName`: Namespaces in XML 1.0's `(Letter | '_')
- * (NCNameChar)*` over XML 1.0 (Second Edition)'s tables, reading 94 ("An `xs:NCName` takes its
- * name characters from XML 1.0 Second Edition, as XML Schema 1.0 reads them, and the production
- * states no length"). XML Schema Part 2 defines `\i` and `\c` by that edition (Appendix F.1.1), so
- * the Fifth Edition's wider ranges are no part of it: a letter Unicode assigned after version 2.0
- * (U+3400), a supplementary character (U+10000), a letter the Second Edition leaves out (U+0132),
- * and a digit, combining character or extender written first (U+0660, U+02D0) are refused, as
- * libxml2's `xmllint` refuses them. The `u` flag makes each range a range of code points, so a
- * character outside the Basic Multilingual Plane is one character and a lone surrogate matches no
- * range.
- *
- * @see https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-NCName
- * @see https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#NCName
- */
-const ncName = new RegExp(`^[${classBody(ncNameStart)}][${classBody(ncNameCharacter)}]*$`, "u");
-
-/**
- * Report whether text is an XML NCName, the lexical space of a QTI identifier and of every type
- * derived from `xs:NCName`, read by XML 1.0 (Second Edition)'s tables (reading 94). A value that is
- * not one names nothing (reading 152, "A value names something only where it is an NCName").
- *
- * @param text The text as written; no whitespace is removed first.
- * @returns Whether `text` is an NCName.
- */
-export const isNcName = (text: string): boolean => ncName.test(text);
-
-/**
- * Report whether a character is XML whitespace: space, tab, carriage return or line feed. No other
- * character counts, so a no-break space stays part of the value it pads.
- *
- * @param character One character of the text.
- * @returns Whether it is one of the four.
- */
-const isXmlSpace = (character: string): boolean =>
-  character === " " || character === "\t" || character === "\n" || character === "\r";
-
-/**
- * Remove outer XML whitespace from text, stepping in from each end once, so the time is linear in
- * the length of the text.
- *
- * Element text sheds it before {@link parseElementText} reads a value, and an XSD-typed attribute
- * value before its lexical check.
- *
- * @param text The text as written.
- * @returns The text without its leading and trailing XML whitespace.
- */
-export const trimXmlSpace = (text: string): string => {
-  let start = 0;
-  let end = text.length;
-  while (start < end && isXmlSpace(text.charAt(start))) {
-    start += 1;
-  }
-
-  while (end > start && isXmlSpace(text.charAt(end - 1))) {
-    end -= 1;
-  }
-
-  return text.slice(start, end);
-};
+export const trimXmlSpace = trimmed;
 
 /**
  * Text made only of characters XML 1.0's `Char` production admits: tab, line feed, carriage
@@ -609,8 +172,8 @@ export type Single =
   | { readonly baseType: "file"; readonly value: FileValue };
 
 /**
- * A QTI value of a modelled base type, as the session record, the engine and the form encoding
- * carry it: a base type, a cardinality and its values, none for NULL.
+ * A QTI value of a modelled base type, as the session record and the form encoding carry it: a
+ * base type, a cardinality and its values, none for NULL.
  *
  * NULL is `values: []` at any cardinality, because QTI treats an empty string and an empty
  * container as NULL; there is no other spelling of NULL, so an empty string is never one of the
@@ -722,7 +285,7 @@ const durationForm = (literal: (text: string) => string): string =>
  * The lexical form each base type takes, in the words a parse failure uses to say what to write.
  */
 const expected = {
-  boolean: "true or false",
+  boolean: "true, false, 1 or 0",
   directedPair: "two NCNames separated by whitespace, such as A B",
   duration: durationForm((text) => text),
   file: "the file's name, such as photo.png, or none; its bytes are never written",
@@ -876,9 +439,9 @@ const readFile = (lexical: string): Option.Option<Single> =>
  */
 const readers = {
   boolean: (lexical: string) =>
-    valueIf(lexical === "true" || lexical === "false", {
+    valueIf(["true", "false", "1", "0"].includes(lexical), {
       baseType: "boolean",
-      value: lexical === "true",
+      value: lexical === "true" || lexical === "1",
     }),
   directedPair: (lexical: string) => readPair("directedPair", lexical),
   duration: (lexical: string) =>
@@ -904,12 +467,13 @@ const readers = {
  * No whitespace is removed, so a padded attribute value is refused, as spec reading 7 rules for
  * typed values in attributes.
  *
- * A boolean is `true` or `false` only; `1` and `0` are refused (reading 34). The QTI XSD does not
- * decide: it types `qti-value` as `xs:normalizedString` and `qti-base-value` as `xs:string`. The
- * information model does: its boolean base type is "the same as the set of values defined by the
- * boolean primitiveType" (section 8.13, BaseTypeEnum), the primitive "with permitted values of
- * "true" and "false"" (Appendix A1.3). XML Schema's `1` and `0` belong only to the attributes the
- * XSD types `xs:boolean`, which `xsBooleanOf` in `#plate/model/attributes.ts` reads.
+ * A boolean is `xs:boolean`'s lexical space, `true`, `false`, `1` or `0`, `1` being `true` and `0`
+ * `false` (reading 34). The QTI XSD does not decide: it types `qti-value` as `xs:normalizedString`
+ * and `qti-base-value` as `xs:string`. The information model does: its boolean base type is "the
+ * same as the set of values defined by the boolean primitiveType" (section 8.14, BaseTypeEnum),
+ * which the binding types `xs:boolean` (XML Schema Part 2 §3.2.2.1, "{true, false, 1, 0}");
+ * Appendix A1.3's "permitted values of "true" and "false"" is not normative (information model
+ * §1.2), as `xsBooleanOf` in `#plate/model/attributes.ts` reads an attribute the XSD types so.
  *
  * @param baseType The base type to read.
  * @param lexical The text, as written.
@@ -928,7 +492,9 @@ export const parseLexical = (
  *
  * Spec reading 7: outer XML whitespace is formatting for every base type but `string`, so it is
  * removed before the text is read, in time linear in the text; for `string` it is part of the
- * value. An empty `string` is NULL, not a value.
+ * value. An empty `string` is NULL, not a value. A `qti-value`'s text is an `xs:normalizedString`,
+ * read through {@link replaceXmlSpace} first; a `qti-base-value`'s is an `xs:string`, read as
+ * written.
  *
  * @param baseType The base type to read.
  * @param text The element's text content, as written.
@@ -1147,3 +713,22 @@ export const atDefault = (value: ResponseValue, fallback: ResponseValue): boolea
   isRecordValue(value)
     ? isRecordValue(fallback) && sameRecord(value, fallback)
     : !isRecordValue(fallback) && match(value, fallback);
+
+/**
+ * Give the value a map of values holds by an identifier, read from the map's own keys only.
+ *
+ * The values come from plain objects, which inherit `Object.prototype`, and `constructor` or
+ * `toString` is a valid identifier; reading only own keys keeps an inherited member from being
+ * read as a value. A map the caller does not carry holds no value by any name.
+ *
+ * @param values The values, by identifier: a record's template values, outcomes or defaults.
+ * @param identifier The identifier.
+ * @returns The value, or none when the map holds none by that name.
+ */
+export const own = <A extends RecordValue | Value>(
+  values: Readonly<Record<string, A>> | undefined,
+  identifier: string,
+): Option.Option<A> =>
+  values !== undefined && Object.hasOwn(values, identifier)
+    ? Option.fromUndefinedOr(values[identifier])
+    : Option.none();

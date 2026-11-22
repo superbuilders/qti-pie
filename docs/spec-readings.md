@@ -17,43 +17,25 @@ operator ruling. A new reading lands here by pull request, and a package that ne
    only what a package cannot represent or accepting only what it cannot check, for the cause it names.
 
    Limits that refuse valid content:
-   - **Test structure** (`test-structure`): a test document, and a test part, section, section ref or item ref in
-     any document but a standalone section document (`imsqti_section_xmlv3p0`). pantry stores content and banks,
-     never what decides delivery: a test is "a group of assessmentItems with an associated set of rules that determine
-     which of the items the candidate sees, in what order" (information model §4.2), and a placement mechanism outside
-     QTI decides that (reading 228). Lifted only by an owner's ruling that QTI holds delivery again.
-   - **Bank shape** (`bank-shape`): a section document that is no bank: an element other than its root section and
-     the item refs that root holds, or a `required`, `fixed` or `category` on such an item ref (reading 228).
-   - **Item key** (`item-key`): two items of one package that share an identifier, compared collapsed. QTI makes an
-     item's identifier unique nowhere (`IdentifierDType`), and 1EdTech's own `rtest01` writes one identifier on its
-     three set items; pantry names an item by its package and identifier, which the placement ledger keys item
-     sessions by (the placement mandate, ruling 7, owner 2026-11-17), so a package whose items repeat an identifier
-     cannot be stored (reading 228).
-   - **Key-text bound** (`key-text-bound`): a text a key holds is at most 428 UTF-8 bytes (`keyTextBytes`), what a
-     PostgreSQL B-tree entry leaves it beside the widest key's other columns: about 428 ASCII, 214 two-byte, 142 CJK
-     or 107 astral characters (reading 133, with its copies in readings 2, 45, 60 and 94). A package's name and an
-     entry's path hold at most 425 bytes each (`identityBytes`), an open attribute's local name and its namespace name
-     890 each, and a namespace prefix 1,802. Some texts are bounded whole, not token by token: an IDREFS value
-     (`Attribute.idrefText`), a `headers` value (`CellHeaders.tokenText`), a `srcset` value (`Srcset.candidateText`)
-     and an element's string value (`Node.stringValue`, which every `qti-value`, `qti-base-value`, LOM string and text
-     reference copies), since each is a concatenation fold whose running text grizzle carries in its family's keys,
-     which must be bounded (`docs/grizzle-findings.md`, "A text has no digest"); and a title, which "lom-title"
-     compares through an index. An href of the reference census of the form `uri`, a `srcset` candidate's URL, a map
-     key and a lookup table's value are not bounded, a `data:` URI, a signed address or a long expected answer
-     included: no key holds any of them, and a rule over a query holds each copy to its attribute (reading 133); a
-     path an href resolves to in the package is an entry's path, at most 425 bytes.
+   - **Key-text bound** (`key-text-bound`): a text a query reads by a pattern is at most 268,435,454 UTF-8 bytes
+     (`matchedText`, `matchedTextBytes`, grizzle's `regexTextMaxBytes`, the longest text PostgreSQL's regex engine
+     reads): an element's string value (`Node.stringValue`, which every `qti-value`, `qti-base-value`, LOM string and
+     text reference copies), a map key (`MapKey.key`), a lookup table's value (`LookupValue.value`), a mastery value
+     and a normal bound, and an interaction attribute's value. An `aria-valuemin` or `aria-valuemax` of an element that
+     writes both, where it is an `xs:decimal`, is at most 16,384 bytes (`parsedDecimalBytes`, grizzle's
+     `decimalTextMaxBytes`, what `Text.parseDecimal` reads), past which a decimal may name a value PostgreSQL's
+     numeric does not hold. An open attribute's local name, its namespace name and a namespace prefix hold the bytes the indexes their ordered reads read them by leave them (reading 133). Every other
+     text is of any length: a key holds it by its image, its SHA-256, and a lookup, a rule's probe and a seek over the
+     texts it fixes by equality by their md5 (grizzle LIMITS5 and LIMITS6), so a package's name, an entry's path (no
+     index orders by one: a package's entries are read as a set and ordered on the host), an identifier, an ID,
+     an IDREF, an href, a target and a `srcset` value meet no bound, and the served AlphaTest item whose string
+     correct response is 433 bytes is admitted.
    - **Element depth** (`element-depth`): at most 256 elements are open at once, the bound `@qti-pie/crust`'s reader
      keeps for pantry and plate alike (`defaultElementDepth`, as in `xmllint`). XML and QTI set no depth; the bound
      protects the recursive walks over a read tree, and nesting that deep is outlandish and absent from the official
      packages (decision 445, stated here).
    - **Href form** (`href-form`): an href, or a `srcset` image candidate's URL, that the importer reads no name from,
      such as a `%` that starts no percent-encoding, since the representation states no path for it (reading 102).
-   - **Fragment context** (`fragment-context`): a fragment two includes place under different nearest interactions,
-     since each written element is one row, judged in one context (reading 117).
-   - **Include root**: an include whose parent admits only a kind the composition splits by context, such as a
-     template inside a rubric block, since a fragment's root is read by its name alone (reading 116).
-   - **Idref target** beside an external include: an IDREF naming an ID only the unfetched resource could hold, since
-     pantry cannot tell an ID that resource holds from one it lacks (reading 115).
    - Admissions by schema set: a wildcard reads an element or an attribute as a declaration of any schema set its
      kind's documents use, and an `xsi:type` as a type of any schema the grammar pins, not only its own document's set,
      so such an element is judged, and may be refused, where XML Schema would not assess it, since one grammar serves
@@ -66,14 +48,6 @@ operator ruling. A new reading lands here by pull request, and a package that ne
      oracle does not raise, and the rule named first may differ. Outlandish and absent from the official packages;
      lifted by reading names from XML 1.0 Fifth Edition (reading 94), or by writing no row for a value outside its
      domain (decision 463, stated here).
-   - **Include content**: the importer still assesses an element a resolving include holds outside its `xi:fallback`,
-     laxly, and can refuse it, though XInclude ignores that content (reading 118). No corpus package holds such
-     content; lifted by the importer ignoring it, as the law oracle does (issue #66; decision 470, stated here).
-   - **Include fallback** (`include-target`): an include whose href names no document of the package and that holds an
-     `xi:fallback` is refused, though XInclude 1.0 (section 3.2) replaces such an include with its fallback's content
-     on a resource error: the representation places no fallback as a site's content ("Include target",
-     `src/vocab/laws.ts`). Absent from the official packages; lifted by placing the fallback's children where the
-     include stands.
    - **Package size** (`zip-format`): a package of more than 10,000 entries, one entry past 64 MiB once inflated, a
      package past 256 MiB inflated in all, or an entry past 1 MiB that inflates more than 100 times its stored size,
      is refused (`packageBudget`, `src/package/zip.ts`): budgets against a decompression bomb, each well past the
@@ -98,14 +72,36 @@ operator ruling. A new reading lands here by pull request, and a package that ne
    - A complex `xsi:type` under a wildcard, which needs a general XML Schema validator, and `xs:ENTITY`, which needs
      the DTD's unparsed entities (reading 50); plate's text under a wildcard, open for plate's own goal (reading 60).
    - An external include's content, which pantry never fetches (reading 115), and a fragment's `xml:lang` forms and a
-     rule fragment's other types, read in its own document until each is stated in place (reading 117). A rule
-     fragment's map response ("Mapped response", P27) and a reference that is itself a condition ("Condition type",
-     P21) are stated in place, typed in each item that places it. Its composite expressions (P20 to P29), a condition
-     reference to a record, which has no base type, and its processing language are not. The composites and the record
-     reference move a verdict: the import accepts a type error there that the law oracle, typing the fragment in its
-     item, refuses. Absent from the official packages, none of which includes a rules fragment; lifted by typing an
-     expression once per placement, planned as its own goal (decisions 465 and 466, stated here).
+     rule fragment's processing language, read in its own document until each is stated in place, and a fragment a
+     located template itself includes, typed in the template's own assembly (reading 117). A rule fragment's types are
+     its item's: every expression is typed per placement (reading 117), so a fragment spliced into one item is typed in
+     that item, its composite expressions (P20 to P29) and a condition reference to a record among them, and the type
+     errors there that the law oracle already refused, typing the fragment in its item, the database now refuses too
+     (decisions 465 and 466's limit, lifted 2026-11-20).
    - An `xi:fallback` in wildcard content, until a law holds a fallback to its parent (reading 118).
+   - **Unplaced includes** (`UnplacedInclude`, `src/qti/overlay-queries/tests.ts`): an include of a valid package
+     whose result no row places where XInclude's result infoset holds it is admitted and stored as written, and named
+     with its cause (`UnplacedCause`), so the Delivery verdict serves an item whose assembly holds one as not
+     deliverable rather than refusing the package, as QTI 3.0 Conformance §3 asks ("the applications must be able to
+     ignore or remove the unsupported data"). Its placement is judged by no law. `external`: an href outside the package, whose resource pantry never
+     fetches, so its assembly's IDREFs go unjudged by "Idref target", since an ID only that resource could hold is
+     indistinguishable from one it lacks (reading 115); `fallback`: an `xi:fallback` holder whose href names an entry
+     that is no document, which XInclude replaces with the fallback's contents (XInclude 1.0 §3.2; reading 115);
+     `root`: a fragment rooted at a kind the composition splits by context, under a parent that admits only the split
+     kind there (reading 116); `context`: a placement under another nearest interaction than the one the fragment's
+     rows are judged under (reading 117), which moves a verdict: the import accepts such a placement whose merged item
+     breaks a law, which the law oracle, judging each merged item, refuses. Absent from the official packages; lifted
+     by placing each: the fallback's children where the include stands, the split kind
+     read from the include's parent, a row per placement, and, for an external include, a fetch, which an importer of
+     a package does not do.
+   - A name whose only readings are two numbered ones (`A.1.B.1.C` through item refs `A` and `A.1.B`, each repeatable),
+     which the database cannot enumerate, since no text operation it has splits a name at a period in a query; the
+     importer tells them apart (reading 88). Absent from the corpus and AlphaTest; lifted by the grizzle split asked
+     2026-11-20.
+   - A branch rule's order through a shuffle's pool that mixes in the invisible, not-kept-together root of a section
+     document or fragment another document places: the blocks that root mixes in are read as one unfixed block at its
+     site, so a `fixed` among them that would hold a backward pair is not read (reading 87). Absent from the corpus
+     and AlphaTest; lifted by reading each placement's blocks into its placing pool.
    - A URL's syntax and a `srcset` candidate's descriptors beyond a file reference, since the URL and HTML Standards
      are living documents that no pinned source holds (reading 124).
    - A `’` that closes a quote around a `q`, since it is as often an apostrophe (reading 127).
@@ -176,7 +172,7 @@ operator ruling. A new reading lands here by pull request, and a package that ne
      (decision 463, stated here).
    - One fragment placed in two items, once inside feedback and once outside, breaks "Adaptive feedback" in the
      import, which the law oracle does not raise: the import judges an interaction's feedback context per written node,
-     not per placement, as in reading 117's fragment-context limit. "Binding declared" refuses the package on both
+     not per placement, as reading 117 judges a fragment under one nearest interaction. "Binding declared" refuses the package on both
      sides, though the rule named first may differ. Outlandish and absent from the official packages; lifted by judging
      a fragment's feedback context per placement (decision 463, stated here).
    - `xml:base` on a `cp:resource` makes the import and the law oracle attach the resource's LOM record differently,
@@ -204,11 +200,15 @@ operator ruling. A new reading lands here by pull request, and a package that ne
    bound stated by reading 211; the filtered collection limit stated by reading 215 and lifted the same day; decision
    463's limit for a document whose root its type refuses lifted 2026-11-15 by pantry 80c970baf, a section ref placing
    its target only where its root is a test's or a section's (`assembledRoots`); the assembly limit and the external
-   include stated by reading 217, both withdrawn 2026-11-18 with plate's package checker.)
+   include stated by reading 217, both withdrawn 2026-11-18 with plate's package checker; the include limits that
+   refused valid content, fragment context, include root, an IDREF beside an external include, include content and
+   include fallback, lifted 2026-11-20 under the lead's J1 ruling by lane PANTRY-CONFORM: each such include is
+   admitted, and named by `UnplacedInclude` where pantry cannot place it.)
 
 2. **MathML validity is the MathML 3 Recommendation**: its RelaxNG schema and its prose rules, not only the MathML XSD
    that QTI's schema imports. MathML that breaks a rule of the Recommendation, such as an operator applied to the wrong
-   number of arguments or a piecewise expression with two `otherwise` parts, is invalid even when the QTI XSD accepts it.
+   number of arguments or a piecewise expression with two `otherwise` parts, is invalid even when the QTI XSD accepts
+   it.
    (2026-11-02.)
    Where the RelaxNG and the XSD differ, the RelaxNG, the normative schema, is followed in both directions (2026-11-05,
    with §2.1.5.1's notation below). The two were compared on 2026-11-05 (the RelaxNG at
@@ -312,16 +312,17 @@ operator ruling. A new reading lands here by pull request, and a package that ne
      checked, as the oracle's "MathML cn form" checks it (`src/test/oracle.ts`), nor, under a `base` outside 2 to 36,
      are its `double` and `hexdouble` parts, which the oracle reads in any base. A `cn` of any other `type` is text in
      both. A row that carries the part count alone would lift it;
-   - a `cn` whose `type` or `base` is longer than the key-text bound (428 UTF-8 bytes, `keyTextBytes`,
-     `src/qti/limits.ts`) is refused under "Key text bound", as every key-text copy is (`CnAttribute`,
-     `src/qti/mathml-cn.ts`; findings row 24), though the XSD bounds neither attribute's length;
+   - formerly, a `cn`'s `type` or `base` past the 428-byte key-text bound, which `CnAttribute`
+     (`src/qti/mathml-cn.ts`) now holds as written at any length (`anyText`), a key holding it by its image, as the XSD
+     bounds neither attribute's length (Amended 2026-11-20: pantry's `keyText` is gone; findings row 24);
    - rows the host states that no statement refutes: a `MathCn` row's empty `typeLexical` or `baseLexical` says the
      attribute is unwritten and nothing refutes it where the node writes one, only a written lexical being proved
      (`cnLaws`, `src/qti/mathml-cn.ts`); a `MathAlignScope` row's existence, its written `dir` and a cell's inherited
      direction (`alignLaws`, `src/qti/mathml-align.ts`); and a `MathRank` row's rank, of which only the order is proved
      (`shareLaws`, `src/qti/mathml-share.ts`). A statement over the tree's rows that states each row's existence would
      lift them;
-   - a cell's alignment where the builder and the oracle read the tree differently (`src/import/overlays/mathml-align.ts`,
+   - a cell's alignment where the builder and the oracle read the tree differently
+     (`src/import/overlays/mathml-align.ts`,
      `contentOfCell` and `placeOfGroup` in `src/test/oracle.ts`): an empty `m:mtd` nested in a cell is a cell of its
      own with no leaf, where the oracle counts it a leaf of the outer cell; a `dir` that is neither `ltr` nor `rtl`
      (HTML's `auto`) is no direction and the cell's root takes the nearest ancestor's `ltr` or `rtl`, where the oracle
@@ -349,12 +350,16 @@ operator ruling. A new reading lands here by pull request, and a package that ne
    their collapsed value: `startmark="a  b"` names `<mark name="a b"/>`, and two marks named `a b` and `a  b` define
    one name twice. (Names compared collapsed, decided 2026-11-06 by RV seat I, on the review of PR #46, under
    Bjorn's standing ruling of 2026-11-05 that the spec wins.)
-4. **Withdrawn.** It read prefixed variable references (`ITEMREF.N.VAR`) in a test's pre-conditions, branch rules and
-   outcome processing. The placement cutover deleted plate's test-delivery engine (plate, 2026-11-17) and pantry stores
-   no test (reading 228), so no package this repository admits holds what it read.
-5. **Withdrawn.** It read a section document's prefixed references and `section-identifier`, which resolved once for
-   each test that included the section. pantry stores no test, and a bank is a section document of item refs and nothing
-   else (reading 228), so no package this repository admits holds what it read.
+4. **Prefixed variable references** (`ITEMREF.N.VAR`) are valid in a test's pre-conditions and branch rules as well as
+   in its outcome processing, as QTI's information model and 1EdTech's own examples use them. (2026-11-03.) (Restored
+   2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1 feature the AlphaTest port needs implemented
+   exactly, and the QTI database refuses no valid QTI, conformance §3 and §4.4, which lifts reading 228's refusal of
+   tests.)
+
+5. **A section document** may hold prefixed references and `section-identifier`. They resolve once for each test that
+   includes the section, not once for the section on its own. (2026-11-03.) (Restored 2026-11-20 by lane IMPL-TESTS: the
+   owner ordered every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI database refuses no
+   valid QTI, conformance §3 and §4.4, which lifts reading 228's refusal of tests.)
 
 ## Foreign content
 
@@ -364,18 +369,29 @@ operator ruling. A new reading lands here by pull request, and a package that ne
 
 ## Typed values
 
-7. **A typed value in element text is trimmed; in a string-typed attribute it is exact.** A typed value written
+7. **A typed value in element text is trimmed; in an attribute it is collapsed; a string is read in its own type's
+   whitespace class.** A typed value written
    as element content (`qti-value`, `qti-base-value` and the like) has its outer whitespace read as formatting,
    not meaning, because authoring tools and pretty-printers indent and wrap element content. It is read with
    outer whitespace removed for every non-string base type: `" completed "` is the identifier `completed` and
-   `" true "` is `true`. For base type string, whitespace is part of the value and is kept. A round trip still
-   reproduces the source spelling byte for byte. An attribute value is not reformatted by tools, so where the
-   XSD types a typed-value attribute as a string, `" true"` is not `"true"`: outer whitespace around a typed
-   value in such an attribute makes it invalid, and the document is refused. The attributes this covers are
-   exactly these: `map-key` of a map entry (`xs:normalizedString`); a match table's and an interpolation
-   table's `default-value` (`xs:string`); and their entries' `target-value` (`xs:string`, and reading 8's).
+   `" true "` is `true`. For base type string, whitespace is part of the value and is kept, as the text's type reads
+   it: `qti-value` is a `ValueDType`, an extension of `xs:normalizedString` (the ASI XSD, line 34905), whose
+   `whiteSpace` is `replace`, so each tab, line feed and carriage return in it is a space and nothing is trimmed
+   (XML Schema 1.0 Part 2, §4.3.6); `qti-base-value` is an `xs:string`, kept as written. pantry's codec stores an
+   element of a `replace` type, `qti-value` and `ud:value` among them, as that normalized value, so the database,
+   plate and the grader read one value, and its export writes it back; every other text is stored, and round
+   trips, byte for byte. Where the XSD types a typed-value attribute as a string, the value is still a value of
+   its declaration's base type, whose simple type fixes its whitespace facet: every atomic type but `string` has
+   `whiteSpace` `collapse` (XML Schema 1.0 Part 2 §4.3.6: "For all atomic datatypes other than string (and types
+   derived by restriction from it) the value of whiteSpace is collapse and cannot be changed by a schema
+   author"), so such a value is read collapsed, its XML whitespace at either end removed and each inner run one
+   space: `map-key=" 3 "` is the integer 3 and `target-value=" true "` is `true`, admitted, and "Typed attribute
+   value" judges the collapsed text, as plate and the grader read it. The attributes this covers are exactly
+   these: `map-key` of a map entry (`xs:normalizedString`); a match table's and an interpolation table's
+   `default-value` (`xs:string`); and their entries' `target-value` (`xs:string`, and reading 8's).
    Where the value is of base type string, as for a `map-key` or `target-value` of a string variable, its
-   whitespace is part of the value and is kept, as above. An attribute the XSD itself types is read as the XSD
+   whitespace is part of the value and is kept, in its type's class: a `map-key`'s tabs, line feeds and carriage
+   returns are spaces (`replace`), a `target-value`'s and a `default-value`'s are kept as written. An attribute the XSD itself types is read as the XSD
    reads it, outer whitespace collapsed, under reading 1: `normal-maximum` (`NonNegativeDoubleDType`),
    `max-choices` (`xs:nonNegativeInteger`), and the typed-value attributes the XSD types `xs:double`, which are
    `mapped-value` of a map entry and of an area map entry; a mapping's and an area mapping's `lower-bound`,
@@ -385,10 +401,15 @@ operator ruling. A new reading lands here by pull request, and a package that ne
    to 1. Free-text attributes such as `title` or `label` keep their text as written, spaces included. The split
    is a ruling because QTI's schema types the text of `qti-value` as `xs:normalizedString`, of `qti-base-value`
    as `xs:string`, and of the string-typed attributes above as strings, never as the value's base type, and its
-   information model lists each base type's values without saying how written text maps to them. The
-   specification is silent there, and the operator rules this reading. (2026-11-04; the `xs:double` attributes
+   information model lists each base type's values without saying how written text maps to them. The XSD's own
+   whitespace class decides a string value (above); what it leaves open, outer whitespace around a value of
+   another base type, the operator rules here. (2026-11-04; the `xs:double` attributes
    moved to the XSD's reading on 2026-11-15 by lane R0-EXPR, survey row RQ-m, under Bjorn's standing ruling
-   that the specification wins: the XSD types them, so refusing them padded refused valid content.)
+   that the specification wins: the XSD types them, so refusing them padded refused valid content. Restated
+   2026-11-20 by lane PANTRY-CONFORM, SV-VALUE-01: the earlier text called the specification silent on a string's
+   whitespace and kept tabs and line breaks, but the XSD types `qti-value` and `map-key` `xs:normalizedString`, so
+   they are replaced. Amended 2026-11-20 by the lead's ruling, lane PANTRY-CONFORM: a typed value padded in such an attribute was
+   refused as written; the base type's simple type collapses it, so it is admitted and read collapsed.)
 
 ## Where QTI's own documents conflict
 
@@ -436,12 +457,22 @@ against it. A reading that is not an information-model-over-XSD case says which 
    ruling of that day; from RV seat X.)
    The Schematron's extension-attribute lists bind, read by their intent as reading 90 states.
 
-10. **`aria-keyshorts` and `aria-keyshortcuts` are both accepted on empty elements.** The XSD, the information model's
-    attribute table and the Schematron's allow-lists all name the attribute `aria-keyshorts` on the empty element
-    families, a misspelling of ARIA's `aria-keyshortcuts`, which the information model's own description uses. A
-    document with the correct ARIA spelling passes the XSD through its wildcard but fails the Schematron. This is not an
-    information-model-over-XSD case: no document outranks another, so both spellings are accepted, the one written is
-    kept, and it is exported as it was imported, because reading 1 refuses nothing valid. (2026-11-04.)
+10. **On the empty element families the attribute is `aria-keyshorts`, and `aria-keyshortcuts` is refused there.**
+    The information model gives the eleven classes over ARIABaseEmpty (`br`, `col`, `hr`, `img`, `source`, `track`,
+    `qti-associable-hotspot`, `qti-end-attempt-interaction`, `qti-gap`, `qti-hotspot-choice` and
+    `qti-text-entry-interaction`) the characteristic `aria-keyshorts` (section 7.1.44, "Description of the
+    "aria-keyshorts" characteristic for the "ARIABaseEmpty" class"), the XSD declares `aria-keyshorts` and no
+    `aria-keyshortcuts` on them, and the Schematron's attribute allow-list of each of those eleven elements names
+    `aria-keyshorts` alone, while its rules of every other element name `aria-keyshortcuts` alone (the 3.0.1 ASI XSD's
+    embedded Schematron: 11 rules and 104 rules). The three normative texts agree, so the spelling is the
+    specification's, misspelt or not: on the eleven, `aria-keyshorts` is admitted and `aria-keyshortcuts` refused as an
+    attribute their declarations and the Schematron do not name (reading 90), and every other element admits
+    `aria-keyshortcuts` alone. ARIA's own spelling is a rendering matter: plate writes the eleven's `aria-keyshorts` as
+    HTML's `aria-keyshortcuts`, so a screen reader announces it. This binds pantry and plate. No corpus document writes
+    `aria-keyshortcuts` on an empty element, so no verdict moves. This is not a case of documents in conflict. (Stated
+    2026-11-04, when both spellings were accepted; amended 2026-11-20 by lane PANTRY-CONFORM, SV-READ-06: the
+    information model's characteristic table names `aria-keyshorts` alone, so the second spelling was admitted on no
+    normative text.)
 11. **A PCI's secondary module configuration is `secondary-configuration`.** The implementation guide calls the
     attribute `fallback-configuration`. The XSD and the information model call it `secondary-configuration`. This
     follows the XSD and the information model, which agree, and sets aside the implementation guide, so a document that
@@ -459,10 +490,12 @@ against it. A reading that is not an information-model-over-XSD case says which 
     bars upper case, which the pattern admits, and the pattern bars every character outside ASCII letters, digits, `_`,
     `-` and `.`, such as `é` and `·`, which "XML-compatible" and HTML's custom data attribute rule admit. Where two
     normative sources differ the stricter is the rule (readings 16 and 17), and each is the stricter on one point, so a
-    name holds to both: `data-x`, `data-a.b-c` and `data-_` are valid, and `data-A`, `data-`, `data-é` and `data-x·y` are
+    name holds to both: `data-x`, `data-a.b-c` and `data-_` are valid, and `data-A`, `data-`, `data-é` and `data-x·y`
+    are
     not. The XSD admits any attribute from any namespace and the Schematron checks only the `data-` prefix, both looser,
     and both are set aside. (2026-11-04; narrowed 2026-11-06, decision 324; restored 2026-11-07 by the Mind on audit
-    b61b8f14's A4, the information model's pattern being normative: `data-é` and `data-x·y` are refused again.) Pantry holds this over its stored rows, not only when it reads a document: an attribute stored as a
+    b61b8f14's A4, the information model's pattern being normative: `data-é` and `data-x·y` are refused again.) Pantry
+    holds this over its stored rows, not only when it reads a document: an attribute stored as a
     `data-*` attribute has a name in this form, an attribute in no namespace stored under no other class on an element
     that is not foreign does not begin `data-`, and a `data-` name an element's type declares as its own attribute
     (`data-catalog-idref`, `data-ssml` and the other seven of the ASI XSD) is that attribute there and never a `data-*`
@@ -474,17 +507,20 @@ against it. A reading that is not an information-model-over-XSD case says which 
     element `id` equal to a response identifier is a duplicate ID and invalid. This follows the XSD exactly. _(Restated
     by Bjorn, 2026-11-05: the earlier reading's premise, that a response declaration's identifier is not an `xs:ID`,
     contradicted both XSDs.)_
-15. **A `variable-identifier-ref` names an outcome declaration, not an `xs:ID`.** The XSD types
-    `variable-identifier-ref` as `xs:IDREF`, which must match an `xs:ID` in the same document, and the information
-    model's attribute table types it the same way (UniqueIdentifierRef). The information model's description calls it
-    the identifier of an external variable that supplies the score, and outcome declarations' identifiers are not
-    `xs:ID`, so the IDREF could never resolve. This follows the description and sets aside the XSD and the attribute
-    table, because their type makes the attribute unusable. (2026-11-04.)
+15. **A `variable-identifier-ref` is an `xs:IDREF`.** The XSD types `variable-identifier-ref` as
+    `UniqueIdentifierRefDType`, an `xs:IDREF` (lines 24140 and 30152), which must match an `xs:ID` in the same
+    document, and the information model's attribute table types it the same way, `UniqueIdentifierRef` (§4.5.11).
+    Its description, "the identifier for an external variable that will be used to provide the external scoring
+    value", is no type, and both normative sources type it an IDREF, so a dangling one is refused under "Idref
+    target". (2026-11-04; restated 2026-11-20 by lane PANTRY-CONFORM, SV-READ-03: the earlier reading set the XSD and
+    the attribute table aside on the description alone and read it as an NCName, which admitted a dangling
+    reference.)
 16. **`normal-maximum` is greater than zero.** The information model's prose says `normal-maximum` is positive. The
     XSD's type allows zero. This follows the information model and sets the XSD aside, because a normal maximum of zero
     cannot normalize a score, and where two normative sources differ the stricter one is the rule a valid document must
     meet. (2026-11-04.)
-17. **A rubric block's `view` list has at least one view; an outcome declaration's may have none.** The information model
+17. **A rubric block's `view` list has at least one view; an outcome declaration's may have none.** The information
+    model
     gives an item's rubric block's `view` (section 5.120.2) and a test's (section 5.160.1) the multiplicity [1], "A list
     from an enumerated value set", and an outcome declaration's `view` (section 4.5.4) the multiplicity [0..1]: "If no
     view is specified the outcome is treated as relevant to all views." The XSD admits an empty list on all three. This
@@ -553,9 +589,16 @@ against it. A reading that is not an information-model-over-XSD case says which 
     the per-root profiles are not a second bar. This follows the full ASI XSD and the information model's prose and
     sets the profile XSDs aside, because content the information model admits must not be refused by a subset schema
     (reading 1). (2026-11-04.)
-25. **Withdrawn.** It read what a test's rubric blocks and test feedback may hold. The placement cutover deleted plate's
-    test-delivery engine (plate, 2026-11-17) and pantry stores no test (reading 228), so no package this repository
-    admits holds what it read.
+25. **A test's rubric and feedback hold no interactions or templates, and may print variables.** The full ASI XSD admits
+    interactions and template content inside test rubric blocks and test feedback. The information model's prose and the
+    test profile XSD forbid them. This follows the prose, with the test profile XSD agreeing, over the full XSD's wider
+    type. Printed variables are allowed although the information model's description of test rubric content excludes
+    them: its own test rubric class has a printed-variable child, the test profile XSD admits them, and the
+    implementation guide's test rubric example prints one. This is the one place the profile XSD is followed.
+    (2026-11-04.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1 feature the AlphaTest port
+    needs implemented exactly, and the QTI database refuses no valid QTI, conformance §3 and §4.4, which lifts reading
+    228's refusal of tests.)
+
 26. **An assessment section may hold no part.** The information model gives an `AssessmentSection`'s `sectionPart`,
     its item refs, sections, section refs and includes, the multiplicity "[0.. unbounded]" (section 4.2.15,
     https://www.imsglobal.org/spec/qti/v3p0/info#RootAttribute_AssessmentSection_sectionPart), and the XSD's choice of
@@ -619,10 +662,13 @@ against it. A reading that is not an information-model-over-XSD case says which 
     resources. This follows Content Packaging, the specification the package is built on, and the QTI rule that every
     file is listed, with the guide's sentence read as advice ("should"), not a ban. A packaged XSD must be listed as a
     file, as every file must, and the `controlfile` resource type is admitted but not required. (2026-11-04.)
-34. **A boolean written in `qti-value` is `true` or `false`.** `xs:boolean` also admits `1` and `0`. The information
-    model lists a boolean's permitted values as `true` and `false`. The XSD does not decide this, because it types
-    `qti-value` as untyped text, so this follows the information model, whose value list is the only source that speaks
-    to it, and refuses `1` and `0`. (2026-11-04.)
+34. **A boolean written in `qti-value` is `xs:boolean`'s: `true`, `false`, `1` or `0`.** The information model's
+    boolean base type is "the same as the set of values defined by the boolean primitiveType" (§8.14, BaseTypeEnum,
+    normative), and the binding types that primitive `xs:boolean`, whose lexical space is "{true, false, 1, 0}" (XML
+    Schema Part 2, §3.2.2.1). `1` is `true` and `0` is `false`, in a `qti-value`, a `qti-base-value`, a `map-key` and
+    a lookup table's typed values alike. Appendix A1.3's "permitted values of "true" and "false"" is not normative
+    (information model §1.2). (2026-11-04; restated 2026-11-20 by lane PANTRY-CONFORM, SV-READ-04: the earlier reading
+    refused `1` and `0` on Appendix A alone.)
 35. **Absolute `file/@href` and `template-location` values are admitted, stored as URIs and never fetched.** The sources
     do not say whether an absolute `href` or `template-location` is acceptable in a valid package. Content Packaging
     allows external files, and the implementation guide says an absolute `template-location` is supported, with
@@ -700,8 +746,9 @@ against it. A reading that is not an information-model-over-XSD case says which 
     `1000000000000000000000000000001`. A package never refuses an integer for its size, never rounds one to a float and
     never stores one as an infinity, and it compares and computes integer results exactly. A value a key holds is the
     one exception, as a text rather than an integer: a `qti-value`'s or `qti-base-value`'s folded text and a `map-key`
-    are copied into keys, and so are held to reading 133's key-text bound, 428 UTF-8 bytes. This reading is about
-    values. A count attribute such as `max-choices` is not a value of the integer base type: a shared reading of its own
+    are each a `matchedText`, which a query reads by a pattern, and so are held to reading 133's key-text bound,
+    `matchedTextBytes` (268,435,454 UTF-8 bytes), a key holding each by its image (Amended 2026-11-20: pantry's
+    `keyText` and its 428-byte bound are gone). This reading is about values. A count attribute such as `max-choices` is not a value of the integer base type: a shared reading of its own
     holds counts to the signed 64-bit range, read exactly, and refuses a count beyond it with its rule and location. An
     attribute the XSD types `xs:int`, such as `base`, keeps `xs:int`'s range. Where QTI's types make a result a float,
     an integer operand becomes the nearest float, and an integer beyond the largest finite float becomes the largest
@@ -735,9 +782,32 @@ against it. A reading that is not an information-model-over-XSD case says which 
     (the Wildcard Schema Component, `{process contents}`) and section 3.10.4 (Item Valid (Wildcard)) define `skip` and
     `lax`. This is not a case of documents in conflict: QTI's XSD is itself an XML Schema, so the XML Schema
     Recommendation decides what is valid in it. (2026-11-04.)
-48. **Withdrawn.** It read how a test's dotted reference splits into an item ref, test part or section and its variable.
-    The placement cutover deleted plate's test-delivery engine (plate, 2026-11-17) and pantry stores no test (reading
-    228), so no package this repository admits holds what it read.
+48. **A dotted reference is accepted when exactly one reading names a real item ref, test part or section and its
+    variable.** Reading 37 lets an identifier contain `.`, so a prefixed reference such as `ITEMREF.VAR` can be split at
+    more than one dot. Take a test whose item refs include `a` and `a.b`: `a.b.SCORE` could be item ref `a.b` with
+    variable `SCORE`, or item ref `a` with variable `b.SCORE`. When only one of those readings names a real item ref and
+    a variable that item has, that reading is meant, and the reference is accepted. The same holds when a reading's
+    prefix names a test part or a section, as in a section's `duration`: every reading that resolves counts. When both
+    resolve, QTI itself leaves the case ambiguous, and the document is refused with a refusal that names both readings.
+    This binds the renderer the same way as the qti package, so the two never read the same file differently. This is
+    not a case of documents in conflict: the specification reserves `.` for prefixing and says nothing of splitting a
+    reference at a dot, so this reading fills the gap and keeps every unambiguous reference valid, as reading 1
+    requires. (2026-11-04.)
+    The unsplit reading counts among them: a test-level reference also names the test's own variable of that whole
+    identifier, declared in the test or built in, because a variable expression first "looks up the value of an item
+    variable that has been declared in a corresponding variable declaration or is one of the built-in variables", and
+    only then describes prefixing (information model, section 2.11.1.2). So in a test that declares `a.b` and holds an
+    item ref `a` whose item declares `b`, the reference `a.b` is ambiguous and is refused. Not counting it would leave
+    a test variable named `a.b`, which reading 37 admits, with no reference that reaches it. A numbered reading counts
+    only as reading 88 says, and a name a test reaches through two placements of one section document has one
+    resolution for each placement (reading 86). (Restated 2026-11-05 under "the spec wins".) In pantry the database
+    enumerates every unsplit and split reading itself (`TestReading`, `src/qti/overlay-queries/readings.ts`); a numbered
+    reading, and a split one through an item ref that names no item document, it proves once the importer states it
+    (`NumberedReading`, `LinkReading`), since no text operation it has takes what follows a prefix in a query (the
+    grizzle ask of 2026-11-20); reading 88 records what that leaves. (Restored 2026-11-20 by lane IMPL-TESTS: the owner
+    ordered every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI database refuses no valid
+    QTI, conformance §3 and §4.4, which lifts reading 228's refusal of tests.)
+
 49. **QTI and foreign elements beneath MathML and in card content are admitted wherever the schema admits them.**
     Inside `m:annotation-xml` this is reading 30. In card content (`qti-html-content` of a `qti-card` or
     `qti-card-entry`) the same basis applies: an element is accepted wherever the schema admits it and no normative text
@@ -747,9 +817,11 @@ against it. A reading that is not an information-model-over-XSD case says which 
     `div` (`DivDType`, lines 26673-26794) declares 28, every block interaction among them, and text-level HTML
     (`HTMLTextDType`, lines 28332-28401) declares 9, the inline ones, `qti-printed-variable` (line 28344) among them. A
     foreign or QTI element placed directly in `qti-html-content`, or anywhere else no declaration or wildcard reaches,
-    is refused because the schema refuses it. Beneath `m:math` the only wildcard is `annotation-xml`'s, so MathML's content model refuses
+    is refused because the schema refuses it. Beneath `m:math` the only wildcard is `annotation-xml`'s, so MathML's
+    content model refuses
     any other placement. This binds the renderer the same way as the qti package, so the two accept and refuse the same
-    file. (Corrected 2026-11-04 by decision 214, replacing the version merged earlier that day under decision 212.) (Wording corrected 2026-11-04, decision 218; the rule is decision 216's.)
+    file. (Corrected 2026-11-04 by decision 214, replacing the version merged earlier that day under decision 212.)
+    (Wording corrected 2026-11-04, decision 218; the rule is decision 216's.)
 50. **Two `xsi:type` cases are accepted without a check: a complex type under a lax wildcard, and `xs:ENTITY`.** This
     extends reading 47. Under a `lax` wildcard, foreign content whose `xsi:type` names a resolved complex type is
     accepted without being checked against that type. Checking it would take a general XML Schema validator, which is
@@ -901,20 +973,24 @@ against it. A reading that is not an information-model-over-XSD case says which 
     the only implementation so far. This is not a case of documents in conflict: XML Schema decides which elements
     lax content checks, and the information model's rules for a QTI element do not depend on where it sits. (The
     renderer's phase-3 default, delivery spec section 5.1, applied in plate; 2026-11-04.)
-58. **In a `pattern-mask`, a `{` or `}` that does not open or close a repetition count is not a regular expression;
-    the author writes `\{` or `\}`.** The information model takes `pattern-mask`'s language from Appendix F of XML
-    Schema Part 2 (sections 5.48.4 and 5.162.5). Appendix F defines a metacharacter as one of `.`, `\`, `?`, `*`, `+`,
-    `{`, `}`, `(`, `)`, `[` or `]`, and a normal character as any XML character that is not a metacharacter. Its
-    production [10] `Char`, `[^.\?*+()|#x5B#x5D]`, leaves `{` and `}` out of the characters it excludes, so the
-    definition refuses a lone `{` and the production admits it. This follows the definition, as XML Schema 1.1 does:
-    its Part 2 (W3C Recommendation, 5 April 2012) excludes `{` and `}` in production [73] `NormalChar` (Appendix G.3).
-    Production [24] `SingleCharEsc` lets `\{` and `\}` stand for the characters themselves. A pattern this refuses
-    does not make the document invalid, because the XSD types `pattern-mask` as `xs:string`: plate keeps the
-    interaction and shows its `pattern-mask` notice in place of checking responses against the pattern. This binds
-    pantry and plate alike, so the two never read the same pattern differently; plate is the only implementation so
-    far, because pantry stores `pattern-mask` as written and checks no pattern. This is a conflict inside one
-    document, XML Schema 1.0's Appendix F, and that document's next version settles it. (The renderer's phase-3
-    default, delivery spec section 5.1, applied in plate; 2026-11-05.)
+58. **A `pattern-mask`, and a `qti-pattern-match`'s literal `pattern`, is a regular expression of Appendix F, in which a
+    `{` or `}` that does not open or close a repetition count is none: the author writes `\{` or `\}`; pantry refuses
+    any other.** The information model takes `pattern-mask`'s language from Appendix F of XML Schema Part 2 (sections
+    5.48.4 and 5.162.5: "The regular expression language used is defined in Appendix F of [XSCHEMA, 01]"), and a
+    pattern match's (section 5.104.1: "The syntax for the regular expression language is as defined in Appendix F"),
+    normative text (section 1.3) that narrows the XSD's `xs:string`, so a pattern outside the language makes its
+    document invalid QTI 3.0.1. Appendix F defines a metacharacter as one of `.`, `\`, `?`, `*`, `+`, `{`, `}`, `(`,
+    `)`, `[` or `]`, and a normal character as any XML character that is not a metacharacter. Its production [10]
+    `Char`, `[^.\?*+()|#x5B#x5D]`, leaves `{` and `}` out of the characters it excludes, so the definition refuses a
+    lone `{` and the production admits it. This follows the definition, as XML Schema 1.1 does: its Part 2 (W3C
+    Recommendation, 5 April 2012) excludes `{` and `}` in production [73] `NormalChar` (Appendix G.3). Production [24]
+    `SingleCharEsc` lets `\{` and `\}` stand for the characters themselves. pantry refuses a document that writes a
+    pattern outside the language under "Pattern language" (`PatternText` of `src/qti/overlay-queries/interaction.ts`,
+    grizzle's `Xml.isPattern`), and the law oracle reads it with grizzle-text's own grammar (`xsdPattern`). A pattern
+    match's `pattern` is a `StringOrVariableRef`: one that names a variable in braces, an NCName between `{` and `}`,
+    is a reference, judged by the variable it names, and no pattern. plate reads every pattern by the same grammar,
+    so it never meets one outside it in stored content. (2026-11-05; restated 2026-11-21 by PANTRY-CONFORM for
+    SV-PATTERN-03: a pattern outside the language was kept with a notice, which admitted invalid QTI.)
 59. **An area's `coords` that do not fit its shape are read as the HTML Standard's image-map processing reads an
     `area`'s.** The information model gives each shape's coordinates (section 7.9, Coords, and section 8.29,
     ShapeEnum): `rect` is left-x, top-y, right-x, bottom-y; `circle` is center-x, center-y, radius; `poly` is x1, y1
@@ -973,12 +1049,13 @@ against it. A reading that is not an information-model-over-XSD case says which 
       read the others). A description's string is not folded, since it may pass the bound below. The fold's step is
       selected by a closed read over the copies the child carries, `TextDomain(GoverningOf(parentKind,
       parentGoverns))` outside those domains, or `parentKind` among the copied kinds, or a folded
-      LangString's string; a copied kind gets no TextDomain law from it. The fold's running text rides the tree's predecessor and last axes, so it is a column of their keys,
+      LangString's string; a copied kind gets no TextDomain law from it. The fold's running text rides the tree's
+      predecessor and last axes, so it is a column of their keys,
       and grizzle refuses at compile a key whose B-tree entry can pass PostgreSQL's `BTMaxItemSize`
-      (`UnrepresentableKey`). So the running text and `stringValue` are `keyText` (`src/qti/limits.ts`), bounded to
-      reading 133's key-text bound, 428 UTF-8 bytes (`keyTextBytes`), what grizzle's `keyTextBytes` leaves beside the
-      widest key's other columns, and a folded value past the bound is refused by `keyText`'s pattern on the fold's
-      text, by name: a stated limit of the representation, not this reading's law. The corpus (28 packages, 353
+      (`UnrepresentableKey`). So the running text and `stringValue` are `matchedText` (`src/qti/limits.ts`), held by
+      their image in a key and bounded to reading 133's key-text bound, `matchedTextBytes` (268,435,454 UTF-8 bytes,
+      the regex engine's), and a folded value past the bound is refused by its type on the fold's text, by name: a
+      stated limit of the representation, not this reading's law. The corpus (28 packages, 353
       documents) holds 3,095 simple-content elements; the 227 under a checked domain are at most 92 code points; of the
       copied kinds, `qti-base-value` is at most 102 (1,208 elements), `lom:entry` 86 (59), `qti-value` 45 (898) and
       `lom:language` 2 (44), a LOM title's `lom:string` 121 (66), a learning resource type's `lom:value` 15 and
@@ -1000,8 +1077,38 @@ against it. A reading that is not an information-model-over-XSD case says which 
     on `xs:NOTATION` that closed 2026-11-06 when its domain was stated empty (C47). plate's part is corrected
     2026-11-06, as upstream's reading 60 records it.)
 
-61. **Withdrawn.** It read `qti-ordering`'s extension slot, which only a section's ordering holds. pantry stores no
-    test, and a bank holds no `qti-ordering` (reading 228), so no package this repository admits holds what it read.
+61. **An element in QTI's own namespace inside `qti-ordering`'s extension slot is valid.** The information model says
+    the slot's child tags "may be new tags and reused QTI ASI tags" (section 5.98.3, the `extensions` characteristic of
+    the Ordering class, line 36355 of `info.txt`), though the XSD admits only other namespaces there (`any
+    namespace="##other" processContents="lax"`, `imsqti_asiv3p0p1_v1p0.xsd` lines 29976 and 24031, the same in 3.0.0).
+    Where the information model says child tags may reuse QTI ASI tags elsewhere, the XSD writes `##any`: the custom
+    interaction's (section 5.36.2, XSD line 26364) and the template's (section 5.144.1, line 32555); where it says they
+    "must be new tags" it writes `##other` (sections 5.33.6, 5.37.5 and 5.129.4). So the slot is read as `##any`, laxly.
+    An element in QTI's namespace that no global declaration names, such as `qti-variable` or `qti-foo`, is kept as the
+    slot's extension content, a foreign element, not read as QTI ordering; a QTI root stays foreign (reading 6); and an
+    HTML, MathML, SSML or XInclude global is read as its declaration. `qti-selection`'s slot is not covered: its
+    information model text says the child tags "must be new tags i.e. not reused QTI ASI tags" (section 5.129.4).
+    libxml2 2.9.13's `xmllint` follows the XSD's `##other` and refuses these families, and its verdicts are recorded
+    against this reading. This follows the information model and sets the XSD aside, because the information model
+    outranks the XSD and the XSD's own mapping of the same sentence elsewhere is `##any`. The looser source holds here,
+    where readings 16 and 17 take the stricter, because section 5.98.3's "may be new tags and reused QTI ASI tags"
+    refuses nothing the standard allows: it is a permission, so the slot read as `##any` still admits every family the
+    XSD's `##other` admits, and reading the XSD instead would refuse the reused tags the information model allows
+    (reading 1). This is upstream's reading of 2026-11-06. (2026-11-06, merged by W5 seat PG from the UP audit's C65.)
+    So an interaction in the slot is judged by its own rules and nothing else, since no sentence bars one there, as the
+    information model bars one from a prompt, a rubric block, a template block, a choice or modal feedback: a
+    `qti-text-entry-interaction` written straight in the slot is QTI-namespace content no global declaration names,
+    which the slot keeps unread, so it is admitted; one inside an HTML `a` there is read through `a`'s declaration,
+    whose children are the information model's `inlineGroup` (section 5.1) and the XSD's `ADType`, which admits inline
+    interactions (`imsqti_asiv3p0p1_v1p0.xsd` line 24164), so its `response-identifier` is read as the XSD types it,
+    `UniqueIdentifierRefDType`, a restriction of `xs:IDREF` (line 24140), which must match an `xs:ID` of the document
+    (XML 1.0 section 3.3.1, Validity constraint: IDREF; XML Schema Part 1, cvc-id clause 1). A test declares no response
+    variable, whose identifier is the `xs:ID` `UniqueIdentifierDType` (line 24136), so that IDREF names nothing and
+    "Idref target" refuses it, the XSD's rule. (The verdict stated 2026-11-20 by lane IMPL-TESTS on the lead's order
+    that the normative text decides.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1 feature
+    the AlphaTest port needs implemented exactly, and the QTI database refuses no valid QTI, conformance §3 and §4.4,
+    which lifts reading 228's refusal of tests.)
+
 62. **An item's or test's identifier and title are those its package's LOM metadata gives it, where that metadata
     gives them; a package where they differ is invalid and is refused.** The information model says of the item's
     identifier that "If an identifier is assigned in the corresponding item's resource metadata ... then the two MUST
@@ -1179,7 +1286,8 @@ against it. A reading that is not an information-model-over-XSD case says which 
 74. **An identifier names one variable among the declarations of its document.** The information model says "The
     purpose of the declaration is to associate an identifier with the variable" (section 2.2.2, Item Variables,
     https://www.imsglobal.org/spec/qti/v3p0/info#Variables). Each declaration's `identifier` adds "All item
-    variables declared in an item share the same namespace" (section 4.5.1, `#RootCharacteristic_OutcomeDeclaration.Attr_identifier`,
+    variables declared in an item share the same namespace" (section 4.5.1,
+    `#RootCharacteristic_OutcomeDeclaration.Attr_identifier`,
     and sections 5.34.1, 5.115.1 and 5.151.1). A response's and a context's identifier is a UniqueIdentifier,
     "unique within the scope of the instance" (sections 5.115.1, 5.34.1 and 7.43). The XSD types the response's
     `UniqueIdentifierDType`, an `xs:ID`, and the context's `IdentifierDType`, an `xs:NCName`; the information model
@@ -1226,7 +1334,8 @@ against it. A reading that is not an information-model-over-XSD case says which 
     built-in `completionStatus` among them.** The information model states both:
     - Every feedback element's `outcome-identifier` is "The identifier of an outcome variable that must have a
       base-type of identifier and be of either single or multiple cardinality" (sections 5.49.1, 5.52.1, 5.93.1,
-      5.148.1 and 5.157.2, https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_FeedbackBlock.Attr_outcome-identifier).
+      5.148.1 and 5.157.2,
+      https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_FeedbackBlock.Attr_outcome-identifier).
     - A printed variable's `identifier` says "The outcome variable or template variable must have been defined. The
       values of response variables cannot be printed directly" (section 7.30.6,
       `#DerivedCharacteristic_PrintedVariable.Attr_identifier`).
@@ -1245,8 +1354,18 @@ against it. A reading that is not an information-model-over-XSD case says which 
     mapping maps, and is read with the class definition, which is the narrower and the more specific. This is stated.
     It is a sentence inside the information model read beside its class definition, not a case of documents in
     conflict. (2026-11-05; the law `MappableBaseType`.)
-79. **Withdrawn.** It read the bound on a section's selection without replacement. pantry stores no test, and a bank
-    holds no `qti-selection` (reading 228), so no package this repository admits holds what it read.
+79. **A selection without replacement selects at most its section's parts.** The information model says of `select`
+    "The number of children to select may exceed the number of child elements defined only if with-replacement is
+    true", and "Sub-sections always count as 1, regardless of how many child elements they have and whether or not
+    they are visible" (section 5.129.1,
+    https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_Selection.Attr_select). So a section's parts
+    (item references, sections and section references) are counted once each, and `select` above their number is
+    refused unless `with-replacement` is true. `with-replacement` is an `xs:boolean`, so `1` is true; reading 34
+    binds `qti-value` only. This is stated, and is not a case of documents in conflict. (2026-11-05; the law `Selection
+    bound`.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1 feature the AlphaTest port needs
+    implemented exactly, and the QTI database refuses no valid QTI, conformance §3 and §4.4, which lifts reading 228's
+    refusal of tests.)
+
 80. **A default hotspot is the last hotspot choice of its interaction, and a graphic gap match interaction has
     none.** The information model says "The default hotspot, if defined, must appear last":
     - in the HotspotChoice class (section 5.67, https://www.imsglobal.org/spec/qti/v3p0/info#Data_HotspotChoice),
@@ -1378,7 +1497,8 @@ against it. A reading that is not an information-model-over-XSD case says which 
     held by the reader's namespace well-formedness (Namespaces in XML 1.0, section 5, "Namespace constraint: Prefix
     Declared"), since crust's reader refuses a prefix no declaration in scope binds as a `WellFormednessError`
     (`packages/crust/src/read.ts`, `saxes` reading with namespaces on). The corpus holds no `xsi:type` and no `role`, so
-    no verdict moves. (The limit recorded 2026-11-06 from W5 seat PN, C48 of the port's audit, a local record not in the repository, closed 2026-11-07 by
+    no verdict moves. (The limit recorded 2026-11-06 from W5 seat PN, C48 of the port's audit, a local record not in the
+    repository, closed 2026-11-07 by
     GEN-B (`5cdc88e7`), after the lexical differential found `ssml:token`'s `role="a:b"` accepted where xmllint refuses
     it.)
 
@@ -1407,7 +1527,8 @@ against it. A reading that is not an information-model-over-XSD case says which 
     must still name an ID of its document, as XML Schema requires. This binds pantry and plate alike. This is not a
     case of documents in conflict: XML Schema decides validity against a type, and the information model names the
     elements its rules are about. (Bjorn's ruling "the spec wins", 2026-11-05.)
-85. **An inclusion never reaches itself, and an included fragment is read in place, as XML, with no `xpointer`.** A
+85. **An inclusion never reaches itself, and an included fragment is read in place; an include pantry does not read is
+    stored and never included.** A
     `qti-assessment-section-ref` "functions as a facade for the qti-assessment-section to which it refers", and the
     document that holds it, "with the refered-to section merged in, should behave exactly the same as a document that
     has all the same sections aggregated in one document" (information model, section 7.5, AssessmentSectionRef). An
@@ -1419,25 +1540,157 @@ against it. A reading that is not an information-model-over-XSD case says which 
     section of XInclude 1.1, the W3C Working Group Note of July 2016 that the information model cites). So a test or
     item whose section refs and includes, in any mix, reach a document already on their chain is refused, the refusal
     naming the chain. Two refs or includes of one document that are not nested are no loop (XInclude's own example in
-    section 4.2.7), and reading 86 says what two placements mean. Section 2.12 also says that "when using an XML
-    binding, the xpointer mechanism defined by the XInclude specification MUST NOT be used", that "all included
-    fragments must be treated as parsed xml", and that "the content of the fragment must satisfy the requirements of
-    the specification in the context of the item in which it is being included". So an `xi:include` with an
-    `xpointer` attribute, or with `parse="text"`, is refused, though the XSD admits both (`w3/XInclude.xsd` lines 22
-    to 24), and an included fragment is judged as part of the document that includes it: its interactions bind that
-    item's responses, and its identifiers count among that document's. This follows the information model and sets
-    the XSD aside where the XSD is wider. This binds pantry and plate alike. (Bjorn's ruling "the spec wins",
-    2026-11-05.)
-86. **Withdrawn.** It read the identifiers of a test's parts, sections, section refs and item refs as one namespace
-    across the assembled test. Pantry stores no test (reading 228); a bank's root section and item refs are one
-    document's names, which "Structure identifier" keys (A4), so no package this repository admits holds what it read.
-87. **Withdrawn.** It read where a test's branch rules may lead. The placement cutover deleted plate's test-delivery
-    engine (plate, 2026-11-17) and pantry stores no test (reading 228), so no package this repository admits holds what
-    it read.
+    section 4.2.7), and reading 86 says what two placements mean. An included fragment is judged as part of the
+    document that includes it, its interactions binding that item's responses and its identifiers counting among
+    that document's, since XInclude's output "is a new infoset which merges the source infoset with the infosets of
+    resources" its includes name (XInclude 1.0 Second Edition, §4, its result infoset), and the information model's
+    Include is "the use of the XInclude feature" (§9.4.1, normative). An `xi:include` with an `xpointer` attribute,
+    or with `parse="text"`, is valid: XInclude and its XSD admit both (`w3/XInclude.xsd` lines 22 to 24), and the
+    sentences of section 2.12 that would forbid them ("the xpointer mechanism ... MUST NOT be used", "all included
+    fragments must be treated as parsed xml") stand in a section the information model marks "NOT NORMATIVE" (§2).
+    pantry neither evaluates an XPointer nor holds the bytes a text inclusion would include, so such an include is
+    ignored, never refused (QTI 3.0 Conformance §3: "the applications must be able to ignore or remove the
+    unsupported data"): it is stored as written, it is no site (`ReadInclude`), and it places nothing. XInclude's own
+    rules still bind it: "The xpointer attribute must not be present when parse="text"" ("Include parse"), and a
+    fragment identifier in its `href` is a fatal error ("Include fragment identifier"). This binds pantry and plate
+    alike. (Bjorn's ruling "the spec wins", 2026-11-05; restated 2026-11-20 by lane PANTRY-CONFORM, SV-READ-05: the
+    earlier reading refused `xpointer` and `parse="text"` on section 2.12's text alone.)
+86. **The identifiers of a test's parts, sections, section refs and item refs are one namespace across the assembled
+    test, and a section document a test places twice is written once.** The information model says "The identifier of
+    the section or item reference must be unique within the test and must not be the identifier of any testPart"
+    (section 4.2.1, AssessmentSection) and "The identifier of the test part must be unique within the test and must not
+    be the identifier of any qti-assessment-section or qti-assessment-item-ref" (section 5.159.1, TestPart). The XSD
+    types each `IdentifierDType`, an `xs:NCName` with no uniqueness, so this follows the information model. The test is
+    the assembled test (reading 5): the test document and every section document its section refs and includes reach
+    (reading 85). So no two of those elements written in its documents share an identifier, whatever their roles: an
+    item ref and a section named alike are refused, and so are a test part and an item ref, or a section ref and a
+    section. Of a section ref's `href` the information model says "There is no requirement that this be unique. A test
+    may refer to the same section multiple times within a test. Note however that each reference must have a unique
+    identifier" (section 7.5.3). A section document placed twice is one document, and its identifiers do not collide
+    with themselves: refusing it would refuse what section 7.5.3 calls valid (reading 1). So the test is read as copies:
+    an instance a section ref places, and the assembly's root, each anchor a copy, and an include splices its fragment
+    into its parent's copy (`instanceAnchors`, `src/qti/overlay-queries/tests.ts`). "Test name key" keys the names
+    within each copy (`AnchoredName`) and the distinct elements across the copies (`AssembledName`, two copies of one
+    section document holding its elements once), so a fragment included twice into one copy holds its identifiers twice,
+    as XInclude's merged document does, and is refused, while a section document referenced twice is not. The XML IDs of
+    a test's documents are keyed the same way ("DocumentId key", `AnchoredId` and `CopiedId`,
+    `src/qti/overlay-queries/identity.ts`): an ID of a section document referenced twice is held once, where each
+    placement held it before and refused it. An item has no section ref, so its whole assembly is one copy and its keys
+    are unchanged. Each placement is still an instance of everything the document holds, so a reference that names an
+    item ref or a section through such a document, or one of their variables, resolves once for each placement. Reading
+    48 accepts a reference only when exactly one reading resolves, so it is refused, its refusal naming both placements.
+    A section ref, the facade of its placement (section 7.5), keeps its own distinct identifier and names that placement
+    as a section does. This is a conflict inside the information model, between section 4.2.1's general sentence read
+    across placements and section 7.5.3's specific one, and the specific one is followed for the case it names. (Bjorn's
+    ruling "the spec wins", 2026-11-05.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1
+    feature the AlphaTest port needs implemented exactly, and the QTI database refuses no valid QTI, conformance §3 and
+    §4.4, which lifts reading 228's refusal of tests. The copies and the ID keys stated the same day on the lead's order
+    that the normative text decides: section 4.2.1's uniqueness within the test, and section 7.5.3's permission to refer
+    to one section many times.)
 
-88. **Withdrawn.** It read the numbered references that name an item ref a test's selection with replacement repeats.
-    The placement cutover deleted plate's test-delivery engine (plate, 2026-11-17) and pantry stores no test (reading
-    228), so no package this repository admits holds what it read.
+87. **A branch rule names a reserved exit, or a later part of its own kind in its own test part, never inside a
+    section a ref places from outside it, and never an item a replacement can repeat.** The information model says a
+    branch rule "is evaluated after the item, section or part has been presented to the candidate. If the expression
+    evaluates to 'true' the test jumps forward to the item, section or part referred to by the target identifier. In
+    the case of an item or section, the target must refer to an item or section in the same test-part that has not
+    yet been presented. For test-parts, the target must refer to another test-part" (section 5.23, BranchRule, and
+    section 2.8.3.2), and reserves `EXIT_SECTION`, `EXIT_TESTPART` and `EXIT_TEST` (section 5.23.1). Of section refs
+    it says "branching rules should treat referred sections as leaf nodes, that have no children that are amenable to
+    branching separately from their immediate parent" (section 7.5). Of selection with replacement it says it "enables
+    two or more instances of an item referred to by the same assessment-item-ref to appear in the sequence of items
+    for a test. It is therefore an error to make such an item the target of a branch-rule" (section 5.98, Ordering).
+    Read over the assembled test (reading 5), each sentence is a rule a document can be judged by:
+    - A target is one of the three reserved values, which are admitted on every branch rule, or the identifier of a
+      test part, section, section ref or item ref of the assembled test.
+    - On a test part a target names another test part, after it. On an item ref, section or section ref it names an
+      item ref, section or section ref of the same test part, after the source's end: so neither the source, nor an
+      ancestor of it, nor a descendant of it.
+    - "After" is document order, which is the test's sequence wherever no shuffle can reorder the two. Where the
+      section that orders them shuffles (`qti-ordering shuffle="true"` on their nearest common section, or on the
+      section that an invisible common section with `keep-together="false"` mixes its children into, section 5.98),
+      their order is drawn at delivery, and is judged only where `fixed` holds it in every draw. The information model
+      says of `fixed` "If a child element is fixed it must never be shuffled. When used in combination with a
+      selection rule fixed elements do not have their position fixed until after selection has taken place. For
+      example, selecting 3 elements from {A,B,C,D} without replacement might result in the selection {A,B,C}. If the
+      section is subject to shuffling but B is fixed then permutations such as {A,C,B} are not allowed whereas
+      permutations like {C,B,A} are permitted" (sections 4.2.3 and 5.6.3). So a fixed block keeps its place among
+      the selected blocks, which keep document order, and the unfixed blocks take the other places. A pool is a
+      shuffling section with the invisible, not-kept-together sections it mixes in, and its blocks are their children
+      that are no such section. A target is refused as backward where, in its pool, both blocks are fixed, or the
+      target's block is fixed and every unfixed block follows it, or the source's block is fixed and every unfixed
+      block precedes it (`fixedBackwardRows`, `src/qti/overlay-queries/tests.ts`). Every other drawn order is
+      admitted in either direction. A pool any of whose sections selects with replacement is drawn too, since an
+      element may stand in its sequence more than once and the sentence speaks of a selection without replacement.
+      A site in a pool (a section ref or an include) is a block, and unfixed, since neither writes `fixed`. A pool
+      that mixes in a section another document holds is read in its own document only, its order there drawn.
+      (The `fixed` reading stated 2026-11-20 by lane IMPL-TESTS on the lead's order that the normative text decides,
+      closing reading 1's recorded limit.)
+    - An included fragment's root is a target, standing where its include stands: an include "is treated as if it
+      was actually an instance of the root element of the fragment referred to" (section 2.12), and "Adaptive test
+      branch rules can only refer to included or directly referenced sections" (section 7.5). Its order is the
+      include's place, and its part and its repetition are its placed root's, so a root in another part, before the
+      source, or under a replacement is refused as any target is (`branchCandidateRows`).
+    - From outside a section document a ref places, no target lies inside it: the ref is the leaf. The information
+      model both says "branching rules should treat referred sections as leaf nodes" and binds: "Adaptive test branch
+      rules can only refer to included or directly referenced sections, they can not refer to sections that are in
+      their turn included or referenced within the referenced section" (section 7.5, `info.txt:67325`). A branch rule
+      written inside that document resolves within its own placement and may name what the document holds.
+    - No target is an item ref under a section whose `qti-selection` has `with-replacement` true, anywhere above it.
+    - The target names exactly one element that meets these conditions; one that two placements of a section document
+      supply twice (reading 86) is refused as ambiguous. This applies only to a rule outside the section document,
+      whose target two placements can supply; a rule inside the document resolves within its own placement.
+    - Each placed rule is judged per candidate, since the sentence names one: "the test jumps forward to the item,
+      section or part referred to by the target identifier" and "the target must refer to an item or section in the
+      same test-part that has not yet been presented" (section 5.23). Reading 86's "Test name key" leaves each placed
+      rule at most one candidate: its own instance and its ancestors' are distinct copies or one copy's distinct
+      elements, whose identifiers it holds apart, and from outside a referenced section nothing inside it is a
+      candidate. So "Branch forward" over a rule's candidates, as `commonSectionCandidates` reads them, is the judgment
+      of that one candidate. (Stated 2026-11-20 by lane IMPL-TESTS on the lead's order that the normative text
+      decides.)
+    - One fault, one rule. A target that names no element of an instance holding the rule's, or names one of the
+      wrong kind, of another test part, or an item ref a replacement can repeat, breaks "Branch target" alone; only a
+      target that rule admits by its name is judged by "Branch forward". The law oracle already reads the bullets in
+      that order (`src/test/oracle-laws/tests.ts` `branchLawsOf`), and the schema states it: the resolution's target is
+      a row of its own (`BranchTarget`), absent where nothing resolves, so its existence law refuses it; and
+      `Branch_forward` holds of every target `Branch_target` refuses by its name. Before, an unresolved rule wrote a
+      stand-in target, which broke both CHECKs, and PostgreSQL reported the one whose name sorts first,
+      `branch_forward`.
+    - Where a shuffle orders the two, that shuffle is a row of its own too (`BranchShuffle`): written only where the
+      nearest name of the target's document holding the source and the target draws its children's order and its
+      child holding the target does not hold the source, its `Branch_forward` proving exactly that, and counted by
+      the target (`BranchTarget.shuffles`). A rule no shuffle orders has none, rather than a common element standing
+      in as the target itself.
+
+    Pre-conditions and branch rules are ignored in nonlinear mode (section 2.8.3), but the target rules are stated
+    without that condition, so they hold in every mode. This binds pantry and plate alike. This is not a case of
+    documents in conflict. (Bjorn's ruling "the spec wins", 2026-11-05; amended in phase 15, 2026-11-06, for the
+    operator; decision 321.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1 feature the
+    AlphaTest port needs implemented exactly, and the QTI database refuses no valid QTI, conformance §3 and §4.4, which
+    lifts reading 228's refusal of tests.)
+
+88. **A numbered reference such as `Q01.2.SCORE` names an instance of an item ref that a selection with replacement can
+    repeat, and nothing else.** The information model says "In adaptive tests that contain items that are allowed to
+    be replaced (i.e. that have the with-replacement attribute set to "true"), the same item can be instantiated more
+    than once. In order to access the outcome variable values of each instantiation, a number that denotes the
+    instance's place in the sequence of the item's instantiation is inserted between the item variable identifier
+    and the item variable" (section 2.11.1.2, Variable Expression). So reading 48's numbered reading (item ref, number,
+    variable) counts only where its item ref lies under a section whose `qti-selection` has `with-replacement` true,
+    anywhere above it in the assembled test (reading 5), and where its number is all digits and at least 1, the
+    first instance being 1. No bound is set on the number: how many instances a selection draws is decided at
+    delivery, and a number beyond them names an instance that was never drawn, which no static rule refuses. Elsewhere
+    the numbered form names nothing, so a reference whose only resolving reading would be numbered names no declared
+    variable and is refused (P8). An unnumbered reference to a repeatable item ref, `Q01.SCORE`, is valid; the same
+    section says which instance's value it reads. This binds pantry and plate alike. This is not a case of documents
+    in conflict. (Bjorn's ruling "the spec wins", 2026-11-05.) In pantry the importer states each numbered reading that
+    resolves (`NumberedReading`) and the database proves each: its spelling, its item ref one a replacement can repeat
+    in its placement, its number at least 1, and its variable one its item names. The database cannot enumerate a
+    numbered reading itself, so a name whose only readings are two numbered ones, through two item refs whose
+    identifiers hold periods such as `A` and `A.1.B`, is the importer's to tell apart, a recorded under-refusal, absent
+    from the corpus and from AlphaTest's served tests; it goes when grizzle splits a name at a period (the ask of
+    2026-11-20). (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1 feature the AlphaTest port
+    needs implemented exactly, and the QTI database refuses no valid QTI, conformance §3 and §4.4, which lifts reading
+    228's refusal of tests.)
+
 89. **Withdrawn.** It refused a document by its root's namespace before any of its names was read. A root in a namespace
     no vocabulary is in is refused as every unknown name is, under `unmodeled-vocabulary`.
 90. **On an element the Schematron's extension-attribute lists cover, an attribute its XSD does not declare is a
@@ -1459,8 +1712,15 @@ against it. A reading that is not an information-model-over-XSD case says which 
     47 governs; namespace declarations, which are not attributes; and `aria-keyshortcuts` on the empty element families,
     which reading 10 admits. The lists' text is read by its intent, not copied: they test the name as written, so they
     are applied to expanded names, and they test only as many attribute positions as each list has names, so here every
-    attribute is checked. On an element the lists do not cover, the XSD's wildcards admit what they admit. This binds
-    pantry and plate alike. One corpus package's verdict moves:
+    attribute is checked. On an element the lists do not cover, the XSD's wildcards admit what they admit. One
+    covered element's class states a second extension characteristic: `qti-custom-interaction`'s `extension`, a
+    `NamespaceLax`, "an extension point to enable any set of characteristics to be entered to support the definition
+    of the custom interaction(s)", [0..unbounded] (information model §5.36.1), bound by the XSD's
+    `extensionNamespaceLax.Attr`, an `##other` `lax` wildcard. Its Schematron list names `extension` as though it
+    were an attribute, which no attribute is; read by its intent, the list admits that characteristic's attributes, so
+    on `qti-custom-interaction` an attribute in a namespace other than QTI's (`f:config`), and an `xml:` attribute,
+    is admitted beside the `data-` ones (lane PANTRY-CONFORM, SV-LAW-05, 2026-11-20). This binds pantry and plate
+    alike. One corpus package's verdict moves:
     `qtiv3-examples/items/shared-vocabulary/shared-vocabulary-imsmanifest.zip`, which the oracle otherwise accepts, is
     refused `attribute-admission`, for `object@alt` (120 occurrences; `object` declares no `alt` in the ASI XSD) and
     `qti-extended-text-interaction@patternMask` (one, for `pattern-mask`). The committed verdict file's row stays
@@ -1537,9 +1797,14 @@ against it. A reading that is not an information-model-over-XSD case says which 
     libxml2 2.15.2's `xmllint` accepts each of these, since it reads the name types by XML 1.0 Fifth Edition's
     `NameStartChar` and `NameChar`, so the lexical oracle records that departure (`fifthEditionNames`,
     `src/test/lexical-harness.ts`), as 0b107afeb re-derived the records on 2.15.2; libxml2 2.9.13 gave this reading's
-    verdict. The production states no length, so a name of any length is valid. A name a key holds is held to reading
-    133's key-text bound (428 UTF-8 bytes), an open attribute's local name, which a key holds beside a namespace name,
-    to 890 bytes and a namespace prefix to 1,802: stated limits of the representation, not of `xs:NCName`. Every type
+    verdict. The production states no length, so a name of any length is valid. A name a key holds is of any length,
+    a key holding it by its image, and no read orders by a name or a prefix (an element's attributes and namespace
+    declarations are sets, which the model orders on the host), so an open attribute's local name and namespace name
+    and every prefix are of any length. A foreign element's namespace name and local name are each held to
+    `foreignNameBytes`, 134,217,726 bytes, half of what the regex engine reads of the expanded name a query matches
+    them as: a stated limit of the representation, not of `xs:NCName` (Amended 2026-11-20: pantry's `keyText` and its
+    428-byte bound are gone; amended again 2026-11-21: the 1,290-byte local-name, 1,291-byte namespace-name and
+    2,588-byte prefix bounds of the ordered reads' indexes are gone with those orders, `src/qti/limits.ts`). Every type
     derived from `xs:NCName` reads it so: `xs:ID`, `xs:IDREF`, `xs:ENTITY` and QTI's identifier types, and the bare
     variable reference that names a declaration, and every name an XML Schema 1.0 regular expression's `\i` and `\c`
     judge: a `pattern-mask`'s (reading 55, as amended) and a value pattern the schema states over QTI's identifier
@@ -1594,9 +1859,22 @@ against it. A reading that is not an information-model-over-XSD case says which 
     documents in conflict: XML Schema decides how a sequence partitions its children. (Decided 2026-11-06 by W5 seat GX
     under Bjorn's standing ruling of 2026-11-05 that the spec wins.)
 
-97. **Withdrawn.** It read the target of a test's variable mapping. The placement cutover deleted plate's test-delivery
-    engine (plate, 2026-11-17) and pantry stores no test (reading 228), so no package this repository admits holds what
-    it read.
+97. **A variable mapping's target names no other variable its item ref's item holds.** The information model says
+    "Variable mappings allow outcome variables declared with the name source-identifier in the corresponding item to
+    be treated as if they were declared with the name target-identifier during outcome processing" (section 7.48,
+    VariableMapping, https://www.imsglobal.org/spec/qti/v3p0/info#Data_VariableMapping), and of every declaration's
+    identifier "The identifiers of the built-in session variables are reserved. They are completionStatus, numAttempts
+    and duration. All item variables declared in an item share the same namespace" (section 4.5.1, and sections
+    5.115.1 and 5.151.1). Reading 74 gives one variable per identifier. A mapping's target is a name of the item's
+    variables in the test's view of them, so a target that another variable of the item already holds would make two
+    variables of one name there: one the item declares, other than the mapping's own source; one another mapping of
+    the same item ref names; or a built-in session variable. Each is refused, the identifiers compared collapsed. A
+    mapping whose target is its own source maps nothing away and is valid. This binds pantry and plate alike. This is
+    not a case of documents in conflict. (Decided 2026-11-06 by W5 seats UP and Q5.13 under Bjorn's standing
+    ruling of 2026-11-05 that the spec wins.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1
+    feature the AlphaTest port needs implemented exactly, and the QTI database refuses no valid QTI, conformance §3 and
+    §4.4, which lifts reading 228's refusal of tests.)
+
 98. **A mapping's map keys may repeat, and a response that several entries match takes the first one listed.** The
     information model says "The map is defined by a set of mapEntries, each of which maps a single value from the
     source set onto a single float" (section 5.88.4, https://www.imsglobal.org/spec/qti/v3p0/info#Data_Mapping, and
@@ -1628,7 +1906,7 @@ against it. A reading that is not an information-model-over-XSD case says which 
      https://www.imsglobal.org/spec/qti/v3p0/info#DataAttribute_OutcomeDeclaration_lookupTable), so a
      `qti-match-table` or `qti-interpolation-table` belongs to an outcome declaration of single cardinality, and one
      under a multiple, ordered or record outcome is refused. Its entries' `target-value` and its own `default-value`
-     are values of that outcome's base type (reading 8), written exactly (reading 7). The XSD does not decide this. This
+     are values of that outcome's base type (reading 8), read collapsed unless the base type is string (reading 7). The XSD does not decide this. This
      binds pantry and plate alike. This is not a case of documents in conflict. (Decided 2026-11-06 by W5 seat Q5.11
      under Bjorn's standing ruling of 2026-11-05 that the spec wins.)
 101. **An ID that an element's text carries is bound to that element's parent.** XML Schema 1.0 Part 1 (§3.15.5,
@@ -1831,40 +2109,46 @@ against it. A reading that is not an information-model-over-XSD case says which 
      Bjorn's standing ruling of 2026-11-05 that the spec wins; the `xml:base` clause restated 2026-11-06 by
      RV seat P, on the review of PR #46.)
 
-104. **A choice's identifier is used by no other choice of any class in its document, and names no item variable.** Four
-     choice classes of the information model say of their identifier "This identifier must not be used by any other
-     choice or item variable" (section 5.132.1, SimpleChoice,
-     https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier, and sections
-     5.131.1, 5.73.1 and 5.67.1 of SimpleAssociableChoice, InlineChoice and HotspotChoice), and the other five name
-     their own noun: "any other gap" (section 5.55.1, Gap), "any other image" (5.56.1, GapImg), "any other text"
-     (5.58.1, GapText), "any other hotspot" (5.7.1, AssociableHotspot) and "any other hottext choice" (5.65.1,
-     HotText). The four are read literally: "any other choice" is any other element of the nine choice classes, each an
-     element whose identifier a response holds as an identifier, pair or directed pair value, "a logical reference to
-     another object in the item, such as an itemVariable or choice" (section 7.16, Identifier). The five say what
-     their own class bars and do not say that another class may reuse the identifier, and a response names a choice by
-     its identifier alone, so the nine classes share one space of identifiers, and the stricter reading of the
-     normative text is the one taken. A gap and a gap text of one gap match interaction therefore may not share an
-     identifier, and neither may a simple choice and a hottext, or an inline choice and a gap. The sentence names no
-     interaction, and its other term, "item variable", is the item's. So the scope is the document: no two choices of
-     the nine classes in one document share an identifier, whichever interactions hold them, and no two hottexts do,
-     inside a hottext interaction or not (reading 38). The item variables are an item's declared variables, of all four
-     kinds, and its built-in variables, which "are declared implicitly" (section 2.2.2): `completionStatus`,
-     `numAttempts` and `duration`, and `QTI_CONTEXT` (section 2.2.2.1). So in an item no choice and no hottext bears
-     the identifier of a declaration of its document or of a built-in variable. A document that is no item, such as a
-     stimulus, has no built-in variables, and its choices are judged against its declarations, of which it has none.
-     Identifiers are compared collapsed (reading 7). The schema states it with "Choice identifier key", which holds
-     the per-class keys, and a check on `ChoiceVariableName` that a name one of the nine classes bears is borne by no
-     other choice or hottext, in the document and over its assembly (an included fragment's choices count among its
-     item's, reading 117). In the corpus, the 28 packages hold 1,266 elements of the nine classes, and none shares an
-     identifier with an element of another class; 16 items of `shared-vocabulary` repeat choice identifiers across the
-     interactions each one replicates (`Item_QTI3_Hotspot_01` holds two hotspot interactions whose choices are both `A`
-     to `D`), and that package is refused already; no item gives a choice the identifier of a declaration or of a
-     built-in variable. So no verdict moves. This binds pantry and plate alike. This is not a case of documents in
+104. **A choice's identifier is used by no other element of its own noun in its document, a "choice" by no other choice of
+     any class, and none names an item variable.** Each of the nine choice classes says of its identifier "This
+     identifier must not be used by any other X or item variable", and X is each class's own noun: "any other gap"
+     (section 5.55.1, Gap), "any other image" (5.56.1, GapImg), "any other text" (5.58.1, GapText), "any other
+     hotspot" (5.7.1, AssociableHotspot), "any other hottext choice" (5.65.1, HotText), and "any other choice" for the
+     four classes whose row begins "The identifier of the choice" (5.132.1 SimpleChoice,
+     https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier, and 5.73.1, 5.67.1
+     and 5.131.1 of InlineChoice, HotspotChoice and SimpleAssociableChoice). Each sentence bars what its noun names, and
+     no more. So two elements of one class never share an identifier. A "choice" names every element the information
+     model calls a choice: the four classes' own; a gap text and a gap image, the "gap choices" (section 6.17,
+     GapChoice; a gap match interaction's gaps are filled "from an associated set of choices", 5.57); an associable
+     hotspot, one of "a corresponding set of choices that are defined as areas of the graphic image" (5.59, the graphic
+     associate interaction); and a hottext, a "hottext choice" (5.65.1). So an element of the four shares its
+     identifier with none of those, of any class. A gap is no choice, and the five other sentences bar only their own
+     class, so a gap and a gap text of one gap match interaction may share an identifier, as a gap and a simple choice,
+     a gap text and a hottext, or a gap text and a gap image may. The sentence names no interaction, and its other
+     term, "item variable", is the item's. So the scope is the document, whichever interactions hold the elements, and
+     no two hottexts share an identifier, inside a hottext interaction or not (reading 38). The item variables are an
+     item's declared variables, of all four kinds, and its built-in variables, which "are declared implicitly" (section
+     2.2.2): `completionStatus`, `numAttempts` and `duration`, and `QTI_CONTEXT` (section 2.2.2.1). So in an item no
+     choice and no hottext bears the identifier of a declaration of its document or of a built-in variable. A document
+     that is no item, such as a stimulus, has no built-in variables, and its choices are judged against its
+     declarations, of which it has none. Identifiers are compared collapsed (reading 7). The schema states it with
+     "Choice identifier key": the per-class keys, and a key over `ChoiceSpaceName`, every element of the four with
+     every other choice or hottext that bears one of their names, in the document and over its assembly (an included
+     fragment's choices count among its item's, reading 117); and "Choice not variable", a check on `UnclaimedName`. In
+     the corpus, the 28 packages hold 1,266 elements of the nine classes, and none shares an identifier with an element
+     of another class; 16 items of `shared-vocabulary` repeat choice identifiers across the interactions each one
+     replicates (`Item_QTI3_Hotspot_01` holds two hotspot interactions whose choices are both `A` to `D`), and that
+     package is refused already; no item gives a choice the identifier of a declaration or of a built-in variable. So
+     no corpus verdict moves. Of AlphaTest's served items, three (four versions, all three current) give a gap and a
+     gap text one identifier, nine identifiers in all, and no served item shares one across any other two classes
+     (production Silver, 2026-11-20): those three were refused and are admitted. This binds pantry and plate; plate
+     keeps a gap match's gaps and its gap choices apart, so it needs no change. This is not a case of documents in
      conflict: the XSD types a choice's identifier `IdentifierDType` and decides nothing of its uniqueness. (Decided
-     2026-11-06 by W5 seat PM under Bjorn's standing ruling of 2026-11-05 that the spec wins. Amended 2026-11-08
-     by the overseer under the operator's delegation, mail 7a7e6287, ruling 1: the four classes' "any other choice" is
-     read across classes, the stricter normative reading, and the nine classes share one space of identifiers; the
-     reading of those four one class at a time is withdrawn.)
+     2026-11-06 by W5 seat PM under Bjorn's standing ruling of 2026-11-05 that the spec wins. Amended 2026-11-08 by the
+     overseer under the operator's delegation, mail 7a7e6287, ruling 1, which read the nine classes as one space of
+     identifiers. Amended 2026-11-20 by lane PANTRY-CONFORM, SV-READ-02: one space refused a gap and a gap text that
+     share an identifier, which no sentence bars, so each sentence's noun now scopes it; the four classes' "any other
+     choice" still reaches every class the information model calls a choice, the strictest reading its text bears.)
 105. **A usage statistic's value is typed by the base type it names, and untyped where it names none.** The usage data
      binding (QTI 3.0 Usage Data Information Model and XSD Binding 1.0, section 2.6.5, the Value class,
      https://www.imsglobal.org/sites/default/files/spec/qti/v3/ud-bind/index.html; line 2620 of the page in
@@ -1894,15 +2178,64 @@ against it. A reading that is not an information-model-over-XSD case says which 
      value by the base type it names where it forms part of a record. (Decided 2026-11-06 by W5 seat PM under Bjorn's
      standing ruling of 2026-11-05 that the spec wins; amended by decision 321 (6).) (Proposed in phase 15, 2026-11-06,
      for the operator; decision 321.)
-106. **Withdrawn.** It read the built-in variables a test's prefixed reference reaches through its item ref. The
-     placement cutover deleted plate's test-delivery engine (plate, 2026-11-17) and pantry stores no test (reading 228),
-     so no package this repository admits holds what it read.
-107. **Withdrawn.** It read the names a test's variable mapping gives an item's outcome. The placement cutover deleted
-     plate's test-delivery engine (plate, 2026-11-17) and pantry stores no test (reading 228), so no package this
-     repository admits holds what it read.
-108. **Withdrawn.** It read a test's template default under its item ref. The placement cutover deleted plate's
-     test-delivery engine (plate, 2026-11-17) and pantry stores no test (reading 228), so no package this repository
-     admits holds what it read.
+106. **A prefixed reference reaches every built-in variable its item ref's item holds, `QTI_CONTEXT` among them.** The
+     information model says "Item variables are declared by variable declarations: context, response, outcome or
+     template variables" (section 2.2.2), "QTI_CONTEXT is a built-in variable and so any references within an item or
+     an assessment to the QTI_CONTEXT variable, or to the three built-in fields, must succeed" (section 2.2.2.1), and
+     that during outcome processing "values taken from an individual item session can be looked up by prefixing the
+     name of the item variable with the identifier assigned to the item in the qti-assessment-item-ref" (section
+     2.11.1.2). So `Q01.numAttempts`, `Q01.duration`, `Q01.completionStatus` and `Q01.QTI_CONTEXT` each name a
+     variable of item ref `Q01`'s item, the built-ins the installed `BuiltInVariable` lists under an item's root with
+     the types reading 29 gives them, and each counts as a resolving reading under reading 48. The upstream rule set
+     this repository ported (the UP audit's A55) reached only the three session variables; `QTI_CONTEXT` is admitted
+     here because section 2.2.2.1 says a reference to it must succeed (reading 1). A `duration` read so is the item's
+     whether or not the item is time dependent (reading 150), and an item ref
+     that names an LTI link has no item whose declarations a prefix reads, so a prefixed reference through it is
+     accepted unchecked, a recorded limit (reading 110). In the corpus, the one test package that prefixes names,
+     `test_package_minfiles`, reads `item034.SCORE`,
+     `item063.SCORE`, `item065.SCORE` and `item160.SCORE`, each declared and each resolving once, and every test
+     package is refused at the codec today, so no verdict moves. This binds pantry and plate alike. This is not a case
+     of documents in conflict. (Decided 2026-11-06 by W5 seat PE under Bjorn's standing ruling of 2026-11-05 that
+     the spec wins; its LTI clause amended by decision 321 (6); amended 2026-11-07 by the coordinator from seat FIX-A1,
+     the bar on a `duration` read so, which section 2.2.2.2 alone carried, withdrawn by reading 150.) (Proposed in
+     phase 15, 2026-11-06, for the operator; decision 321.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered
+     every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI database refuses no valid QTI,
+     conformance §3 and §4.4, which lifts reading 228's refusal of tests.)
+
+107. **A variable mapping adds a name for an item's outcome, and the outcome's own name still names it.** The
+     information model says "Variable mappings allow outcome variables declared with the name source-identifier in the
+     corresponding item to be treated as if they were declared with the name target-identifier during outcome
+     processing" (section 7.48), and of the source "The identifier of the outcome variable to identify the name of the
+     source identifier during outcome processing variable mapping" (section 7.48.1). It does not say the source name
+     stops naming the variable, and section 2.11.1.2's prefixed lookup names "the item variable" by its declared
+     identifier. So under an item ref `Q01` whose mapping maps `SCORE` to `S2`, both `Q01.SCORE` (declared) and
+     `Q01.S2` (mapped) resolve, each to the item's `SCORE`, with that declaration's type. A mapping's source names an
+     outcome declaration of the item its item ref names, and reading 97 keeps its target from naming any other
+     variable the item declares, so no name of an item ref reaches two variables. Refusing `Q01.SCORE` would refuse
+     what section 2.11.1.2 states (reading 1). The corpus holds no variable mapping, so no verdict moves. This binds
+     pantry and plate alike. This is not a case of documents in conflict. (Decided 2026-11-06 by W5 seat PE under
+     Bjorn's standing ruling of 2026-11-05 that the spec wins.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner
+     ordered every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI database refuses no valid
+     QTI, conformance §3 and §4.4, which lifts reading 228's refusal of tests.)
+
+108. **A template default names a template variable of its item, and its expression is a value of that variable's
+     type.** The information model says of TemplateDefault "The default value of a template variable in an item can be
+     overridden based on the test context in which the template is instantiated. The value is obtained by evaluating
+     an expression defined within the reference to the item at test level and which may therefore depend on the
+     values of variables taken from other items in the test or from outcomes defined at test level itself" (section
+     5.152), and of `template-identifier` "The identifier of the template variable affected" (section 5.152.1). So the
+     identifier, compared collapsed (reading 7), names a template declaration of the item its item ref names, and the
+     expression's value becomes that variable's default value, a value of its declared base type and cardinality, as
+     a setter's expression "must have an effective value type which is compatible with the variable's base-type and
+     cardinality" (section 2.5.1.3; the old checker's P20), a type no declaration says passing (reading 4). Its
+     references resolve against the test, prefixed ones included, as reading 4 states once its text names template
+     defaults beside pre-conditions and branch rules (the UP audit's A38). An item ref that names an LTI link has no
+     template variable, so a template default under one is refused. The corpus holds no template default, so no
+     verdict moves. This binds pantry and plate alike. This is not a case of documents in conflict. (Decided 2026-11-06
+     by W5 seat PE under Bjorn's standing ruling of 2026-11-05 that the spec wins.) (Restored 2026-11-20 by lane
+     IMPL-TESTS: the owner ordered every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI
+     database refuses no valid QTI, conformance §3 and §4.4, which lifts reading 228's refusal of tests.)
+
 109. **An element whose type has an ID attribute use holds no wildcard `xml:id`.** XML Schema 1.0 Part 1 (section 3.4.4,
      Element Locally Valid (Complex Type), clause 5) calls "wild IDs" the attributes an attribute wildcard admits whose
      declaration's "{type definition} is or is derived from ID", and requires: "5.1 There must be no more than one item
@@ -1925,9 +2258,30 @@ against it. A reading that is not an information-model-over-XSD case says which 
      corpus verdict moves. This binds pantry and plate alike. This is not a case of documents in conflict: XML Schema
      decides its own validity. (Decided 2026-11-06 by W5 seats UP and PG under Bjorn's standing ruling of
      2026-11-05 that the spec wins.)
-110. **Withdrawn.** It read a test's variable mappings and template defaults, under an item ref that names an item or an
-     LTI link. The placement cutover deleted plate's test-delivery engine (plate, 2026-11-17) and pantry stores no test
-     (reading 228), so no package this repository admits holds what it read.
+110. **A variable mapping and a template default name variables an item declares; under an item ref that names an LTI
+     link a variable mapping is accepted unchecked, a recorded limit, and a template default is refused.** The
+     information model says "Variable mappings allow outcome variables declared with the name source-identifier in the
+     corresponding item to be treated as if they were declared with the name target-identifier during outcome
+     processing" (section 7.48), and "The default value of a template variable in an item can be overridden based on the
+     test context in which the template is instantiated" (section 5.152), its `template-identifier` being "The
+     identifier of the template variable affected" (section 5.152.1). Each names a variable declared in the
+     corresponding item. An item ref may name an LTI link instead of an item (the implementation guide's section 6.2.9,
+     informative; the UP audit's B3), and an LTI link is no QTI item: the package holds no declaration of what the
+     external tool reports, so a mapping's source under such an item ref names a variable nothing in the package lists,
+     and a prefixed reference through it names one too (reading 106). Both are accepted unchecked. This is a recorded
+     limit, not a law of the specification: the cause is that the package states no declaration to check the name
+     against (audit F13), and what would lift it is a source that lists the outcomes an LTI link reports, against which
+     the source and the prefixed name would be checked as they are under an item. A template default stays refused
+     under such an item ref, under `template-default-target`, as a template its item does not declare is: an LTI link
+     is no QTI item and has no template variables to override, whatever outcomes it reports. A variable mapping under
+     an item ref that names an item is still refused under `variable-mapping-source` where its source is a variable the
+     item does not declare, and never as a derived field. The corpus's LTI item refs (testWithLti) hold neither, so no
+     verdict moves. This binds pantry and plate alike. This is not a case of documents in conflict. (Decided 2026-11-06
+     by W5 seat PE under Bjorn's standing ruling of 2026-11-05 that the spec wins; amended by decision 321 (6).)
+     (Proposed in phase 15, 2026-11-06, for the operator; decision 321.) (Restored 2026-11-20 by lane IMPL-TESTS: the
+     owner ordered every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI database refuses no
+     valid QTI, conformance §3 and §4.4, which lifts reading 228's refusal of tests.)
+
 111. **A processing element's `identifier` names a variable of the kind the element reads or sets.** The information
      model defines each: a correct value is of "the associated response variable" (section 7.10.1), a map response's
      and a map response point's variable a response (sections 7.22.1, 6.9.46), a lookup's "the outcome variable to be
@@ -1940,9 +2294,25 @@ against it. A reading that is not an information-model-over-XSD case says which 
      a variable, each of a kind its element admits, so no verdict moves. This binds pantry and plate alike. This is not
      a case of documents in conflict. (Decided 2026-11-06 by W5 seat PE under Bjorn's standing ruling of 2026-11-05 that
      the spec wins.)
-112. **Withdrawn.** It read the variables a test's setters set. The placement cutover deleted plate's test-delivery
-     engine (plate, 2026-11-17) and pantry stores no test (reading 228), so no package this repository admits holds what
-     it read.
+112. **A test's setter sets a variable of its own document, so a prefixed reading never resolves it.** The
+     information model names a setter's `identifier` "The identifier of the variable to be set" (section 5.130.1,
+     SetValue) and a lookup's "The identifier of the outcome variable to be set" (section 5.87.1), each rule setting
+     "the value of an outcome variable" or of "a template variable" (sections 6.32.3, 6.39.4, 6.50.1) or the default
+     or correct value of a response (sections 6.50.4, 6.50.5); and an item's variables reach a test only to be read:
+     "values taken from an individual item session can be looked up by prefixing the name of the item variable with
+     the identifier assigned to the item in the qti-assessment-item-ref" (section 2.11.1.2). So of a
+     `qti-set-outcome-value`, `qti-set-template-value`, `qti-set-correct-response`, `qti-set-default-value` or
+     `qti-lookup-outcome-value` only the unsplit reading resolves, a declaration of the setter's own document
+     (reading 111 types it), and its split and numbered readings count for nothing under reading 48: a test that
+     declares `a.SCORE` and sets it is not ambiguous beside an item ref `a` whose item declares `SCORE`, and a test
+     that sets `a.SCORE` without declaring it is refused (`variable-kind`), since it would set an item's variable. In
+     the corpus, the 27 setters of the 14 test and section documents name `SCORE`, `TEST_total`, `TEST_FEEDBACK`,
+     `SECTION_1_total` to `SECTION_4_total` and `s1FB` to `s4FB`, none prefixed, so no verdict moves. This binds
+     pantry and plate alike. This is not a case of documents in conflict. (Decided 2026-11-06 by W5 seat PE under
+     Bjorn's standing ruling of 2026-11-05 that the spec wins.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner
+     ordered every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI database refuses no valid
+     QTI, conformance §3 and §4.4, which lifts reading 228's refusal of tests.)
+
 113. **A root that reading 6 keeps foreign stands under a `strict` wildcard that finds its declaration.** Reading 6
      keeps a QTI root, a processing root or the manifest, nested inside wildcard content, as foreign content: it is not
      refused and not read as QTI. A `strict` wildcard requires "a top-level declaration for the item available, or the
@@ -2001,20 +2371,31 @@ against it. A reading that is not an information-model-over-XSD case says which 
      specification: the information model says an included fragment's content "must satisfy the requirements of the
      specification in the context of the item in which it is being included" (section 2.12, reading 117), which a
      fragment pantry never reads cannot be checked against. What would lift it is a fetch of the resource, which an
-     importer of a package does not do (audit C B2). An IDREF of the including document that names an ID only that
-     resource could hold is refused under "Idref target", as one that names no ID is: the merged document holds none of
-     the resource's content, so its assembly binds no such ID (reading 117), and pantry cannot tell an ID the resource
-     holds from one it lacks. That is a recorded over-refusal with the same cause as the under-check above, and the same
-     fetch would lift it. The corpus holds no external include, so no verdict moves. The
+     importer of a package does not do (audit C B2). An IDREF of an assembly that holds such an include is judged by no
+     law: the merged document holds the resource's content, "a new infoset which merges the source infoset with the
+     infosets of resources identified by URI references" (XInclude 1.0 Second Edition, section 4), which pantry never
+     reads, so an ID only that resource could hold cannot be told from one it lacks, and the assembly's IDREFs are
+     admitted unjudged (`JudgedPlacedIdref`, `src/qti/overlay-queries/identity.ts`): an under-check with the same cause
+     as the one above, which the same fetch would lift. Such an include is `UnplacedInclude`'s `external`, so the
+     Delivery verdict serves its item as not deliverable, as QTI 3.0 Conformance §3 asks of what an application does
+     not support ("ignore or remove the unsupported data"). The corpus holds no external include, so no verdict moves. The
      schema states it with one cause per fault. A site's href is a row of its own (`SitePath`), written only where the
      href resolves to a path of the package, with `entry`, whether the package holds an entry there, and its target is
      another row (`SiteTarget`):
      - An href naming a path no entry holds breaks `SitePath`'s `File_exists` CHECK, which PostgreSQL meets as the row
        is inserted, so it is refused under "File exists" alone, whether its site is an include or a section ref. The
        include's and the section ref's document laws read only paths an entry holds.
-     - An include with no href or an empty one has no `SitePath`, and breaks "Include target" alone; an external one
-       has no `SitePath` either and is admitted (`Site.external`, above). So does an include whose path names an entry
-       the manifest lists as no document.
+     - An include with no href or an empty one has no `SitePath`, and breaks "Include target" alone, whether or not it
+       holds an `xi:fallback`, since a fallback stands only for a resource error; an external one has no `SitePath`
+       either and is admitted (`Site.external`, above).
+     - An include whose path names an entry that is no document the manifest lists breaks "Include target" alone,
+       unless it holds an `xi:fallback`. XInclude makes such a resource a resource error, "Resources that are
+       unavailable for any reason (for example ... the resource is determined through implementation-specific
+       mechanisms not to be XML) result in a resource error" (section 4.2), and "When a resource error is encountered,
+       the xi:include element is replaced with the contents of the xi:fallback element" (section 3.2), so one that
+       holds a fallback is valid: it is admitted and stored as written, its fallback judged where it is written, and
+       `UnplacedInclude` names it `fallback`, since the representation places no fallback's contents where the include
+       stands.
      - A section ref, which must write an href (AL3 refuses one that doesn't), names a section document the package
        lists. One that names an entry that is no section document breaks "Document entry" alone, and one that is
        external breaks the stated limit "Remote section ref" alone (reading 170).
@@ -2025,25 +2406,38 @@ against it. A reading that is not an information-model-over-XSD case says which 
      (`25d16460`), on the review of the import's sentinel values: the schema's statement recorded; nothing it refuses
      changed.) (Amended 2026-11-07 by the Mind, decision 416, on audit e8db90e1's F9: the refusal of an IDREF into an
      external include's content recorded; nothing it refuses changed.) (Proposed in phase 15, 2026-11-06, for the
-     operator; decision 321.)
+     operator; decision 321.) (Amended 2026-11-20 by lane PANTRY-CONFORM under the lead's J1 ruling, that what valid QTI
+     allows is admitted and an include the runtime cannot place is served as not deliverable: an IDREF beside an
+     external include is admitted unjudged, and an include that holds a fallback and names an entry that is no document
+     is admitted; each is named by `UnplacedInclude`.)
 
 116. **A fragment's root is read by its name at its document's root, so the three kinds the composition splits by
-     context never root a fragment: a stated limit.** The composition gives three element names two kinds each, by the
+     context never root a fragment, and an include that stands for one is admitted, placed nowhere.** The composition gives three element names two kinds each, by the
      context the XSDs declare them in: `qti-template-block` and `qti-template-block.rubric`, `qti-template-inline` and
      `qti-template-inline.rubric`, `qti-feedback-block` and `qti-feedback-block.template`, whose content models differ
      (a rubric's template inline admits no hottext, gap, feedback inline or nested template inline, and each block's
      content body is its own kind). A fragment's root stands at its own document's root, which reads an element by its
      expanded name alone, so a fragment rooted at one of those names is read as the kind whose handle is the name, and
      an include whose parent admits only the split kind there (a template inside a rubric block, a feedback block inside
-     a template block) is refused under "Include root". One written element is one row of one kind, so this is a limit
-     of the representation, not a law of the specification; no corpus document includes such a fragment. This binds
-     pantry. This is not a case of documents in conflict. (Recorded by W5 seat IN, 2026-11-06.)
-117. **An included fragment is judged in place, as its merged document holds it, under one nearest interaction: the
-     last a stated limit.** The information model says "When including externally defined fragments the content of the
-     fragment must satisfy the requirements of the specification in the context of the item in which it is being
-     included. For example, interactions included from fragments must be correctly bound to response variables declared
-     in the items" (section 2.12), and the include "is treated as if it was actually an instance of the root element of
-     the fragment". So a fragment's content is judged as XInclude's result infoset holds it:
+     a template block) places it nowhere. Such a package is valid: XInclude's result "is a new infoset which merges the
+     source infoset with the infosets of resources identified by URI references" (XInclude 1.0 Second Edition, section
+     4), and in it the fragment's root stands where its parent admits the split kind. So "Include root" admits the
+     include (`SplitRoot`, `src/grammar/install.ts`), and `UnplacedInclude` names it `root`, so the Delivery verdict
+     serves its item as not deliverable (QTI 3.0 Conformance §3: "ignore or remove the unsupported data"). One written
+     element is one row of one kind, so the fragment is judged as its own document holds it and its placement by no
+     law, a limit of the representation (reading 1), lifted by reading the split kind from the include's parent. A root
+     invalid wherever it stands, such as a rules fragment in an item body, is still refused under "Include root". No
+     corpus document includes such a fragment. This binds pantry. This is not a case of documents in conflict.
+     (Recorded by W5 seat IN, 2026-11-06. Amended 2026-11-20 by lane PANTRY-CONFORM under the lead's J1 ruling: such an
+     include, refused till then, is admitted, unplaced.)
+117. **An included fragment is judged in place, as its merged document holds it, under one nearest interaction: a
+     placement under another is admitted, unplaced.** The information model's Include is "the use of the XInclude feature" (§9.4.1,
+     normative), and XInclude's output "is a new infoset which merges the source infoset with the infosets of
+     resources identified by URI references" its includes name (XInclude 1.0 Second Edition, §4), so the item a
+     package delivers is that merged infoset, and the information model's rules bind it as they bind any item. Section
+     2.12 says the same ("the content of the fragment must satisfy the requirements of the specification in the
+     context of the item in which it is being included"), but section 2 is not normative, and nothing here rests on it
+     alone. So a fragment's content is judged as XInclude's result infoset holds it:
      - its nodes inherit the ancestry of the includes that place it, the union over its placements, which is exact for
        every ban, a ban being a disjointness: an interaction a fragment brings into a simple choice is refused (N6), and
        a gap a fragment brings into a gap match's text stands;
@@ -2081,29 +2475,47 @@ against it. A reading that is not an information-model-over-XSD case says which 
      twice is written once is the information model's for section documents in a test's assembly (section 7.5.3, "A
      test may refer to the same section multiple times"), a different construct, and includes in a section follow it.
      A fragment's nodes are one written element each, one row each, so a fragment is judged under one nearest
-     interaction: two includes that place it inside different interactions, or one inside an interaction and one
-     outside every interaction, are refused under "Fragment context", a limit of the representation, not a law of the
-     specification; no corpus document places a fragment inside an interaction. A rule fragment's references are
-     typed in each item that places it, once per placement, where the reference is the whole expression a law types: a
-     map response or map response point names a declaration of that item that holds a mapping or an area mapping
-     ("Mapped response", P27), and a `qti-variable`, `qti-correct` or `qti-default` that is itself a condition names a
-     boolean single declaration of that item ("Condition type", P21); a reference read through an LTI link stays
-     unchecked (reading 110). Until each is stated in place, these laws read a fragment's content in its own document
-     alone, each a known under-refusal and never an over-refusal: the `xml:lang` forms of a fragment a section document
-     or a test places, listed by the test's records; a rule fragment's other types, the type laws over its composite
-     expressions (P20 to P29), such as a `qti-sum` of its variables under a `qti-response-if`, which read its variables
-     untyped; a condition reference to a declaration with no base type, a record, which writes no placed type and so is
-     not typed; and the processing language its rules are written in (O4), which reads as none. The composites and the
-     record reference move a verdict: the import accepts a package whose fragment holds such a type error, which the
-     law oracle, typing the fragment in its item, refuses. Typing an expression once per placement is planned as its
-     own goal. This binds pantry and plate alike. This is not a case of documents in conflict.
-     (Decided 2026-11-06 by W5 seat IN under Bjorn's standing ruling of 2026-11-05 that the spec wins. Amended
+     interaction, the one the first site that names it stands in: a site that places it inside another interaction, or
+     one inside an interaction where the first stands outside every interaction, or the reverse, is admitted, and
+     `UnplacedInclude` names it `context`, so the Delivery verdict serves its item as not deliverable (QTI 3.0
+     Conformance §3: "ignore or remove the unsupported data"). The merged document under that placement is judged by
+     no law that reads the nearest interaction, a limit of the representation (reading 1), lifted by a row per
+     placement; no corpus document places a fragment inside an interaction. Every expression is typed, and every
+     variable reference resolved, once per placement: a placement is an instance of an assembly, or a document in no
+     assembly as its own one, and an item's own placement places beside the item the response processing template it
+     locates, whose rules run as the item's (information model §4.6.1 and §4.6.2). Each reference of a placed
+     document resolves in the placement's assembly, among its root's declarations, else its root's built-in variables,
+     else, under a test, the one reading of its name through a scope (reading 167), else nothing; and each expression
+     is typed bottom-up over its operands, its attributes and those references there. Every type law is stated once
+     over the placed rows ("Operand fit", "One base", "Condition type", "Set type", "Lookup type", "Reference type",
+     "Mapped response", "Variable declared", "Variable kind", "Template reads", and the typing of "E1 derived"). So a
+     fragment spliced into one item is typed in that item: its composite expressions, such as a `qti-sum` of its
+     variables under a `qti-response-if`, and a condition reference to a record are judged there, and the type errors
+     there that the law oracle already refused, typing the fragment in its item, the database now refuses too. A
+     document placed in two assemblies is judged in each on its own: two tests that place one section document, two
+     items that splice one rules fragment, and an item and the template it locates, each refused under the law its
+     expression breaks there (`PlacedExpression` and `PlacedVariableRef`, `src/qti/expressions.ts`; `placedDocuments`,
+     `src/qti/overlay-queries/expression.ts`; the importer's `placedRowsOf`, `src/import/overlays/expressions.ts`). A
+     reference read through an LTI link stays unchecked (reading 110). These read a fragment's content in its own
+     document alone, each a known under-refusal and never an over-refusal: the `xml:lang` forms of a fragment a section
+     document or a test places, listed by the test's records; the processing language a rule fragment's rules are
+     written in (O4), which reads as none; and a fragment a located template itself includes, typed in the template's
+     own assembly and not in its item's. This binds pantry and plate alike. This is not a case of documents in
+     conflict.
+     An include pantry does not read, one with an `xpointer` or `parse="text"` (reading 85), places nothing, so no
+     fragment is judged through it. (Decided 2026-11-06 by W5 seat IN under Bjorn's standing ruling of 2026-11-05 that
+     the spec wins; re-cited 2026-11-20 by lane PANTRY-CONFORM, SV-READ-05, to §9.4.1 and XInclude's result infoset
+     in place of section 2.12. Amended
      2026-11-07 by the Mind, decision 416, on audit e8db90e1's F2, and decision 417, on its F3. Amended 2026-11-07 by
      the coordinator, under Bjorn's standing ruling of 2026-11-05, from seat FIX-ASM: the content references of
      a fragment a section document or a test places resolve in the test, reading 145. Amended 2026-11-09 by the Mind,
      decision 463, on research aeced65a's O18 and O38: a placed reference's mapping and its type as a condition, typed
      in its item; and decisions 465 and 466: a rule fragment's composite expressions and its condition references to a
-     record, stated as a limit that moves a verdict.)
+     record, stated as a limit that moves a verdict. Amended 2026-11-20 by lane PANTRY-CONFORM under the lead's J1
+     ruling: a placement under another nearest interaction, refused till then under "Fragment context", is admitted,
+     unplaced; and a fragment included under an ancestry flag, such as a paragraph in a rubric block or hottexts in a
+     hottext interaction, is no longer refused under "E1 derived" at its document node, whose ancestry is its
+     context, not its root copy's start.; amended the same day by lane IMPL-117 on the lead's order from Bjorn's rulings: every expression typed per placement as a hard cutover, its planned goal, which lifts decisions 465 and 466's limit; the per-document typing is gone.)
 
 118. **An include holds at most one fallback, and its `accept` and `accept-language` hold header characters alone,
      though `XInclude.xsd` admits more.** XInclude says "The children property of the xi:include element may include a
@@ -2116,8 +2528,9 @@ against it. A reading that is not an information-model-over-XSD case says which 
      Of the rest XInclude says "Other content (text, processing instructions, comments, elements not in the XInclude
      namespace, descendants of child elements) is not constrained by this specification and is ignored by the XInclude
      processor, that is, it has no effect on include processing" (section 3.1), and no QTI text bans it, so the content
-     of a resolving include other than its `xi:fallback` is ignored: never assessed laxly, as `XInclude.xsd`'s wildcard
-     would assess it, and never refused (reading 1 lists the importer's remaining departure). XInclude also says "It is
+     of an include other than its `xi:fallback` is ignored: skipped, never assessed laxly, as `XInclude.xsd`'s wildcard
+     would assess it, and never refused, by the importer (`ignoredContent`, `src/grammar/facets.ts`) and the law oracle
+     alike. XInclude also says "It is
      a fatal error for an xi:fallback element to appear in a document anywhere other than as the direct child of the
      xi:include" (section 3.2). The pinned XSDs name `xi:fallback` only under `xi:include`, but a wildcard reads
      XInclude's globals as their kinds, so a fallback in wildcard content is read as XInclude's element and not refused:
@@ -2125,7 +2538,8 @@ against it. A reading that is not an information-model-over-XSD case says which 
      pantry and plate alike. This is not a case of documents in conflict.
      (Decided 2026-11-06 by W5 seat IN under Bjorn's standing ruling of 2026-11-05 that the spec wins. Amended
      2026-11-09 by the operator under delegation, decision 470: the content of a resolving include other than its
-     fallback is ignored, not assessed laxly.)
+     fallback is ignored, not assessed laxly. Amended 2026-11-20 by lane PANTRY-CONFORM under the lead's J1 ruling: the
+     importer skips it too, which lifts reading 1's include content limit, issue #66.)
 119. **A rounding operator's integer `figures` is at least 1 under significant figures and at least 0 under decimal
      places.** The information model says of EqualRounded's `figures` "If roundingMode= 'significantFigures', the
      value of figures must be a non-zero positive integer. If roundingMode='decimalPlaces', the value of figures must
@@ -2446,51 +2860,35 @@ against it. A reading that is not an information-model-over-XSD case says which 
      codes, and `%q`, `2f%` and `%` are still refused under `attribute-lexical`; reading 171 adds `d` to the listed
      codes.
 
-133. **A key text holds at most 428 UTF-8 bytes: a stated limit of the representation, not a law of QTI.** No QTI
-     specification bounds the length of an identifier, an ID, an IDREF, an `xml:lang`, a title, an href, a map key or a
-     value's lexical form (readings 45 and 94 state that the productions state no length). pantry's representation still
-     refuses one past a bound where a key holds it, because grizzle puts every text that takes part in a cross-row
-     equality through a key in a B-tree index, and PostgreSQL refuses a B-tree entry above `BTMaxItemSize`, 2,704 bytes
-     at `BLCKSZ` 8192 (`nbtree.h`). Such a text is copied into a field of type `keyText` (`src/qti/limits.ts`). keyText
-     is grizzle's byte refinement, `str.bytes(keyTextBytes(widestTextKey), any text)`, at most 428 UTF-8 bytes, which is
-     what grizzle's own rule, `keyTextBytes`, leaves beside the widest key's other fields: a reading's containment in
-     `Reading`, five identity texts beside six naturals and a closed id, the key text the sixth text. That's about 428
-     ASCII, 214 two-byte, 142 CJK or 107 astral characters. `limits.test.ts` holds each bound to `keyTextBytes`
-     exactly. The one bound applies evenly: every text the schema copies into a keyText field counts against it, so a
-     `<p id>` past 428 bytes is refused just as a resource identifier past it is, by the oracle's "Key text bound"
-     (rule `key-text-bound`) and by the database under the same rule: the import writes the copy's row whatever its
-     length, as it writes every copy (no host-side pre-filter leaves an over-long copy out), and keyText's own check
-     refuses it. `src/test/keys.oracle.test.ts` holds the database's rule, read from the import's rows, to the
-     oracle's. The law oracle reads the list of such copies from the schema's statements (`src/test/key-copies.ts`), and
-     `src/test/keys.oracle.test.ts` holds its verdict to the import's rows in 1-, 2-, 3- and 4-byte scripts. The bound
-     is no part of the text's type, as a pattern isn't, so the copy of an unbounded attribute value meets it in a
-     containment. A package's name and an entry's path, the two identity texts every key over a document or an element
-     holds, hold 425 bytes each (`identityBytes`), a sixth each of the widest key's entry. An open attribute's local
-     name and its namespace name share their key, `(package, path, start, uri, local)`, evenly: 890 bytes each. A
-     namespace prefix holds 1,802 bytes, what its key `Namespace(package, path, start, prefix)` leaves beside the
-     element's place. (Restated 2026-11-14: the identity cutover, `96119f9f`, cut every key text to a sixth of the
-     widest entry after `ad4e9139` had written the earlier 858, 457 and 936 here.)
-
-     Some free texts are kept out of every key, so no bound reaches them: a reference's href of the census's `uri`
-     form, as its target (`Reference.target`), a `srcset` candidate's URL (`SrcsetCandidate.url`), a map key
-     (`MapKey.key` and `matched`, `MapKeyType.key`) and a lookup table's value (`LookupValue.value`,
-     `LookupValueType.value`). A copy of such a text, or a split of one, is held to its source by a rule over a
-     query, which compares the two texts and no index holds (`ReferenceLexical`, `MapKeyAttributeText`,
-     `LookupAttributeText`, `MapKeyText` and `LookupValueText`, `src/qti/queries.ts`); only a path resolved in the
-     package is a key text, an entry's path. grizzle gives no digest of a text, `Compute.sha256` reading a bytes value
-     alone, so no free text is compared through a digest column. A free text a law compares through a key stays
-     bounded: an identifier a row of its own holds, a template default's `template-identifier` among them, and every
-     concatenation fold's text, which a family's keys carry (reading 1's list, `docs/grizzle-findings.md`). An
-     assessment object's `identifier` and `title` are no longer among them: each is its attribute's `value`, which no
-     key text bounds (C18). (Amended 2026-11-14 by the operator's ruling on F2.)
-
-     The bound is in UTF-8 bytes, as Bjorn ruled, and in no other measure: grizzle 27c4cd2 gives the byte bound
-     as a refinement, `str.bytes(n, pattern)`, after a text contract proved unable to be a copy's target
-     (`docs/grizzle-findings.md`). On what would lift the bound itself, grizzle's statement: "The bound is permanent for
-     any key a foreign key references or a put arbitrates on, while PostgreSQL's B-tree is its only unique index. For
-     other keys it would be lifted by a hash-exclusion key form, which grizzle does not plan." This binds pantry alone:
-     plate holds no key. (Decided 2026-11-06 by RV seat S-ORACLE, on the review of PR #46 and Aiden's question of
-     2026-11-06, under Bjorn's ruling that the bound is applied evenly.)
+133. **A key holds a text of any length by its image; a text a query matches is at most what the regex engine reads,
+     and a decimal a query parses what the parse reads.** No QTI specification bounds the length of an identifier, an
+     ID, an IDREF, an `xml:lang`, a title, an href, a map key or a value's lexical form (readings 45 and 94 state that
+     the productions state no length). PostgreSQL refuses a B-tree entry above `BTMaxItemSize`, 2,704 bytes at
+     `BLCKSZ` 8192 (`nbtree.h`), so grizzle installs a key, a containment's target and a family's axes whose entry a
+     text could outgrow over the text's image, the 32 bytes of its SHA-256, and a lookup, a rule's probe and a seek over
+     the texts it fixes by equality over their md5 (grizzle LIMITS5 and LIMITS6, 353b47169), and no key bounds a text
+     in the store: such a field is `anyText`, a package's name and an entry's path among them (no index orders by a
+     path: `src/export/scan.ts` `entriesOf` reads a package's entries as a set, and the export orders them by code point
+     on the host). The bounds that remain are each a stated
+     limit of the representation: `matchedText`, at most `matchedTextBytes`, 268,435,454 bytes (`src/qti/limits.ts`, grizzle's
+     `regexTextMaxBytes`, the longest text PostgreSQL's regex engine reads), a text a query reads by `Text.matches`:
+     an element's string value (`Node.stringValue`), a map key (`MapKey.key`), a lookup table's value
+     (`LookupValue.value`), a mastery value, a normal bound and an interaction attribute's value; `parsedDecimalBytes`,
+     16,384 bytes (grizzle's `decimalTextMaxBytes`), an `xs:decimal` ARIA bound of an element that writes both, which
+     "Aria value range" parses by `Text.parseDecimal` under its own byte guard and "Key text bound" refuses past it,
+     since a longer decimal may name a value numeric does not hold; and `foreignNameBytes`, 134,217,726 bytes, a
+     foreign element's namespace name and local name each, half of the regex engine's bytes, since a query matches the
+     two as one expanded name (`OpenElementName.expanded`). No prefix and no open attribute's name is bounded: no read
+     orders by one (`src/export/scan.ts`), and the model orders them on the host.
+     No field's type is bounded by a parse: an identifier an interaction reads (`InteractionAttribute`) is a
+     `matchedText`, so a `response-identifier` or a choice's `identifier` meets the regex engine's bound alone
+     (SV-LIMIT-02). The law oracle names exactly those (`src/test/oracle.ts` `keyTexts`: the schema's copies into a
+     `matchedText` field, `src/test/key-copies.ts`, the importer's own writes, `heldAttributes`, and the ARIA bounds),
+     and `src/test/keys.oracle.test.ts` holds its verdict to the import's rows at 433 bytes, past a B-tree entry and at
+     64 KiB. The served AlphaTest item whose string correct response is 433 bytes (one of 82,352, measured 2026-11-20
+     on production Silver) is admitted. (Restated 2026-11-20 by PANTRY-CONFORM on LIMITS6; earlier versions bounded
+     every key text at 428 bytes and a package's name and an entry's path at 425, and LIMITS6's first consumer patch every
+     interaction attribute at 16,384.)
 
 134. **An item's or a test's languages are listed by its records' general categories, compared as language tags.** The
      QTI 3.0 Metadata binding says "There must be one value for each of the languages referred to by the language
@@ -2634,7 +3032,8 @@ variable type", beside "Template reference", which refuses a name that is no tem
 identifier of a template variable defined in the item whose value should be passed to the PCI module on
 initialization") states no type and may name any template variable, and a test's template default (section 5.152.1) is
 "Template default type"'s. This is stated, and is not a case of documents in conflict. This binds pantry and plate
-alike. (Label R15-l; proposed in phase 15, 2026-11-07, for the operator; decision 383; the law `Template variable type`.)
+alike. (Label R15-l; proposed in phase 15, 2026-11-07, for the operator; decision 383; the law `Template variable
+type`.)
 
 R9-a. **The catalog sentences of the information model hold as written.** A catalog holds one card per support ("Use
 only one card for any particular named support in a catalog", section 5.26.1); a card holds at most one entry with
@@ -2652,9 +3051,15 @@ R9-b. **Card files and resource icons are file references.** Reading 103's censu
 (CardSelection: "these files MUST be contained in the corresponding QTI content package") and section 5.80.4
 (`qti-resource-icon`: "This file MUST be contained within the correponding QTI content package") name two element-text
 references. A `qti-file-href` of a card or card entry, and a `qti-resource-icon`, are read as reading 102 reads an href
-and join the census. The ItemFileInfo `qti-file-href` of a calculator or digital material is left out (section 5.80.3
-says only "available at the location identified by a URI"). This amends reading 103 or stands beside it, as the operator
-prefers. (A proposal for the operator; numbered at integration.)
+and join the census. So does the ItemFileInfo `qti-file-href` of a calculator or digital material: section 5.80.3 calls
+it "the URI for the associated content file", typed `FileHrefDType`, `<xs:restriction base="xs:anyURI" />`
+(xsd:24100-24102), and section 5.80 "the container for information about an external file". The information model does
+not require that file to be in the package, so an address outside it is stored unresolved, as reading 35 stores an
+external href, and never refused. A path that resolves in the package names a file the package must hold, as IMS
+Content Packaging 1.2's InterchangePackage (d) holds every reference that resolves there. Leaving it out of the census
+made pantry's package-media install refuse every such file, valid QTI that QTI 3.0 Conformance §3 lets an application
+"ignore or remove" but never refuse. This amends reading 103 or stands beside it, as the operator prefers. (A proposal
+for the operator; numbered at integration.)
 
 R9-c. **R26 counts the metadata binding's elements, and catalog content is not among them.** The binding's section
 2.7.1.3 names "the associated assessmentItem, test or object bank and its 'bodyElements'". A catalog is dormant
@@ -2678,9 +3083,11 @@ String, "the container for the equivalent JSON value that is to be passed to the
 its implementation guide names the 1EdTech Data-SSML document as the definition of that JSON. That document's JSON
 Schema (section 3.4) is normative, and validation is required (section 3.1's MUST over section 1.3's SHOULD). So the
 value is one JSON text (RFC 8259) holding one object (the schema's root, over the prose's "one or more JSON objects")
-whose members are among `break`, `phoneme`, `prosody`, `say-as` and `sub`, each an object holding only the properties the
+whose members are among `break`, `phoneme`, `prosody`, `say-as` and `sub`, each an object holding only the properties
+the
 schema lists for it (`strength` and `time`; `ph`, `alphabet` and `type`; `rate`; `interpret-as`; `alias`), each property
-a string, with `ph`, `interpret-as` and `alias` present, and `strength`, `alphabet`, `type` and `interpret-as` one of the
+a string, with `ph`, `interpret-as` and `alias` present, and `strength`, `alphabet`, `type` and `interpret-as` one of
+the
 schema's values. `time` and `rate` are any normalized string (OAS3, Appendix C and the information model's `RateUnion`,
 over OAS2 and the prose's percentage), so no tab, line feed or carriage return in their decoded value. Names and values
 are compared after JSON's escapes are decoded, so `"break"` is `break`. A name written twice in one object is
@@ -2846,9 +3253,39 @@ C2: the oracle's own reader.)
      the database accepting `min-time="-1"`, `step="-1"` and `normal-maximum="0"` while the law oracle refused them: the
      bound had been an unread `facets` column. (Decided 2026-11-07 by the coordinator, under Bjorn's standing
      ruling of 2026-11-05, from seat FIX-G12.)
-145. **Withdrawn.** It read a fragment that a test or a section document splices, judged in the test that places it. The
-     placement cutover deleted plate's test-delivery engine (plate, 2026-11-17), and pantry stores no test and a bank
-     holds item refs and nothing else (reading 228), so no package this repository admits holds what it read.
+145. **A fragment a test or a section document splices is judged in the test that places it, once per placement: its
+     content references name the test's variables, and a rule fragment's variable references are the test's own.**
+     Reading 117 reads an included fragment as XInclude's result holds it, "in the context of the item in which it is
+     being included" (information model section 2.12), and a section document's references resolve once for each test
+     that places it (reading 5). A fragment that a test's or a section document's include splices is read in that
+     test's context the same way:
+     - its feedback, template, printed-variable and context-variable references each name a variable the test declares,
+       or one of its built-in variables, of a kind its element may name ("Feedback reference", "Feedback outcome type",
+       "Template reference", "Printed variable reference" and "Context variable reference"), once per placement, as
+       the section document's own content references do;
+     - a rule fragment spliced into the test's outcome processing makes the test's variable references, each read as
+       readings 48 and 88 read a test-level reference ("Prefixed reference"), an unprefixed one that resolves nowhere
+       naming nothing ("Variable declared").
+
+     A content reference names its variable whole, in a test as in an item, and never through a prefix: a printed
+     variable's "outcome variable or template variable must have been defined" (section 7.30.6), a feedback element's
+     outcome is "an outcome variable" (reading 77), and prefixing is the Variable expression's, by which "During
+     outcomes processing, values taken from an individual item session can be looked up" (section 2.11.1.2). An item's
+     references resolve in its
+     own declarations, and no test places an item. This lifts reading 117's known under-refusal of the content
+     references of a fragment a section document or a test places; that fragment's `xml:lang` forms, and a rule
+     fragment's types and language, stay the under-refusals reading 117 lists. This binds pantry and plate alike. This
+     is not a case of documents in conflict. (Decided 2026-11-07 by the coordinator, under Bjorn's standing
+     ruling of 2026-11-05, from seat FIX-ASM.) In pantry the rule fragment's half holds (a fragment's variable
+     references are read over the test's assembly, `TestReading`), and so does the content references' half: a test,
+     like an item, resolves its own content references in its own declarations (`referringRoots`,
+     `src/vocab/terms/interactions.ts`: a test feedback's `outcome-identifier`, section 5.157.2, and a printed variable
+     in a test's rubric block, section 7.30.6), and every fragment and section document a test places resolves its
+     feedback, template, printed-variable and context-variable references once per placement in the test's
+     declarations (`FragmentScope`, `src/qti/interactions.ts`). (Restored 2026-11-20 by lane IMPL-TESTS: the owner
+     ordered every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI database refuses no valid
+     QTI, conformance §3 and §4.4, which lifts reading 228's refusal of tests; the content references' half closed the
+     same day, on the lead's order to close the recorded under-refusal.)
 
 146. **The manifest is the package's one document at `imsmanifest.xml`, and no resource's: a document-typed resource
      whose `href` names it names no document of its type, and the manifest is read once.** IMS Content Packaging 1.2
@@ -2891,7 +3328,8 @@ C2: the oracle's own reader.)
      a rule whose owner it holds no name for. This sets aside the reading of an unwritten identifier as the empty one:
      the importer's, under which "Test overlay"'s copy of the identifier broke beside AL3, and the law oracle's
      (`testDocumentOf`'s empty default, `src/test/oracle-laws/assembly.ts`), under which two such elements of one
-     document broke "Structure identifier". This binds pantry and plate alike. This is not a case of documents in conflict. (Decided 2026-11-07
+     document broke "Structure identifier". This binds pantry and plate alike. This is not a case of documents in
+     conflict. (Decided 2026-11-07
      by the coordinator, under Bjorn's standing ruling of 2026-11-05, from seat FB-TESTS.)
 148. **An assessment item or test that writes no `identifier` or no `title` has none for its LOM record to match: no
      entry or title string names it, the empty one included, and AL3 refuses the root while `lom-identifier` or
@@ -3057,8 +3495,11 @@ C2: the oracle's own reader.)
      or `ItemRefDocument`: the importer's laws require a target only of an item ref that writes an href ("Item ref
      target", `src/qti/tests.ts`), and copy a target's type into an assembly's lookup only where the lookup names a
      resource (`src/qti/expressions.ts`), so AL3 ("required-attribute") refuses the item ref under its own rule. An item
-     ref whose href names no item or LTI link of the package, an external or an empty URI included, breaks "Item ref
-     target", as before. Reading 147 takes an item ref that writes no identifier out of its document's namespace, not
+     ref whose href names no item or LTI link of the package, an empty URI included, breaks "Item ref target", as
+     before; one whose href resolves outside the package is stored as written, as a stimulus ref's external href is
+     (reading 35), since §5.6.5 gives the package only as an example ("e.g., elsewhere in the same content package"),
+     no law reads its item, and its test is no deliverable one (SV-LAW-02, 2026-11-20, lane IMPL-TESTS). Reading 147
+     takes an item ref that writes no identifier out of its document's namespace, not
      out of its other laws: its href still names its item, and its variable mappings and template defaults still read
      that item ("Item ref target", "Variable mapping source", "Variable mapping target", "Template default target"), as
      the importer's rows, keyed by the item ref's node, judge them. This sets aside the importer's demand of a target
@@ -3068,6 +3509,7 @@ C2: the oracle's own reader.)
      The corpus moves no verdict: each of the 209 item refs of its 29 zips writes an href and an identifier, by a scan
      of their XML entries. This binds pantry and plate alike. This is not a case of documents in conflict. (Decided
      2026-11-07 by the coordinator, under Bjorn's standing ruling of 2026-11-05, from seat FIX-ITEMREF.)
+
 156. **An ID-typed attribute or text is one of its document's IDs only where its value is an NCName. Any other value is
      no ID: it binds nothing, no IDREF and no cell's `headers` token names it, and its value domain alone refuses it.**
      `xs:ID` restricts `xs:NCName`, whose lexical space it keeps (XML Schema Part 2, §3.3.8), as does the
@@ -3201,7 +3643,8 @@ C2: the oracle's own reader.)
      (section 7.21.6.1) says what a C program that prints such a format does, not what a QTI document may write. So a
      format is a printf format string over the listed codes: characters other than `%`, the escape `%%`, and conversion
      specifiers, any number of them, none included (`printfFormat`, `src/grammar/attributes.ts`). `%i of %i`, `%%%e%%%G`
-     and `%i, %.2f and %#x` are admitted and kept as the attribute's lexical form; `%i of %d` and `%d %d` are admitted since reading 171, and `%i of %` is still
+     and `%i, %.2f and %#x` are admitted and kept as the attribute's lexical form; `%i of %d` and `%d %d` are admitted
+     since reading 171, and `%i of %` is still
      refused under `attribute-lexical`, since a `%` at the end ends in no code at all. (Before reading 171 the first
      two were refused too, since reading 132 read `d` as no listed code.) The law oracle reads
      the composed grammar's domain, so both sides judge by the one pattern. This sets aside reading 132's rule of at
@@ -3238,21 +3681,27 @@ C2: the oracle's own reader.)
      corpus's 29 packages names one `href` under two types, by a scan of their resources. This binds
      pantry and plate alike. This is not a case of documents in conflict. (Decided 2026-11-07 by the coordinator, under
      Bjorn's standing ruling of 2026-11-05, from seat DBLANE-1.)
-163. **SCORE's and MAXSCORE's float rule and PASSED's boolean rule bind every declaration pantry stores.** The information
-     model's section 4.5, OutcomeDeclaration (https://www.imsglobal.org/spec/qti/v3p0/info#Root_OutcomeDeclaration), says
-     of SCORE "Items that declare a numeric outcome variable representing the candidate's overall performance on the item
+163. **SCORE's and MAXSCORE's float rule binds items only; PASSED's boolean rule binds items and tests.** The
+     information
+     model's section 4.5, OutcomeDeclaration (https://www.imsglobal.org/spec/qti/v3p0/info#Root_OutcomeDeclaration),
+     says
+     of SCORE "Items that declare a numeric outcome variable representing the candidate's overall performance on the
+     item
      should use the outcome name 'SCORE' for the variable. SCORE needs to be a float." (`info301.txt:8922`), and of
      MAXSCORE "Items that declare a maximum score (in multiple response choice interactions, for example) should do so
      by declaring the 'MAXSCORE' variable. MAXSCORE needs to be a float." (`info301.txt:8922`). Both sentences are about
      items. It says of PASSED "Items or tests that want to make the fact that the candidate scored above a predefined
      threshold available as a variable should use the 'PASSED' variable. PASSED needs to be a boolean."
      (`info301.txt:8922`), which covers a test as well. Section 2.2.2.3, which is not normative, says the same with
-     "MUST". Pantry stores no test (reading 228), so an outcome declaration named SCORE or MAXSCORE is refused unless
-     its base type is float, and one named PASSED unless it is a boolean. This refuses nothing the specification states;
-     reading 1 protects valid content. No corpus test declares a SCORE or MAXSCORE of another base type. This binds
+     "MUST". So an outcome declaration named SCORE or MAXSCORE of an item is refused unless its base type is float, a
+     test's of any base type is accepted, and one named PASSED is refused unless it is a boolean, in an item and in a
+     test alike (`RootedTypedDeclaration`, `src/qti/overlay-queries/declaration.ts`). This refuses nothing the
+     specification states; reading 1 protects valid content. No corpus test declares a SCORE or MAXSCORE of another base
+     type. This binds
      pantry and plate alike. (Decided 2026-11-07 by the operator, mail `e64ace73` from the renderer; the law `Reserved
      type`. Re-cited 2026-11-07 by the Mind on audit b61b8f14's D2: §4.5 for the non-normative §2.2.2.3. Its test half,
-     a test's SCORE or MAXSCORE of any base type, went with the test, 2026-11-18, the placement cutover.)
+     a test's SCORE or MAXSCORE of any base type, went with the test, 2026-11-18, and came back with it, 2026-11-20,
+     lane IMPL-TESTS.)
 164. **A MathML formula's direction starts at its `m:math`: `ltr`, unless the `math` element writes `rtl`, whatever the
      HTML around it says.** MathML 3 section 2.2.1, Attributes
      (https://www.w3.org/TR/MathML3/chapter2.html#interf.toplevel.atts), says "Note that the dir attribute defaults to
@@ -3288,17 +3737,147 @@ C2: the oracle's own reader.)
      conflict. (Decided 2026-11-07 by the Mind, decision 425, delegated by the operator in mail 69fd02ec; register row
      B11. Decision 433's amendment, which refused a key written twice, is set aside by the operator's ruling of
      2026-11-14 on F5.)
-166. **Withdrawn.** It read a test's prefixed `qti-map-response` and `qti-correct`, which name an item's variable through
-     its item ref in a test's outcome processing. Pantry stores no test (reading 228), so no package this repository
-     admits holds what it read.
+166. **A test's prefixed `qti-map-response` names a response variable whose declaration holds a `qti-mapping`, and a
+     test's prefixed `qti-correct` names a response variable.** A test's outcome processing may name an item's variable
+     through its item ref (reading 48), `I.RESPONSE`. The information model's section 7.22, MapResponse
+     (https://www.imsglobal.org/spec/qti/v3p0/info#Derived_MapResponse), says "This expression looks up the value of a
+     response variable and then transforms it using the associated mapping, which must have been declared."
+     (`info.txt:69185`), and section 7.10, Correct (https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Correct), says
+     "This expression looks up the declaration of a response variable and returns the associated correctResponse or NULL
+     if no correct value was declared. When used in outcomes processing item identifier prefixing (see variable) may be
+     used to obtain the correct response from an individual item." (`info.txt:67866`). Neither sentence is limited to an
+     item's own processing. So a test's `<qti-map-response identifier="I.RESPONSE"/>` is refused where the item's
+     `RESPONSE` declares no `qti-mapping` ("Mapped response"), and so is one that reads a built-in response variable,
+     such as `I.numAttempts`, which has no declaration and so no mapping. A prefixed `qti-map-response` or `qti-correct`
+     that names anything but a response variable, such as the item's outcome `I.SCORE`, is refused by "Variable kind",
+     which already judged every resolving reading by the declaration kinds its element may name (sections 7.10.1 and
+     7.22.1); this reading records that it binds a prefixed name as it binds an unprefixed one. A dotted map response of
+     a mapped response, a dotted correct of a response, and a name read through an LTI link (reading 110) are accepted.
+     Between the two packages the stricter normative reading wins. This binds pantry and plate alike, as plate's
+     readings 194, 195 and 196 hold. This is not a case of documents in conflict. (Decided 2026-11-07 by the Mind,
+     decisions 429 and 430 (1), on operator mails b4df4b29 and 526fbbd9.) In pantry each prefixed reading through an
+     item ref that names an item document, split (reading 48) or numbered (reading 88), is held to its item variable's
+     table: a map response's reading to a `qti-mapping`, a map response point's to a `qti-area-mapping` ("Mapped
+     response", `PrefixedMapResponse`, `PrefixedMapResponsePoint` into `ItemRefTable`,
+     `src/qti/overlay-queries/readings.ts`), the table a declaration of the ref's item holds under its own identifier,
+     or under the target of a variable mapping of the ref whose source it declares (section 7.48); an item built-in,
+     which has no declaration, holds none. (Implemented 2026-11-20 by lane IMPL-TESTS, closing the under-refusal reading
+     1 recorded.)
 
-167. **Withdrawn.** It read the type of a weighted `qti-test-variables`, and two types of a test's outcome processing
-     left as stated limits. The placement cutover deleted plate's test-delivery engine (plate, 2026-11-17) and pantry
-     stores no test (reading 228), so no package this repository admits holds what it read.
+     The same holds for a test's prefixed `qti-map-response-point` and for a map response of a built-in response
+     variable (decision 431). The information model states MapResponsePoint in section 6.9.46, the
+     `qti-map-response-point` attribute
+     (https://www.imsglobal.org/spec/qti/v3p0/info#AbstractAttribute_ExpressionGroup_qti-map-response-point):
+     "The mapResponsePoint expression looks up the value of a response variable that must be of base-type point, and
+     transforms it using the associated areaMapping." (`info.txt:53022`; section 2.11.1.6 says the same, "transforms it
+     using the associated qti-area-mapping", `info.txt:9314`). That text does not repeat section 7.22's "which must have
+     been declared", but the expression presupposes an area mapping exactly as a map response presupposes its mapping,
+     and pantry already refuses an unprefixed `qti-map-response-point` whose response holds no `qti-area-mapping` under
+     "Mapped response". So a test's `<qti-map-response-point identifier="I.POINT"/>` is held the same way: refused under
+     "Mapped response" where the item's `POINT` declares no `qti-area-mapping`, and so is one that reads a built-in
+     response. An unprefixed `qti-map-response` or `qti-map-response-point` that names a built-in response variable,
+     an item's `numAttempts` or `duration` or a test's `duration`, is refused under "Mapped response" too: a built-in
+     has no declaration, so no mapping or area mapping has been declared (section 7.22). A built-in of another kind,
+     such as `completionStatus`, stays "Variable kind"'s alone. A dotted map response point of a response with an area
+     mapping is accepted. (Decided 2026-11-07 by the Mind, decision 431.) In pantry "Variable kind" holds a prefixed
+     reference by `identifier` to the kind of the item declaration it names (`PrefixedDeclaration`); the claim of the
+     declaration's `qti-mapping` or `qti-area-mapping` by a prefixed map response is a recorded under-refusal until a
+     placed table claim is stated over a test's readings. (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered
+     every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI database refuses no valid QTI,
+     conformance §3 and §4.4, which lifts reading 228's refusal of tests.)
 
-168. **Withdrawn.** It read the built-in names a test's own declarations may take. The placement cutover deleted plate's
-     test-delivery engine (plate, 2026-11-17) and pantry stores no test (reading 228), so no package this repository
-     admits holds what it read.
+167. **A weighted `qti-test-variables` is float: with no `base-type` it is typed float, and with a `base-type` other
+     than float it is refused. A prefixed reference is typed under each test by its one reading. One expression type
+     stays a stated limit.** The information model's section 7.39.5,
+     TestVariables `weight-identifier`
+     (https://www.imsglobal.org/spec/qti/v3p0/info#DerivedCharacteristic_TestVariables.Attr_weight-identifier), says
+     "The behaviour of this characterisic is only defined if the base-type attribute is float or omitted . When a
+     weighting is specified the result of the expression always has base-type float. Note that this option is
+     incomptable with base-type integer.", and section 7.39.6, its `base-type`, says "If specified, matches only
+     variables declared with this base-type. This also becomes the base-type of the result (subject to type promotion
+     through weighting, as described below). If omitted, variables declared with base-type integer or float are matched.
+     The base-type of the result is integer if all matching values have base-type integer, otherwise it is float and
+     integer values are subject to type promotion." So a `qti-test-variables` that writes a `weight-identifier` and no
+     `base-type` is float multiple, whether or not an item ref holds the named weight: `<qti-test-variables
+     variable-identifier="RAW" weight-identifier="W"/>` set into an integer multiple outcome is refused under "Set
+     type", and a `qti-gcd` of it under "Operand fit", while `rtest04.xml`'s weighted sum into its float `SCORE` is
+     accepted. One that writes a `base-type` has that base, and weighted only float is admitted: with `integer` the
+     section calls the option incompatible, and with any other base it leaves the behaviour undefined, so both are
+     refused under "Weighted base", the stricter reading. `qti-outcome-minimum` and `qti-outcome-maximum` are float
+     multiple, weighted or not (sections 6.9.63 and 6.9.64: "The result has cardinality multiple and base-type float.";
+     section 7.28.5 gives their `weight-identifier` "As per the 'weight-identifier' characteristic of
+     'qti-test-variables'."). A prefixed reference is typed by its reading (reading 48), under each test that places
+     its document (reading 117): a reference whose name the test neither declares nor holds as a built-in, read through
+     a scope, is `read`, typed as the variable its one reading names there, an item's variable through an item ref that
+     names an item document (its declaration, a variable mapping's source, or a built-in), a scope's `duration`, or a
+     numbered reading's item variable (`PlacedVariableRef`, `src/qti/expressions.ts`; the importer's
+     `scopedReadingsOf`, `src/import/overlays/readings.ts`, read by `placedRowsOf`,
+     `src/import/overlays/expressions.ts`). A document two tests place is typed in each. Its expressions are then typed
+     over it, so "Operand fit",
+     "One base", "Condition type", "Set type" and "Lookup type" judge a test's outcome processing over real types: a
+     `qti-gt` over an identifier response read as `Q01.RESPONSE` is refused, and an integer outcome set from an item's
+     float `Q01.SCORE` is too. A weighted read is promoted: a `qti-variable` that writes a `weight-identifier` "has the
+     base-type and cardinality declared for the variable subject to the type promotion of weighted outcomes" (section
+     7.47), float where the variable is integer ("When applying a weight to the value of a variable with base-type
+     integer the value is subject to type promotion and the result of the expression has base-type float", section
+     7.47.2), and any other base as declared, since "If the item variable is of any other type the weight is ignored".
+     So a weighted sum of integer `Q01.SCORE`s set into a float outcome is accepted, and set into an integer outcome
+     refused under "Set type" (`WeightedRead`, `src/qti/overlay-queries/reference.ts`). The database proves each read
+     type by its reading, `TestReading` ("E1 derived", `src/qti/overlay-queries/readings.ts`): a placed reference is
+     read exactly where its one reading types it (`SoleReading`, held to the read references both ways, so a host
+     that leaves such a reference unresolved is refused too), and is typed as its declaration's cardinality and base
+     type where the reading names a declaration (`readDeclarations`, typed by `PlacedVariableDeclaration`,
+     `src/qti/overlay-queries/reference.ts`), as an item's built-in stands where it names one (`ItemRead`), and as the
+     test's `duration` through a scope's (`ScopeDurationRead`). A reference read through an item ref that names no
+     item document (reading 110), or read twice, which "Prefixed reference" refuses (reading 86), is `unresolved`,
+     `unknown`. A name the test declares whole and also reads through a scope is read twice too, and refused under
+     "Prefixed reference"; it resolves to the test's declaration first, so a type law that declaration breaks, such
+     as "Operand fit", refuses it beside, in every document the test places as in the test's own. (Stated 2026-11-20
+     by lane IMPL-TESTS on the lead's order to close reading 1's recorded limit, typed then in each reference's
+     document where every reading gave one type; restated 2026-11-20 by lane IMPL-117 per placement, which lifts the
+     limit of a reference whose readings in two tests give two types, its proofs reading `TestReading` directly.)
+
+     One type stays `unknown`, a stated limit (reading 91): an unweighted `qti-test-variables` with no `base-type`. By
+     section 7.39.6 its base turns on which items the assembled test's sections and categories match, and, where they
+     mix integer and float, on which values are present at run time. What would lift it is the matched declarations'
+     bases folded under each test's placement, judging only the uniform case. Until then it is accepted wherever
+     `unknown` is, and a renderer evaluating real values may judge more. Between the two packages the stricter
+     normative reading wins. This binds pantry and plate alike, and pairs with plate's readings 198 and 199. This is
+     not a case of documents in conflict.
+
+     Plate types both cases when it checks a whole package: a prefixed `qti-variable` takes the type of the declaration
+     of the item the item ref names, weighted as its reading 198 says, and an unweighted `qti-test-variables` with no
+     `base-type` is integer only when every item variable it can match is integer, and float otherwise. A test checked
+     alone keeps `unknown`, as pantry does. Pantry types a prefixed read the same way, under each test that places it
+     (above), so only where the unweighted `qti-test-variables` decides a type check does plate refuse what would fail
+     at run time and pantry accept it. This is a known acceptance difference between the packages, recorded under
+     decision 436, not a different reading of the text. What would lift it is the fold above. (Decided 2026-11-08 by
+     the Mind, decisions 434 and 435, on research ba1a2d84, relay 4da02d14 of plate readings 198 and 199, under the
+     operator's delegation; FYI to the operator. Decision 436 (2026-11-08) records plate's package-level typing.) A
+     prefixed reference is typed in each test that places its document (`TestReading` resolves it, and its
+     `PlacedVariableRef` there types it), since a section document a test places, and a rule fragment it splices, take
+     their item variables' types from each placing test. (Restored
+     2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1 feature the AlphaTest port needs implemented
+     exactly, and the QTI database refuses no valid QTI, conformance §3 and §4.4, which lifts reading 228's refusal of
+     tests.)
+
+168. **A test may declare a variable named `numAttempts` or `completionStatus`; in a test only `duration` is reserved.**
+     The information model says of an item's variables "All variables must be declared except for the built-in session
+     variables referred to below which are declared implicitly and must not be declared" (section 2.2.2, not
+     normative), and the identifier rows of the declaration classes list "completionStatus, numAttempts and duration"
+     and go on "All item variables declared in an item share the same namespace" (tables 4.5.1, 5.115.1 and 5.151.1).
+     Section 2.2.2.2 makes `numAttempts` "the number of attempts at each item", and a test's processing holds
+     `duration` and `QTI_CONTEXT` as built-ins and neither of the other two (reading 29). So a test's declaration of
+     `numAttempts` or `completionStatus` shadows no built-in of the test and is accepted, a test's declaration of
+     `duration` stays refused under "Declaration not reserved", and so does an item's declaration of any of the three.
+     An unprefixed `numAttempts` in a test's processing names the test's own declaration where it has one, and a
+     prefixed `Q01.numAttempts` still names the item's built-in (reading 106). This narrows "Declaration not
+     reserved", which held the three names reserved in every document (reading 72's law). In the corpus, none of the
+     28 packages' tests or sections declares any of the three, so no verdict moves. This binds pantry and plate alike.
+     (Decided 2026-11-08 by the overseer under the operator's delegation, mail 7a7e6287, ruling 2:
+     the refusal in a test rests on the non-normative section 2.2.2.) (Restored 2026-11-20 by lane IMPL-TESTS: the owner
+     ordered every QTI 3.0.1 feature the AlphaTest port needs implemented exactly, and the QTI database refuses no valid
+     QTI, conformance §3 and §4.4, which lifts reading 228's refusal of tests.)
 
 169. **A gap match interaction with two or more gaps binds a response of multiple cardinality.** The information model
      says "The GapMatchInteraction must be bound to a response variable with base-type directedPair and either single or
@@ -3311,8 +3890,14 @@ C2: the oracle's own reader.)
      (Decided 2026-11-08 by the overseer under the operator's delegation, mail 7a7e6287, ruling 3, on the
      operator's review of PR #46, comment 6716564108.)
 
-170. **Withdrawn.** It read pantry's stated limit on a test's external section ref. pantry stores no test and no section
-     ref (reading 228), so no package this repository admits holds what it read.
+170. **A section ref whose href is external is stored as written, and its test is no deliverable one.** pantry imports a
+     package offline and never fetches a resource (reading 115), so a section ref whose href resolves outside the
+     package places nothing in its test's assembly: its section is the test's content, which no document of the package
+     holds. The information model makes a section ref a facade "for the qti-assessment-section to which it refers"
+     (section 7.5) and bans no remote one, and the QTI database refuses no valid QTI (conformance §3; owner,
+     2026-11-20), so such a test is stored as written, and `DeliverableTest` (`src/qti/overlay-queries/tests.ts`) leaves
+     it out, as conformance §4.4 lets a system leave valid material it does not process unaltered. Its laws read what
+     the package holds. This replaces the stated limit "Remote section ref". (Restated 2026-11-20 by lane IMPL-TESTS.)
 
 171. **A printed variable's `format` may use `d` as a conversion code.** The code list of the information model's
      section 2.3.4 (E, e, f, G, g, r, R, i, o, X, x) is in a section the information model marks not normative; the
@@ -3353,8 +3938,31 @@ C2: the oracle's own reader.)
      the normative sources agree. (Decided 2026-11-09 by the overseer under the operator's delegation, decision 448,
      overseer mail f74ee547; and, as PR #55's reading 165, decided 2026-11-07 by the coordinator, under Bjorn's standing
      ruling of 2026-11-05, from seat SWEEP-A1ORDER.)
-173. **Withdrawn.** It read how a test's ordering reads a section's `visible`. pantry stores no test, and a bank holds
-     no ordering (reading 228), so no package this repository admits holds what it read.
+173. **A section's visibility is its own `visible` alone: a section that writes none is neither visible nor invisible,
+     so AL3 alone refuses it, and no law reads a visibility it never wrote.** The ASI XSD requires the attribute, with
+     no default: `<xs:attribute name="visible" use="required" type="xs:boolean" />` in `AssessmentSectionDType`
+     (`imsqti_asiv3p0_v1p0.xsd` line 24711), and the information model gives it multiplicity `[1]`: "The visibility of
+     each section is determined solely by the value of its own visible attribute" (section 4.2.6, line 12755 of
+     `info301.txt`). The one rule that reads it is the ordering's: "an invisible sub-section is only treated as a single
+     block if its keep-together characteristic is 'true'. Otherwise, the child elements of the invisible sub-section are
+     mixed into the parent's selection prior to shuffling" (section 5.98, Ordering, line 51976). So a section is loose,
+     its children mixed into its parent's order, only where it writes `visible` and that value reads false (a malformed
+     one, which AL1 refuses, reads false as every `TestFlag` value that does not spell true does) and it is not kept
+     together. One that writes no `visible` is never loose, whatever its `keep-together`, and AL3 ("required-attribute")
+     refuses it under its own rule. In the importer a section's visibility is its `visible` flag, a row of its own
+     (`TestFlag`), and `Section.loose` holds exactly where that row reads false and `keepTogether` is false ("Test
+     overlay" and `E1_derived`, `src/qti/tests.ts`; `sectionsOf`, `src/import/overlays/tests.ts`); the law oracle reads
+     the same (`testDocumentOf`, `src/test/oracle-laws/assembly.ts`). This sets aside the importer's `Section.visible`,
+     false where the section writes none, under which such a section broke "Test overlay"'s copy of it beside AL3, and
+     both sides' reading of an unwritten `visible` as false, under which a section not kept together mixed its children
+     into a shuffling parent's order on a value it never wrote. The corpus moves no verdict: each of the 38 sections of
+     the 14 zips that hold one writes `visible` (4 of them false, none of them with `keep-together="false"`), by a scan
+     of their XML entries. This binds pantry and plate alike. This is not a case of documents in conflict. (Proposed in
+     PR #55, 2026-11-07, for the operator; from seat SWEEP-VISIBLE, under Bjorn's standing ruling of 2026-11-05.)
+     (Restored 2026-11-20 by lane IMPL-TESTS: the owner ordered every QTI 3.0.1 feature the AlphaTest port needs
+     implemented exactly, and the QTI database refuses no valid QTI, conformance §3 and §4.4, which lifts reading 228's
+     refusal of tests.)
+
 174. **An `xml:lang` that is no language tag once collapsed states no language, so `document-lang` asks no record to
      list it, and its value domain alone refuses it.** QTI 3.0 Metadata asks for "one value for each of the languages
      referred to by the language attributes on the associated assessmentItem, test or object bank and its
@@ -3377,7 +3985,7 @@ C2: the oracle's own reader.)
      seat SWEEP-DELETELANG, under Bjorn's standing ruling of 2026-11-05.)
 175. **A reference that names no declaration holds no declaration row, and stands as no declaration kind: a test's
      reading of a built-in variable, of nothing, or through a variable mapping whose source its item declares nothing
-     under has no declaration, and a processing reference that claims no table of its declaration has no claim.** The
+     under has no declaration, and a processing reference whose declaration holds no table it reads has none.** The
      information model maps a name to the item's own variable: "Variable mappings allow outcome variables declared with
      the name source-identifier in the corresponding item to be treated as if they were declared with the name
      target-identifier during outcome processing" (section 7.48, line 112601 of `info301.txt`), so a mapped name stands
@@ -3387,24 +3995,26 @@ C2: the oracle's own reader.)
      "Variable kind" judges as it judges a declaration's, and which "Reference type" refuses in place of a literal,
      which is "replaced with the value of a template or outcome variable of base-type integer and single cardinality"
      (line 9889, P24); neither reads a declaration it does not have. A map response, a map response point and a lookup
-     claim the table their declaration holds of those they read (sections 2.11.3.29, 2.11.3.30, 2.5.1.4), and one whose
-     declaration holds none claims none, which "Mapped response" or "Lookup type" refuses. AGENTS.md's Schema intent
-     settles the representation: a value that may be missing is a row of its own relation, never a sentinel. In the
-     importer a resolving reading's declaration is a row of its own, `ReadingDeclaration`, only where its variable is
-     declared, or mapped from a declared source, and a reference's table claim is a row of its own, `VariableRefTable`,
-     only where it claims one (`src/qti/expressions.ts`; `readingOf` and `referenceDeclarationsOf`,
-     `src/import/overlays/expressions.ts`); the law oracle reads the same (`readingsOf`,
+     read the table their declaration holds of those they read (sections 2.11.3.29, 2.11.3.30, 2.5.1.4), and one whose
+     declaration holds none is refused by "Mapped response" or "Lookup type". AGENTS.md's Schema intent settles the
+     representation: a value that may be missing is a row of its own relation, never a sentinel. A resolving reading's
+     declaration is a row of a query only where its variable is declared, or mapped from a declared source
+     (`readDeclarations`, `src/qti/overlay-queries/readings.ts`), and the table a declared reference reads is its
+     declaration's own child, read under each placement (`readsItsTable`, `src/qti/overlay-queries/declaration.ts`),
+     so no row stands for a table a declaration lacks; the law oracle reads the same (`readingsOf`,
      `src/test/oracle-laws/tests.ts`, a mapped name standing as its source's declaration kind, none where its item
      declares nothing under the source; `referenceBreachesOf`, `src/test/oracle-laws/expressions.ts`, a reference's
      table and declaration kind none where it has none). This sets aside the null-object declaration codes a reading
      held where it named no declaration (its lookup document, `qti-outcome-declaration`, no cardinality and no base
-     type), the table `none` a reference held where it claimed none, and both sides' reading of a name mapped from an
+     type), the table `none` a reference held where it claimed none, the claim row that followed it (amended
+     2026-11-20 by lane IMPL-117: the per-placement laws read the declaration's tables), and both sides' reading of a name mapped from an
      undeclared source as an outcome, under which a reading of it by an element that names no outcome, a correct, broke
      "Variable kind" beside "Variable mapping source" on a kind no declaration gave it. The corpus moves no verdict:
      none of its 29 zips writes a variable mapping, by a scan of their XML entries. This binds pantry and plate alike.
      This is not a case of documents in conflict. (Proposed in PR #55, 2026-11-08, for the operator; from seat
      SWEEP-REFNONE, under Bjorn's standing ruling of 2026-11-05.)
-176. **A document's type in its package is total: the manifest is of type `manifest`, every other document of the type of
+176. **A document's type in its package is total: the manifest is of type `manifest`, every other document of the type
+     of
      the resource that lists it, and a document's resource type, where a resource lists it, is a row of its own.** IMS
      Content Packaging 1.2 gives a package two roles of document: "The InterchangePackage shall include a Manifest
      object and may include content files and control files" (Information Model, Version 1.2 Public Draft v2.0,
@@ -3440,14 +4050,16 @@ C2: the oracle's own reader.)
      strings, each member and each property in the order written and each name and value decoded, a name written twice
      kept twice (`dataSsmlOf`, `src/vocab/data-ssml.ts`). It decides nothing else. The schema is the database's, law
      "Data SSML" under `attribute-lexical` (`src/qti/data-ssml.ts`): every closed `data-ssml` has its `DataSsml` row,
-     so a value that is no such JSON has none and is refused; every member is one the schema lists, every property one its
-     member lists, an enumerated value one of the schema's, and a normalized value (`time`, `rate`) free of tab, line feed
+     so a value that is no such JSON has none and is refused; every member is one the schema lists, every property one
+     its
+     member lists, an enumerated value one of the schema's, and a normalized value (`time`, `rate`) free of tab, line
+     feed
      and carriage return, each a check (`Data_SSML`) over the schema's table (`dataSsmlMembers`); and each required
      property (`ph`, `interpret-as`, `alias`) written, a rule over a query (`RequiredSsmlProperty`,
      `src/qti/queries.ts`). So a ChangeSet written without the importer is held to the same law, and R7-a's stated limit
-     goes. A new one replaces R7-a's "no length bound": each member's and property's name and value is compared by the
-     database, so it is a `keyText`, and one past the key-text bound is refused under that limit (reading 1's list), a
-     length no Data-SSML value needs. The value as written is still the document's attribute, exported as written. The
+     goes. R7-a's "no length bound" stands: each member's and property's name and value is compared by the database,
+     and is of any length (`anyText`, `src/qti/data-ssml.ts`), a key holding it by its image (Amended 2026-11-20: the
+     key-text bound this reading once gave them went with pantry's `keyText`). The value as written is still the document's attribute, exported as written. The
      law oracle judges the same values with its own reader as before (`src/test/oracle-laws/data-ssml.ts`), now as the
      law "Data SSML" over a document's rows, not a refusal before any row. This binds pantry and plate alike as to what
      is valid. This is not a case of documents in conflict. (Proposed in PR #55, 2026-11-09, for the operator; Bjorn's
@@ -3841,7 +4453,11 @@ C2: the oracle's own reader.)
      The corpus's two weighted variables stand in tests' outcome processing (`rtest02.xml`,
      `test_package_minfiles/example/rtest.xml`), so no verdict moves. This binds pantry and plate alike. This is not a
      case of documents in conflict. (Decided 2026-11-15 by lane R0-VALIDATE under Bjorn's standing ruling that the
-     specification wins, survey row RQ-l, VR#6.)
+     specification wins, survey row RQ-l, VR#6.) The sentence's second half, "only when the item identifier prefixing
+     technique ... is being used", binds a test's
+     weighted `qti-variable` to a reading through an item ref: "Weighted variable" refuses one whose name resolves only
+     unsplit, to a variable of the test, or to a part's or section's `duration` (`PlacedWeightedVariable` into
+     `ItemScopedReading`, `src/qti/overlay-queries/readings.ts`). (Amended 2026-11-20 by lane IMPL-TESTS.)
 
 200. **QTI's shared-vocabulary data attributes, `data-qti-aria-*` and `data-qti-a11y-content-role`, are an author's, and
      plate keeps them.** The shared vocabulary says of `data-qti-aria-*`: "This custom attribute is a backup for
@@ -4311,11 +4927,12 @@ C2: the oracle's own reader.)
      `xpointer`, a `parse` other than `xml`) is kept as written and refused `attribute-type` (reading 85), and one
      inside wildcard content is no Include (reading 114) and is kept as written, so a document still holding an include
      stays `unchecked` (E23). `open` judges one document with no package to resolve an include against, so a document
-     holding one stays `unchecked`. This departs from pantry in two places, each a recorded limit of one side, so it is
-     not a case of documents in conflict: pantry admits an external include and stores it unfetched (reading 115), where
-     plate, which delivers the fragment, refuses one without a fallback; and pantry refuses an unresolvable include that
-     holds a fallback (the stated limit "Include fallback", `include-target`), where plate takes the fallback, as
-     XInclude does. No corpus package holds an include, so no corpus verdict moves. This binds plate. (Proposed by lane
+     holding one stays `unchecked`. This departs from pantry in one place, a recorded limit of one side, so it is not a
+     case of documents in conflict: pantry admits an external include and stores it unfetched (reading 115), where
+     plate, which delivers the fragment, refuses one without a fallback. Pantry admits an unresolvable include that
+     holds a fallback, as plate does, and places nothing for it, naming it `UnplacedInclude`'s `fallback` (reading
+     115), where plate takes the fallback, as XInclude does. No corpus package holds an include, so no corpus verdict
+     moves. This binds plate. (Proposed by lane
      E2-SESSION from upstream #215, under ruling R7, "decided by the spec", 2026-11-15.)
 
 218. **Withdrawn.** It read how plate's test session ended a scope whose `max-time` had run out. The placement cutover
@@ -4394,7 +5011,8 @@ C2: the oracle's own reader.)
      `src/package/zip.ts`). Since no name is rewritten, two entries never stand for one file. Before, plate removed an
      entry name's dot segments, so `items/sub/../a.xml` named `items/a.xml`, a `..` was refused only where it climbed
      above the root, and of two names of one normal form the first was read and the second dropped unread. No package
-     of the 1EdTech corpus writes such a name, so no corpus verdict moves. This binds plate, and agrees with pantry. This
+     of the 1EdTech corpus writes such a name, so no corpus verdict moves. This binds plate, and agrees with pantry.
+     This
      is not a case of documents in conflict. (Proposed by lane R3-PACKAGE on the survey's PKG#7, under ruling R7,
      "decided by the spec", 2026-11-16.)
 
@@ -4410,29 +5028,21 @@ C2: the oracle's own reader.)
 227. **Withdrawn.** It read the delivery of a test, a session's parts, pre-conditions and outcome processing,
      which plate delivered. The placement cutover deleted that engine (plate, 2026-11-17) and pantry stores no test
      (reading 228), so no package this repository admits holds what it read.
-228. **pantry stores content and banks, and a bank is a standalone section document of item refs and nothing else.**
-     The owner ruled (the placement mandate, rulings 1 to 3 and 7, 2026-11-17) that QTI holds content only (items,
-     lesson pages, stimuli, media and each item's own response processing) and banks; that a bank is a standalone
-     section document, a resource of type `imsqti_section_xmlv3p0`, whose stable `identifier` is the bank and which
-     lists its interchangeable item refs and nothing else, with no test around it; and that nothing in QTI decides
-     delivery. So reading 1 states two limits. "Test structure" refuses a test, a test part, and a section, section ref
-     or item ref outside a section document. "Bank shape" refuses, in a section document, every element but its root
-     section and the item refs it holds, and `required`, `fixed` and `category` on those item refs, which only a test's
-     selection, ordering and outcome processing read (information model §5.6). Each refused element fills an optional
-     slot of `AssessmentSectionDType` or `AssessmentItemRefDType`, and `qti-adaptive-selection` names an engine and its
-     settings that are "proprietary to the adaptive engine" (§5.3.1), so the bank takes each slot's empty option and
-     invents nothing; CAT's adaptive section has this shape with the engine reference left out ("An adaptive section
-     must not have nested subsections", "must specify all the items in the item pool directly", CAT 1.0
-     implementation guide §2.3). A bank's identity is QTI's own: "Bank key" makes its root's identifier unique in its
-     package, as "Item key" makes an item's, since the information model makes a section's identifier unique only
-     "within the test" (§4.2.1) and an item's nowhere; and "Item ref identifier" holds a member's identifier to its
-     item's, the information model's own MUST ("When an Item is referenced using a 'qti-assesasment-item-ref' the values
-     of the two 'identifier' characteristics MUST be the same", §4.1.1), which in a bank, where an item appears once,
-     conflicts with nothing. The written order of a bank's item refs is document order, stored as every document is,
-     and no law reads it as a sequence. Readings 4, 5, 48, 79, 86 to 88, 97, 106 to 108, 110, 112, 145, 166, 170 and
-     173 read tests and the sections and fragments a test places, as do the test halves of 29, 85, 111, 117, 167 and
-     175; no package pantry admits holds what they read. (Decided
-     2026-11-17 by the owner, the placement cutover; stated by lane PANTRY.)
+228. **pantry stores tests, sections and banks as QTI 3.0.1 defines them, and a deliverable test is a reading, never a
+     law.** The owner's placement mandate (rulings 1 to 3 and 7, 2026-11-17) once held QTI to content and banks, and
+     refused every test. The owner's orders of 2026-11-20 lift that: every QTI 3.0.1 feature the AlphaTest port needs is
+     implemented exactly to the specification, and the QTI database refuses no valid QTI (conformance §3), leaving valid
+     material it does not deliver unaltered (§4.4). So a test document (`imsqti_test_xmlv3p0`), its section refs, the
+     section documents they place, and the fragments a section includes are stored, and their laws read the assembled
+     test (readings 5 and 85 to 88): "Test structure", "Test assembly", "Bank shape" and "Bank key" are gone. A bank is
+     a section document, `(package, path)` as an item is (SV-KEY-01), since QTI makes a section's identifier unique only
+     within its test (§4.2.1); its members are the item refs it holds at any depth (`BankMember`), and "Item ref
+     identifier" holds every named item ref's identifier to its item's, the information model's own MUST (§4.1.1). What
+     a delivery that serves one test document's item refs in order can serve is the view `DeliverableTest`
+     (`src/qti/overlay-queries/tests.ts`): no section ref and no section include, no selection with replacement, no
+     adaptive selection, and every item ref naming an item document of the package. (Decided 2026-11-17 by the owner,
+     the placement cutover; lifted 2026-11-20 by the owner, J1 and the mandate "we follow the spec"; stated by lane
+     IMPL-TESTS.)
 
 229. **A review and a solution replay a Media through plate's own controls, counting and posting nothing.** Every rule
      the information model gives a Media's plays is the attempt's: `autostart` "determines if the media object should
@@ -4628,3 +5238,54 @@ C2: the oracle's own reader.)
      tolerance as written. (Restated 2026-11-20 by lane GRADING-SQL on the lead's ruling, reversing register
      J-EQUAL-01's shortest-decimal reading: Bjorn's bar keeps the grader literal QTI on binary64 values, a quirk
      cleaned into QTI's own semantics and never reinterpreted in decimal.)
+
+239. **A `col`'s and a `colgroup`'s `span` is at least 1.** The information model's Col says "The tag may have a span
+     content attribute specified, whose value must be a valid non-negative integer greater than zero" (section 5.31),
+     and ColGroup the same of its own (section 5.32), each class description normative; the XSD types both `xs:int`,
+     which admits 0 and every negative. So the grammar reads `span` on `col` and `colgroup` as `xs:int` with
+     `minInclusive` 1, and `span="0"` or `span="-2"` is refused under the attribute's value law. ColGroup's further
+     rule, a `span` only where it holds no `col`, is HTML's, which the grammar already holds. No corpus document and no
+     AlphaTest served item or stimulus writes a `span` below 1, so no verdict moves. This is a case of documents in
+     conflict: the information model outranks the XSD (reading 1). (Stated 2026-11-20 by lane PANTRY-CONFORM, SV-LAW-07.)
+
+240. **A table holds `col`s or `colgroup`s, never both.** The information model's Table says of `col` "If a table
+     directly contains a col then it must not contain any colgroup elements" (section 5.142.3), and of `colgroup` "If a
+     table contains a colgroup it must not directly contain any col elements" (section 5.142.4); the XSD's
+     `TableDType` admits `col*` then `colgroup*` in one sequence. So the grammar restates `table`'s model with the two
+     as one optional choice of one or more `col`s or one or more `colgroup`s, in the XSD's place and order, and a table
+     that holds both is refused by the content order. A `col` inside a `colgroup` is the colgroup's, not the table's
+     own. No corpus document and no AlphaTest served item or stimulus (70 tables) holds both, so no verdict moves. This
+     is a case of documents in conflict: the information model outranks the XSD (reading 1). (Stated 2026-11-20 by lane
+     PANTRY-CONFORM, SV-LAW-08.)
+
+241. **A figure holds at most one `figcaption`.** The information model gives Figure's `figcaption` the multiplicity
+     "[0..1]" (section 5.54.1), and the binding's normative Schematron rules agree ("5.1.1 Figure Unordered Class
+     Rules": "figcaption ... Multiplicity must be: [0..1]"); the XSD's `FigureDType` repeats an unbounded choice that
+     holds it. So the grammar caps `figcaption` at one in a `figure`, as reading 130 caps the loose LOM binding's
+     elements, a count `Counted` holds beside the automaton, and a second caption is refused. No corpus document and no
+     AlphaTest served content holds two, so no verdict moves. This is a case of documents in conflict: the information
+     model outranks the XSD (reading 1). (Stated 2026-11-20 by lane PANTRY-CONFORM, SV-LAW-09.)
+
+242. **A math operator named `atan2` takes two sub-expressions, and one of any other name takes one.** The information
+     model's MathOperator says "The trigonometric functions, sin, cos and tan, take one argument in radians, which
+     evaluates to a single float. Other functions take one numerical argument. Further functions might take more than
+     one numerical argument, e.g. atan2 (two argument arc tan)" (section 5.91), and MathOperatorNameEnum gives `atan2`
+     as "the 2-argument inverse trigonometric tangent obtained from the two arguments" and every other token as a
+     function of "the argument" (section 8.25); its class's `logic` admits one or more sub-expressions. So "Arity"
+     holds a math operator to two operands under `atan2` and to one under every other name, where its class's own
+     bound held one or more. No corpus document and no AlphaTest served item holds a math operator, so no verdict
+     moves. This is not a case of documents in conflict. (Stated 2026-11-20 by lane PANTRY-CONFORM, SV-EXPR-03.)
+
+243. **No two weights of one item ref share an identifier.** The information model says of the Weight class's
+     `identifier` "An item can have any number of weights, each one is given an identifier that is used to refer to the
+     weight in outcomes processing (see the variable and test variables definitions)" (section 7.50.1), and of
+     `weight-identifier` "The weight identifier refers to a weight definition in the corresponding
+     qti-assessment-item-ref. If no matching definition is found the weight is assumed to be 1.0" (section 7.47.2).
+     One identifier written on two weights of one item ref would give a `weight-identifier` two definitions to refer
+     to, with two values, and the information model gives no rule that picks one, as reading 74 found of two
+     declarations of one name. So "Weight key" refuses two weights of one item ref, compared collapsed
+     (`WeightName`, `src/qti/overlay-queries/tests.ts`). This is implied, not stated: no sentence calls a weight's
+     identifier unique, and the XSD types it `IdentifierDType` with no key. No corpus test and no AlphaTest test writes
+     two weights of one name. This binds pantry and every delivery alike. This is not a case of documents in conflict.
+     (Stated 2026-11-20 by lane IMPL-TESTS; upheld by the lead the same day: a weight reference must name one
+     definition, section 7.47.2, so the reading refuses only invalid content.)

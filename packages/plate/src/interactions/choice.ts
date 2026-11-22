@@ -1,6 +1,6 @@
 /**
- * Choice (Q-2), the `qti-choice-interaction`: its model node, parse, redaction and response
- * validation, on the module shape the interaction-module contract states.
+ * Choice (Q-2), the `qti-choice-interaction`: its model node, parse and redaction, on the module
+ * shape the interaction-module contract states.
  *
  * A Choice binds an identifier response of `single` or `multiple` cardinality; any other binding is
  * the notice naming the one it breaks. The model keeps its choices in document order whatever
@@ -10,19 +10,14 @@
  * names hides (`template-identifier` and `show-hide`) is decided by the redaction through its
  * region ({@link simpleChoiceRegions}), so a hidden choice is not presented and a response that
  * names it is refused as an unknown choice. Its node is generic in the level of its content, as
- * the interaction-module contract (`#plate/interactions/contract.ts`) explains.
- *
- * {@link validateChoice} checks a value the caller decoded, in two tiers: tier (a) always, tier (b)
- * only under `validateResponses`. Inline Choice reads its choices and presents them through the
- * same functions.
+ * the interaction-module contract (`#plate/interactions/contract.ts`) explains. Inline Choice reads
+ * its choices and presents them through the same functions.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_ChoiceInteraction
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import type { Malformed } from "#plate/form/encoding.ts";
 import { boundIn, choiceRegions, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
@@ -32,9 +27,7 @@ import type {
   OwnRegion,
   Parsed,
   ReaderKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { validatePicks } from "#plate/interactions/selection.ts";
 import type {
   BodyNode,
   Level,
@@ -45,7 +38,6 @@ import type {
   SimpleChoice,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
-import type { Value } from "#plate/model/values.ts";
 import { presentedOrder } from "#plate/shuffle.ts";
 
 /**
@@ -241,7 +233,7 @@ export const presented = <C extends { readonly fixed: boolean; readonly identifi
  * under the seed and the response, in the positions no fixed choice holds, each fixed choice at its
  * document position. Any other keeps document order. The same interaction and seed always give the
  * same order, the one the page presents. The order is presentation only: scores, records and
- * validation read identifiers, never positions.
+ * admission read identifiers, never positions.
  *
  * @param interaction The Choice or Inline Choice: its choices, its response and its `shuffle`.
  * @param seed The configuration's `seed`.
@@ -251,40 +243,6 @@ export const choiceOrder = (
   interaction: Pick<ChoiceInteraction, "choices" | "response" | "shuffle">,
   seed: string,
 ): readonly string[] => presented(interaction, seed).map((choice) => choice.identifier);
-
-/**
- * Check a Choice's response, which the caller decoded, in two tiers.
- *
- * The caller decodes the posted entries with `decode`, under the entry name its form gave the
- * Controls and the Choice's binding (identifiers of its cardinality), and passes the value, or the
- * {@link Malformed} `decode` gave. So the entry name stays the caller's, while the messages and the
- * author's overrides stay here.
- *
- * - A {@link Malformed} input: `atMost` 1 when a single response was posted more than once, else
- *   `unknownChoice`.
- * - Tier (a), always: every identifier names a presented choice and none repeats (`unknownChoice`),
- *   and `max-choices` above 0 caps the count whatever `validateResponses` says (`atMost`).
- * - Tier (b), only under `validateResponses`: `min-choices` (`atLeast`).
- *
- * The author's `data-max-selections-message` and `data-min-selections-message` replace the
- * renderer's text for `atMost` and `atLeast`.
- *
- * @param interaction The Choice.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-export const validateChoice = (
-  interaction: ChoiceInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] =>
-  validatePicks(
-    interaction,
-    new Set(interaction.choices.map((choice) => choice.identifier)),
-    input,
-    configuration,
-  );
 
 /**
  * Read a `qti-choice-interaction`: its binding, `max-choices`, `min-choices` and `shuffle`, the
@@ -380,5 +338,4 @@ export const choiceModule: InteractionModule<"choice", ChoiceByLevel, ChoicePayl
    * The regions of the Choice's own content, in document order: its Prompt, then each choice's.
    */
   regions: (interaction) => [...promptRegion(interaction), ...simpleChoiceRegions(interaction)],
-  validate: validateChoice,
 };

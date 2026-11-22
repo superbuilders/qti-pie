@@ -37,8 +37,8 @@ import type {
 import { scopedId } from "#plate/form/encoding.ts";
 import { message } from "#plate/messages.ts";
 import type { Locale, MessageKey } from "#plate/messages.ts";
-import { addressUrl, classifyUrl } from "#plate/model/url.ts";
-import type { UrlContext } from "#plate/model/url.ts";
+import { addressUrl, classifyUrl, missingPathOf } from "#plate/model/url.ts";
+import type { Unaddressed, UrlContext } from "#plate/model/url.ts";
 import type { CalculatorType } from "#plate/supports.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
 
@@ -63,14 +63,14 @@ const calculatorNames: Readonly<Record<CalculatorType, CalculatorName>> = {
  * @param context How the page uses the file: a `link` it follows, a `resource` it shows.
  * @param href The file's href as written.
  * @param addressing The item's location and the assets.
- * @returns The address, none when the URL is one `checkAdmitted` drops; the file's path when `assets`
- *   gives it no address.
+ * @returns The address, none when the URL is one `checkAdmitted` drops; why it has none when
+ *   `assets` holds no entry for its file or the host withholds it.
  */
 const addressOf = (
   context: UrlContext,
   href: string,
   addressing: Pick<Addressing, "assets" | "document">,
-): Option.Option<Result.Result<string, string>> => {
+): Option.Option<Result.Result<string, Unaddressed>> => {
   const url = classifyUrl(context, href);
 
   return url.kind === "dropped" || url.kind === "fragment"
@@ -316,7 +316,7 @@ export const missingInMaterials = (
     ];
 
     for (const url of urls) {
-      const missing = url.pipe(Option.flatMap(Result.getFailure));
+      const missing = url.pipe(Option.flatMap(Result.getFailure), Option.flatMap(missingPathOf));
 
       if (Option.isSome(missing)) {
         return missing.value;

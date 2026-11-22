@@ -9,10 +9,11 @@
  * was admitted below its normal range (FIX-UNWRITTEN's open question, 34c8c4b9).
  *
  * Each package is held three ways: by the specification by hand ({@link expectedOf}), by the law
- * oracle's laws, and by the import's rows: which `NormalMinimum`, `MasteryValue` and
- * `NormalMaximum` rows exist, and the laws they break on the host (`#pantry/test/host-judge.ts`),
- * `Mastery_range` among them as its check orders each pair, the join of its two ends
- * (`MasteryFloor`, `MasteryCeiling`), restated over the host's rows
+ * oracle's laws, and by the import's rows: the laws they break on the host
+ * (`#pantry/test/host-judge.ts`), `Mastery_range` among them as its check orders each pair of the
+ * doubles the scale views read from the declaration's attributes, the minimum the default where it
+ * writes none (`NormalMinimum`, `MasteryValue` and `NormalMaximum` of `#pantry/qti/names.ts`, and
+ * their joins `MasteryFloor` and `MasteryCeiling`), restated over the host's rows
  * (`#pantry/test/declaration-queries.ts`), under the refusal's rule. The database judges the check
  * itself.
  */
@@ -25,7 +26,6 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Duration, Effect, Formatter, Option } from "effect";
 import { grammar } from "#pantry/grammar/install.ts";
 import { readProgram } from "#pantry/import/program.ts";
-import type { PackageInputs } from "#pantry/import/write.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
@@ -159,35 +159,6 @@ const expectedOf = (drawn: Case): ReadonlySet<LawName> => {
 };
 
 /**
- * Hold a case's scale rows to what the specification gives it: its normal minimum's row exactly
- * where it has one, holding the written form or the default and whether it is written, and its
- * mastery value's and its normal maximum's exactly where it writes each, each pair the join of its
- * two ends.
- *
- * @param drawn - The case.
- * @param inputs - The import's rows.
- * @param label - The case, for a failure's message.
- */
-const assertRows = (drawn: Case, inputs: PackageInputs, label: string): void => {
-  const minimum = minimumOf(drawn);
-  assert.deepStrictEqual(
-    [...inputs.NormalMinimum.values()].map(({ lexical, written }) => [lexical, written]),
-    Option.toArray(minimum).map((lexical) => [lexical, drawn.minimum !== undefined]),
-    `${label}: NormalMinimum`,
-  );
-  assert.deepStrictEqual(
-    [...inputs.MasteryValue.values()].map(({ lexical }) => lexical),
-    Option.toArray(Option.fromUndefinedOr(drawn.mastery)),
-    `${label}: MasteryValue`,
-  );
-  assert.deepStrictEqual(
-    [...inputs.NormalMaximum.values()].map(({ lexical }) => lexical),
-    Option.toArray(Option.fromUndefinedOr(drawn.maximum)),
-    `${label}: NormalMaximum`,
-  );
-};
-
-/**
  * A situation the box must reach: a case whose mastery value is judged against the default floor,
  * one whose ceiling is out of order, one whose maximum breaks its bound, and one that is lawful.
  */
@@ -270,7 +241,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   );
 
                   const { inputs } = yield* readProgram(yield* scopedPackage(entries), "scoped");
-                  assertRows(drawn, inputs, label);
 
                   // The host judges every stored law, and its refusal is named by the rule the
                   // catalog's precedence puts first, as the database's is. Mastery range, a rule

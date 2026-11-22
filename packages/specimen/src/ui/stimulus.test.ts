@@ -203,7 +203,11 @@ const pageOf = (item: SourceItem, showing: ShowingName): Document => {
         }),
       )
     : renderToStaticMarkup(
-        createElement(Item, { ...shown, mode: "solution", values: solution(item.accepted) }),
+        createElement(Item, {
+          ...shown,
+          mode: "solution",
+          values: solution(item.accepted, { correct: {} }),
+        }),
       );
 
   return parseHTML(`<!doctype html><html><body>${html}</body></html>`).document;

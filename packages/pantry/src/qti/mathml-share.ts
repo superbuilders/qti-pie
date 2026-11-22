@@ -65,11 +65,11 @@ import {
   relation,
   select,
 } from "@bjornpagen/grizzle";
-import { NodeKind } from "#pantry/grammar/install.ts";
+import { anyText, NodeKind } from "#pantry/grammar/install.ts";
 import { ShareFragment } from "#pantry/qti/identity.ts";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { Instance, TestDocument } from "#pantry/qti/tests.ts";
+import { Instance, AssembledDocument } from "#pantry/qti/tests.ts";
 
 /**
  * One MathML element a share can dominate or be dominated through, keyed by its node's
@@ -100,7 +100,7 @@ export const MathRank = relation(
 export const ShareTarget = relation(
   "ShareTarget",
   {
-    id: keyText,
+    id: anyText,
     package: PackageName,
     path: EntryPath,
     start: natural,
@@ -154,7 +154,7 @@ export const PlacedShareTarget = relation(
   {
     assembly: EntryPath,
     assemblyKind: closedId(NodeKind),
-    id: keyText,
+    id: anyText,
     instance: natural,
     package: PackageName,
     path: EntryPath,
@@ -252,7 +252,7 @@ export const shareLaws = [
   placedShareFamily,
   contained(
     on(assembledShares, "package", "path", "placements"),
-    on(TestDocument, "package", "path", "instances"),
+    on(AssembledDocument, "package", "path", "instances"),
   ),
   contained(
     on(PlacedShareTarget, "package", "assembly", "targetInstance", "target"),

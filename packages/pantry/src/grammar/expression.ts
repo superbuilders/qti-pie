@@ -822,21 +822,22 @@ export const languages = ["response", "outcome", "template", "none"] as const;
 export type Language = (typeof languages)[number];
 
 /**
- * How a processing reference names its variable, in code order: the `ReferenceResolution`
- * roster's handles.
- * `declared`, a declaration of its document; `builtIn`, one of the built-in variables
- * (`BuiltInVariable`); `unresolved`, neither, which only a document that is no item may hold: a
- * response processing template's parameters and a test's item variables are declared elsewhere.
+ * How a processing reference names its variable under a placement, in code order: the
+ * `ReferenceResolution` roster's handles, each read in the placement's assembly (spec reading 117).
+ * `declared`, a declaration of the assembly's root document; `builtIn`, one of that root's built-in
+ * variables (`BuiltInVariable`); `read`, under a test, the one reading of a name its scope
+ * prefixes, an item's variable through an item ref that names an item document or a scope's
+ * `duration` (spec readings 48 and 167); `unresolved`, none of them, which only a root that is no
+ * item may leave: a response processing template's parameters in its own placement, and a test's
+ * name read through an item ref that names no item document (reading 110) or read more than once
+ * (reading 86).
  */
-export const resolutions = ["declared", "builtIn", "unresolved"] as const;
+export const resolutions = ["declared", "builtIn", "read", "unresolved"] as const;
 
 /**
- * The tables a processing reference needs its declaration to hold, in code order: the
- * `ReferencedTable` roster's handles. `qti-map-response` needs a `qti-mapping` and
- * `qti-map-response-point` a `qti-area-mapping` (information model §2.11.3.29 and §2.11.3.30);
- * `qti-lookup-outcome-value` a `qti-match-table` or a `qti-interpolation-table` (§2.5.1.4). Every
- * other reference needs none, and claims none: a claim is a row of its own (`VariableRefTable`), so
- * no handle stands for its absence.
+ * The tables a processing reference reads of its declaration ({@link tableReaders}), each once: the
+ * kinds of a declaration's tables (`DeclarationTable`,
+ * `#pantry/qti/overlay-queries/declaration.ts`).
  */
 export const referencedTables = [
   "qti-mapping",
@@ -846,17 +847,16 @@ export const referencedTables = [
 ] as const;
 
 /**
- * A `ReferencedTable` handle.
+ * One of {@link referencedTables}.
  */
 export type ReferencedTable = (typeof referencedTables)[number];
 
 /**
- * Which table each processing reference reads of its variable's declaration, in the order a
- * reference reads them: `qti-map-response` a `qti-mapping`, `qti-map-response-point` a
- * `qti-area-mapping` (information model §2.11.3.29 and §2.11.3.30), and `qti-lookup-outcome-value`
- * a `qti-match-table`, else a `qti-interpolation-table` (§2.5.1.4). Every other reference reads
- * none. The `TableReader` relation holds these rows, and the importer's reading of a reference's
- * table follows them.
+ * Which tables each processing reference reads of its variable's declaration: `qti-map-response`
+ * a `qti-mapping`, `qti-map-response-point` a `qti-area-mapping` (information model §2.11.3.29 and
+ * §2.11.3.30), and `qti-lookup-outcome-value` a `qti-match-table` or a `qti-interpolation-table`
+ * (§2.5.1.4). Every other reference reads none. "Mapped response" and "Lookup type" hold each
+ * placed declared reference of a reader's kind to a declaration that holds one of its tables.
  */
 export const tableReaders = [
   { kind: "qti-map-response", table: "qti-mapping" },
@@ -1280,7 +1280,7 @@ export const resultCardinalityRows = (
   );
 
 /**
- * The kinds of one typing, a handle list a law reads through `Compute.in` (C8).
+ * The kinds of one typing, a handle list a law reads through `Logic.in` (C8).
  *
  * @param typings - The kinds' typings.
  * @param typing - The typing.
@@ -1403,3 +1403,14 @@ export const referenceBaseRows = (
  * enumeration, `whiteSpace` preserve, so its value is its lexical form, compared exactly.
  */
 export const integerMathOperators = ["signum", "floor", "ceil"] as const;
+
+/**
+ * The names `qti-math-operator` takes two sub-expressions under: `atan2`, "the 2-argument inverse
+ * trigonometric tangent obtained from the two arguments" (information model §8.25,
+ * MathOperatorNameEnum). Every other name takes one: "The trigonometric functions, sin, cos and
+ * tan, take one argument in radians ... Other functions take one numerical argument. Further
+ * functions might take more than one numerical argument, e.g. atan2 (two argument arc tan)"
+ * (§5.91, MathOperator), and each of §8.25's other tokens is a function of "the argument" (spec
+ * reading 242). The name is compared exactly, as {@link integerMathOperators} is.
+ */
+export const binaryMathOperators = ["atan2"] as const;

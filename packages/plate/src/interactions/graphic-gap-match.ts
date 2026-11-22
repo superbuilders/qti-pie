@@ -1,6 +1,6 @@
 /**
  * Graphic Gap Match (Q-8), the `qti-graphic-gap-match-interaction`: its model node, payload node,
- * parse, redaction, response validation and bindings, on the module shape of Gap Match
+ * parse, redaction and bindings, on the module shape of Gap Match
  * (`#plate/interactions/gap-match.ts`) with the image and the areas of Hotspot
  * (`#plate/interactions/hotspot.ts`).
  *
@@ -45,9 +45,7 @@
  * @module
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { areaLabel, coordinatesOf } from "#plate/interactions/area.ts";
 import type { AreaCoordinate } from "#plate/interactions/area.ts";
 import {
@@ -64,16 +62,13 @@ import type {
   OwnRegion,
   Parsed,
   ReaderKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { countsOf } from "#plate/interactions/counts.ts";
-import { exclusionOf, listedIn, matchGroupOf } from "#plate/interactions/match-group.ts";
+import { listedIn, matchGroupOf } from "#plate/interactions/match-group.ts";
 import type { MatchGroup } from "#plate/interactions/match-group.ts";
 import { authoredSizeOf, imageElementOf } from "#plate/interactions/image-size.ts";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
 import { pairsOf } from "#plate/interactions/pair.ts";
 import type { Pair } from "#plate/interactions/pair.ts";
-import { counted, message, numeral } from "#plate/messages.ts";
 import type {
   BodyNode,
   Level,
@@ -83,7 +78,6 @@ import type {
   ReferencingChoice,
   Unsupported,
 } from "#plate/model/item.ts";
-import type { Value } from "#plate/model/values.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";
 
 /**
@@ -438,173 +432,6 @@ const parse = (
 };
 
 /**
- * Check a Graphic Gap Match's response, which the caller decoded, in two tiers.
- *
- * The caller decodes the posted entries with `decode`, under the entry name its form gave the
- * pairs and the binding a `directedPair` response travels under, and passes the value, or
- * the {@link Malformed} `decode` gave; the entry name stays the caller's, while the messages and
- * the author's overrides stay here.
- *
- * - A {@link Malformed} input: `atMost` 1 when the response was posted more than once as a single,
- *   else `unknownChoice`.
- * - Tier (a), always: a pair that names no choice or no hotspot (`unknownChoice`); a hotspot that
- *   holds more choices than its `match-max` (0 is no limit); a choice that goes to more hotspots
- *   than its `match-max`, a repeat counting each time; a pair outside the choice's `match-group` or
- *   the hotspot's; and `max-associations` above 0 capping the pairs (`atMost`).
- * - Tier (b), only under `validateResponses`: fewer pairs than `min-associations` (`atLeast`), a
- *   hotspot that holds fewer choices than its `match-min`, and a choice that goes to fewer hotspots
- *   than its `match-min`.
- *
- * The author's `data-max-selections-message` and `data-min-selections-message` replace plate's
- * own text for `atMost` and `atLeast`. The messages of the other limits are this module's,
- * in English, and each names the hotspot or the choice at fault.
- *
- * @param interaction The Graphic Gap Match.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validate = (
-  interaction: GraphicGapMatchInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const say = (words: string): ValidationMessage => ({
-    response: interaction.response,
-    text: words,
-  });
-  const tooMany = (n: bigint) =>
-    say(
-      Option.getOrElse(interaction.messages.max, () =>
-        message(locale, "atMost", { n: numeral(locale, n) }),
-      ),
-    );
-  const tooFew = (n: bigint) =>
-    say(
-      Option.getOrElse(interaction.messages.min, () =>
-        message(locale, "atLeast", { n: numeral(locale, n) }),
-      ),
-    );
-
-  if (input instanceof Malformed) {
-    return [input.reason === "single-many" ? tooMany(1n) : say(message(locale, "unknownChoice"))];
-  }
-
-  const pairs = input.values.flatMap((single) =>
-    single.baseType === "directedPair" ? [single.value] : [],
-  );
-  const choices = new Map(interaction.choices.map((choice) => [choice.identifier, choice]));
-  const hotspots = new Map(interaction.hotspots.map((hotspot) => [hotspot.identifier, hotspot]));
-  const perHotspot = countsOf(pairs.map(([, target]) => target));
-  const perChoice = countsOf(pairs.map(([source]) => source));
-  const outside = [
-    ...new Map(pairs.map((pair) => [`${pair[0]} ${pair[1]}`, pair] as const)).values(),
-  ].flatMap(([source, target]) =>
-    Option.match(exclusionOf(choices, source, target), {
-      onNone: () =>
-        Option.match(exclusionOf(hotspots, target, source), {
-          onNone: () => [],
-          onSome: (group) => [
-            say(
-              message(locale, "graphicGapMatchNotInHotspotGroup", {
-                area: target,
-                choice: source,
-                group: group.join(", "),
-              }),
-            ),
-          ],
-        }),
-      onSome: (group) => [
-        say(
-          message(locale, "graphicGapMatchNotInChoiceGroup", {
-            area: target,
-            choice: source,
-            group: group.join(", "),
-          }),
-        ),
-      ],
-    }),
-  );
-  const tierA = [
-    ...(pairs.some(([source, target]) => !choices.has(source) || !hotspots.has(target))
-      ? [say(message(locale, "unknownChoice"))]
-      : []),
-    ...interaction.hotspots.flatMap((hotspot) =>
-      hotspot.matchMax > 0n && (perHotspot.get(hotspot.identifier) ?? 0n) > hotspot.matchMax
-        ? [
-            say(
-              counted(
-                locale,
-                hotspot.matchMax,
-                { many: "graphicGapMatchHotspotAtMost", one: "graphicGapMatchHotspotAtMostOne" },
-                { area: hotspot.identifier },
-              ),
-            ),
-          ]
-        : [],
-    ),
-    ...interaction.choices.flatMap((choice) =>
-      choice.matchMax > 0n && (perChoice.get(choice.identifier) ?? 0n) > choice.matchMax
-        ? [
-            say(
-              counted(
-                locale,
-                choice.matchMax,
-                { many: "graphicGapMatchChoiceAtMost", one: "graphicGapMatchChoiceAtMostOne" },
-                { choice: choice.identifier },
-              ),
-            ),
-          ]
-        : [],
-    ),
-    ...outside,
-    ...(interaction.maxAssociations > 0n && BigInt(pairs.length) > interaction.maxAssociations
-      ? [tooMany(interaction.maxAssociations)]
-      : []),
-  ];
-
-  if (!configuration.validateResponses) {
-    return tierA;
-  }
-
-  return [
-    ...tierA,
-    ...(BigInt(pairs.length) < interaction.minAssociations
-      ? [tooFew(interaction.minAssociations)]
-      : []),
-    ...interaction.hotspots.flatMap((hotspot) =>
-      (perHotspot.get(hotspot.identifier) ?? 0n) < hotspot.matchMin
-        ? [
-            say(
-              counted(
-                locale,
-                hotspot.matchMin,
-                { many: "graphicGapMatchHotspotAtLeast", one: "graphicGapMatchHotspotAtLeastOne" },
-                { area: hotspot.identifier },
-              ),
-            ),
-          ]
-        : [],
-    ),
-    ...interaction.choices.flatMap((choice) =>
-      (perChoice.get(choice.identifier) ?? 0n) < choice.matchMin
-        ? [
-            say(
-              counted(
-                locale,
-                choice.matchMin,
-                { many: "graphicGapMatchChoiceAtLeast", one: "graphicGapMatchChoiceAtLeastOne" },
-                { choice: choice.identifier },
-              ),
-            ),
-          ]
-        : [],
-    ),
-  ];
-};
-
-/**
  * The regions of a Graphic Gap Match's own content, in document order: its Prompt, its image, then
  * each choice's content.
  *
@@ -687,5 +514,4 @@ export const graphicGapMatchModule: InteractionModule<
    * choice's content.
    */
   regions: ownRegions,
-  validate,
 };

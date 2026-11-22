@@ -150,7 +150,7 @@ export interface PlacedDocument {
  * path once, the manifest's as the manifest (`#pantry/import/program.ts`). Its `targetAt` reads
  * only the documents a resource names: a site never names the manifest, which is no resource's
  * document (spec readings 115 and 146), so an href that resolves to it names no target, and
- * "Include target" refuses an include of it.
+ * "Include target" refuses an include of it that holds no `xi:fallback`.
  *
  * @param name - The package's name.
  * @param documents - The package's documents, in the listing's order.

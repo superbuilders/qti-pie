@@ -8,6 +8,7 @@ import type { SchemaIssue } from "effect";
 import { Effect, Option, Predicate, Schema, SchemaTransformation } from "effect";
 import { locales } from "#plate/messages.ts";
 import { isPackagePath } from "#plate/model/url.ts";
+import type { Asset } from "#plate/model/url.ts";
 
 /**
  * The output budget a configuration holds when the host sets none, and the one a redaction runs
@@ -47,14 +48,24 @@ const Address = Schema.String.check(
 
 /**
  * One file's entry in the configuration's `assets` as a host writes it: its path from the package
- * root, then its address.
+ * root, then its address, or `null` for a file the host holds and withholds from every player.
  */
-const AssetEntry = Schema.Tuple([PackagePathSchema, Address]);
+const AssetEntry = Schema.Tuple([PackagePathSchema, Schema.NullOr(Address)]);
+
+/**
+ * What the host gives one file, decoded from its entry's address ({@link Asset}).
+ *
+ * @param address The entry's address, `null` for a withheld file.
+ * @returns The file served at the address, or withheld.
+ */
+const assetOf = (address: string | null): Asset =>
+  address === null ? { kind: "withheld" } : { address, kind: "served" };
 
 /**
  * The configuration's `assets` as a Schema: written as an array of entries, each a file's path and
- * its address, and decoded to the map from each path to its address. Two entries of one path are
- * refused, so the map holds each file once and never by whichever entry came last.
+ * its address or `null`, and decoded to the map from each path to what the host gives it
+ * ({@link Asset}). Two entries of one path are refused, so the map holds each file once and never
+ * by whichever entry came last.
  */
 const Assets = Schema.Array(AssetEntry)
   .check(
@@ -66,10 +77,22 @@ const Assets = Schema.Array(AssetEntry)
   )
   .pipe(
     Schema.decodeTo(
-      Schema.toType(Schema.ReadonlyMap(PackagePathSchema, Address)),
+      Schema.toType(
+        Schema.ReadonlyMap(
+          PackagePathSchema,
+          Schema.Union([
+            Schema.Struct({ address: Address, kind: Schema.Literal("served") }),
+            Schema.Struct({ kind: Schema.Literal("withheld") }),
+          ]),
+        ),
+      ),
       SchemaTransformation.transform({
-        decode: (entries): ReadonlyMap<typeof PackagePathSchema.Type, string> => new Map(entries),
-        encode: (assets) => [...assets],
+        decode: (entries): ReadonlyMap<typeof PackagePathSchema.Type, Asset> =>
+          new Map(entries.map(([path, address]) => [path, assetOf(address)])),
+        encode: (assets) =>
+          [...assets].map(
+            ([path, asset]) => [path, asset.kind === "served" ? asset.address : null] as const,
+          ),
       }),
     ),
   );
@@ -108,12 +131,11 @@ export type TextEntryKeypad = (typeof textEntryKeypads)[number];
  * The Schema of the renderer's configuration, which owns every field's constraint and default, and
  * which field has none.
  *
- * Every key but `seed` and `validateResponses` is optional in the input and takes its default when
- * left out, so `{ seed, validateResponses }` decodes to the whole default configuration. A key it
- * does not name is refused, and so is a value of another type: `"3"` is not a heading level.
- * `validateResponses` is the stage's validate-responses setting as the stage states it, with no
- * default (placement ruling 9), the one item session control setting the item's interactions read;
- * a host applies the others itself. `headingLevel` is the level the item's shallowest heading
+ * Every key but `seed` is optional in the input and takes its default when left out, so `{ seed }`
+ * decodes to the whole default configuration. A key it does not name is refused, and so is a value
+ * of another type: `"3"` is not a heading level. No item session control setting is plate's: the
+ * stage's validate-responses is the QTI database's, whose admission judges an answer by it in the
+ * statement that would record it. `headingLevel` is the level the item's shallowest heading
  * takes, every other heading keeping its distance from it, capped at `h6`; it starts at 2 because
  * the host owns `h1`. `hotspotList` and `hotspotPicks` are how every Hotspot of the item shows its
  * list of areas and a picked area, `shown` and `ring` by default; `<Item>` writes them on its root,
@@ -122,22 +144,22 @@ export type TextEntryKeypad = (typeof textEntryKeypads)[number];
  * QTI's `qti-unselected-hidden` class, never the host's. `textEntryKeypad` is whether every Text
  * Entry of the item shows an on-screen keypad under its box, `none` by default; the islands read
  * it, and its keys type through the box's own input, so it changes no response or its scoring.
- * `assets` maps each file an item's package
- * URLs may name, by its path from the package root, to its address, the URL `<Item>` writes in its
- * place: `<Item>` resolves each package URL against the item's location, the path from the package
- * root the host opened it by, so `media/a.png` in `items/q1.xml` names `items/media/a.png`, and it
- * throws `AssetMissing` for a file `assets` gives no address, never writing a path relative to the
- * page. It is empty by default, and `configure` reads it as an array of `[path, address]` entries,
- * each path once. `outputBudget` bounds the characters an item's printed variables print, counted
- * as a string's `length` counts them (UTF-16 code units), and is 16,777,216 (16 MiB of ASCII) by
- * default: `redact` stops printing once their text passes it, and `<Item>` then refuses the item
- * with `OutputTooLarge`. Its maximum, 536,870,888, is V8's longest string, the smallest of the
- * engines' limits, so no budget asks an engine for a string it cannot build. `seed` is a string,
- * used as given and required, since every order a page shows is keyed by it: the served item's
- * shuffle seed (`itemSeeds`), or the key a host's preview states for itself, which keys a shuffled
- * interaction's order with the response, and nothing else. Processing never reads it: `begin` takes
- * the record's own seed. So a served item has two seeds: the configuration's keys the shuffle, and
- * the record's keys the processing.
+ * `assets` maps each file an item's package URLs may name, by its path from the package root, to
+ * its address, the URL `<Item>` writes in its place, or to `null` for a file the host withholds,
+ * which `<Item>` writes no URL for and renders the item without: `<Item>` resolves each package URL
+ * against the item's location, the path from the package root the host opened it by, so
+ * `media/a.png` in `items/q1.xml` names `items/media/a.png`, and it throws `AssetMissing` for a
+ * file `assets` holds no entry for, never writing a path relative to the page. It is empty by
+ * default, and `configure` reads it as an array of `[path, address]` entries, each path once.
+ * `outputBudget` bounds the characters an item's printed variables print, counted as a string's
+ * `length` counts them (UTF-16 code units), and is 16,777,216 (16 MiB of ASCII) by default:
+ * `redact` stops printing once their text passes it, and `<Item>` then refuses the item with
+ * `OutputTooLarge`. Its maximum, 536,870,888, is V8's longest string, the smallest of the engines'
+ * limits, so no budget asks an engine for a string it cannot build. `seed` is a string, used as
+ * given and required, since every order a page shows is keyed by it: the served item's shuffle seed
+ * (`shuffleSeed`), or the key a host's preview states for itself, which keys a shuffled
+ * interaction's order with the response, and nothing else. Processing never reads it: the QTI
+ * database runs processing under a seed of its own.
  */
 export const ConfigurationSchema = Schema.Struct({
   assets: Assets.pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
@@ -158,7 +180,6 @@ export const ConfigurationSchema = Schema.Struct({
   textEntryKeypad: Schema.Literals(textEntryKeypads).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed("none")),
   ),
-  validateResponses: Schema.Boolean,
 });
 
 /**
@@ -176,7 +197,7 @@ type Field = keyof Configuration;
  */
 const allowedValues: Readonly<Record<Field, string>> = {
   assets:
-    'an array of [path, address] entries: each path a file\'s path from the package root, such as "items/media/a.png", in one entry only, and each address a URL with no whitespace that neither starts nor ends with a comma, such as "https://cdn.example/sha256/9f86…"',
+    'an array of [path, address] entries: each path a file\'s path from the package root, such as "items/media/a.png", in one entry only, and each address a URL with no whitespace that neither starts nor ends with a comma, such as "https://cdn.example/sha256/9f86…", or null for a file the host withholds',
   headingLevel: "an integer from 2 to 6",
   hotspotList: `how a Hotspot shows its list of areas: ${hotspotLists.map((value) => `"${value}"`).join(" or ")}`,
   hotspotPicks: `how a Hotspot shows a picked area: ${hotspotPicks.map((value) => `"${value}"`).join(" or ")}`,
@@ -185,7 +206,6 @@ const allowedValues: Readonly<Record<Field, string>> = {
     "an integer from 1 to 536,870,888, the most characters an item's printed variables may print",
   seed: 'a string, the served item\'s shuffle seed, such as "7"',
   textEntryKeypad: `how a child types into a Text Entry: ${textEntryKeypads.map((value) => `"${value}"`).join(" or ")}`,
-  validateResponses: "true or false, as the stage states it",
 };
 
 /**

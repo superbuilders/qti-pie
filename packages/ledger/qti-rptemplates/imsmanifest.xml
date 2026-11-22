@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="qti-rptemplates" xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1">
+  <metadata>
+    <schema>QTI Package</schema>
+    <schemaversion>3.0.1</schemaversion>
+  </metadata>
+  <organizations/>
+  <resources>
+    <resource identifier="match_correct" type="imsqti_rptemplate_xmlv3p0" href="match_correct.xml">
+      <file href="match_correct.xml"/>
+    </resource>
+    <resource identifier="map_response" type="imsqti_rptemplate_xmlv3p0" href="map_response.xml">
+      <file href="map_response.xml"/>
+    </resource>
+    <resource identifier="map_response_point" type="imsqti_rptemplate_xmlv3p0" href="map_response_point.xml">
+      <file href="map_response_point.xml"/>
+    </resource>
+    <resource identifier="CC2_match" type="imsqti_rptemplate_xmlv3p0" href="CC2_match.xml">
+      <file href="CC2_match.xml"/>
+    </resource>
+    <resource identifier="CC2_match_basic" type="imsqti_rptemplate_xmlv3p0" href="CC2_match_basic.xml">
+      <file href="CC2_match_basic.xml"/>
+    </resource>
+    <resource identifier="CC2_map_response" type="imsqti_rptemplate_xmlv3p0" href="CC2_map_response.xml">
+      <file href="CC2_map_response.xml"/>
+    </resource>
+  </resources>
+</manifest>

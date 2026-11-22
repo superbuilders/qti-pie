@@ -57,14 +57,14 @@
  * space, where a tab, a line feed and a carriage return each read as a space (XML Schema 1.0 Part 2
  * §4.3.6, whiteSpace `replace`), and a language tag without regard to case (RFC 5646 §2.1.1), whose
  * subtags are ASCII (§2.1). So each side is compared in that form: a title by its
- * `Compute.replaceWhitespace` (an object's `title` attribute's `value`, an `xs:normalizedString`'s
+ * `Text.replaceWhitespace` (an object's `title` attribute's `value`, an `xs:normalizedString`'s
  * value, which the database generates, and a title string's folded `stringValue`, replaced in the
  * query), the root's `xml:lang` by its value
- * collapsed (an `xs:language`) and case-folded by `Compute.lowerAscii` (its `LangValue`'s
+ * collapsed (an `xs:language`) and case-folded by `Text.lowerAscii` (its `LangValue`'s
  * `value`, `#pantry/qti/names.ts`), and a string's `language` attribute, an `xs:string`,
  * case-folded as written, in the query.
  *
- * "Compared collapsed" is stated over the texts the database collapses (`Compute.collapse`, XML
+ * "Compared collapsed" is stated over the texts the database collapses (`Text.collapse`, XML
  * Schema Part 2 §4.3.6): an entry's folded text is collapsed in the query, and an assessment
  * object's `identifier` is its attribute's `value`, generated from the text as written, collapsed
  * by its domain's class, so the law compares the collapsed values and no padding is refused
@@ -84,12 +84,10 @@
  *
  * Every check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written
  * as underscores: an overlay's agreement with the tree it restates is "E1 derived" (rule
- * `derived`). Every copied text that takes part in a cross-row equality is `keyText`
- * (`#pantry/qti/limits.ts`), and a value past its bound is refused under the schema's one limit
- * law, never under a QTI law's name. No containment pairs two such texts: each `keyText` bound is
- * derived for one text in a key, and two would pass PostgreSQL's B-tree entry limit
- * (`UnrepresentableKey`). `lom-identifier`, `lom-title` and `lom-learning-resource-type` compare
- * their texts inside a query, which a rule reads with no key over them.
+ * `derived`). Every copied text that takes part in a cross-row equality is of any length, a key, a
+ * containment's target and a lookup holding it by its image (`#pantry/qti/limits.ts`).
+ * `lom-identifier`, `lom-title` and `lom-learning-resource-type` compare their texts inside a
+ * query, which a rule reads with no key over them.
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/md-bind/index.html | QTI 3.0 Metadata, §2.7.1 The General Category}
  * @see {@link https://www.w3.org/TR/xmlschema-2/#rf-whiteSpace | XML Schema Part 2, whiteSpace}
@@ -97,28 +95,28 @@
 import {
   check,
   closedId,
-  Compute,
   contained,
   natural,
   on,
   relation,
   select,
+  Text,
 } from "@bjornpagen/grizzle";
 import type { NodeKind, ResourceType } from "#pantry/grammar/install.ts";
-import { BaseType, BaseTypeLexical } from "#pantry/grammar/install.ts";
+import { anyText, BaseType, BaseTypeLexical } from "#pantry/grammar/install.ts";
 import { baseTypes } from "#pantry/grammar/attributes.ts";
 import { carries } from "#pantry/qti/attributes.ts";
 import { BaseTypePattern, unjudgedBaseTypes } from "#pantry/qti/expression-types.ts";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { usageValueKind } from "#pantry/vocab/terms/metadata.ts";
 
 /**
- * The resource types whose LOM record names its document (reading 62): an item's, since pantry
- * stores no test (spec reading 228).
+ * The resource types whose LOM record names its document (reading 62): an item's and a test's.
  */
 export const objectTypes = [
   "imsqti_item_xmlv3p0",
+  "imsqti_test_xmlv3p0",
 ] as const satisfies readonly (typeof ResourceType.handles)[number][];
 
 /**
@@ -143,11 +141,11 @@ export const resourceMetadata = "cp:metadata.resource" satisfies (typeof NodeKin
 export const UsageValue = relation(
   "UsageValue",
   {
-    baseTypeLexical: keyText,
+    baseTypeLexical: anyText,
     package: PackageName,
     path: EntryPath,
     start: natural,
-    text: keyText,
+    text: anyText,
   },
   ["package", "path", "start"],
 );
@@ -164,11 +162,11 @@ export const UsageValueBaseType = relation(
   "UsageValueBaseType",
   {
     baseType: closedId(BaseType),
-    baseTypeLexical: keyText,
+    baseTypeLexical: anyText,
     package: PackageName,
     path: EntryPath,
     start: natural,
-    text: keyText,
+    text: anyText,
   },
   ["package", "path", "start"],
 );
@@ -217,7 +215,7 @@ const spelledUsageValues = select(UsageValue, (u) => u.in(u.baseTypeLexical, bas
  *
  * - **the objects:** an item's root's `identifier` and `title` are no rows here: each is its
  *   attribute's own `value`, selected by a query of `#pantry/qti/queries.ts` (`ObjectIdentifier`,
- *   which "Item key" keys, and `objectTitles`, which `lom-title` reads; C18, spec reading 148).
+ *   by its document's place, and `objectTitles`, which `lom-title` reads; C18, spec reading 148).
  *   That attribute's selection is of an item's kind, and the grammar admits an item only as its
  *   document's root: no pinned XSD names it as a particle, and no wildcard admits it, since it is
  *   one of the roots spec reading 6 keeps foreign (`foreignRoots` of `#pantry/vocab/open.ts`, which
@@ -234,7 +232,6 @@ const spelledUsageValues = select(UsageValue, (u) => u.in(u.baseTypeLexical, bas
  *   row is one, its lexical form copied from it and its text from the node; its code is the one its
  *   lexical form spells ("E1 derived"); and its text is a lexical form of that base type ("Usage
  *   typed value").
- * - **`Item key`** is a key over the query `ObjectIdentifier` (`#pantry/qti/queries.ts`).
  */
 export const metadataLawsByName = {
   "E1 derived": [
@@ -270,7 +267,7 @@ export const metadataLawsByName = {
     check("Usage_typed_value", UsageValueBaseType, (u) =>
       u.or(
         u.in(u.baseType, unjudgedBaseTypes),
-        Compute.matches(u.text, BaseTypePattern.at("pattern", u.baseType)),
+        Text.matches(u.text, BaseTypePattern.at("pattern", u.baseType)),
       ),
     ),
   ],

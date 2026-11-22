@@ -12,7 +12,7 @@
  *   admits a row (`rowEvaluator`'s `admit`), a row its domain refuses breaking it;
  * - A generated field's law: every row's generated value no NULL, as the evaluator computes it;
  * - A bounded text's bound: no field of a bounded text type holds more UTF-8 bytes than its type's
- *   bound, a key text's `keyTextBytes` and an entry path's or a package name's `identityBytes`.
+ *   bound, a key text's `matchedTextBytes`.
  *
  * A write the preview refuses before any SQL breaks the law it names (a key's, a generated field's
  * or a counted family's), and leaves every other law unknown. A statement over a derived relation,
@@ -30,14 +30,7 @@ import type { Law } from "@bjornpagen/grizzle";
 import { lawOfCheck } from "#pantry/import/refusal.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
-import {
-  EntryPath,
-  identityBytes,
-  keyText,
-  keyTextBytes,
-  PackageName,
-  utf8Length,
-} from "#pantry/qti/limits.ts";
+import { matchedText, matchedTextBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import {
   judge,
@@ -81,9 +74,9 @@ const checkLaws: ReadonlyMap<Law, LawName> = new Map(
  * Every law a check of `Qti` states that the host does not judge, so its database verdict the host
  * never knows: each check over a derived relation, whose rows only the database evaluates. It is
  * judged per statement, never by the check's name: two checks of one law share a name, as
- * "Condition type" states one over `Expression`, which the host judges, and its placed twin over
- * the `PlacedReferenceType` query, which it does not, and the law is unread for the one it cannot
- * judge.
+ * "Reference type" states one over `PlacedVariableRef`, which the host judges, and one over the
+ * `PlacedVariableRefDeclaration` query, which it does not, and the law is unread for the one it
+ * cannot judge.
  */
 const unreadChecks: ReadonlySet<LawName> = new Set(
   Qti.statements.flatMap((statement) =>
@@ -225,12 +218,12 @@ const patternFields: ReadonlyMap<PatternLaw, readonly (readonly [string, string]
 
 /**
  * The UTF-8 byte bound of each bounded text type, the stated limit "Key text bound" (spec reading
- * 1): a key text's, `keyTextBytes`, and an entry path's and a package name's, `identityBytes`.
+ * 1): a text a query reads by a pattern, `matchedText`'s `matchedTextBytes`. A text of any other
+ * type, a package's name, an entry's path and `anyText` among them, is of any length: a key holds
+ * it by its image.
  */
 const textBounds: ReadonlyMap<unknown, number> = new Map<unknown, number>([
-  [EntryPath, identityBytes],
-  [keyText, keyTextBytes],
-  [PackageName, identityBytes],
+  [matchedText, matchedTextBytes],
 ]);
 
 /**

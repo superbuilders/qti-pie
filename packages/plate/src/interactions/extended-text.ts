@@ -1,7 +1,8 @@
 /**
- * Extended Text (Q-5), the `qti-extended-text-interaction`: its model node, parse, redaction and
- * response validation, on the module shape the interaction-module contract states, with the facts
- * of a text control it shares with Text Entry (`#plate/interactions/text-entry.ts`).
+ * Extended Text (Q-5), the `qti-extended-text-interaction`: its model node, parse and redaction,
+ * on the module shape the interaction-module contract states, with the facts of a text control it
+ * shares with Text Entry (`#plate/interactions/text-entry.ts`). The QTI database judges its
+ * responses (`max-strings`, `min-strings`, `pattern-mask`) when an answer is posted.
  *
  * An Extended Text shows one Control for a `single` binding and for a record one, a string control
  * whose text gives the record's fields, whatever its `max-strings` and a `min-strings` of 100 or
@@ -12,22 +13,12 @@
  * the one it breaks, and a `format` outside `plain`, `preformatted` and `xhtml` is the notice
  * `format="…"`.
  *
- * {@link validateExtendedText} checks a value the caller decoded. Tier (a): a number binding
- * refuses text that is not a number, every binding refuses a file, a single one refuses a second
- * entry, which a native textarea never posts, and a nonzero `max-strings` caps the entries.
- * Tier (b), under `validateResponses`: `min-strings`, and the `pattern-mask` on each member,
- * through `patternMessage` (`#plate/interactions/pattern.ts`). An Extended Text that renders the
- * cap's notice in place of its Controls is not judged against `min-strings`; tier (a) still holds
- * for it.
- *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_ExtendedTextInteraction
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import { controlCap, exceedsControlCap } from "#plate/control-cap.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
@@ -35,9 +26,7 @@ import type {
   ModuleInteraction,
   ModuleParseContext,
   Parsed,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { malformedMessage, patternMessage } from "#plate/interactions/pattern.ts";
 import {
   bindText,
   textBaseTypes,
@@ -47,9 +36,7 @@ import {
   writeIn,
 } from "#plate/interactions/text-entry.ts";
 import type { TextControlPayload, TextFields } from "#plate/interactions/text-entry.ts";
-import { counted } from "#plate/messages.ts";
 import type { Level, ModelLevel, Nodes, RedactedLevel, Unsupported } from "#plate/model/item.ts";
-import type { Value } from "#plate/model/values.ts";
 
 /**
  * Extended Text's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -240,96 +227,6 @@ const controlsOf = (interaction: ExtendedTextInteraction, members: number): Cont
 };
 
 /**
- * Give the messages a decoded value's number of entries earns: more than a nonzero `max-strings`
- * always (tier (a), a hard cap), fewer than `min-strings` only under `validateResponses` (tier
- * (b)). `decode` drops the empty entries, so the value's members are the non-empty ones.
- * `max-strings="0"` limits nothing (reading 53). Each count reads in the singular at 1.
- *
- * An Extended Text whose `min-strings` exceeds the cap of 100 renders the cap's notice in place of
- * its Controls, so it is unsupported and earns no `atLeastStrings`; a nonzero `max-strings`
- * still caps its entries.
- *
- * @param interaction The Extended Text.
- * @param value The decoded value.
- * @param configuration The configuration, which gives `validateResponses` and the locale.
- * @returns `atMostStrings` or `atLeastStrings`, or none.
- */
-const countMessages = (
-  interaction: ExtendedTextInteraction,
-  value: Value,
-  configuration: Configuration,
-): readonly string[] => {
-  const { locale } = configuration;
-  const entries = BigInt(value.values.length);
-  const tooMany = interaction.maxStrings.pipe(
-    Option.filter((maxStrings) => maxStrings > 0n && entries > maxStrings),
-    Option.map((maxStrings) =>
-      counted(locale, maxStrings, { many: "atMostStrings", one: "atMostOneString" }),
-    ),
-  );
-  const tooFew = Option.some(interaction.minStrings).pipe(
-    Option.filter(
-      (minStrings) =>
-        configuration.validateResponses && !exceedsControlCap(minStrings) && entries < minStrings,
-    ),
-    Option.map((minStrings) =>
-      counted(locale, minStrings, { many: "atLeastStrings", one: "atLeastOneString" }),
-    ),
-  );
-
-  return [...Option.toArray(tooMany), ...Option.toArray(tooFew)];
-};
-
-/**
- * Check an Extended Text's response, which the caller decoded.
- *
- * The caller decodes the posted entries with `decode`, under the entry name its form gave the
- * Controls and the Extended Text's binding (a value of its base type and cardinality, an integer
- * read in its `base`), and passes the value, or the {@link Malformed} `decode` gave. For a record
- * binding, `checkResponses` passes the record's `stringValue` as a single string, NULL when it has
- * none.
- *
- * - A {@link Malformed} input of any binding, by its reason ({@link malformedMessage}):
- *   `malformedSingleMany` for a second entry, which a native form never posts; for a text that is
- *   not a number of an `integer` or `float` binding, the author's `data-patternmask-message` when
- *   set, else `malformedNumber`; `notAccepted` for any other reason.
- * - A decoded value with more entries than a nonzero `max-strings` gives `atMostStrings`, whatever
- *   `validateResponses` says. Under `validateResponses`, one with fewer than `min-strings` gives
- *   `atLeastStrings`, and each member is checked against the `pattern-mask`
- *   ({@link patternMessage}): a mismatch gives the author's `data-patternmask-message`, else
- *   `patternMismatch`. NULL is not checked against the pattern.
- *
- * An Extended Text whose `min-strings` exceeds 100 renders the cap's notice in place of its
- * Controls. It is unsupported, so tier (b) does not judge its `min-strings` and its item can
- * still be submitted. Tier (a) holds: the value posted for it, which no Control sends, still gets
- * `atMostStrings` over a nonzero `max-strings`, and every other check above.
- *
- * @param interaction The Extended Text.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives `validateResponses` and the locale.
- * @returns One message per problem, none when the response is accepted.
- */
-export const validateExtendedText = (
-  interaction: ExtendedTextInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  if (!(input instanceof Malformed)) {
-    return [
-      ...countMessages(interaction, input, configuration),
-      ...Option.toArray(patternMessage(interaction, input, configuration)),
-    ].map((words) => ({ response: interaction.response, text: words }));
-  }
-
-  return [
-    {
-      response: interaction.response,
-      text: malformedMessage(interaction, input.reason, configuration.locale),
-    },
-  ];
-};
-
-/**
  * Read a `qti-extended-text-interaction`: its binding (`bindText` in
  * `#plate/interactions/text-entry.ts`), its `format`, the fields every text control holds, its
  * counts and its Prompt. A `min-strings` above 100 is still built, and its feature is recorded as
@@ -429,5 +326,4 @@ export const extendedTextModule: InteractionModule<
    * The regions of the Extended Text's own content: its Prompt.
    */
   regions: promptRegion,
-  validate: validateExtendedText,
 };

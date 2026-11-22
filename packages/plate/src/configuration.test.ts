@@ -4,56 +4,48 @@ import { configure } from "#plate/configuration.ts";
 
 /**
  * The inputs `configure` refuses, each with the key its refusal names: a value outside its field's
- * range, a value of another type (the text of a number or a boolean among them), and a key that
- * names no field, an item session control setting other than validate-responses among them.
+ * range, a value of another type (the text of a number among them), and a key that names no field,
+ * every item session control setting among them, validate-responses (the QTI database's) included.
  */
 const refused = [
-  { field: "headingLevel", input: { headingLevel: 1, seed: "", validateResponses: false } },
-  { field: "headingLevel", input: { headingLevel: "3", seed: "", validateResponses: false } },
-  { field: "headingLevel", input: { headingLevel: "", seed: "", validateResponses: false } },
-  { field: "outputBudget", input: { outputBudget: "1e3", seed: "", validateResponses: false } },
-  { field: "validateResponses", input: { seed: "", validateResponses: "true" } },
-  { field: "seed", input: { seed: 7, validateResponses: false } },
-  { field: "showSolutions", input: { seed: "", showSolutions: true, validateResponses: false } },
-  { field: "trust", input: { seed: "", trust: "full", validateResponses: false } },
-  { field: "locale", input: { locale: "fr", seed: "", validateResponses: false } },
-  { field: "hotspotPicks", input: { hotspotPicks: "shade", seed: "", validateResponses: false } },
-  { field: "hotspotPicks", input: { hotspotPicks: true, seed: "", validateResponses: false } },
-  { field: "hotspotList", input: { hotspotList: "hidden", seed: "", validateResponses: false } },
-  { field: "hotspotList", input: { hotspotList: false, seed: "", validateResponses: false } },
-  {
-    field: "textEntryKeypad",
-    input: { seed: "", textEntryKeypad: "onscreen", validateResponses: false },
-  },
-  {
-    field: "textEntryKeypad",
-    input: { seed: "", textEntryKeypad: true, validateResponses: false },
-  },
-  { field: "maxAttempts", input: { maxAttempts: 1, seed: "", validateResponses: false } },
-  { field: "showFeedback", input: { seed: "", showFeedback: true, validateResponses: false } },
-  { field: "outputBudget", input: { outputBudget: 0, seed: "", validateResponses: false } },
+  { field: "headingLevel", input: { headingLevel: 1, seed: "" } },
+  { field: "headingLevel", input: { headingLevel: "3", seed: "" } },
+  { field: "headingLevel", input: { headingLevel: "", seed: "" } },
+  { field: "outputBudget", input: { outputBudget: "1e3", seed: "" } },
+  { field: "validateResponses", input: { seed: "", validateResponses: false } },
+  { field: "seed", input: { seed: 7 } },
+  { field: "showSolutions", input: { seed: "", showSolutions: true } },
+  { field: "trust", input: { seed: "", trust: "full" } },
+  { field: "locale", input: { locale: "fr", seed: "" } },
+  { field: "hotspotPicks", input: { hotspotPicks: "shade", seed: "" } },
+  { field: "hotspotPicks", input: { hotspotPicks: true, seed: "" } },
+  { field: "hotspotList", input: { hotspotList: "hidden", seed: "" } },
+  { field: "hotspotList", input: { hotspotList: false, seed: "" } },
+  { field: "textEntryKeypad", input: { seed: "", textEntryKeypad: "onscreen" } },
+  { field: "textEntryKeypad", input: { seed: "", textEntryKeypad: true } },
+  { field: "maxAttempts", input: { maxAttempts: 1, seed: "" } },
+  { field: "showFeedback", input: { seed: "", showFeedback: true } },
+  { field: "outputBudget", input: { outputBudget: 0, seed: "" } },
   {
     field: "outputBudget",
-    input: { outputBudget: 536_870_889, seed: "", validateResponses: false },
+    input: { outputBudget: 536_870_889, seed: "" },
   },
   {
     field: "assets",
     input: {
       assets: [["/items/a.png", "https://cdn.example/a"]],
       seed: "",
-      validateResponses: false,
     },
   },
   {
     field: "assets",
-    input: { assets: [["", "https://cdn.example/a"]], seed: "", validateResponses: false },
+    input: { assets: [["", "https://cdn.example/a"]], seed: "" },
   },
   {
     field: "assets",
     input: {
       assets: [["items/../a.png", "https://cdn.example/a"]],
       seed: "",
-      validateResponses: false,
     },
   },
   {
@@ -61,7 +53,6 @@ const refused = [
     input: {
       assets: [["./items/a.png", "https://cdn.example/a"]],
       seed: "",
-      validateResponses: false,
     },
   },
   {
@@ -69,7 +60,6 @@ const refused = [
     input: {
       assets: [["items/a.png", "https://cdn.example/a b"]],
       seed: "",
-      validateResponses: false,
     },
   },
   {
@@ -77,7 +67,6 @@ const refused = [
     input: {
       assets: [["items/a.png", ",https://cdn.example/a"]],
       seed: "",
-      validateResponses: false,
     },
   },
   {
@@ -85,7 +74,6 @@ const refused = [
     input: {
       assets: [["items/a.png", "https://cdn.example/a,"]],
       seed: "",
-      validateResponses: false,
     },
   },
   {
@@ -93,7 +81,6 @@ const refused = [
     input: {
       assets: [["items/a.png", "https://cdn.example/a\n"]],
       seed: "",
-      validateResponses: false,
     },
   },
   {
@@ -104,7 +91,6 @@ const refused = [
         ["items/a.png", "https://cdn.example/b"],
       ],
       seed: "",
-      validateResponses: false,
     },
   },
   {
@@ -115,16 +101,14 @@ const refused = [
         ["items/a.png", "https://cdn.example/a"],
       ],
       seed: "",
-      validateResponses: false,
     },
   },
-  { field: "assets", input: { assets: [["items/a.png"]], seed: "", validateResponses: false } },
+  { field: "assets", input: { assets: [["items/a.png"]], seed: "" } },
   {
     field: "assets",
     input: {
       assets: new Map([["items/a.png", "https://cdn.example/a"]]),
       seed: "",
-      validateResponses: false,
     },
   },
 ] as const;
@@ -132,7 +116,7 @@ const refused = [
 describe("configure", () => {
   it.effect("gives every default for a configuration of its two required fields alone", () =>
     Effect.gen(function* everyDefault() {
-      assert.deepStrictEqual(yield* configure({ seed: "7", validateResponses: false }), {
+      assert.deepStrictEqual(yield* configure({ seed: "7" }), {
         assets: new Map(),
         headingLevel: 2,
         hotspotList: "shown",
@@ -141,26 +125,16 @@ describe("configure", () => {
         outputBudget: 16_777_216,
         seed: "7",
         textEntryKeypad: "none",
-        validateResponses: false,
       });
-    }),
-  );
-
-  it.effect("requires validateResponses, which has no default: a stage states it", () =>
-    Effect.gen(function* statedValidation() {
-      const error = yield* Effect.flip(configure({ seed: "7" }));
-
-      assert.deepStrictEqual(error.field, Option.some("validateResponses"));
-      assert.isTrue((yield* configure({ seed: "7", validateResponses: true })).validateResponses);
     }),
   );
 
   it.effect('requires a seed, and decodes seed "7" as "7"', () =>
     Effect.gen(function* seedKey() {
-      const error = yield* Effect.flip(configure({ validateResponses: false }));
+      const error = yield* Effect.flip(configure({}));
 
       assert.deepStrictEqual(error.field, Option.some("seed"));
-      assert.strictEqual((yield* configure({ seed: "7", validateResponses: false })).seed, "7");
+      assert.strictEqual((yield* configure({ seed: "7" })).seed, "7");
     }),
   );
 
@@ -177,10 +151,7 @@ describe("configure", () => {
 
   it.effect("decodes headingLevel 6", () =>
     Effect.gen(function* deepestHeading() {
-      assert.strictEqual(
-        (yield* configure({ headingLevel: 6, seed: "", validateResponses: false })).headingLevel,
-        6,
-      );
+      assert.strictEqual((yield* configure({ headingLevel: 6, seed: "" })).headingLevel, 6);
     }),
   );
 
@@ -190,7 +161,6 @@ describe("configure", () => {
         hotspotList: "visually-hidden",
         hotspotPicks: "fill",
         seed: "",
-        validateResponses: false,
       });
 
       assert.deepStrictEqual([hotspotList, hotspotPicks], ["visually-hidden", "fill"]);
@@ -202,7 +172,6 @@ describe("configure", () => {
       const { textEntryKeypad } = yield* configure({
         seed: "",
         textEntryKeypad: "on-screen",
-        validateResponses: false,
       });
 
       assert.strictEqual(textEntryKeypad, "on-screen");
@@ -212,8 +181,7 @@ describe("configure", () => {
   it.effect("decodes outputBudget 536,870,888, the longest string V8 builds", () =>
     Effect.gen(function* longestBudget() {
       assert.strictEqual(
-        (yield* configure({ outputBudget: 536_870_888, seed: "", validateResponses: false }))
-          .outputBudget,
+        (yield* configure({ outputBudget: 536_870_888, seed: "" })).outputBudget,
         536_870_888,
       );
     }),
@@ -221,33 +189,32 @@ describe("configure", () => {
 
   it.effect("refuses a key that names no field, and its message names the fields there are", () =>
     Effect.gen(function* unknownKey() {
-      const error = yield* Effect.flip(
-        configure({ seed: "", showSolutions: true, validateResponses: false }),
-      );
+      const error = yield* Effect.flip(configure({ seed: "", showSolutions: true }));
 
       assert.include(error.message, "has no field showSolutions");
-      assert.include(error.message, "seed, textEntryKeypad, validateResponses");
+      assert.include(error.message, "outputBudget, seed, textEntryKeypad");
     }),
   );
 
   it.effect(
-    "decodes assets written as [path, address] entries into the map from each path to its address, keeping a space in a name and an address's query and fragment",
+    "decodes assets written as [path, address] entries into the map from each path to its address, keeping a space in a name and an address's query and fragment, and a null address as a file the host withholds",
     () =>
       Effect.gen(function* assetEntries() {
         const { assets } = yield* configure({
           assets: [
             ["items/media/a b.png", "https://cdn.example/sha256/9f86"],
             ["items/q1.xml", "/packages/p/files/items/q1.xml?x=1#y"],
+            ["items/media/narration.wav", null],
           ],
           seed: "",
-          validateResponses: false,
         });
 
         assert.deepStrictEqual(
           [...assets],
           [
-            ["items/media/a b.png", "https://cdn.example/sha256/9f86"],
-            ["items/q1.xml", "/packages/p/files/items/q1.xml?x=1#y"],
+            ["items/media/a b.png", { address: "https://cdn.example/sha256/9f86", kind: "served" }],
+            ["items/q1.xml", { address: "/packages/p/files/items/q1.xml?x=1#y", kind: "served" }],
+            ["items/media/narration.wav", { kind: "withheld" }],
           ],
         );
       }),

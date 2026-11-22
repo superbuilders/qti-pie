@@ -27,8 +27,6 @@ import {
   operandBaseRows,
   placeCardinalityRows,
   referenceBaseRows,
-  referencedTables,
-  tableReaders,
   resolutions,
   resultBaseRows,
   resultCardinalityRows,
@@ -77,22 +75,6 @@ export const Language = closed.ordered("Language", languages);
  * from RG4's per-reference `Resolution` family).
  */
 export const ReferenceResolution = closed.ordered("ReferenceResolution", resolutions);
-
-/**
- * The `ReferencedTable` roster: the table a reference needs its declaration to hold.
- */
-export const ReferencedTable = closed.ordered("ReferencedTable", referencedTables);
-
-/**
- * `TableReader`: (kind, table), the table a processing reference of each kind reads of its
- * variable's declaration (`tableReaders` of `#pantry/grammar/expression.ts`).
- */
-export const TableReader = closed.relation(
-  "TableReader",
-  { kind: closedId(NodeKind), table: closedId(ReferencedTable) },
-  ["kind", "table"],
-  tableReaders.map(({ kind, table }) => ({ kind: kindOf(kind), table })),
-);
 
 // Diagonals and mappings (C6, C17).
 
@@ -169,10 +151,13 @@ export const domainValues = [
 }[];
 
 /**
- * The pattern of a boolean value's text: `true` or `false` (spec reading 34; `xs:boolean`'s `1`
- * and `0` are refused), outer whitespace formatting (spec reading 7).
+ * The pattern of a boolean value's text: `xs:boolean`'s lexical space, `true`, `false`, `1` or `0`
+ * (spec reading 34: the information model's boolean base type is "the same as the set of values
+ * defined by the boolean primitiveType", §8.14, and the binding types that primitive `xs:boolean`,
+ * whose lexical space "{true, false, 1, 0}" is, XML Schema Part 2 §3.2.2.1), outer whitespace
+ * formatting (spec reading 7). `1` is `true` and `0` is `false`.
  */
-export const booleanValuePattern = "^[\\t\\n\\r ]*(?:true|false)[\\t\\n\\r ]*$";
+export const booleanValuePattern = "^[\\t\\n\\r ]*(?:true|false|1|0)[\\t\\n\\r ]*$";
 
 /**
  * The pattern of a point value's text: two integers, x then y (information model §8.13),
@@ -351,7 +336,7 @@ export const ReferenceBase = closed.relation(
   })),
 );
 
-// Handle lists (C8): membership is `Compute.in`, so these sets are lists, never installed.
+// Handle lists (C8): membership is `Logic.in`, so these sets are lists, never installed.
 
 /**
  * The roots alone.

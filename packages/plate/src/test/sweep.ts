@@ -1,6 +1,7 @@
 /**
  * The corpus sweeps' shared support: every corpus member opened once per test file, the records a
- * templated item is redacted under, and the time a sweep may take.
+ * templated item is redacted under, read from the golden grading data, and the time a sweep may
+ * take.
  *
  * Test support, outside the core: nothing under `src/index.ts`'s closure imports it
  * (`src/boundary.test.ts`). It reads the corpus through `corpusDocuments` and `readCorpusFile`, so
@@ -11,13 +12,12 @@
 import { availableParallelism } from "node:os";
 import { assert } from "@effect/vitest";
 import type { Config } from "effect";
-import { Array as Arr, Cause, Effect, Exit, Option, Result } from "effect";
-import { begin } from "#plate/begin.ts";
-import type { EngineFailure } from "#plate/engine/evaluate.ts";
+import { Array as Arr, Cause, Effect, Exit, Option } from "effect";
 import type { ItemRecord } from "#plate/model/record.ts";
 import { corpusDocuments, readCorpusFile } from "#plate/test/corpus.ts";
 import type { CorpusFileUnreadable, CorpusMissing } from "#plate/test/corpus.ts";
 import { admitted, isAdmitted } from "#plate/test/admitted.ts";
+import { documentDigest } from "#plate/test/records.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
 import type { Accepted, Verdict } from "#plate/validate/verdict.ts";
 
@@ -111,38 +111,24 @@ export const acceptedOf = (member: Member): Option.Option<Accepted> =>
   });
 
 /**
- * The instance token every sweep record begins under, so a record is a function of its item and
- * seed.
- */
-const sweepInstance = "sweep";
-
-/**
- * Report whether an accepted item's template processing runs: the item holds template rules.
+ * Report whether an accepted item has template processing, which the QTI database runs at the
+ * take, so `redact` needs the record the database returned for it.
  *
  * @param accepted The accepted document.
- * @returns Whether `begin` runs template processing for it, so `redact` needs its record.
+ * @returns Whether the item holds a `qti-template-processing`.
  */
-export const templated = (accepted: Accepted): boolean =>
-  accepted.item.templateProcessing.kind === "runs";
+export const templated = (accepted: Accepted): boolean => accepted.item.templated;
 
 /**
- * The seeds the template sweeps begin a record under: fixed strings, so a run repeats and a
- * failure names the seed. `begin` draws a fresh seed when given none, so a sweep never leaves one
- * out.
- */
-export const sweepSeeds = ["1", "2"] as const;
-
-/**
- * One state a templated item is redacted in: a record begun under a sweep seed, or no record.
+ * One state a templated item is redacted in: a record the golden grading data holds, or no record.
  */
 export interface RecordState {
   /**
-   * The state as a failure names it: `seed "1"`, or `no record`.
+   * The state as a failure names it: `golden 1`, or `no record`.
    */
   readonly name: string;
   /**
-   * The record `begin` started under the seed, decoded from the form the host stores; none for no
-   * record.
+   * The record, none for no record.
    */
   readonly record: Option.Option<ItemRecord>;
 }
@@ -153,37 +139,21 @@ export interface RecordState {
 export const noRecord: RecordState = { name: "no record", record: Option.none() };
 
 /**
- * Begin an accepted item's record under a sweep seed, with the fixed instance
- * {@link sweepInstance}.
+ * Give the states a templated corpus item is redacted in: a record per seed of the golden recording
+ * (`goldenRecords` in `#plate/test/records.ts`), named `golden 1`, `golden 2`, … in the recording's
+ * order, then {@link noRecord}. An item the recording did not run is redacted with no record only.
  *
- * @param accepted The accepted document.
- * @param seed The sweep seed.
- * @returns The record, or the failure of `begin`.
- */
-export const begunUnder = (
-  accepted: Accepted,
-  seed: string,
-): Result.Result<ItemRecord, EngineFailure> => begin(accepted, { instance: sweepInstance, seed });
-
-/**
- * Begin an accepted item's record under each of {@link sweepSeeds} ({@link begunUnder}); then add
- * {@link noRecord}.
- *
- * @param accepted The accepted document.
- * @returns A state per seed, in {@link sweepSeeds}' order, then the state with no record; or the
- *   first failure of `begin`.
+ * @param bytes The item's bytes, by whose digest the recording keys it.
+ * @param golden The recording's records, by document digest.
+ * @returns The states.
  */
 export const recordStates = (
-  accepted: Accepted,
-): Result.Result<readonly RecordState[], EngineFailure> =>
-  Result.map(
-    Result.all(
-      sweepSeeds.map((seed) =>
-        Result.map(begunUnder(accepted, seed), (record): RecordState => ({
-          name: `seed ${JSON.stringify(seed)}`,
-          record: Option.some(record),
-        })),
-      ),
-    ),
-    (begun): readonly RecordState[] => [...begun, noRecord],
-  );
+  bytes: Uint8Array,
+  golden: ReadonlyMap<string, readonly ItemRecord[]>,
+): readonly RecordState[] => [
+  ...(golden.get(documentDigest(bytes)) ?? []).map((record, index): RecordState => ({
+    name: `golden ${String(index + 1)}`,
+    record: Option.some(record),
+  })),
+  noRecord,
+];

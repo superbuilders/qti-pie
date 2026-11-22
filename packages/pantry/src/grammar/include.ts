@@ -36,7 +36,7 @@ export const includeKind = "xi:include";
 /**
  * XInclude's fallback, which no fragment's root is.
  */
-const fallbackKind = "xi:fallback";
+export const fallbackKind = "xi:fallback";
 
 /**
  * The resource type of an included fragment (QTI 3.0 Best Practice and Implementation Guide, §6.2:

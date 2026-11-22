@@ -1,0 +1,10 @@
+
+  return {
+    answeredIn: <S>(r: Rule<S>) => args.answered.bind(keyIn(r)),
+    hiddenIn: <S>(r: Rule<S>) => hiddenOf.bind({ ...keyIn(r), ...postedIn(r) }),
+    keyIn,
+    latestIn: <S>(r: Rule<S>) => args.latest.bind(keyIn(r)),
+    postedIn,
+    runIn,
+  } as const;
+};

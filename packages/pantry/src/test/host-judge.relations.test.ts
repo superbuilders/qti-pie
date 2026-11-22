@@ -105,7 +105,7 @@ const twoLevel = (() => {
 
   return {
     level: schema.extend(
-      Content,
+      [Content],
       "Packaged",
       [TypedHref],
       [queried.check, queried.into, queried.key, queried.selected],

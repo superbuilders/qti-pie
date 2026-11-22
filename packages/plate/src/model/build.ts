@@ -1,9 +1,9 @@
 /**
  * The state of one item model build and the marks it records: what {@link Build} holds as the walk
  * reads a document, the vocabulary's `modelled` rules the walk records marks and notices by, and
- * the indexes a fresh build starts from. The declaration readers (`#plate/model/declarations.ts`),
- * the body walk (`#plate/model/body.ts`) and the processing readers (`#plate/model/processing.ts`)
- * all read and record through it; `buildItem` (`#plate/model/item.ts`) starts it.
+ * the indexes a fresh build starts from. The declaration readers (`#plate/model/declarations.ts`)
+ * and the body walk (`#plate/model/body.ts`) read and record through it; `buildItem`
+ * (`#plate/model/item.ts`) starts it.
  *
  * @module
  */
@@ -23,16 +23,15 @@ import {
   xsBooleanOf,
 } from "#plate/model/attributes.ts";
 import type { ModelWalk } from "#plate/model/attributes.ts";
-import { expressionKinds } from "#plate/model/expression.ts";
 import type { RecordDeclaration, UnsupportedFeature } from "#plate/model/item.ts";
 import { compile } from "#plate/model/regex.ts";
 import { parseLexical, trimXmlSpace } from "#plate/model/values.ts";
-import { modelled, templateName } from "#plate/vocabulary.ts";
+import { modelled } from "#plate/vocabulary.ts";
 import type { Condition, FeatureRule } from "#plate/vocabulary.ts";
 
 /**
- * What one item build reads and collects: the walk, the response declarations, the names of the
- * variables the item holds, and the unsupported features found so far, in document order.
+ * What one item build reads and collects: the walk, the response declarations, and the unsupported
+ * features found so far, in document order.
  */
 export interface Build extends ModelWalk {
   /**
@@ -41,12 +40,6 @@ export interface Build extends ModelWalk {
    * the root.
    */
   readonly declarations: ReadonlyMap<string, SourceElement>;
-  /**
-   * The names of the variables the item holds: every declaration's identifier and the built-in
-   * variables ({@link declaredNames}). A reader splits a string attribute's literal from a
-   * reference against them, and the walks judge an unchecked reference by them.
-   */
-  readonly names: ReadonlySet<string>;
   /**
    * The paths each feature in `unsupported` was recorded at, keyed by the feature, so
    * {@link record} finds a repeat without scanning the features recorded so far.
@@ -72,14 +65,9 @@ export interface Build extends ModelWalk {
 }
 
 /**
- * The `qti-*` elements the model reads or renders: those `modelled` lists, the engine's response
- * rules and the template rules among them, and the element of each of the 64 expression kinds,
- * every one of which the registry reads.
+ * The `qti-*` elements the model reads or renders: those `modelled` lists.
  */
-export const readElements: ReadonlySet<string> = new Set([
-  ...modelled.elements,
-  ...expressionKinds.map((kind) => `qti-${kind}`),
-]);
+export const readElements: ReadonlySet<string> = new Set(modelled.elements);
 
 /**
  * The features marked on the verdict.
@@ -162,22 +150,15 @@ export const holds = (condition: Condition, element: SourceElement): boolean => 
 
   if (condition.kind === "refused-pattern") {
     return Option.exists(valueOf(element, condition.name), (pattern) =>
-      Result.isFailure(compile(pattern)),
+      Option.isNone(compile(pattern)),
     );
   }
 
-  if (condition.kind === "integer-above") {
-    return Option.exists(valueOf(element, condition.name), (written) =>
-      Option.exists(
-        Result.getSuccess(parseLexical("integer", trimXmlSpace(written))),
-        (single) => integerOf(single) > condition.limit,
-      ),
-    );
-  }
-
-  return (
-    Option.getOrUndefined(Option.flatMap(valueOf(element, "template"), templateName)) ===
-    condition.name
+  return Option.exists(valueOf(element, condition.name), (written) =>
+    Option.exists(
+      Result.getSuccess(parseLexical("integer", trimXmlSpace(written))),
+      (single) => integerOf(single) > condition.limit,
+    ),
   );
 };
 
@@ -221,30 +202,6 @@ export const markUnreadWithin = (build: Build, element: SourceElement): void => 
     } else {
       markUnreadWithin(build, child);
     }
-  }
-};
-
-/**
- * Record marks at a processing element's path, placed among the marks already recorded in document
- * order: after the first `at`, which precede the element, and before the rest.
- *
- * @param build The build.
- * @param at The number of marks recorded when the element was read.
- * @param path The element's path.
- * @param features The features to mark.
- */
-export const markAt = (
-  build: Build,
-  at: number,
-  path: string,
-  features: readonly string[],
-): void => {
-  const after = build.unsupported.splice(at);
-  for (const feature of features) {
-    build.unsupported.push({ feature, path, shown: "mark" });
-  }
-  for (const entry of after) {
-    build.unsupported.push(entry);
   }
 };
 

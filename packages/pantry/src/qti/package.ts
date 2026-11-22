@@ -64,7 +64,6 @@ import {
   check,
   closed,
   closedId,
-  Compute,
   contained,
   drawn,
   generated,
@@ -74,6 +73,7 @@ import {
   relation,
   select,
   str,
+  Text,
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import {
@@ -89,7 +89,7 @@ import {
 import { textReferenceKinds } from "#pantry/grammar/references.ts";
 import { Attribute, attributesOf, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { EntryPath, keyText, keyTextBytes, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedTextBytes, PackageName } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { Space, tokenFields, tokenList } from "#pantry/qti/token-list.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
@@ -98,7 +98,7 @@ import { includeKind } from "#pantry/vocab/terms/tests.ts";
 /**
  * A `#` anywhere in a text: an `xi:include`'s parameters that hold a fragment identifier.
  */
-const fragmentMark = Compute.pattern("#");
+const fragmentMark = Text.pattern("#");
 
 /**
  * A package, keyed by its name (`PackageName`, `#pantry/qti/limits.ts`), the name its importer's
@@ -164,7 +164,7 @@ export const hrefParamsPattern = "^(?:[?#].*)?$";
 /**
  * The pattern of an href's `path` piece: no `?` and no `#`, the characters that start `params`.
  */
-export const hrefPathPattern = Compute.pattern("^[^?#]*$");
+export const hrefPathPattern = Text.pattern("^[^?#]*$");
 
 /**
  * An href's `params` piece, its query or fragment (reading 102): text no key holds and no law
@@ -181,7 +181,7 @@ export const HrefParams = str.regex(hrefParamsPattern, "su");
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-4.2 | RFC 3986, §4.2}
  */
-export const externalHrefPattern = Compute.pattern("^(?:[A-Za-z][A-Za-z0-9+.\\-]*:|/)");
+export const externalHrefPattern = Text.pattern("^(?:[A-Za-z][A-Za-z0-9+.\\-]*:|/)");
 
 /**
  * What a `srcset` holds before an image candidate's URL and after its last one: whitespace and
@@ -204,17 +204,18 @@ export const SrcsetUrl = str.regex(srcsetUrlPattern);
 
 /**
  * An image candidate's URL as `SrcsetCandidate.url` holds it: {@link SrcsetUrl}'s text, at most
- * `keyTextBytes` UTF-8 bytes, since the candidate's `piece`, a `keyText`, holds it (the `srcset`'s
- * stated limit).
+ * `matchedTextBytes` UTF-8 bytes, since a law matches it (`SrcsetCandidate`'s `E1_derived` check
+ * reads it by `Text.matches`), the bound of `#pantry/qti/limits.ts` (the `srcset`'s stated
+ * limit).
  */
-export const SrcsetCandidateUrl = str.bytes(keyTextBytes, SrcsetUrl);
+export const SrcsetCandidateUrl = str.bytes(matchedTextBytes, SrcsetUrl);
 
 /**
  * What leads every image candidate after the first: whitespace and commas holding at least one
  * comma, the one that ended the candidate before it (HTML, "parse a srcset attribute": a
  * candidate's descriptors end at a comma, and a URL's trailing commas end it).
  */
-const srcsetSeparator = Compute.pattern("^[\\t\\n\\r ]*,[\\t\\n\\r ,]*$");
+const srcsetSeparator = Text.pattern("^[\\t\\n\\r ]*,[\\t\\n\\r ,]*$");
 
 /**
  * An image candidate's descriptors as written: empty, or whitespace and the rest of the candidate
@@ -249,7 +250,7 @@ export const HrefScope = closed.ordered("HrefScope", [
  * character allowed, since a decoded name may hold `?`, `#`, `%`, `:` or a space. A path that ends
  * with `/` names a directory, and the empty path the package root, which no entry is.
  */
-export const resolvedPathPattern = Compute.pattern(
+export const resolvedPathPattern = Text.pattern(
   "^(?:(?:[^/.][^/]*|\\.[^./][^/]*|\\.\\.[^/]+)(?:/(?:[^/.][^/]*|\\.[^./][^/]*|\\.\\.[^/]+)?)*)?$",
 );
 
@@ -269,7 +270,7 @@ export const ResourceHref = relation(
     path: EntryPath,
     scope: closedId(HrefScope),
     start: natural,
-    target: keyText,
+    target: anyText,
   },
   ["package", "path", "start"],
 );
@@ -317,7 +318,7 @@ export const File = relation(
     path: EntryPath,
     scope: closedId(HrefScope),
     start: natural,
-    target: keyText,
+    target: anyText,
   },
   ["package", "path", "start"],
 );
@@ -401,7 +402,7 @@ export const TextReference = relation(
     path: EntryPath,
     scope: closedId(HrefScope),
     start: natural,
-    target: keyText,
+    target: anyText,
     trail: Space,
   },
   ["package", "path", "start"],
@@ -438,8 +439,10 @@ export const TextReferencePath = relation(
  * - **the element's:** `package`, `path` and `start`;
  * - **the host's:** `trail`;
  * - **drawn:** `tokens`, its candidates;
- * - **accumulated:** `tokenText`, the end of its candidates' concatenation, a `keyText` the family's
- *   axis carries, so a `srcset` is at most `keyTextBytes` bytes, a stated limit.
+ * - **accumulated:** `tokenText`, the end of its candidates' concatenation, any text, which the
+ *   family's axes carry by its image (grizzle's README: a `Monoid.concat` fold's accumulators ride
+ *   its axes by their images), so a `srcset` has no byte bound of its own, only each candidate's
+ *   URL ({@link SrcsetCandidateUrl}).
  */
 export const Srcset = relation(
   "Srcset",
@@ -457,9 +460,9 @@ export const Srcset = relation(
 /**
  * One image candidate of a `srcset`, in order (HTML, "parse a srcset attribute"; the host's split,
  * `srcsetCandidatesOf` of `#pantry/import/pieces.ts`): `lead`, the whitespace and commas before its
- * URL; `url`, at most `keyTextBytes` bytes, since its `piece` holds it and is a `keyText` (the
- * `srcset`'s stated limit), so a query reads it by `Compute.matches` (Media path); and
- * `descriptor`, the rest of the candidate. Its URL is resolved as an href is
+ * URL; `url`, at most `matchedTextBytes` UTF-8 bytes ({@link SrcsetCandidateUrl}), since its check
+ * reads it by `Text.matches` (the `srcset`'s stated limit); and `descriptor`, the rest of the
+ * candidate. Its URL is resolved as an href is
  * (readings 102 and 103), its outcome its {@link HrefScope}, and one resolved in the package has
  * its {@link CandidatePath}.
  *
@@ -485,7 +488,7 @@ export const SrcsetCandidate = relation.generated(
   },
   ["package", "path", "start", "at"],
   (c) => ({
-    piece: generated(keyText, Compute.concat(Compute.concat(c.lead, c.url), c.descriptor)),
+    piece: generated(anyText, Text.concat(Text.concat(c.lead, c.url), c.descriptor)),
   }),
 );
 
@@ -733,39 +736,39 @@ export const packageLawsByName = {
       on(ResourceDocument, "package", "path"),
     ),
     check("E1_derived", ResourceHref, (h) =>
-      h.or(h.ne(h.scope, "entry"), Compute.matches(h.target, resolvedPathPattern)),
+      h.or(h.ne(h.scope, "entry"), Text.matches(h.target, resolvedPathPattern)),
     ),
     check("E1_derived", File, (f) =>
-      f.or(f.ne(f.scope, "entry"), Compute.matches(f.target, resolvedPathPattern)),
+      f.or(f.ne(f.scope, "entry"), Text.matches(f.target, resolvedPathPattern)),
     ),
     check("E1_derived", Reference, (r) =>
       r.and(
-        Compute.matches(r.target, hrefPathPattern),
-        r.or(r.not(Compute.matches(r.target, externalHrefPattern)), r.eq(r.scope, "external")),
+        Text.matches(r.target, hrefPathPattern),
+        r.or(r.not(Text.matches(r.target, externalHrefPattern)), r.eq(r.scope, "external")),
         r.or(r.ne(r.scope, "document"), r.eq(r.target, "")),
       ),
     ),
-    check("E1_derived", ReferencePath, (p) => Compute.matches(p.target, resolvedPathPattern)),
+    check("E1_derived", ReferencePath, (p) => Text.matches(p.target, resolvedPathPattern)),
     check("E1_derived", TextReference, (r) =>
       r.and(
-        Compute.matches(r.target, hrefPathPattern),
-        r.or(r.not(Compute.matches(r.target, externalHrefPattern)), r.eq(r.scope, "external")),
+        Text.matches(r.target, hrefPathPattern),
+        r.or(r.not(Text.matches(r.target, externalHrefPattern)), r.eq(r.scope, "external")),
         r.or(r.ne(r.scope, "document"), r.eq(r.target, "")),
       ),
     ),
-    check("E1_derived", TextReferencePath, (p) => Compute.matches(p.target, resolvedPathPattern)),
+    check("E1_derived", TextReferencePath, (p) => Text.matches(p.target, resolvedPathPattern)),
     ...tokenList(
       SrcsetCandidate,
       Srcset,
       check("E1_derived", SrcsetCandidate, (c) =>
         c.and(
-          c.or(c.eq(c.at, 0n), Compute.matches(c.lead, srcsetSeparator)),
-          c.or(c.not(Compute.matches(c.url, externalHrefPattern)), c.eq(c.scope, "external")),
+          c.or(c.eq(c.at, 0n), Text.matches(c.lead, srcsetSeparator)),
+          c.or(c.not(Text.matches(c.url, externalHrefPattern)), c.eq(c.scope, "external")),
           c.ne(c.scope, "document"),
         ),
       ),
     ),
-    check("E1_derived", CandidatePath, (p) => Compute.matches(p.target, resolvedPathPattern)),
+    check("E1_derived", CandidatePath, (p) => Text.matches(p.target, resolvedPathPattern)),
   ],
   "Entry family": [contained(on(Entry, "package"), on(Package, "name"))],
   "Entry kind": [alternatives(Entry, "kind", EntryKind, { document: Document, media: Media })],
@@ -784,7 +787,7 @@ export const packageLawsByName = {
   ],
   "Include fragment identifier": [
     check("Include_fragment_identifier", Reference, (r) =>
-      r.or(r.ne(r.kind, includeKind), r.not(Compute.matches(r.params, fragmentMark))),
+      r.or(r.ne(r.kind, includeKind), r.not(Text.matches(r.params, fragmentMark))),
     ),
   ],
   "Manifest overlay": [

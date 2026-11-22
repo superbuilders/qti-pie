@@ -100,8 +100,7 @@ const holdingsOf = (
  * its `rounding-mode` or a `qti-equal-rounded`'s default; its `RoundingFigures` row where it writes
  * `figures`; and its `RoundingModeFigures` row where it has both. An
  * operator that leaves out a required attribute has no row of it, and AL3 refuses it alone. Each
- * `qti-equal` that writes `tolerance` has its {@link ToleranceRow}. A text past `keyText`'s bound
- * keeps its row, which `keyText` refuses under "Key text bound". A document with no such element
+ * `qti-equal` that writes `tolerance` has its {@link ToleranceRow}. A document with no such element
  * gives no row.
  *
  * @param view - The document's view: its rows.

@@ -1,0 +1,9 @@
+/** The graded sitting: the call's `child` and `stage`, the parameters the write that records its attempts names them by.
+ * Every item session of the stage whose earliest attempt its response processing has not run for is graded, all in one
+ * evaluation: an item's stage serves one session (the app's decideStage), a test's one per member (qti-pie's takeMembers). */
+const gradedSitting = { child: param("child", LearnerId), stage: param("stage", pg.bigint) } as const
+type GradedSession = typeof gradedSitting
+
+/** A query over the sitting's key, bound to the call's parameters: every parameter it reads, the call's own. */
+const bySession = (session: GradedSession) => ({ child: session.child, stage: session.stage })
+

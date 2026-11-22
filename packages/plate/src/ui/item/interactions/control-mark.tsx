@@ -19,7 +19,9 @@ import type { ReactNode } from "react";
 import { message } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { DataRoot } from "#plate/ui/attributes.ts";
-import type { AnswerMark } from "#plate/ui/item/interactions/marks.ts";
+import type { Single } from "#plate/model/values.ts";
+import { matchedWhole, valuesMarked } from "#plate/ui/item/interactions/marks.ts";
+import type { AnswerMark, Marking } from "#plate/ui/item/interactions/marks.ts";
 import { markPart } from "#plate/ui/item/interactions/words.tsx";
 import type { Words } from "#plate/ui/item/interactions/words.tsx";
 
@@ -40,6 +42,38 @@ export type ControlMark<A = string> =
   | { readonly answer: Option.Option<A>; readonly kind: "wrong" }
   | { readonly kind: "right" }
   | { readonly kind: "unmarked" };
+
+/**
+ * Give the mark a review writes on the one answer a part shows whole, from the marks the host
+ * handed for its response: `unmarked` where it handed none; `unanswered` where the part shows no
+ * answer; else `right` where the response matches its correct response whole (no part marked
+ * `wrong` or `missed`, `matchedWhole`), and `wrong` where it does not. `wrong` and `unanswered`
+ * carry the right answer the review writes from the values handed `missed`, which a review that
+ * withholds the solution draws none of.
+ *
+ * @template A The right answer, as the review writes it.
+ * @param marking The marks handed for the response.
+ * @param shows Whether the part shows an answer.
+ * @param answerOf Write the right answer from the values handed `missed`, none for none.
+ * @returns The mark.
+ */
+export const controlMarkOf = <A,>(
+  marking: Marking,
+  shows: boolean,
+  answerOf: (missed: readonly Single[]) => Option.Option<A>,
+): ControlMark<A> => {
+  if (marking.kind !== "marked") {
+    return { kind: "unmarked" };
+  }
+
+  const answer = answerOf(valuesMarked(marking, "missed"));
+
+  if (!shows) {
+    return { answer, kind: "unanswered" };
+  }
+
+  return matchedWhole(marking) ? { kind: "right" } : { answer, kind: "wrong" };
+};
 
 /**
  * The root `data-slot` of a Control a review marks, which names its answer's part.

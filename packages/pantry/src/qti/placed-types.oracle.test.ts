@@ -2,14 +2,15 @@
  * A response rules fragment an item includes is typed in that item (spec reading 117: "the content
  * of the fragment must satisfy the requirements of the specification in the context of the item in
  * which it is being included"), on the import's rows as in the law oracle. A reference in an
- * included fragment names its variable in the fragment's own document, where nothing is declared,
- * so it resolves in the item, the query `PlacedVariableRefDeclaration`
- * (`#pantry/qti/overlay-queries/reference.ts`). "Mapped response" holds a map
+ * included fragment resolves in its item's placement, among the item's declarations
+ * (`PlacedVariableRef` of `#pantry/qti/expressions.ts`, its declaration the query
+ * `PlacedVariableRefDeclaration` of `#pantry/qti/overlay-queries/reference.ts`), and each of the
+ * fragment's expressions is typed there (`PlacedExpression`). "Mapped response" holds a map
  * response's row to its declaration's mapping, as it holds an item's own reference (information
  * model §7.22, spec reading 166), and "Condition type" holds a variable reference that is a whole
- * condition to its declaration's type, boolean single, through the `PlacedReferenceType` query
- * (P21, `#pantry/qti/queries.ts`). The oracle types the fragment in its assembly, as the import's
- * rows do. A rule over a query is the database's alone (the host leaves it unknown,
+ * condition to its declaration's type, boolean single, its placed expression's type (P21,
+ * `#pantry/qti/overlay-queries/expression.ts`). The oracle types the fragment in its assembly, as
+ * the import's rows do. A rule over a query is the database's alone (the host leaves it unknown,
  * `#pantry/test/gen/genetic/host-laws.ts`), and "Condition type" reads the expression's parent's
  * kind, its node's, so it is a rule over a query whether the condition is included or inline: each
  * breaks it in the oracle and on PostgreSQL, and the import's rows on the host name no law of it.
@@ -21,12 +22,17 @@
  * a map response of it, written in an included fragment, then the controls: the same rule written
  * inline, and the included one over a response that declares a mapping. Then it tests the response
  * itself as a condition, included and inline, and the control, an included match of the response
- * with its correct value. 6 cases, exhausted. The first breaks "Mapped response" in the oracle, the
- * database's alone on the import's side, since a placed map response's claim of its declaration's
- * mapping reads the declaration's node's children through a query; the second the same, since an
- * item's own map response reads the declaration it names through a query too, and the third breaks
- * it on neither side; each condition breaks "Condition type" in the oracle, the
- * database's alone on the import's side; and the last is accepted on both.
+ * with its correct value. Then one fragment that compares the response with a half (`qti-gt`),
+ * included by two items whose responses are floats, by a float's item and an identifier's, and by
+ * an identifier's item alone. 9 cases, exhausted. The first breaks "Mapped response" in the oracle,
+ * the database's alone on the import's side, since a placed map response's claim of its
+ * declaration's mapping reads the declaration's node's children through a query; the second the
+ * same, since an item's own map response reads the declaration it names through a query too, and
+ * the third breaks it on neither side; each condition breaks "Condition type" in the oracle, the
+ * database's alone on the import's side; the included match is accepted on both. The shared
+ * fragment is typed in each item that includes it: under two floats it is accepted on both, and
+ * where an item's response is an identifier it breaks "Operand fit" (P23) in the oracle, the
+ * database's alone on the import's side, since the operands' fit reads `OperandOf`, a query.
  */
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
@@ -47,6 +53,7 @@ import {
   mapped,
   mapping,
   matched,
+  sharedOf,
 } from "#pantry/test/placed-types.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 
@@ -68,7 +75,7 @@ const laws = lawsOf(grammar);
 interface Case {
   readonly entries: PackageEntries;
   readonly expected: "accepted" | "database" | "holds";
-  readonly law: "Condition type" | "Mapped response";
+  readonly law: "Condition type" | "Mapped response" | "Operand fit";
   readonly name: string;
 }
 
@@ -77,7 +84,9 @@ interface Case {
  * `V-O18-include-map-response-no-mapping`), then its controls, the inline one
  * (`V-O18-inline-map-response-no-mapping`) and the included one with a mapping; the included
  * identifier condition (`V-O38-include-nonboolean-condition`), then its controls, the inline one
- * (`V-O38-inline-nonboolean-condition`) and the included match (`V-control-include-good`).
+ * (`V-O38-inline-nonboolean-condition`) and the included match (`V-control-include-good`); then
+ * the fragment two float items include, the one a float's item and an identifier's include, and the
+ * one an identifier's item includes alone.
  */
 const cases: readonly Case[] = [
   {
@@ -116,6 +125,24 @@ const cases: readonly Case[] = [
     law: "Condition type",
     name: "an included condition that matches a response with its correct value",
   },
+  {
+    entries: sharedOf(["float", "float"]),
+    expected: "accepted",
+    law: "Operand fit",
+    name: "a fragment two items include, each response a float",
+  },
+  {
+    entries: sharedOf(["float", "identifier"]),
+    expected: "database",
+    law: "Operand fit",
+    name: "a fragment two items include, one response a float and one an identifier",
+  },
+  {
+    entries: sharedOf(["identifier"]),
+    expected: "database",
+    law: "Operand fit",
+    name: "a fragment one item includes, its response an identifier",
+  },
 ];
 
 /**
@@ -138,11 +165,11 @@ layer(NodeServices.layer, { excludeTestServices: true })(
             const directory = yield* scratchDirectory("placed-types-");
             const bench = { directory, grammar, laws };
 
-            assert.strictEqual(cases.length, 6);
+            assert.strictEqual(cases.length, 9);
 
             return yield* exhaust(
               {
-                box: "the 6 placed type cases: a map response of a response with no mapping, included and inline, and an included one of a response with a mapping; an identifier response as a condition, included and inline, and an included match of it with its correct value",
+                box: "the 9 placed type cases: a map response of a response with no mapping, included and inline, and an included one of a response with a mapping; an identifier response as a condition, included and inline, and an included match of it with its correct value; a fragment comparing the response with a half, included by two float items, by a float item and an identifier item, and by an identifier item alone",
                 caseHang: Duration.minutes(5),
                 concurrency: 1,
                 coverage: noCoverage,

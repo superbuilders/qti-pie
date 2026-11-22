@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["esnext", "dom"],
+    "types": ["node", "react/experimental"],
+    "jsx": "react-jsx"
+  },
+  "include": ["src", "tools", "vite.config.ts", "grizzle.result.config.ts"]
+}

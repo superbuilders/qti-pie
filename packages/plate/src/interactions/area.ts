@@ -10,6 +10,8 @@
 import { Option, pipe } from "effect";
 import type { SourceElement } from "#plate/document/source.ts";
 import type { ReaderKit } from "#plate/interactions/contract.ts";
+import { message, numeral } from "#plate/messages.ts";
+import type { Locale } from "#plate/messages.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
 
 /**
@@ -62,3 +64,44 @@ export const areaLabel = (read: ReaderKit, area: SourceElement): Option.Option<s
 
   return label;
 };
+
+/**
+ * An area as {@link areaNames} names it: its identifier and its label ({@link areaLabel}).
+ */
+interface NamedArea {
+  readonly identifier: string;
+  readonly label: Option.Option<string>;
+}
+
+/**
+ * Give each area of an interaction its name by its identifier, as a message names an area (Graphic
+ * Associate's and Graphic Order's): its label ({@link areaLabel}) where that holds anything but
+ * XML white space, else its position among the interaction's areas, "Area 2 of 4". An identifier
+ * two areas carry is named by the last of them.
+ *
+ * @example
+ *   areaNames([{ identifier: "A", label: Option.none() }, { identifier: "B", label: Option.some("Barn") }], "en");
+ *   // Map { "A" => "Area 1 of 2", "B" => "Barn" }
+ *
+ * @param areas The interaction's areas, in document order.
+ * @param locale The locale of the names.
+ * @returns Each identifier with its name.
+ */
+export const areaNames = (
+  areas: readonly NamedArea[],
+  locale: Locale,
+): ReadonlyMap<string, string> =>
+  new Map(
+    areas.map((area, index) => [
+      area.identifier,
+      area.label.pipe(
+        Option.filter((written) => trimXmlSpace(written) !== ""),
+        Option.getOrElse(() =>
+          message(locale, "graphicAreaOf", {
+            count: numeral(locale, areas.length),
+            n: numeral(locale, index + 1),
+          }),
+        ),
+      ),
+    ]),
+  );

@@ -310,8 +310,7 @@ export const clientModules = (sources: ReadonlyMap<string, string>): readonly st
 
 /**
  * Read the package's modules, tests included, from disk: its TypeScript sources, the UI's `.tsx`
- * among them, and its JSON files, which a source imports `with { type: "json" }`, as
- * `model/blocks.ts` imports the block table.
+ * among them, and its JSON files, which a source imports `with { type: "json" }`.
  *
  * A `.tsx` module is read as any other: its imports precede its JSX, so {@link readImports} reads
  * them, and every rule that walks the graph walks through the UI (`src/ui/`). A JSON module reads

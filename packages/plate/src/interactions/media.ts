@@ -25,30 +25,26 @@
  *   and a reviewer should.
  * - `min-plays` and `max-plays` default to 0; `max-plays="0"` is no limit (reading 76), and the
  *   Schematron's least-at-most rule is the database's. "Failure to play the media object the
- *   minimum number of times constitutes an invalid response" (information model 5.92.2), so a count
- *   under `min-plays` is refused in tier (b), under `validateResponses` alone, and NULL, a response
- *   that reports no play, counts as 0 (reading 186). "It must not be possible for the candidate to
- *   play the media object more than max-play times" (5.92.3), so a count over a `max-plays` that is
- *   not 0 is none a candidate can have played, and is refused in tier (a). A negative count is no
- *   number of times, and is refused in tier (a) as malformed, with the message a text that is no
- *   number earns.
+ *   minimum number of times constitutes an invalid response" (information model 5.92.2), so the QTI
+ *   database refuses a count under `min-plays` in tier (b), under `validate-responses` alone, and
+ *   NULL, a response that reports no play, counts as 0 (reading 186). "It must not be possible for
+ *   the candidate to play the media object more than max-play times" (5.92.3), so a count over a
+ *   `max-plays` that is not 0 is none a candidate can have played, and is refused in tier (a). A
+ *   negative count is no number of times, and is refused in tier (a) as malformed, with the message
+ *   a text that is no number earns.
  * - A Media never played posts nothing, and its response stays where the attempt started it, at its
  *   default, else NULL, never 0 (reading 203), so the module gives no `absentValue`: only its
- *   validation reads NULL as no play.
+ *   admission reads NULL as no play.
  * - `coords`, the deprecated rectangle of an `object`'s place, is read and ignored with a mark, and
  *   so is the deprecated `object` element, written as the author wrote it: a browser cannot report
  *   plays of one, so its count is never posted.
- *
- * The validation messages are English and live here ({@link words}).
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_MediaInteraction
  * @see https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { contentRegion, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
@@ -57,13 +53,9 @@ import type {
   ModuleParseContext,
   OwnRegion,
   Parsed,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { malformedMessage } from "#plate/interactions/pattern.ts";
-import { counted } from "#plate/messages.ts";
 import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
 import { format, trimXmlSpace } from "#plate/model/values.ts";
-import type { Value } from "#plate/model/values.ts";
 
 /**
  * Media's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -234,88 +226,6 @@ const parse = (source: SourceElement, context: ModuleParseContext): Parsed<Media
 };
 
 /**
- * Read the count a decoded value holds, for validation alone: its one integer, NULL as 0 plays,
- * since a response that reports no play reports none (reading 186). The response itself stays NULL
- * (reading 203).
- *
- * @param value The decoded response.
- * @returns The count.
- */
-const playsOf = (value: Value): bigint => {
-  const [single] = value.values;
-
-  return single?.baseType === "integer" ? single.value : 0n;
-};
-
-/**
- * Check a Media's response, which the caller decoded, in two tiers.
- *
- * The caller decodes the posted entry with `decode`, under the entry name its form gave the count
- * and the Media's binding (a single `integer`), and passes the value, or the {@link Malformed}
- * `decode` gave; the entry name stays the caller's, while the messages stay here.
- *
- * - Tier (a), always, malformed by {@link malformedMessage}: a {@link Malformed} input by its reason
- *   (`malformedNumber` for text that is no number, `malformedSingleMany` for a second entry), and a
- *   negative count, which `decode` reads as the integer it is but which is no number of plays; it
- *   earns the `number` message.
- * - Tier (a), always: a count above `max-plays` when that is not 0, since "it must not be possible
- *   for the candidate to play the media object more than max-play times" (5.92.3).
- * - Tier (b), only under `validateResponses`: a count below `min-plays`, NULL counting as 0, since
- *   "failure to play the media object the minimum number of times constitutes an invalid response"
- *   (5.92.2).
- *
- * @param interaction The Media.
- * @param input The decoded value, or why the entry did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validate = (
-  interaction: MediaInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  const { locale, validateResponses } = configuration;
-  const problem = (text: string): ValidationMessage => ({ response: interaction.response, text });
-  const malformed = (reason: Malformed["reason"]): ValidationMessage =>
-    problem(
-      malformedMessage({ baseType: "integer", patternMaskMessage: Option.none() }, reason, locale),
-    );
-
-  if (input instanceof Malformed) {
-    return [malformed(input.reason)];
-  }
-
-  const plays = playsOf(input);
-
-  if (plays < 0n) {
-    return [malformed("number")];
-  }
-
-  return [
-    ...(interaction.maxPlays > 0n && plays > interaction.maxPlays
-      ? [
-          problem(
-            counted(locale, interaction.maxPlays, {
-              many: "mediaCheckAtMost",
-              one: "mediaCheckAtMostOnce",
-            }),
-          ),
-        ]
-      : []),
-    ...(validateResponses && plays < interaction.minPlays
-      ? [
-          problem(
-            counted(locale, interaction.minPlays, {
-              many: "mediaCheckAtLeast",
-              one: "mediaCheckAtLeastOnce",
-            }),
-          ),
-        ]
-      : []),
-  ];
-};
-
-/**
  * The regions of a Media's own content, in document order: its Prompt, when it has one, then the
  * media element, with its `source` and `track` children and its fallback content.
  *
@@ -373,5 +283,4 @@ export const mediaModule: InteractionModule<"media", MediaByLevel, MediaPayload>
    * The regions of the node's own content, in document order: its Prompt, then the media element.
    */
   regions: ownRegions,
-  validate,
 };

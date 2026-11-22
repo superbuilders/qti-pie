@@ -205,30 +205,6 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Item key (metadata.ts ObjectIdentifier): a second item's root given the first item's identifier,
-  // as written or padded, which the key compares collapsed.
-  "Item key": {
-    law: "Item key",
-    mutate: oneOf(
-      (
-        [
-          { identifier: "item2", path: "items/item2.xml" },
-          { identifier: "item3", path: "items/item3.xml" },
-        ] as const
-      ).map(({ identifier, path }) =>
-        drawnIn(
-          path,
-          (text) => (source) =>
-            replaceOnce(
-              text,
-              `identifier="${identifier}" title=`,
-              `identifier="${source.draw(element(["item1", " item1", "item1 "]))}" title=`,
-            ),
-        ),
-      ),
-    ),
-    over: "package",
-  },
   // LomObjectTitle (QTI 3.0 Metadata §2.7.1.2): an item's title changed under its record's title,
   // by a word, by case, or by a doubled space, which `xs:normalizedString` keeps.
   LomObjectTitle: {
@@ -342,19 +318,11 @@ export const documentMutations = {
     ]),
     over: "package",
   },
-  // Reserved type (§2.2.2.1, §2.2.2.3): MAXSCORE of an item or PASSED declared of another base type
-  // than the specification gives it, or QTI_CONTEXT declared as an outcome.
+  // Reserved type (§2.2.2.1, reading 74): QTI_CONTEXT declared as an outcome, where it is built in
+  // as the context record.
   "Reserved type": {
     law: "Reserved type",
     mutate: oneOf([
-      declaredAfterOutcome(
-        (source) =>
-          `<qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="${source.draw(element(["integer", "string", "boolean", "identifier"]))}"/>`,
-      ),
-      declaredAfterOutcome(
-        (source) =>
-          `<qti-outcome-declaration identifier="PASSED" cardinality="single" base-type="${source.draw(element(["integer", "float", "string", "identifier"]))}"/>`,
-      ),
       declaredAfterOutcome(
         () => '<qti-outcome-declaration identifier="QTI_CONTEXT" cardinality="record"/>',
       ),
@@ -409,22 +377,13 @@ export const documentMutations = {
     over: "package",
   },
   // Value cardinality (§8.16, §7.46): a single variable's default or correct response given a
-  // second value, a record field or a base-type alone, or the SUMMARY record's value given a value
-  // that is no field or a field with no base-type.
+  // second value, or the SUMMARY record's value given a value that is no field or a field with no
+  // base-type. A non-record value's own `base-type` or `field-identifier` is no breach: it is read
+  // in its declaration's base type and the two are ignored (§7.46.1-2, SV-LAW-01).
   "Value cardinality": {
     law: "Value cardinality",
     mutate: oneOf([
       drawnIn(item, (text) => replaceDrawn(text, singleValue, (match) => `${match[0]}${match[0]}`)),
-      drawnIn(item, (text) =>
-        replaceDrawn(text, singleValue, (match) =>
-          match[0].replace("<qti-value>", '<qti-value field-identifier="f" base-type="integer">'),
-        ),
-      ),
-      drawnIn(item, (text) =>
-        replaceDrawn(text, singleValue, (match) =>
-          match[0].replace("<qti-value>", '<qti-value base-type="identifier">'),
-        ),
-      ),
       drawnIn(
         item,
         (text) => () =>

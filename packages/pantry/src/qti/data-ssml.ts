@@ -19,23 +19,24 @@
  * - **"E1 derived":** each {@link DataSsml} row is a closed `data-ssml`'s, each member's element has
  *   its row, and each property's member is one of its element's.
  *
- * The importer writes every member and property it reads, and the database judges them. Which
- * rows a value has is the JSON's grammar, and no grizzle term derives rows from a text (no JSON
- * type, no `Compute` term that splits a text), so the importer reads it once, before the database,
- * as it reads a document's XML. Every text a law compares is `keyText`, so a property
- * past the key-text bound is refused under that stated limit (reading 1).
+ * The importer writes every member and property it reads, and the database judges them. Which rows
+ * a value has is the JSON's grammar, and no grizzle term derives rows from a text (no JSON type, no
+ * scalar term that splits a text), so the importer reads it once, before the database, as it reads
+ * a document's XML. Every text a law compares is of any length, a key, a containment's target and a
+ * lookup holding it by its image (`#pantry/qti/limits.ts`).
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/data-ssml_infobind/imsqtiv3p0_datassml_v1p0_InfoBind.html#JSOND | IMS Data-SSML 1.0, 3.4 Description of the JSON Schema}
  */
-import { check, Compute, contained, natural, on, relation, select } from "@bjornpagen/grizzle";
+import { check, contained, natural, on, relation, select, Text } from "@bjornpagen/grizzle";
 import { Attribute } from "#pantry/qti/attributes.ts";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { dataSsmlMembers } from "#pantry/vocab/data-ssml.ts";
+import { anyText } from "#pantry/grammar/install.ts";
 
 /**
  * A text with no tab, line feed or carriage return: an `xs:normalizedString`'s value.
  */
-const normalizedValue = Compute.pattern("^[^\\t\\n\\r]*$");
+const normalizedValue = Text.pattern("^[^\\t\\n\\r]*$");
 
 /**
  * An element whose closed `data-ssml` is one JSON object of objects of strings, keyed by the
@@ -53,7 +54,7 @@ export const DataSsml = relation(
  */
 export const DataSsmlMember = relation(
   "DataSsmlMember",
-  { at: natural, member: keyText, package: PackageName, path: EntryPath, start: natural },
+  { at: natural, member: anyText, package: PackageName, path: EntryPath, start: natural },
   ["package", "path", "start", "at"],
 );
 
@@ -67,12 +68,12 @@ export const DataSsmlProperty = relation(
   {
     at: natural,
     member: natural,
-    memberName: keyText,
-    name: keyText,
+    memberName: anyText,
+    name: anyText,
     package: PackageName,
     path: EntryPath,
     start: natural,
-    value: keyText,
+    value: anyText,
   },
   ["package", "path", "start", "member", "at"],
 );
@@ -143,7 +144,7 @@ export const dataSsmlLawsByName = {
           p.or(
             p.ne(p.memberName, member),
             p.ne(p.name, name),
-            Compute.matches(p.value, normalizedValue),
+            Text.matches(p.value, normalizedValue),
           ),
         ),
       ),

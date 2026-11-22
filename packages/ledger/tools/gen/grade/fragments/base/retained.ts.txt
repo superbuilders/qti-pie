@@ -1,0 +1,14 @@
+/** The session's last attempt processed before this one, where its item is adaptive (pantry's ItemMode): whose outcomes
+ * this one starts from, each declared outcome given held `value` with its values then, a NULL one with none ("For
+ * Adaptive Items the outcome variables retain the values that were assigned to them during the previous invocation of
+ * response processing", info §2.2.2.3). A non-adaptive item's outcomes start at their defaults. */
+const retainedOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const previous = previousOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, previous: at } = v(previous, "previous")
+		return r
+			.match(previous, { child, package: pkg, path, n, stage, previous: at })
+			.match(fields.ItemMode, { package: pkg, path, adaptive: true })
+			.find({ child, package: pkg, path, n, stage, previous: at })
+	})
+

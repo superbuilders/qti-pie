@@ -88,7 +88,7 @@ export const resourceTypeCases: readonly ResourceTypeCase[] = [
     byQuery: false,
     edits: [
       { _tag: "copyFile", from: "choice.xml", to: "choice2.xml" },
-      // A second item, under an identifier of its own ("Item key").
+      // A second item, under an identifier of its own.
       {
         _tag: "ReplaceText",
         file: "choice2.xml",

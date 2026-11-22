@@ -1,23 +1,38 @@
 /**
  * The references' resolutions by name (decision S3: no copies): a binding, a content reference and
  * a variable reference each name a declaration by its identifier, and resolve to it in their
- * document's declarations, or, under a placement, in their assembly's item's, whatever the
- * declaration's cardinality spells (spec reading 159). No row holds the resolution: each law that
- * reads it matches the reference with a name view of `QtiViews` (`#pantry/qti/names.ts`, the one
- * definition of what a name names) by `(package, path, identifier)`, the key "Declaration key"
- * holds, a rule over a query here, under the law's own name (`#pantry/qti/interactions.ts`,
- * `#pantry/qti/expressions.ts`).
+ * document's declarations, or, under a placement, in their assembly's root's, whatever the
+ * declaration's cardinality spells (spec reading 159). A content reference's resolution is held by
+ * no row: each law that reads it matches the reference with a name view of `QtiViews`
+ * (`#pantry/qti/names.ts`, the one definition of what a name names) by `(package, path,
+ * identifier)`, the key "Declaration key" holds, a rule over a query here, under the law's own name
+ * (`#pantry/qti/interactions.ts`). A variable reference's is its placed row's, under each placement
+ * of its document (`PlacedVariableRef` of `#pantry/qti/expressions.ts`, spec reading 117), and
+ * every law over what it names, its kind, cardinality, base type or table, reads that row: a
+ * located template's references among its item's declarations, as an included rules fragment's.
  */
 import type { RelationName, RowScalars } from "@bjornpagen/grizzle";
-import { check, Compute, contained, derived, on, query, select, v } from "@bjornpagen/grizzle";
+import {
+  check,
+  contained,
+  derived,
+  mirrors,
+  on,
+  query,
+  select,
+  Text,
+  Type,
+  v,
+} from "@bjornpagen/grizzle";
 import { pipe, Record as Rec } from "effect";
+import type { tableReaders } from "#pantry/grammar/expression.ts";
 import { ContentReference, VariableReference } from "#pantry/grammar/install.ts";
+import { Attribute } from "#pantry/qti/attributes.ts";
 import {
   declaredKinds,
   lookupKindHandle,
   ReferenceBase,
   ReferenceDeclaration,
-  TableReader,
   ValueCardinalityOf,
 } from "#pantry/qti/expression-types.ts";
 import {
@@ -25,11 +40,12 @@ import {
   builtInResponses,
   Expression,
   mappedKinds,
+  PlacedExpression,
   PlacedVariableRef,
   Processing,
+  anyKindStandIns,
   silentBases,
   VariableRef,
-  VariableRefTable,
 } from "#pantry/qti/expressions.ts";
 import {
   BoundVariable,
@@ -52,6 +68,8 @@ import {
   TypedDeclarationName,
   VariableRefNode,
 } from "#pantry/qti/names.ts";
+import { placedDocuments } from "#pantry/qti/overlay-queries/expression.ts";
+import { readDeclarations } from "#pantry/qti/overlay-queries/readings.ts";
 import { expressionKinds, ruleKindHandles } from "#pantry/vocab/terms/expression-types.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
 
@@ -243,57 +261,237 @@ const TemplateRefBaseType = referenceBaseTypeOf(
 );
 
 /**
- * The declaration a declared {@link VariableRef} names, keyed as the reference: the reference's
- * fields its laws read, its element's kind among them ({@link VariableRefNode}), and its
- * {@link NamedDeclaration}'s `start` as `declaration` and kind, whatever the declaration's
- * cardinality spells (spec reading 159). A reference that names a built-in variable or nothing is
- * no `declared` one, and has none (lane NIL's NS1).
+ * The references each placement resolves, by the placement and the reference's element place and
+ * attribute, with its name: every variable reference of every document it places (`placedDocuments`
+ * of `#pantry/qti/overlay-queries/expression.ts`). "E1 derived" holds `PlacedVariableRef` to it
+ * both ways, so a placement resolves each of its references once, its name as written, and nothing
+ * else.
  */
-const VariableRefDeclaration = derived(
-  "VariableRefDeclaration",
+const PlacedReferenceSite = derived(
+  "PlacedReferenceSite",
   query(QtiViews).rule((r) => {
-    const {
+    const { assembly, instance, package: pkg, path } = v(placedDocuments, "placement");
+    const { attribute, identifier, start } = v(VariableRef, "reference");
+
+    return r
+      .match(placedDocuments, { assembly, instance, package: pkg, path })
+      .match(VariableRef, { attribute, identifier, package: pkg, path, start })
+      .find({ assembly, attribute, identifier, instance, package: pkg, path, start });
+  }),
+);
+
+/**
+ * The declaration each declared placed reference names among its assembly's root's declarations,
+ * keyed as the placed reference: its `assembly` as the declaration's document, `declaration` its
+ * {@link NamedDeclaration}'s `start` there and its kind, whatever its cardinality spells (spec
+ * reading 159), beside the reference's element's `kind` and `language` ({@link
+ * PlacedVariableRefNode}), its `attribute`, and its type there. A rules fragment's reference names
+ * its item's declaration, and a located template's the item's (spec reading 117, information model
+ * §4.6.1).
+ */
+const placedDeclarations = query(QtiViews).rule((r) => {
+  const {
+    assembly,
+    attribute,
+    baseType,
+    cardinality,
+    identifier,
+    instance,
+    kind,
+    language,
+    package: pkg,
+    path,
+    start,
+  } = v(PlacedVariableRefNode, "placed");
+  const { declarationKind, start: declaration } = v(NamedDeclaration, "name");
+
+  return r
+    .match(PlacedVariableRefNode, {
+      assembly,
       attribute,
       baseType,
       cardinality,
       identifier,
+      instance,
+      kind,
+      language,
+      package: pkg,
+      path,
+      resolution: "declared",
+      start,
+    })
+    .match(NamedDeclaration, {
+      declarationKind,
+      identifier,
+      package: pkg,
+      path: assembly,
+      start: declaration,
+    })
+    .find({
+      assembly,
+      attribute,
+      baseType,
+      cardinality,
+      declaration,
+      declarationKind,
+      identifier,
+      instance,
       kind,
       language,
       package: pkg,
       path,
       start,
-    } = v(VariableRefNode, "reference");
-    const { declarationKind, start: declaration } = v(NamedDeclaration, "name");
+    });
+});
+
+/**
+ * {@link placedDeclarations} as a relation of the schema, which the laws over a declared reference's
+ * declaration read.
+ */
+const PlacedVariableRefDeclaration = derived("PlacedVariableRefDeclaration", placedDeclarations);
+
+/**
+ * The declaration whose variable each placed reference stands for, keyed as the placed reference,
+ * with its type there: a declared one's, its assembly's root's ({@link placedDeclarations}), and a
+ * read one's, the item's declaration its reading names through an item ref
+ * (`readDeclarations` of `#pantry/qti/overlay-queries/readings.ts`), each by the declaration's
+ * document `declPath` and place `declStart`. "E1 derived" types each as its declaration.
+ */
+const variableDeclarations = query(QtiViews)
+  .rule((r) => {
+    const {
+      assembly,
+      attribute,
+      baseType,
+      cardinality,
+      declaration,
+      instance,
+      package: pkg,
+      path,
+      start,
+    } = v(placedDeclarations, "declared");
 
     return r
-      .match(VariableRefNode, {
-        attribute,
-        baseType,
-        cardinality,
-        identifier,
-        kind,
-        language,
-        package: pkg,
-        path,
-        resolution: "declared",
-        start,
-      })
-      .match(NamedDeclaration, {
-        declarationKind,
-        identifier,
-        package: pkg,
-        path,
-        start: declaration,
-      })
-      .find({
+      .match(placedDeclarations, {
+        assembly,
         attribute,
         baseType,
         cardinality,
         declaration,
-        declarationKind,
-        identifier,
-        kind,
-        language,
+        instance,
+        package: pkg,
+        path,
+        start,
+      })
+      .find({
+        assembly,
+        attribute,
+        baseType,
+        cardinality,
+        declPath: assembly,
+        declStart: declaration,
+        instance,
+        package: pkg,
+        path,
+        start,
+      });
+  })
+  .rule((r) => {
+    const {
+      assembly,
+      attribute,
+      baseType,
+      cardinality,
+      declPath,
+      declStart,
+      instance,
+      package: pkg,
+      path,
+      start,
+    } = v(readDeclarations, "read");
+
+    return r
+      .match(readDeclarations, {
+        assembly,
+        attribute,
+        baseType,
+        cardinality,
+        declPath,
+        declStart,
+        instance,
+        package: pkg,
+        path,
+        start,
+      })
+      .find({
+        assembly,
+        attribute,
+        baseType,
+        cardinality,
+        declPath,
+        declStart,
+        instance,
+        package: pkg,
+        path,
+        start,
+      });
+  });
+
+/**
+ * {@link variableDeclarations} as a relation of the schema: a base type other than `unknown` names a
+ * declaration that has one.
+ */
+const PlacedVariableDeclaration = derived("PlacedVariableDeclaration", variableDeclarations);
+
+/**
+ * A placed reference's cardinality beside its declaration's ({@link variableDeclarations}), keyed
+ * as the placed reference, where the declaration has one (spec reading 159): `cardinality`, the
+ * reference's type's, and `declCardinality`, its {@link DeclarationName}'s, whose
+ * `ValueCardinalityOf` image "E1 derived" holds the first to. A reference to a declaration whose
+ * cardinality is unwritten or spells nothing has none, and no rule reads its type's cardinality:
+ * `cardinality` is required and enumerated on every declaration kind, so AL3 or its value domain
+ * has refused the declaration (spec reading 158).
+ */
+const PlacedVariableCardinality = derived(
+  "PlacedVariableCardinality",
+  query(QtiViews).rule((r) => {
+    const {
+      assembly,
+      attribute,
+      cardinality,
+      declPath,
+      declStart,
+      instance,
+      package: pkg,
+      path,
+      start,
+    } = v(variableDeclarations, "reference");
+    const { cardinality: declCardinality } = v(DeclarationName, "name");
+
+    return r
+      .match(variableDeclarations, {
+        assembly,
+        attribute,
+        cardinality,
+        declPath,
+        declStart,
+        instance,
+        package: pkg,
+        path,
+        start,
+      })
+      .match(DeclarationName, {
+        cardinality: declCardinality,
+        package: pkg,
+        path: declPath,
+        start: declStart,
+      })
+      .find({
+        assembly,
+        attribute,
+        cardinality,
+        declCardinality,
+        instance,
         package: pkg,
         path,
         start,
@@ -302,184 +500,153 @@ const VariableRefDeclaration = derived(
 );
 
 /**
- * A declared {@link VariableRef}'s cardinality beside its declaration's, keyed as the reference,
- * where the declaration has one (spec reading 159): `cardinality`, the reference's type's, and
- * `declCardinality`, its {@link DeclarationName}'s, whose `ValueCardinalityOf` image "E1 derived"
- * holds the first to. A reference to a declaration whose cardinality is unwritten or spells nothing
- * has none, and no rule reads its type's cardinality: `cardinality` is required and enumerated on
- * every declaration kind, so AL3 or its value domain has refused the declaration (spec reading
- * 158).
+ * A placed reference's base type beside its declaration's ({@link variableDeclarations}), keyed as
+ * the placed reference, where the declaration has one: `baseType`, the reference's type's, and
+ * `valueBase`, its {@link TypedDeclarationName}'s, the declaration's base type as an expression's
+ * type, which "E1 derived" holds the first to. A reference to a declaration with no base type has
+ * none, and its type's base type is `unknown` (spec reading 158), a record's among them.
  */
-const VariableRefCardinality = derived(
-  "VariableRefCardinality",
-  query(QtiViews).rule((r) => {
-    const { attribute, cardinality, identifier, package: pkg, path, start } = v(VariableRef, "ref");
-    const { cardinality: declCardinality } = v(DeclarationName, "name");
-
-    return r
-      .match(VariableRef, {
-        attribute,
-        cardinality,
-        identifier,
-        package: pkg,
-        path,
-        resolution: "declared",
-        start,
-      })
-      .match(DeclarationName, { cardinality: declCardinality, identifier, package: pkg, path })
-      .find({ attribute, cardinality, declCardinality, package: pkg, path, start });
-  }),
-);
-
-/**
- * A declared {@link VariableRef}'s base type beside its declaration's, keyed as the reference,
- * where the declaration has one: `baseType`, the reference's type's, and `valueBase`, its
- * {@link TypedDeclarationName}'s, the declaration's base type as an expression's type, which "E1
- * derived" holds the first to. A reference to a declaration with no base type has none, and its
- * type's base type is `unknown` (spec reading 158), a record's among them.
- */
-const VariableRefBaseType = derived(
-  "VariableRefBaseType",
-  query(QtiViews).rule((r) => {
-    const { attribute, baseType, identifier, package: pkg, path, start } = v(VariableRef, "ref");
-    const { valueBase } = v(TypedDeclarationName, "name");
-
-    return r
-      .match(VariableRef, {
-        attribute,
-        baseType,
-        identifier,
-        package: pkg,
-        path,
-        resolution: "declared",
-        start,
-      })
-      .match(TypedDeclarationName, { identifier, package: pkg, path, valueBase })
-      .find({ attribute, baseType, package: pkg, path, start, valueBase });
-  }),
-);
-
-/**
- * The declaration a declared placed reference (`PlacedVariableRef`) names among its assembly's
- * item's declarations, keyed as the placed reference: its `assembly` as the declaration's document,
- * `declaration` its {@link NamedDeclaration}'s `start` there, and its kind, whatever its cardinality
- * spells (spec reading 159), beside the reference's element's `kind` ({@link
- * PlacedVariableRefNode}) and its `attribute`.
- */
-const PlacedVariableRefDeclaration = derived(
-  "PlacedVariableRefDeclaration",
+const PlacedVariableBase = derived(
+  "PlacedVariableBase",
   query(QtiViews).rule((r) => {
     const {
       assembly,
       attribute,
-      identifier,
+      baseType,
+      declPath,
+      declStart,
+      instance,
+      package: pkg,
+      path,
+      start,
+    } = v(variableDeclarations, "reference");
+    const { valueBase } = v(TypedDeclarationName, "name");
+
+    return r
+      .match(variableDeclarations, {
+        assembly,
+        attribute,
+        baseType,
+        declPath,
+        declStart,
+        instance,
+        package: pkg,
+        path,
+        start,
+      })
+      .match(TypedDeclarationName, { package: pkg, path: declPath, start: declStart, valueBase })
+      .find({ assembly, attribute, baseType, instance, package: pkg, path, start, valueBase });
+  }),
+);
+
+/**
+ * The reads of a variable as an element's own value under each placement, each a placed reference
+ * by `identifier` of a kind typed as its variable (`declaredKinds`), with its element's type there
+ * and its variable's, keyed as the element under the placement: the unweighted ones, whose element
+ * "E1 derived" holds to its variable's type, and the weighted `qti-variable`s ({@link
+ * WeightedRead}).
+ *
+ * @param weighted - Whether to read the weighted ones or the rest.
+ * @returns The query.
+ */
+const variableReadRows = (weighted: boolean) =>
+  query(QtiViews).rule((r) => {
+    const {
+      assembly,
+      baseType,
+      cardinality,
       instance,
       kind,
       package: pkg,
       path,
       start,
-    } = v(PlacedVariableRefNode, "placed");
-    const { declarationKind, start: declaration } = v(NamedDeclaration, "name");
-
-    return r
+    } = v(PlacedVariableRefNode, "read");
+    const { baseType: elementBase, cardinality: elementCardinality } = v(
+      PlacedExpression,
+      "element",
+    );
+    const weight = { kind, name: "weight-identifier", package: pkg, path, start } as const;
+    const reads = r
       .match(PlacedVariableRefNode, {
         assembly,
-        attribute,
-        identifier,
+        attribute: "identifier",
+        baseType,
+        cardinality,
         instance,
         kind,
         package: pkg,
         path,
-        resolution: "declared",
         start,
       })
-      .match(NamedDeclaration, {
-        declarationKind,
-        identifier,
-        package: pkg,
-        path: assembly,
-        start: declaration,
-      })
-      .find({
+      .match(PlacedExpression, {
         assembly,
-        attribute,
-        declaration,
-        declarationKind,
-        identifier,
+        baseType: elementBase,
+        cardinality: elementCardinality,
         instance,
-        kind,
         package: pkg,
         path,
         start,
-      });
-  }),
-);
+      })
+      .where(r.in(kind, declaredKinds));
+
+    const head = {
+      assembly,
+      baseType,
+      cardinality,
+      elementBase,
+      elementCardinality,
+      instance,
+      package: pkg,
+      path,
+      start,
+    } as const;
+
+    return weighted
+      ? reads.match(Attribute, weight).find(head)
+      : reads.where(r.not(Attribute, weight)).find(head);
+  });
 
 /**
- * Each table a declared {@link VariableRef} claims of its declaration, keyed as the reference: its
- * {@link VariableRefTable}'s `table`, the reference's element's `kind` ({@link VariableRefNode}),
- * and its declaration's `start`, its
- * {@link NamedDeclaration}'s. "E1 derived" holds each claim to a table its kind reads
- * (`TableReader`) and its declaration holds (`#pantry/qti/overlay-queries/declaration.ts`).
+ * Each unweighted read of a variable as its element's value ({@link variableReadRows}): its
+ * element is typed as its variable.
  */
-const TableClaim = derived(
-  "TableClaim",
-  query(QtiViews).rule((r) => {
-    const { attribute, package: pkg, path, start, table } = v(VariableRefTable, "claim");
-    const { identifier, kind } = v(VariableRefNode, "reference");
-    const { start: declaration } = v(NamedDeclaration, "name");
-
-    return r
-      .match(VariableRefTable, { attribute, package: pkg, path, start, table })
-      .match(VariableRefNode, { attribute, identifier, kind, package: pkg, path, start })
-      .match(NamedDeclaration, { identifier, package: pkg, path, start: declaration })
-      .find({ attribute, declaration, kind, package: pkg, path, start, table });
-  }),
-);
+const UnweightedRead = derived("UnweightedRead", variableReadRows(false));
 
 /**
- * The table claims of one table: a map response's mapping, a map response point's area mapping, and
- * a lookup's match or interpolation table. Each claim is a containment into the declaration's table
- * of that kind, a child of the declaration's node (`#pantry/qti/overlay-queries/declaration.ts`):
- * a declaration that holds no such table has none, so no reference claims it, and a map response,
- * a map response point or a lookup that claims no table is refused by `Mapped_response` or
- * `Lookup_type`.
- *
- * @param table - The table claimed.
- * @returns The selection.
+ * Each weighted read, a `qti-variable` that writes a `weight-identifier`, the one kind typed as
+ * its variable that may: its value is its variable's "subject to the type promotion of weighted
+ * outcomes" (information model §7.47), so its element is typed as its variable but float where
+ * the variable is integer ("When applying a weight to the value of a variable with base-type
+ * integer the value is subject to type promotion and the result of the expression has base-type
+ * float", §7.47.2).
  */
-export const tableClaims = (table: (typeof TableReader.rows)[number]["table"]) =>
-  select(TableClaim, (t) => t.eq(t.table, table));
+const WeightedRead = derived("WeightedRead", variableReadRows(true));
 
 /**
- * An item's placed references by a table reader's `identifier` that resolve to a declaration among
- * its item's declarations: the {@link PlacedVariableRefDeclaration} of a `qti-map-response`'s or a
- * `qti-map-response-point`'s `identifier`, under every instance of the item's assembly. A reference
- * in an included response rules fragment names nothing in the fragment's own document, so its only
- * declaration is its item's, where "the content of the fragment must satisfy the requirements of
- * the specification in the context of the item in which it is being included" (spec reading 117).
- * Each reads its declaration's mapping or area mapping (reading 166), a containment into the
- * declaration's table of that kind, a child of its node
- * (`#pantry/qti/overlay-queries/declaration.ts`). It keeps every declaration kind: one that names
- * an outcome finds no mapping and breaks the law, as the in-place check refuses it. The item's own
- * document is an instance too, so an inline map response is held twice, here and by the in-place
- * check over {@link VariableRefDeclaration}, under the one law.
+ * The declared placed references by a table reader's `identifier`: the
+ * {@link PlacedVariableRefDeclaration} of a reader's kind, under every placement. Each reads one of
+ * its declaration's tables its kind reads (reading 166), a containment into the declaration's
+ * tables, children of its node (`#pantry/qti/overlay-queries/declaration.ts`). It keeps every
+ * declaration kind: one that names an outcome finds no mapping and breaks the law. A rules
+ * fragment's reference names its item's declaration, where "the content of the fragment must
+ * satisfy the requirements of the specification in the context of the item in which it is being
+ * included" (spec reading 117), and a located template's the item's ("looks up the value of a
+ * response variable and then transforms it using the associated mapping, which must have been
+ * declared", information model §6.9.47).
  *
  * @param kind - The reader's kind.
  * @returns The selection.
  */
-export const placedTableReaders = (kind: (typeof mappedKinds)[number]) =>
+export const placedTableReaders = (kind: (typeof tableReaders)[number]["kind"]) =>
   select(PlacedVariableRefDeclaration, (d) =>
     d.and(d.eq(d.kind, kind), d.eq(d.attribute, "identifier")),
   );
 
 /**
- * A reference beside its element's kind, or a placed one ({@link VariableRefNode},
- * {@link PlacedVariableRefNode}), as a rule over its view reads it.
+ * A placed reference beside its element's kind ({@link PlacedVariableRefNode}), as a rule over the
+ * view reads it.
  */
-type ReferenceNodeRow =
-  | RowScalars<typeof PlacedVariableRefNode>
-  | RowScalars<typeof VariableRefNode>;
+type ReferenceNodeRow = RowScalars<typeof PlacedVariableRefNode>;
 
 /**
  * State that a lookup by `identifier` names no built-in variable: a lookup names an outcome whose
@@ -487,7 +654,7 @@ type ReferenceNodeRow =
  * declaration and no table, is refused (spec reading 197; the built-in `completionStatus` "must
  * not appear in an outcome declaration", §2.2.2.3).
  *
- * @param n - The row, a reference or a placed one.
+ * @param n - The row.
  * @returns The predicate.
  */
 const looksUpNoBuiltIn = (n: ReferenceNodeRow) =>
@@ -503,7 +670,7 @@ const looksUpNoBuiltIn = (n: ReferenceNodeRow) =>
  * declared (decision 431, information model §7.22 and §7.23). A built-in of another kind is
  * `Variable kind`'s alone.
  *
- * @param n - The row, a reference or a placed one.
+ * @param n - The row.
  * @returns The predicate.
  */
 const mapsNoBuiltIn = (n: ReferenceNodeRow) =>
@@ -526,9 +693,9 @@ const mapsNoBuiltIn = (n: ReferenceNodeRow) =>
  * declares (reading R15-k; information model §9.3.4: "if a string appears to be a reference to a
  * template or outcome variable but there is no variable with the given name it should be treated
  * simply as string value"). A numeric attribute's stand-in is bare, and an unresolved one stays
- * refused. A placed reference's root is its assembly's, an item's.
+ * refused. A placed reference's root is its assembly's.
  *
- * @param n - The row, a reference or a placed one.
+ * @param n - The row.
  * @returns The predicate.
  */
 const resolvedUnlessBraced = (n: ReferenceNodeRow) =>
@@ -543,7 +710,7 @@ const resolvedUnlessBraced = (n: ReferenceNodeRow) =>
  * whose `ReferenceDeclaration` admits the built-in's declaration kind ({@link builtInReferrers}),
  * so a reference to a built-in is judged under "Variable kind" as a declared one is.
  *
- * @param n - The row, a reference or a placed one.
+ * @param n - The row.
  * @returns The predicate.
  */
 const namesAllowedBuiltIn = (n: ReferenceNodeRow) =>
@@ -588,26 +755,28 @@ const referableLaws = ({ own, placed }: ContentReferenceOf) => [
  *   (reading R15-l, decision 432) the same of a template reference's variable but a
  *   `qti-template-variable`'s;
  * - **E1 derived**: a variable reference spells its attribute's form, bare or braced as its element's
- *   kind spells the attribute, and its element's language and type are its element's
+ *   kind spells the attribute, and its element's language is its element's
  *   ({@link VariableRefNode}, the reference beside its element's kind and its attribute's form,
- *   which no row copies); a declared variable reference's type is its declaration's, its base type
- *   `unknown` where the declaration has none and else its `valueBase` (a base other than `unknown`
- *   names a declaration that has one, a containment into its name view, and a declaration that has
- *   one gives its image, a check over their join), and its cardinality its declaration's
- *   `ValueCardinalityOf` image where it has one; and each table claim is of a table its kind reads.
- *   A declaration's `base-type` is optional (spec reading 158), so a base type `unknown` is a case
- *   of its own; its `cardinality` is required, so one with none is AL3's or its value domain's
- *   alone;
- * - **Lookup type** and **Mapped response**: a reference, or a placed one
- *   ({@link PlacedVariableRefNode}), names no built-in it may not; a declared lookup, map response
- *   and map response point claim their declaration's table, and a map response or map response
- *   point names a response, a map response point's of base type point;
- * - **Reference type**, **Template reads** and **Variable kind**: a reference's built-in, a template
- *   expression's the context alone, and a declared reference's base type, cardinality and
- *   declaration kind, as its element reads it;
- * - **Variable declared**: a declared reference names a declaration of its document, a placed one of
- *   its assembly's item, by the key "Declaration key" holds (spec reading 159), and an item's
- *   unresolved reference, or a placed one, is braced, a string value (reading R15-k).
+ *   which no row copies); each placement resolves exactly its documents' references
+ *   ({@link PlacedReferenceSite}); a placed reference that stands for a declaration is typed as it
+ *   ({@link PlacedVariableDeclaration}), its base type `unknown` where the declaration has none and
+ *   else its `valueBase` (a base other than `unknown` names a declaration that has one, a
+ *   containment into its name view, and a declaration that has one gives its image, a check over
+ *   their join), and its cardinality its declaration's `ValueCardinalityOf` image where it has one;
+ *   and an element that reads a variable as its own value is typed as it there, a weighted one
+ *   promoted ({@link WeightedRead}). A declaration's `base-type` is optional (spec reading 158), so
+ *   a base type `unknown` is a case of its own; its `cardinality` is required, so one with none is
+ *   AL3's or its value domain's alone;
+ * - **Lookup type** and **Mapped response**: a placed reference names no built-in it may not, and a
+ *   declared map response or map response point names a response, a map response point's of base
+ *   type point; the tables they read are their declarations'
+ *   (`#pantry/qti/overlay-queries/declaration.ts`);
+ * - **Reference type**, **Template reads** and **Variable kind**: a placed reference's built-in, a
+ *   template expression's the context alone, and a declared placed reference's base type,
+ *   cardinality and declaration kind, as its element reads it;
+ * - **Variable declared**: a declared placed reference names a declaration of its assembly's root, by
+ *   the key "Declaration key" holds (spec reading 159), and an item's unresolved placed reference
+ *   is braced, a string value (reading R15-k).
  */
 export const referenceOverlayLawsByName = {
   ...pipe(contentReferences, Rec.map(referableLaws)),
@@ -624,15 +793,14 @@ export const referenceOverlayLawsByName = {
   "E1 derived": [
     // A reference's form is its split put back together, braced exactly where its element's kind
     // spells its attribute's references braced (`VariableReference`), the split a name between
-    // whitespace or braces (`#pantry/qti/expressions.ts`); and an element that reads a declared
-    // variable as its own value is typed as it.
+    // whitespace or braces (`#pantry/qti/expressions.ts`).
     check("E1_derived", VariableRefNode, (n) =>
       n.and(
         n.eq(
           n.lexical,
-          Compute.concat(
-            Compute.concat(Compute.base(n.before), Compute.base(n.identifier)),
-            Compute.base(n.after),
+          Text.concat(
+            Text.concat(Type.base(n.before), Type.base(n.identifier)),
+            Type.base(n.after),
           ),
         ),
         n.or(
@@ -645,14 +813,9 @@ export const referenceOverlayLawsByName = {
             n.eq(n.before, "{"),
           ),
         ),
-        n.or(
-          n.ne(n.attribute, "identifier"),
-          n.not(n.in(n.kind, declaredKinds)),
-          n.and(n.eq(n.elementBase, n.baseType), n.eq(n.elementCardinality, n.cardinality)),
-        ),
       ),
     ),
-    // Its element's language and type are its expression's, or its rule's language.
+    // Its element's language is its expression's, or its rule's.
     contained(
       on(
         select(VariableRefNode, (n) => n.in(n.kind, expressionKinds)),
@@ -660,10 +823,8 @@ export const referenceOverlayLawsByName = {
         "path",
         "start",
         "language",
-        "elementBase",
-        "elementCardinality",
       ),
-      on(Expression, "package", "path", "start", "language", "baseType", "cardinality"),
+      on(Expression, "package", "path", "start", "language"),
     ),
     contained(
       on(
@@ -675,20 +836,56 @@ export const referenceOverlayLawsByName = {
       ),
       on(Processing, "package", "path", "start", "language"),
     ),
-    contained(
+    // Each placement resolves its documents' references, each once (spec reading 117).
+    mirrors(
       on(
-        select(VariableRefDeclaration, (d) => d.ne(d.baseType, "unknown")),
+        PlacedVariableRef,
         "package",
+        "assembly",
+        "instance",
         "path",
+        "start",
+        "attribute",
         "identifier",
       ),
-      on(TypedDeclarationName, "package", "path", "identifier"),
+      on(
+        PlacedReferenceSite,
+        "package",
+        "assembly",
+        "instance",
+        "path",
+        "start",
+        "attribute",
+        "identifier",
+      ),
     ),
-    check("E1_derived", VariableRefBaseType, (b) => b.eq(b.baseType, b.valueBase)),
-    check("E1_derived", VariableRefCardinality, (c) =>
+    // A placed reference that stands for a declaration is typed as it.
+    contained(
+      on(
+        select(PlacedVariableDeclaration, (d) => d.ne(d.baseType, "unknown")),
+        "package",
+        "declPath",
+        "declStart",
+      ),
+      on(TypedDeclarationName, "package", "path", "start"),
+    ),
+    check("E1_derived", PlacedVariableBase, (b) => b.eq(b.baseType, b.valueBase)),
+    check("E1_derived", PlacedVariableCardinality, (c) =>
       c.eq(c.cardinality, ValueCardinalityOf.at("value", c.declCardinality)),
     ),
-    contained(on(TableClaim, "kind", "table"), on(TableReader, "kind", "table")),
+    // An element that reads a variable as its own value is typed as it, a weighted one promoted.
+    check("E1_derived", UnweightedRead, (n) =>
+      n.and(n.eq(n.elementBase, n.baseType), n.eq(n.elementCardinality, n.cardinality)),
+    ),
+    check("E1_derived", WeightedRead, (n) =>
+      n.and(
+        n.or(
+          n.and(n.eq(n.baseType, "integer"), n.eq(n.elementBase, "float")),
+          n.and(n.ne(n.baseType, "integer"), n.eq(n.elementBase, n.baseType)),
+        ),
+        n.eq(n.elementCardinality, n.cardinality),
+      ),
+    ),
   ],
   "Feedback outcome type": [
     check("Feedback_outcome_type", FeedbackRefCardinality, (f) =>
@@ -698,32 +895,15 @@ export const referenceOverlayLawsByName = {
   ],
   "Lookup type": [
     // A lookup names no built-in outcome, which has no declaration and no table (spec reading
-    // 197), a reference or a placed one.
-    check("Lookup_type", VariableRefNode, looksUpNoBuiltIn),
+    // 197).
     check("Lookup_type", PlacedVariableRefNode, looksUpNoBuiltIn),
-    // A declared lookup claims its declaration's lookup table, a match or an interpolation table
-    // (§2.5.1.4), and one whose declaration holds none has no claim to make.
-    contained(
-      on(
-        select(VariableRefDeclaration, (d) =>
-          d.and(d.eq(d.attribute, "identifier"), d.eq(d.kind, lookupKindHandle)),
-        ),
-        "package",
-        "path",
-        "start",
-        "attribute",
-      ),
-      on(VariableRefTable, "package", "path", "start", "attribute"),
-    ),
   ],
   "Mapped response": [
-    // A reference, or a placed one, never names a built-in response, which declares no table
-    // (reading 166).
-    check("Mapped_response", VariableRefNode, mapsNoBuiltIn),
+    // A reference never names a built-in response, which declares no table (reading 166).
     check("Mapped_response", PlacedVariableRefNode, mapsNoBuiltIn),
-    // A declared map response claims its response's mapping, and a map response point its area
-    // mapping of points (§2.11.3.29, §2.11.3.30): its kind reads that table alone (TableReader).
-    check("Mapped_response", VariableRefDeclaration, (d) =>
+    // A declared map response maps a response, and a map response point a response of points
+    // (§2.11.3.29, §2.11.3.30).
+    check("Mapped_response", PlacedVariableRefDeclaration, (d) =>
       d.or(
         d.ne(d.attribute, "identifier"),
         d.not(d.in(d.kind, mappedKinds)),
@@ -733,25 +913,18 @@ export const referenceOverlayLawsByName = {
         ),
       ),
     ),
-    contained(
-      on(
-        select(VariableRefDeclaration, (d) =>
-          d.and(d.eq(d.attribute, "identifier"), d.in(d.kind, mappedKinds)),
-        ),
-        "package",
-        "path",
-        "start",
-        "attribute",
-      ),
-      on(VariableRefTable, "package", "path", "start", "attribute"),
-    ),
   ],
   "Reference type": [
-    check("Reference_type", VariableRefDeclaration, (d) =>
+    check("Reference_type", PlacedVariableRefDeclaration, (d) =>
       d.or(
         d.eq(d.attribute, "identifier"),
         d.and(
-          d.in(d.declarationKind, ["qti-outcome-declaration", "qti-template-declaration"]),
+          d.or(
+            d.in(d.declarationKind, ["qti-outcome-declaration", "qti-template-declaration"]),
+            ...anyKindStandIns.map(({ attribute, kind }) =>
+              d.and(d.eq(d.kind, kind), d.eq(d.attribute, attribute)),
+            ),
+          ),
           d.or(
             d.eq(d.baseType, ReferenceBase.at("base", d.kind, d.attribute)),
             d.in(d.baseType, silentBases),
@@ -763,7 +936,7 @@ export const referenceOverlayLawsByName = {
   ],
   "Template reads": [
     // A template expression reads no built-in variable but the context.
-    check("Template_reads", VariableRefNode, (n) =>
+    check("Template_reads", PlacedVariableRefNode, (n) =>
       n.or(
         n.ne(n.language, "template"),
         n.not(n.in(n.kind, expressionKinds)),
@@ -771,7 +944,7 @@ export const referenceOverlayLawsByName = {
         n.eq(n.identifier, "QTI_CONTEXT"),
       ),
     ),
-    check("Template_reads", VariableRefDeclaration, (d) =>
+    check("Template_reads", PlacedVariableRefDeclaration, (d) =>
       d.or(
         d.ne(d.language, "template"),
         d.not(d.in(d.kind, expressionKinds)),
@@ -790,15 +963,6 @@ export const referenceOverlayLawsByName = {
   "Variable declared": [
     contained(
       on(
-        select(VariableRef, (ref) => ref.eq(ref.resolution, "declared")),
-        "package",
-        "path",
-        "identifier",
-      ),
-      on(NamedDeclaration, "package", "path", "identifier"),
-    ),
-    contained(
-      on(
         select(PlacedVariableRef, (ref) => ref.eq(ref.resolution, "declared")),
         "package",
         "assembly",
@@ -806,23 +970,13 @@ export const referenceOverlayLawsByName = {
       ),
       on(NamedDeclaration, "package", "path", "identifier"),
     ),
-    // An item's unresolved reference, or a placed one, is braced, a string value (reading R15-k).
-    check("Variable_declared", VariableRefNode, resolvedUnlessBraced),
+    // An item's unresolved reference is braced, a string value (reading R15-k), its own and a
+    // fragment's and a located template's alike (§4.6.1, §6.9.40).
     check("Variable_declared", PlacedVariableRefNode, resolvedUnlessBraced),
   ],
   "Variable kind": [
-    // A reference, or a placed one, by `identifier` to a built-in names one its element may.
-    check("Variable_kind", VariableRefNode, namesAllowedBuiltIn),
+    // A reference by `identifier` to a built-in names one its element may.
     check("Variable_kind", PlacedVariableRefNode, namesAllowedBuiltIn),
-    contained(
-      on(
-        select(VariableRefDeclaration, (d) => d.eq(d.attribute, "identifier")),
-        "kind",
-        "attribute",
-        "declarationKind",
-      ),
-      on(ReferenceDeclaration, "kind", "attribute", "declaration"),
-    ),
     contained(
       on(
         select(PlacedVariableRefDeclaration, (d) => d.eq(d.attribute, "identifier")),
@@ -841,14 +995,16 @@ export const referenceOverlayLawsByName = {
 export const referenceOverlayRelations = [
   FeedbackRefBaseType,
   FeedbackRefCardinality,
+  PlacedReferenceSite,
+  PlacedVariableBase,
+  PlacedVariableCardinality,
+  PlacedVariableDeclaration,
   PlacedVariableRefDeclaration,
   ReferableName,
-  TableClaim,
   TemplateRefBaseType,
   TemplateRefCardinality,
-  VariableRefBaseType,
-  VariableRefCardinality,
-  VariableRefDeclaration,
+  UnweightedRead,
+  WeightedRead,
 ] as const;
 
 /**

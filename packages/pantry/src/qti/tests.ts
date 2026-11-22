@@ -1,31 +1,28 @@
 /**
- * Banks, and the assemblies an item's includes make (plan §1.7 O7, N11 and D13; the W5 amendment's
- * C2, C15, C17, C18 and C21; `representation-gaps.md` RG3; spec readings 1, 5, 85 and 114 to 117).
+ * Tests, sections, and the assemblies their section refs and includes make (plan §1.7 O7, N11 and
+ * D13; the W5 amendment's C2, C15, C17, C18 and C21; `representation-gaps.md` RG3; spec readings
+ * 5, 85 to 88 and 114 to 117).
  *
- * Pantry stores content and banks and nothing that delivers them (the placement mandate, rulings 1
- * and 2, owner 2026-11-17). A **bank** is a standalone section document, a resource of type
- * `imsqti_section_xmlv3p0`: its root `qti-assessment-section`, whose `identifier` is the bank,
- * holds its item refs and nothing else, and no test surrounds it. Two stated limits of spec reading
- * 1 hold a package to that, each a containment of elements or attributes into the documents of a
- * type, read from their `Document` at `(package, path)`, so each refuses a narrowing of QTI's own
- * slots and never invents XML:
+ * Pantry stores every valid QTI 3.0.1 document (owner, 2026-11-20: "we follow the spec"; the
+ * database never refuses valid QTI, conformance §3 and §4.4). A **test** is a test document, whose
+ * root is a `qti-assessment-test` (information model §4.4), the head of its own assembly. A
+ * **section document** is a document whose root is a `qti-assessment-section`, which a test's
+ * section refs may place (§7.5: "The only documents that can be refered to by
+ * qti-assessment-section-ref are XML documents that contain a single qti-assessment-section as a
+ * single root. There are no other restrictions on the referenced qti-assessment-section document");
+ * a **bank** is such a document, read by its path and the item refs it holds. A test's section refs
+ * and the includes its sections hold are sites that place their target in the test's assembly
+ * (reading 85), so the test a law reads is the assembled test (reading 5): its documents' names,
+ * branch rules and references are judged across every placement
+ * (`#pantry/qti/overlay-queries/tests.ts`).
  *
- * - **Test structure** (on `Node`): outside a section document there is no test, test part, section,
- *   section ref or item ref, so a test document, and a fragment of one, is refused;
- * - **Bank shape** (on `Node` and `Attribute`): every element of a section document is its root
- *   section or an item ref the root holds, so it has no selection, ordering, adaptive selection,
- *   nested section, section ref, include, rubric block, pre-condition, branch rule, item session
- *   control or time limits, and an item ref has no child element; and a bank's item ref writes no
- *   `required`, `fixed` or `category`, which only a test's delivery reads.
+ * A bank is `(package, path)`, its section document, as an item is (SV-KEY-01): QTI makes a
+ * section's identifier unique only within its test (§4.2.1), so two banks of one package may share
+ * one. Its members are the query `BankMember` (`#pantry/qti/queries.ts`), by the bank's path and
+ * the item ref's identifier, whose **Item ref identifier** is QTI §4.1.1's own MUST, that an item
+ * ref's identifier is its item's: a member is the item.
  *
- * A bank's identity is QTI's own: **Bank key** keys its root's identifier across its package (the
- * query `BankSection`, `#pantry/qti/overlay-queries/tests.ts`), as `Item key` keys an item's
- * (`#pantry/qti/metadata.ts`). Its members are
- * the query `BankMember` (`#pantry/qti/queries.ts`), by the bank's identifier and the item ref's,
- * whose **Item ref identifier** is QTI §4.1.1's own MUST, that an item ref's identifier is its
- * item's: a member is the item.
- *
- * **The documents.** Every assembled document has a {@link TestDocument} row, the owner of its
+ * **The documents.** Every assembled document has a {@link AssembledDocument} row, the owner of its
  * sites' targets, a counted family ({@link SiteTarget}, each `xi:include` that names a document),
  * and of its names ({@link Named}, a bank's root section and each item ref), each a row at it. Each
  * href of an item ref or a site resolves, against its document's path or the `xml:base` in scope,
@@ -38,9 +35,9 @@
  * places its target, the instance of the document that include names, whatever its parent
  * ({@link sitesFold}). A chain of includes that returns to a document already on it would need
  * infinitely many instances, so no finite tree holds it: the count law `children = sites` refuses
- * one a head reaches, and the containment of every `TestDocument` into the documents some instance
- * places (the query `InstanceDocument`, `#pantry/qti/queries.ts`) one no head reaches (reading 85).
- * A bank heads a trivial assembly of its own.
+ * one a head reaches, and the containment of every `AssembledDocument` into the documents some
+ * instance places (the query `InstanceDocument`, `#pantry/qti/queries.ts`) one no head reaches
+ * (reading 85). A bank heads a trivial assembly of its own.
  *
  * Beside them: an item's stimulus refs ({@link StimulusRef}), keyed by its element with its law a
  * key, and the item each item ref names ({@link ItemRefHref} and {@link ItemRefDocument}, with the
@@ -57,10 +54,11 @@
  */
 import {
   accumulated,
+  Bits,
   bits,
   check,
+  closed,
   closedId,
-  Compute,
   contained,
   counted,
   drawn,
@@ -73,35 +71,37 @@ import {
   pg,
   relation,
   select,
+  Text,
   tree,
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import type { Kind } from "#pantry/grammar/compose.ts";
 import {
+  anyText,
+  AttributeName,
   Flag,
   Governor,
   IncludeMember,
   includeParentKinds,
   IncludeSetOf,
+  SplitRoot,
   NodeKind,
-  nonElementKinds,
 } from "#pantry/grammar/install.ts";
-import { Attribute, attributesOf } from "#pantry/qti/attributes.ts";
+import { attributesOf } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { namePattern } from "#pantry/qti/declarations.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { Node, nodeContext } from "#pantry/qti/node.ts";
 import { Entry, hrefPaths, Reference } from "#pantry/qti/package.ts";
 import {
   assembledRoots,
-  bankResourceType,
-  bankUnreadAttributes,
   includeKind,
   itemKind,
   itemRefKind,
   sectionKind,
+  sectionRefKind,
   splicingParents,
   stimulusRefKind,
-  testStructureKinds,
 } from "#pantry/vocab/terms/tests.ts";
 
 /**
@@ -118,8 +118,8 @@ import {
  * - **accumulated:** `sites`, the count of its sites that place their target ({@link sitesFold}), the
  *   children each of its instances holds.
  */
-export const TestDocument = relation(
-  "TestDocument",
+export const AssembledDocument = relation(
+  "AssembledDocument",
   {
     instances: drawn(natural),
     package: PackageName,
@@ -146,7 +146,7 @@ export const TestDocument = relation(
  */
 export const Named = relation(
   "Named",
-  { identifier: keyText, package: PackageName, path: EntryPath, start: natural },
+  { identifier: anyText, package: PackageName, path: EntryPath, start: natural },
   ["package", "path", "start"],
 );
 
@@ -216,9 +216,11 @@ export const SitePath = relation(
 /**
  * A site's target, keyed by the site's element: the document its href names, a row only where the
  * href names a document of the package, so a site whose href names none has no row, and "Include
- * target" refuses it (spec readings 114 and 115). It is the member of the family of the sites that
- * name a document ({@link siteTargetFamily}), so every member's owner is a document the package
- * writes, and of its own document's ({@link siteFamily}), so a site that names none places nothing.
+ * target" refuses it (spec readings 114 and 115), unless it is an include that holds an
+ * `xi:fallback`, which XInclude puts in its place, admitted and unplaced (`UnplacedInclude`). It is
+ * the member of the family of the sites that name a document ({@link siteTargetFamily}), so every
+ * member's owner is a document the package writes, and of its own document's ({@link siteFamily}),
+ * so a site that names none places nothing.
  *
  * - **the host's:** `target`, the document's path, with its root kind (`targetRoot`) and its
  *   context's nearest interaction, the document and position that hold it and its kind
@@ -257,10 +259,11 @@ export const SiteTarget = relation(
  * its family's `IncludeSetOf` row, its target's root kind, the kind the include stands for (spec
  * reading 114), and `splices`, whether it splices that document in place: its parent is one of
  * {@link splicingParents} and it may stand for the root (`IncludeRoot`), as the law oracle's
- * `standsFor` judges. An include that may not stand for its target's root, which "Include root"
- * refuses, splices nothing, so its target is judged as no fragment of its document's; and `places`,
- * whether it places that document at all: it may stand for the root, whatever its parent, and one
- * "Include root" refuses places nothing.
+ * `standsFor` judges. An include that may not stand for its target's root splices nothing, so its
+ * target is judged as no fragment of its document's; and `places`, whether it places that document
+ * at all: it may stand for the root, whatever its parent. One that may not places nothing: "Include
+ * root" refuses it, unless its root is the name of a kind the composition splits by context whose
+ * split kind it may stand for (spec reading 116), admitted and `UnplacedInclude`'s `root`.
  */
 export const Inclusion = relation(
   "Inclusion",
@@ -290,8 +293,10 @@ export const Inclusion = relation(
  *   document's rows it places (spec reading 117): `bindings`, Q5.09's `PlacedBinding` rows, under
  *   an item's assembly alone; `choices` and `hottexts`, Q5.09's `PlacedChoice` and `PlacedHottext`
  *   rows; and `ids` and `idrefTargets`, Q5.07's `PlacedId` and `PlacedIdref` rows, each its
- *   document's count; and `variables`, Q5.10's `PlacedVariableRef` rows, under an item's assembly
- *   alone.
+ *   document's count. What a placement types, its expressions and references, is a rule over a
+ *   query (`PlacedExpressionSite` and `PlacedReferenceSite`,
+ *   `#pantry/qti/overlay-queries/expression.ts` and `reference.ts`), since an item's own placement
+ *   types the template it locates beside its own document.
  */
 export const Instance = relation(
   "Instance",
@@ -313,7 +318,6 @@ export const Instance = relation(
     site: natural,
     siteDocument: EntryPath,
     start: drawn(natural),
-    variables: drawn(natural),
   },
   ["package", "assembly", "start"],
 );
@@ -324,7 +328,7 @@ export const Instance = relation(
  */
 export const StimulusRef = relation(
   "StimulusRef",
-  { identifier: keyText, package: PackageName, path: EntryPath, start: natural },
+  { identifier: anyText, package: PackageName, path: EntryPath, start: natural },
   ["package", "path", "start"],
 );
 
@@ -361,26 +365,108 @@ export const ItemRefDocument = relation(
 );
 
 /**
+ * A numbered reading of a variable reference placed in a test's assembly, as the importer finds it,
+ * keyed by the test, the reference (its element's place and attribute) and the reading's scope and
+ * number (information model §7.47: "In adaptive tests that contain items that are allowed to be
+ * replaced ... a number that denotes the instance's place in the sequence of the item's
+ * instantiation is inserted between the item variable identifier and the item variable, separated
+ * by a period character"; spec reading 88): `scopeInstance`, `scopePath` and `scope`, the placement
+ * and the element of the item ref the reading names, `number`, the instance number as written, and
+ * `variable`, the item variable it names. The importer states one row for each numbered reading
+ * that resolves, and the database proves each one: its spelling, its item ref a selection with
+ * replacement can repeat, its number at least 1, and its variable one the item names
+ * (`#pantry/qti/overlay-queries/readings.ts`). The database enumerates every other reading itself;
+ * a numbered one it cannot, since no text operation it has splits a name at a period (a grizzle ask
+ * of 2026-11-20), so a name whose only readings are two numbered ones is the importer's to tell
+ * apart, a recorded under-refusal (spec reading 88).
+ */
+export const NumberedReading = relation(
+  "NumberedReading",
+  {
+    assembly: EntryPath,
+    attribute: closedId(AttributeName),
+    number: matchedText,
+    package: PackageName,
+    path: EntryPath,
+    scope: natural,
+    scopeInstance: natural,
+    scopePath: EntryPath,
+    start: natural,
+    variable: matchedText,
+  },
+  ["package", "assembly", "path", "start", "attribute", "scopeInstance", "scope", "number"],
+);
+
+/**
+ * A split reading of a variable reference placed in a test's assembly through an item ref that
+ * names no item document, an LTI link or an href outside the package, as the importer finds it,
+ * keyed by the test, the reference and the scope's placement: `variable`, the name after the
+ * scope's identifier and its period, which no declaration of the package can check (spec reading
+ * 110), but which is an NCName, as every variable's identifier is ("E1 derived", `namePattern`), so
+ * a numbered name through a repeated link is no link reading. The database proves its spelling and
+ * its scope (`#pantry/qti/overlay-queries/readings.ts`);
+ * it cannot find one itself, since no text operation it has takes what follows a name's prefix in
+ * a query (the grizzle ask of 2026-11-20).
+ */
+export const LinkReading = relation(
+  "LinkReading",
+  {
+    assembly: EntryPath,
+    attribute: closedId(AttributeName),
+    package: PackageName,
+    path: EntryPath,
+    scope: natural,
+    scopeInstance: natural,
+    scopePath: EntryPath,
+    start: natural,
+    variable: matchedText,
+  },
+  ["package", "assembly", "path", "start", "attribute", "scopeInstance", "scope"],
+);
+
+/**
+ * Why an include of a valid package is admitted but places its target nowhere the database judged,
+ * so a player cannot deliver the item that holds it (QTI 3.0 Conformance §3: an application "must
+ * be able to ignore or remove the unsupported data"): `external`, an href outside the package,
+ * whose resource pantry never fetches (reading 115); `fallback`, an href naming an entry that is no
+ * document, which XInclude replaces by its `xi:fallback`'s content on that resource error (XInclude
+ * 1.0 §3.2), which no site places; `root`, a fragment rooted at a kind the composition splits by
+ * context, under a parent that admits only the split kind (reading 116); and `context`, a placement
+ * under another nearest interaction than the one the fragment's rows were judged under (reading
+ * 117). `UnplacedInclude` (`#pantry/qti/overlay-queries/tests.ts`) names each such include.
+ */
+export const UnplacedCause = closed.ordered("UnplacedCause", [
+  "external",
+  "fallback",
+  "root",
+  "context",
+]);
+
+/**
  * This module's relations, in one list, as `#pantry/qti/schema.ts` composes them.
  */
 export const testRelations = [
+  UnplacedCause,
   Inclusion,
   Instance,
   ItemRefDocument,
   ItemRefHref,
+  LinkReading,
   Named,
+  NumberedReading,
   Site,
   SitePath,
   SiteTarget,
   StimulusRef,
-  TestDocument,
+  AssembledDocument,
 ] as const;
 
 /**
- * Each document's sites that name a document, counted by `TestDocument.targets`. A site that names
- * none places nothing, and "Include target" alone refuses it (reading 115).
+ * Each document's sites that name a document, counted by `AssembledDocument.targets`. A site that
+ * names none places nothing, and "Include target" alone refuses it (reading 115), unless it is an
+ * include that holds an `xi:fallback`.
  */
-const siteFamily = counted(on(SiteTarget, "package", "path"), fin(TestDocument, "targets"));
+const siteFamily = counted(on(SiteTarget, "package", "path"), fin(AssembledDocument, "targets"));
 
 /**
  * The sites that place their target (`SiteTarget.places`): each include that may stand for its
@@ -389,17 +475,18 @@ const siteFamily = counted(on(SiteTarget, "package", "path"), fin(TestDocument, 
 const placingSites = select(SiteTarget, (s) => s.eq(s.places, true));
 
 /**
- * Each document's sites that place their target, counted into `TestDocument.sites`: the children
- * each of its instances holds (reading 85), one per site that places its target. An include that
- * may not stand for its target's root names it (`Document.targetedBy`, reading 117's context) but
- * places nothing, and "Include root" alone refuses it. A family's member is a whole relation, which
- * no selection narrows, so the count is a fold over {@link siteFamily}.
+ * Each document's sites that place their target, counted into `AssembledDocument.sites`: the
+ * children each of its instances holds (reading 85), one per site that places its target. An
+ * include that may not stand for its target's root names it (`Document.targetedBy`, reading 117's
+ * context) but places nothing, and "Include root" alone refuses it, unless its root names a kind
+ * split by context (reading 116), admitted and `UnplacedInclude`'s `root`. A family's member is a
+ * whole relation, which no selection narrows, so the count is a fold over {@link siteFamily}.
  */
 const sitesFold = fold(
   siteFamily,
   Monoid.count,
   on(placingSites, "package", "path"),
-  on(TestDocument, "package", "path", "sites"),
+  on(AssembledDocument, "package", "path", "sites"),
 );
 
 /**
@@ -429,23 +516,15 @@ const instanceTree = tree(on(Instance, "parent", "at"), fin(Instance, "children"
 });
 
 /**
- * Each assembled document's placements in every assembly, counted by `TestDocument.instances`.
+ * Each assembled document's placements in every assembly, counted by `AssembledDocument.instances`.
  */
 const documentInstanceFamily = counted(
   on(Instance, "package", "document"),
-  fin(TestDocument, "instances"),
+  fin(AssembledDocument, "instances"),
 );
 
 /**
- * The includes the information model reads as Include (spec reading 114): each `xi:include` under
- * a parent whose content model holds an explicit include particle. Each is a site.
- */
-const includes = select(Node, (n) =>
-  n.and(n.eq(n.kind, includeKind), n.in(n.parentKind, includeParentKinds)),
-);
-
-/**
- * The documents in an assembly: each has its `TestDocument` row, and its IDREFs resolve per
+ * The documents in an assembly: each has its `AssembledDocument` row, and its IDREFs resolve per
  * instance (spec reading 117).
  */
 const assembledDocuments = select(Document, (d) => d.eq(d.assembled, true));
@@ -455,12 +534,6 @@ const assembledDocuments = select(Document, (d) => d.eq(d.assembled, true));
  * `PlacedBinding`, spec reading 117).
  */
 export const itemInstances = select(Instance, (i) => i.eq(i.assemblyKind, itemKind));
-
-/**
- * The hrefs of the includes whose path an entry holds, each naming a document of the package (spec
- * reading 115).
- */
-const includePaths = select(SitePath, (s) => s.and(s.eq(s.kind, includeKind), s.eq(s.entry, true)));
 
 /**
  * The hrefs whose path an entry holds.
@@ -473,6 +546,40 @@ const entryPaths = select(SitePath, (s) => s.eq(s.entry, true));
  * fetched, so it names none.
  */
 const includeSites = select(Site, (s) => s.and(s.eq(s.kind, includeKind), s.eq(s.external, false)));
+
+/**
+ * The section refs whose href stays in the package, each with an href that names a path of the
+ * package: a section ref whose href resolves outside it is stored as written and never fetched
+ * (spec reading 115), and no section of the package stands for it.
+ */
+const sectionRefSites = select(Site, (s) =>
+  s.and(s.eq(s.kind, sectionRefKind), s.eq(s.external, false)),
+);
+
+/**
+ * The section refs' hrefs whose path an entry holds, each naming a document of the package.
+ */
+const sectionRefPaths = select(SitePath, (s) =>
+  s.and(s.eq(s.kind, sectionRefKind), s.eq(s.entry, true)),
+);
+
+/**
+ * The item refs' `href` references that resolve inside the package, or that the importer resolves
+ * nowhere, one per element: each names an entry path its {@link ItemRefHref} holds, or is refused
+ * for want of one. An item ref whose href resolves outside the package (a scheme, a leading `/`, a
+ * climb above the root, reading 102) names an item no package entry holds: "The URI used to refer
+ * to the item's file (e.g., elsewhere in the same content package)" (§5.6.5) gives the package as
+ * an example only, so it is stored as written and never fetched, as a stimulus ref's external href
+ * is (reading 35), and no law reads its item (SV-LAW-02).
+ */
+const internalItemRefHrefs = select(Reference, (r) =>
+  r.and(r.eq(r.name, "href"), r.eq(r.kind, itemRefKind), r.ne(r.scope, "external")),
+);
+
+/**
+ * The includes' targets, each its include's {@link Inclusion}.
+ */
+const includeTargets = select(SiteTarget, (s) => s.eq(s.kind, includeKind));
 
 /**
  * The sites marked external, each proven by its href's {@link externalHrefs} row.
@@ -504,8 +611,31 @@ const standsFor = (i: InclusionRow) =>
   i.and(
     IncludeSetOf.has(i.parentKind),
     i.eq(
-      Compute.subset(
-        Compute.singleton(i.root),
+      Bits.subset(Bits.singleton(i.root), IncludeMember.row(IncludeSetOf.at("set", i.parentKind))),
+      true,
+    ),
+  );
+
+/**
+ * State that an include's target root is a kind the composition splits by context whose split kind
+ * its parent's include set holds (spec reading 116, {@link SplitRoot}): the fragment, read by its
+ * name at its document's root, is the kind of that name, which the parent does not admit, though a
+ * valid package may write it, since XInclude merges the fragment's infoset in the include's place
+ * (XInclude 1.0 §4) and the merged element is then of the split kind. Such an include places
+ * nothing and is admitted, unplaced (QTI 3.0 Conformance §3: an application "must be able to
+ * ignore or remove the unsupported data"), as `UnplacedInclude` reads it
+ * (`#pantry/qti/overlay-queries/tests.ts`).
+ *
+ * @param i - The include's row.
+ * @returns The predicate.
+ */
+const standsSplit = (i: InclusionRow) =>
+  i.and(
+    SplitRoot.has(i.root),
+    IncludeSetOf.has(i.parentKind),
+    i.eq(
+      Bits.subset(
+        Bits.singleton(SplitRoot.at("split", i.root)),
         IncludeMember.row(IncludeSetOf.at("set", i.parentKind)),
       ),
       true,
@@ -533,46 +663,6 @@ const instanceMembers = select(Instance, (i) => i.gt(i.start, 0n));
 export const instanceRoots = select(Instance, (i) => i.eq(i.start, 0n));
 
 /**
- * The banks, the documents of the bank's resource type, which `Document`'s key `(package, path)`
- * keys, its type a field beyond the target's terms fixed to a value (grizzle's README, "Fixed
- * fields").
- */
-const bankDocuments = select(Document, (d) => d.eq(d.documentType, bankResourceType));
-
-/**
- * The documents that are no bank, which `Document`'s key `(package, path)` keys.
- */
-const otherDocuments = select(Document, (d) => d.ne(d.documentType, bankResourceType));
-
-/**
- * The elements of a test's structure ({@link testStructureKinds}), which no document but a bank
- * holds ("Test structure").
- */
-const structureNodes = select(Node, (n) => n.in(n.kind, testStructureKinds));
-
-/**
- * The elements a bank does not hold: every element but a section that is its document's root and
- * an item ref a section holds ("Bank shape").
- */
-const unbankedNodes = select(Node, (n) =>
-  n.not(
-    n.or(
-      n.in(n.kind, nonElementKinds),
-      n.and(n.eq(n.kind, sectionKind), n.eq(n.parentKind, "document")),
-      n.and(n.eq(n.kind, itemRefKind), n.eq(n.parentKind, sectionKind)),
-    ),
-  ),
-);
-
-/**
- * The attributes of an item ref that a bank's item ref writes none of ({@link
- * bankUnreadAttributes}, "Bank shape").
- */
-const unbankedAttributes = select(Attribute, (a) =>
-  a.and(a.eq(a.kind, itemRefKind), a.in(a.name, bankUnreadAttributes)),
-);
-
-/**
  * The documents whose root is an item, the documents an item ref's item may be: the documents whose
  * `rootKind`, a field beyond the target's terms, is fixed to an item, so `Document`'s key
  * `(package, path)` holds it (grizzle's fixed target, at `3cc8fbd`) and it needs no key of its own.
@@ -582,12 +672,10 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
 /**
  * Every statement over banks and assemblies, each `check` named by its law:
  *
- * - **"Test structure"** and **"Bank shape"**, spec reading 1's stated limits (this module's header):
- *   containments of elements and attributes into the documents of a type, by their `(package,
- *   path)`, since a document's type is its `Document`'s alone (spec reading 176, decision S3);
- * - **"Bank key"**: no two banks of one package share an identifier, a key over the query
- *   `BankSection` (`#pantry/qti/overlay-queries/tests.ts`), since a bank's root is a section whose
- *   parent is its document node, which `Node` alone holds;
+ * - (the stated limits on a test's structure are gone: every valid structure is stored, and its laws
+ *   read the assembled test): containments of elements and attributes into the documents of a type,
+ *   by their `(package, path)`, since a document's type is its `Document`'s alone (spec reading
+ *   176, decision S3);
  * - **"Item ref identifier"** (QTI §4.1.1): a bank member's identifier is its item's, a rule over the
  *   query `BankMember`, stated under the same name in `#pantry/qti/queries.ts`;
  * - **"Structure identifier"** (A4): no two names of one document share an identifier, so no two
@@ -602,7 +690,8 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
  *   `external` as its href's `Reference` proves; an item ref's is its target's (below);
  * - **the sites** ({@link Site}, {@link SiteTarget}): each names a document of the package, its
  *   target, a row of its own ("Include target", reading 115), but an external include, stored as
- *   written and never fetched;
+ *   written and never fetched, and an include holding an `xi:fallback` whose href names an entry
+ *   that is no document, admitted unplaced (`UnplacedInclude`);
  * - **the stimulus refs** ({@link StimulusRef}): one per stimulus ref that writes an identifier
  *   (reading 147), no two of one item sharing an identifier (B16);
  * - **the assembly** ({@link Instance}): one tree per assembled document that heads one, one child
@@ -618,14 +707,14 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
  * unrepresentable.
  *
  * - **A chain a head reaches:** the deferred foreign key `Instance(package, document, children) →
- *   TestDocument(package, path, sites)`, since no finite tree has one child per site that places
- *   its target under it; and `Instance(package, document, rootKind) → Document(package, path,
- *   rootKind)`, each instance's root kind its document's.
+ *   AssembledDocument(package, path, sites)`, since no finite tree has one child per site that
+ *   places its target under it; and `Instance(package, document, rootKind) → Document(package,
+ *   path, rootKind)`, each instance's root kind its document's.
  * - **A chain no head reaches**, such as two fragments each of which includes the other, which no
- *   head places, and any fragment only they place: every `TestDocument` is a document some instance
- *   places, a rule over the query `InstanceDocument` (`#pantry/qti/queries.ts`), since none of them
- *   is placed in any assembly. Its converse, every `Instance` row's document an assembled one's, is
- *   the foreign key above.
+ *   head places, and any fragment only they place: every `AssembledDocument` is a document some
+ *   instance places, a rule over the query `InstanceDocument` (`#pantry/qti/queries.ts`), since
+ *   none of them is placed in any assembly. Its converse, every `Instance` row's document an
+ *   assembled one's, is the foreign key above.
  *
  * The heads are {@link splicingParents}'s, through `Inclusion.splices`: the query `HeadDocument`
  * (`#pantry/qti/queries.ts`), each assembled document no include splices in place, mirrored with
@@ -641,10 +730,6 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
  * or not (reading 147).
  */
 export const testLawsByName = {
-  "Bank shape": [
-    contained(on(unbankedNodes, "package", "path"), on(otherDocuments, "package", "path")),
-    contained(on(unbankedAttributes, "package", "path"), on(otherDocuments, "package", "path")),
-  ],
   "E1 derived": [
     siteTargetFamily,
     contextFold,
@@ -664,20 +749,36 @@ export const testLawsByName = {
       ),
     ),
     check("E1_derived", Site, (s) =>
-      s.and(s.eq(s.kind, includeKind), s.in(s.parentKind, includeParentKinds)),
+      s.or(
+        s.and(s.eq(s.kind, includeKind), s.in(s.parentKind, includeParentKinds)),
+        s.eq(s.kind, sectionRefKind),
+      ),
     ),
-    contained(on(TestDocument, "package", "path"), on(assembledDocuments, "package", "path")),
+    check("E1_derived", SiteTarget, (s) =>
+      s.or(
+        s.ne(s.kind, sectionRefKind),
+        s.and(
+          s.eq(s.splices, false),
+          s.or(
+            s.and(s.eq(s.places, true), s.eq(s.targetRoot, sectionKind)),
+            s.and(s.eq(s.places, false), s.ne(s.targetRoot, sectionKind)),
+          ),
+        ),
+      ),
+    ),
+    contained(on(AssembledDocument, "package", "path"), on(assembledDocuments, "package", "path")),
     contained(
       on(Instance, "package", "document", "ids", "idrefTargets", "choices", "hottexts"),
       on(Document, "package", "path", "ids", "idrefTargets", "choices", "hottexts"),
     ),
     contained(
-      on(itemInstances, "package", "document", "bindings", "variables"),
-      on(Document, "package", "path", "bindings", "variables"),
+      on(itemInstances, "package", "document", "bindings"),
+      on(Document, "package", "path", "bindings"),
     ),
+    check("E1_derived", LinkReading, (l) => Text.matches(l.variable, namePattern)),
     check("E1_derived", Instance, (i) =>
       i.and(
-        i.or(i.eq(i.assemblyKind, itemKind), i.and(i.eq(i.bindings, 0n), i.eq(i.variables, 0n))),
+        i.or(i.eq(i.assemblyKind, itemKind), i.eq(i.bindings, 0n)),
         i.or(
           i.and(
             i.eq(i.start, 0n),
@@ -695,27 +796,11 @@ export const testLawsByName = {
     check("File_exists", SitePath, (s) => s.eq(s.entry, true)),
     contained(on(entryPaths, "package", "target"), on(Entry, "package", "path")),
   ],
-  "Fragment context": [
-    check("Fragment_context", SiteTarget, (s) =>
-      s.or(
-        s.and(s.eq(s.nearestKind, "document"), s.eq(s.targetNearestKind, "document")),
-        s.and(
-          s.eq(s.path, s.targetNearestPath),
-          s.eq(s.nearest, s.targetNearest),
-          s.eq(s.nearestKind, s.targetNearestKind),
-        ),
-      ),
-    ),
-  ],
-  "Include root": [check("Include_root", Inclusion, standsFor)],
+  "Include root": [check("Include_root", Inclusion, (i) => i.or(standsFor(i), standsSplit(i)))],
   "Include target": [
     contained(
       on(includeSites, "package", "path", "start", "kind"),
       on(SitePath, "package", "path", "start", "kind"),
-    ),
-    contained(
-      on(includePaths, "package", "path", "start"),
-      on(SiteTarget, "package", "path", "start"),
     ),
     contained(
       on(
@@ -751,7 +836,7 @@ export const testLawsByName = {
     key(on(instanceMembers, "package", "assembly", "parent", "site")),
     contained(
       on(Instance, "package", "document", "children"),
-      on(TestDocument, "package", "path", "sites"),
+      on(AssembledDocument, "package", "path", "sites"),
     ),
     contained(
       on(Instance, "package", "document", "rootKind"),
@@ -766,7 +851,7 @@ export const testLawsByName = {
       on(nodesOf(itemRefKind), "package", "path", "start"),
     ),
     contained(
-      on(attributesOf("href", [itemRefKind]), "package", "path", "start"),
+      on(internalItemRefHrefs, "package", "path", "start"),
       on(ItemRefHref, "package", "path", "start"),
     ),
     contained(
@@ -774,6 +859,19 @@ export const testLawsByName = {
       on(hrefPaths, "package", "path", "start", "target"),
     ),
     contained(on(ItemRefDocument, "package", "target"), on(itemDocuments, "package", "path")),
+  ],
+  "Section ref target": [
+    contained(
+      on(sectionRefSites, "package", "path", "start", "kind"),
+      on(SitePath, "package", "path", "start", "kind"),
+    ),
+    contained(
+      on(sectionRefPaths, "package", "path", "start"),
+      on(SiteTarget, "package", "path", "start"),
+    ),
+    check("Section_ref_target", SiteTarget, (s) =>
+      s.or(s.ne(s.kind, sectionRefKind), s.eq(s.targetRoot, sectionKind)),
+    ),
   ],
   "Stimulus ref key": [key(on(StimulusRef, "package", "path", "identifier"))],
   "Structure identifier": [key(on(Named, "package", "path", "identifier"))],
@@ -784,11 +882,11 @@ export const testLawsByName = {
         "package",
         "path",
       ),
-      on(TestDocument, "package", "path"),
+      on(AssembledDocument, "package", "path"),
     ),
     siteFamily,
     sitesFold,
-    contained(on(Named, "package", "path"), on(TestDocument, "package", "path")),
+    contained(on(Named, "package", "path"), on(AssembledDocument, "package", "path")),
     contained(
       on(
         Site,
@@ -850,14 +948,17 @@ export const testLawsByName = {
       on(SiteTarget, "package", "path", "start", "target"),
       on(SitePath, "package", "path", "start", "target"),
     ),
-    contained(on(includes, "package", "path", "start"), on(Site, "package", "path", "start")),
     contained(
       on(Inclusion, "package", "path", "start", "parentKind", "places", "root", "splices"),
       on(SiteTarget, "package", "path", "start", "parentKind", "places", "targetRoot", "splices"),
     ),
     contained(
-      on(SiteTarget, "package", "path", "start"),
+      on(includeTargets, "package", "path", "start"),
       on(Inclusion, "package", "path", "start"),
+    ),
+    contained(
+      on(nodesOf(sectionRefKind), "package", "path", "start"),
+      on(Site, "package", "path", "start"),
     ),
     contained(
       on(StimulusRef, "package", "path", "start"),
@@ -867,10 +968,7 @@ export const testLawsByName = {
       on(attributesOf("identifier", [stimulusRefKind]), "package", "path", "start"),
       on(StimulusRef, "package", "path", "start"),
     ),
-    contained(on(assembledDocuments, "package", "path"), on(TestDocument, "package", "path")),
-  ],
-  "Test structure": [
-    contained(on(structureNodes, "package", "path"), on(bankDocuments, "package", "path")),
+    contained(on(assembledDocuments, "package", "path"), on(AssembledDocument, "package", "path")),
   ],
 } as const;
 

@@ -5,8 +5,8 @@
  *
  * Each case renders once, the first time a rule's exhaustion reaches it, and every rule reads the
  * same page. Items are the corpus document set's accepted items in its order
- * (`#specimen/ui/corpus.ts`); an item whose template processing runs is shown over the record
- * `begin` starts.
+ * (`#specimen/ui/corpus.ts`); an item with template processing, which the QTI database runs at the
+ * take, is shown with no record of it, since the suite holds no database.
  *
  * @module
  */
@@ -59,8 +59,8 @@ interface CorpusCase {
  * A fact about a case the coverage counts: a kind of interaction met in a mode, the class of the
  * shown responses, what became of the showing, an answering page whose islands the walk finds, so
  * J1's walk is seen to find islands where they are, a review or a solution whose only islands are a
- * Media's replay islands, so J1 is seen to judge one, a reviewed item S1 predicts the score of, and
- * a review that shows the solution with marks drawn, of a class, which M1 judges.
+ * Media's replay islands, so J1 is seen to judge one, and a review that shows the solution with
+ * marks drawn, of a class, which M1 judges.
  */
 type Feature =
   | `${InteractionKind} in ${Showing["mode"]}`
@@ -68,8 +68,7 @@ type Feature =
   | `marked ${ResponseClass}`
   | `outcome ${Seen["outcome"]["kind"]}`
   | "islands in answering"
-  | "replay islands in review"
-  | "scored by match_correct";
+  | "replay islands in review";
 
 /**
  * The kinds of interaction every rule's exhaustion must meet in the corpus: a record over every
@@ -110,11 +109,9 @@ const situations: readonly [Feature, ...Feature[]] = [
   "class empty",
   "class unjudged",
   "outcome rendered",
-  "outcome refused",
   "outcome underived",
   "islands in answering",
   "replay islands in review",
-  "scored by match_correct",
   "marked right",
   "marked wrong",
   "marked partial",
@@ -187,7 +184,6 @@ const noteSeen = (c: Case<Feature>, seen: Seen): void => {
   }
 
   if (seen.outcome.kind === "rendered" && seen.showing.mode === "review") {
-    c.noteAll(seen.scoring.kind === "match-correct" ? ["scored by match_correct"] : []);
     c.noteAll(
       seen.showing.solution === "shown" && seen.outcome.page.facts.marks.length > 0
         ? [`marked ${seen.itemClass}`]

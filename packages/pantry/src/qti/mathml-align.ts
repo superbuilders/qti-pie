@@ -65,7 +65,6 @@ import {
   check,
   closed,
   closedId,
-  Compute,
   contained,
   counted,
   drawn,
@@ -73,17 +72,21 @@ import {
   fold,
   generated,
   key,
+  Logic,
   mirrors,
   Monoid,
   natural,
+  Num,
   on,
   ordered,
   pg,
   relation,
   select,
+  Text,
+  Type,
 } from "@bjornpagen/grizzle";
 import { anyText } from "#pantry/grammar/install.ts";
-import { EntryPath, integerForm, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, integerForm, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
 
@@ -117,7 +120,7 @@ export const AlignDirectionLexical = closed.relation(
  *   attribute and whether the node writes one, which the attribute proves, an unwritten one empty
  *   (`E1_derived`). Its element count is its node's, which "MathML maction selection" reads through
  *   the query `MathActionNode` (`#pantry/qti/overlay-queries/expression.ts`);
- * - **the database's:** `selection`, the form's integer, collapsed (`Compute.collapse`) and read in
+ * - **the database's:** `selection`, the form's integer, collapsed (`Text.collapse`) and read in
  *   {@link integerForm}: 1 where none is written, 0 where it is no integer or a negative one.
  */
 export const MathAction = relation.generated(
@@ -125,7 +128,7 @@ export const MathAction = relation.generated(
   {
     package: PackageName,
     path: EntryPath,
-    selectionLexical: keyText,
+    selectionLexical: anyText,
     selectionWritten: pg.boolean,
     start: natural,
   },
@@ -133,18 +136,18 @@ export const MathAction = relation.generated(
   (m) => ({
     selection: generated(
       natural,
-      Compute.cond(
-        Compute.eq(m.selectionWritten, false),
-        Compute.literal(natural, 1n),
-        Compute.when(
-          Compute.matches(Compute.collapse(m.selectionLexical), integerForm),
+      Logic.cond(
+        Logic.eq(m.selectionWritten, false),
+        Type.literal(natural, 1n),
+        Logic.when(
+          Text.matches(Text.collapse(m.selectionLexical), integerForm),
           (text) =>
-            Compute.when(
-              Compute.nonnegative(Compute.cast(text, pg.bigint)),
-              (value) => Compute.cast(value, natural),
-              Compute.literal(natural, 0n),
+            Logic.when(
+              Num.nonnegative(Type.cast(text, pg.bigint)),
+              (value) => Type.cast(value, natural),
+              Type.literal(natural, 0n),
             ),
-          Compute.literal(natural, 0n),
+          Type.literal(natural, 0n),
         ),
       ),
     ),

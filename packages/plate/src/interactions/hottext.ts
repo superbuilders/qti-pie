@@ -1,6 +1,6 @@
 /**
- * Hot Text (Q-11), the `qti-hottext-interaction`: its model node, parse, redaction and response
- * validation, on the module shape the interaction-module contract states.
+ * Hot Text (Q-11), the `qti-hottext-interaction`: its model node, parse and redaction, on the
+ * module shape the interaction-module contract states.
  *
  * A `qti-hottext-interaction` is a prompt interaction whose block content holds `qti-hottext`
  * choices at any depth. Reading 38 ("A `qti-gap` appears only within a gap-match interaction, and a
@@ -20,21 +20,16 @@
  * the redaction already makes it: each hottext holds a `qti-hottext-control` marker, and one with
  * a template visibility holds it inside a template inline, which `redact` shows or hides by the
  * template value as it does any template inline. So a redacted hottext is selectable exactly when
- * it holds the marker: the response validation reads that one fact, and `redact` reads it once
- * into each hottext's part, so the server shell never sees the marker.
+ * it holds the marker: `redact` reads that one fact once into each hottext's part, so the server
+ * shell never sees the marker.
  *
  * The module value-imports nothing that reaches `#plate/model/interactions.ts`, which holds the
  * table of modules and so imports this file: `#plate/interactions/choice.ts` does reach it, so
  * loading this file first would read the table before the module it names exists.
  *
- * {@link hottextModule}'s `validate` checks a value the caller decoded in two tiers, as Choice's
- * does: tier (a) always, tier (b) only under `validateResponses` (D5).
- *
  * @module
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
-import type { Malformed } from "#plate/form/encoding.ts";
 import { boundIn, contentRegion, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
@@ -42,9 +37,7 @@ import type {
   ModuleInteraction,
   OwnRegion,
   RedactKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { validatePicks } from "#plate/interactions/selection.ts";
 import { bodyAttributeOf } from "#plate/model/attributes.ts";
 import type {
   BodyElement,
@@ -58,7 +51,6 @@ import type {
   TemplateVisibility,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
-import type { Value } from "#plate/model/values.ts";
 
 /**
  * Hot Text's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -208,44 +200,6 @@ export type HottextPart =
   | { readonly kind: "plain"; readonly passage: Nodes<RedactedLevel> };
 
 /**
- * Tell whether children of a model hottext hold its marker, directly or inside the template inline
- * that shows or hides it.
- *
- * @param children The hottext's children.
- * @returns Whether the hottext is selectable.
- */
-const holdsMarker = (children: readonly BodyNode[]): boolean =>
-  children.some(
-    (child) =>
-      (child.kind === "element" && child.tag === controlTag) ||
-      (child.kind === "template-inline" && holdsMarker(child.content)),
-  );
-
-/**
- * Collect the identifiers of the selectable hottexts among body nodes, in document order, below
- * elements and template content, the hottext's own content not entered.
- *
- * @param nodes The interaction's content.
- * @returns The identifiers of the hottexts that hold a marker.
- */
-const selectableIn = (nodes: readonly BodyNode[]): readonly string[] =>
-  nodes.flatMap((node): readonly string[] => {
-    if (node.kind === "element") {
-      if (node.tag !== hottextTag) {
-        return selectableIn(node.children);
-      }
-
-      return holdsMarker(node.children)
-        ? Option.toArray(bodyAttributeOf(node.attributes, "identifier"))
-        : [];
-    }
-
-    return node.kind === "template-block" || node.kind === "template-inline"
-      ? selectableIn(node.content)
-      : [];
-  });
-
-/**
  * Give the marker a hottext that writes an identifier holds: the marker itself, or, for a hottext
  * that names a template variable, a template inline holding it, which the redaction shows or hides
  * by the template value as it does any template inline.
@@ -294,8 +248,7 @@ const controlOf = (
 /**
  * Mark one hottext: put the marker first among its children, in a template inline when the hottext
  * names a template variable. A hottext that writes no `identifier`, which the database refuses
- * first, has no value to post, so it holds no marker and is never a choice, as
- * {@link selectableIn} reads it.
+ * first, has no value to post, so it holds no marker and is never a choice.
  *
  * @param hottext The hottext element, its children already marked.
  * @param identifierOf The reader of an identifier attribute's value.
@@ -346,37 +299,6 @@ const withMarkers = (
       ? marked({ ...node, children }, identifierOf)
       : { ...node, children };
   });
-
-/**
- * Check a Hot Text's response, which the caller decoded, in two tiers, as Choice's is.
- *
- * The caller decodes the posted entries with `decode`, under the entry name its form gave the
- * Controls and the Hot Text's binding (identifiers of its cardinality), and passes the value, or
- * the {@link Malformed} `decode` gave. So the entry name stays the caller's, while the messages and
- * the author's overrides stay here.
- *
- * - A {@link Malformed} input: `atMost` 1 when a single response was posted more than once, else
- *   `unknownChoice`.
- * - Tier (a), always: every identifier names a hottext the page presented, which a hottext its
- *   template hides is not, and none repeats (`unknownChoice`); `max-choices` above 0 caps the count
- *   (D5; `atMost`).
- * - Tier (b), only under `validateResponses`: `min-choices` (`atLeast`).
- *
- * The author's `data-max-selections-message` and `data-min-selections-message` replace plate's
- * own text for `atMost` and `atLeast`.
- *
- * @param interaction The Hot Text, as the redaction under the record shows it, so its content
- *   holds the marker of each hottext presented.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validate = (
-  interaction: HottextInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] =>
-  validatePicks(interaction, new Set(selectableIn(interaction.content)), input, configuration);
 
 /**
  * Read one hottext of the redacted content into its part: a choice when it holds the marker, which
@@ -481,8 +403,8 @@ const regions = <L extends Level>(
 type HottextModule = InteractionModule<"hottext", HottextByLevel, HottextPayload>;
 
 /**
- * The Hot Text module (Q-11): the interaction module of the kind `hottext`, which reads, binds and
- * validates `qti-hottext-interaction`; the server shell renders its payload node.
+ * The Hot Text module (Q-11): the interaction module of the kind `hottext`, which reads and binds
+ * `qti-hottext-interaction`; the server shell renders its payload node.
  */
 export const hottextModule: HottextModule = {
   binding,
@@ -540,5 +462,4 @@ export const hottextModule: HottextModule = {
   },
   redact,
   regions,
-  validate,
 };

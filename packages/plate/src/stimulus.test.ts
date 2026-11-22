@@ -167,7 +167,7 @@ describe("shared stimuli, over the Best Practice guide's passage", { tags: ["cor
         const accepted = Option.getOrElse(acceptedStimulus(verdict), () =>
           assert.fail("the passage is no accepted stimulus"),
         );
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const shownWith = (catalog: ReadonlySet<"linguistic-guidance">) =>
           redactStimulus(accepted.stimulus, {
             configuration,

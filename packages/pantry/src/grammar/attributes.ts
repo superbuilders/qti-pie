@@ -361,19 +361,6 @@ const ssmlVersion = (domain: Domain): Domain =>
   withFacets(domain, [{ facet: "enumeration", value: "1.1" }]);
 
 /**
- * An `xi:include`'s `parse`, which `XInclude.xsd` types `xi:parseType`, `xml` or `text`: spec
- * reading 85 narrows it to `xml`, since the information model says "all included fragments must be
- * treated as parsed xml" (§2.12, Items and Test Fragments). The type's `collapse` whitespace stays
- * the XSD's.
- *
- * @param domain - The XSD's definition.
- * @returns It with the one enumeration value.
- * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Main2p12 | QTI 3.0 information model, 2.12 Items and Test Fragments}
- */
-const xmlParse = (domain: Domain): Domain =>
-  withFacets(domain, [{ facet: "enumeration", value: "xml" }]);
-
-/**
  * An `xi:include`'s `accept` or `accept-language`, which `XInclude.xsd` types `xs:string`: spec
  * reading 118 narrows it to the characters an HTTP header holds, since XInclude says "Values
  * containing characters outside the range #x20 through #x7E must be flagged as fatal errors"
@@ -931,17 +918,18 @@ const cnBaseReadings: readonly SpecReading[] = Option.toArray(
  *   ({@link mathmlNotationReadings}); a content `cn`'s `base` is a positive integer
  *   ({@link cnBaseReadings}); and every MathML kind's `xref` is an `xs:IDREF`, naming an `id` of
  *   its document ({@link mathmlXrefReading}).
- * - 7: a typed QTI value in an attribute the XSD types as a string is exact, outer whitespace
- *   invalid: a map entry's `map-key`, a match table's and an interpolation table's `default-value`,
- *   and an interpolation table entry's `target-value` read no whitespace class. The typed-value
- *   attributes the XSD types `xs:double` (`mapped-value`, the mappings' bounds and `default-value`,
- *   `source-value`, and the usage-data mapping's four) state nothing here: they read as the XSD
- *   reads them, collapsed.
+ * - 7: a typed QTI value in an attribute the XSD types as a string is read in the string's class,
+ *   outer whitespace invalid for a type but `string`: a map entry's `map-key`, an
+ *   `xs:normalizedString`, reads its class, each tab, line feed and carriage return a space (XML
+ *   Schema 1.0 Part 2, §4.3.6), so its value is the key; a match table's and an interpolation
+ *   table's `default-value`, and an interpolation table entry's `target-value`, each an
+ *   `xs:string`, read no whitespace class. The typed-value attributes the XSD types `xs:double`
+ *   (`mapped-value`, the mappings' bounds and `default-value`, `source-value`, and the usage-data
+ *   mapping's four) state nothing here: they read as the XSD reads them, collapsed.
  * - 8: a match table entry's `target-value` is a value of the outcome's base type, not a base-type
  *   name: any text, typed by the overlay.
  * - 9: an `h1`'s `role` is `heading`, `tab` or `presentation`, the Schematron's RULE ARIA ROLE 1b
  *   ({@link headingRole}).
- * - 15: a `variable-identifier-ref` names an outcome declaration, an identifier and not an `IDREF`.
  * - 16: `normal-maximum` is greater than zero.
  * - 17: an item's or a test's rubric block's `view` lists at least one view, the information model's
  *   "A list from an enumerated value set" of a characteristic of multiplicity [1] (§5.120.2 and
@@ -951,7 +939,6 @@ const cnBaseReadings: readonly SpecReading[] = Option.toArray(
  * - 39: an SSML `speak/@version` is `1.1`.
  * - 42: an SSML `voice/@languages` holds language ranges, `und`, `zxx` and `*` refused.
  * - 46: a count, and `figures`, is a signed 64-bit integer.
- * - 85: an `xi:include`'s `parse` is `xml` ({@link xmlParse}).
  * - 92: a position object interaction's `min-choices` is at least 1.
  * - 118: an `xi:include`'s `accept` and `accept-language` hold characters from #x20 to #x7E alone
  *   ({@link httpHeaderText}).
@@ -970,24 +957,23 @@ const cnBaseReadings: readonly SpecReading[] = Option.toArray(
  *   joined by a slash ({@link mediaType}, {@link mediaTypeReadings}).
  * - 232: a position object interaction's `center-point` is two integers, its horizontal and vertical
  *   offsets (information model §5.107.1).
+ * - 250: a `col`'s and a `colgroup`'s `span` is at least 1, "a valid non-negative integer greater
+ *   than zero" (information model §5.31 and §5.32), where the XSD's `xs:int` admits any.
  *
  * Reading 14, restated, follows the XSD (a text-entry interaction's `response-identifier` and
- * `string-identifier` are `IDREF`s), and so does reading 136 (a `default` shape's `coords` is
+ * `string-identifier` are `IDREF`s), and so does reading 15 (an outcome declaration's
+ * `variable-identifier-ref` is an `IDREF`, the XSD's `UniqueIdentifierRefDType` and the information
+ * model's `UniqueIdentifierRef`, §4.5.11), and so does reading 136 (a `default` shape's `coords` is
  * required and a `CoordsDType`, as every shape's is), so they state nothing here. The readings that
- * add an attribute to a kind, take one away or require one are {@link readingSpellings},
- * {@link readingRefusals} and {@link readingUses}.
+ * take an attribute away from a kind or require one are {@link readingRefusals} and
+ * {@link readingUses}.
  */
 export const specReadings: readonly SpecReading[] = [
-  on(7, ["qti-map-entry"], "map-key", "exact"),
+  on(7, ["qti-map-entry"], "map-key", "xsd"),
   on(7, ["qti-match-table", "qti-interpolation-table"], "default-value", "exact"),
   on(7, ["qti-interpolation-table-entry"], "target-value", "exact"),
   on(8, ["qti-match-table-entry"], "target-value", "exact", () => stringDomain),
   on(9, ["h1"], "role", "xsd", headingRole),
-  on(15, ["qti-outcome-declaration"], "variable-identifier-ref", "xsd", (domain) =>
-    domain._tag === "atomic" && domain.builtin === "IDREF"
-      ? { ...domain, builtin: "NCName" }
-      : domain,
-  ),
   on(16, ["qti-outcome-declaration"], "normal-maximum", "xsd", (domain) => ({
     ...domain,
     facets: [
@@ -1011,7 +997,9 @@ export const specReadings: readonly SpecReading[] = [
   on(232, ["qti-position-object-interaction"], "center-point", "xsd", (domain) =>
     withFacets(domain, [{ facet: "length", value: "2" }]),
   ),
-  on(85, ["xi:include"], "parse", "xsd", xmlParse),
+  on(239, ["col", "colgroup"], "span", "xsd", (domain) =>
+    withFacets(domain, [{ facet: "minInclusive", value: "1" }]),
+  ),
   on(118, ["xi:include"], "accept", "xsd", httpHeaderText),
   on(118, ["xi:include"], "accept-language", "xsd", httpHeaderText),
   on(39, ["ssml:speak"], "version", "xsd", ssmlVersion),
@@ -1117,30 +1105,6 @@ export const readingsOf = (kind: string, name: string): readonly SpecReading[] =
   applicableTo(kind, name).readings;
 
 /**
- * A second spelling a spec reading admits beside a declared attribute: the declared name, the
- * name admitted beside it, and the reading.
- */
-interface ReadingSpelling {
-  readonly declared: string;
-  readonly name: string;
-  readonly reading: number;
-}
-
-/**
- * The spellings spec readings admit beside a declared attribute, on every kind that declares it,
- * with its type and use: reading 10's `aria-keyshortcuts`, ARIA's spelling, beside the
- * XSD's `aria-keyshorts`, which the empty element families declare. Neither document outranks the
- * other there, so both are accepted and the one written is kept (reading 1).
- *
- * The admission is explicit, a closed name, rather than the open `no-namespace` name the empty
- * families' `##any` wildcard would read it as, since spec reading 90 takes that open class away
- * from every element the Schematron's extension rules cover, the empty families among them.
- */
-export const readingSpellings: readonly ReadingSpelling[] = [
-  { declared: "aria-keyshorts", name: "aria-keyshortcuts", reading: 10 },
-];
-
-/**
  * An attribute a spec reading refuses on a kind whose XSD declares it, and the reading.
  */
 interface ReadingRefusal {
@@ -1156,19 +1120,19 @@ interface ReadingRefusal {
  *   forbids ("The 'source' tag must not have an ARIA role attribute", ASI binding §5.3.1, whose
  *   section 5 "is NORMATIVE"). The Schematron's extension rules cover `source`, so spec reading 90
  *   leaves it no open class in no namespace, and a `role` there is refused outright, never read as
- *   an open name;
- * - Reading 85's `xpointer` on `xi:include`, which `XInclude.xsd` declares and the information model
- *   forbids ("when using an XML binding, the xpointer mechanism defined by the XInclude
- *   specification MUST NOT be used", §2.12). No wildcard of `xi:include` admits a name in no
- *   namespace (`##other`), so a refused `xpointer` is refused outright, never read as an open
- *   name.
+ *   an open name.
+ *
+ * `xi:include`'s `xpointer` and `parse="text"`, which `XInclude.xsd` declares, are admitted: the
+ * information model's Include is "the use of the XInclude feature" (§9.4.1), and its §2.12, which
+ * would forbid them, is not normative (§2: "This Section is NOT NORMATIVE"). An include that writes
+ * either is stored as written and never included (spec reading 85, `ReadInclude` of
+ * `#pantry/qti/overlay-queries/tests.ts`).
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/bind | QTI 3.0 ASI binding, 5.3.1 RULE_SET_ARIA_ROLES_1}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Main2p12 | QTI 3.0 information model, 2.12 Items and Test Fragments}
  */
 export const readingRefusals: readonly ReadingRefusal[] = [
   { kind: "source", name: "role", reading: 9 },
-  { kind: "xi:include", name: "xpointer", reading: 85 },
 ];
 
 /**
@@ -1192,18 +1156,17 @@ export const readingUses: readonly ReadingUse[] = [{ kind: "bdo", name: "dir", r
 
 /**
  * Apply the spec readings that change which attributes a kind admits, or must carry, to a
- * vocabulary's declarations: drop each one {@link readingRefusals} refuses, make each one
+ * vocabulary's declarations: drop each one {@link readingRefusals} refuses, and make each one
  * {@link readingUses} requires required, with no default, since a required attribute has none (XML
- * Schema Part 1, §3.2.3, src-attribute.2), and add each spelling {@link readingSpellings} admits
- * beside a declaration of its declared name, as a copy of that declaration under the new name,
- * where the kind does not declare the new name itself.
+ * Schema Part 1, §3.2.3, src-attribute.2). Every name a kind admits is one its XSD declares:
+ * reading 10 admits `aria-keyshorts` alone where the binding names it, never ARIA's
+ * `aria-keyshortcuts` beside it.
  *
  * @param declarations - The declarations, each of a kind of the vocabulary.
- * @returns The declarations the attribute grammar admits, in their order, each added spelling after
- *   the declarations.
+ * @returns The declarations the attribute grammar admits, in their order.
  */
-export const readDeclarations = <D extends Declared>(declarations: readonly D[]): readonly D[] => {
-  const kept = declarations
+export const readDeclarations = <D extends Declared>(declarations: readonly D[]): readonly D[] =>
+  declarations
     .values()
     .filter(
       ({ kind, name }) =>
@@ -1217,22 +1180,6 @@ export const readDeclarations = <D extends Declared>(declarations: readonly D[])
         : declared,
     )
     .toArray();
-  const named = new Set(kept.map(({ kind, name }) => tupleKey(kind, name)));
-
-  return [
-    ...kept,
-    ...readingSpellings.flatMap((spelling) =>
-      kept
-        .values()
-        .filter(
-          ({ kind, name }) =>
-            name === spelling.declared && !named.has(tupleKey(kind, spelling.name)),
-        )
-        .map((declared) => ({ ...declared, name: spelling.name }))
-        .toArray(),
-    ),
-  ];
-};
 
 /**
  * A declaration whose domain does not compile: the declaring kind, the attribute (none for a

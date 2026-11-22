@@ -41,7 +41,7 @@ import { XML_NAMESPACE } from "@qti-pie/crust/tree.ts";
  * beyond their enumerations are `lexical.oracle.test.ts`'s, against `xmllint`.
  */
 import { Option } from "effect";
-import { readingRefusals, readingSpellings, readingUses } from "#pantry/grammar/attributes.ts";
+import { readingRefusals, readingUses } from "#pantry/grammar/attributes.ts";
 import type { Use, ValueDomain } from "#pantry/grammar/attributes.ts";
 import { coveredBy } from "#pantry/grammar/compose.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
@@ -137,16 +137,16 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     4,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a prefixed reference is read in a test's pre-conditions, branch rules and outcome processing, and no test is stored (reading 228)",
-      status: "meta",
+        "`TestReading`'s rules over every placed reference of a test, its pre-conditions, branch rules, template defaults and outcome processing alike, the importer's `NumberedReading` among them (`src/qti/overlay-queries/readings.ts`, `src/import/overlays/readings.ts`); the oracle's readings (`src/test/oracle-laws/readings.ts`)",
+      status: "G",
     },
   ],
   [
     5,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a section document's references resolved once per test that placed it, and no test is stored (reading 228)",
-      status: "meta",
+        "`testInstances`: a section document's references and `section-identifier`s placed once per test that places it (`PlacedTestReference`, `PlacedFilter`, `src/qti/overlay-queries/readings.ts` and `src/qti/overlay-queries/tests.ts`); the oracle's readings and \"Section identifier target\" (`src/test/oracle-laws/readings.ts`, `src/test/oracle-laws/tests.ts`)",
+      status: "G",
     },
   ],
   [6, { owner: "N5 admission (`open.ts` `foreignRoots`), shred", status: "G" }],
@@ -171,7 +171,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     10,
     {
       owner:
-        "AL1: `aria-keyshortcuts` admitted closed beside `aria-keyshorts` (`readingSpellings` of attributes.ts)",
+        "AL1: `aria-keyshorts` alone on the 11 kinds the information model's ARIABaseEmpty (§7.1.44), the XSD and the Schematron name it on, so ARIA's `aria-keyshortcuts` there is refused; every other kind declares `aria-keyshortcuts` alone (attributes.ts readDeclarations, no second spelling)",
       status: "G",
     },
   ],
@@ -185,7 +185,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     },
   ],
   [14, { owner: "the Idref family, contained in DocumentId (Q5.05)", status: "G" }],
-  [15, { owner: "AttributeAdmission's domain, a kind reading (A5)", status: "X" }],
+  [15, { owner: "the Idref family, contained in DocumentId (Q5.05)", status: "X" }],
   [16, { owner: "AL1 (`positiveDouble`)", status: "G" }],
   [17, { owner: "AL1 (`viewList`)", status: "G" }],
   [
@@ -206,8 +206,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     25,
     {
       owner:
-        "withdrawn by reading 1's Test structure: test rubric and test feedback are a test's, and no test is stored (reading 228)",
-      status: "meta",
+        "the ancestry facet's `test` flag, which a test's rubric block and test feedback enter and under which no interaction and no template sits (`asi`, `src/grammar/facets.ts`; `interactionBans`, `src/grammar/ancestry.ts`), under the ancestry laws, and a printed variable there resolves in the test's declarations (`referringRoots`, `src/vocab/terms/interactions.ts`); the oracle's ancestry laws read the composed grammar's, and its content references are `src/test/oracle-laws/content.ts`'s",
+      status: "G",
     },
   ],
   [
@@ -282,8 +282,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     48,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a prefixed reading names a test's item ref, and no test is stored (reading 228)",
-      status: "meta",
+        '"Prefixed reference", the key over `TestReading`, and "Variable declared" over `PlacedTestReference` into it (`src/qti/overlay-queries/readings.ts`); the oracle\'s readings (`src/test/oracle-laws/readings.ts`)',
+      status: "G",
     },
   ],
   [49, { owner: "N5", status: "G" }],
@@ -297,12 +297,19 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     56,
     {
       owner:
-        "G5's typed `xs:double` values (Q5.08): `Compute.cast` over `doubleForm` for `Mastery_range` (`src/qti/declarations.ts`) and for an interaction's bounds (`src/qti/interactions.ts`), and the query `MapKeyFloat`'s `value` (`src/qti/queries.ts`), each rounding the decimal once as XML Schema's mapping does; the stated limit: a float map key outside grizzle's `double precision` form (`floatKeyPattern`) has no typed value and is distinct by its spelling (the float map key row of `docs/grizzle-findings.md`)",
+        "G5's typed `xs:double` values (Q5.08): `Type.cast` over `doubleForm` for `Mastery_range` (`src/qti/declarations.ts`) and for an interaction's bounds (`src/qti/interactions.ts`), and the query `MapKeyFloat`'s `value` (`src/qti/queries.ts`), each rounding the decimal once as XML Schema's mapping does; the stated limit: a float map key outside grizzle's `double precision` form (`floatKeyPattern`) has no typed value and is distinct by its spelling (the float map key row of `docs/grizzle-findings.md`)",
       status: "G",
     },
   ],
   [57, { owner: "the W5 overlays over every node the walk checks (Q5.09)", status: "P" }],
-  [58, { owner: "plate checks the pattern; pantry stores `pattern-mask` as written", status: "G" }],
+  [
+    58,
+    {
+      owner:
+        "the law `Pattern language` over `PatternText` (`src/qti/overlay-queries/interaction.ts`), grizzle's `Xml.isPattern`; the oracle's `writtenPatternOf` read by grizzle-text's `xsdPattern` (`src/test/oracle.ts`), held by `Pattern language` in `src/test/laws.oracle.test.ts` and its mutation in `src/test/oracle-complete/packages.ts`",
+      status: "G",
+    },
+  ],
   [59, { owner: "plate scores; pantry stores `coords` as written", status: "G" }],
   [
     60,
@@ -316,8 +323,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     61,
     {
       owner:
-        "withdrawn by reading 1's Test structure and Bank shape: `qti-ordering` is a test section's, and a bank holds none (reading 228)",
-      status: "meta",
+        "`qti-ordering`'s restated model, `sequence(any ##any lax 0..n)` (`orderingModel`, `src/grammar/facets.ts`), under the content laws; the oracle reads the composed grammar's model",
+      status: "G",
     },
   ],
   [
@@ -331,16 +338,14 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
   [
     63,
     {
-      owner:
-        "withdrawn by reading 1's Test structure: item session control resolved through a test's parts and sections for plate's delivery, and no test is stored (reading 228)",
+      owner: "withdrawn: plate's test-delivery engine is deleted",
       status: "meta",
     },
   ],
   [
     64,
     {
-      owner:
-        "withdrawn by reading 1's Test structure: `min-time` and `max-time` are a test's time limits, and no test is stored (reading 228)",
+      owner: "withdrawn: plate's test-delivery engine is deleted",
       status: "meta",
     },
   ],
@@ -354,8 +359,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
   [
     66,
     {
-      owner:
-        "withdrawn by reading 1's Test structure and Bank shape: a `fixed` child is placed by a test section's selection and ordering, and a bank holds neither (reading 228)",
+      owner: "withdrawn: plate's test-delivery engine is deleted",
       status: "meta",
     },
   ],
@@ -379,8 +383,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
   [
     70,
     {
-      owner:
-        "withdrawn by reading 1's Test structure: `allow-skipping` is a test part's item session control, and no test is stored (reading 228)",
+      owner: "withdrawn: plate's test-delivery engine is deleted",
       status: "meta",
     },
   ],
@@ -405,8 +408,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     79,
     {
       owner:
-        "withdrawn by reading 1's Test structure and Bank shape: a selection is a test section's, and a bank holds none (reading 228)",
-      status: "meta",
+        '"Selection bound": `SelectionWithoutReplacement` into `BoundedSelection`, each part counted once (`src/qti/overlay-queries/tests.ts`); the oracle\'s `selectionLawsOf` (`src/test/oracle-laws/tests.ts`)',
+      status: "G",
     },
   ],
   [
@@ -460,24 +463,24 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     86,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a test's names were one namespace across the assembled test, and no test is stored (reading 228)",
-      status: "meta",
+        '"Test name key", the key over `AssembledName`, a section document placed twice naming once, and "Structure identifier" over `Named` (`src/qti/overlay-queries/tests.ts`, `src/qti/tests.ts`); the oracle\'s `assemblyLawsOf` and `documentLawsOf` (`src/test/oracle-laws/tests.ts`)',
+      status: "G",
     },
   ],
   [
     87,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a branch rule is a test's, and no test is stored (reading 228)",
-      status: "meta",
+        '"Branch target" (`BranchResolution` into `ResolvedBranchRule`) and "Branch forward" (`TargetedBranchRule` into `ForwardBranchRule`), per placement (`src/qti/overlay-queries/tests.ts`); the oracle\'s `branchLawsOf` (`src/test/oracle-laws/tests.ts`)',
+      status: "G",
     },
   ],
   [
     88,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a numbered reading names a test's item ref, and no test is stored (reading 228)",
-      status: "meta",
+        "the importer's `NumberedReading` (`src/import/overlays/readings.ts`), proved by \"E1 derived\" (`NumberedSpelling`, `AssembledReplaceable`, `NumberedTarget`) and read by `TestReading` (`src/qti/overlay-queries/readings.ts`); the oracle's readings (`src/test/oracle-laws/readings.ts`)",
+      status: "G",
     },
   ],
   [
@@ -541,8 +544,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     97,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a variable mapping is a test's item ref's, and no test is stored (reading 228)",
-      status: "meta",
+        '"Variable mapping target": `ItemMapping` into `FreeMappingTarget` (`src/qti/overlay-queries/tests.ts`); the oracle\'s `itemRefLawsOf` (`src/test/oracle-laws/tests.ts`)',
+      status: "G",
     },
   ],
   [
@@ -597,7 +600,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     104,
     {
       owner:
-        "PM's choice names: Choice identifier key's per-class keys `Choice(document, kind, identifier)` and `Hottext(document, identifier)` and their placed copies on the assembly (`src/qti/interactions.ts`), and the rules over queries (`src/qti/queries.ts`): the cross-class keys over `ChoiceOrHottext` and `PlacedChoiceOrHottext`, and Choice not variable, each of their names in `UnclaimedName`, which negates `DeclarationIdentifier` and in an item the built-ins, so the nine choice classes share one space of identifiers, a gap and a gap text among them; the oracle's Choice not variable and Choice identifier key (`choiceNames` and `sharedNames`, `src/test/oracle.ts`); held by `src/qti/interactions.oracle.test.ts` (two classes named alike, and a gap and a gap text of one gap match)",
+        "PM's choice names: Choice identifier key's per-class keys `Choice(document, kind, identifier)` and `Hottext(document, identifier)` and their placed copies on the assembly (`src/qti/interactions.ts`), and the rules over queries (`src/qti/queries.ts`): the cross-class keys over `ChoiceSpaceName` and `PlacedChoiceSpaceName`, every simple, inline, hotspot and simple associable choice with every other choice or hottext bearing one of their names, and Choice not variable, each name of `ChoiceOrHottext` and `PlacedChoiceOrHottext` in `UnclaimedName`, which negates `DeclarationIdentifier` and in an item the built-ins, so each class's sentence bars its own noun and a 'choice' every class the model calls a choice, a gap none; the oracle's Choice not variable and Choice identifier key (`choiceNames`, `sharedNames`, `choiceNouns` and `barredByChoice`, `src/test/oracle.ts`); held by `src/qti/interactions.oracle.test.ts` (two classes named alike, a gap and a gap text of one gap match, a gap and a gap text each beside a simple choice, a gap text beside a hottext, two gap texts)",
       status: "G",
     },
   ],
@@ -613,24 +616,24 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     106,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a prefixed reference reaches the built-ins of a test's item ref's item, and no test is stored (reading 228)",
-      status: "meta",
+        "`TestReading`'s rules of an item's built-ins through its item ref (`src/qti/overlay-queries/readings.ts`); the oracle's readings (`src/test/oracle-laws/readings.ts`)",
+      status: "G",
     },
   ],
   [
     107,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a variable mapping's added name is read in a test's outcome processing, and no test is stored (reading 228)",
-      status: "meta",
+        "`itemVariables`' mapping rule, beside the item's own declarations (`src/qti/overlay-queries/readings.ts`); the oracle's readings (`src/test/oracle-laws/readings.ts`)",
+      status: "G",
     },
   ],
   [
     108,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a template default is a test's item ref's, and no test is stored (reading 228)",
-      status: "meta",
+        "\"Template default target\": `PackagedTemplateDefault` into `ItemRefDocument` and `ItemTemplateDefault` into the item's template declarations (`src/qti/overlay-queries/tests.ts`); the oracle's `itemRefLawsOf` (`src/test/oracle-laws/tests.ts`)",
+      status: "G",
     },
   ],
   [
@@ -645,8 +648,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     110,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a variable mapping under an item ref is a test's, and no test is stored (reading 228)",
-      status: "meta",
+        '"Variable mapping source" and "Template default target" over `ItemRefDocument`, and the importer\'s `LinkReading` through an item ref that names no item document (`src/qti/overlay-queries/tests.ts`, `src/import/overlays/readings.ts`); the oracle\'s `itemRefLawsOf` and readings',
+      status: "G",
     },
   ],
   [
@@ -661,8 +664,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     112,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a setter's prefixed reading is a test's, and no test is stored (reading 228)",
-      status: "meta",
+        "`prefixingReferences`, every placed reference but a setter's `identifier` (`src/qti/overlay-queries/readings.ts`); the oracle's readings (`src/test/oracle-laws/readings.ts`)",
+      status: "G",
     },
   ],
   [
@@ -701,7 +704,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     117,
     {
       owner:
-        "IN's document context (`Document.context`, `contextNearest`, `src/qti/chardata.ts`, through its document node's fixed target; `SiteTarget`'s fold and `Fragment_context`, `src/qti/tests.ts`), `PlacedBinding`, `PlacedChoice`, `PlacedHottext`, the query `PlacedChoiceOrHottext` and the section references' fragment placements (`FragmentScope`, `FragmentTemplateRef`, `FragmentContextRef`, `src/qti/interactions.ts`) `IdrefTarget`, `PlacedId`, `AssembledId` and `PlacedIdref` (`src/qti/identity.ts`), `PlacedVariableRef` (`src/qti/expressions.ts`), `DescribedAssembledLang`, an item instance's languages as the join of its instance and its document's forms, and `PlacedReferenceType` (`src/qti/queries.ts`; a rule fragment's placed references are typed in the item for Condition type and Mapped response) and `AssembledCatalog` (`src/qti/catalog.ts`) with `PlacedReference`, each instance's document's catalog references as the join of the instance and the references (`src/qti/overlay-queries/catalog.ts`), `PlacedMathRank` and `PlacedShareTarget` (`src/qti/mathml-share.ts`), ranked per assembly by `placedShareRowsOf`, under Q5.13's `Instance`; the importer's `contextsOf` (`src/import/context.ts`); the oracle's in-place splice (`inPlaceBreaches`), Fragment context and Document lang over the merged item, and its catalog resolution over the assembly (`Assembly.catalogs`); the laws it lists are known under-refusals",
+        "IN's document context (`Document.context`, `contextNearest`, `src/qti/chardata.ts`, through its document node's fixed target; `SiteTarget`'s fold, `src/qti/tests.ts`, and `UnplacedInclude`'s `context`, `src/qti/overlay-queries/tests.ts`), `PlacedBinding`, `PlacedChoice`, `PlacedHottext`, the query `PlacedChoiceOrHottext` and the section references' fragment placements (`FragmentScope`, `FragmentTemplateRef`, `FragmentContextRef`, `src/qti/interactions.ts`) `IdrefTarget`, `PlacedId`, `AssembledId` and `PlacedIdref` (`src/qti/identity.ts`), `PlacedExpression` and `PlacedVariableRef` (`src/qti/expressions.ts`), every expression and reference typed per placement, a standalone document its own one placement and an item's own placement also its located template's (`placedDocuments`, `src/qti/overlay-queries/expression.ts`; `placedRowsOf`, `src/import/overlays/expressions.ts`), every type law stated once over them, `DescribedAssembledLang`, an item instance's languages as the join of its instance and its document's forms, and `AssembledCatalog` (`src/qti/catalog.ts`) with `PlacedReference`, each instance's document's catalog references as the join of the instance and the references (`src/qti/overlay-queries/catalog.ts`), `PlacedMathRank` and `PlacedShareTarget` (`src/qti/mathml-share.ts`), ranked per assembly by `placedShareRowsOf`, under Q5.13's `Instance`; the importer's `contextsOf` (`src/import/context.ts`); the oracle's in-place splice (`inPlaceBreaches`), Fragment context and Document lang over the merged item, and its catalog resolution over the assembly (`Assembly.catalogs`); the laws it lists are known under-refusals",
       status: "G",
     },
   ],
@@ -828,7 +831,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     133,
     {
       owner:
-        "S-ORACLE's `keyText` (`src/qti/limits.ts`: grizzle's `str.bytes(keyTextBytes, …)`, `keyTextBytes` 2,587, what grizzle's `keyTextBytes` leaves beside the widest key, held by `limits.test.ts`), the oracle's Key text bound (rule `key-text-bound`, measured in UTF-8 bytes) over the schema's key copies (`src/test/key-copies.ts`), held to the import's rows by `src/test/keys.oracle.test.ts`. The import writes every copy whatever its length, so the database refuses an over-long one under `key-text-bound`, the oracle's rule",
+        "S-ORACLE's `anyText` (`src/qti/limits.ts`: grizzle's `str.bytes(keyTextBytes, …)`, `keyTextBytes` 2,587, what grizzle's `keyTextBytes` leaves beside the widest key, held by `limits.test.ts`), the oracle's Key text bound (rule `key-text-bound`, measured in UTF-8 bytes) over the schema's key copies (`src/test/key-copies.ts`), held to the import's rows by `src/test/keys.oracle.test.ts`. The import writes every copy whatever its length, so the database refuses an over-long one under `key-text-bound`, the oracle's rule",
       status: "G",
     },
   ],
@@ -916,7 +919,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     144,
     {
       owner:
-        "the grammar's `DoubleBound` and `BoundFacet` (`src/grammar/domains.ts`, `src/grammar/install.ts`: a double's or a float's one lower bound, its pattern the lexical space less NaN); the schema's `Double_bound` checks on `Attribute` and `Node` (`src/qti/attributes.ts`), the value grizzle's `Compute.parseDouble` of the collapsed form, under law Double bound (rule `attribute-lexical`); the oracle's Double bound, held by `src/qti/double-bound.oracle.test.ts` against XML Schema's value bound",
+        "the grammar's `DoubleBound` and `BoundFacet` (`src/grammar/domains.ts`, `src/grammar/install.ts`: a double's or a float's one lower bound, its pattern the lexical space less NaN); the schema's `Double_bound` checks on `Attribute` and `Node` (`src/qti/attributes.ts`), the value grizzle's `Text.parseDouble` of the collapsed form, under law Double bound (rule `attribute-lexical`); the oracle's Double bound, held by `src/qti/double-bound.oracle.test.ts` against XML Schema's value bound",
       status: "G",
     },
   ],
@@ -924,8 +927,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     145,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a spliced fragment was judged in the test that placed it, and no test is stored (reading 228)",
-      status: "meta",
+        "`testInstances`: a spliced fragment is an instance of each test that places it, so its variable references are placed references (`src/qti/overlay-queries/readings.ts`), and every document a test places, a referenced section document among them, has a `FragmentScope` per placement whose content references resolve in the test's declarations (`referringRoots`, `src/vocab/terms/interactions.ts`; `src/qti/interactions.ts`); the oracle's readings and content references over `PackageRows.placements` (`src/test/oracle-laws/readings.ts`, `src/test/oracle-laws/content.ts`)",
+      status: "G",
     },
   ],
   [
@@ -940,7 +943,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     147,
     {
       owner:
-        "the import's `Named` and `StimulusRef` rows, written only for an element that writes its identifier (`namedOf`, `stimulusRefsOf`, `src/import/overlays/tests.ts`), under \"Test overlay\"'s containment of each such element's identifier attribute in its row (`src/qti/tests.ts`); the oracle's names, given only to an element that writes one (`testDocumentOf`, `src/test/oracle-laws/assembly.ts`); held by `src/import/overlays/tests.test.ts`'s names property and the genetic differential's fixed witnesses of the class (`fixed`, `src/test/gen/genetic/known.ts`)",
+        "the import's `Named` and `StimulusRef` rows, written only for an element that writes its identifier (`namedOf`, `stimulusRefsOf`, `src/import/overlays/tests.ts`), under \"Test overlay\"'s containment of each such element's identifier attribute in its row (`src/qti/tests.ts`); the oracle's names, given only to an element that writes one (`assembledDocumentOf`, `src/test/oracle-laws/assembly.ts`); held by `src/import/overlays/tests.test.ts`'s names property and the genetic differential's fixed witnesses of the class (`fixed`, `src/test/gen/genetic/known.ts`)",
       status: "G",
     },
   ],
@@ -956,7 +959,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     149,
     {
       owner:
-        "the import's `NormalMinimum`, written for an outcome declaration where it writes a `normal-minimum` or the XSD defaults one, from the inventory leaf (`normalMinimumDefault`, `src/qti/declarations.ts`; `minimumOf`, `src/import/overlays/declarations.ts`), under \"E1 derived\"'s check of an unwritten one against the default and \"Declaration overlay\"'s containment of each 3.0.1 outcome declaration in it, so `MasteryFloor` and Mastery range read it; the oracle's `normalMinimumByDefault` (`src/test/oracle-laws/documents.ts`), held by `src/test/normal-minimum-default.oracle.test.ts`",
+        "the view `NormalMinimum`, the double an outcome declaration's written `normal-minimum` names, or for one that writes none the XSD's default from the inventory leaf (`normalMinimumDefault`, `src/vocab/terms/declarations.ts`), its second rule (`src/qti/names.ts`), so `MasteryFloor` and Mastery range read it; the oracle's `normalMinimumByDefault` (`src/test/oracle-laws/documents.ts`), held by `src/test/normal-minimum-default.oracle.test.ts`",
       status: "G",
     },
   ],
@@ -980,7 +983,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     152,
     {
       owner:
-        "the grammar's one NCName, `ncNamePattern` and its host reading `isNcName` (`src/grammar/domains.ts`), read by the schema's sources of the content references and bindings (`referenceReadOf`, `printedReference`, `fragmentReferenceOf`, `namedBinding`, `src/qti/interactions.ts`), of the processing references (`namePattern`, `bareReference`, `bracedReference`, `src/qti/expressions.ts`), of the declaration and field names (`identifiers`, `namedFields`, `src/qti/declarations.ts`) and of the structure identifiers (`BankNaming`, `src/qti/overlay-queries/tests.ts`), and by the import's readers (`namedBy`, `src/import/names.ts`, the gate `referencesOf`, `fragmentNamesOf` and `nameOf`, `src/import/overlays/interactions.ts`, `spelledBy`, `src/import/overlays/expressions.ts`, `namedOf`, `src/import/overlays/tests.ts`, read; `namedPiecesOf`, `src/import/overlays/declarations.ts`, over `piecesOf`, `src/import/pieces.ts`); the oracle's bare reference and typed values (`referenced`, `typedValueOf`, `src/test/oracle.ts`); held by the genetic differential's fixed witness of the class (`fixed`, `src/test/gen/genetic/known.ts`)",
+        "the grammar's one NCName, `ncNamePattern` (`src/grammar/domains.ts`), and its host reading, grizzle-text's `isNcName` over the same Second Edition tables (`regex/xml.ts`), read by the schema's sources of the content references and bindings (`referenceReadOf`, `printedReference`, `fragmentReferenceOf`, `namedBinding`, `src/qti/interactions.ts`), of the processing references (`namePattern`, `bareReference`, `bracedReference`, `src/qti/expressions.ts`), of the declaration and field names (`identifiers`, `namedFields`, `src/qti/declarations.ts`) and of the structure identifiers (`BankNaming`, `src/qti/overlay-queries/tests.ts`), and by the import's readers (`namedBy`, `src/import/names.ts`, the gate `referencesOf`, `fragmentNamesOf` and `nameOf`, `src/import/overlays/interactions.ts`, `spelledBy`, `src/import/overlays/expressions.ts`, `namedOf`, `src/import/overlays/tests.ts`, read; `namedPiecesOf`, `src/import/overlays/declarations.ts`, over `piecesOf`, `src/import/pieces.ts`); the oracle's bare reference and typed values (`referenced`, `typedValueOf`, `src/test/oracle.ts`); held by the genetic differential's fixed witness of the class (`fixed`, `src/test/gen/genetic/known.ts`)",
       status: "G",
     },
   ],
@@ -996,7 +999,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     154,
     {
       owner:
-        "the float base type's values read by `Compute.parseDouble` where a law compares them (`src/qti/operators.ts` `doublePattern`); a float map key is its lexical form judged by `Typed_attribute_value`, and no law compares two keys (reading 98); the oracle's `numberOf` (`src/test/oracle.ts`)",
+        "the float base type's values read by `Text.parseDouble` where a law compares them (`src/qti/operators.ts` `doublePattern`); a float map key is its lexical form judged by `Typed_attribute_value`, and no law compares two keys (reading 98); the oracle's `numberOf` (`src/test/oracle.ts`)",
       status: "G",
     },
   ],
@@ -1036,7 +1039,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     159,
     {
       owner:
-        "`NamedDeclaration` (`src/qti/names.ts`), the one view a name resolves to by `(package, path, identifier)`, whatever its declaration's cardinality spells, joined by a query wherever a law reads the declaration (decision S3): the bindings' resolution, `ResponseName`, and the cardinality queries the fit laws, Binding cardinality and Max strings required read, `BindingCardinalityNode` and `PlacedBindingCardinalityNode` (`src/qti/overlay-queries/reference.ts`, `src/qti/overlay-queries/interaction.ts`), held by `src/import/overlays/untyped-bindings.oracle.test.ts`; the references' resolution, `ReferableName`, `VariableRefDeclaration` and `PlacedVariableRefDeclaration`, with the cardinality queries Feedback outcome type, a variable reference's type and Reference type read, `FeedbackRefCardinality`, `TemplateRefCardinality` and `VariableRefCardinality` (`src/qti/overlay-queries/reference.ts`; `referencesOf`, `placedOf` and `fragmentRowsOf`, `src/import/overlays/interactions.ts`; `declarationsOf` and `placedVariableRowsOf`, `src/import/overlays/expressions.ts`), and a choice's name against every named declaration (`UnclaimedName`, `src/qti/queries.ts`), held by the genetic differential's fixed witness of the class (`fixed`, `src/test/gen/genetic/known.ts`); the oracle's binding and reference laws, which resolve a name whatever the declaration's cardinality, and judge each half of Feedback outcome type where what it reads spells something (`src/test/oracle.ts`, `src/test/oracle-laws/tests.ts`, `src/test/oracle-laws/expressions.ts`)",
+        "`NamedDeclaration` (`src/qti/names.ts`), the one view a name resolves to by `(package, path, identifier)`, whatever its declaration's cardinality spells, joined by a query wherever a law reads the declaration (decision S3): the bindings' resolution, `ResponseName`, and the cardinality queries the fit laws, Binding cardinality and Max strings required read, `BindingCardinalityNode` and `PlacedBindingCardinalityNode` (`src/qti/overlay-queries/reference.ts`, `src/qti/overlay-queries/interaction.ts`), held by `src/import/overlays/untyped-bindings.oracle.test.ts`; the references' resolution, `ReferableName` and `PlacedVariableRefDeclaration`, with the cardinality queries Feedback outcome type, a variable reference's type and Reference type read, `FeedbackRefCardinality`, `TemplateRefCardinality` and `PlacedVariableCardinality` (`src/qti/overlay-queries/reference.ts`; `referencesOf`, `placedOf` and `fragmentRowsOf`, `src/import/overlays/interactions.ts`; `declarationsOf` and `placedRowsOf`, `src/import/overlays/expressions.ts`), and a choice's name against every named declaration (`UnclaimedName`, `src/qti/queries.ts`), held by the genetic differential's fixed witness of the class (`fixed`, `src/test/gen/genetic/known.ts`); the oracle's binding and reference laws, which resolve a name whatever the declaration's cardinality, and judge each half of Feedback outcome type where what it reads spells something (`src/test/oracle.ts`, `src/test/oracle-laws/tests.ts`, `src/test/oracle-laws/expressions.ts`)",
       status: "G",
     },
   ],
@@ -1068,7 +1071,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     163,
     {
       owner:
-        "the law `Reserved type` over `reservedBaseTypes`, binding every declaration (`src/qti/declarations.ts`; the oracle producer in `src/test/oracle-laws/documents.ts`), held by `Reserved type` in `src/test/laws.oracle.test.ts`",
+        "no law: SCORE, MAXSCORE and PASSED are typed by no normative rule (§4.5's 'needs to be' is no RFC 2119 keyword, §1.3; §2.2.2.3 is NOT NORMATIVE; no XSD or Schematron rule), so `Reserved type` holds QTI_CONTEXT alone (`src/qti/overlay-queries/declaration.ts`; the oracle producer in `src/test/oracle-laws/documents.ts`), and its admission of each of any type is held by `Reserved type` in `src/test/laws.oracle.test.ts`",
       status: "G",
     },
   ],
@@ -1092,24 +1095,24 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     166,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a test's prefixed map-response and correct named an item's variable through its item ref, and no test is stored (reading 228)",
-      status: "meta",
+        '"Variable kind" over `PrefixedDeclaration` (`src/qti/overlay-queries/readings.ts`): a prefixed `qti-correct` names a response; the oracle\'s readings (`src/test/oracle-laws/readings.ts`)',
+      status: "G",
     },
   ],
   [
     167,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a weighted `qti-test-variables` is a test's outcome processing's, and no test is stored (reading 228)",
-      status: "meta",
+        "\"Weighted base\" (`WeightedBaseType`, `src/qti/overlay-queries/tests.ts`), a weighted test variables' float typing (`src/qti/expressions.ts`), and a test's prefixed references typed under each test by their one reading (`read`, `PlacedVariableRef`, `src/qti/expressions.ts`; `readDeclarations`, `ItemRead` and `ScopeDurationRead`, `src/qti/overlay-queries/readings.ts`; `scopedReadingsOf`, `src/import/overlays/readings.ts`); the oracle's `weightedBaseOf` and `attributeBaseOf` (`src/test/oracle-laws/tests.ts`, `src/test/oracle-laws/expressions.ts`)",
+      status: "G",
     },
   ],
   [
     168,
     {
       owner:
-        "withdrawn by reading 1's Test structure: the built-in names a test's own declarations may take, and no test is stored (reading 228)",
-      status: "meta",
+        "\"Declaration not reserved\" by its document's root (`src/qti/overlay-queries/declaration.ts`); the oracle's `documentDocumentBreaches` (`src/test/oracle-laws/documents.ts`)",
+      status: "G",
     },
   ],
   [
@@ -1124,8 +1127,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     170,
     {
       owner:
-        "withdrawn by reading 1's Test structure: a section ref is a test's, and no test is stored (reading 228)",
-      status: "meta",
+        '"Section ref target" over in-package section refs alone (`sectionRefSites`, `src/qti/tests.ts`) and `DeliverableTest` (`src/qti/overlay-queries/tests.ts`); the oracle\'s inclusion laws (`src/test/oracle.ts`)',
+      status: "G",
     },
   ],
   [
@@ -1148,8 +1151,8 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     173,
     {
       owner:
-        "withdrawn by reading 1's Test structure and Bank shape: a section's scope is a test's, and a bank is one root section that no law reads a scope of (reading 228)",
-      status: "meta",
+        "`shuffledSections`' loose rules, a section loose only where it writes `visible` and `keep-together` false (`src/qti/overlay-queries/tests.ts`); the oracle's `Section.loose` (`src/test/oracle-laws/assembly.ts`)",
+      status: "G",
     },
   ],
   [
@@ -1164,7 +1167,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     175,
     {
       owner:
-        "`VariableRefTable`, a declared reference's table claim as a row of its own, forced in under \"Mapped response\" and \"Lookup type\" (`src/qti/expressions.ts`, its kind and declaration read through `TableClaim`, `src/qti/overlay-queries/reference.ts`; `tableClaimsOf`, `src/import/overlays/expressions.ts`); the law oracle's references' tables and kinds, none where they have none (`referenceBreachesOf`, `src/test/oracle-laws/expressions.ts`). A test's readings and their declarations went with the test (reading 228)",
+        "the tables a declared reference reads are its declaration's own, under each placement: \"Mapped response\" and \"Lookup type\" hold each placed declared map response, map response point or lookup to a declaration that holds one of the tables its kind reads, and no row stands for a table it lacks (`readsItsTable`, `src/qti/overlay-queries/declaration.ts`; `placedTableReaders`, `src/qti/overlay-queries/reference.ts`); the law oracle's references' tables and kinds, none where they have none (`referenceBreachesOf`, `src/test/oracle-laws/expressions.ts`). A test's readings and their declarations went with the test (reading 228)",
       status: "G",
     },
   ],
@@ -1276,7 +1279,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     189,
     {
       owner:
-        "plate's kind rules, `indexRule`'s ordered operand and `deleteRule`'s `notDuration` (`#plate/model/expressions/containers.ts`), which plate's validator judges as `expression-type`; pantry's `expressionTypings`, which give `qti-index` an ordered operand and `qti-delete` no duration operand (`src/grammar/expression.ts`), judged under \"Operand fit\"",
+        'pantry\'s `expressionTypings`, which give `qti-index` an ordered operand and `qti-delete` no duration operand (`src/grammar/expression.ts`), judged under "Operand fit"',
       status: "G",
     },
   ],
@@ -1324,7 +1327,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     195,
     {
       owner:
-        "plate's `checkResponses` gives each interaction's tier (a) messages whatever `validateResponses` says and its tier (b) messages only under it (`#plate/responses.ts`, `#plate/interactions/{choice,inline-choice,extended-text}.ts`), and `score` refuses a response with a tier (a) message as `ResponsesRefused` before response processing runs (`#plate/score.ts`); pantry stores no response",
+        "the QTI database's admission (`admissionOf`, `#ledger/grading.ts`) gives each interaction's tier (a) reasons whatever validate-responses says and its tier (b) reasons only under it, in the statement that grades the answer, which writes nothing for a refused one; pantry stores no response",
       status: "G",
     },
   ],
@@ -1420,7 +1423,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     207,
     {
       owner:
-        "plate's `mapResponse` and `mapResponsePoint` clamp a `multiple` or `ordered` response's mapped sum to `lower-bound` and `upper-bound` through `clamped`, and give a `single` response's mapped value unbounded (`#plate/engine/expressions/references.ts`); pantry stores the bounds as written and scores nothing",
+        "the QTI database's grader (`@qti-pie/ledger`'s `grading.ts`, the port of plate's former engine, held equal to it on the golden recording) clamps a `multiple` or `ordered` response's mapped sum to `lower-bound` and `upper-bound`, and gives a `single` response's mapped value unbounded; pantry stores the bounds as written and scores nothing",
       status: "G",
     },
   ],
@@ -1428,7 +1431,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     208,
     {
       owner:
-        "plate's `evaluateRound` and `evaluateTruncate` (`#plate/engine/expressions/rounding.ts`) and `floor` and `ceil` through `integralOf` (`#plate/engine/expressions/functions.ts`) give the integer NULL for INF, -INF and NaN; pantry runs no processing",
+        "the QTI database's grader (`@qti-pie/ledger`'s `grading.ts`, the port of plate's former engine, held equal to it on the golden recording) gives `qti-round`, `qti-truncate`, `floor` and `ceil` the integer NULL for INF, -INF and NaN; pantry runs no processing",
       status: "G",
     },
   ],
@@ -1436,7 +1439,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     209,
     {
       owner:
-        "plate's `formatPrinted` converts a float's exact value (`exactDecimal`), rounds it ties to even (`rounded`), rewrites every printed exponent under `power-form` (`powerFormed`) and fills the open points as the reading lists them (`#plate/engine/format.ts`); pantry stores `format`, `base`, `index` and `power-form` as written",
+        "plate's `formatPrinted` converts a float's exact value (`exactDecimal`), rounds it ties to even (`rounded`), rewrites every printed exponent under `power-form` (`powerFormed`) and fills the open points as the reading lists them (`#plate/redact/format.ts`); pantry stores `format`, `base`, `index` and `power-form` as written",
       status: "G",
     },
   ],
@@ -1444,7 +1447,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     210,
     {
       owner:
-        "plate's `floatBound` and `boundOrder` (`#plate/engine/expressions/comparison.ts`) hold a relative `qti-equal` to `[x − |x|·t0/100, x + |x|·t1/100]`, `include-lower-bound` closing the `t0` end; pantry stores the tolerance as written",
+        "the QTI database's grader (`@qti-pie/ledger`'s `grading.ts`, the port of plate's former engine, held equal to it on the golden recording) holds a relative `qti-equal` to `[x − |x|·t0/100, x + |x|·t1/100]`, `include-lower-bound` closing the `t0` end; pantry stores the tolerance as written",
       status: "G",
     },
   ],
@@ -1452,7 +1455,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     211,
     {
       owner:
-        "plate's `integerBitBound` and `containerSizeBound` (`#plate/engine/numbers.ts`) make a computed integer past 1,000,000 bits and a computed container past 1,000,000 values the NULL of their type, through `boundedInteger`, `boundedTimes` and `withinContainerBound`; pantry runs no processing",
+        "the QTI database's grader (`@qti-pie/ledger`'s `grading.ts`, the port of plate's former engine, held equal to it on the golden recording) makes a computed integer past 1,000,000 bits and a computed container past 1,000,000 values the NULL of their type; pantry runs no processing",
       status: "G",
     },
   ],
@@ -1460,7 +1463,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     212,
     {
       owner:
-        "plate's `containerOf` and `evaluateRepeat` (`#plate/engine/expressions/containers.ts`) build `qti-multiple`, `qti-ordered` and `qti-repeat` from their operands' run-time values, a `qti-field-value`'s among them, NULL when the non-NULL values differ in base type; pantry runs no processing",
+        "the QTI database's grader (`@qti-pie/ledger`'s `grading.ts`, the port of plate's former engine, held equal to it on the golden recording) builds `qti-multiple`, `qti-ordered` and `qti-repeat` from their operands' run-time values, a `qti-field-value`'s among them, NULL when the non-NULL values differ in base type; pantry runs no processing",
       status: "G",
     },
   ],
@@ -1468,23 +1471,21 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     213,
     {
       owner:
-        "plate's `setOutcome` (`#plate/engine/evaluate.ts`) fails `OutcomeMismatchError` for a set of `completionStatus` to a value outside its four, NULL included, and its validator refuses such a literal as `value-type` (`completionLiteral`, check `completion-status`, `#plate/validate/rules.ts`); pantry runs no processing",
+        "pantry's laws refuse a set of `completionStatus` to a literal outside its four values, and the QTI database's grader (`@qti-pie/ledger`'s `grading.ts`, the port of plate's former engine, held equal to it on the golden recording) refuses a run that sets it to one; pantry runs no processing",
       status: "G",
     },
   ],
   [
     214,
     {
-      owner:
-        "withdrawn by reading 1's Test structure: a `submission-mode` is a test part's, and no test is stored (reading 228)",
+      owner: "withdrawn: plate's test-delivery engine is deleted",
       status: "meta",
     },
   ],
   [
     215,
     {
-      owner:
-        "withdrawn by reading 1's Test structure: an unweighted `qti-test-variables` collects from a test's items, and no test is stored (reading 228)",
+      owner: "withdrawn: plate's test-delivery engine is deleted",
       status: "meta",
     },
   ],
@@ -1492,7 +1493,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     216,
     {
       owner:
-        "plate's engine gives NULL where the information model names no value, as the reading lists: `readingOf`, `nullReading`, `absentReading`, `prefixedVariable`, `durationOf`, `sharesCategory` and `keptItems` (`#plate/engine/scope.ts`), `judged` and `declaredBound` (`#plate/engine/expressions/test.ts`), `restartBudget` (`#plate/engine/template.ts`), `integerDraw` and `floatDraw` (`#plate/engine/expressions/references.ts`), `comparingDurations` (`#plate/engine/expressions/comparison.ts`) and `evaluateFieldValue` (`#plate/engine/expressions/containers.ts`); pantry runs no processing",
+        "the QTI database's grader (`@qti-pie/ledger`'s `grading.ts`, the port of plate's former engine, held equal to it on the golden recording) gives NULL where the information model names no value, as the reading lists; pantry runs no processing",
       status: "G",
     },
   ],
@@ -1507,16 +1508,14 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
   [
     218,
     {
-      owner:
-        "withdrawn by reading 1's Test structure: a scope's `max-time` is a test's, and no test is stored (reading 228)",
+      owner: "withdrawn: plate's test-delivery engine is deleted",
       status: "meta",
     },
   ],
   [
     219,
     {
-      owner:
-        "withdrawn by reading 1's Test structure: `max-attempts` is a test's item session control, and no test is stored (reading 228)",
+      owner: "withdrawn: plate's test-delivery engine is deleted",
       status: "meta",
     },
   ],
@@ -1524,15 +1523,14 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     220,
     {
       owner:
-        "plate counts an item's attempts by `takesNoFurtherAttempt` and `attemptsStarted` (`#plate/engine/scope.ts`), which `attemptsClosed` (`#plate/engine/adaptive.ts`) answers in an individual part and the part's submission in a simultaneous one, for the test scope (`entryOf` in `#plate/engine/outcome.ts`) and the results report (`attemptsOf`, `reportedOutcomes` and `sessionItemReport` in `#plate/results/results.ts`) alike; pantry writes no report and runs no processing",
+        "the QTI database counts an item's attempts (`CountedAttempt` and `CompletedSession`, `@qti-pie/ledger`'s Delivery level) for the test scope and the results report alike; pantry writes no report and runs no processing",
       status: "G",
     },
   ],
   [
     221,
     {
-      owner:
-        "withdrawn by reading 1's Test structure: the item session control a results report read is a test's, and no test is stored (reading 228)",
+      owner: "withdrawn: plate's test-delivery engine is deleted",
       status: "meta",
     },
   ],
@@ -1560,7 +1558,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     228,
     {
       owner:
-        '"Test structure", "Bank shape" (containments of `Node` and `Attribute` into the documents of a type, `src/qti/tests.ts`), "Bank key" (`bankSections`) and "Item ref identifier" (the query `BankMember` into `ObjectIdentifier`, `src/qti/queries.ts`); the oracle\'s producers in `src/test/oracle-laws/tests.ts`',
+        "\"Item ref identifier\" (`NamedItemRef` into `ObjectIdentifier`, `src/qti/queries.ts`), a bank's members by its section document (`BankMember`), and every test law over the assembled test, with no stated limit on a test's structure and no key over banks, a section's identifier being its test's alone (§4.2.1); `DeliverableTest`, a reading, never a law; the oracle's producers in `src/test/oracle-laws/tests.ts` and `src/test/oracle-laws/readings.ts`",
       status: "G",
     },
   ],
@@ -1608,7 +1606,79 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     234,
     {
       owner:
-        "\"Printed variable type\" (`printed-variable-ref`): checks over the queries `PrintedIntegerCardinality` and `PrintedIntegerBaseType` (`src/qti/queries.ts`); the oracle's producer, for an item's own references, in `src/test/oracle-laws/documents.ts`",
+        "\"Printed variable type\" (`printed-variable-ref`): checks over the queries `PrintedIntegerCardinality` and `PrintedIntegerBaseType` (`src/qti/queries.ts`); the oracle's producer, an item's or a test's own references and those of every document a test places, in `src/test/oracle-laws/content.ts`",
+      status: "G",
+    },
+  ],
+  [
+    235,
+    {
+      owner:
+        "every float the model carries read in `xs:double`'s lexical space and computed as a binary64 double: the value domains' doubles (`src/grammar/domains.ts`), grizzle's `Text.parseDouble` in the schema's queries, plate's numbers, and the SQL grader's `float8`; no verdict moves",
+      status: "G",
+    },
+  ],
+  [
+    236,
+    {
+      owner:
+        "plate's catalog references of a `qti-prompt`, a `qti-simple-choice` and a `qti-inline-choice` beside every HTML element's; pantry's \"Catalog reference\" over every `data-catalog-idref` (`src/qti/catalog.ts`; the oracle's in `src/test/oracle.ts`)",
+      status: "G",
+    },
+  ],
+  [
+    237,
+    {
+      owner:
+        "plate's read-aloud control beside a body element at a flow position, a prompt, and a Choice's and an Order's choice, over an active `spoken` card's audio files; pantry stores the catalog as written",
+      status: "G",
+    },
+  ],
+  [
+    238,
+    {
+      owner:
+        "plate's and the SQL grader's exact rational comparison of a `qti-equal`'s range (p3's `bound_order`); pantry stores the tolerance as written",
+      status: "G",
+    },
+  ],
+  [
+    239,
+    {
+      owner:
+        "AL1: `col@span` and `colgroup@span` as `xs:int` with minInclusive 1 (`specReadings` of `src/grammar/attributes.ts`); recorded in the lexical differential (`src/test/lexical-harness.ts`); held by `src/qti/html-structure.oracle.test.ts`",
+      status: "G",
+    },
+  ],
+  [
+    240,
+    {
+      owner:
+        "N5 Follow: `table`'s model restated, its `col`s or its `colgroup`s in one optional choice (`tableColumnEdits` of `src/grammar/facets.ts`); exempted in the content differential (`src/grammar/content.test.ts`); held by `src/qti/html-structure.oracle.test.ts`",
+      status: "G",
+    },
+  ],
+  [
+    241,
+    {
+      owner:
+        "N7 Counted: `figcaption` capped at one in `figure` (`figcaptionCap` of `src/grammar/facets.ts`); held by `src/qti/html-structure.oracle.test.ts`",
+      status: "G",
+    },
+  ],
+  [
+    242,
+    {
+      owner:
+        "Arity: a math operator's count by its name, the check over `MathOperand` and the containment of `BinaryMathOperator` (`src/qti/overlay-queries/expression.ts`); the oracle's in `src/test/oracle.ts`; held by `src/qti/html-structure.oracle.test.ts`",
+      status: "G",
+    },
+  ],
+  [
+    243,
+    {
+      owner:
+        '"Weight key", the key over `WeightName` (`src/qti/overlay-queries/tests.ts`); the oracle\'s `itemRefLawsOf` (`src/test/oracle-laws/tests.ts`)',
       status: "G",
     },
   ],
@@ -1661,6 +1731,16 @@ const readingAdmissions: ReadonlyMap<string, number> = new Map([
     "m:interval",
   ].map((parent): readonly [string, number] => [`${parent} m:semantics.contexp`, 2]),
   ["m:annotation-xml m:semantics", 2],
+]);
+
+/**
+ * The wildcards a spec reading restates, by the model's kind, with the reading: spec reading 61
+ * reads `qti-ordering`'s extension slot as `##any`, laxly, where the XSD writes `##other`, since
+ * the information model says its child tags "may be new tags and reused QTI ASI tags" (§5.98.3).
+ * Every child the restated wildcard admits and the XSD's does not is added by the reading.
+ */
+const readingWildcards: ReadonlyMap<string, readonly [NamespaceConstraint, number]> = new Map([
+  ["qti-ordering", ["##any", 61]],
 ]);
 
 /**
@@ -1929,26 +2009,33 @@ const modelRules = (index: Index, model: ContentModel): readonly Rule[] => {
     onSome: childrenOf,
   });
   const target = index.namespaces.get(parent) ?? "";
-  const explained = (kind: string): boolean =>
-    kinds.includes(kind) ||
+  const explainedUnder = (constraints: readonly NamespaceConstraint[], kind: string): boolean =>
     // A foreign kind is its namespace class (§3.10.1): a wildcard explains the classes its
     // constraint admits.
-    wildcards.some((constraint) =>
+    constraints.some((constraint) =>
       namespaceClassesUnder[constraint].some(
         (namespaceClass) => foreignKinds[namespaceClass] === kind,
       ),
     ) ||
-    wildcards.some(
+    constraints.some(
       (constraint) =>
         globals.has(kind) && admits(constraint, index.namespaces.get(kind) ?? "", target),
     );
+  const explained = (kind: string): boolean =>
+    kinds.includes(kind) || explainedUnder(wildcards, kind);
+  const restated = Option.match(Option.fromUndefinedOr(readingWildcards.get(parent)), {
+    onNone: (): readonly NamespaceConstraint[] => [],
+    onSome: ([constraint]) => [constraint],
+  });
   const elementChildren = [...held].filter(
     (kind) => index.namespaces.has(kind) || isForeignKind(kind),
   );
   const missing = [...new Set(kinds)].filter((kind) => !held.has(kind));
   const unread = missing.filter((kind) => !readingOmissions.has(`${parent} ${kind}`));
   const added = elementChildren.filter(
-    (kind) => !explained(kind) && readingAdmissions.has(`${parent} ${kind}`),
+    (kind) =>
+      !explained(kind) &&
+      (readingAdmissions.has(`${parent} ${kind}`) || explainedUnder(restated, kind)),
   );
   const extra = elementChildren.filter((kind) => !explained(kind) && !added.includes(kind));
   const admission = ((): Status => {
@@ -2014,6 +2101,7 @@ const modelRules = (index: Index, model: ContentModel): readonly Rule[] => {
 
 /**
  * The spec reading that states the count of a kind in a family beyond the XSD's particles: spec
+ * reading 241 for a figure's caption, which the information model bounds to one (§5.54.1), spec
  * reading 130 for every LOM element under a LOM element, whose loose binding's Schematron caps
  * them, and none for any other.
  *
@@ -2027,9 +2115,13 @@ const readingCounts = (
   parent: string,
   kinds: readonly string[],
 ): Option.Option<number> =>
-  Option.liftPredicate(130, () =>
-    [parent, ...kinds].every((kind) => namespaces.get(kind) === vocabularyNamespaces.lom.namespace),
-  );
+  parent === "figure" && kinds.length === 1 && kinds[0] === "figcaption"
+    ? Option.some(241)
+    : Option.liftPredicate(130, () =>
+        [parent, ...kinds].every(
+          (kind) => namespaces.get(kind) === vocabularyNamespaces.lom.namespace,
+        ),
+      );
 
 /**
  * The `Counted` rows the XSD does not state: a count whose particle the XSD bounds otherwise, or
@@ -2210,24 +2302,6 @@ const attributeRules = (index: Index, row: AttributeDeclaration): readonly Rule[
 };
 
 /**
- * The spelling a spec reading admits an attribute under beside a declared one, with its reading:
- * reading 10's `aria-keyshortcuts` beside `aria-keyshorts`.
- *
- * @param declared - The declared `kind name` keys.
- * @param row - An admitted attribute.
- * @param row.kind - Its kind.
- * @param row.name - Its name.
- * @returns The reading that admits it beside a name its kind declares, if one does.
- */
-const spelledBy = (
-  declared: ReadonlySet<string>,
-  row: { readonly kind: string; readonly name: string },
-): number | undefined =>
-  readingSpellings.find(
-    (spelling) => spelling.name === row.name && declared.has(`${row.kind} ${spelling.declared}`),
-  )?.reading;
-
-/**
  * The attributes the grammar admits that no declaration states and no wildcard of the kind admits,
  * the document layer's names aside: contradicted, or by a reading where a reading's second
  * spelling of a declared name explains it. On a kind the Schematron's extension rules cover, a
@@ -2260,15 +2334,13 @@ const undeclaredRules = (
       return [];
     }
 
-    const reading = spelledBy(declared, row);
-
     return [
       {
-        detail: `domain ${row.domain}${reading === undefined ? "" : `; reading ${String(reading)}`}`,
+        detail: `domain ${row.domain}`,
         family: "attribute:undeclared",
         owner: "AttributeAdmission",
         parent: row.kind,
-        status: reading === undefined ? "X" : "reading",
+        status: "X",
         subject: row.name,
       },
     ];
@@ -2280,6 +2352,13 @@ const undeclaredRules = (
  * admits on its kind.
  */
 const xmlGlobals = ["xml:base", "xml:id", "xml:lang", "xml:space"] as const;
+
+/**
+ * The covered kinds whose class states an `extension` characteristic beside its `dataExtension`,
+ * by the specification: `qti-custom-interaction`'s, a `NamespaceLax` (information model §5.36.1),
+ * which admits every name in another namespace and the `xml:` names (spec reading 90).
+ */
+const namespaceLax: ReadonlySet<string> = new Set(["qti-custom-interaction"]);
 
 /**
  * The census of the attribute wildcards that admit the XML namespace: each admits `xml.xsd`'s four
@@ -2298,15 +2377,18 @@ const wildcardXmlRules = (
   index: Index,
   declared: ReadonlySet<string>,
 ): readonly Rule[] => {
-  const covered = coveredBy(grammar.kinds);
+  const covered = (kind: string) => coveredBy(grammar.kinds)(kind) && !namespaceLax.has(kind);
 
   return attributeWildcards.flatMap((wildcard) =>
     admits(wildcard.namespace, XML_NAMESPACE, index.namespaces.get(wildcard.kind) ?? "")
       ? xmlGlobals.map((name): Rule => {
           const held = index.admitted.has(`${wildcard.kind} ${name}`);
           const refused = covered(wildcard.kind) && !declared.has(`${wildcard.kind} ${name}`);
+          // A custom interaction declares an ID-typed `id`, so its wildcard admits no wild `xml:id`
+          // (XML Schema 1.0 Part 1 §3.4.4 clause 5.2, spec reading 109).
+          const wildId = namespaceLax.has(wildcard.kind) && name === "xml:id";
           const status = ((): Status => {
-            if (refused) {
+            if (refused || wildId) {
               return held ? "X" : "reading";
             }
 
@@ -2328,9 +2410,8 @@ const wildcardXmlRules = (
 
 /**
  * The census of spec reading 90 on each kind the Schematron's extension rules cover:
- * every name `AttributeAdmission` holds there is one the kind declares, `data-*`, an `xsi:` name,
- * or a reading's second spelling of a declared name (reading 10). Any other is a name the reading
- * refuses that the grammar admits.
+ * every name `AttributeAdmission` holds there is one the kind declares, `data-*` or an `xsi:`
+ * name. Any other is a name the reading refuses that the grammar admits.
  *
  * @param grammar - The grammar.
  * @param declared - The declared `kind name` keys.
@@ -2353,7 +2434,7 @@ const extensionRules = (
           !declared.has(`${row.kind} ${row.name}`) &&
           row.name !== "data-*" &&
           !row.name.startsWith("xsi:") &&
-          spelledBy(declared, row) === undefined,
+          !(namespaceLax.has(row.kind) && (row.name === "foreign" || row.name.startsWith("xml:"))),
       )
       .map(({ name }) => name);
 
@@ -2370,7 +2451,8 @@ const extensionRules = (
 
 /**
  * The census of the spec readings: each reading's entry, reading 15's status read from the grammar
- * (its attribute's domain), every other's as recorded.
+ * (its attribute's domain, which reading 15, restated, holds to the XSD's `xs:IDREF`), every
+ * other's as recorded.
  *
  * @param index - The grammar's index.
  * @returns One rule per reading.
@@ -2380,7 +2462,7 @@ const readingRules = (index: Index): readonly Rule[] => {
 
   return [...readings].map(([reading, entry]): Rule => {
     const fifteen = reading === 15;
-    const resolved = fifteen && variableRef !== undefined && !/idref/iu.test(variableRef.domain);
+    const resolved = fifteen && variableRef !== undefined && /idref/iu.test(variableRef.domain);
 
     return {
       detail: fifteen ? `domain ${variableRef?.domain ?? "none"}` : "",

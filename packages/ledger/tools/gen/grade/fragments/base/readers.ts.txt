@@ -1,0 +1,407 @@
+/** Each item session of the sitting with an attempt its response processing has not run for, and the earliest such
+ * attempt's instant, which is the one graded: a session's attempts are processed in the order they were recorded. Each
+ * with its sitting's stage: the session's run key (child, package, path, stage), which keys every value row of its run. */
+const unprocessedOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const { package: pkg, path, n } = v(fields.ItemSession, "session")
+		const { at } = v(fields.Attempt, "attempt")
+		return r
+			.match(fields.ItemSession, { child: session.child, stage: session.stage, package: pkg, path, n })
+			.match(fields.Attempt, { child: session.child, package: pkg, path, n, at })
+			.where(r.not(fields.ProcessedAttempt, { child: session.child, package: pkg, path, n, at }))
+			.find({ child: session.child, package: pkg, path, n, stage: session.stage, first: r.min(at) })
+	})
+
+/** The attempts the write grades: each session's earliest unprocessed one, once nothing it reads waits: no recorded
+ * application of it awaits its evaluation (PendingApplication) and no rubric group of it whose every draw declined
+ * awaits a person's value (AwaitingHumanEvaluation), each an input of its response processing (`#ledger/results.ts`:
+ * grading runs "only once no recorded application of the attempt waits for its evaluation ... and no rubric group
+ * whose every draw declined waits for a person's value"). A session whose earliest unprocessed attempt waits is graded
+ * by no write until it stops waiting, so its attempts are processed in the order they were recorded. */
+const gradableOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const unprocessed = unprocessedOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, first: at } = v(unprocessed, "unprocessed")
+		return r
+			.match(unprocessed, { child, package: pkg, path, n, stage, first: at })
+			.where(
+				r.not(fields.PendingApplication, { child, package: pkg, path, n, at }),
+				r.not(fields.AwaitingHumanEvaluation, { child, package: pkg, path, n, at })
+			)
+			.find({ child, package: pkg, path, n, stage, at })
+	})
+
+/** The subtree the item's response processing runs, by the document it is in: its own processing where it holds a rule
+ * (§4.6.1: "if both are given the internal rules are still preferred"), else the template document its
+ * `template-location` locates (pantry's LocatedTemplate), else the published template its `template` names (spec
+ * reading 51; §4.6.2: "If a delivery system is able to determine the correct behaviour from the template identifier
+ * alone the template-location should be ignored"), as the reference package holds it. */
+const responseRootsOf = (session: GradedSession) =>
+	query(Installed)
+		.rule((r) => {
+			const graded = gradableOf(session).bind(bySession(session))
+			const { package: pkg, path: item } = v(graded, "graded")
+			const { package: source, path: document, start, end, elementChildren } = v(fields.Node, "inline")
+			return r
+				.match(graded, { package: pkg, path: item })
+				.match(fields.Node, {
+					package: source,
+					path: document,
+					start,
+					end,
+					elementChildren,
+					kind: "qti-response-processing",
+					parentKind: "qti-assessment-item"
+				})
+				.where(r.eq(source, pkg), r.eq(document, item), r.gt(elementChildren, 0n))
+				.find({ package: pkg, path: item, source, document, start, end })
+		})
+		.rule((r) => {
+			const graded = gradableOf(session).bind(bySession(session))
+			const { package: pkg, path: item } = v(graded, "graded")
+			const { package: source, template: document } = v(fields.LocatedTemplate, "located")
+			const { start, end } = v(fields.Node, "template")
+			return r
+				.match(graded, { package: pkg, path: item })
+				.match(fields.LocatedTemplate, { package: source, path: item, template: document })
+				.match(fields.Node, {
+					package: source,
+					path: document,
+					start,
+					end,
+					kind: "qti-response-processing",
+					parentKind: "document"
+				})
+				.where(r.eq(source, pkg))
+				.find({ package: pkg, path: item, source, document, start, end })
+		})
+		.rule((r) => {
+			const graded = gradableOf(session).bind(bySession(session))
+			const { package: pkg, path: item } = v(graded, "graded")
+			const { value } = v(fields.TemplateProcessing, "named")
+			const { template } = v(fields.PublishedTemplateUri, "uri")
+			const { package: source, path: document } = v(fields.PublishedTemplateDocument, "published")
+			const { start, end } = v(fields.Node, "template")
+			return r
+				.match(graded, { package: pkg, path: item })
+				.match(fields.TemplateProcessing, { package: pkg, path: item, value })
+				.match(fields.PublishedTemplateUri, { template, uri: value })
+				.match(fields.PublishedTemplateDocument, { template, package: source, path: document })
+				.match(fields.Node, {
+					package: source,
+					path: document,
+					start,
+					end,
+					kind: "qti-response-processing",
+					parentKind: "document"
+				})
+				.find({ package: pkg, path: item, source, document, start, end })
+		})
+
+/** The program's elements, each of a processing kind, by the machine's token. */
+const programNodesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const roots = responseRootsOf(session).bind(bySession(session))
+		const { package: pkg, path: item, source, document, start: first, end: last } = v(roots, "root")
+		const { start, end, parent, kind } = v(fields.Node, "node")
+		const { token } = v(fields.ProgramNodeKind, "kind")
+		return r
+			.match(roots, { package: pkg, path: item, source, document, start: first, end: last })
+			.match(fields.Node, { package: source, path: document, start, end, parent, kind })
+			.match(fields.ProgramNodeKind, { kind, token })
+			.where(r.ge(start, first), r.lt(start, last))
+			.find({ package: pkg, path: item, start, end, parent, kind: token })
+	})
+
+/** The attributes of the program's elements the machine reads, as pantry's Attribute holds their values. */
+const programAttributesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const roots = responseRootsOf(session).bind(bySession(session))
+		const { package: pkg, path: item, source, document, start: first, end: last } = v(roots, "root")
+		const { start, name, value } = v(fields.Attribute, "attribute")
+		const { token } = v(fields.GradedAttributeName, "name")
+		return r
+			.match(roots, { package: pkg, path: item, source, document, start: first, end: last })
+			.match(fields.Attribute, { package: source, path: document, start, name, value })
+			.match(fields.GradedAttributeName, { name, token })
+			.where(r.ge(start, first), r.lt(start, last))
+			.find({ package: pkg, path: item, start, name: token, value })
+	})
+
+/** Each base value's text in the program (pantry's Literal). */
+const programTextsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const roots = responseRootsOf(session).bind(bySession(session))
+		const { package: pkg, path: item, source, document, start: first, end: last } = v(roots, "root")
+		const { start, text } = v(fields.Literal, "literal")
+		return r
+			.match(roots, { package: pkg, path: item, source, document, start: first, end: last })
+			.match(fields.Literal, { package: source, path: document, start, text })
+			.where(r.ge(start, first), r.lt(start, last))
+			.find({ package: pkg, path: item, start, text })
+	})
+
+/** The graded items' declarations' nodes of the kinds the machine reads. */
+const declarationNodesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, end, parent, kind } = v(fields.Node, "node")
+		const { token } = v(fields.DeclarationNodeKind, "kind")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.Node, { package: pkg, path: item, start, end, parent, kind })
+			.match(fields.DeclarationNodeKind, { kind, token })
+			.find({ package: pkg, path: item, start, end, parent, kind: token })
+	})
+
+/** Their attributes the machine reads. */
+const declarationAttributesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, kind } = v(fields.Node, "node")
+		const { name, value } = v(fields.Attribute, "attribute")
+		const { token } = v(fields.GradedAttributeName, "name")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.Node, { package: pkg, path: item, start, kind })
+			.match(fields.DeclarationNodeKind, { kind })
+			.match(fields.Attribute, { package: pkg, path: item, start, name, value })
+			.match(fields.GradedAttributeName, { name, token })
+			.find({ package: pkg, path: item, start, name: token, value })
+	})
+
+/** Each qti-value's string value. */
+const declarationTextsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const graded = gradableOf(session).bind(bySession(session))
+		const { package: pkg, path: item } = v(graded, "graded")
+		const { start, stringValue } = v(fields.Node, "value")
+		return r
+			.match(graded, { package: pkg, path: item })
+			.match(fields.Node, { package: pkg, path: item, start, kind: "qti-value", stringValue })
+			.find({ package: pkg, path: item, start, text: stringValue })
+	})
+
+/** The session's last attempt processed before this one, by its instant: whose completionStatus this one starts from
+ * ("It remains with this value for the duration of the item session unless set to a different value", info §2.2.2.3). */
+const previousOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const { at: earlier } = v(fields.ProcessedAttempt, "earlier")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(fields.ProcessedAttempt, { child, package: pkg, path, n, at: earlier })
+			.where(r.lt(earlier, at))
+			.find({ child, package: pkg, path, n, stage, previous: r.max(earlier) })
+	})
+
+/** The attempt's ordinal among its session's attempts, from 1: its numAttempts (§2.2.2.2: "the number of attempts
+ * ... increases by 1 at the start of each attempt"). */
+const ordinalsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const { at: earlier } = v(fields.Attempt, "earlier")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(fields.Attempt, { child, package: pkg, path, n, at: earlier })
+			.where(r.le(earlier, at))
+			.find({ child, package: pkg, path, stage, attempts: r.count() })
+	})
+
+/** The run of the attempt: its key (child, package, path, stage), the seed its session draws under (SessionSeed, its
+ * take's), and the label of its ordinal. */
+const runsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const ordinal = ordinalsOf(session).bind(bySession(session))
+		const { attempts } = v(ordinal, "ordinal")
+		const { seed } = v(fields.SessionSeed, "seed")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(ordinal, { child, package: pkg, path, stage, attempts })
+			.match(fields.SessionSeed, { child, stage, package: pkg, path, seed })
+			.find({ child, package: pkg, path, stage, seed, label: Fn.call(responseLabel, { attempts }) })
+	})
+
+/** The variables the attempt's run is given: each declared response, numAttempts, and each value the session's
+ * template processing set, each with its kind and cardinality. */
+const varsOf = (session: GradedSession) =>
+	query(Installed)
+		.rule((r) => {
+			const attempt = gradableOf(session).bind(bySession(session))
+			const { child, package: pkg, path, stage } = v(attempt, "attempt")
+			const { identifier, cardinality } = v(fields.ItemVariable, "response")
+			const { token: card } = v(fields.CardinalityToken, "card")
+			return r
+				.match(attempt, { child, package: pkg, path, stage })
+				.match(fields.ItemVariable, {
+					package: pkg,
+					path,
+					identifier,
+					cardinality,
+					declarationKind: "qti-response-declaration"
+				})
+				.match(fields.CardinalityToken, { cardinality, token: card })
+				.find({
+					child,
+					package: pkg,
+					path,
+					stage,
+					holds: Type.literal(DocVar.fields.holds, "value"),
+					kind: Type.literal(DocVar.fields.kind, "response"),
+					identifier: Type.cast(identifier, DocVar.fields.identifier),
+					card
+				})
+		})
+		.rule((r) => {
+			const attempt = gradableOf(session).bind(bySession(session))
+			const { child, package: pkg, path, stage } = v(attempt, "attempt")
+			const { identifier } = v(fields.ItemRecordVariable, "response")
+			return r
+				.match(attempt, { child, package: pkg, path, stage })
+				.match(fields.ItemRecordVariable, {
+					package: pkg,
+					path,
+					identifier,
+					declarationKind: "qti-response-declaration"
+				})
+				.find({
+					child,
+					package: pkg,
+					path,
+					stage,
+					holds: Type.literal(DocVar.fields.holds, "value"),
+					kind: Type.literal(DocVar.fields.kind, "response"),
+					identifier: Type.cast(identifier, DocVar.fields.identifier),
+					card: Type.literal(DocVar.fields.card, "record")
+				})
+		})
+		.rule((r) => {
+			const attempt = gradableOf(session).bind(bySession(session))
+			const { child, package: pkg, path, stage } = v(attempt, "attempt")
+			return r
+				.match(attempt, { child, package: pkg, path, stage })
+				.find({
+					child,
+					package: pkg,
+					path,
+					stage,
+					holds: Type.literal(DocVar.fields.holds, "value"),
+					kind: Type.literal(DocVar.fields.kind, "response"),
+					identifier: Type.literal(DocVar.fields.identifier, "numAttempts"),
+					card: Type.literal(DocVar.fields.card, "single")
+				})
+		})
+		.rule((r) => {
+			const previous = previousOf(session).bind(bySession(session))
+			const { child, package: pkg, path, stage } = v(previous, "previous")
+			return r
+				.match(previous, { child, package: pkg, path, stage })
+				.find({
+					child,
+					package: pkg,
+					path,
+					stage,
+					holds: Type.literal(DocVar.fields.holds, "value"),
+					kind: Type.literal(DocVar.fields.kind, "outcome"),
+					identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
+					card: Type.literal(DocVar.fields.card, "single")
+				})
+		})
+		.rule((r) => {
+			const attempt = gradableOf(session).bind(bySession(session))
+			const { child, package: pkg, path, n } = v(attempt, "attempt")
+			const { stage } = v(fields.ItemSession, "session")
+			const { variable } = v(fields.ItemSessionValue, "set")
+			const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared")
+			const { token: card } = v(fields.CardinalityToken, "card")
+			const { token: kind } = v(fields.VariableKindToken, "kind")
+			return r
+				.match(attempt, { child, package: pkg, path, n })
+				.match(fields.ItemSession, { child, package: pkg, path, n, stage })
+				.match(fields.ItemSessionValue, { child, stage, package: pkg, path, kind: "template", variable })
+				.match(fields.ItemSessionVariable, { package: pkg, path, identifier: variable, cardinality, declarationKind })
+				.match(fields.CardinalityToken, { cardinality, token: card })
+				.match(fields.VariableKindToken, { declarationKind, token: kind })
+				.find({
+					child,
+					package: pkg,
+					path,
+					stage,
+					holds: Type.literal(DocVar.fields.holds, "value"),
+					kind,
+					identifier: Type.cast(variable, DocVar.fields.identifier),
+					card
+				})
+		})
+		.rule((r) => {
+			const attempt = gradableOf(session).bind(bySession(session))
+			const { child, package: pkg, path, n } = v(attempt, "attempt")
+			const { stage } = v(fields.ItemSession, "session")
+			const { variable } = v(fields.ItemSessionValue, "set")
+			const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared")
+			const { token: card } = v(fields.CardinalityToken, "card")
+			const { token: kind } = v(fields.VariableKindToken, "kind")
+			return r
+				.match(attempt, { child, package: pkg, path, n })
+				.match(fields.ItemSession, { child, package: pkg, path, n, stage })
+				.match(fields.ItemSessionValue, { child, stage, package: pkg, path, kind: "correct", variable })
+				.match(fields.ItemSessionVariable, { package: pkg, path, identifier: variable, cardinality, declarationKind })
+				.match(fields.CardinalityToken, { cardinality, token: card })
+				.match(fields.VariableKindToken, { declarationKind, token: kind })
+				.find({
+					child,
+					package: pkg,
+					path,
+					stage,
+					holds: Type.literal(DocVar.fields.holds, "correct"),
+					kind,
+					identifier: Type.cast(variable, DocVar.fields.identifier),
+					card
+				})
+		})
+		.rule((r) => {
+			const attempt = gradableOf(session).bind(bySession(session))
+			const { child, package: pkg, path, n } = v(attempt, "attempt")
+			const { stage } = v(fields.ItemSession, "session")
+			const { variable } = v(fields.ItemSessionValue, "set")
+			const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared")
+			const { token: card } = v(fields.CardinalityToken, "card")
+			const { token: kind } = v(fields.VariableKindToken, "kind")
+			return r
+				.match(attempt, { child, package: pkg, path, n })
+				.match(fields.ItemSession, { child, package: pkg, path, n, stage })
+				.match(fields.ItemSessionValue, { child, stage, package: pkg, path, kind: "default", variable })
+				.match(fields.ItemSessionVariable, { package: pkg, path, identifier: variable, cardinality, declarationKind })
+				.match(fields.CardinalityToken, { cardinality, token: card })
+				.match(fields.VariableKindToken, { declarationKind, token: kind })
+				.find({
+					child,
+					package: pkg,
+					path,
+					stage,
+					holds: Type.literal(DocVar.fields.holds, "default"),
+					kind,
+					identifier: Type.cast(variable, DocVar.fields.identifier),
+					card
+				})
+		})
+
+/** Each declared typed variable's base type, built-ins included. */
+const basesOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, stage } = v(attempt, "attempt")
+		const { identifier, baseType } = v(fields.ItemSessionVariable, "declared")
+		const { token: base } = v(fields.BaseTypeToken, "base")
+		return r
+			.match(attempt, { child, package: pkg, path, stage })
+			.match(fields.ItemSessionVariable, { package: pkg, path, identifier, baseType })
+			.match(fields.BaseTypeToken, { baseType, token: base })
+			.find({ child, package: pkg, path, stage, identifier, base })
+	})

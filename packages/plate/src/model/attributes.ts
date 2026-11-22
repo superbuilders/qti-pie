@@ -11,6 +11,7 @@
  *
  * @module
  */
+import { collapsed } from "@qti-pie/crust/text.ts";
 import { Array as Arr, Data, Option, Result } from "effect";
 import { attributePath, qtiNamespace, xmlNamespace } from "#plate/document/source.ts";
 import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
@@ -113,85 +114,6 @@ export const isQti = (element: SourceElement, local?: string): boolean =>
  */
 export const elementsOf = (element: SourceElement): readonly SourceElement[] =>
   element.children.filter((child): child is SourceElement => child.kind === "element");
-
-/**
- * The element children of an element whose content model fixes their count, held to that count: the
- * database refuses every other count, and the model builds only a document it admitted, so another
- * count is a defect of the build, never a document's.
- */
-class ChildCountDefect extends Data.TaggedError("ChildCountDefect")<{
-  readonly element: string;
-  readonly held: number;
-  readonly takes: string;
-}> {
-  /**
-   * The broken invariant, and what to do with it.
-   */
-  override get message(): string {
-    return `The element ${this.element} holds ${String(this.held)} element children where its content model takes ${this.takes}, which the database refuses before any build. This is a defect in buildItem; report it with the item that caused it.`;
-  }
-}
-
-/**
- * Give the one element child of an element whose content model takes exactly one, such as a
- * `qti-set-outcome-value`'s expression.
- *
- * @param element The element.
- * @returns Its element child.
- * @throws {ChildCountDefect} When it holds another count, which the database refuses.
- */
-export const soleChild = (element: SourceElement): SourceElement => {
-  const [only, ...extra] = elementsOf(element);
-  if (only === undefined || extra.length > 0) {
-    throw new ChildCountDefect({
-      element: nameOf(element),
-      held: elementsOf(element).length,
-      takes: "one",
-    });
-  }
-
-  return only;
-};
-
-/**
- * Give the two element children of an element whose content model takes exactly two, such as a
- * `qti-match`'s operands.
- *
- * @param element The element.
- * @returns Its element children, in document order.
- * @throws {ChildCountDefect} When it holds another count, which the database refuses.
- */
-export const childPair = (element: SourceElement): readonly [SourceElement, SourceElement] => {
-  const [left, right, ...extra] = elementsOf(element);
-  if (left === undefined || right === undefined || extra.length > 0) {
-    throw new ChildCountDefect({
-      element: nameOf(element),
-      held: elementsOf(element).length,
-      takes: "two",
-    });
-  }
-
-  return [left, right];
-};
-
-/**
- * Give the element children of an element whose content model takes at least one, such as a
- * `qti-and`'s operands or a condition branch's test and rules.
- *
- * @param element The element.
- * @returns Its element children, in document order.
- * @throws {ChildCountDefect} When it holds none, which the database refuses.
- */
-export const someChildren = (
-  element: SourceElement,
-): readonly [SourceElement, ...SourceElement[]] => {
-  const [first, ...rest] = elementsOf(element);
-  if (first === undefined) {
-    throw new ChildCountDefect({ element: nameOf(element), held: 0, takes: "at least one" });
-  }
-
-  return [first, ...rest];
-};
 
 /**
  * Keep an element's QTI children of one name.
@@ -425,23 +347,17 @@ export const xmlWhitespaceRun = /[\t\n\r ]+/gu;
 /**
  * Collapse a value's XML whitespace, as XSD's `whiteSpace="collapse"` facet reads it: the XML
  * whitespace at either end removed and each inner run of it one space. An `xs:anyURI`, an `xs:ID`,
- * an `xs:IDREF` and an `xs:token` are read this way.
- *
- * @param value The value as written.
- * @returns The value, collapsed.
+ * an `xs:IDREF` and an `xs:token` are read this way. It is grizzle-text's `collapsed`, the one
+ * implementation crust re-exports.
  */
-export const collapseXmlSpace = (value: string): string =>
-  trimXmlSpace(value).replaceAll(xmlWhitespaceRun, " ");
+export const collapseXmlSpace = collapsed;
 
 /**
  * Replace a value's XML whitespace, as XSD's `whiteSpace="replace"` facet reads it: each tab, line
  * feed and carriage return becomes a space, and nothing is trimmed. An `xs:normalizedString` is
- * read this way.
- *
- * @param value The value as written.
- * @returns The value, each tab and line break a space.
+ * read this way ({@link replaceXmlSpace} of `#plate/model/values.ts`, the same function).
  */
-export const replaceXmlSpace = (value: string): string => value.replaceAll(/[\t\n\r]/gu, " ");
+export { replaceXmlSpace } from "#plate/model/values.ts";
 
 /**
  * Read an identifier attribute the element must carry, as `identifierOf` reads it.
@@ -485,23 +401,6 @@ export const listed = <const T extends string>(
       onSome: (value) => value,
     },
   );
-
-/**
- * Read an attribute the element must carry whose value is one of a closed list, such as
- * `qti-round-to`'s `rounding-mode`.
- *
- * @param build The build.
- * @param element The element.
- * @param name The attribute's name.
- * @param allowed The values it may take.
- * @returns The value.
- */
-export const requiredListed = <const T extends string>(
-  build: ModelWalk,
-  element: SourceElement,
-  name: string,
-  allowed: readonly T[],
-): T => listed(build, element, name, requiredAttribute(build, element, name), allowed);
 
 /**
  * Read an attribute whose value is one of a closed list, such as `cardinality`.
@@ -634,18 +533,6 @@ export const xsBoolean = (
     onNone: () => absent,
     onSome: (attribute) => booleanValue(build, element, attribute),
   });
-
-/**
- * Read an `xs:boolean` attribute the element must carry, such as `qti-string-match`'s
- * `case-sensitive`, through {@link xsBooleanOf}.
- *
- * @param build The build.
- * @param element The element.
- * @param name The attribute's name.
- * @returns The boolean.
- */
-export const requiredBoolean = (build: ModelWalk, element: SourceElement, name: string): boolean =>
-  booleanValue(build, element, requiredAttribute(build, element, name));
 
 /**
  * Read an `xs:double` typed-value attribute, a mapping's or an area mapping's `default-value`,

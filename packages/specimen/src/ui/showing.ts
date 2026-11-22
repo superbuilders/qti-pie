@@ -11,6 +11,7 @@
 import { Array as Arr, Option } from "effect";
 import { format } from "@qti-pie/plate";
 import type { ResponseValue, Value } from "@qti-pie/plate";
+import type { PartMark } from "@qti-pie/plate/ui";
 
 /**
  * One value of a response, of one base type.
@@ -169,6 +170,70 @@ const credited = (shown: Value, correct: Value): number => {
 
     return true;
   }).length;
+};
+
+/**
+ * The marks the suite hands a review of a shown response, as a host hands the database's
+ * `AttemptMark` rows (out/grading-sql/p4/marks/marks.sql), restated here apart from it from the
+ * rule M1 states: against a correct response that holds values, each value shown is `right` where
+ * the correct response credits it ({@link credited}'s reading: an `ordered` one at its position,
+ * any other while the correct bag still holds a copy of it) and `wrong` where it does not, and each
+ * correct value no shown value took is `missed`, at its position in an `ordered` one; none against
+ * NULL, a record, or for a record shown, which `qti-match` does not compare. Each mark covers one
+ * copy.
+ *
+ * @param shown The shown response.
+ * @param correct The correct response.
+ * @returns The marks, in the order shown, then the missed ones in the correct response's order.
+ */
+export const handedMarks = (shown: ResponseValue, correct: ResponseValue): readonly PartMark[] => {
+  if (
+    correct.cardinality === "record" ||
+    correct.values.length === 0 ||
+    shown.cardinality === "record"
+  ) {
+    return [];
+  }
+
+  if (correct.cardinality === "ordered") {
+    const at = (values: readonly Single[], place: number, single: Single): boolean => {
+      const held = values[place];
+
+      return held !== undefined && sameSingle(held, single);
+    };
+
+    return [
+      ...shown.values.map((single, place): PartMark => ({
+        copies: 1n,
+        mark: at(correct.values, place, single) ? "right" : "wrong",
+        place,
+        value: single,
+      })),
+      ...correct.values.flatMap((single, place): readonly PartMark[] =>
+        at(shown.values, place, single)
+          ? []
+          : [{ copies: 1n, mark: "missed", place, value: single }],
+      ),
+    ];
+  }
+
+  const left = [...correct.values];
+  const given = shown.values.map((single): PartMark => {
+    const at = left.findIndex((candidate) => sameSingle(single, candidate));
+
+    if (at === -1) {
+      return { copies: 1n, mark: "wrong", place: 0, value: single };
+    }
+
+    left.splice(at, 1);
+
+    return { copies: 1n, mark: "right", place: 0, value: single };
+  });
+
+  return [
+    ...given,
+    ...left.map((single): PartMark => ({ copies: 1n, mark: "missed", place: 0, value: single })),
+  ];
 };
 
 /**

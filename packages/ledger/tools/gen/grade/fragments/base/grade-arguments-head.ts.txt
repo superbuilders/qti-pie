@@ -1,0 +1,9 @@
+/**
+ * The arguments of the machine's run over a sitting's attempts, each a query over the call's `child` and `stage`: the
+ * program, the declarations, the run and the values of every item session of the stage whose earliest attempt its
+ * response processing has not run for (`gradable`), as gradeAttemptOf reads them; exported once, so every statement
+ * that runs the machine over a sitting's graded attempts in the same evaluation (the review's marks among them) reads
+ * the same rows.
+ */
+export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
+	const fields = delivery.relations

@@ -66,7 +66,7 @@ import type { Accepted } from "#plate/validate/verdict.ts";
  * print shows as a notice.
  *
  * @example
- *   const { record } = yield * restore(accepted, yield * scoreRecord(accepted, responses, before));
+ *   const { record } = restore(accepted, recordTheDatabaseReturned);
  *   const shown = redact(accepted, { configuration, supports, view }, record); // feedback by record.outcomes
  *
  * @param document The document `checkAdmitted` accepted.

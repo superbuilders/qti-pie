@@ -55,13 +55,14 @@ export const item = `<qti-assessment-item xmlns="${asi}" identifier="item" title
 </qti-assessment-item>`;
 
 /**
- * The base test: one part, one section selecting from its one item reference.
+ * The base test: one part, one section selecting from its one item reference, which names the base
+ * item by its own identifier (QTI §4.1.1).
  */
 export const test = `<qti-assessment-test xmlns="${asi}" identifier="T" title="Test">
   <qti-test-part identifier="P" navigation-mode="linear" submission-mode="individual">
     <qti-assessment-section identifier="S" title="Section" visible="true">
       <qti-selection select="1"/>
-      <qti-assessment-item-ref identifier="I" href="item.xml"/>
+      <qti-assessment-item-ref identifier="item" href="item.xml"/>
     </qti-assessment-section>
   </qti-test-part>
 </qti-assessment-test>`;

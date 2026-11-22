@@ -120,6 +120,21 @@ export interface ShredGrammar<V extends XdmVocabulary> {
     site: ValueSite<V>,
   ) => Option.Option<Qualified>;
   /**
+   * Whether an element's text is of a type whose `whiteSpace` is `replace`, an
+   * `xs:normalizedString` or a type derived from one: its governor's `TypeText` or its kind's
+   * `TextDomain`, as {@link ShredGrammar.qualified} reads the text's domain. Shred stores such text
+   * as its normalized value, "All occurrences of #x9 (tab), #xA (line feed) and #xD (carriage
+   * return) are replaced with #x20 (space)" (XML Schema 1.0 Part 2, §4.3.6, whiteSpace).
+   *
+   * @param kind - The element's kind, a foreign kind for a foreign element.
+   * @param governs - The element's governing type, none where no named type governs it.
+   * @returns Whether its text is replaced.
+   */
+  readonly replacesText: (
+    kind: ElementKind<V> | ForeignKind,
+    governs: Option.Option<string>,
+  ) => boolean;
+  /**
    * Find the closed handle that spells an attribute's qualified name: the `AttributeName` roster.
    *
    * @param spelling - The local name for an attribute in no namespace, and `xml:`, `xsi:` or
@@ -867,16 +882,24 @@ const miscOf = (misc: Misc): XdmMisc =>
 /**
  * Read a child of an element that is not an element.
  *
+ * A run of an element whose text is an `xs:normalizedString` ({@link ShredGrammar.replacesText}) is
+ * stored as its normalized value, each tab, line feed and carriage return a space, nothing trimmed
+ * (XML Schema 1.0 Part 2, §4.3.6): the value the schema gives it, which every reader of the tree,
+ * the database's laws, plate and the grader, reads as stored (spec reading 7). So a `qti-value`
+ * of base type string, a `ValueDType`, an extension of `xs:normalizedString` (the ASI XSD's
+ * `ValueDType`), holds its value, and its export writes that value back.
+ *
  * @param child - The child as crust read it, a run never empty after {@link joinRuns}.
+ * @param replaced - Whether its element's text is an `xs:normalizedString`.
  * @returns A `ws` node for a run of whitespace only and a `text` node for any other run; the
  *   comment, processing instruction or entity reference otherwise.
  */
-const characterOf = (child: Exclude<Child, Element>): XdmCharacter => {
+const characterOf = (child: Exclude<Child, Element>, replaced: boolean): XdmCharacter => {
   switch (child.kind) {
     case "text": {
-      return whitespaceRun.test(child.value)
-        ? { _tag: "ws", value: child.value }
-        : { _tag: "text", value: child.value };
+      const value = replaced ? child.value.replaceAll(/[\t\n\r]/gu, " ") : child.value;
+
+      return whitespaceRun.test(value) ? { _tag: "ws", value } : { _tag: "text", value };
     }
     case "comment":
     case "pi": {
@@ -1099,7 +1122,9 @@ const rootOf = <V extends XdmVocabulary>(
         const opened = yield* openInto(node, into, grammar);
         pushChildren(stack, opened, joinRuns(node.children));
       } else {
-        into.children.push(characterOf(node));
+        into.children.push(
+          characterOf(node, grammar.replacesText(into.reading.kind, into.element.governs)),
+        );
       }
     }
 

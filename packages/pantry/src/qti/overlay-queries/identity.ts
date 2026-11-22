@@ -8,7 +8,6 @@
  */
 import {
   check,
-  Compute,
   contained,
   derived,
   key,
@@ -16,6 +15,8 @@ import {
   on,
   query,
   select,
+  Text,
+  Type,
   v,
 } from "@bjornpagen/grizzle";
 import { referenceIdentities } from "#pantry/grammar/domains.ts";
@@ -32,9 +33,12 @@ import {
 } from "#pantry/qti/identity.ts";
 import { AssembledCatalog } from "#pantry/qti/catalog.ts";
 import { PlacedShareTarget, ShareTarget } from "#pantry/qti/mathml-share.ts";
-import { keyText } from "#pantry/qti/limits.ts";
 import { attributeValues, IdValue, QtiViews, SsmlValue } from "#pantry/qti/names.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
+import { instanceAnchors } from "#pantry/qti/overlay-queries/tests.ts";
+import { Instance, Site } from "#pantry/qti/tests.ts";
+import { includeKind } from "#pantry/vocab/terms/tests.ts";
+import { anyText } from "#pantry/grammar/install.ts";
 
 /**
  * Each SSML scope beside its element's kind and parent, by the element's place.
@@ -105,9 +109,10 @@ const IdBinding = derived(
 /**
  * The ID/IDREF table of each assembly, a projection of its placed IDs: an id, the element it is
  * bound to (its document's `path` and its `owner` position), and the instance of the document that
- * holds it. Its key on `(package, assembly, id)` is cvc-id clause 2 over the merged document
- * ("DocumentId key"): an included fragment's ID is distinct from its item's, and a fragment placed
- * twice in one item holds its IDs twice, as its merged document does (information model §2.12).
+ * holds it, which "Idref target" resolves IDREFs among. "DocumentId key" keys it through
+ * {@link AnchoredId} and {@link CopiedId}: an included fragment's ID is distinct from its item's, a
+ * fragment placed twice in one item holds its IDs twice, as its merged document does (information
+ * model §2.12), and a section document a test references twice holds its IDs once (§7.5.3).
  */
 export const AssembledId = derived(
   "AssembledId",
@@ -117,6 +122,81 @@ export const AssembledId = derived(
     return r
       .match(PlacedId, { assembly, id, instance, owner, package: pkg, path })
       .find({ assembly, id, instance, owner, package: pkg, path });
+  }),
+);
+
+/**
+ * Each placed ID with the anchor of its instance (`instanceAnchors`,
+ * `#pantry/qti/overlay-queries/tests.ts`): the copy of a section or of the assembly's root that
+ * holds it. Its key on `(package, assembly, anchor, id)` is cvc-id clause 2 within a copy, so a
+ * fragment placed twice in one item, or in one test's copy, holds its IDs twice, as the merged
+ * document does.
+ */
+const anchoredIdRows = query(QtiBase).rule((r) => {
+  const { anchor, anchorDocument, assembly, instance, package: pkg } = v(instanceAnchors, "anchor");
+  const { id, owner, path } = v(PlacedId, "placed");
+
+  return r
+    .match(instanceAnchors, { anchor, anchorDocument, assembly, instance, package: pkg })
+    .match(PlacedId, { assembly, id, instance, owner, package: pkg, path })
+    .find({ anchor, anchorDocument, assembly, id, instance, owner, package: pkg, path });
+});
+
+/**
+ * {@link anchoredIdRows} as a relation of `Qti`.
+ */
+const AnchoredId = derived("AnchoredId", anchoredIdRows);
+
+/**
+ * The distinct ID bindings of an assembly, by the assembly and the binding as its copy holds it:
+ * the anchor's document and the bound element. Two copies of one section document a test references
+ * twice hold its IDs once, since "A test may refer to the same section multiple times within a
+ * test" (information model §7.5.3); every other binding is its own, so its key on `(package,
+ * assembly, id)` is cvc-id clause 2 across the merged document.
+ */
+const CopiedId = derived(
+  "CopiedId",
+  query(QtiBase).rule((r) => {
+    const { anchorDocument, assembly, id, owner, package: pkg, path } = v(anchoredIdRows, "id");
+
+    return r
+      .match(anchoredIdRows, { anchorDocument, assembly, id, owner, package: pkg, path })
+      .find({ anchorDocument, assembly, id, owner, package: pkg, path });
+  }),
+);
+
+/**
+ * The assemblies that hold an external include, by the assembly: an instance whose document holds
+ * an include whose href resolves outside the package, stored as written and never fetched (spec
+ * reading 115).
+ */
+const externalAssemblies = query(QtiBase).rule((r) => {
+  const { assembly, document, package: pkg } = v(Instance, "instance");
+
+  return r
+    .match(Instance, { assembly, document, package: pkg })
+    .match(Site, { external: true, kind: includeKind, package: pkg, path: document })
+    .find({ assembly, package: pkg });
+});
+
+/**
+ * Each id an instance's IDREFs name ({@link PlacedIdref}) in an assembly that holds no external
+ * include: "Idref target" holds each to its assembly's IDs. An assembly that holds one merges a
+ * resource pantry never fetches, whose IDs an IDREF of the assembly may name (XInclude 1.0 Second
+ * Edition §4: the result "merges the source infoset with the infosets of resources identified by
+ * URI references"), so pantry cannot tell a dangling IDREF from one the resource binds: it admits
+ * the assembly's IDREFs unjudged, and the assembly's include is `UnplacedInclude`'s `external`, so
+ * no player delivers its item (QTI 3.0 Conformance §3, "ignore or remove the unsupported data").
+ */
+const JudgedPlacedIdref = derived(
+  "JudgedPlacedIdref",
+  query(QtiBase).rule((r) => {
+    const { assembly, id, package: pkg } = v(PlacedIdref, "idref");
+
+    return r
+      .match(PlacedIdref, { assembly, id, package: pkg })
+      .where(r.not(externalAssemblies, { assembly, package: pkg }))
+      .find({ assembly, id, package: pkg });
   }),
 );
 
@@ -140,7 +220,7 @@ const shareSources = query(QtiBase).rule((r) => {
 
   return r
     .match(shareSrcs, { package: pkg, path, start, value })
-    .where(r.and(r.eq(Compute.startsWith(value, "#"), true), r.ne(value, "#")))
+    .where(r.and(r.eq(Text.startsWith(value, "#"), true), r.ne(value, "#")))
     .find({ package: pkg, path, start, value });
 });
 
@@ -220,8 +300,9 @@ const inheritedCatalogScopes = select(CatalogScopeNode, (s) =>
 /**
  * The identity overlays' rules over a query, each named by its oracle law:
  *
- * - **"DocumentId key":** one admitted element per (document, id), and one binding per (assembly, id)
- *   (cvc-id clause 2);
+ * - **"DocumentId key":** one admitted element per (document, id), one binding per (assembly, anchor,
+ *   id) within a copy, and one per (assembly, id) across the copies, two copies of one referenced
+ *   section holding its bindings once (cvc-id clause 2; information model §7.5.3);
  * - **"E1 derived":** a placed ID is an ID of its document, its value and owner {@link IdValue}'s;
  *   each `share`'s same-document `src` has its {@link ShareFragment} and each row is one
  *   ({@link ShareSource}), its `id` the `src`'s value after the `#` ({@link ShareFragmentValue}); a
@@ -240,7 +321,8 @@ const inheritedCatalogScopes = select(CatalogScopeNode, (s) =>
 export const identityOverlayLawsByName = {
   "DocumentId key": [
     key(on(IdBinding, "package", "path", "id")),
-    key(on(AssembledId, "package", "assembly", "id")),
+    key(on(AnchoredId, "package", "assembly", "anchor", "id")),
+    key(on(CopiedId, "package", "assembly", "id")),
   ],
   "E1 derived": [
     contained(
@@ -252,7 +334,7 @@ export const identityOverlayLawsByName = {
       on(ShareFragment, "package", "path", "start"),
     ),
     check("E1_derived", ShareFragmentValue, (f) =>
-      f.eq(f.value, Compute.concat(Compute.literal(keyText, "#"), f.id)),
+      f.eq(f.value, Text.concat(Type.literal(anyText, "#"), f.id)),
     ),
     contained(
       on(ShareTarget, "package", "path", "id", "targetStart"),
@@ -311,7 +393,7 @@ export const identityOverlayLawsByName = {
       on(IdBinding, "package", "path", "id"),
     ),
     contained(
-      on(PlacedIdref, "package", "assembly", "id"),
+      on(JudgedPlacedIdref, "package", "assembly", "id"),
       on(AssembledId, "package", "assembly", "id"),
     ),
   ],
@@ -334,8 +416,11 @@ export const identityOverlayLawsByName = {
  * The queries of this module, each carrying its own name.
  */
 export const identityOverlayRelations = [
+  AnchoredId,
   AssembledId,
+  JudgedPlacedIdref,
   CatalogScopeNode,
+  CopiedId,
   IdBinding,
   IdentityTextNode,
   ShareFragmentValue,

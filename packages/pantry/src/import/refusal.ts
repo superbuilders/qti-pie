@@ -170,8 +170,8 @@ export interface LawNamer {
 /**
  * Build the namer of a law-name dictionary. A law is named as the level that states it states it:
  * the login's own law as it is, and the law of a level above the login's, the first law of an
- * `above` refusal, such as a package-media check (`QtiMedia` of `#pantry/qti/media.ts`) refusing a
- * write of a login over `Qti`, as that level's own law (grizzle's `AboveLaw.law`). A check is then
+ * `above` refusal, such as a LOM check (`QtiLom` of `#pantry/qti/lom.ts`) refusing a write of a
+ * login over `Qti`, as that level's own law (grizzle's `AboveLaw.law`). A check is then
  * named by its own name ({@link lawOfCheck}), since grizzle names a check by the name its statement
  * declares, and every other law by the dictionary's entry of its id, which the outcome carries.
  * Nothing reads the schema.

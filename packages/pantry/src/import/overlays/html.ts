@@ -109,9 +109,8 @@ const tableWalkOf = (
  * its `TableHeader`, the ID's value its lexical form normalized in its domain's class
  * ({@link attributeValueOf}), an `xs:ID`'s `collapse`, as the database's `IdValue` holds it: AL1
  * holds the form to an NCName once collapsed where it is written (spec readings 152 and 156). Each
- * element on the walk up from either to its nearest `table` has its `TableScope`. A text past
- * `keyText`'s bound keeps its row, which `keyText` refuses under "Key text bound": a token, an
- * `id`, or the tokens' concatenation. A document with no such cell gives no row.
+ * element on the walk up from either to its nearest `table` has its `TableScope`. A document with
+ * no such cell gives no row.
  *
  * @param view - The document's view, whose rows it reads.
  * @param ids - Where it stands in its package: its `package` and `path`, every row's.

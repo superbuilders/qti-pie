@@ -103,7 +103,7 @@ const srcset = (...candidates: readonly SrcsetCandidate[]): ClassifiedUrl => ({
  * @param descriptors Its descriptors, in order.
  * @returns The candidate.
  */
-const candidate = (url: PackageUrl | RemoteUrl, ...descriptors: readonly string[]) => ({
+const candidate = (url: PackageUrl, ...descriptors: readonly string[]) => ({
   descriptors,
   url,
 });
@@ -265,23 +265,34 @@ describe("classifyUrl", () => {
     );
   });
 
-  it("keeps http and https as their parsed href in the link and resource contexts", () => {
-    for (const context of ["link", "resource"] as const) {
-      assert.deepStrictEqual(
-        classifyUrl(context, "http://example.com/a b.png"),
-        remote("http://example.com/a%20b.png"),
-        context,
-      );
-      assert.deepStrictEqual(
-        classifyUrl(context, "HTTPS://Example.COM/x"),
-        remote("https://example.com/x"),
-        context,
-      );
-      assert.deepStrictEqual(
-        classifyUrl(context, "http:evil.com/x"),
-        remote("http://evil.com/x"),
-        context,
-      );
+  it("keeps http and https as their parsed href in the link context alone", () => {
+    assert.deepStrictEqual(
+      classifyUrl("link", "http://example.com/a b.png"),
+      remote("http://example.com/a%20b.png"),
+    );
+    assert.deepStrictEqual(
+      classifyUrl("link", "HTTPS://Example.COM/x"),
+      remote("https://example.com/x"),
+    );
+    assert.deepStrictEqual(classifyUrl("link", "http:evil.com/x"), remote("http://evil.com/x"));
+  });
+
+  it("drops http and https as url-outside-package in every context plate would fetch them in, the host vetting no file outside the package", () => {
+    // Oracle: QTI 3.0 Conformance §3, "the applications must be able to ignore or remove the
+    // unsupported data": a remote file the host never vetted is never fetched, and the element
+    // renders without it. Bound: each fetching context, each spelling of a remote URL.
+    for (const context of ["resource", "embed", "package", "srcset"] as const) {
+      for (const value of [
+        "http://example.com/a b.png",
+        "HTTPS://Example.COM/x",
+        "http:evil.com/x",
+      ]) {
+        assert.deepStrictEqual(
+          classifyUrl(context, value),
+          dropped(outsidePackageFeature),
+          `${value} in ${context}`,
+        );
+      }
     }
   });
 
@@ -435,19 +446,23 @@ describe("classifyUrl, srcset", () => {
 
   it("keeps each candidate's URL in its parsed form with its descriptors", () => {
     assert.deepStrictEqual(
-      classifyUrl("srcset", "small.png 1x,\n large.png 2x, https://Example.com/w.png 480w"),
+      classifyUrl("srcset", "small.png 1x,\n large.png 2x, wide/w.png 480w"),
       srcset(
         candidate(inPackage("small.png"), "1x"),
         candidate(inPackage("large.png"), "2x"),
-        candidate(remote("https://example.com/w.png"), "480w"),
+        candidate(inPackage("wide/w.png"), "480w"),
       ),
     );
   });
 
   it("drops the whole attribute when one candidate is refused", () => {
     assert.deepStrictEqual(
-      classifyUrl("srcset", "https://example.com/a.png 1x, javascript:alert(1) 2x"),
+      classifyUrl("srcset", "a.png 1x, javascript:alert(1) 2x"),
       dropped("url-scheme:javascript"),
+    );
+    assert.deepStrictEqual(
+      classifyUrl("srcset", "a.png 1x, https://example.com/b.png 2x"),
+      dropped(outsidePackageFeature),
     );
     assert.deepStrictEqual(
       classifyUrl("srcset", "a.png 1x, //host/b.png 2x"),
@@ -504,10 +519,10 @@ describe("formatUrl", () => {
   });
 
   it("writes a srcset candidate by candidate, each followed by its descriptors", () => {
-    const kept = classifyUrl("srcset", "small.png 1x, https://example.com/large.png 2x");
+    const kept = classifyUrl("srcset", "small.png 1x, ../large.png 2x");
     assert.strictEqual(kept.kind, "srcset");
     if (kept.kind === "srcset") {
-      assert.strictEqual(formatUrl(kept), "small.png 1x, https://example.com/large.png 2x");
+      assert.strictEqual(formatUrl(kept), "small.png 1x, ../large.png 2x");
     }
   });
 });
@@ -655,18 +670,18 @@ describe("addressUrl", () => {
     );
     assert.deepStrictEqual(
       addressUrl(inPackage("../../images/a.png"), "items/q1.xml", beside),
-      Result.fail("items/../../images/a.png"),
+      Result.fail({ kind: "missing", path: "items/../../images/a.png" }),
     );
   });
 
   it("fails with the file's path when assets give the file no address, whatever the page could resolve", () => {
     assert.deepStrictEqual(
       addressUrl(inPackage("media/c.png"), "items/q1.xml", assets),
-      Result.fail("items/media/c.png"),
+      Result.fail({ kind: "missing", path: "items/media/c.png" }),
     );
     assert.deepStrictEqual(
       addressUrl(inPackage("a%20b.png"), "items/media/q1.xml", new Map()),
-      Result.fail("items/media/a b.png"),
+      Result.fail({ kind: "missing", path: "items/media/a b.png" }),
     );
   });
 
@@ -678,11 +693,11 @@ describe("addressUrl", () => {
     );
     assert.deepStrictEqual(
       addressUrl(inPackage("a.png"), "/items/q1.xml", beside),
-      Result.fail("/items/a.png"),
+      Result.fail({ kind: "missing", path: "/items/a.png" }),
     );
     assert.deepStrictEqual(
       addressUrl(inPackage("a.png"), "../items/q1.xml", beside),
-      Result.fail("../items/a.png"),
+      Result.fail({ kind: "missing", path: "../items/a.png" }),
     );
   });
 
@@ -698,18 +713,55 @@ describe("addressUrl", () => {
   });
 
   it("writes a srcset candidate by candidate, each package path as its address, and fails at its first file with no address", () => {
-    const kept = classifyUrl("srcset", "small.png 1x, https://example.com/large.png 2x");
+    const kept = classifyUrl("srcset", "small.png 1x, asl/item123.mp4 2x");
     const missing = classifyUrl("srcset", "small.png 1x, medium.png 2x, large.png 3x");
     assert.strictEqual(kept.kind, "srcset");
     assert.strictEqual(missing.kind, "srcset");
     if (kept.kind === "srcset" && missing.kind === "srcset") {
       assert.deepStrictEqual(
         addressUrl(kept, "items/q1.xml", assets),
-        Result.succeed("https://cdn.example/sha256/3 1x, https://example.com/large.png 2x"),
+        Result.succeed("https://cdn.example/sha256/3 1x, https://cdn.example/sha256/4 2x"),
       );
       assert.deepStrictEqual(
         addressUrl(missing, "items/q1.xml", assets),
-        Result.fail("items/medium.png"),
+        Result.fail({ kind: "missing", path: "items/medium.png" }),
+      );
+    }
+  });
+
+  it("writes a file the host withholds as no address, never a missing one, and leaves a withheld srcset candidate out", () => {
+    // Oracle: QTI 3.0 Conformance §3, "the applications must be able to ignore or remove the
+    // unsupported data": a withheld file is the host's to ignore, so its URL has no address and
+    // the rest is written; a file the map holds no entry for is still the host's defect.
+    // Bound: a withheld path, one under a srcset beside a served and a missing candidate, and one
+    // srcset of withheld candidates alone.
+    const held = assetsOf([
+      ["items/small.png", "https://cdn.example/sha256/3"],
+      ["items/sound.wav", null],
+      ["items/wide.tif", null],
+    ]);
+    const mixed = classifyUrl("srcset", "small.png 1x, wide.tif 2x");
+    const withheldOnly = classifyUrl("srcset", "wide.tif 2x");
+    const missing = classifyUrl("srcset", "wide.tif 1x, absent.png 2x");
+    assert.deepStrictEqual(
+      addressUrl(inPackage("sound.wav"), "items/q1.xml", held),
+      Result.fail({ kind: "withheld", path: "items/sound.wav" }),
+    );
+    assert.strictEqual(mixed.kind, "srcset");
+    assert.strictEqual(withheldOnly.kind, "srcset");
+    assert.strictEqual(missing.kind, "srcset");
+    if (mixed.kind === "srcset" && withheldOnly.kind === "srcset" && missing.kind === "srcset") {
+      assert.deepStrictEqual(
+        addressUrl(mixed, "items/q1.xml", held),
+        Result.succeed("https://cdn.example/sha256/3 1x"),
+      );
+      assert.deepStrictEqual(
+        addressUrl(withheldOnly, "items/q1.xml", held),
+        Result.fail({ kind: "withheld", path: "items/wide.tif" }),
+      );
+      assert.deepStrictEqual(
+        addressUrl(missing, "items/q1.xml", held),
+        Result.fail({ kind: "missing", path: "items/absent.png" }),
       );
     }
   });
@@ -725,9 +777,10 @@ describe("assetPaths", () => {
       [
         "source",
         "srcset",
-        "a.png 1x, https://r.example/b.png 2x, c.png 3x",
-        ["items/a.png", "items/c.png"],
+        "a.png 1x, b.png 2x, c.png 3x",
+        ["items/a.png", "items/b.png", "items/c.png"],
       ],
+      ["source", "srcset", "a.png 1x, https://r.example/b.png 2x, c.png 3x", []],
       ["img", "src", "../shared/a.png", ["shared/a.png"]],
       ["img", "src", "../../shared/a.png", []],
       ["source", "srcset", "a.png 1x, ../../b.png 2x", []],

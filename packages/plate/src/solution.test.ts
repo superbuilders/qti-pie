@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
-import type { Expression, TemplateRule } from "#plate/model/expression.ts";
 import type { Item, RecordDeclaration, ResponseDeclaration } from "#plate/model/item.ts";
 import { nullOf } from "#plate/model/values.ts";
 import type { RecordValue, Responses, Value } from "#plate/model/values.ts";
@@ -55,49 +54,9 @@ const kept: ResponseDeclaration = {
 };
 
 /**
- * Construct a `qti-variable` reading a variable.
- *
- * @param identifier The variable's identifier.
- * @returns The expression.
- */
-const variableOf = (identifier: string): Expression => ({
-  identifier,
-  kind: "variable",
-  operands: [],
-  weightIdentifier: Option.none(),
-});
-
-/**
- * The template processing of {@link templated}: it sets the template variable `T`, then the
- * correct response of `RESPONSE` in a template condition's branch and of `OTHER` in its
- * `qti-template-else`, and only the default of `KEPT`.
- */
-const templateRules: readonly TemplateRule[] = [
-  {
-    expression: { kind: "base-value", operands: [], value: identifierValue("true") },
-    identifier: "T",
-    kind: "set-template-value",
-  },
-  {
-    branches: [
-      {
-        rules: [
-          { expression: variableOf("T"), identifier: "RESPONSE", kind: "set-correct-response" },
-        ],
-        when: { kind: "is-null", operands: [variableOf("T")] },
-      },
-    ],
-    kind: "template-condition",
-    otherwise: Option.some([
-      { expression: variableOf("T"), identifier: "OTHER", kind: "set-correct-response" },
-    ]),
-  },
-  { expression: variableOf("T"), identifier: "KEPT", kind: "set-default-value" },
-];
-
-/**
  * The hand-built BG007 with the responses `OTHER` and `KEPT` beside `RESPONSE`, the single
- * identifier template variable `T`, and {@link templateRules} as template processing that runs.
+ * identifier template variable `T`, and template processing, which the database runs at the take,
+ * so the record it returns holds the correct responses that processing set.
  */
 const templated: Item = {
   ...bg007Item,
@@ -106,7 +65,7 @@ const templated: Item = {
     [undeclared.identifier, undeclared],
     [kept.identifier, kept],
   ]),
-  templateProcessing: { kind: "runs", rules: templateRules },
+  templated: true,
   templates: new Map([
     [
       "T",
@@ -174,7 +133,9 @@ describe("solution", () => {
           assert.fail(`${bg007} is ${verdict.verdict}, not accepted`),
         );
 
-        assert.deepStrictEqual(solution(accepted), { RESPONSE: identifierValue("true") });
+        assert.deepStrictEqual(solution(accepted, { correct: {} }), {
+          RESPONSE: identifierValue("true"),
+        });
       }),
     { tags: ["corpus"] },
   );
@@ -185,7 +146,7 @@ describe("solution", () => {
       responses: new Map([...bg007Item.responses, [undeclared.identifier, undeclared]]),
     });
 
-    assert.deepStrictEqual(solution(accepted), {
+    assert.deepStrictEqual(solution(accepted, { correct: {} }), {
       OTHER: nullOf("identifier", "multiple"),
       RESPONSE: identifierValue("true"),
     });
@@ -224,27 +185,7 @@ describe("solution", () => {
     });
   });
 
-  it("with no record, gives NULL for each response a template-set correct response targets, at any depth, and the declared value for another", () => {
-    assert.deepStrictEqual(solution(acceptForTest(templated)), {
-      KEPT: identifierValue("kept"),
-      OTHER: nullOf("identifier", "multiple"),
-      RESPONSE: nullOf("identifier", "single"),
-    });
-  });
-
-  it("gives the declared correct responses of an item whose template processing does not run, with or without a record", () => {
-    const accepted = acceptForTest({ ...templated, templateProcessing: { kind: "absent" } });
-    const declared = {
-      KEPT: identifierValue("kept"),
-      OTHER: nullOf("identifier", "multiple"),
-      RESPONSE: identifierValue("true"),
-    };
-
-    assert.deepStrictEqual(solution(accepted), declared);
-    assert.deepStrictEqual(solution(accepted, { correct: {} }), declared);
-  });
-
-  it("gives a record response its declared correct response, and the NULL record where it declares none, with or without a record", () => {
+  it("gives a record response its declared correct response, and the NULL record where it declares none", () => {
     const accepted = acceptForTest(withRecords);
     const declared: Responses = {
       BARE: { cardinality: "record", fields: [] },
@@ -252,7 +193,6 @@ describe("solution", () => {
       RESPONSE: identifierValue("true"),
     };
 
-    assert.deepStrictEqual(solution(accepted), declared);
     assert.deepStrictEqual(solution(accepted, { correct: {} }), declared);
   });
 });

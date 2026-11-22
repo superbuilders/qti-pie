@@ -1,0 +1,647 @@
+-- The machine's flat entry (P4): one call runs response or template processing for every document a statement names,
+-- each by itself, from the document's grader tree as pantry stores it and its values as the ledger holds them, and gives
+-- back every document's values after its run (document-types.sql). A statement reaches it through FNNEST's
+-- Compute.rowOf: every argument rows of a heading of values, every field of its result rows, no NULL either way. The
+-- readers are the oracle's (the golden gate's harness calls the same functions over its stored tree), so the program, the inputs and
+-- the declared values a statement's run starts from are read exactly as the golden proof reads them. Loads after
+-- machine-eval.sql, boundary.sql and test-outcome-boundary.sql.
+
+-- XML's white space (S: space, tab, line feed, carriage return) stripped at both ends.
+create function p3.trim_xml(t text) returns text language sql immutable as $$ select btrim(t, E' \t\n\r') $$;
+-- A lexical form read as a single of its base type, as plate's parseLexical reads it.
+create function p3.parse(base text, lexical text) returns p3.single language plpgsql immutable as $$
+declare parts text[];
+begin
+  case base
+  -- An empty text is NULL (info, isNull: "empty containers and empty strings are both treated as NULL"): no single.
+  when 'identifier', 'string', 'uri' then return case when lexical = '' then null else s_text(base => base, t => lexical) end;
+  when 'file' then raise exception 'a file value has no lexical form to read; it is its content''s digest';
+  when 'integer' then return s_int(n => lexical::numeric);
+  when 'float', 'duration' then return s_float(base => base, f => case lexical when 'INF' then 'Infinity' when '-INF' then '-Infinity' else lexical end::float8);
+  when 'boolean' then return s_bool(b => lexical in ('true', '1'));
+  when 'pair', 'directedPair', 'point' then
+    parts := regexp_split_to_array(lexical, '[ \t\n\r]+');
+    case base
+    when 'pair' then return s_pair(a => parts[1], b => parts[2]);
+    when 'directedPair' then return s_dpair(a => parts[1], b => parts[2]);
+    when 'point' then return s_point(x => parts[1]::numeric, y => parts[2]::numeric);
+    end case;
+  end case;
+end $$;
+-- A typed lexical value: every atomic XML Schema type but string fixes whiteSpace=collapse (Part 2 §4.3.6), so a
+-- non-string value is read collapsed, its XML white space stripped at both ends and each inner run one space (spec
+-- reading 7 as ruled; plate's typedLexicalOf); a string keeps its text. An absent value is no single.
+create function p3.xml_single(base text, txt text) returns p3.single language sql immutable as $$
+  select case when txt is not null
+    then parse(base => base, lexical => case when base = 'string' then txt else regexp_replace(trim_xml(t => txt), '[ \t\n\r]+', ' ', 'g') end) end
+$$;
+create function p3.xs_boolean(dflt boolean, t text) returns boolean language sql immutable as
+$$ select case when t is null then dflt else trim_xml(t => t) in ('true', '1') end $$;
+-- An IntegerOrVariableRef or FloatOrVariableRef as written: a literal where it reads as one, else a variable's name.
+create function p3.int_ref_of(t text) returns p3.int_ref language sql immutable as $$
+  select case when trim_xml(t => t) ~ '^[+-]?[0-9]+$' then row(trim_xml(t => t)::numeric, null)::int_ref
+    else row(null, trim_xml(t => t))::int_ref end
+$$;
+create function p3.float_ref_of(t text) returns p3.float_ref language sql immutable as $$
+  select case when trim_xml(t => t) ~ '^([+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?|-?INF|NaN)$'
+    then row((parse(base => 'float', lexical => trim_xml(t => t))).f, null)::float_ref else row(null, trim_xml(t => t))::float_ref end
+$$;
+-- An area from QTI's shape and coords (HTML's image-map rules): its kind, or nowhere where too few coordinates, a
+-- radius of zero or less or fewer than three vertices hold no point; and its coordinates as written.
+create function p3.area_of(coords text, kind text) returns p3.area language plpgsql immutable as $$
+declare c float8[] := case when coords is null or trim_xml(t => coords) = '' then '{}'
+  else regexp_split_to_array(trim_xml(t => coords), '[ \t\n\r]*,[ \t\n\r]*')::float8[] end;
+  cs coord[] := array(select row(x, o::int)::coord from unnest(c) with ordinality u(x, o));
+begin
+  case trim_xml(t => kind)
+  when 'default' then return row('{}', 'everywhere')::area;
+  when 'rect' then return row(cs, case when cardinality(c) < 4 then 'nowhere' else 'rect' end)::area;
+  when 'circle' then return row(cs, case when cardinality(c) < 3 or c[3] <= 0 then 'nowhere' else 'circle' end)::area;
+  when 'ellipse' then return row(cs, case when cardinality(c) < 4 or c[3] <= 0 or c[4] <= 0 then 'nowhere' else 'ellipse' end)::area;
+  when 'poly' then return row(cs, case when cardinality(c) / 2 < 3 then 'nowhere' else 'poly' end)::area;
+  end case;
+end $$;
+
+-- The registered class a qti-custom-operator binds (the registry's OP-1 and OP-2): its definition URI is a roster class's,
+-- tag:superbuilders.school,2026:qti/custom-operator/<class>, and its class agrees, each as written less XML white space at
+-- either end; NULL for any other operator, which the registry does not define and the arm leaves NULL, its operands
+-- unevaluated. This list is the registry's CustomOperatorClass roster, in composable-operators.md §2's order, its one
+-- source: the ledger's generator reads its token from it.
+create function p3.custom_class_of(definition text, operator_class text) returns text language sql immutable as $$
+  select r.c from (values ('normalize-space'), ('markup-text'), ('when-present'), ('tex-normal'), ('numeral-normal'), ('read-number'), ('tokenize'), ('translate'), ('math-canonical'), ('quantity'), ('unit-near'), ('phrase-distance'), ('rubric-score')) r(c)
+  where trim_xml(t => definition) = 'tag:superbuilders.school,2026:qti/custom-operator/' || r.c and trim_xml(t => operator_class) = r.c
+$$;
+
+-- A processing program from its root's subtree: its nodes in document order, numbered densely from 1 as the machine's
+-- walk reads them (a node's end the place past its last descendant), whatever places the stored tree gives them, and
+-- each kind's parameters parsed into their sidecars, QTI's documented defaults stated here once. `declarations` are the
+-- document's, whose names a pattern written {name} may read.
+create function p3.program_of(attributes p3.document_attribute[], declaration_attributes p3.document_attribute[], declarations p3.declaration_node[],
+  nodes p3.program_node[], texts p3.document_text[])
+returns p3.program language sql immutable as $$
+  with o as (select array_agg(x.start order by x.start) as starts from unnest(nodes) x),
+  a as (
+    select y.start as owner_start,
+      max(y.value) filter (where y.name = 'identifier') as identifier,
+      max(y.value) filter (where y.name = 'variable-identifier') as variable_identifier,
+      max(y.value) filter (where y.name = 'outcome-identifier') as outcome_identifier,
+      max(y.value) filter (where y.name = 'base-type') as base_type,
+      max(y.value) filter (where y.name = 'tolerance-mode') as tolerance_mode,
+      max(y.value) filter (where y.name = 'tolerance') as tolerance,
+      max(y.value) filter (where y.name = 'include-lower-bound') as include_lower_bound,
+      max(y.value) filter (where y.name = 'include-upper-bound') as include_upper_bound,
+      max(y.value) filter (where y.name = 'rounding-mode') as rounding_mode,
+      max(y.value) filter (where y.name = 'figures') as figures,
+      max(y.value) filter (where y.name = 'case-sensitive') as case_sensitive,
+      max(y.value) filter (where y.name = 'substring') as substring,
+      max(y.value) filter (where y.name = 'pattern') as pattern,
+      max(y.value) filter (where y.name = 'n') as n,
+      max(y.value) filter (where y.name = 'number-repeats') as number_repeats,
+      max(y.value) filter (where y.name = 'min') as min,
+      max(y.value) filter (where y.name = 'max') as max,
+      max(y.value) filter (where y.name = 'step') as step,
+      max(y.value) filter (where y.name = 'name') as name,
+      max(y.value) filter (where y.name = 'field-identifier') as field_identifier,
+      max(y.value) filter (where y.name = 'shape') as shape,
+      max(y.value) filter (where y.name = 'coords') as coords,
+      max(y.value) filter (where y.name = 'section-identifier') as section_identifier,
+      max(y.value) filter (where y.name = 'include-category') as include_category,
+      max(y.value) filter (where y.name = 'exclude-category') as exclude_category,
+      max(y.value) filter (where y.name = 'weight-identifier') as weight_identifier,
+      max(y.value) filter (where y.name = 'class') as operator_class,
+      max(y.value) filter (where y.name = 'definition') as definition
+    from unnest(attributes) y group by y.start
+  ),
+  n as (
+    select width_bucket(x.start, o.starts) as start, width_bucket(x."end" - 1, o.starts) + 1 as "end",
+      width_bucket(x.parent, o.starts) as parent, x.kind, t.text as txt, a.*
+    from unnest(nodes) x cross join o left join unnest(texts) t on t.start = x.start left join a on a.owner_start = x.start
+  ),
+  declared as (
+    select trim_xml(t => y.value) as identifier from unnest(declarations) d
+    join unnest(declaration_attributes) y on y.start = d.start and y.name = 'identifier'
+    where d.kind in ('qti-response-declaration', 'qti-outcome-declaration', 'qti-template-declaration', 'qti-context-declaration')
+  )
+  select row(
+    (select coalesce(array_agg(row(int_ref_of(t => n.max), int_ref_of(t => n.min), n.start)::p_any_n), '{}') from n where n.kind = 'qti-any-n'),
+    (select coalesce(array_agg(row(area_of(kind => n.shape, coords => n.coords), n.start)::p_area), '{}') from n where n.kind = 'qti-inside'),
+    -- A base value of the empty string is NULL: it has no literal row.
+    (select coalesce(array_agg(row(trim_xml(t => n.base_type), n.start)::p_base), '{}') from n
+      where n.base_type is not null and n.kind = 'qti-test-variables'),
+    (select coalesce(array_agg(row(c, f.filter, f.start)::p_category), '{}') from (
+      select n.start, 'include' as filter, n.include_category as list, n.kind from n where n.include_category is not null
+      union all select n.start, 'exclude', n.exclude_category, n.kind from n where n.exclude_category is not null) f,
+      lateral unnest(array_remove(regexp_split_to_array(trim_xml(t => f.list), '[ \t\n\r]+'), '')) c
+      where f.kind in ('qti-number-correct', 'qti-number-incorrect', 'qti-number-presented', 'qti-number-responded', 'qti-number-selected',
+        'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables')),
+    (select coalesce(array_agg(row(trim_xml(t => n.name), n.start)::p_constant), '{}') from n where n.kind = 'qti-math-constant'),
+    -- The bound custom operators: each qti-custom-operator whose definition binds a registered class.
+    (select coalesce(array_agg(row(custom_class_of(definition => n.definition, operator_class => n.operator_class), n.start)::p_custom), '{}') from n
+      where n.kind = 'qti-custom-operator' and custom_class_of(definition => n.definition, operator_class => n.operator_class) is not null),
+    (select coalesce(array_agg(row(e.lower_in, e.mode, e.start, e.tok[1], coalesce(e.tok[2], e.tok[1]), e.upper_in)::p_equal), '{}') from (
+      select n.start, coalesce(trim_xml(t => n.tolerance_mode), 'exact') as mode,
+        case when cardinality(z.t) between 1 and 2 then array(select float_ref_of(t => w) from unnest(z.t) w) end as tok,
+        xs_boolean(t => n.include_lower_bound, dflt => true) as lower_in, xs_boolean(t => n.include_upper_bound, dflt => true) as upper_in
+      from n, lateral (select coalesce(array_remove(regexp_split_to_array(n.tolerance, '[ \t\n\r]+'), ''), '{}') as t) z
+      where n.kind = 'qti-equal') e),
+    -- A pattern names a variable as {name} where the document declares one of that name (plate's StringOrRef); else
+    -- it is the pattern itself, compiled here once.
+    (select coalesce(array_agg(row(trim_xml(t => n.field_identifier), n.start)::p_field), '{}') from n where n.kind = 'qti-field-value'),
+    (select coalesce(array_agg(row(f.filter, f.start)::p_filter), '{}') from (
+      select n.start, 'include' as filter, n.kind from n where n.include_category is not null
+      union all select n.start, 'exclude', n.kind from n where n.exclude_category is not null) f
+      where f.kind in ('qti-number-correct', 'qti-number-incorrect', 'qti-number-presented', 'qti-number-responded', 'qti-number-selected',
+        'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables')),
+    (select coalesce(array_agg(row(float_ref_of(t => n.max), float_ref_of(t => coalesce(n.min, '0')), n.start)::p_frange), '{}')
+      from n where n.kind = 'qti-random-float'),
+    (select coalesce(array_agg(row(trim_xml(t => case n.kind when 'qti-test-variables' then n.variable_identifier
+        when 'qti-outcome-minimum' then n.outcome_identifier when 'qti-outcome-maximum' then n.outcome_identifier else n.identifier end), n.start)::p_ident), '{}') from n
+      where n.kind in ('qti-variable', 'qti-correct', 'qti-default', 'qti-map-response', 'qti-map-response-point', 'qti-set-outcome-value',
+        'qti-lookup-outcome-value', 'qti-set-template-value', 'qti-set-correct-response', 'qti-set-default-value',
+        'qti-test-variables', 'qti-outcome-minimum', 'qti-outcome-maximum')),
+    (select coalesce(array_agg(row(n.start, int_ref_of(t => case n.kind when 'qti-index' then n.n when 'qti-repeat' then n.number_repeats end))::p_int), '{}')
+      from n where n.kind in ('qti-index', 'qti-repeat')),
+    (select coalesce(array_agg(row(n.start, xml_single(base => trim_xml(t => n.base_type), txt => n.txt))::p_literal), '{}') from n
+      where n.kind = 'qti-base-value' and (xml_single(base => trim_xml(t => n.base_type), txt => n.txt)).base is not null),
+    (select coalesce(array_agg(row(trim_xml(t => n.name), n.start)::p_math), '{}') from n where n.kind = 'qti-math-operator'),
+    (select array_agg(row(n."end", n.kind, n.parent, n.start)::node order by n.start) from n),
+    (select coalesce(array_agg(case when n.pattern ~ '^\{[^}]+\}$'
+          and exists (select 1 from declared d where d.identifier = substr(n.pattern, 2, length(n.pattern) - 2))
+        then row(null, substr(n.pattern, 2, length(n.pattern) - 2), n.start)::p_pattern
+        else row(xsd_compile(p => n.pattern), null, n.start)::p_pattern end), '{}')
+      from n where n.kind = 'qti-pattern-match'),
+    (select coalesce(array_agg(row(int_ref_of(t => n.max), int_ref_of(t => coalesce(n.min, '0')), n.start, int_ref_of(t => coalesce(n.step, '1')))::p_range), '{}')
+      from n where n.kind = 'qti-random-integer'),
+    -- A test-level expression's characteristics (Tables 7.27, 7.28, 7.39) and a weighted qti-variable's (7.47.2).
+    (select coalesce(array_agg(row(int_ref_of(t => n.figures), coalesce(trim_xml(t => n.rounding_mode), 'significantFigures'), n.start)::p_round), '{}') from n
+      where n.kind in ('qti-equal-rounded', 'qti-round-to')),
+    (select coalesce(array_agg(row(trim_xml(t => n.section_identifier), n.start)::p_section), '{}') from n
+      where n.section_identifier is not null and n.kind in ('qti-number-correct', 'qti-number-incorrect', 'qti-number-presented',
+        'qti-number-responded', 'qti-number-selected', 'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables')),
+    (select coalesce(array_agg(row(trim_xml(t => n.name), n.start)::p_stat), '{}') from n where n.kind = 'qti-stats-operator'),
+    (select coalesce(array_agg(row(xs_boolean(t => n.case_sensitive, dflt => true), n.start,
+        n.kind = 'qti-string-match' and xs_boolean(t => n.substring, dflt => false))::p_text), '{}') from n
+      where n.kind in ('qti-string-match', 'qti-substring')),
+    (select coalesce(array_agg(row(n.start, trim_xml(t => n.weight_identifier))::p_weight), '{}') from n
+      where n.weight_identifier is not null and n.kind in ('qti-variable', 'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables'))
+  )::program
+$$;
+
+-- A document's mappings, area mappings and lookup tables, typed by the declarations they belong to. A map-key is
+-- ValueDType, xs:normalizedString: its TAB, LF and CR read as spaces, as pantry stores it (SV-VALUE-01).
+create function p3.inputs_of(attributes p3.document_attribute[], declarations p3.declaration_node[], texts p3.document_text[])
+returns p3.inputs language sql immutable as $$
+  with a as (
+    select y.start,
+      max(y.value) filter (where y.name = 'identifier') as identifier,
+      max(y.value) filter (where y.name = 'base-type') as base_type,
+      max(y.value) filter (where y.name = 'default-value') as default_value,
+      max(y.value) filter (where y.name = 'lower-bound') as lower_bound,
+      max(y.value) filter (where y.name = 'upper-bound') as upper_bound,
+      max(y.value) filter (where y.name = 'map-key') as map_key,
+      max(y.value) filter (where y.name = 'mapped-value') as mapped_value,
+      max(y.value) filter (where y.name = 'case-sensitive') as case_sensitive,
+      max(y.value) filter (where y.name = 'shape') as shape,
+      max(y.value) filter (where y.name = 'coords') as coords,
+      max(y.value) filter (where y.name = 'source-value') as source_value,
+      max(y.value) filter (where y.name = 'target-value') as target_value,
+      max(y.value) filter (where y.name = 'include-boundary') as include_boundary
+    from unnest(attributes) y group by y.start
+  ),
+  decl as (
+    select d.start, trim_xml(t => a.identifier) as id, trim_xml(t => a.base_type) as base from unnest(declarations) d join a on a.start = d.start
+    where d.kind in ('qti-response-declaration', 'qti-outcome-declaration')
+  ), part as (
+    select decl.*, h.start as hs, h.kind as hk, ha.default_value, ha.lower_bound, ha.upper_bound
+    from decl join unnest(declarations) h on h.parent = decl.start left join a ha on ha.start = h.start
+  ), header as (
+    select part.*, coalesce(part.default_value, '0')::float8 as dflt,
+      coalesce(part.lower_bound, '-Infinity')::float8 as lower, coalesce(part.upper_bound, 'Infinity')::float8 as upper
+    from part where part.hk in ('qti-mapping', 'qti-area-mapping')
+  ), entry as (
+    select part.id, part.base, part.hk, e.start, row_number() over (partition by part.id, part.hk order by e.start)::int as place,
+      ea.map_key, ea.mapped_value, ea.case_sensitive, ea.shape, ea.coords, ea.source_value, ea.target_value, ea.include_boundary
+    from part join unnest(declarations) e on e.parent = part.hs left join a ea on ea.start = e.start
+  )
+  select row(
+    (select coalesce(array_agg(row(area_of(kind => entry.shape, coords => entry.coords), entry.id, entry.place, entry.mapped_value::float8)::area_entry), '{}')
+      from entry where entry.hk = 'qti-area-mapping'),
+    (select coalesce(array_agg(row(header.dflt, header.id, header.lower, header.upper)::mapping), '{}') from header where header.hk = 'qti-area-mapping'),
+    -- The registry's rows and an attempt's replies are the flat entry's to add (with_registry).
+    '{}'::table_binding[],
+    (select coalesce(array_agg(row(xs_boolean(t => entry.include_boundary, dflt => true), entry.id, entry.place,
+        (parse(base => 'float', lexical => trim_xml(t => entry.source_value))).f,
+        array_remove(array[xml_single(base => entry.base, txt => entry.target_value)], null))::interp_entry), '{}') from entry where entry.hk = 'qti-interpolation-table'),
+    (select coalesce(array_agg(row(array_remove(array[xml_single(base => part.base, txt => part.default_value)], null), part.id,
+        case part.hk when 'qti-match-table' then 'match' when 'qti-interpolation-table' then 'interpolation' end)::lookup_table), '{}')
+      from part where part.hk in ('qti-match-table', 'qti-interpolation-table')),
+    (select coalesce(array_agg(row(xs_boolean(t => entry.case_sensitive, dflt => false), entry.id, xml_single(base => entry.base, txt => translate(entry.map_key, E'\t\n\r', '   ')),
+        entry.place, entry.mapped_value::float8)::map_entry), '{}')
+      from entry where entry.hk = 'qti-mapping' and (xml_single(base => entry.base, txt => translate(entry.map_key, E'\t\n\r', '   '))).base is not null),
+    (select coalesce(array_agg(row(header.dflt, header.id, header.lower, header.upper)::mapping), '{}') from header where header.hk = 'qti-mapping'),
+    (select coalesce(array_agg(row(entry.id, entry.place, trim_xml(t => entry.source_value)::numeric,
+        array_remove(array[xml_single(base => entry.base, txt => entry.target_value)], null))::match_entry), '{}') from entry where entry.hk = 'qti-match-table'),
+    -- An item's run holds no test field; a test's run adds them (test-document.sql's test_outcome_processing_of).
+    '{}'::member_bound[], '{}'::member_var[], '{}'::member_var[], '{}'::member_var[], '{}'::member[],
+    '{}'::ref_category[], '{}'::ref_mapping[], '{}'::ref_section[], '{}'::ref_weight[],
+    '{}'::reply[], '{}'::table_entry[], '{}'::table_value[]
+  )::inputs
+$$;
+
+-- A document's declarations of one kind, as the machine's variables: each with its declared type and its value at a
+-- child element of the declaration (qti-default-value or qti-correct-response), empty where it has none. A qti-value is
+-- xs:normalizedString (ValueDType): its TAB, LF and CR read as spaces, nothing trimmed, as pantry stores it
+-- (SV-VALUE-01). A record's values each name their field and are read in their own base type (Table 5.115.3: a record
+-- has none of its own).
+create function p3.declared(attributes p3.document_attribute[], declarations p3.declaration_node[], holder text,
+  kind text, texts p3.document_text[])
+returns setof p3.var language sql immutable as $$
+  with a as (
+    select y.start,
+      max(y.value) filter (where y.name = 'identifier') as identifier,
+      max(y.value) filter (where y.name = 'base-type') as base_type,
+      max(y.value) filter (where y.name = 'cardinality') as cardinality,
+      max(y.value) filter (where y.name = 'field-identifier') as field_identifier
+    from unnest(attributes) y group by y.start
+  ), d as (
+    select x.start, trim_xml(t => a.identifier) as id, trim_xml(t => a.base_type) as base, trim_xml(t => a.cardinality) as card
+    from unnest(declarations) x join a on a.start = x.start where x.kind = declared.kind
+  ), v as materialized (
+    select d.start as decl, w.start, case when d.card = 'record'
+        then s_field(s => xml_single(base => trim_xml(t => wa.base_type), txt => translate(t.text, E'\t\n\r', '   ')), field => trim_xml(t => wa.field_identifier))
+        else xml_single(base => d.base, txt => translate(t.text, E'\t\n\r', '   ')) end as x
+    from d join unnest(declarations) h on h.parent = d.start and h.kind = declared.holder
+      join unnest(declarations) w on w.parent = h.start and w.kind = 'qti-value'
+      join unnest(texts) t on t.start = w.start left join a wa on wa.start = w.start
+  )
+  select d.base, d.card, d.id,
+    coalesce((select array_agg(v.x order by v.start) from v where v.decl = d.start and (v.x).base is not null), '{}')
+  from d
+$$;
+
+-- QTI's built-in context record, QTI_CONTEXT: the host gives no context, so it is the NULL record.
+create function p3.qti_context() returns p3.var language sql immutable as $$ select row(null, 'record', 'QTI_CONTEXT', '{}')::var $$;
+-- QTI's built-in session variables, as the typed rows a declaration would give them (QTI 3.0.1 §2.2.2.2: "two built-in
+-- response variables: 'numAttempts' and 'duration'", §2.2.2.3 the built-in outcome 'completionStatus').
+create function p3.builtin_responses() returns setof p3.var language sql immutable as $$
+  select * from (values ('integer'::text, 'single'::text, 'numAttempts'::text, '{}'::single[]), ('float', 'single', 'duration', '{}')) b
+$$;
+create function p3.builtin_outcomes() returns setof p3.var language sql immutable as $$
+  select 'identifier'::text, 'single'::text, 'completionStatus'::text, '{}'::single[]
+$$;
+-- Each variable a document's run holds and the kind of declaration it is of, a built-in under its own kind's.
+create type p3.var_kind as (identifier text collate pg_catalog.pg_c_utf8, kind text collate pg_catalog.pg_c_utf8);
+create function p3.var_kinds(attributes p3.document_attribute[], declarations p3.declaration_node[]) returns setof p3.var_kind
+language sql immutable as $$
+  select trim_xml(t => y.value), case d.kind when 'qti-response-declaration' then 'response' when 'qti-outcome-declaration' then 'outcome'
+      when 'qti-template-declaration' then 'template' when 'qti-context-declaration' then 'context' end
+  from unnest(declarations) d join unnest(attributes) y on y.start = d.start and y.name = 'identifier'
+  where d.kind in ('qti-response-declaration', 'qti-outcome-declaration', 'qti-template-declaration', 'qti-context-declaration')
+  union all select * from (values ('numAttempts'::text, 'response'::text), ('duration', 'response'), ('completionStatus', 'outcome'),
+    ('QTI_CONTEXT', 'context')) b
+$$;
+-- Variables with those of them given replaced by the given ones of the same identifier, then every given one no
+-- declared one names.
+create function p3.overridden(declared p3.var[], given p3.var[]) returns setof p3.var language sql immutable as $$
+  select (coalesce((select g from unnest(given) g where g.identifier = d.identifier), d)).* from unnest(declared) d
+  union all select g.* from unnest(given) g where not exists (select 1 from unnest(declared) d where d.identifier = g.identifier)
+$$;
+
+-- One session's values, as boundary.sql's in_values: the rows of its key, (child, package, path, stage): a run's, or a
+-- test member's item session in the run's sitting.
+create function p3.values_of(bases p3.doc_base[], booleans p3.doc_boolean[], child text, directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[],
+  field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[], field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[],
+  field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[], field_texts p3.doc_field_text[], file_names p3.doc_file_name[],
+  files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[],
+  package text, pairs p3.doc_pair[], path text,
+  points p3.doc_point[], stage bigint, texts p3.doc_text[], vars p3.doc_var[])
+returns p3.in_values language sql immutable as $$
+  select row(
+    array(select row(x.base, x.identifier)::in_base from unnest(bases) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.holds, x.identifier, x.place, x.value)::in_boolean from unnest(booleans) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.holds, x.identifier, x.place, x.source, x.target)::in_directed_pair from unnest(directed_pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.field, x.holds, x.identifier, x.value)::in_field_boolean from unnest(field_booleans) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.field, x.holds, x.identifier, x.source, x.target)::in_field_directed_pair from unnest(field_directed_pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.field, x.holds, x.identifier, x.name)::in_field_file_name from unnest(field_file_names) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.content_type, x.digest, x.field, x.holds, x.identifier)::in_field_file from unnest(field_files) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.base, x.field, x.holds, x.identifier, x.value)::in_field_float from unnest(field_floats) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.field, x.holds, x.identifier, x.value)::in_field_integer from unnest(field_integers) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.field, x.greatest, x.holds, x.identifier, x.least)::in_field_pair from unnest(field_pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.field, x.holds, x.identifier, x.x, x.y)::in_field_point from unnest(field_points) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.base, x.field, x.holds, x.identifier, x.value)::in_field_text from unnest(field_texts) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.holds, x.identifier, x.name, x.place)::in_file_name from unnest(file_names) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.content_type, x.digest, x.holds, x.identifier, x.place)::in_file from unnest(files) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.base, x.holds, x.identifier, x.place, x.value)::in_float from unnest(floats) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.holds, x.identifier, x.place, x.value)::in_integer from unnest(integers) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.greatest, x.holds, x.identifier, x.least, x.place)::in_pair from unnest(pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.holds, x.identifier, x.place, x.x, x.y)::in_point from unnest(points) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.base, x.holds, x.identifier, x.place, x.value)::in_text from unnest(texts) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.card, x.holds, x.identifier)::in_var from unnest(vars) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage))
+  )::in_values
+$$;
+
+-- Whether two values of one cardinality are one value, exactly, as the ledger holds a value: a single's fields each as
+-- it is, a text by its code points, a float by its bits (every NaN one, grizzle's Num.floatBits, so -0 is not 0); a
+-- multiple as a bag and a record as its fields, each once by name, in any order; an ordered value place by place. NULL,
+-- no single, is one value with NULL alone. Never a comparison QTI defines (`match` compares a float by value).
+create function p3.held_identical(a p3.single[], b p3.single[], card text) returns boolean language sql immutable as $$
+  with x as (
+    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base,
+      case when z.f = 'NaN' then '\x7ff8000000000000'::bytea else float8send(z.f) end as f, z.field, z.m, z.n, z.t, z.u, z.w
+    from unnest(a) with ordinality z
+  ), y as (
+    select case when card = 'ordered' then z.ordinality else 0 end as k, z.b, z.base,
+      case when z.f = 'NaN' then '\x7ff8000000000000'::bytea else float8send(z.f) end as f, z.field, z.m, z.n, z.t, z.u, z.w
+    from unnest(b) with ordinality z
+  )
+  select cardinality(a) = cardinality(b) and not exists (select * from x except all select * from y)
+$$;
+
+-- One run's values after it, as the flat result's rows, each keyed by the run: its variables (held `value`) and, where
+-- `delta`, only what the run set: each variable, correct response and default in force (held `value`, `correct` and
+-- `default`) whose value is not the one the run began with (held_identical over the state's `declared`,
+-- `declared_correct` and `declared_defaults`, a variable the run began without beginning NULL), so a rule that sets a
+-- value to itself sets nothing, one that sets NULL over a value gives the variable with no single, and the contexts,
+-- QTI_CONTEXT and the built-ins appear only where a rule set them; each variable with its kind; and how it ended. Each
+-- value's singles at their places from 0, a record's at its fields, as outcomes_of gives them.
+create function p3.doc_values_of(delta boolean, kinds p3.var_kind[], run p3.document_run, st p3.run_state)
+returns p3.doc_values language sql immutable as $$
+  with v as (
+    select 'value'::text as holds, x.identifier, x.base, x.card, x.vals from unnest(st.vars) x
+    where not delta or not held_identical(a => x.vals, card => x.card,
+      b => coalesce((select d.vals from unnest(st.declared) d where d.identifier = x.identifier), '{}'))
+    union all select 'correct', x.identifier, x.base, x.card, x.vals from unnest(st.correct) x
+    where delta and not held_identical(a => x.vals, card => x.card,
+      b => coalesce((select d.vals from unnest(st.declared_correct) d where d.identifier = x.identifier), '{}'))
+    union all select 'default', x.identifier, x.base, x.card, x.vals from unnest(st.defaults) x
+    where delta and not held_identical(a => x.vals, card => x.card,
+      b => coalesce((select d.vals from unnest(st.declared_defaults) d where d.identifier = x.identifier), '{}'))
+  ), s as (
+    select v.holds, v.identifier, v.card, k - 1 as place, v.vals[k] as x from v, generate_subscripts(v.vals, 1) k
+  )
+  select row(
+    array(select distinct row(v.base, (run).child, v.identifier, (run).package, (run).path, (run).stage)::doc_base from v where v.card <> 'record'),
+    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).b)::doc_boolean from s where card <> 'record' and (x).base = 'boolean'),
+    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (x).t, (run).stage, (x).u)::doc_directed_pair from s where card <> 'record' and (x).base = 'directedPair'),
+    array[row((run).child, st.drawn, st.flow, (run).package, (run).path, (run).stage)::doc_end],
+    array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).b)::doc_field_boolean from s where card = 'record' and (x).base = 'boolean'),
+    array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (x).t, (run).stage, (x).u)::doc_field_directed_pair from s where card = 'record' and (x).base = 'directedPair'),
+    array(select row((run).child, (x).field, holds, identifier, (x).w, (run).package, (run).path, (run).stage)::doc_field_file_name from s where card = 'record' and (x).base = 'file' and (x).w is not null),
+    array(select row((run).child, (x).u, (x).t, (x).field, holds, identifier, (run).package, (run).path, (run).stage)::doc_field_file from s where card = 'record' and (x).base = 'file'),
+    array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).f)::doc_field_float from s where card = 'record' and (x).base in ('float', 'duration')),
+    array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n)::doc_field_integer from s where card = 'record' and (x).base = 'integer'),
+    array(select row((run).child, (x).field, (x).u, holds, identifier, (x).t, (run).package, (run).path, (run).stage)::doc_field_pair from s where card = 'record' and (x).base = 'pair'),
+    array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n, (x).m)::doc_field_point from s where card = 'record' and (x).base = 'point'),
+    array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).t)::doc_field_text from s where card = 'record' and (x).base in ('identifier', 'string', 'uri')),
+    array(select row((run).child, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::doc_file_name from s where card <> 'record' and (x).base = 'file' and (x).w is not null),
+    array(select row((run).child, (x).u, (x).t, holds, identifier, (run).package, (run).path, place, (run).stage)::doc_file from s where card <> 'record' and (x).base = 'file'),
+    array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::doc_float from s where card <> 'record' and (x).base in ('float', 'duration')),
+    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::doc_integer from s where card <> 'record' and (x).base = 'integer'),
+    array(select row((run).child, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::doc_pair from s where card <> 'record' and (x).base = 'pair'),
+    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n, (x).m)::doc_point from s where card <> 'record' and (x).base = 'point'),
+    array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).t)::doc_text from s where card <> 'record' and (x).base in ('identifier', 'string', 'uri')),
+    array(select row(v.card, (run).child, v.holds, v.identifier, (select k.kind from unnest(kinds) k where k.identifier = v.identifier), (run).package, (run).path, (run).stage)::doc_var from v)
+  )::doc_values
+$$;
+-- Two results as one: each field's rows, the first's then the second's.
+create function p3.doc_values_joined(a p3.doc_values, b p3.doc_values) returns p3.doc_values language sql immutable as $$
+  select row(a.bases || b.bases, a.booleans || b.booleans, a.directed_pairs || b.directed_pairs, a.ends || b.ends, a.field_booleans || b.field_booleans,
+    a.field_directed_pairs || b.field_directed_pairs, a.field_file_names || b.field_file_names, a.field_files || b.field_files, a.field_floats || b.field_floats, a.field_integers || b.field_integers,
+    a.field_pairs || b.field_pairs, a.field_points || b.field_points, a.field_texts || b.field_texts,
+    a.file_names || b.file_names, a.files || b.files, a.floats || b.floats,
+    a.integers || b.integers, a.pairs || b.pairs, a.points || b.points,
+    a.texts || b.texts, a.vars || b.vars)::doc_values
+$$;
+-- No document's values.
+create function p3.no_doc_values() returns p3.doc_values language sql immutable as $$
+  select row('{}'::doc_base[], '{}'::doc_boolean[], '{}'::doc_directed_pair[], '{}'::doc_end[], '{}'::doc_field_boolean[], '{}'::doc_field_directed_pair[],
+    '{}'::doc_field_file_name[], '{}'::doc_field_file[], '{}'::doc_field_float[], '{}'::doc_field_integer[], '{}'::doc_field_pair[],
+    '{}'::doc_field_point[], '{}'::doc_field_text[], '{}'::doc_file_name[], '{}'::doc_file[],
+    '{}'::doc_float[], '{}'::doc_integer[], '{}'::doc_pair[], '{}'::doc_point[],
+    '{}'::doc_text[], '{}'::doc_var[])::doc_values
+$$;
+
+-- A document's defaults in force: its responses', outcomes' and template variables' declared ones and the built-ins',
+-- each overridden by one given held `default` (the session's template processing set it).
+create function p3.defaults_of(attributes p3.document_attribute[], declarations p3.declaration_node[], given p3.in_values,
+  texts p3.document_text[])
+returns setof p3.var language sql immutable as $$
+  select x.* from overridden(
+    declared => array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-response-declaration', holder => 'qti-default-value') y)
+      || array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-outcome-declaration', holder => 'qti-default-value') y)
+      || array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-template-declaration', holder => 'qti-default-value') y)
+      || array(select y from builtin_responses() y) || array(select y from builtin_outcomes() y),
+    given => array(select y from vars_in(i => given, h => 'default') y)) x
+$$;
+-- A document's variables as a run starts from them: its outcomes at their defaults in force, the declared ones each
+-- overridden by a default given held `default` (template processing's qti-set-default-value sets "the response variable
+-- or outcome variable to have its default value set", Table 6.51), a numeric single with none at 0 (Table 4.5:
+-- "initialized to NULL unless the outcome is of a numeric type (integer or float) in which case it is initialized to
+-- 0", test-outcome.sql's `initial`), and completionStatus at
+-- `unknown` (its value "at the start of the first attempt", which "remains with this value for the duration of the item
+-- session unless set to a different value", info §2.2.2.3: a later attempt is given the session's), its template
+-- variables at their declared defaults, its response variables at their defaults in force (defaults_of: the session's
+-- template-set default, else the declared one, else NULL; "if a default value has been provided for a response
+-- variable then the variable is set to this value at the start of the first attempt", info, Response Variables, so a
+-- response submitted at its default, QTI 3.0.1 Table 7.19.6, is one the attempt gives no value of; a session never
+-- attempted, numAttempts 0, keeps them NULL: "If the candidate never attempts the item … the response variable remains
+-- NULL and the default value is never used", Table 5.115), each overridden by
+-- a value given held `value` (the posted responses, the
+-- session's template values, numAttempts, the session's completionStatus after its last attempt, an adaptive item's
+-- outcomes after its last attempt, a test member's values now), then every given one no declaration names, then its
+-- contexts at their declared defaults and QTI_CONTEXT.
+create function p3.start_of(attributes p3.document_attribute[], declarations p3.declaration_node[], given p3.in_values,
+  texts p3.document_text[])
+returns setof p3.var language sql immutable as $$
+  select x.* from overridden(
+    declared => array(select y from initial(declared => array(select d from overridden(
+        declared => array(select e from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-outcome-declaration', holder => 'qti-default-value') e),
+        given => array(select g from vars_in(i => given, h => 'default') g)) d
+      where d.identifier in (select e.identifier from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-outcome-declaration', holder => 'qti-default-value') e))) y)
+      || row('identifier', 'single', 'completionStatus', array[s_text(base => 'identifier', t => 'unknown')])::var
+      || array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-template-declaration', holder => 'qti-default-value') y)
+      || array(select r from defaults_of(attributes => attributes, declarations => declarations, given => given, texts => texts) r
+        where r.identifier in (select e.identifier from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-response-declaration', holder => 'qti-default-value') e)
+          and exists (select 1 from vars_in(i => given, h => 'value') g where g.identifier = 'numAttempts' and (g.vals[1]).n > 0)),
+    given => array(select y from vars_in(i => given, h => 'value') y)) x
+  union all select y.* from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-context-declaration', holder => 'qti-default-value') y
+  union all select (qti_context()).*
+$$;
+-- A document's correct responses in force: its declared ones and the built-in responses', each overridden by one given
+-- held `correct` (the session's template processing set it).
+create function p3.correct_of(attributes p3.document_attribute[], declarations p3.declaration_node[], given p3.in_values,
+  texts p3.document_text[])
+returns setof p3.var language sql immutable as $$
+  select x.* from overridden(
+    declared => array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-response-declaration', holder => 'qti-correct-response') y)
+      || array(select y from builtin_responses() y),
+    given => array(select y from vars_in(i => given, h => 'correct') y)) x
+$$;
+
+-- An item's response processing from the variables, correct responses and defaults it starts from. No program, no
+-- run: the values stand as they start.
+create function p3.response_state(attributes p3.document_attribute[], declarations p3.declaration_node[], given p3.in_values,
+  inp p3.inputs, label text, prog p3.program, seed text, texts p3.document_text[])
+returns p3.run_state language plpgsql immutable as $$
+declare
+  vars var[] := array(select x from start_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
+  correct var[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
+  defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
+begin
+  if prog is null then
+    return row(correct, vars, correct, defaults, defaults, 0, 'run', label, seed, false, vars)::run_state;
+  end if;
+  return response_processing(prog => prog, inp => inp, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label);
+end $$;
+
+-- An item's template processing at the take: from its template variables and contexts at their declared defaults,
+-- each overridden by a value given held `value`, and QTI_CONTEXT, and its correct responses and defaults in force.
+create function p3.template_state(attributes p3.document_attribute[], declarations p3.declaration_node[], given p3.in_values,
+  inp p3.inputs, label text, prog p3.program, seed text, texts p3.document_text[])
+returns p3.run_state language plpgsql immutable as $$
+declare
+  vars var[] := array(select x from overridden(
+    declared => array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-template-declaration', holder => 'qti-default-value') y)
+      || array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-context-declaration', holder => 'qti-default-value') y),
+    given => array(select y from vars_in(i => given, h => 'value') y)) x) || qti_context();
+  correct var[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
+  defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
+begin
+  if prog is null then
+    return row(correct, vars, correct, defaults, defaults, 0, 'run', label, seed, false, vars)::run_state;
+  end if;
+  return template_processing(prog => prog, inp => inp, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label);
+end $$;
+
+-- A run's recorded replies as the machine reads them: each keyed by its operator element's place in the program, the
+-- stored start numbered as program_of numbers the program's nodes (width_bucket over their stored starts).
+create function p3.replies_of(nodes p3.program_node[], reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[],
+  run p3.document_run)
+returns setof p3.reply language sql immutable as $$
+  with o as (select array_agg(x.start order by x.start) as starts from unnest(nodes) x)
+  select f.field, width_bucket(f.start, o.starts), s_float(base => 'float', f => f.value) from o, unnest(reply_floats) f
+  where (f.child, f.package, f.path, f.stage) = ((run).child, (run).package, (run).path, (run).stage)
+  union all
+  select t.field, width_bucket(t.start, o.starts), s_text(base => t.base, t => t.value) from o, unnest(reply_texts) t
+  where (t.child, t.package, t.path, t.stage) = ((run).child, (run).package, (run).path, (run).stage)
+$$;
+-- The inputs with the registry's tables (its bindings, entries and map values, as the statement passes the Registry
+-- level's RegistryBinding, RegistryEntry and RegistryValue) and an attempt's recorded replies, as a test's run adds
+-- its test's fields: the rows the custom operators read.
+create function p3.with_registry(inp p3.inputs, replies p3.reply[], table_bindings p3.table_binding[],
+  table_entries p3.table_entry[], table_values p3.table_value[])
+returns p3.inputs language plpgsql immutable as $$
+begin
+  inp.bindings := table_bindings; inp.table_entries := table_entries; inp.table_values := table_values; inp.replies := replies;
+  return inp;
+end $$;
+
+-- The flat entry of response processing: every run a call names, each by itself, its program (none where its document
+-- has no processing program) and inputs read from its document's tree, and its run from its own values and recorded
+-- replies, by its key, in one call; the registry's rows the same for every run.
+create function p3.response_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[],
+  declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
+  directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
+  field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
+  field_texts p3.doc_field_text[], file_names p3.doc_file_name[], files p3.doc_file[], floats p3.doc_float[],
+  integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[],
+  program_attributes p3.document_attribute[], program_texts p3.document_text[], programs p3.program_node[],
+  reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[], runs p3.document_run[],
+  table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[],
+  texts p3.doc_text[], vars p3.doc_var[])
+returns p3.doc_values language plpgsql immutable as $$
+declare r document_run; pn program_node[]; dn declaration_node[]; da document_attribute[]; dt document_text[];
+  result doc_values := no_doc_values(); st run_state;
+begin
+  for r in select x.* from unnest(runs) x order by x.child, x.package, x.path, x.stage loop
+    pn := array(select x from unnest(programs) x where x.package = r.package and x.path = r.path);
+    dn := array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path);
+    da := array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path);
+    dt := array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path);
+    st := response_state(
+      prog => case when cardinality(pn) > 0 then program_of(nodes => pn,
+        attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
+        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da) end,
+      inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
+        table_entries => table_entries, table_values => table_values,
+        replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
+      declarations => dn, attributes => da, texts => dt,
+      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
+        file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
+        field_files => field_files, field_file_names => field_file_names),
+      seed => r.seed, label => r.label);
+    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k), delta => false));
+  end loop;
+  return result;
+end $$;
+
+-- The flat entry of template processing at the take: as response_processing_of, what each run set given back, its
+-- template values, correct responses and defaults (held `value`, `correct` and `default`) that differ from those it
+-- began with (doc_values_of's `delta`): the session's facts, never the declared values, which are the item's content.
+create function p3.template_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[],
+  declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
+  directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
+  field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
+  field_texts p3.doc_field_text[], file_names p3.doc_file_name[], files p3.doc_file[], floats p3.doc_float[],
+  integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[],
+  program_attributes p3.document_attribute[], program_texts p3.document_text[], programs p3.program_node[],
+  reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[], runs p3.document_run[],
+  table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[],
+  texts p3.doc_text[], vars p3.doc_var[])
+returns p3.doc_values language plpgsql immutable as $$
+declare r document_run; pn program_node[]; dn declaration_node[]; da document_attribute[]; dt document_text[];
+  result doc_values := no_doc_values(); st run_state;
+begin
+  for r in select x.* from unnest(runs) x order by x.child, x.package, x.path, x.stage loop
+    pn := array(select x from unnest(programs) x where x.package = r.package and x.path = r.path);
+    dn := array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path);
+    da := array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path);
+    dt := array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path);
+    st := template_state(
+      prog => case when cardinality(pn) > 0 then program_of(nodes => pn,
+        attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
+        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da) end,
+      inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
+        table_entries => table_entries, table_values => table_values,
+        replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
+      declarations => dn, attributes => da, texts => dt,
+      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
+        file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
+        field_files => field_files, field_file_names => field_file_names),
+      seed => r.seed, label => r.label);
+    result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k), delta => true));
+  end loop;
+  return result;
+end $$;
+
+-- A bag's copies of one value: places 0 to count - 1, so a multiple stored as (value, count) crosses as count rows.
+create function p3.copies(count bigint) returns setof p3.copy language sql immutable as $$
+  select k from generate_series(0::bigint, count - 1) k
+$$;
+-- HMAC-SHA-256 (RFC 2104) of a message under a key, both UTF-8, as 64 lowercase hex digits: plate's keyedDigest, the
+-- hash every seed a decision derives takes.
+create function p3.keyed_digest(key text, message text) returns text language plpgsql immutable as $$
+declare k bytea := convert_to(key, 'UTF8'); ipad bytea := ''; opad bytea := ''; j int;
+begin
+  k := case when length(k) > 64 then sha256(k) else k end;
+  k := k || decode(repeat('00', 64 - length(k)), 'hex');
+  for j in 0 .. 63 loop
+    ipad := ipad || set_byte('\x00'::bytea, 0, get_byte(k, j) # 54);
+    opad := opad || set_byte('\x00'::bytea, 0, get_byte(k, j) # 92);
+  end loop;
+  return encode(sha256(opad || sha256(ipad || convert_to(message, 'UTF8'))), 'hex');
+end $$;
+-- The seed an item's template and response processing draw under, from its decision's seed, a v4 uuid in its canonical
+-- lowercase text (plate's itemSeeds: keyedDigest(decision, ["processing", package, identifier]), its fields joined by
+-- U+001F).
+create function p3.processing_seed(decision uuid, identifier text, package text) returns text language sql immutable as $$
+  select keyed_digest(key => decision::text, message => 'processing' || chr(31) || package || chr(31) || identifier)
+$$;
+-- The labels an item's draws are made under (plate's labels): `served␟response␟<numAttempts>` for response processing,
+-- `served␟template␟<identifier>` for template processing.
+create function p3.response_label(attempts bigint) returns text language sql immutable as $$
+  select 'served' || chr(31) || 'response' || chr(31) || attempts::text
+$$;
+create function p3.template_label(identifier text) returns text language sql immutable as $$
+  select 'served' || chr(31) || 'template' || chr(31) || identifier
+$$;

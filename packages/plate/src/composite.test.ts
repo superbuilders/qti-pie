@@ -8,10 +8,8 @@
  * - "Each response variable declared may be bound to one and only one interaction" (information
  *   model, section 2.2.2.2; reading 92), so each response posts and decodes under its own entry
  *   name alone;
- * - Each interaction's limits judge its own response alone: the Choice's `min-choices` 1 refuses it
- *   empty under `validateResponses`, and the other three have no limit to break;
- * - The scores are the processing's sums, 3, 2 and 0, and the solution is each declared correct
- *   response, NULL for `NOTE`, which declares none.
+ * - The solution is each declared correct response, NULL for `NOTE`, which declares none. The scores
+ *   are the QTI database's.
  *
  * @module
  */
@@ -19,15 +17,12 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option, Result } from "effect";
-import { configure } from "#plate/configuration.ts";
 import { decode, entryName, partition } from "#plate/form/encoding.ts";
 import type { Entry } from "#plate/form/encoding.ts";
 import type { Responses, Value } from "#plate/model/values.ts";
 import { postings } from "#plate/postings.ts";
 import type { Posting } from "#plate/postings.ts";
-import { checkResponses } from "#plate/responses.ts";
 import { solution } from "#plate/solution.ts";
-import { score } from "#plate/test/score.ts";
 import { fixturesDirectory } from "#plate/test/scratch.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
@@ -95,16 +90,6 @@ const allRight: Readonly<Record<Part, Value>> = {
 };
 
 /**
- * The responses that answer every scored part wrongly and fill the note.
- */
-const allWrong: Readonly<Record<Part, Value>> = {
-  CITY: given("string", "Porto"),
-  COLOUR: given("identifier", "A"),
-  NOTE: given("string", note),
-  TENSE: given("identifier", "PRESENT"),
-};
-
-/**
  * Open the composite fixture, failing the test when `admitted` does not accept it.
  *
  * @returns The verdict and the accepted item.
@@ -140,27 +125,6 @@ const decodeAll = (accepted: Accepted, entries: readonly Entry[]): Responses => 
       ),
     ]),
   );
-};
-
-/**
- * Score one attempt and give its `SCORE` and `MAXSCORE`.
- *
- * @param accepted The item.
- * @param responses The candidate's responses.
- * @returns Each outcome's values.
- */
-const outcomesAfter = (
-  accepted: Accepted,
-  responses: Responses,
-): Readonly<Record<"MAXSCORE" | "SCORE", readonly unknown[]>> => {
-  const stored = Result.getOrElse(score(accepted, responses), (failure) =>
-    assert.fail(`score refused the responses: ${failure._tag}`),
-  );
-
-  return {
-    MAXSCORE: stored.outcomes["MAXSCORE"]?.values.map((single) => single.value) ?? [],
-    SCORE: stored.outcomes["SCORE"]?.values.map((single) => single.value) ?? [],
-  };
 };
 
 describe("a composite item: four interactions of four kinds, each bound to its own response", () => {
@@ -205,63 +169,11 @@ describe("a composite item: four interactions of four kinds, each bound to its o
       }),
   );
 
-  it.effect("judges each interaction's response alone", () =>
-    Effect.gen(function* judgedApart() {
-      const { accepted } = yield* opened();
-      const configuration = yield* configure({ seed: "", validateResponses: true });
-      const emptyColour = checkResponses(
-        accepted,
-        { ...allRight, COLOUR: absent("identifier") },
-        configuration,
-      );
-
-      assert.isNotEmpty(emptyColour, "an empty Choice of min-choices 1 is refused");
-      assert.deepStrictEqual([...new Set(emptyColour.map(({ response }) => response))], ["COLOUR"]);
-      assert.deepStrictEqual(
-        checkResponses(
-          accepted,
-          {
-            CITY: absent("string"),
-            COLOUR: given("identifier", "B"),
-            NOTE: absent("string"),
-            TENSE: absent("identifier"),
-          },
-          configuration,
-        ),
-        [],
-        "an empty CITY, TENSE or NOTE has no limit to break",
-      );
-      assert.deepStrictEqual(checkResponses(accepted, allRight, configuration), []);
-    }),
-  );
-
-  it.effect("scores 1 for each correct part: 3 for all, 2 with one wrong, 0 for none", () =>
-    Effect.gen(function* scores() {
-      const { accepted } = yield* opened();
-
-      assert.deepStrictEqual(outcomesAfter(accepted, allRight), { MAXSCORE: [3], SCORE: [3] });
-      for (const wrong of ["COLOUR", "CITY", "TENSE"] as const) {
-        assert.deepStrictEqual(
-          outcomesAfter(accepted, { ...allRight, [wrong]: allWrong[wrong] }).SCORE,
-          [2],
-          `${wrong} wrong`,
-        );
-      }
-
-      assert.deepStrictEqual(outcomesAfter(accepted, allWrong).SCORE, [0]);
-      assert.deepStrictEqual(
-        outcomesAfter(accepted, { ...allRight, NOTE: absent("string") }).SCORE,
-        [3],
-        "the note's absence takes nothing from the sum",
-      );
-    }),
-  );
-
   it.effect("solves each scored response with its correct value, and NOTE with NULL", () =>
     Effect.gen(function* solves() {
       const { accepted } = yield* opened();
 
-      assert.deepStrictEqual(solution(accepted), {
+      assert.deepStrictEqual(solution(accepted, { correct: {} }), {
         CITY: given("string", "Lisbon"),
         COLOUR: given("identifier", "B"),
         NOTE: absent("string"),

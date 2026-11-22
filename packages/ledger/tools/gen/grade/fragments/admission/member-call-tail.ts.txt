@@ -1,0 +1,23 @@
+
+  /**
+   * The reasons admission refuses the answer for: none, or the answer writes nothing.
+   */
+  const reasonsOf = query(delivery).rule((r) => {
+    const { reasons } = runIn(r);
+    const { child, code, interaction, ord, package: pkg, path, response, stage } = v(reasons, "reason");
+
+    return r
+      .match(reasons, { child, code, interaction, ord, package: pkg, path, response, stage })
+      .find({ child, code, interaction, ord, package: pkg, path, response, stage });
+  });
+
+  return {
+    answeredIn: <S>(r: Rule<S>) => args.answered.bind(keyIn(r)),
+    hiddenIn: <S>(r: Rule<S>) => hiddenOf.bind({ ...keyIn(r), ...postedIn(r) }),
+    keyIn,
+    latestIn: <S>(r: Rule<S>) => args.latest.bind(keyIn(r)),
+    postedIn,
+    reasonsIn: <S>(r: Rule<S>) => reasonsOf.bind({ ...keyIn(r), ...postedIn(r) }),
+    runIn,
+  } as const;
+};

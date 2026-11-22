@@ -17,7 +17,7 @@
  * cannot hold it to inside its sandbox; and the text is the value that was scored, which plate
  * knows to be true, readable without the PCI.
  *
- * A review against the host's solution marks the value whole ({@link markOf}), as `qti-match`
+ * A review marks the value whole by the host's marks ({@link markOf}), as `qti-match`
  * compares two values: a PCI's values mean what its module makes of them, so plate marks no part
  * of a list, and a record, which `qti-match` does not compare, is not marked. Where the value is
  * not right, the correct response follows under "Right answer", as a Text Entry's does.
@@ -36,7 +36,7 @@ import { messageText } from "#plate/messages.ts";
 import type { Locale, MessageKey } from "#plate/messages.ts";
 import type { ModelOf } from "#plate/model/interactions.ts";
 import type { RedactedLevel } from "#plate/model/item.ts";
-import { format, isNullResponse, isRecordValue, match } from "#plate/model/values.ts";
+import { format, isNullResponse, isRecordValue } from "#plate/model/values.ts";
 import type { ResponseValue, Value } from "#plate/model/values.ts";
 import type { Paired } from "#plate/payload.ts";
 import type { PciFrameRoute } from "#plate/pci/frame-protocol.ts";
@@ -44,10 +44,10 @@ import type { PciModuleRoute } from "#plate/pci/host.ts";
 import { noticeOf } from "#plate/ui/item/content.tsx";
 import type { IslandContext, ReviewContext, Shows } from "#plate/ui/item/context.ts";
 import { groupOf } from "#plate/ui/item/interactions/group.ts";
-import { controlParts } from "#plate/ui/item/interactions/control-mark.tsx";
+import { controlMarkOf, controlParts } from "#plate/ui/item/interactions/control-mark.tsx";
 import type { ControlMark } from "#plate/ui/item/interactions/control-mark.tsx";
 import { classRootOf, labelsOf, promptAt } from "#plate/ui/item/interactions/labels.ts";
-import { markingOf, missedShown } from "#plate/ui/item/interactions/marks.ts";
+import { correctShown, markingOf } from "#plate/ui/item/interactions/marks.ts";
 import type { AnswerMark, Marking } from "#plate/ui/item/interactions/marks.ts";
 import { markPart } from "#plate/ui/item/interactions/words.tsx";
 import type { Words } from "#plate/ui/item/interactions/words.tsx";
@@ -256,32 +256,33 @@ const valuePart = (
   );
 
 /**
- * Mark the value a review shows against the correct response, whole, as `qti-match` compares two
- * values ({@link match}): a list is right only as the whole correct list. Against a correct
- * response, the right answer written where the value is not right is the correct response itself.
+ * Mark the value a review shows, whole, by the marks the host handed for its response
+ * ({@link controlMarkOf}): it is right only where no part of it is marked `wrong` or `missed`, as
+ * `qti-match` compares two values whole. The right answer written where the value is not right is
+ * the correct response the marks name (`correctShown`), where the review shows the solution.
  *
- * @param shown The value shown, none for no value: NULL holds no answer to mark, and a record is
- *   no value `qti-match` compares.
- * @param marking How the review marks the response.
+ * @param shown The value shown, none for no value: NULL holds no answer to mark, and a record has
+ *   no marks.
+ * @param marking The marks handed for the response.
+ * @param cardinality The bound response's cardinality, the right answer's.
  * @returns The mark.
  */
-const markOf = (shown: ResponseValue | undefined, marking: Marking): ControlMark<Value> => {
-  if (marking.kind !== "against") {
-    return { kind: "unmarked" };
-  }
-
-  const answer = Arr.head(missedShown(marking, [marking.correct]));
-
-  if (shown === undefined || isNullResponse(shown)) {
-    return { answer, kind: "unanswered" };
-  }
-
-  if (isRecordValue(shown)) {
-    return { kind: "unmarked" };
-  }
-
-  return match(shown, marking.correct) ? { kind: "right" } : { answer, kind: "wrong" };
-};
+const markOf = (
+  shown: ResponseValue | undefined,
+  marking: Marking,
+  cardinality: Value["cardinality"],
+): ControlMark<Value> =>
+  controlMarkOf(marking, shown !== undefined && !isNullResponse(shown), () =>
+    marking.kind === "marked"
+      ? Option.flatMap(correctShown(marking), (values) =>
+          Option.map(Arr.head(values), (first) => ({
+            baseType: first.baseType,
+            cardinality,
+            values,
+          })),
+        )
+      : Option.none(),
+  );
 
 /**
  * The catalog's message for whose answer a review or a solution shows, by what it shows: the
@@ -326,7 +327,7 @@ const answerParts = (mark: ControlMark<Value>, locale: Locale): ReactNode => {
 
 /**
  * Render a Portable Custom Interaction's review or solution: its prompt and the response as text,
- * with no frame, marked whole against the host's solution in a review, the correct response after
+ * with no frame, marked whole by the host's marks in a review, the correct response after
  * a value that is not right (the module doc says why).
  *
  * @param paired The Portable Custom Interaction and its payload node.
@@ -337,13 +338,17 @@ const answerParts = (mark: ControlMark<Value>, locale: Locale): ReactNode => {
  *   prompt and `plate-portable-custom-response`, a `dl` whose terms say whose answer each value is.
  */
 export const review = (
-  { payload: node }: Paired<"portable-custom">,
+  { model, payload: node }: Paired<"portable-custom">,
   context: ReviewContext,
 ): ReactNode => {
   const { locale } = context;
   const prompt = promptAt(node.prompt, node.response, context);
   const shown = context.values.get(node.response);
-  const mark = markOf(shown, markingOf(node.response, context));
+  const mark = markOf(
+    shown,
+    markingOf(node.response, context),
+    Option.getOrElse(Option.filter(model.cardinality, isValueCardinality), () => "single" as const),
+  );
 
   return (
     <div

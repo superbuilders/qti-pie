@@ -8,7 +8,7 @@
  * these.
  *
  * Written by the admission run (`packages/qti-pie/packages/pantry/scripts/admit.ts`) at edullm
- * fcf1fae6bbb0f99ac5d4d122e1ba8aa685f3c36e: 1249 documents judged, 1161 admitted, by the schema's
+ * 98d15c69d5d5333721442fccfa57dd126a2fd21e: 1251 documents judged, 1156 admitted, by the schema's
  * laws at that commit. Do not edit it: run the admission again when a document a suite opens
  * changes, and when a law lands that moves a verdict (follow-up 5's template needs, the normative
  * half of G1, refuse 1EdTech's slider-1, which this set admits).
@@ -399,7 +399,6 @@ export const admittedDocuments: ReadonlyMap<
   ["446d0402da39e06547a11fa81175aa923a46fe7310abda9dd30bee1c6bef9327", []],
   ["447c17f21d083ef71ec87109e4d0e7d45265251bac3855c711916a03f250b84b", []],
   ["4485aa942842f5124e9f4150b8329c933409f69539a6e12c05ec7c84a3656389", []],
-  ["44bf84e114c47ba6b8ddce3b6af18efd3c7b5fc5f89e79bd8ed94a95f62d3cf4", []],
   ["44cb4e5f95a96f0be6124b06a2106278ede9c72ac21a0febb8f1ef1a4626c4ee", []],
   ["452fad601d8e5f57e10948085c766a9a13e020e4ef675b11216a660daeca9191", []],
   ["454781c27d6852c511d22fd3d3033692223ab5181ac5b9d1dc7b2f2f187a3190", []],
@@ -471,7 +470,6 @@ export const admittedDocuments: ReadonlyMap<
   ["52768d86a3ed43032b1a3ac44c849b7939ef147c2a36f25014768ec9f874e30b", []],
   ["52a538c2d4b93f023f495513155923a1d64c1dca24dd6c21764aa63558c20df3", []],
   ["52b96bb38a794bd251ea6d6bc59b6ba6597d2d243b18af90960fd661b3d0652e", []],
-  ["52c31137b7977d55308d275b8251a09d3611b2654d6158e7fc15dd31d48f2146", []],
   ["53501c198d4e40a27b503802c3622a7cec140dbce044c45853644ef54efb6e34", []],
   ["539d25ef73b8f2356a166150a136749f163da925791432eff9f074a2dabaeaf8", []],
   ["5411e10a530a14f9c5b9d80d32f8afff540583fca41a35d318b7a182cba7a20e", []],
@@ -488,7 +486,6 @@ export const admittedDocuments: ReadonlyMap<
   ["568f949304b0bea4de4a0a4ddf56ce8b013055a83c89a5571abbe95ee923ef27", []],
   ["56c125e4b72cd22fc3b387d128e8669de24bd0e8b4166152160f61e9aa6b6a78", []],
   ["56f0d393905e19679e2ea34bcf7820c20b1f775cf6587ca7bc17dd16e3f703a6", []],
-  ["57703389249daf87e8131b9ae5ea8ec1bbc0e4891ca4df4da4d676e4e1b3d057", []],
   ["57c4f03ccf48f11f781b2ae6c07a412a61906a6aaa3d70af0e9a5a46fd4b19b0", []],
   ["5852964fb57bbafe6abf56d992f008251f7b9abe750e8ddee14e5c073d2da1c3", []],
   ["58cd57feac238bc3b5958895f4b77ff287598457742877d59688a77e4ff27113", []],
@@ -623,6 +620,10 @@ export const admittedDocuments: ReadonlyMap<
   ["70de36282146dc23985aa4404322db96b93633696c47b086af345f6454041d29", []],
   ["70f290219d9867992fd3c2d9a4d101b72f5b28378ffa3e0c833daef8f3f82ec4", []],
   ["70fa194950f455d43f7fd4c760f48fdd6b8ecdd5dcce988cf177293c326b3acd", []],
+  [
+    "710bf37622e3830f208e8c5f017b0dffc3530f1f233d4b77d9c639bb827b8e4e",
+    [[7, "", "data-reading-type"]],
+  ],
   ["7125de2055ceb0f5b39d6c158914bc40960728740345f80ab78dcf09f99b8393", []],
   ["714603e5b6c9ff4f59b1a69f6b252c99fb1cda019e1cbbf0a114263980ccec95", []],
   ["714e07c62cdda4992cff6a0d5b05899ec94e8bff8f8852369cf2d2145907f317", []],
@@ -648,6 +649,15 @@ export const admittedDocuments: ReadonlyMap<
   ["76b1b04ac466734076e27392ec3157d9facd31b145e65f06e4abe58f67705ec6", []],
   ["76b37382fd9bf70f966a30f4b4ba47ce1c4fb2a3bcbc04d8a9e65e7d7dde10e5", []],
   ["76de52fa055ddce349968168768d9a4e72dc1c131133b5488812c896f995b311", []],
+  [
+    "77a1540c969a61b23458e6ff6e703d79df8ae9006ca4840dd715f8f15ab1e693",
+    [
+      [18, "", "data-reading-type"],
+      [22, "", "data-reading-type"],
+      [26, "", "data-reading-type"],
+      [30, "", "data-reading-type"],
+    ],
+  ],
   ["77a7e7051f73a47fa8b5b291fd63c4f555a661d0583f4ba1159d668c7aa277b3", []],
   [
     "77c8eb1c9fbee876c7d4f6b43d8365f545233ba0d2433affca91e010d6a0b9c6",
@@ -673,9 +683,7 @@ export const admittedDocuments: ReadonlyMap<
   ["7a631550f922c0efbbf447d176242cdb8ac2dfdfc01ffe7b145422e5ef83d315", []],
   ["7a6b1a3f4feee6d29d737da4aa77fdb884af24bab6678d049eda8620099c551d", []],
   ["7a7c82f4b90ffeaf80b6c748c6b8faeedcf6717cf24ba7d298a2288078f13325", []],
-  ["7a834bb575915166927de0efd43ecd07f046e2068c1453e892bea055044e5ea3", []],
   ["7aa040e83bd4225080af481213a6217c6cd3f7238021c2c6c9ef84fcff7810cc", []],
-  ["7b3f6dcc7ce71c6c96b6654e2bb0d732229303fe9e313b11c6040725cd250fa5", []],
   ["7b701fa4f0b764664876eae80df74073878e28f7ef4354a3e60600ec116fb99a", []],
   ["7b79fa4ea5dbf6a63e3ec8aaada0829d9282499a0d401138cf907c95aed35050", []],
   ["7bfc8102c262b6db4277a26e6cd2551559be0feba5cd088822647052d6cf2a50", []],
@@ -863,7 +871,6 @@ export const admittedDocuments: ReadonlyMap<
   ["9c02aa3d255e9ca975d687d2e37adc9c13fd73cc28c2e3fbeeb430670476f8b9", []],
   ["9c236fde2e6042fe7862be6ed83459fdd9ea52bed61d4f06c6f82e6e8438f792", []],
   ["9c5a0c0cb2dd23a49cffc70675388018cf951364c9c647d37d101dd09b907296", []],
-  ["9cb01df6a462c7fac7f0b63918a05c8d98a7f4a2857b8f869aab591f78072685", []],
   ["9cc2bf13fb523d0a358e322825da73f288505b698e5141c44a5ad8425cfe8d07", []],
   ["9ce5ff6769883e99071ab952141a0a30d64392f9c9dbf43edd7a45bc417745d5", []],
   ["9d34c6aed2ba40f724e4c16474ab404f4bc19a56556650bec4f4674091b534c4", []],
@@ -943,6 +950,7 @@ export const admittedDocuments: ReadonlyMap<
   ["aaf5a23c8afea191a6b29320a9b6279d1631195d4d6376b9174ce0f760866188", []],
   ["ab59ecaa14cda3ca4f729eda20dfc546021367c187067b8beb4df63bfec075de", []],
   ["ab73bb726f30a1918786c0bdefb5bed23f6e1f51b517e6527fc68fdb2834ab9d", []],
+  ["ab882a093ad05834b55ca34a93c5669ab79c76d5903b13d87a2d10719fee47f3", []],
   ["abfa3f9f2834ac79975d24a0463bc7860c7d2ee0862bbe9a2b7a7f162ca63273", []],
   ["ac07f36e4272a2e89aa1e046bbbf477de6fc8c08fe1c5946db10059ae6571d3f", []],
   ["ac1b98598eccf5f0f4229a6f2587d18fc9b360fe0b75d38604e3b628118e7d03", []],
@@ -994,7 +1002,6 @@ export const admittedDocuments: ReadonlyMap<
   ["b3c28f127e34192e08cab94d9af5e7bec77310c0e1ca1610804d44e4343e59f5", []],
   ["b3d297fe59f11e9b17dff781eb8245160733f5e5b0b4ae5dc405bf207dbbf1e2", []],
   ["b3e0f9bd838d21a7dbce8cc2ac5c9415f8f73f6c3b8a6a7fa0328a593c722d07", []],
-  ["b3e446c625548b928cb17a47aaf70e240879e4b89f4864a66f6a3a41801d9e4f", []],
   ["b3f2fec3bbc6f45e455c35e7aa3f8d4210117af12330aeff7352ce3ba60c9de6", []],
   ["b44fbf2f0cab73b82e1b81f3bec2029c69ffd078a59897624ca4e00e3a52cdc0", []],
   ["b47c723f3c9d3deeb54e98be4b1e789223a8bfbeb7766ea67cbd06e280449955", []],
@@ -1089,7 +1096,6 @@ export const admittedDocuments: ReadonlyMap<
   ["c3d34353f6dcacbc82bd7dd7282ac10602719936d7f75561cb0aeab9b45cc11a", []],
   ["c3ef318efe2674b45faee29fff1d4bfe0faff60dacea21be099a808871bd20f1", []],
   ["c3f21de4fcd674ab295b755b390298785540e3657a8adbd245a2e9170b3e3fed", []],
-  ["c47300f55bde5461a8c931bfa87ba61178ed522493d8a15e682af188065d51db", []],
   ["c4bbd64ac0a0acf5877fbfe8e40f101d80ffbfb296bb84bd64e4c0c0ab689f5d", []],
   ["c5ef8e0d3dc78511704ace6fb748c89b09b21d4490c00ae52dd50e4a38b9e753", []],
   ["c6a233c1aad0767dffe64acd99d1fd08cb0f95b54dbec3ca40ebe55f56358f35", []],

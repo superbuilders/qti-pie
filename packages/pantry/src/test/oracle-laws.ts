@@ -9,7 +9,9 @@
  * - `#pantry/test/oracle-laws/documents.ts`: the declarations (O2), the LOM title (O6), and the laws
  *   the schema states that the oracle had not declared, which it declares here (`addedLaws`);
  * - `#pantry/test/oracle-laws/expressions.ts`: the expressions (O4);
- * - `#pantry/test/oracle-laws/tests.ts`: the tests and sections (O7).
+ * - `#pantry/test/oracle-laws/tests.ts`: the tests and sections (O7);
+ * - `#pantry/test/oracle-laws/readings.ts`: the readings of a test's variable references;
+ * - `#pantry/test/oracle-laws/content.ts`: the content references, each in its scope's declarations.
  *
  * The oracle reads them through {@link lawDocumentBreaches}, over each document it judges, after
  * its own laws, and {@link lawPackageBreaches}, over the package, after its own. A law the schema
@@ -22,6 +24,11 @@ import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import type { FoldedRows } from "#pantry/model/folds.ts";
 import {
+  contentDocumentBreaches,
+  contentLaws,
+  contentPackageBreaches,
+} from "#pantry/test/oracle-laws/content.ts";
+import {
   documentDocumentBreaches,
   documentLaws,
   documentPackageBreaches,
@@ -29,9 +36,17 @@ import {
 import {
   expressionDocumentBreaches,
   expressionLaws,
+  expressionPackageBreaches,
 } from "#pantry/test/oracle-laws/expressions.ts";
+import type { PlacementScope } from "#pantry/test/oracle-laws/expressions.ts";
+import { Option } from "effect";
 import { viewOf } from "#pantry/test/oracle-view.ts";
-import type { LawBreach, TypedReading } from "#pantry/test/oracle-view.ts";
+import type { LawBreach, PackageRows, TypedReading } from "#pantry/test/oracle-view.ts";
+import {
+  readingLaws,
+  readingPackageBreaches,
+  scopedReadsOf,
+} from "#pantry/test/oracle-laws/readings.ts";
 import {
   testDocumentBreaches,
   testLaws,
@@ -43,7 +58,13 @@ export { addedLaws, lomNamedTypes, objectRoots } from "#pantry/test/oracle-laws/
 /**
  * Every law this module's producers raise.
  */
-const producedLaws = [...documentLaws, ...expressionLaws, ...testLaws] as const;
+const producedLaws = [
+  ...documentLaws,
+  ...expressionLaws,
+  ...testLaws,
+  ...readingLaws,
+  ...contentLaws,
+] as const;
 
 /**
  * A law of {@link producedLaws}.
@@ -62,13 +83,16 @@ interface LawDocument {
 
 /**
  * A package as the oracle hands it over: its manifest's rows, the documents it lists that folded,
- * in manifest order, its entries' paths, and each document's path with the paths of the documents
- * its includes splice in place (spec reading 117).
+ * in manifest order, which of them are assembled, its entries' paths, the sites that place their
+ * targets, and each document's path with the paths of the documents its includes splice in place
+ * (spec reading 117).
  */
-interface LawPackage {
+export interface LawPackage {
+  readonly assembled: PackageRows["assembled"];
   readonly documents: readonly LawDocument[];
   readonly entries: readonly string[];
   readonly manifest: { readonly path: string; readonly rows: FoldedRows<Composed> };
+  readonly placements: PackageRows["placements"];
   readonly spliced: ReadonlyMap<string, readonly string[]>;
 }
 
@@ -81,6 +105,8 @@ interface LawPackage {
  * @param rows - Its folded rows.
  * @param grammar - The composed grammar.
  * @param typed - How an attribute's type reads its value.
+ * @param read - Where the document heads a test, its readings of a reference through a scope (spec
+ *   reading 167), none for any other.
  * @returns The breaches, module by module.
  */
 export const lawDocumentBreaches = (
@@ -88,15 +114,55 @@ export const lawDocumentBreaches = (
   rows: FoldedRows<Composed>,
   grammar: ComposedGrammar,
   typed: TypedReading,
+  read: PlacementScope["read"] = () => Option.none(),
 ): readonly LawBreach<ProducedLaw>[] => {
   const indexed = viewOf(path, rows, typed);
 
   return [
     ...documentDocumentBreaches(indexed, grammar),
-    ...expressionDocumentBreaches(indexed, grammar),
+    ...expressionDocumentBreaches(indexed, grammar, read),
     ...testDocumentBreaches(indexed, grammar),
+    ...contentDocumentBreaches(indexed, grammar),
   ];
 };
+
+/**
+ * Read a package as the package-level producers read it: each document's rows indexed by their
+ * types.
+ *
+ * @param input - The package as the oracle hands it over.
+ * @param typed - How an attribute's type reads its value.
+ * @returns Its rows.
+ */
+const packageRowsOf = (input: LawPackage, typed: TypedReading): PackageRows => ({
+  assembled: input.assembled,
+  documents: input.documents.map(({ path, resourceType, rows: folded }) => ({
+    path,
+    resourceType,
+    rows: viewOf(path, folded, typed),
+  })),
+  entries: new Set(input.entries),
+  manifest: viewOf(input.manifest.path, input.manifest.rows, typed),
+  placements: input.placements,
+  spliced: input.spliced,
+});
+
+/**
+ * Each test's readings of a reference through a scope (spec reading 167), by the test's path, none
+ * under any other document: what {@link lawDocumentBreaches} reads a test's references by, and
+ * {@link lawPackageBreaches} those of each document a test places.
+ *
+ * @param input - The package.
+ * @param grammar - The composed grammar.
+ * @param typed - How an attribute's type reads its value.
+ * @returns Each test's readings.
+ */
+export const lawReadsOf = (
+  input: LawPackage,
+  grammar: ComposedGrammar,
+  typed: TypedReading,
+): ((path: string) => PlacementScope["read"]) =>
+  scopedReadsOf(packageRowsOf(input, typed), grammar);
 
 /**
  * Judge a package by every producer's laws over more than one document.
@@ -104,25 +170,24 @@ export const lawDocumentBreaches = (
  * @param input - The package.
  * @param grammar - The composed grammar.
  * @param typed - How an attribute's type reads its value.
+ * @param readsOf - Each test's readings through a scope ({@link lawReadsOf}).
  * @returns The breaches, module by module.
  */
 export const lawPackageBreaches = (
   input: LawPackage,
   grammar: ComposedGrammar,
   typed: TypedReading,
+  readsOf: (path: string) => PlacementScope["read"],
 ): readonly LawBreach<ProducedLaw>[] => {
-  const rows = {
-    documents: input.documents.map(({ path, resourceType, rows: folded }) => ({
-      path,
-      resourceType,
-      rows: viewOf(path, folded, typed),
-    })),
-    entries: new Set(input.entries),
-    manifest: viewOf(input.manifest.path, input.manifest.rows, typed),
-    spliced: input.spliced,
-  };
+  const rows = packageRowsOf(input, typed);
 
-  return [...documentPackageBreaches(rows, grammar), ...testPackageBreaches(rows, grammar)];
+  return [
+    ...documentPackageBreaches(rows, grammar),
+    ...expressionPackageBreaches(rows, grammar, readsOf),
+    ...testPackageBreaches(rows, grammar),
+    ...readingPackageBreaches(rows, grammar),
+    ...contentPackageBreaches(rows, grammar),
+  ];
 };
 
 /**
@@ -148,49 +213,17 @@ export const statedInParts = {
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 
 /**
- * The laws an install's policy states, the package-media level's (`#pantry/qti/media.ts`) and the
- * LOM level's (`#pantry/qti/lom.ts`), each with why the oracle declares none: the oracle judges a
- * package as this package's own install does, which states none of them, so a package the oracle
- * accepts may break one. The database of such an install is their judge.
+ * The laws a level above `Qti` states, the LOM level's (`#pantry/qti/lom.ts`), each with why the
+ * oracle declares none: the oracle judges a package as this package's own install does, which
+ * states none of them, so a package the oracle accepts may break one. The database of an install
+ * that stacks them is their judge. The package-media level (`#pantry/qti/media.ts`) states no law:
+ * it refuses no package `Qti` admits.
  */
 export const policyLaws = {
-  "Author credit":
-    "the LOM policy asks the manifest's record for an author's credit whose vCard has an EMAIL, which QTI asks of no package",
-  "Deletion version":
-    "the LOM policy holds a package of no resource to the status unavailable and a withdrawn one to no resource, a shape QTI leaves free",
-  "Entry used":
-    "the policy refuses a file no document is and no reference resolves to, which this package's own install keeps, as IMS Content Packaging lets a package hold",
   "LOM vCard":
-    "the LOM policy holds every contribute's entity to a vCard 3.0 with its N and FN, which this package's own install keeps as text, as 1EdTech's own example writes it without either",
+    "the LOM level holds every contribute's entity to a vCard 3.0 with its frame, its VERSION, its N and its FN, LOM 2.3.2's value space, which this package's own install keeps as text, as 1EdTech's own example, no normative text, writes it without N and VERSION",
   "LOM vocabulary":
-    "the LOM policy holds a status's, a role's, a relation kind's and a purpose's terms to LOMv1.0's tokens, which QTI's loose binding does not enforce (QTI 3.0 Metadata §3.6) and 1EdTech's own examples write otherwise (Creator, Final)",
-  "Media data":
-    "the policy refuses a data: address, which this package's own install admits as any URI",
-  "Media entity":
-    "the policy refuses a kept entity reference in what a player fetches, and an external identifier in a document type declaration, which this package's own install keeps",
-  "Media foreign":
-    "the policy refuses foreign markup and every open attribute class but data-*, which this package's own install keeps",
-  "Media path":
-    "the policy holds every fetched address to a file of the package, which this package's own install leaves free to name any URL",
-  "Media style": "the policy refuses a style that fetches, which this package's own install admits",
-  "Media type":
-    "the policy holds every fetched entry to an extension it lists, which this package's own install leaves free",
-  "One head":
-    "the LOM policy holds each lesson to one head of its versions, a chain QTI states nothing of",
-  "Package grade":
-    "the LOM policy asks the manifest's record for a classification of purpose educational level, which QTI asks of no package",
-  "Package identity":
-    "the LOM policy asks the manifest's record for one general identifier whose entry is the manifest's identifier, where QTI 3.0 Metadata §2.7.1.1 holds only an identifier a record lists, and this package's own install reads no manifest record (reading 146)",
-  "Package relation target":
-    "the LOM policy holds a relation in its package scheme to a stored package, a catalog QTI names nothing in",
-  "Package subject":
-    "the LOM policy asks the manifest's record for a classification of purpose discipline, which QTI asks of no package",
-  "Publisher credit":
-    "the LOM policy asks the manifest's record for a publisher's credit whose vCard has an ORG, which QTI asks of no package",
-  "Source pointer":
-    "the LOM policy asks the manifest's record for one isbasedon relation naming a SHA-256, which QTI asks of no package",
-  "Version lesson":
-    "the LOM policy narrows isversionof to an earlier stored package of the same lesson, which LOM and QTI leave free",
+    "the LOM level holds a status's, a role's, a relation kind's and a purpose's value of LOM's own vocabulary, its source LOMv1.0, empty or not written, to LOMv1.0's tokens (IEEE 1484.12.1-2002 §4.4), a term of any other source unread, which this package's own install does not hold, as 1EdTech's own examples write otherwise (Creator, Final)",
 } as const satisfies Readonly<Record<string, string>>;
 
 /**
@@ -200,8 +233,6 @@ export const policyLaws = {
  * that writes rows its tree does not give breaks one, so the database tier is its judge.
  */
 export const hostlessLaws = {
-  "Declaration overlay":
-    "its rows (MasteryValue, NormalMinimum, NormalMaximum) are copies the importer writes of each outcome declaration's scale attributes, a normal minimum it does not write being its XSD default (plan §1.7 O2, C18; reading 149); the host writes no such row, and a package's text can make no copy disagree with what it copies",
   Document:
     "its rows (Document, XmlDecl, EncodingDecl, SdDecl) are the document layer's copies of each document's tree, which the importer writes from it (documentRowsOf, src/import/write.ts): one Document row keyed by the document node's package and path, its rootKind its root element's kind, and the XML declaration's rows under that document alone; the host writes no such row, and a package's text can make no copy disagree with the tree it copies",
   "Entry family":
@@ -217,5 +248,5 @@ export const hostlessLaws = {
   "Reference overlay":
     "its rows (DocumentDirectory, XmlBase, Reference, ReferencePath) are each document's directory and each reference's split, which the importer writes and resolves from the tree (CP 1.2 (b) and (d), reading 102); the host writes no such row, and the laws a package can break over its references are the oracle's Href form, File exists and Stimulus ref target",
   "Test overlay":
-    "its rows (TestDocument, TestFlag, Named, Section, SectionMember, SectionSelection, SectionOrdering, Site, BranchRule) are copies the importer writes of each test element's node and attributes, collapsed (plan §1.7 O7, C15, C18); the host writes no such row, and a package's text can make no copy disagree with what it copies",
+    "its rows (AssembledDocument, TestFlag, Named, Section, SectionMember, SectionSelection, SectionOrdering, Site, BranchRule) are copies the importer writes of each test element's node and attributes, collapsed (plan §1.7 O7, C15, C18); the host writes no such row, and a package's text can make no copy disagree with what it copies",
 } as const satisfies Readonly<Record<string, string>>;

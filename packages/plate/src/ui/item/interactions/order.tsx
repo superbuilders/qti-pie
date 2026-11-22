@@ -8,7 +8,7 @@
  * orientation, and its positions and how many of them its response requires, the payload's bounds
  * (reading 18), which `redact` counts once. The
  * review shows each answer once: the numbered positions holding the choices the response places,
- * each position marked against the host's solution, the right choice standing in a position whose
+ * each position marked by the host's marks, the right choice standing in a position whose
  * answer is not it, and a bank of only the choices the response leaves out, none when it leaves
  * none out.
  *

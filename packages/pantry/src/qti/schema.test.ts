@@ -17,7 +17,6 @@ import { chardataLaws } from "#pantry/qti/chardata.ts";
 import * as dataSsml from "#pantry/qti/data-ssml.ts";
 import { dataSsmlLaws } from "#pantry/qti/data-ssml.ts";
 import * as declarations from "#pantry/qti/declarations.ts";
-import { declarationLaws } from "#pantry/qti/declarations.ts";
 import * as expressionTypes from "#pantry/qti/expression-types.ts";
 import * as expressions from "#pantry/qti/expressions.ts";
 import { expressionLaws } from "#pantry/qti/expressions.ts";
@@ -55,7 +54,6 @@ const composedLaws: readonly (readonly [string, readonly Statement[]])[] = [
   ["src/qti/attributes.ts attributeLaws", attributeLaws],
   ["src/qti/package.ts packageLaws", packageLaws],
   ["src/qti/identity.ts identityLaws", identityLaws],
-  ["src/qti/declarations.ts declarationLaws", declarationLaws],
   ["src/qti/tests.ts testLaws", testLaws],
   ["src/qti/mapping.ts mappingLaws", mappingLaws],
   ["src/qti/interactions.ts interactionLaws", interactionLaws],

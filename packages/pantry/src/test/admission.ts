@@ -7,10 +7,9 @@
  * admission run (`scripts/admit.ts`) and qti-pie's specimen database suite admit documents so.
  *
  * A placeholder knows nothing of the file it stands for but its kind: an XML file a document names
- * and its package lacks is a stimulus. So a document whose `xi:include` names a fragment kept
- * elsewhere (pantry's `valid/response.xml`, whose `shared-rules.xml` its own tests place beside it)
- * is judged against that stimulus, and Include root refuses it; admit such a document in its own
- * package. No document a plate or specimen suite opens includes one.
+ * and its package lacks is a stimulus. So a document whose `xi:include` names a fragment is
+ * admitted with the fragment beside it where its href resolves, as pantry's `valid/response.xml`
+ * names `shared-rules.xml`, kept beside it in `valid/`.
  *
  * @module
  */
@@ -139,24 +138,24 @@ interface Entry {
 }
 
 /**
- * Write a package's entries and the manifest that lists them: the candidate's document as the
- * first resource, with every plain file, and each named document as a resource of its own.
+ * Write a package's entries and the manifest that lists them: each of its documents as a resource
+ * of its own, the first carrying every plain file, each later one a dependency of the first.
  *
  * @param out The package's folder.
- * @param entries The entries, the candidate's document first.
+ * @param documents The package's documents, each a resource of its own, in order.
+ * @param plain The package's plain files, which the first document's resource lists.
  */
 const writeEntries = Effect.fn("admission.entries")(function* writeEntries(
   out: string,
-  entries: readonly [Entry, ...Entry[]],
+  documents: readonly [Entry, ...Entry[]],
+  plain: readonly Entry[],
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const [main, ...rest] = entries;
-  const documents = rest.filter(({ type }) => Option.isSome(type));
-  const plain = rest.filter(({ type }) => Option.isNone(type));
+  const [main, ...rest] = documents;
   const resources = [
-    `<resource identifier="R0" type="${Option.getOrElse(main.type, () => "imsqti_item_xmlv3p0")}" href="${main.file}">${[main, ...plain].map(({ file }) => fileOf(file)).join("")}${documents.map((_, index) => `<dependency identifierref="R${String(index + 1)}"/>`).join("")}</resource>`,
-    ...documents.map(
+    `<resource identifier="R0" type="${Option.getOrElse(main.type, () => "imsqti_item_xmlv3p0")}" href="${main.file}">${[main, ...plain].map(({ file }) => fileOf(file)).join("")}${rest.map((_, index) => `<dependency identifierref="R${String(index + 1)}"/>`).join("")}</resource>`,
+    ...rest.map(
       ({ file, type }, index) =>
         `<resource identifier="R${String(index + 1)}" type="${Option.getOrElse(type, () => "")}" href="${file}">${fileOf(file)}</resource>`,
     ),
@@ -170,7 +169,7 @@ const writeEntries = Effect.fn("admission.entries")(function* writeEntries(
 
   yield* fs.remove(out, { force: true, recursive: true });
   yield* Effect.forEach(
-    [{ bytes: encode(manifest), file: "imsmanifest.xml" }, ...entries],
+    [{ bytes: encode(manifest), file: "imsmanifest.xml" }, ...documents, ...plain],
     ({ bytes, file }) =>
       Effect.andThen(
         fs.makeDirectory(path.dirname(path.join(out, file)), { recursive: true }),
@@ -191,39 +190,51 @@ export interface AdmissionDocument {
 }
 
 /**
- * Write one document's admission package: its document, then, round by round, every file the
- * package's documents name as pantry's reader resolves their references (`readPackage`'s
- * `referenced`), each copied from the candidate's own package where it holds the file and a
- * placeholder of its kind where it does not, until the documents name no file the package lacks.
+ * Write a package of several documents, each a resource of its own, as an admission package is
+ * written ({@link writeAdmissionPackage}): every document at its own path, then, round by round,
+ * every file the package's documents name as pantry's reader resolves their references
+ * (`readPackage`'s `referenced`), each copied from its document's own package where that holds it
+ * and a placeholder of its kind where it does not, until the documents name no file the package
+ * lacks. Specimen's floor package, the floor's cases the lab plays through the database, is
+ * written so.
  *
  * @param out The folder the package is written to.
- * @param candidate The document.
+ * @param candidates The documents, each at a path of its own.
  */
-export const writeAdmissionPackage = Effect.fn("admission.package")(function* writeAdmissionPackage(
+export const writePackageOf = Effect.fn("admission.packageOf")(function* writePackageOf(
   out: string,
-  candidate: AdmissionDocument,
+  candidates: readonly [AdmissionDocument, ...AdmissionDocument[]],
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const main: Entry = {
-    bytes: candidate.bytes,
-    file: candidate.at,
-    type: yield* resourceTypeOf(candidate.bytes),
-  };
+  const [first, ...others] = yield* pipe(
+    candidates,
+    Effect.forEach((candidate) =>
+      Effect.map(resourceTypeOf(candidate.bytes), (type): Entry => ({
+        bytes: candidate.bytes,
+        file: candidate.at,
+        type,
+      })),
+    ),
+  );
+  const folders = candidates.flatMap(({ folder }) => Option.toArray(folder));
   const entryOf = Effect.fnUntraced(function* entryOf(file: string) {
-    const held = yield* Option.match(candidate.folder, {
-      onNone: () => Effect.succeed(Option.none<Uint8Array>()),
-      onSome: (folder) => Effect.option(fs.readFile(path.join(folder, file))),
-    });
+    let held = Option.none<Uint8Array>();
+    for (const folder of folders) {
+      if (Option.isNone(held)) {
+        held = yield* Effect.option(fs.readFile(path.join(folder, file)));
+      }
+    }
     const bytes = Option.getOrElse(held, () => placeholderOf(file));
 
     return { bytes, file, type: yield* resourceTypeOf(bytes) } satisfies Entry;
   });
-  let entries: readonly [Entry, ...Entry[]] = [main];
+  const documents: Entry[] = [...others];
+  const plain: Entry[] = [];
   for (let more = true; more;) {
-    yield* writeEntries(out, entries);
+    yield* writeEntries(out, [first, ...documents], plain);
 
-    const listed = new Set(entries.map(({ file }) => file));
+    const listed = new Set([first, ...documents, ...plain].map(({ file }) => file));
     const read = yield* Effect.option(readPackage(out, "admission"));
     const missing = Option.match(read, {
       onNone: (): readonly string[] => [],
@@ -236,9 +247,24 @@ export const writeAdmissionPackage = Effect.fn("admission.package")(function* wr
     );
 
     more = added.length > 0;
-    entries = [main, ...entries.slice(1), ...added];
+    for (const entry of added) {
+      (Option.isSome(entry.type) ? documents : plain).push(entry);
+    }
   }
 });
+
+/**
+ * Write one document's admission package: its document, then, round by round, every file the
+ * package's documents name as pantry's reader resolves their references (`readPackage`'s
+ * `referenced`), each copied from the candidate's own package where it holds the file and a
+ * placeholder of its kind where it does not, until the documents name no file the package lacks
+ * ({@link writePackageOf} of the one document).
+ *
+ * @param out The folder the package is written to.
+ * @param candidate The document.
+ */
+export const writeAdmissionPackage = (out: string, candidate: AdmissionDocument) =>
+  writePackageOf(out, [candidate]);
 
 /**
  * The database's verdict on one admission package: admitted, refused with the rules and the detail

@@ -1,0 +1,36 @@
+
+  /**
+   * The kinds of the run's variables each graded attempt writes, by its run key: its outcomes; and,
+   * where the attempt submitted every response at its default (DefaultSubmission, QTI 3.0.1 Table
+   * 7.19.6), its responses as the run began them, so the stored attempt reads as it was submitted.
+   */
+  const writtenOf = (_session: GradedSession) =>
+    query(delivery)
+      .rule((r) => {
+        const attempt = boundGradableIn(r);
+        const { child, package: pkg, path, stage } = v(attempt, "attempt");
+
+        return r.match(attempt, { child, package: pkg, path, stage }).find({
+          child,
+          kind: Type.literal(DocVar.fields.kind, "outcome"),
+          package: pkg,
+          path,
+          stage,
+        });
+      })
+      .rule((r) => {
+        const attempt = boundGradableIn(r);
+        const { at, child, n, package: pkg, path, stage } = v(attempt, "attempt");
+
+        return r
+          .match(attempt, { at, child, n, package: pkg, path, stage })
+          .match(fields.DefaultSubmission, { at, child, n, package: pkg, path })
+          .find({
+            child,
+            kind: Type.literal(DocVar.fields.kind, "response"),
+            package: pkg,
+            path,
+            stage,
+          });
+      });
+  const boundWrittenIn = (r: Rule<DeliveryLevel>) => writtenOf(gradedSitting).bind(bySession(r));

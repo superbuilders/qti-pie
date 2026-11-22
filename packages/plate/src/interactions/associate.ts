@@ -30,15 +30,11 @@
  * information model gives no rule for the author's `data-max-selections-message` and
  * `data-min-selections-message` here, so they are not read: the limits' messages are this module's.
  *
- * The validation messages are English and live here ({@link words}; D7).
- *
  * @module
  * @see https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import {
   boundIn,
   choiceRegions,
@@ -53,15 +49,12 @@ import type {
   OwnRegion,
   ParseContext,
   Parsed,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
 import { presented } from "#plate/interactions/choice.ts";
-import { countsOf } from "#plate/interactions/counts.ts";
-import { listedIn, matchGroupOf, unorderedExclusionOf } from "#plate/interactions/match-group.ts";
+import { listedIn, matchGroupOf } from "#plate/interactions/match-group.ts";
 import type { MatchGroup } from "#plate/interactions/match-group.ts";
-import { unorderedKey, unorderedPairsOf } from "#plate/interactions/pair.ts";
+import { unorderedPairsOf } from "#plate/interactions/pair.ts";
 import type { UnorderedPair } from "#plate/interactions/pair.ts";
-import { counted, message } from "#plate/messages.ts";
 import type {
   BodyNode,
   Level,
@@ -70,7 +63,7 @@ import type {
   RedactedLevel,
   ReferencingChoice,
 } from "#plate/model/item.ts";
-import type { Single, Value } from "#plate/model/values.ts";
+import type { Single } from "#plate/model/values.ts";
 
 /**
  * Associate's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -286,153 +279,6 @@ const parse = (
 };
 
 /**
- * Check an Associate's response, which the caller decoded, in two tiers.
- *
- * The caller decodes the posted entries with `decode`, under the entry name its form gave the
- * pairs and the binding a `pair` response travels under, and passes the value, or the
- * {@link Malformed} `decode` gave; the entry name stays the caller's, while the messages stay here.
- * A pair counts once, in either order, for every limit but the repeat itself, so one cause gives
- * one message.
- *
- * - A {@link Malformed} input: `atMost` 1 when a single response was posted more than once, else the
- *   message that names the choices shown.
- * - Tier (a), always: a pair that names a choice the interaction does not hold; a choice paired with
- *   itself; a pair given more than once, in either order; a choice in more pairs than its
- *   `match-max` (0 is no limit); a pair outside the `match-group` of either of its choices; and
- *   `max-associations` above 0 capping the pairs.
- * - Tier (b), only under `validateResponses`: fewer pairs than `min-associations`, and a choice in
- *   fewer pairs than its `match-min`.
- *
- * @param interaction The Associate.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validate = (
-  interaction: AssociateInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const problem = (written: string): ValidationMessage => ({
-    response: interaction.response,
-    text: written,
-  });
-
-  if (input instanceof Malformed) {
-    return [
-      problem(
-        input.reason === "single-many"
-          ? message(locale, "pairsAtMostOne")
-          : message(locale, "associateUnknown"),
-      ),
-    ];
-  }
-
-  const given = unorderedPairsOf(input.values);
-  const occurrences = countsOf(given.map(unorderedKey));
-  const firsts = new Map<string, UnorderedPair>();
-
-  for (const pair of given) {
-    const key = unorderedKey(pair);
-
-    if (!firsts.has(key)) {
-      firsts.set(key, pair);
-    }
-  }
-
-  const choices = new Map(interaction.choices.map((choice) => [choice.identifier, choice]));
-  const distinct = [...firsts.values()];
-  const usable = distinct.filter(
-    ([first, second]) => first !== second && choices.has(first) && choices.has(second),
-  );
-  const perChoice = countsOf(usable.flat());
-  const tierA = [
-    ...(distinct.some(([first, second]) => !choices.has(first) || !choices.has(second))
-      ? [problem(message(locale, "associateUnknown"))]
-      : []),
-    ...distinct.flatMap(([first, second]) =>
-      first === second ? [problem(message(locale, "associateItself", { choice: first }))] : [],
-    ),
-    ...distinct.flatMap(([first, second]) =>
-      (occurrences.get(unorderedKey([first, second])) ?? 0n) > 1n
-        ? [problem(message(locale, "associateRepeated", { first, second }))]
-        : [],
-    ),
-    ...interaction.choices.flatMap((choice) =>
-      choice.matchMax > 0n && (perChoice.get(choice.identifier) ?? 0n) > choice.matchMax
-        ? [
-            problem(
-              counted(
-                locale,
-                choice.matchMax,
-                { many: "associateChoiceAtMost", one: "associateChoiceAtMostOne" },
-                { choice: choice.identifier },
-              ),
-            ),
-          ]
-        : [],
-    ),
-    ...usable.flatMap(([first, second]) =>
-      Option.match(unorderedExclusionOf(choices, first, second), {
-        onNone: () => [],
-        onSome: ([holder, other, group]) => [
-          problem(
-            message(locale, "associateOutsideGroup", {
-              choice: holder,
-              group: group.join(", "),
-              other,
-            }),
-          ),
-        ],
-      }),
-    ),
-    ...(interaction.maxAssociations > 0n && BigInt(distinct.length) > interaction.maxAssociations
-      ? [
-          problem(
-            counted(locale, interaction.maxAssociations, {
-              many: "pairsAtMost",
-              one: "pairsAtMostOne",
-            }),
-          ),
-        ]
-      : []),
-  ];
-
-  if (!configuration.validateResponses) {
-    return tierA;
-  }
-
-  return [
-    ...tierA,
-    ...(BigInt(distinct.length) < interaction.minAssociations
-      ? [
-          problem(
-            counted(locale, interaction.minAssociations, {
-              many: "pairsAtLeast",
-              one: "pairsAtLeastOne",
-            }),
-          ),
-        ]
-      : []),
-    ...interaction.choices.flatMap((choice) =>
-      (perChoice.get(choice.identifier) ?? 0n) < choice.matchMin
-        ? [
-            problem(
-              counted(
-                locale,
-                choice.matchMin,
-                { many: "associateChoiceAtLeast", one: "associateChoiceAtLeastOne" },
-                { choice: choice.identifier },
-              ),
-            ),
-          ]
-        : [],
-    ),
-  ];
-};
-
-/**
  * Give the pairs a page shows of a response's values: each `pair` of two of the Associate's
  * choices, in order and as written, so a stored pair that names a choice the item no longer holds
  * is not shown.
@@ -511,5 +357,4 @@ export const associateModule: InteractionModule<"associate", AssociateByLevel, A
    * content.
    */
   regions: ownRegions,
-  validate,
 };

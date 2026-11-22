@@ -9,11 +9,13 @@ import type { DocumentType, NodeKind } from "#pantry/grammar/install.ts";
 
 /**
  * The root kinds of the documents of `objectTypes` (`#pantry/qti/metadata.ts`), whose `identifier`,
- * `title` and `xml:lang` a record is compared with: an item's, since pantry stores no test (spec
- * reading 228).
+ * `title` and `xml:lang` a record is compared with: an item's and a test's (QTI metadata binding
+ * §2.7.1.1: "One of the values given for the identifier must have an entry that matches the
+ * identifier of the associated item, test or object bank"; §2.7.1.2 likewise of the title).
  */
 export const objectKinds = [
   "qti-assessment-item",
+  "qti-assessment-test",
 ] as const satisfies readonly (typeof NodeKind.handles)[number][];
 
 /**

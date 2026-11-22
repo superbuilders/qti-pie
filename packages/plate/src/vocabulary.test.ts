@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Option } from "effect";
+import { Option } from "effect";
 import { noSupports } from "#plate/supports.ts";
 import type { Supports } from "#plate/supports.ts";
-import { growthFactor, growthLimit, growthRatio } from "#plate/test/growth.ts";
 import { sourceModules } from "#plate/test/imports.ts";
 import { tables } from "#plate/validate/tables.ts";
 import {
@@ -12,9 +11,6 @@ import {
   interactionNames,
   isAuthorData,
   modelled,
-  templateName,
-  templateNames,
-  templatePrefixes,
 } from "#plate/vocabulary.ts";
 
 /**
@@ -25,98 +21,6 @@ import {
 const assertDistinct = (list: readonly string[]): void => {
   assert.strictEqual(new Set(list).size, list.length, `duplicates in ${list.join(", ")}`);
 };
-
-/**
- * The spaces inside the shorter URI the growth check reads, before it reads one with
- * {@link growthFactor} times as many: a run a backtracking trim of the outer whitespace scans from
- * each of its positions.
- */
-const fewerSpaces = 4000;
-
-/**
- * The timeout of the growth check, which samples each size several times, each sample at least
- * `growthRatio`'s minimum of thread CPU: under half a second alone, which a loaded machine
- * stretches toward vitest's default of 5 s. Vitest fails a test that ends after its timeout even
- * when it passes.
- */
-const growthTimeoutMs = 60_000;
-
-describe("templateName", () => {
-  it("resolves all four spellings of each built-in to its name", () => {
-    for (const name of templateNames) {
-      for (const prefix of templatePrefixes) {
-        for (const suffix of ["", ".xml"]) {
-          assert.deepStrictEqual(templateName(`${prefix}${name}${suffix}`), Option.some(name));
-        }
-      }
-    }
-  });
-
-  it("resolves the three CC2 templates to their names under either prefix", () => {
-    for (const prefix of templatePrefixes) {
-      for (const name of ["CC2_match", "CC2_match_basic", "CC2_map_response"] as const) {
-        assert.deepStrictEqual(templateName(`${prefix}${name}.xml`), Option.some(name));
-        assert.deepStrictEqual(templateName(`${prefix}${name}`), Option.some(name));
-      }
-    }
-  });
-
-  it("resolves an unknown URI to none", () => {
-    for (const prefix of templatePrefixes) {
-      assert.isTrue(Option.isNone(templateName(`${prefix}CC2_other.xml`)));
-      assert.isTrue(Option.isNone(templateName(`${prefix}cc2_match.xml`)));
-      assert.isTrue(Option.isNone(templateName(`${prefix}match_correct.json`)));
-    }
-    assert.isTrue(Option.isNone(templateName("https://example.com/rptemplates/match_correct.xml")));
-    assert.isTrue(Option.isNone(templateName("match_correct")));
-    assert.isTrue(Option.isNone(templateName("")));
-  });
-
-  it("resolves a built-in padded with XML whitespace to its name, as xs:anyURI collapses it", () => {
-    for (const name of templateNames) {
-      for (const prefix of templatePrefixes) {
-        for (const padding of [" ", "\n\t"]) {
-          assert.deepStrictEqual(
-            templateName(`${padding}${prefix}${name}${padding}`),
-            Option.some(name),
-          );
-        }
-      }
-    }
-  });
-
-  it("resolves a URI with whitespace inside its name to none", () => {
-    for (const prefix of templatePrefixes) {
-      assert.isTrue(Option.isNone(templateName(`${prefix}match_ correct`)));
-      assert.isTrue(Option.isNone(templateName(`${prefix}match_\ncorrect`)));
-    }
-  });
-
-  it.effect(
-    "reads 8 times the spaces inside a URI in under 32 times the time",
-    () =>
-      Effect.gen(function* readsInLinearTime() {
-        const fewer = `a${" ".repeat(fewerSpaces)}b`;
-        const more = `a${" ".repeat(fewerSpaces * growthFactor)}b`;
-        assert.isTrue(Option.isNone(templateName(more)));
-
-        const growth = yield* growthRatio(
-          () => {
-            templateName(fewer);
-          },
-          () => {
-            templateName(more);
-          },
-        );
-        assert.isBelow(
-          growth,
-          growthLimit,
-          `8 times the spaces took ${growth.toFixed(1)} times as long`,
-        );
-      }),
-    growthTimeoutMs,
-  );
-});
 
 describe("the closed value sets", () => {
   it("names only elements the XSD declares, each once", () => {
@@ -149,22 +53,6 @@ describe("the closed value sets", () => {
         baseType,
       );
     }
-  });
-
-  it("has every engine rule and every template rule in elements", () => {
-    assert.includeMembers([...modelled.elements], [...modelled.engine]);
-    assert.includeMembers([...modelled.elements], [...modelled.templateRules]);
-  });
-
-  it("lists exactly the elements the XSD admits in qti-template-processing and in a template condition", () => {
-    const admitted = ["qti-template-processing", "qti-template-condition"].flatMap((parent) =>
-      Object.keys(tables.elements[parent]?.children ?? {}).map((key) =>
-        key.slice(key.indexOf("}") + 1),
-      ),
-    );
-
-    assertDistinct(modelled.templateRules);
-    assert.sameMembers([...modelled.templateRules], [...new Set(admitted)]);
   });
 });
 

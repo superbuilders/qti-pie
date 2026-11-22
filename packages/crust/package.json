@@ -13,6 +13,8 @@
     "./errors.ts": "./src/errors.ts",
     "./namespaces.ts": "./src/namespaces.ts",
     "./read.ts": "./src/read.ts",
+    "./regex.ts": "./src/regex.ts",
+    "./text.ts": "./src/text.ts",
     "./tree.ts": "./src/tree.ts",
     "./uri.ts": "./src/uri.ts",
     "./write.ts": "./src/write.ts"

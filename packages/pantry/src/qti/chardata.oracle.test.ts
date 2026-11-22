@@ -55,13 +55,7 @@ import {
   XmlDecl,
   XmlStandalone,
 } from "#pantry/qti/chardata.ts";
-import {
-  EntryPath,
-  identityBytes,
-  namespaceBytes,
-  prefixBytes,
-  utf8Length,
-} from "#pantry/qti/limits.ts";
+import { EntryPath, foreignNameBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { Node, nodeTree } from "#pantry/qti/node.ts";
 import { caseHang, featuresOf, searchTimeout, xdmDocument } from "#pantry/test/gen/xdm.ts";
 import type { XdmFeature } from "#pantry/test/gen/xdm.ts";
@@ -84,7 +78,7 @@ const patternOf = (field: RegexText<string>) =>
   new RegExp(field.patterns[0].source, field.patterns[0].flags);
 
 /**
- * The patterns of `Node.chars` by kind that the arm checks match, under `Compute.matches`'s flags,
+ * The patterns of `Node.chars` by kind that the arm checks match, under `Text.matches`'s flags,
  * `u`.
  */
 const charsPatterns = {
@@ -169,7 +163,7 @@ const kindNamespace: ReadonlyMap<string, string> = new Map(
 
 /**
  * `KindByNameUnder`'s patterns as installed, by parent, each compiled under
- * `Compute.matches`'s flags, `u`, so JavaScript's `RegExp` decides what PostgreSQL's `~` does.
+ * `Text.matches`'s flags, `u`, so JavaScript's `RegExp` decides what PostgreSQL's `~` does.
  */
 const namesUnder: ReadonlyMap<string, RegExp> = new Map(
   KindByNameUnder.rows.map(({ names, parent }) => [parent, new RegExp(names, "u")]),
@@ -463,19 +457,21 @@ const straddling = (bytes: number): readonly number[] =>
   });
 
 /**
- * The lengths the bounds box draws, in code points: the short ones, and each side of the byte
- * bounds of a prefix (`prefixBytes`), of a foreign namespace (`namespaceBytes`) and of a path
- * (`identityBytes`), over one-byte and four-byte characters.
+ * The UTF-8 bytes an ordered index once held a name and a prefix to as themselves, which no index
+ * holds any longer (no read orders by a name or a prefix): LIMITS6's local name (1,290), namespace
+ * name (1,291) and prefix (2,588); and 64 KiB.
+ */
+const formerBounds = [1290, 1291, 2588, 65_536] as const;
+
+/**
+ * The lengths the bounds box draws, in code points: the short ones, and each side of
+ * {@link formerBounds}, over one-byte and four-byte characters, at each of which a path, a prefix
+ * and a foreign name of its language are admitted, a foreign name being bounded only at
+ * `foreignNameBytes`, half of the regex engine's bytes.
  */
 const boundLengths: readonly [number, ...number[]] = [
   0,
-  ...new Set([
-    1,
-    2,
-    ...straddling(prefixBytes),
-    ...straddling(namespaceBytes),
-    ...straddling(identityBytes),
-  ]),
+  ...new Set([1, 2, ...formerBounds.flatMap(straddling)]),
 ];
 
 /**
@@ -895,13 +891,14 @@ describe("qti/chardata.ts", () => {
   );
 
   it.effect(
-    "bounds each keyed text field by UTF-8 bytes, as its key's B-tree entry needs, and admits every value of its language within the bound",
+    "admits every value of each keyed text field's language past the bytes an ordered index once held a name and a prefix to, and at 64 KiB",
     (ctx) =>
       // Oracle: the specification as a checker, each field's contract counted in UTF-8 bytes, which
-      // grizzle's `str.bytes` checks beside the pattern: `EntryPath` 1 code point and at most
-      // `identityBytes` bytes of any character but a leading "/"; a foreign namespace XML `Char`s of
-      // at most `namespaceBytes`; a namespace prefix empty or an NCName of at most `prefixBytes`.
-      // Bound: exhaustive over the lengths each side of the three bounds over one-byte and
+      // grizzle's `str.bytes` checks beside the pattern: `EntryPath` 1 code point or more, of any
+      // length, of any character but a leading "/"; a foreign namespace XML `Char`s and a foreign
+      // local name an NCName, each of at most `foreignNameBytes`; a namespace declaration's and an
+      // element's prefix empty or an NCName, of any length (Namespaces in XML 1.0, §4).
+      // Bound: exhaustive over the lengths each side of the four former bounds over one-byte and
       // four-byte characters, × 5 first characters × 5 later characters.
       Effect.gen(function* bounds() {
         const limit = boundLengths.length * boundCharacters.length ** 2;
@@ -909,7 +906,7 @@ describe("qti/chardata.ts", () => {
           ctx,
           exhaust(
             {
-              box: "lengths 0, 1, 2 and each side of prefixBytes, namespaceBytes and identityBytes over one-byte and four-byte characters, over 5 characters",
+              box: "lengths 0, 1, 2 and each side of 1,290, 1,291, 2,588 and 65,536 bytes over one-byte and four-byte characters, over 5 characters",
               caseHang,
               concurrency: searchWidth,
               coverage: requiredInSpace<"path admitted" | "path refused">([
@@ -927,24 +924,31 @@ describe("qti/chardata.ts", () => {
                   length === 0 ? [] : [first, ...Array.from({ length: length - 1 }, () => fill)];
                 const value = characters.join("");
                 const bytes = utf8Length(value);
-                const path = length >= 1 && bytes <= identityBytes && first !== "/";
+                const path = length >= 1 && first !== "/";
+                const name = characters.every(isBoxNameChar);
                 c.note(path ? "path admitted" : "path refused");
 
-                assert.strictEqual(
-                  patternOf(EntryPath).test(value) && bytes <= identityBytes,
-                  path,
-                  "path",
-                );
+                assert.strictEqual(patternOf(EntryPath).test(value), path, "path");
                 assert.strictEqual(
                   patternOf(OpenElementName.fields.namespace).test(value) &&
-                    bytes <= namespaceBytes,
-                  bytes <= namespaceBytes && characters.every(isXmlChar),
+                    bytes <= foreignNameBytes,
+                  characters.every(isXmlChar),
                   "foreign namespace",
                 );
                 assert.strictEqual(
-                  patternOf(Namespace.fields.prefix).test(value) && bytes <= prefixBytes,
-                  length === 0 || (bytes <= prefixBytes && characters.every(isBoxNameChar)),
-                  "prefix",
+                  patternOf(OpenElementName.fields.local).test(value) && bytes <= foreignNameBytes,
+                  length >= 1 && name,
+                  "foreign local name",
+                );
+                assert.strictEqual(
+                  patternOf(Namespace.fields.prefix).test(value),
+                  length === 0 || name,
+                  "declaration prefix",
+                );
+                assert.strictEqual(
+                  patternOf(Node.fields.prefix).test(value),
+                  length === 0 || name,
+                  "element prefix",
                 );
               }),
           ),

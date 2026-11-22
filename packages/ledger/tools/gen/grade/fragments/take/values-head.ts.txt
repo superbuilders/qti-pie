@@ -1,0 +1,14 @@
+
+/**
+ * Template processing at the take, in a stratum after the one that writes the taken item sessions (decideStage's,
+ * qti-pie's take's): the machine's one run of every taken session's item's template processing
+ * (`templateProcessingOf` over takeArgumentsOf), and what it set, as the run reports it, an entry only where its
+ * value is not identical to the one the run began with: each template variable's value (kind `template`, `qti-set-template-value`),
+ * each response's correct response (kind `correct`, `qti-set-correct-response`) and each response's and outcome's
+ * default (kind `default`, `qti-set-default-value`), each row by the ledger's laws on ItemSessionValue (`settable`).
+ * A value set to NULL over a non-NULL one is its header with no value row. Nothing declared is copied: a declared
+ * value is the content's, and response processing layers the session's set values over it. Each value is in the
+ * sidecar of its cardinality and base type. A record has no session sidecar, so nothing of a record is written.
+ */
+export const takeValuesOf = (delivery: DeliveryLevel) => {
+	const fields = delivery.relations

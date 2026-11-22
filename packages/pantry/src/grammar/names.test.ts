@@ -43,7 +43,7 @@ const caseHang = Duration.minutes(1);
 const searchTimeout = 120_000;
 
 /**
- * Whether a pattern of grizzle's grammar matches a text, as `Compute.matches` reads it: some match
+ * Whether a pattern of grizzle's grammar matches a text, as `Text.matches` reads it: some match
  * of the pattern, under ECMAScript's `u` flag, is in the text.
  *
  * @param pattern - The pattern.

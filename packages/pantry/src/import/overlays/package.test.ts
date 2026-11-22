@@ -1286,13 +1286,14 @@ describe("import/overlays/package.ts, hrefs and references", () => {
       ),
   );
 
-  it("writes a TextReference for each card file and resource icon, resolved as an attribute is, and none for a calculator's or digital material's file", () => {
+  it("writes a TextReference for each card file, calculator's or digital material's file and resource icon, resolved as an attribute is", () => {
     // Oracle: a second implementation, the nodes numbered by hand (the document node 0, the root 1,
     // then each whitespace node, element and its text in turn), each string value split by RFC
     // 3986's Appendix B and resolved by the law oracle's own resolver with the xml:base in scope,
     // under the whitespace class of its text's type (`xs:anyURI` collapses, `URLDType` replaces).
     // Bound: one card file padded and percent-encoded, one icon under an xml:base, one icon of a
-    // same-document fragment, one file of a digital material, and an empty card file.
+    // same-document fragment, one file of a digital material (information model §5.80.3, "the URI
+    // for the associated content file", an `xs:anyURI` that collapses), and an empty card file.
     const textOf = (
       kind: "qti-file-href" | "qti-file-href.card" | "qti-resource-icon",
       value: string,
@@ -1325,10 +1326,6 @@ describe("import/overlays/package.ts, hrefs and references", () => {
     for (const { base, kind, value } of cases) {
       const start = BigInt(next + 1);
       next += value === "" ? 2 : 3;
-      if (kind === "qti-file-href") {
-        continue;
-      }
-
       const resolution = resolveAttribute({
         bases: base === undefined ? [] : [base],
         document: documentIds.path,
@@ -1349,12 +1346,12 @@ describe("import/overlays/package.ts, hrefs and references", () => {
       }
     }
 
-    assert.strictEqual(expectedTexts.size, 4);
+    assert.strictEqual(expectedTexts.size, 5);
     assert.deepStrictEqual(sortedEntries(rows.TextReference), sortedEntries(expectedTexts));
     assert.deepStrictEqual(sortedEntries(rows.TextReferencePath), sortedEntries(expectedPaths));
     assert.deepStrictEqual(
       [...rows.TextReferencePath.values()].map(({ target }) => target),
-      ["items/my clip.mp4", "items/x/img/b.svg"],
+      ["items/my clip.mp4", "items/x/img/b.svg", "items/absent.png"],
     );
   });
 });

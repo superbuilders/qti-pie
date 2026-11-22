@@ -8,7 +8,7 @@
  * it read aloud, named by the choice's place as presented, and how many the child picks, read from
  * its binding and `max-choices` by the one rule every picks group follows (`picksOf` in
  * `#plate/ui/picks/picks.ts`). The review shows the options with each picked one `data-selected`,
- * and, against the host's solution, each marked one `data-mark` (`#plate/ui/picks/marks.ts`).
+ * and, by the host's marks, each marked one `data-mark` (`#plate/ui/picks/marks.ts`).
  *
  * @module
  */

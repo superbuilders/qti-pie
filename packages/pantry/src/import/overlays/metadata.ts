@@ -7,9 +7,7 @@
  * The rows restate what the tree says and nothing else: each overlay copies its nodes' tuples as
  * the tree's rows give them (`flatten` of `#pantry/model/xdm.ts`), and each copied text as written.
  * The database proves every one of them (`metadataLaws`, and the rule over `UsageBaseType` of
- * `#pantry/qti/queries.ts`), so a row this builder gets wrong is refused, never accepted. A copied
- * text past `keyText`'s bound is written as it is, and its field's pattern refuses it under the
- * schema's limit law.
+ * `#pantry/qti/queries.ts`), so a row this builder gets wrong is refused, never accepted.
  */
 import type { Addition } from "@bjornpagen/grizzle";
 import { Option } from "effect";

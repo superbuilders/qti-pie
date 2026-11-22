@@ -7,7 +7,7 @@
  * The island takes its choices as presented, shuffled already by the core with the host-named
  * instance, each named by its text, its `qti-label` where that names something, and its
  * placeholder, the author's `data-prompt` in place of the catalog's. The review shows the choice it
- * holds in the place of its trigger and, against the host's solution, its mark; its
+ * holds in the place of its trigger and, by the host's marks, its mark; its
  * {@link answer}, the right choice when the answer is not right, the body walk writes after the
  * block that holds the sentence.
  *
@@ -23,10 +23,14 @@ import type { TriggerName } from "#plate/ui/inline-choice/inline-choice.tsx";
 import { inlineChoiceKeys } from "#plate/ui/inline-choice/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
 import { contentOf } from "#plate/ui/item/interactions/answering.tsx";
-import { ControlReview, controlAnswer } from "#plate/ui/item/interactions/control-mark.tsx";
+import {
+  ControlReview,
+  controlAnswer,
+  controlMarkOf,
+} from "#plate/ui/item/interactions/control-mark.tsx";
 import type { ControlMark } from "#plate/ui/item/interactions/control-mark.tsx";
 import { controlNameOf, labelsOf, ownName, rootOf } from "#plate/ui/item/interactions/labels.ts";
-import { markingOf, missedShown } from "#plate/ui/item/interactions/marks.ts";
+import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import type { Marking } from "#plate/ui/item/interactions/marks.ts";
 import { choiceText, namesSomething } from "#plate/ui/item/interactions/text.ts";
 
@@ -89,14 +93,14 @@ export const island = (paired: Paired<"inline-choice">, context: IslandContext):
 };
 
 /**
- * Mark the choice an Inline Choice's review shows against the correct response, its one
- * identifier. Against a correct response, the right answer the review writes for a wrong or
- * missing pick is the correct choice's text, "Choice n of count" where its content shows none, and
- * none where the interaction does not present it.
+ * Mark the choice an Inline Choice's review shows, by the marks the host handed for its response
+ * ({@link controlMarkOf}). The right answer the review writes for a wrong or missing pick is the
+ * text of the choice handed `missed`, "Choice n of count" where its content shows none, and none
+ * where the interaction does not present it.
  *
  * @param choices The Inline Choice's choices as presented.
  * @param shown The choice its review shows picked, none where it shows its placeholder.
- * @param marking How the review marks the response.
+ * @param marking The marks handed for the response.
  * @param locale The locale of plate's own text.
  * @returns The mark.
  */
@@ -105,35 +109,25 @@ const markOf = (
   shown: Option.Option<{ readonly identifier: string }>,
   marking: Marking,
   locale: Locale,
-): ControlMark => {
-  if (marking.kind !== "against") {
-    return { kind: "unmarked" };
-  }
-
-  const right = Arr.head(marking.correct.values.map(format));
-  const answer = Arr.head(missedShown(marking, Option.toArray(right))).pipe(
-    Option.flatMap((identifier) =>
-      Arr.findFirst(choices, (choice, at) =>
-        choice.identifier === identifier
-          ? Option.some(
-              choiceText(
-                choice.content,
-                Option.none(),
-                { count: choices.length, n: at + 1 },
-                locale,
-              ),
-            )
-          : Option.none(),
+): ControlMark =>
+  controlMarkOf(marking, Option.isSome(shown), (missed) =>
+    Arr.head(missed.map(format)).pipe(
+      Option.flatMap((identifier) =>
+        Arr.findFirst(choices, (choice, at) =>
+          choice.identifier === identifier
+            ? Option.some(
+                choiceText(
+                  choice.content,
+                  Option.none(),
+                  { count: choices.length, n: at + 1 },
+                  locale,
+                ),
+              )
+            : Option.none(),
+        ),
       ),
     ),
   );
-
-  return Option.match(shown, {
-    onNone: (): ControlMark => ({ answer, kind: "unanswered" }),
-    onSome: ({ identifier }): ControlMark =>
-      Option.contains(right, identifier) ? { kind: "right" } : { answer, kind: "wrong" },
-  });
-};
 
 /**
  * Give the choice an Inline Choice's review shows picked.

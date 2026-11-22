@@ -167,8 +167,7 @@ export const valueDomainRoster: readonly string[] = [
   "strength.datatype",
   "ud:targetObject@objectType",
   "DateDType",
-  "xi:parseType (reading 85)",
-  "qti-custom-operator@xml:space",
+  "qti-custom-interaction@xml:space",
   "xlink:typeType",
   "xlink:roleType",
   "xlink:showType",
@@ -252,4 +251,5 @@ export const valueDomainRoster: readonly string[] = [
   "xs:string",
   "xs:token",
   "qti-position-object-interaction@center-point (reading 232)",
+  "xs:int (reading 239)",
 ];

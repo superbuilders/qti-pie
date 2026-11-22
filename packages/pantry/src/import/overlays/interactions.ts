@@ -688,8 +688,8 @@ const referencesOf = (
  * @param context - The document.
  * @param read - The document's read attributes.
  * @param classes - The class's attributes and kinds.
- * @returns The rows, keyed by (package, path, start, attribute), none in an item
- *   ({@link referringRoots}), whose references resolve in the item's own declarations.
+ * @returns The rows, keyed by (package, path, start, attribute), none in an item or a test
+ *   ({@link referringRoots}), whose references resolve in its own declarations.
  */
 const fragmentNamesOf = (
   context: Context,
@@ -909,8 +909,9 @@ const placedDocumentKeyOf = (placement: Placement): string =>
   keyOf([placement.package, placement.instance.document]);
 
 /**
- * Decide whether an instance is a placement `FragmentScope` holds: an instance of an item's
- * assembly whose document is no item (`referringRoots`), an included fragment (spec reading 117).
+ * Decide whether an instance is a placement `FragmentScope` holds: an instance of an item's or a
+ * test's assembly whose document is neither (`referringRoots`), an included fragment or a section
+ * document a test references (spec readings 117 and 145).
  *
  * @param placement - The instance's placement.
  * @returns Whether its references resolve under it.
@@ -920,7 +921,8 @@ const resolvesUnder = (placement: Placement): boolean =>
   referringRoots.every((kind) => kind !== placement.instance.rootKind);
 
 /**
- * Build a package's placements: one per instance of an included fragment under an item, and under
+ * Build a package's placements: one per instance of an included fragment or a referenced section
+ * document under an item or a test (`resolvesUnder`), and under
  * it each of the document's references of each class, under the assembly's root kind. What each
  * resolves to among the assembly's declarations, whatever its cardinality spells, is read through a
  * query (spec reading 159, decision 432): a built-in of the assembly's root names none, and its law

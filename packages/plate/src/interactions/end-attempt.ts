@@ -1,7 +1,6 @@
 /**
- * End Attempt (Q-4), the `qti-end-attempt-interaction`: its model node, parse, redaction, its rule
- * for counting an attempt and its response validation, on the module shape the interaction-module
- * contract states.
+ * End Attempt (Q-4), the `qti-end-attempt-interaction`: its model node, parse, redaction and its
+ * rule for counting an attempt, on the module shape the interaction-module contract states.
  *
  * {@link endAttemptModule}'s `redact` gives the page the button's `title`, the entry name it posts
  * `true` under, the author's names and `count-attempt`; the server shell renders it, the one submit
@@ -23,28 +22,20 @@
  * is followed. As a boolean it means, by reading 204: `true`, or absent, counts the attempt and
  * ends it, as any submission does; any other value, `false`, leaves `numAttempts` unchanged for the
  * attempt the candidate ended through this button. A submission without the button counts as any
- * submission does, whatever `count-attempt` says. {@link InteractionModule.countsAttempt} carries
- * the rule to the engine through the hubs, so `runAttempt` names no kind.
- *
- * {@link validateEndAttempt} checks a value the caller decoded, in tier (a) only: an entry the
- * button cannot have posted. The messages are English and live in this module.
+ * submission does, whatever `count-attempt` says. The QTI database counts attempts by it, from
+ * the stored document; plate only carries it to the payload.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_EndAttemptInteraction
  */
 
 import type { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import type {
   InteractionModule,
   LevelFree,
   ModuleInteraction,
   Parsed,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { message } from "#plate/messages.ts";
-import { trimXmlSpace } from "#plate/model/values.ts";
 import type { Value } from "#plate/model/values.ts";
 
 /**
@@ -127,55 +118,6 @@ const notPressed: Value = {
 };
 
 /**
- * Tell whether a submission's value of the response is the button's `true`.
- *
- * @param posted The submission's responses, by identifier.
- * @param response The identifier of the End Attempt's response.
- * @returns Whether the response holds a boolean `true`; false for `false`, NULL and a response the
- *   submission did not set.
- */
-const endedThroughButton = (posted: Readonly<Record<string, Value>>, response: string): boolean =>
-  posted[response]?.values.some((single) => single.baseType === "boolean" && single.value) ?? false;
-
-/**
- * Check an End Attempt's response, which the caller decoded, in tier (a) alone.
- *
- * The caller decodes the posted entry with `decode`, under the entry name its form gave the
- * Control, the End Attempt's binding (a single `boolean`) and the posting's options, and passes
- * the value, or the {@link Malformed} `decode` gave. The button posts `true` alone, so an entry
- * `decode` refused, whatever its reason (`boolean`, `single-many`, `file`, `character`), did not
- * come from the button; the message names it and asks the candidate to press it again. A decoded
- * value, `true` or `false`, and NULL, which a host that decodes without the posting's options gets
- * for no entry, are every one the page can have posted, so they give none.
- *
- * @param interaction The End Attempt.
- * @param input The decoded value, or why the entry did not decode.
- * @param configuration The configuration, which gives the locale.
- * @returns One message when the entry did not decode, none otherwise.
- */
-const validateEndAttempt = (
-  interaction: EndAttemptInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  if (!(input instanceof Malformed)) {
-    return [];
-  }
-
-  const { locale } = configuration;
-  const title = trimXmlSpace(interaction.title);
-
-  return [
-    {
-      response: interaction.response,
-      text: message(locale, "endAttemptNotRecognised", {
-        label: title === "" ? message(locale, "endAttempt") : title,
-      }),
-    },
-  ];
-};
-
-/**
  * The End Attempt module.
  */
 export const endAttemptModule: InteractionModule<
@@ -190,14 +132,6 @@ export const endAttemptModule: InteractionModule<
    */
   absentValue: () => notPressed,
   binding,
-  /**
-   * Whether the submission counts an attempt, by `count-attempt` (reading 204): false only when
-   * `count-attempt` is false and the submission set the response to the button's `true`, so the
-   * attempt the candidate ended through this button is not counted; true otherwise, for a
-   * submission without the button and for `count-attempt` true or absent.
-   */
-  countsAttempt: (interaction, posted) =>
-    interaction.countAttempt || !endedThroughButton(posted, interaction.response),
   element,
   feature,
   /**
@@ -248,5 +182,4 @@ export const endAttemptModule: InteractionModule<
    * No region: End Attempt holds no content.
    */
   regions: () => [],
-  validate: validateEndAttempt,
 };

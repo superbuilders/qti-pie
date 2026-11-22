@@ -40,6 +40,7 @@
  * @see {@link https://www.postgresql.org/docs/current/functions-matching.html#POSIX-SYNTAX-DETAILS | PostgreSQL, Regular Expression Details}
  */
 import { regexMaxRepeat } from "@bjornpagen/grizzle";
+import { collapsed, replaced } from "@bjornpagen/grizzle-text/text";
 import { Array as Arr, Option, Result, Schema } from "effect";
 import type { Domain, Facet, FacetName, Primitive } from "#pantry/vocab/inventory/types.ts";
 
@@ -1417,6 +1418,15 @@ const booleanRep = ["true", "false", "1", "0"] as const;
 export const booleanTrue = ["true", "1"] as const satisfies readonly (typeof booleanRep)[number][];
 
 /**
+ * The literals `booleanLexicalMap` maps to false, `false` and `0` (XSD 1.1 Part 2, §3.3.2.2). A
+ * collapsed form is false exactly when it is one of these.
+ */
+export const booleanFalse = [
+  "false",
+  "0",
+] as const satisfies readonly (typeof booleanRep)[number][];
+
+/**
  * `xs:boolean`'s lexical space (XSD 1.1 Part 2, §3.3.2.2).
  */
 const booleanLexical = alt(...booleanRep.map(literal));
@@ -1941,30 +1951,27 @@ export const referenceIdentities = ["IDREF", "IDREFS"] as const satisfies readon
 export type Qualified = "QName" | "QNames";
 
 /**
- * Collapse a text, as XML Schema's `collapse` whitespace class does and `Compute.collapse` does:
- * each run of tabs, line feeds, carriage returns and spaces one space, and none at either end (XSD
- * 1.1 Part 2, §4.3.6). No other character is whitespace to it: a no-break space, an ideographic
- * space or a byte order mark stays, where `String.prototype.trim` would drop it.
+ * Collapse a text, as XML Schema's `collapse` whitespace class does and `Text.collapse` does: each
+ * run of tabs, line feeds, carriage returns and spaces one space, and none at either end (XSD 1.1
+ * Part 2, §4.3.6). No other character is whitespace to it: a no-break space, an ideographic space
+ * or a byte order mark stays, where `String.prototype.trim` would drop it. It is grizzle-text's
+ * `collapsed`, the one implementation, which crust re-exports and the grammar reads from
+ * grizzle-text itself, a text library the pure layers may load (`#pantry/grammar/purity.test.ts`);
+ * the grammar's normalizers, the XDM model's shredding and every other reader take it.
  *
- * @param text - The text.
- * @returns The collapsed text.
  * @see {@link https://www.w3.org/TR/xmlschema11-2/#rf-whiteSpace | XSD 1.1 Part 2, whiteSpace}
  */
-export const collapse = (text: string): string =>
-  text
-    .replaceAll(/[\t\n\r ]+/gu, " ")
-    .replace(/^ /u, "")
-    .replace(/ $/u, "");
+export const collapse = collapsed;
 
 /**
- * How each whitespace class normalizes a text (XSD 1.1 Part 2, §4.3.6), as `Compute` does in the
+ * How each whitespace class normalizes a text (XSD 1.1 Part 2, §4.3.6), as `Text` does in the
  * generated `Attribute.value`: `collapse` ({@link collapse}); `replace`, each tab, line feed and
- * carriage return a space (`Compute.replaceWhitespace`); and `preserve`, the text as written.
+ * carriage return a space (`Text.replaceWhitespace`); and `preserve`, the text as written.
  */
 const normalizers: Readonly<Record<WhiteSpaceClass, (text: string) => string>> = {
   collapse,
   preserve: (text) => text,
-  replace: (text) => text.replaceAll(/[\t\n\r]/gu, " "),
+  replace: replaced,
 };
 
 /**
@@ -2031,8 +2038,8 @@ export const unboundPrefixesOf = (
   value: string,
   bound: (prefix: string) => boolean,
 ): readonly string[] => {
-  const collapsed = collapse(value);
-  const names = qualified === "QName" ? [collapsed] : collapsed.split(" ");
+  const text = collapse(value);
+  const names = qualified === "QName" ? [text] : text.split(" ");
 
   return [
     ...new Set(
@@ -3615,18 +3622,18 @@ const foldCollapse = (tree: Regex): Result.Result<Regex, UnreadDefinition> => {
     return Result.succeed(anything);
   }
 
-  const collapsed = mapSets(tree, (set) => chars(subtract(set, breaks)));
-  const spaces = spacesOf(collapsed);
-  if (spaces.doubled && !mergeSafe(collapsed)) {
+  const unbroken = mapSets(tree, (set) => chars(subtract(set, breaks)));
+  const spaces = spacesOf(unbroken);
+  if (spaces.doubled && !mergeSafe(unbroken)) {
     return refuse("a collapsed language whose words may hold two spaces that do not merge");
   }
 
   if (!spaces.first && !spaces.last) {
-    return Result.succeed(seq(anyWhitespace, spacesToRuns(collapsed), anyWhitespace));
+    return Result.succeed(seq(anyWhitespace, spacesToRuns(unbroken), anyWhitespace));
   }
 
   const solid = subtract(xmlChar, whitespace);
-  const core = firstIn(lastIn(spacesToRuns(collapsed), solid), solid);
+  const core = firstIn(lastIn(spacesToRuns(unbroken), solid), solid);
 
   return Result.succeed(
     alt(seq(anyWhitespace, core, anyWhitespace), ...(spaces.nullable ? [anyWhitespace] : [])),
@@ -4061,20 +4068,6 @@ export const ncNamePattern = `(?:${emit(ncName)})`;
 export const namingText = `^[\\t\\n\\r ]*${ncNamePattern}[\\t\\n\\r ]*$`;
 
 /**
- * {@link ncNamePattern} over a whole value, as a JavaScript host reads it.
- */
-const ncNameForm = new RegExp(`^${ncNamePattern}$`, patternFlags);
-
-/**
- * Decide whether a value is an NCName, by {@link ncNamePattern}: the host's reading of the one
- * test the schema states.
- *
- * @param value - The value, collapsed.
- * @returns Whether it names something.
- */
-export const isNcName = (value: string): boolean => ncNameForm.test(value);
-
-/**
  * Read the primitive a definition's typed value is derived in: an atomic one's own, and `list` or
  * `union` for a list or a union.
  *
@@ -4159,7 +4152,7 @@ const normalizationOf = (
  * (`#pantry/grammar/attributes.ts`, `readDomain`), and no caller compiles one definition twice.
  *
  * A definition whose lexical space holds no value, such as `xs:NOTATION`'s, compiles as any other:
- * its pattern is the empty language's, which grizzle admits as a `Compute.matches` pattern that
+ * its pattern is the empty language's, which grizzle admits as a `Text.matches` pattern that
  * holds of no text.
  *
  * @param domain - The definition, as the leaf resolves it.

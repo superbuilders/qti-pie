@@ -545,16 +545,37 @@ export interface ListedRows {
 
 /**
  * A package as the package-level producers read it: its manifest, the documents it lists that
- * folded, in manifest order, its entries' paths, and `spliced`, each listed document's path with
- * the paths of the documents its includes splice in place (spec reading 117), as the oracle's
- * `standsFor` reads an include: under a parent whose include splices its fragment, and standing for
- * that fragment's root.
+ * folded, in manifest order, which of them are assembled, its entries' paths, the sites that place
+ * their targets, and `spliced`, each listed document's path with the paths of the documents its
+ * includes splice in place (spec reading 117), as the oracle's `standsFor` reads an include: under
+ * a parent whose include splices its fragment, and standing for that fragment's root.
  */
 export interface PackageRows {
+  /**
+   * The paths of the listed documents in an assembly (`Document.assembled`, the import's
+   * `#pantry/import/context.ts`): a test, a section document, one that holds a site, and one a site
+   * names.
+   */
+  readonly assembled: ReadonlySet<string>;
   readonly documents: readonly ListedRows[];
   readonly entries: ReadonlySet<string>;
   readonly manifest: View;
+  /**
+   * Each listed document's path with the sites of it that place their target in its assemblies
+   * (reading 85, the schema's `SiteTarget.places`): a section ref whose target's root is a section,
+   * and an include that may stand for its target's root, each with its node's `start` and the path
+   * of the document it places, in document order.
+   */
+  readonly placements: ReadonlyMap<string, readonly Placement[]>;
   readonly spliced: ReadonlyMap<string, readonly string[]>;
+}
+
+/**
+ * One site of a document that places its target: its node's `start` and the target's path.
+ */
+export interface Placement {
+  readonly site: bigint;
+  readonly target: string;
 }
 
 /**

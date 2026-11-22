@@ -772,8 +772,9 @@ describe("the installed relations", () => {
       ),
       new Set(capped.map(({ parent, position }) => tupleText([parent, position]))),
     );
-    // The loose LOM binding's 82 capped (parent, kind) pairs.
-    assert.strictEqual(capped.length, 82);
+    // The loose LOM binding's 82 capped (parent, kind) pairs, and a figure's caption (spec reading
+    // 252).
+    assert.strictEqual(capped.length, 83);
     assert.deepStrictEqual(
       new Set(
         relationNamed("BarredOf").rows.map(({ parent, position, slot }) =>

@@ -134,7 +134,6 @@ export type Limit =
   | "a record file whose root is a cp:manifest"
   | "a resource href the oracle reads unresolved (#65)"
   | "an inclusion cycle"
-  | "content outside xi:fallback (#66)"
   | "xml:base on a cp:resource";
 
 /**
@@ -146,11 +145,6 @@ const cpNamespace = "http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1";
  * The namespace of IEEE LOM's elements, a resource's metadata record's.
  */
 const lomNamespace = "http://ltsc.ieee.org/xsd/LOM";
-
-/**
- * The namespace of XInclude's elements, `xi:include` and `xi:fallback`.
- */
-const xincludeNamespace = "http://www.w3.org/2001/XInclude";
 
 /**
  * Tell whether an element is a Content Packaging element of a local name.
@@ -215,18 +209,15 @@ const lomTitled = (resource: Element): boolean =>
  *    holds a LOM `general` title has an href, its query and fragment aside, that is not in normal
  *    form (a `.` segment, or a percent-escape of an unreserved character or a space, RFC 3986
  *    §6.2.2) and whose normal form names a document of the package; the oracle's title law matches
- *    the raw href to a document's path, so it reads no object for the record (decision 469);
- * 6. `content outside xi:fallback (#66)`: an `xi:include` whose href, in normal form, names a document
- *    of the package holds an element child that is no `xi:fallback`, which reading 118 assesses
- *    laxly and the law oracle ignores (decision 469).
+ *    the raw href to a document's path, so it reads no object for the record (decision 469).
  *
  * A class under one of the first four is refused on both sides by the law that names it, so its
- * rows' laws decide no verdict. The last two are oracle defects their issues defer, so a fixed
- * cause they would hide stays keyed plain wherever neither holds.
+ * rows' laws decide no verdict. The last is an oracle defect its issue defers, so a fixed cause it
+ * would hide stays keyed plain wherever it does not hold.
  *
  * @param breaches - The oracle's breaches, none where it did not judge every law.
  * @param genome - The package.
- * @returns The limit, none where the package falls under none of the six.
+ * @returns The limit, none where the package falls under none of the five.
  */
 export const limitOf = (breaches: readonly Breach[], genome: Genome): Option.Option<Limit> => {
   const manifest = genome.find(({ path }) => path === manifestPath);
@@ -257,15 +248,6 @@ export const limitOf = (breaches: readonly Breach[], genome: Genome): Option.Opt
 
     return lomTitled(resource) && normalHref(href) !== href && names(manifestPath, href);
   };
-  const outsideFallback = (path: string, include: Element): boolean =>
-    include.namespace === xincludeNamespace &&
-    include.local === "include" &&
-    names(path, attributeValue(include, "href") ?? "") &&
-    include.children.some(
-      (child) =>
-        child.kind === "element" &&
-        !(child.namespace === xincludeNamespace && child.local === "fallback"),
-    );
   const tests: readonly (readonly [Limit, () => boolean])[] = [
     [
       "a record file whose root is a cp:manifest",
@@ -286,15 +268,6 @@ export const limitOf = (breaches: readonly Breach[], genome: Genome): Option.Opt
         ),
     ],
     ["a resource href the oracle reads unresolved (#65)", () => resources.some(unresolvedHref)],
-    [
-      "content outside xi:fallback (#66)",
-      () =>
-        genome.some(
-          ({ body, path }) =>
-            body.kind === "xml" &&
-            elementsOf(body.doc.root).some(({ element }) => outsideFallback(path, element)),
-        ),
-    ],
   ];
 
   return Option.map(Option.fromUndefinedOr(tests.find(([, holds]) => holds())), ([limit]) => limit);
@@ -839,10 +812,10 @@ const codecDisagreements = (oracle: OracleSide, side: ImportSide): readonly Disa
 };
 
 /**
- * The `keyText` fields the database fills and the import never writes: an owner's end a fold of the
- * document tree computes, and every accumulator's or generated field's of type `keyText`, such as
- * `Attribute.idrefText`. A key text the oracle bounds there has no row of the import to be in, so
- * no field the database fills is held on the host.
+ * The `matchedText` fields the database fills and the import never writes: an owner's end a fold of
+ * the document tree computes, and every accumulator's or generated field's of type `matchedText`,
+ * such as `Node.stringValue`. A key text the oracle bounds there has no row of the import to be in,
+ * so no field the database fills is held on the host.
  */
 const filledFields: ReadonlySet<string> = new Set([
   ...keyCopies.flatMap((copy) => (copy.by === "fold" ? [copy.field] : [])),

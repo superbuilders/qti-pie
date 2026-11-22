@@ -21,13 +21,13 @@
  */
 import { Effect, Option, Result, Schema, Stream } from "effect";
 import type { RowKey, Window } from "@bjornpagen/grizzle";
-import { closedNameOf, openClassOf } from "#pantry/export/attribute-names.ts";
 import { readDocument } from "#pantry/model/assemble.ts";
 import type { AssembleError } from "#pantry/model/assemble.ts";
 import type {
   AttributeEntityRow,
   AttributeRow,
   CharacterRow,
+  ClosedName,
   DocumentRow,
   EncodingDeclRow,
   EntityRefRow,
@@ -35,6 +35,7 @@ import type {
   NodeRow,
   OpenAttributeEntityRow,
   OpenAttributeRow,
+  OpenClass,
   OpenElementNameRow,
   PiRow,
   SdDeclRow,
@@ -61,28 +62,23 @@ type ScannedEntity = Pick<AttributeEntityRow<XdmVocabulary>, "entity" | "offset"
 /**
  * An attribute of a closed name as the scan delivers it under its element: its name handle, the
  * prefix its name is written with and its lexical form, with its entity references. The handle is
- * of `Attribute.name`'s type, the whole `AttributeName` roster, open classes included, which
- * {@link closedNameOf} reads as the closed name it is.
+ * of `Attribute.name`'s type, every `AttributeName` handle but the open classes: a closed name.
  */
 interface ScannedAttribute<V extends XdmVocabulary> extends Omit<
   AttributeRow<V>,
   "name" | "start"
 > {
   readonly entities: readonly ScannedEntity[];
-  readonly name: V["name"];
+  readonly name: ClosedName<V>;
 }
 
 /**
  * An attribute of an open name as the scan delivers it under its element: its class, its expanded
  * name, the prefix its name is written with and its lexical form, with its entity references. The
- * class is of `OpenAttribute.class`'s type, the whole `AttributeName` roster, which
- * {@link openClassOf} reads as the open class it is.
+ * class is of `OpenAttribute.class`'s type, the open classes of `AttributeName`.
  */
-interface ScannedOpenAttribute<V extends XdmVocabulary> extends Omit<
-  OpenAttributeRow,
-  "class" | "start"
-> {
-  readonly class: V["name"];
+interface ScannedOpenAttribute extends Omit<OpenAttributeRow, "class" | "start"> {
+  readonly class: OpenClass;
   readonly entities: readonly ScannedEntity[];
 }
 
@@ -135,7 +131,7 @@ export interface ScanRow<V extends XdmVocabulary> extends Omit<NodeRow<V>, "gove
    */
   readonly elementType: Option.Option<{ readonly type: string }>;
   readonly namespaces: readonly Omit<NamespaceRow, "start">[];
-  readonly openAttributes: readonly ScannedOpenAttribute<V>[];
+  readonly openAttributes: readonly ScannedOpenAttribute[];
   readonly openElementName: Option.Option<Omit<OpenElementNameRow, "start">>;
   /**
    * A foreign element's governing type (`OpenElementType`); none on every other node, and on a
@@ -267,10 +263,9 @@ export const addRow = <V extends XdmVocabulary>(scan: Scan<V>, row: ScanRow<V>):
   }
 
   for (const { entities, lexical, name, prefix: written } of row.attributes) {
-    const closed = closedNameOf<V>(name);
-    scan.attributes.push({ lexical, name: closed, prefix: written, start });
+    scan.attributes.push({ lexical, name, prefix: written, start });
     for (const { entity, offset } of entities) {
-      scan.attributeEntities.push({ entity, name: closed, offset, start });
+      scan.attributeEntities.push({ entity, name, offset, start });
     }
   }
 
@@ -283,7 +278,7 @@ export const addRow = <V extends XdmVocabulary>(scan: Scan<V>, row: ScanRow<V>):
     uri,
   } of row.openAttributes) {
     scan.openAttributes.push({
-      class: openClassOf(open),
+      class: open,
       lexical,
       local,
       prefix: written,

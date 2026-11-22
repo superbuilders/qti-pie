@@ -1,0 +1,14 @@
+		.rule((r) => {
+			const ordinal = ordinalsOf(session).bind(bySession(session))
+			const { child, package: pkg, path, stage, attempts } = v(ordinal, "ordinal")
+			return r.match(ordinal, { child, package: pkg, path, stage, attempts }).find({
+				child,
+				package: pkg,
+				path,
+				stage,
+				holds: Type.literal(DocText.fields.holds, "value"),
+				identifier: Type.literal(DocText.fields.identifier, "numAttempts"),
+				place: Type.literal(DocText.fields.place, 0n),
+				value: Type.cast(attempts, QtiInteger)
+			})
+		})

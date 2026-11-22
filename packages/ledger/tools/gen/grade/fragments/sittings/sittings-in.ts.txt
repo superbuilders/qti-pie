@@ -1,0 +1,7 @@
+  /**
+   * A query over the call's sittings, its `sittings` relation parameter (`#ledger/sitting-queries.ts`
+   * sittingHeading), bound in the rule that reads it to the call's own.
+   */
+  const sittingsIn = (r: Rule<DeliveryLevel>) => ({
+    sittings: r.relation("sittings", sittingHeading),
+  });

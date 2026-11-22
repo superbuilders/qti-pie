@@ -10,12 +10,15 @@
     "#pg.config.ts": "./pg.config.ts"
   },
   "exports": {
+    "./db/connection.ts": "./src/db/connection.ts",
     "./db/install.ts": "./src/db/install.ts",
     "./db/layer.ts": "./src/db/layer.ts",
     "./db/served.ts": "./src/db/served.ts",
     "./export/pages.ts": "./src/export/pages.ts",
     "./export/render.ts": "./src/export/render.ts",
     "./export/scan.ts": "./src/export/scan.ts",
+    "./grammar/domains.ts": "./src/grammar/domains.ts",
+    "./grammar/install.ts": "./src/grammar/install.ts",
     "./import/package.ts": "./src/import/package.ts",
     "./import/program.ts": "./src/import/program.ts",
     "./import/read.ts": "./src/import/read.ts",
@@ -25,8 +28,10 @@
     "./qti/logins.ts": "./src/qti/logins.ts",
     "./qti/lom.ts": "./src/qti/lom.ts",
     "./qti/media.ts": "./src/qti/media.ts",
+    "./qti/positions.ts": "./src/qti/positions.ts",
     "./qti/roles.ts": "./src/qti/roles.ts",
     "./qti/schema.ts": "./src/qti/schema.ts",
+    "./qti/templates.ts": "./src/qti/templates.ts",
     "./test/admission.ts": "./src/test/admission.ts",
     "./vocab/laws.ts": "./src/vocab/laws.ts"
   },

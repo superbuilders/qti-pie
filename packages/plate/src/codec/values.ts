@@ -7,12 +7,8 @@
  * @module
  */
 import { Array as Arr, Option, Schema, SchemaTransformation } from "effect";
-import {
-  isNcName,
-  isXmlText,
-  modelledBaseTypes,
-  modelledCardinalities,
-} from "#plate/model/values.ts";
+import { isNcName } from "@qti-pie/crust/text.ts";
+import { isXmlText, modelledBaseTypes, modelledCardinalities } from "#plate/model/values.ts";
 import type { RecordValue, Single, Value } from "#plate/model/values.ts";
 
 /**

@@ -40,7 +40,7 @@ const sharedImportPatterns = [
 const nodeBuiltins = `(?:node:|(?:${builtinModules.join("|")})(?:/|$))`;
 
 /**
- * Every Node built-in but node:crypto, the one the engine's draws load, as a specifier pattern
+ * Every Node built-in but node:crypto, the one plate's keyed digest loads, as a specifier pattern
  * without its anchor: the others with or without `node:`, and `crypto` without it. oxlint reads
  * the pattern with Rust's regex, which has no look-around to refuse node:crypto alone by.
  */
@@ -62,8 +62,8 @@ const plateNodePattern = {
  * What plate's modules may not load, each refused by its own specifier, so the rule holds file by
  * file and needs no walk of the module graph. Its served entries (`.`, `./open`, `./package` and
  * the UI's three) stay loadable by any host, and its islands by a page: test support (the Node-only
- * corpus reader among it), every Node built-in (with or without `node:`; the engine's draws alone
- * load `node:crypto`), the test runner by package, so no re-export under another name routes
+ * corpus reader among it), every Node built-in (with or without `node:`; the keyed digest alone
+ * loads `node:crypto`), the test runner by package, so no re-export under another name routes
  * around the list, and pantry and grizzle. A type-only import loads nothing, and is allowed.
  */
 const plateCorePatterns = [
@@ -81,7 +81,7 @@ const plateCorePatterns = [
   {
     allowTypeImports: true,
     message:
-      "plate depends on crust, never on pantry, grizzle or grizzle-text: it reads grizzle-text through crust's re-exports (@qti-pie/crust/uri.ts).",
+      "plate depends on crust, never on pantry, grizzle or grizzle-text: it reads grizzle-text through crust's re-exports (@qti-pie/crust/regex.ts, @qti-pie/crust/text.ts, @qti-pie/crust/uri.ts).",
     regex: "^(?:@qti-pie/pantry|@bjornpagen/grizzle(?:-text)?|@grizzle)(?:/|$)",
   },
 ];
@@ -92,10 +92,8 @@ const plateCorePatterns = [
  * joins the list.
  */
 const plateClientModules = [
-  "packages/plate/src/engine/expressions/shapes.ts",
   "packages/plate/src/form/encoding.ts",
   "packages/plate/src/interactions/pair.ts",
-  "packages/plate/src/model/blocks.ts",
   "packages/plate/src/model/regex.ts",
   "packages/plate/src/model/values.ts",
   "packages/plate/src/pci/json.ts",
@@ -191,15 +189,6 @@ export default defineConfig({
       ],
       rules: { "anti-slop/no-unknown-parameters": "off" },
     },
-    // The export reads a stored attribute's name handle as the closed name, and an open attribute's
-    // class as the open class, that the law "AL4 open names" holds every stored row to: grizzle types
-    // both columns as the whole `AttributeName` roster. The two casts sit in a module of their own,
-    // and go when the schema types the columns by their closed and open rosters (RF-PANTRY's schema
-    // candidate, for follow-up 5).
-    {
-      files: ["packages/pantry/src/export/attribute-names.ts"],
-      rules: { "typescript/no-unsafe-type-assertion": "off" },
-    },
     // crust reads and writes XML's encoding labels: `UTF-8`, `UTF-16LE` and `US-ASCII` are the labels
     // XML 1.0 section 4.3.3 and IANA spell, and `utf8` a closed encoder-class name, data of its table
     // and of the documents its tests read, never an identifier handed to a Node encoding API, which is
@@ -274,10 +263,10 @@ export default defineConfig({
         ],
       },
     },
-    // The engine's draws hash through node:crypto's synchronous HMAC, the one Node built-in the
-    // server core loads. No "use client" module reaches them, so no page does.
+    // The shuffle's and the stage order's digests hash through node:crypto's synchronous HMAC, the
+    // one Node built-in the server core loads. No "use client" module reaches them, so no page does.
     {
-      files: ["packages/plate/src/engine/random.ts"],
+      files: ["packages/plate/src/digest.ts"],
       rules: {
         "no-restricted-imports": [
           "error",
@@ -287,7 +276,8 @@ export default defineConfig({
               ...plateCorePatterns.filter((pattern) => pattern !== plateNodePattern),
               {
                 allowTypeImports: true,
-                message: "The engine's draws load no Node built-in but node:crypto.",
+                message:
+                  "The shuffle's and the stage order's digests load no Node built-in but node:crypto.",
                 regex: `^${nodeBuiltinsButCrypto}`,
               },
             ],
@@ -330,8 +320,15 @@ export default defineConfig({
               ...plateCorePatterns,
               {
                 allowTypeImports: true,
-                group: ["*", "!effect", "!#plate/**"],
-                message: "A page loads this module: load only effect and plate's own modules.",
+                group: [
+                  "*",
+                  "!effect",
+                  "!#plate/**",
+                  "!@qti-pie/crust/regex.ts",
+                  "!@qti-pie/crust/text.ts",
+                ],
+                message:
+                  "A page loads this module: load only effect, plate's own modules and crust's re-exports of grizzle-text.",
               },
             ],
           },
@@ -362,9 +359,7 @@ export default defineConfig({
         "packages/crust/src/test/trees.ts",
         "packages/plate/src/content/mathml.ts",
         "packages/plate/src/model/body.ts",
-        "packages/plate/src/model/processing.ts",
         "packages/plate/src/model/regex.ts",
-        "packages/plate/src/model/template.ts",
         "packages/plate/src/ui/item/content.tsx",
       ],
       rules: { "no-use-before-define": ["error", { variables: false }] },
@@ -372,22 +367,15 @@ export default defineConfig({
     // QTI's own `shape` attribute (`qti-area-map-entry`'s and `qti-inside`'s, the information model's
     // Shape) names an area's geometry, not a structure. pantry's derived attribute leaf names each
     // anonymous type's constant after the attribute that declares it, and plate's item model and
-    // grading engine name their fields, readers and cases after the attribute.
+    // area hit test name their fields, readers and cases after the attribute.
     {
       files: [
         "packages/pantry/src/vocab/inventory/attributes.ts",
-        "packages/plate/src/engine/expressions/mapping.test.ts",
-        "packages/plate/src/engine/expressions/mapping.ts",
-        "packages/plate/src/engine/expressions/references.test.ts",
-        "packages/plate/src/engine/expressions/shapes.ts",
-        "packages/plate/src/engine/expressions/text.test.ts",
-        "packages/plate/src/engine/expressions/text.ts",
         "packages/plate/src/model/declarations.ts",
-        "packages/plate/src/model/expression.ts",
-        "packages/plate/src/model/expressions/text.test.ts",
-        "packages/plate/src/model/expressions/text.ts",
         "packages/plate/src/model/item.test.ts",
         "packages/plate/src/model/item.ts",
+        "packages/plate/src/ui/graphic/holds.test.ts",
+        "packages/plate/src/ui/graphic/holds.ts",
       ],
       rules: { "anti-slop/no-shape-in-symbol-names": "off" },
     },

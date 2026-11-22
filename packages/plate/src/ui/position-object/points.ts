@@ -65,7 +65,7 @@ export const withPoints = (
 
 /**
  * Give the whole pixel of the stage a point lands on: the point rounded to whole numbers and held
- * to the stage, from 0 to its width and from 0 to its height, the bounds `validateResponses` holds
+ * to the stage, from 0 to its width and from 0 to its height, the bounds `validate-responses` holds
  * a posted point to.
  *
  * @param point The point, in the stage image's pixels.

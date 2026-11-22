@@ -1,9 +1,10 @@
 /**
- * A processing reference that claims no table of its declaration has no `VariableRefTable`
- * (AGENTS.md's Schema intent: a value that may be missing is a row of its own relation, never a
- * sentinel): a map response, a map response point or a lookup whose declaration holds none of the
- * tables it reads is refused by "Mapped response" or "Lookup type". Before, a reference held the
- * table `none` where it claimed none.
+ * A processing reference whose declaration holds none of the tables it reads is refused, and no row
+ * stands for the table it lacks (AGENTS.md's Schema intent: a value that may be missing is a row of
+ * its own relation, never a sentinel): a map response, a map response point or a lookup whose
+ * declaration holds none of the tables its kind reads is refused by "Mapped response" or "Lookup
+ * type", each placed reference read against its declaration's own tables
+ * (`#pantry/qti/overlay-queries/declaration.ts`).
  *
  * Oracle: a second implementation, the law oracle (`#pantry/test/oracle.ts` `judge`), against the
  * laws the import's rows break on the host (`#pantry/test/gen/genetic/judge.ts` `judgeOne`): no

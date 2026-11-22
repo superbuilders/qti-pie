@@ -48,7 +48,13 @@ import type {
   TemplateDeclaration,
   UnheldDeclaration,
 } from "#plate/model/item.ts";
-import { isModelled, parseElementText, parseLexical, trimXmlSpace } from "#plate/model/values.ts";
+import {
+  isModelled,
+  parseElementText,
+  parseLexical,
+  replaceXmlSpace,
+  trimXmlSpace,
+} from "#plate/model/values.ts";
 import type {
   ModelledBaseType,
   RecordField,
@@ -82,7 +88,13 @@ const valueIn = (
 ): Value => {
   const parsed: Option.Option<Single>[] = [];
   for (const value of childrenNamed(container, "qti-value")) {
-    parsed.push(typed(build, pathOf(build, value), parseElementText(baseType, textOf(value))));
+    parsed.push(
+      typed(
+        build,
+        pathOf(build, value),
+        parseElementText(baseType, replaceXmlSpace(textOf(value))),
+      ),
+    );
   }
 
   return { baseType, cardinality, values: parsed.flatMap(Option.toArray) };
@@ -183,11 +195,25 @@ export const unheldDeclaration = (
   );
 
 /**
+ * A typed attribute value as its base type reads it (reading 7): a `map-key`, a lookup table
+ * entry's `target-value` or a table's `default-value`, as written for `string`, and for every other
+ * base type after XML Schema's `collapse`, the whitespace facet each typed simple type fixes (XML
+ * Schema 1.0 Part 2 §4.3.6), so `" 3 "` is the integer 3, as pantry's "Typed attribute value"
+ * reads it.
+ *
+ * @param baseType The value's base type.
+ * @param value The attribute's value.
+ * @returns The text its base type's lexical space is read over.
+ */
+const typedLexicalOf = (baseType: ModelledBaseType, value: string): string =>
+  baseType === "string" ? value : collapseXmlSpace(value);
+
+/**
  * Read a `qti-mapping` under its response's base type.
  *
  * @param build The build.
  * @param mapping The mapping element.
- * @param baseType The response's base type, which each `map-key` is read in, exactly as written.
+ * @param baseType The response's base type, which each `map-key` is read in (reading 7).
  * @returns The mapping.
  */
 const mappingOf = (build: Build, mapping: SourceElement, baseType: ModelledBaseType): Mapping => {
@@ -204,7 +230,11 @@ const mappingOf = (build: Build, mapping: SourceElement, baseType: ModelledBaseT
 
         return {
           caseSensitive: xsBoolean(build, entry, "case-sensitive", false),
-          key: typed(build, attributePath(path, key), parseLexical(baseType, key.value)),
+          key: typed(
+            build,
+            attributePath(path, key),
+            parseLexical(baseType, typedLexicalOf(baseType, key.value)),
+          ),
           value: floatOf(
             typed(
               build,
@@ -303,7 +333,11 @@ const writtenField = (build: ModelWalk, value: SourceElement): WrittenField => {
   const baseType = pipe(requiredAttribute(build, value, "base-type"), (attribute) =>
     listed(build, value, "base-type", attribute, baseTypes),
   );
-  const single = typed(build, pathOf(build, value), parseElementText(baseType, textOf(value)));
+  const single = typed(
+    build,
+    pathOf(build, value),
+    parseElementText(baseType, replaceXmlSpace(textOf(value))),
+  );
 
   return { identifier, value: single };
 };
@@ -481,7 +515,7 @@ const outcomeReporting = (declaration: SourceElement, refuse: AttributeFault): O
 };
 
 /**
- * Read a lookup table's optional `default-value` exactly as written (reading 7).
+ * Read a lookup table's optional `default-value` in its outcome's base type (reading 7).
  *
  * @param build The build.
  * @param table The `qti-match-table` or `qti-interpolation-table`.
@@ -497,13 +531,12 @@ const tableDefault = (
     typed(
       build,
       attributePath(pathOf(build, table), attribute),
-      parseLexical(baseType, attribute.value),
+      parseLexical(baseType, typedLexicalOf(baseType, attribute.value)),
     ),
   );
 
 /**
- * Read a lookup table entry's `target-value` in its outcome's base type (reading 8), exactly as
- * written (reading 7).
+ * Read a lookup table entry's `target-value` in its outcome's base type (readings 7 and 8).
  *
  * @param build The build.
  * @param entry The entry.
@@ -515,7 +548,7 @@ const targetValue = (build: ModelWalk, entry: SourceElement, baseType: ModelledB
     typed(
       build,
       attributePath(pathOf(build, entry), attribute),
-      parseLexical(baseType, attribute.value),
+      parseLexical(baseType, typedLexicalOf(baseType, attribute.value)),
     ),
   );
 

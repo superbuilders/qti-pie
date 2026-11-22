@@ -1,16 +1,17 @@
 /**
- * A package-media policy file, `policy.json`, as an application keeps it: the extensions a player
- * may fetch, each with the media type the application serves its files with. Each entry is one
- * `MediaType` row of the package-media level (`#pantry/qti/media.ts`), which states the same two
- * laws: one type per extension, and one extension per type.
+ * A package-media policy file, `policy.json`, as an application keeps it: the extensions whose
+ * files it serves a player, each with the media type it serves them with. Each entry is one
+ * `MediaType` row of the package-media level (`#pantry/qti/media.ts`), keyed by its extension, so
+ * an extension has one type and a type may stand under several extensions (`jpg` and `jpeg`). A
+ * file whose extension the policy does not list is stored and withheld, never refused.
  */
-import { Array as Arr, Schema } from "effect";
+import { Schema } from "effect";
 
 /**
  * A file extension a media policy lists: lowercase ASCII letters and digits, at most 127, without
- * its dot, as an entry's path writes it after its last `.` (`photo.jpg` is `jpg`). An extension
- * matches as written, so a policy lists one spelling of each and a path in another case is
- * refused.
+ * its dot, as an entry's path writes it after its last `.` (`photo.jpg` is `jpg`). An entry's
+ * extension is matched against it in ASCII lower case, so `jpg` serves `photo.jpg` and
+ * `photo.JPG`.
  */
 export const MediaExtension = Schema.String.check(
   Schema.isPattern(/^[a-z0-9]{1,127}$/u, {
@@ -34,33 +35,15 @@ export const MediaType = Schema.String.check(
 );
 
 /**
- * Find the media types a roster lists under more than one extension, each with those extensions.
- *
- * @param media - The roster.
- * @returns One message per such type; none where each type has one extension.
- */
-const typesSpelledTwice = (media: Readonly<Record<string, string>>): readonly string[] =>
-  Object.entries(Arr.groupBy(Object.entries(media), ([, type]) => type)).flatMap(([type, listed]) =>
-    listed.length > 1
-      ? [
-          `${type} is listed under ${listed.map(([extension]) => extension).join(", ")}: list each media type under one extension, the one spelling its files use`,
-        ]
-      : [],
-  );
-
-/**
  * An install's policy, `policy.json`: exactly `{ "media": { "<extension>": "<type>/<subtype>", ...
- * } }`, the one closed record of the extensions a player may fetch, each with the media type the
- * install serves its files with, each entry one row of `MediaType` (`#pantry/qti/media.ts`), which
- * holds the same two laws: one type per extension, and one extension per type. It lists at least
- * one extension, and each media type under one extension, its one spelling: a policy that lists
- * `jpg` for `image/jpeg` lists no `jpeg`.
+ * } }`, the one closed record of the extensions whose files the install serves, each with the media
+ * type it serves them with, each entry one row of `MediaType` (`#pantry/qti/media.ts`). It lists at
+ * least one extension.
  */
 export const MediaPolicySchema = Schema.Struct({
   media: Schema.Record(MediaExtension, MediaType).check(
     Schema.isMinProperties(1, {
       message: 'List at least one extension, such as { "svg": "image/svg+xml" }',
     }),
-    Schema.makeFilter(typesSpelledTwice),
   ),
 });

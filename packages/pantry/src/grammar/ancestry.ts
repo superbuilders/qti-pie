@@ -104,7 +104,10 @@ export interface AncestryFacet {
 
 /**
  * The flags under which an interaction may not sit: no interaction inside another, nor inside a
- * choice, a hottext, a rubric block, a template block or a modal feedback.
+ * choice, a hottext, a rubric block, a template block, a modal feedback, or a test's rubric block
+ * or feedback (spec reading 25; information model §5.157: test feedback "must not contain an
+ * interaction object, either directly or indirectly", §2.8.6: rubric blocks "MUST NOT contain
+ * interactions").
  */
 const interactionBans = [
   "int",
@@ -113,6 +116,7 @@ const interactionBans = [
   "rubric",
   "tmpl",
   "modal",
+  "test",
 ] as const satisfies readonly Flag[];
 
 /**

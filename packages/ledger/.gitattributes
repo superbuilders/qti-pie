@@ -1,0 +1,9 @@
+# qti-rptemplates holds 1EdTech's published template documents, byte for byte as purl.imsglobal.org serves them
+# (CC2_match and CC2_match_basic with CRLF line ends): binary, so no checkout, diff or patch transport rewrites a
+# byte. This file sits outside the package, whose every file its manifest lists (pantry's "File listed").
+qti-rptemplates/match_correct.xml binary
+qti-rptemplates/map_response.xml binary
+qti-rptemplates/map_response_point.xml binary
+qti-rptemplates/CC2_match.xml binary
+qti-rptemplates/CC2_match_basic.xml binary
+qti-rptemplates/CC2_map_response.xml binary

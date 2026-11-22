@@ -1,6 +1,6 @@
 /**
  * The host's collapse (`#pantry/test/gen/genetic/host-laws.ts` `collapse`) is the database's
- * `Compute.collapse`, `btrim(regexp_replace(x, '[ \t\n\r]+', ' ', 'g'))`: each run of tab, line
+ * `Text.collapse`, `btrim(regexp_replace(x, '[ \t\n\r]+', ' ', 'g'))`: each run of tab, line
  * feed, carriage return and space one space, then the spaces at either end trimmed, and nothing
  * else. So a value of one no-break space (U+00A0), which XML Schema's `collapse` keeps, is no
  * whitespace to it, and the host holds "E1 derived" as the database does. GEN-A's search found

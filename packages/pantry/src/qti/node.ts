@@ -37,12 +37,12 @@ import {
   bits,
   check,
   closedId,
-  Compute,
   contained,
   drawn,
   fin,
   fold,
   key,
+  Logic,
   Monoid,
   natural,
   on,
@@ -50,6 +50,7 @@ import {
   relation,
   select,
   str,
+  Text,
   tree,
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
@@ -84,7 +85,7 @@ import {
   XsiType,
 } from "#pantry/grammar/install.ts";
 import { manifestPath } from "#pantry/vocab/terms/package.ts";
-import { EntryPath, keyText, PackageName, prefixBytes } from "#pantry/qti/limits.ts";
+import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 
 /**
  * The first characters of an XML Namespaces NCName: XML 1.0's NameStartChar without the colon,
@@ -100,18 +101,18 @@ const ncNameStart = "A-Z_a-zÀ-ÖØ-öø-˿Ͱ-ͽͿ-῿‌-‍⁰-↏Ⰰ-⿯、-�
 const ncNameContinuation = `${ncNameStart}\\-.0-9·̀-ͯ‿-⁀`;
 
 /**
- * An element's prefix as written: an NCName, or the empty string for an unprefixed name.
- * `Node.prefix` reads it at `prefixBytes` UTF-8 bytes (`#pantry/qti/limits.ts`), the bound of the
- * namespace declaration's prefix, whose key `Namespace(package, path, start, prefix)` holds it, so
- * one language holds both.
+ * An element's prefix as written: an NCName, or the empty string for an unprefixed name, of any
+ * length, as a namespace declaration's prefix is (`NamespacePrefix`, `#pantry/qti/chardata.ts`),
+ * so one language holds both: Namespaces in XML 1.0 puts no bound on a prefix (§4), and no index
+ * orders by one.
  */
 const prefixPattern = `^(?:[${ncNameStart}][${ncNameContinuation}]*)?$`;
 
 /**
- * The text type of an element's prefix: {@link prefixPattern} at `prefixBytes` UTF-8 bytes.
- * Exported for `src/import/refusal.ts`, which names its pattern law.
+ * The text type of an element's prefix: {@link prefixPattern}, of any length. Exported for
+ * `src/import/refusal.ts`, which names its pattern law.
  */
-export const Prefix = str.bytes(prefixBytes, str.regex(prefixPattern));
+export const Prefix = str.regex(prefixPattern);
 
 /**
  * A node's characters: any run of XML 1.0's Char, tabs, line feeds and carriage returns included.
@@ -181,8 +182,8 @@ export const Node = relation(
     attrs: accumulated(bits(AttributeSlot), Bits.of(AttributeSlot, [])),
     barredChildren: accumulated(natural, 0n),
     chars: Chars,
-    charsAfter: accumulated(keyText, ""),
-    charsWas: accumulated(keyText, ""),
+    charsAfter: accumulated(matchedText, ""),
+    charsWas: accumulated(matchedText, ""),
     children: drawn(natural),
     countedChildren: accumulated(natural, 0n),
     elementChildren: accumulated(natural, 0n),
@@ -211,7 +212,7 @@ export const Node = relation(
     prefix: Prefix,
     start: drawn(natural),
     state: closedId(Position),
-    stringValue: accumulated(keyText, ""),
+    stringValue: accumulated(matchedText, ""),
     was: accumulated(closedId(Position), "0"),
   },
   ["package", "path", "start"],
@@ -262,7 +263,7 @@ export const typeGovernorOf = (
   kind: Parameters<typeof GoverningOf.has>[0],
   type: Parameters<typeof GoverningOf.has>[1],
 ) =>
-  Compute.cond(
+  Logic.cond(
     GoverningOf.has(kind, type),
     GoverningOf.at("governor", kind, type),
     KindGovernor.at("governor", kind),
@@ -427,8 +428,7 @@ export const copiedTextKinds = [
  * category's `lom:title` (Q5.12's `lom-title`, spec reading 62, QTI 3.0 Metadata §2.7.1.2), a
  * taxon path's `lom:source.langString` and a taxon's `lom:entry.langString` (the classification's
  * scheme and its term's name, QTI 3.0 Metadata §2.7.9). A `lom:string` under a description, a
- * keyword or any other LangString is not folded, since no key reads its text and a description runs
- * past `keyText`'s bound (723 and 967 code points in the corpus's `maxfiles`).
+ * keyword or any other LangString is not folded, since no key reads its text.
  */
 const foldedLangStrings = [
   "lom:title",
@@ -573,7 +573,7 @@ const cappedChildren = select(Node, (n) =>
   n.and(
     member(n),
     element(n),
-    n.eq(Compute.subset(Compute.singleton(n.state), Capped.row(n.parentKind)), true),
+    n.eq(Bits.subset(Bits.singleton(n.state), Capped.row(n.parentKind)), true),
   ),
 );
 
@@ -608,12 +608,13 @@ const barredFold = fold(
  * other element's children are stepped, so mixed content and text nothing reads store no running
  * prefixes.
  *
- * The running text rides the tree's predecessor and last axes, so it is a column of their keys, and
- * grizzle refuses a key whose B-tree entry can pass PostgreSQL's `BTMaxItemSize`
- * (`UnrepresentableKey`). So `charsWas`, `charsAfter` and `stringValue` are `keyText`
- * (`#pantry/qti/limits.ts`), and a folded string value past its bound is refused by that type's
- * pattern, by name: a stated limit of the representation (spec reading 60). The step is the
- * member's own `chars`, unbounded text no key holds: a fold's accumulators are of its step's type
+ * The running text rides the tree's predecessor and last axes, which hold it by its image where
+ * their entry could outgrow PostgreSQL's `BTMaxItemSize` (grizzle's README: a `Monoid.concat`
+ * fold's accumulators ride its axes by their images). `charsWas`, `charsAfter` and `stringValue`
+ * are `matchedText` (`#pantry/qti/limits.ts`), the bound of a text a query reads by a pattern,
+ * and a folded string value past its bound is refused by that type's pattern, by name: a stated
+ * limit of the representation (spec reading 60). The step is the member's own `chars`, unbounded
+ * text: a fold's accumulators are of its step's type
  * but for their own pattern and byte bound, and each one's domain refuses a running value outside
  * its own (grizzle's README, "Families", `fold`), so a member whose characters alone pass the bound
  * is refused by `charsAfter`'s.
@@ -646,14 +647,17 @@ const stringValueFold = fold(
  *   to its position: the one its kind's particle names, its predecessor's for character data no
  *   particle names, or one of `Symbol`'s for a kind several particles name. An unadmitted kind
  *   reads no position and is refused.
- * - **E1:** `ancestry` is `parentAncestry ∪ Enters(kind)`, only character data has characters,
- *   `first` and `last` are the first and last code points of `chars` (each one code point by its
- *   type, so `startsWith` and `endsWith` pin it), and both empty exactly where `chars` is; the
- *   string value's fold over the `chars` of the members whose parent's text is checked or copied;
- *   and `governor`: its kind's own (`KindGovernor`) on a node no named type governs, a node that is
- *   no element or a vocabulary element of an anonymous declared type, and on an {@link ElementType}
- *   the governor its type gives ({@link typeGovernorOf}), the row's copy of its node's. A foreign
- *   element's governor is `chardata.ts`'s, over its `OpenElementType`.
+ * - **E1:** a member's `ancestry` is `parentAncestry ∪ Enters(kind)`, the document node's its
+ *   document's context (N1), which its root copy, held at the accumulated start, cannot carry: a
+ *   fragment included under a flag, such as a paragraph in a rubric block, holds that flag at its
+ *   document node (spec reading 117). Only character data has characters, `first` and `last` are
+ *   the first and last code points of `chars` (each one code point by its type, so `startsWith` and
+ *   `endsWith` pin it), and both empty exactly where `chars` is; the string value's fold over the
+ *   `chars` of the members whose parent's text is checked or copied; and `governor`: its kind's own
+ *   (`KindGovernor`) on a node no named type governs, a node that is no element or a vocabulary
+ *   element of an anonymous declared type, and on an {@link ElementType} the governor its type
+ *   gives ({@link typeGovernorOf}), the row's copy of its node's. A foreign element's governor is
+ *   `chardata.ts`'s, over its `OpenElementType`.
  * - **N6:** no banned flag above a node, and every flag it needs.
  * - **N7:** the last-slot copy, riding the last axis; `N7_Last`, its own model's `FollowSetOf` ends
  *   at every modeled node's last state (the content grammar's `Last`); and the counted and barred
@@ -676,7 +680,7 @@ export const nodeLawsByName = {
   "E1 derived": [
     check("E1_derived", Node, (n) =>
       n.and(
-        n.eq(n.ancestry, Compute.union(n.parentAncestry, Enters.row(n.kind))),
+        n.or(n.eq(n.start, 0n), n.eq(n.ancestry, Bits.union(n.parentAncestry, Enters.row(n.kind)))),
         n.or(
           n.eq(n.governor, KindGovernor.at("governor", n.kind)),
           n.in(n.kind, openElementClasses),
@@ -688,8 +692,8 @@ export const nodeLawsByName = {
           n.and(
             n.ne(n.first, ""),
             n.ne(n.last, ""),
-            n.eq(Compute.startsWith(n.chars, n.first), true),
-            n.eq(Compute.endsWith(n.chars, n.last), true),
+            n.eq(Text.startsWith(n.chars, n.first), true),
+            n.eq(Text.endsWith(n.chars, n.last), true),
           ),
         ),
       ),
@@ -731,8 +735,8 @@ export const nodeLawsByName = {
         n.not(member(n)),
         n.not(positioned(n)),
         n.eq(
-          Compute.subset(
-            Compute.singleton(n.state),
+          Bits.subset(
+            Bits.singleton(n.state),
             FollowMember.row(
               FollowSetOf.at("set", ContentModelOf.at("model", n.parentKind), n.was),
             ),
@@ -754,8 +758,8 @@ export const nodeLawsByName = {
           SharedModelOf.has(n.parentKind),
           SymbolSetOf.has(SharedModelOf.at("model", n.parentKind), n.kind),
           n.eq(
-            Compute.subset(
-              Compute.singleton(n.state),
+            Bits.subset(
+              Bits.singleton(n.state),
               SymbolMember.row(
                 SymbolSetOf.at("set", SharedModelOf.at("model", n.parentKind), n.kind),
               ),
@@ -776,8 +780,8 @@ export const nodeLawsByName = {
   "N6 ancestry": [
     check("N6_ancestry", Node, (n) =>
       n.and(
-        n.eq(Compute.disjoint(n.parentAncestry, Banned.row(n.kind)), true),
-        n.eq(Compute.subset(Needs.row(n.kind), n.parentAncestry), true),
+        n.eq(Bits.disjoint(n.parentAncestry, Banned.row(n.kind)), true),
+        n.eq(Bits.subset(Needs.row(n.kind), n.parentAncestry), true),
       ),
     ),
   ],
@@ -812,7 +816,7 @@ export const nodeLawsByName = {
       n.or(
         n.not(modeled(n)),
         n.not(BarredOf.has(n.kind)),
-        n.eq(Compute.disjoint(Compute.singleton(BarredOf.at("slot", n.kind)), n.attrs), true),
+        n.eq(Bits.disjoint(Bits.singleton(BarredOf.at("slot", n.kind)), n.attrs), true),
         n.eq(n.barredChildren, 0n),
       ),
     ),

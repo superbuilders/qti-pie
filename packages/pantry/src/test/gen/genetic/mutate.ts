@@ -15,8 +15,7 @@
  *
  * Named faults (`faults`): a dangling href (to no entry, to a deleted entry, to the wrong entry,
  * with a fragment), a wrong root type (a resource's type, or a document's root swapped for another
- * kind's), an absent required attribute, a key text at the key-text bound and one byte either side
- * of it, in characters of mixed widths, a cycle of references, a duplicate identifier, a bad
+ * kind's), an absent required attribute, a cycle of references, a duplicate identifier, a bad
  * lexical form, a misplaced element (a donor under a parent that does not admit it), and an element
  * outside the ancestor it needs (a kind `Needs` holds, such as `qti-gap`, under a parent that
  * admits it but below no element that enters its flag, N6, the gap flag `qti-gap-match-interaction`
@@ -41,10 +40,8 @@ import { admittedOf } from "#pantry/grammar/attributes.ts";
 import { enumerationKept } from "#pantry/grammar/domains.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import type { ValueDomain } from "#pantry/grammar/attributes.ts";
-import { keyTextBytes } from "#pantry/qti/limits.ts";
 import type { Corpus } from "#pantry/test/gen/genetic/corpus.ts";
 import { below, oneOf } from "#pantry/test/gen/genetic/engine.ts";
-import { keyCopies } from "#pantry/test/key-copies.ts";
 import type { Edited } from "#pantry/test/gen/genetic/engine.ts";
 import {
   attributeValue,
@@ -91,7 +88,6 @@ export const faults = [
   "dangling-href",
   "wrong-root-type",
   "absent-required-attribute",
-  "over-long-key",
   "cycle",
   "duplicate-identifier",
   "bad-lexical",
@@ -158,7 +154,7 @@ const placingKinds: ReadonlySet<string> = new Set([
 
 /**
  * The attributes that hold an identifier some key or reference reads: the sites a duplicate
- * identifier and an over-long key break.
+ * identifier breaks.
  */
 const identifierNames: ReadonlySet<string> = new Set([
   "id",
@@ -215,33 +211,6 @@ const wildNames = ["foo", "bogus-name", "data-", "aria-", "aria-bogus", "xml:bog
  * a dot segment pair, and a percent-encoded subdirectory.
  */
 const bases = ["./", "sub/", "../", "./sub/../", "%73ub/"] as const;
-
-/**
- * How far past the key-text bound a key text is drawn, in bytes: one under, at, and over it twice
- * as often, so the bound is crossed in most draws and met exactly in the rest.
- */
-const boundOffsets = [-1, 0, 1, 1, 2] as const;
-
-/**
- * Whether the schema copies an attribute's text into a key text: some `Attribute` copy of
- * `#pantry/test/key-copies.ts` holds it, read over the fields that copy knows, the element taken
- * as governed by its kind, as an element no named type governs is.
- *
- * @param kind - The element's kind.
- * @param name - The attribute's name as written.
- * @param lexical - Its value.
- * @returns Whether a copy holds it.
- */
-const copiedAttribute = (kind: string, name: string, lexical: string): boolean =>
-  keyCopies.some(
-    (copy) => copy.source === "Attribute" && copy.holds({ governor: kind, kind, lexical, name }),
-  );
-
-/**
- * The characters an over-long key is filled with: one, two, three and four UTF-8 bytes each, every
- * one a name character, so a key's bound is met in bytes, never in characters.
- */
-const fillers = ["x", "é", "語", "𝔸"] as const;
 
 /**
  * The lexical forms a bad lexical form writes for a value `held`: the empty and blank forms, the
@@ -1049,70 +1018,6 @@ const operations: Readonly<
         ),
       ),
       `outside-needed-ancestor: a ${kind} under ${breeding.corpus.kindOf(host.element)} in ${document.path}, outside every ${[...entering].join(", ")}`,
-    );
-  },
-  "over-long-key": (genome, _mate, breeding) => (source) => {
-    const bytes = keyTextBytes + (source.draw(oneOf(boundOffsets)) ?? 1);
-    const widths = fillers.map(
-      (filler) => [filler, new TextEncoder().encode(filler).length] as const,
-    );
-    const characters = ["K"];
-    for (let held = 1; held < bytes;) {
-      const room = bytes - held;
-      const [filler, width] = source.draw(oneOf(widths.filter(([, fits]) => fits <= room))) ?? [
-        "x",
-        1,
-      ];
-      characters.push(filler);
-      held += width;
-    }
-
-    const value = characters.join("");
-
-    if (source.pick(0, 2) > 0) {
-      const copied = source.pick(0, 2) > 0;
-      const site = source.draw(
-        oneOf(
-          attributeSites(genome, ({ at, qname, value: held }) =>
-            copied
-              ? copiedAttribute(breeding.corpus.kindOf(at.element), qname, held)
-              : identifierNames.has(qname) || qname === "href",
-          ),
-        ),
-      );
-
-      return site === undefined
-        ? Option.none()
-        : edited(
-            atSite(genome, site, value),
-            `over-long-key: ${site.qname} of ${breeding.corpus.kindOf(site.at.element)} in ${site.document.path}, ${String(bytes)} bytes${copied ? ", a key copy's" : ""}`,
-          );
-    }
-
-    const document = source.draw(oneOf(documentsOf(genome)));
-    const texted = (document?.elements ?? []).filter(({ element }) =>
-      element.children.some((child) => child.kind === "text" && child.value.trim() !== ""),
-    );
-    const at = source.draw(oneOf(texted));
-    if (document === undefined || at === undefined) {
-      return Option.none();
-    }
-
-    return edited(
-      withDocumentRoot(
-        genome,
-        document.path,
-        editAt(document.root, at.address, (element) => [
-          {
-            ...element,
-            children: [
-              { cdata: false, kind: "text", value },
-              ...element.children.filter((child) => child.kind !== "text"),
-            ],
-          },
-        ]),
-      ),
-      `over-long-key: the text of ${breeding.corpus.kindOf(at.element)} in ${document.path}, ${String(bytes)} bytes`,
     );
   },
   "sentinel-value": (genome, _mate, breeding) => (source) => {

@@ -36,7 +36,6 @@ import type {
 import {
   accumulated,
   check,
-  Compute,
   drawn,
   fin,
   fold,
@@ -47,8 +46,10 @@ import {
   ordered,
   relation,
   str,
+  Text,
 } from "@bjornpagen/grizzle";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { anyText } from "#pantry/grammar/install.ts";
 
 /**
  * XML whitespace `S`, possibly none. A lexical form holds it around its token or value: every
@@ -65,7 +66,7 @@ export const Space = str.regex("^[\\t\\n\\r ]*$");
  *
  * @see {@link https://www.w3.org/TR/xml/#NT-S | XML 1.0, S}
  */
-export const spacePattern = Compute.pattern("^[\\t\\n\\r ]*$");
+export const spacePattern = Text.pattern("^[\\t\\n\\r ]*$");
 
 /**
  * A token: one or more characters, none of them XML whitespace. It is a whitespace list's token,
@@ -73,24 +74,24 @@ export const spacePattern = Compute.pattern("^[\\t\\n\\r ]*$");
  * (`#pantry/qti/metadata.ts` `ObjectIdentifier`). That the value is an NCName, and a list token of
  * its list's datatype, is its form's value domain's.
  */
-export const tokenPattern = Compute.pattern("^[^\\t\\n\\r ]+$");
+export const tokenPattern = Text.pattern("^[^\\t\\n\\r ]+$");
 
 /**
  * A whitespace list's token's own fields, beside its owner's key: `before`, `token` and `after`,
  * the host's split, with the whitespace written before the token and, for the last, after it;
  * `at`, its drawn place; and `piecesWas` and `piecesAfter`, the concatenation before and after it.
- * `token` and the running values are `keyText` (`#pantry/qti/limits.ts`). The running values ride
- * the family's predecessor and last axes beside the owner's key and a bigint in one B-tree entry,
- * so a list past the bound is refused by the accumulator's type, a stated limit of the
- * representation.
+ * `token` and the running values are of any length: the running values ride the family's
+ * predecessor and last axes, which hold a text their entry could outgrow by its image (grizzle's
+ * README: a `Monoid.concat` fold's accumulators ride its axes by their images), so no list is
+ * refused for its length.
  */
 export const tokenFields = {
   after: Space,
   at: drawn(natural),
   before: Space,
-  piecesAfter: accumulated(keyText, ""),
-  piecesWas: accumulated(keyText, ""),
-  token: keyText,
+  piecesAfter: accumulated(anyText, ""),
+  piecesWas: accumulated(anyText, ""),
+  token: anyText,
 } as const;
 
 /**
@@ -109,15 +110,14 @@ type TokenRow = RowScalars<Relation<string, typeof tokenFields, readonly ["at"]>
  * @returns Its generated `piece`.
  */
 export const tokenPiece = (t: Pick<TokenRow, "after" | "before" | "token">) => ({
-  piece: generated(keyText, Compute.concat(Compute.concat(t.before, t.token), t.after)),
+  piece: generated(anyText, Text.concat(Text.concat(t.before, t.token), t.after)),
 });
 
 /**
  * Construct a whitespace list's token relation whose owner is keyed by its element, `(package,
  * path, start)`: {@link tokenFields} beside the owner's key, in the order of their names, which is
  * the order of its columns. Its `piece` is generated, `before ‖ token ‖ after`, the concatenation's
- * step: a `keyText` whose domain refuses a piece past the bound, as grizzle's README states of a
- * generated term of another byte bound than its field's ("How a field is written").
+ * step, any text.
  *
  * @param name - The relation's name.
  * @returns The relation, keyed by its owner's key and its place.
@@ -150,7 +150,7 @@ type ListPieces = Relation<
     readonly at: typeof tokenFields.at;
     readonly package: typeof PackageName;
     readonly path: typeof EntryPath;
-    readonly piece: GeneratedField<typeof keyText>;
+    readonly piece: GeneratedField<typeof anyText>;
     readonly piecesAfter: typeof tokenFields.piecesAfter;
     readonly piecesWas: typeof tokenFields.piecesWas;
     readonly start: typeof natural;
@@ -179,7 +179,7 @@ type ListOwner = Relation<
  * list's fields, as a check reads its source (grizzle's `Shows`).
  */
 type WhitespaceTokens = AnyRelation & {
-  readonly heading: typeof tokenFields & { readonly piece: GeneratedField<typeof keyText> };
+  readonly heading: typeof tokenFields & { readonly piece: GeneratedField<typeof anyText> };
   readonly name: string;
 };
 
@@ -193,7 +193,7 @@ type WhitespaceTokens = AnyRelation & {
  */
 export const whitespaceTokens = <T extends WhitespaceTokens>(tokens: T) =>
   check("E1_derived", tokens, (t) =>
-    t.and(Compute.matches(t.token, tokenPattern), t.or(t.eq(t.at, 0n), t.ne(t.before, ""))),
+    t.and(Text.matches(t.token, tokenPattern), t.or(t.eq(t.at, 0n), t.ne(t.before, ""))),
   );
 
 /**

@@ -9,9 +9,9 @@
  * Each law that pairs an overlay row or a node with one of them reads `Node` through a query here,
  * under the law's own name.
  */
-import { check, Compute, contained, derived, key, on, query, select, v } from "@bjornpagen/grizzle";
+import { check, contained, derived, key, on, query, select, Text, v } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
-import { referencedTables } from "#pantry/grammar/expression.ts";
+import { referencedTables, tableReaders } from "#pantry/grammar/expression.ts";
 import { BaseTypeLexical, MappableBaseType } from "#pantry/grammar/install.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { attributesOf } from "#pantry/qti/attributes.ts";
@@ -19,45 +19,39 @@ import { BaseTypePattern, unjudgedBaseTypes } from "#pantry/qti/expression-types
 import {
   contextVariable,
   declarationKinds,
-  doublesInOrder,
+  fieldBaseTypes,
   fieldIdentifiers,
   itemSessionVariables,
-  MasteryValue,
-  NormalMaximum,
-  NormalMinimum,
-  reservedBaseTypes,
+  testSessionVariables,
   valueSetKinds,
 } from "#pantry/qti/declarations.ts";
-import { placedTableReaders, tableClaims } from "#pantry/qti/overlay-queries/reference.ts";
-import {
-  exactValuePattern,
-  lookupEntryKinds,
-  lookupTableKinds,
-  LookupValue,
-  MapKey,
-} from "#pantry/qti/mapping.ts";
+import { Document } from "#pantry/qti/chardata.ts";
+import { testKind } from "#pantry/vocab/terms/tests.ts";
+import { placedTableReaders } from "#pantry/qti/overlay-queries/reference.ts";
+import { lookupEntryKinds, lookupTableKinds, LookupValue, MapKey } from "#pantry/qti/mapping.ts";
 import {
   attributeValues,
   attributeCodes,
   DeclarationBaseType,
   DeclarationCardinality,
   DeclarationName,
+  MasteryValue,
   NamedDeclaration,
+  NormalMaximum,
+  NormalMinimum,
   QtiViews,
-  TypedDeclarationName,
 } from "#pantry/qti/names.ts";
 import { Node } from "#pantry/qti/node.ts";
-import { normalMinimumDefault } from "#pantry/vocab/terms/declarations.ts";
 
 /**
  * Each value's `field-identifier`, by its `qti-value` element's place, its `value` the field's name
  * collapsed (`IdentifierDType`'s class, C18): one field of a record's value, "a set of independent
  * values each identified by its own identifier and having its own base-type" (information model
- * §8.16, CardinalityEnum, `record`), since a value writes its `field-identifier` and its
- * `base-type` both or neither ("Value cardinality", `#pantry/qti/declarations.ts`). No row copies
- * it. A value that is no NCName names no field (spec reading 152), and no rule reads one: AL1's
- * `value_domain` refuses the write that holds it at its own insert, before any rule over a query is
- * judged at COMMIT, so the selection matches no pattern.
+ * §8.16, CardinalityEnum, `record`), where its set is a record's ("Value cardinality"); on any
+ * other value it names nothing (§7.46.1). No row copies it. A value that is no NCName names no
+ * field (spec reading 152), and no rule reads one: AL1's `value_domain` refuses the write that
+ * holds it at its own insert, before any rule over a query is judged at COMMIT, so the selection
+ * matches no pattern.
  */
 const recordFields = attributeValues("field-identifier", ["qti-value"]);
 
@@ -66,7 +60,9 @@ const recordFields = attributeValues("field-identifier", ["qti-value"]);
  * the code (C17, `attributeCodes`): the base type a record's field's text is read in (information
  * model §7.46.2, Value's base-type: "This characteristic is only used for specifying the base-type
  * of a value that forms part of a record"). Any other value's text is read in its declaration's,
- * and `Value_cardinality` refuses the attribute there. A `base-type` written as no code has no row,
+ * and the attribute there types nothing and is refused by no law (§7.46: "The base-type is defined
+ * by the 'base-type' attribute of the declaration except in the case of variables with record
+ * cardinality"). A `base-type` written as no code has no row,
  * and its value domain refuses it alone (the orchestrator's ruling of 2026-11-06: one cause is
  * refused under one rule).
  */
@@ -152,17 +148,25 @@ const FieldValueText = derived(
 
 /**
  * Each record field's name beside its set, its node's parent, by the field's place: its
- * {@link recordFields} value. "Record field key" holds a set's names distinct.
+ * {@link recordFields} value, where the set is a value set of a declaration whose
+ * {@link DeclarationCardinality} is `record`. "Record field key" holds a set's names distinct. A
+ * `field-identifier` on a value of any other set names no field (information model §7.46.1: "only
+ * used for specifying the field identifier for a value that forms part of a record"), so no law
+ * reads it.
  */
 const SetFieldName = derived(
   "SetFieldName",
-  query(QtiBase).rule((r) => {
+  query(QtiViews).rule((r) => {
     const { package: pkg, path, start, value: identifier } = v(recordFields, "field");
     const { parent: set } = v(Node, "node");
+    const { kind, parent: declaration } = v(Node, "setNode");
 
     return r
       .match(recordFields, { package: pkg, path, start, value: identifier })
       .match(Node, { package: pkg, parent: set, path, start })
+      .match(Node, { kind, package: pkg, parent: declaration, path, start: set })
+      .match(DeclarationCardinality, { code: "record", package: pkg, path, start: declaration })
+      .where(r.in(kind, valueSetKinds))
       .find({ identifier, package: pkg, path, set, start });
   }),
 );
@@ -170,7 +174,9 @@ const SetFieldName = derived(
 /**
  * Each value of a record's set, by the value's place: a `qti-value` node whose parent is a value
  * set of a declaration whose {@link DeclarationCardinality} is `record`. "Value cardinality" holds
- * each to its field.
+ * each to its field, a `field-identifier` and a `base-type` both, since a record is "a set of
+ * independent values each identified by its own identifier and having its own base-type"
+ * (information model §8.16, CardinalityEnum).
  */
 const RecordSetValue = derived(
   "RecordSetValue",
@@ -184,28 +190,6 @@ const RecordSetValue = derived(
       .match(DeclarationCardinality, { code: "record", package: pkg, path, start: declaration })
       .where(r.in(kind, valueSetKinds))
       .find({ package: pkg, path, start });
-  }),
-);
-
-/**
- * Each record field beside its set's declared cardinality, by the field's place, where the set's
- * declaration has one: "Value cardinality" holds it to `record`.
- */
-const FieldSetCardinality = derived(
-  "FieldSetCardinality",
-  query(QtiViews).rule((r) => {
-    const { package: pkg, path, start } = v(recordFields, "field");
-    const { parent: set } = v(Node, "node");
-    const { kind, parent: declaration } = v(Node, "setNode");
-    const { code: cardinality } = v(DeclarationCardinality, "declared");
-
-    return r
-      .match(recordFields, { package: pkg, path, start })
-      .match(Node, { package: pkg, parent: set, path, start })
-      .match(Node, { kind, package: pkg, parent: declaration, path, start: set })
-      .match(DeclarationCardinality, { code: cardinality, package: pkg, path, start: declaration })
-      .where(r.in(kind, valueSetKinds))
-      .find({ cardinality, package: pkg, path, start });
   }),
 );
 
@@ -375,9 +359,9 @@ const LookupValueType = derived(
 /**
  * Each table a declaration holds, by the declaration's place and the table's kind: a mapping, an
  * area mapping, a match table or an interpolation table, a child of the declaration's node. A
- * processing reference that claims its declaration's table ("E1 derived") and a placed map response
- * or map response point ("Mapped response") is held to one of these. The content model holds a
- * declaration to at most one table of each slot (N7).
+ * placed map response or map response point ("Mapped response") and a placed lookup ("Lookup type")
+ * is held to one of these. The content model holds a declaration to at most one table of each slot
+ * (N7).
  */
 const DeclarationTable = derived(
   "DeclarationTable",
@@ -392,13 +376,36 @@ const DeclarationTable = derived(
 );
 
 /**
- * The tables of one kind a declaration holds.
+ * The tables of one kind a declaration holds. Exported for the interpolation table a lookup of a
+ * value a match table does not map reads (`#pantry/qti/queries.ts`).
  *
  * @param kind - The table's kind.
  * @returns The selection of {@link DeclarationTable}.
  */
-const declarationTables = (kind: (typeof referencedTables)[number]) =>
+export const declarationTables = (kind: (typeof referencedTables)[number]) =>
   select(DeclarationTable, (t) => t.eq(t.kind, kind));
+
+/**
+ * State that each declared placed reference of a reader's kind by `identifier` reads a table its
+ * declaration holds, one its kind reads (`tableReaders` of `#pantry/grammar/expression.ts`): its
+ * declaration, in its assembly's root, is one that holds such a table.
+ *
+ * @param kind - The reader's kind.
+ * @returns The containment.
+ */
+const readsItsTable = (kind: (typeof tableReaders)[number]["kind"]) => {
+  const tables = tableReaders.flatMap((reader) => (reader.kind === kind ? [reader.table] : []));
+
+  return contained(
+    on(placedTableReaders(kind), "package", "assembly", "declaration"),
+    on(
+      select(DeclarationTable, (t) => t.in(t.kind, tables)),
+      "package",
+      "path",
+      "declaration",
+    ),
+  );
+};
 
 /**
  * Each declaration's cardinality beside its base type, by the declaration's place, where it has
@@ -431,37 +438,37 @@ const baseTypeAttributes = attributesOf("base-type", declarationKinds);
 
 /**
  * Each outcome declaration that has both a normal minimum, written or the XSD's default, and a
- * `mastery-value`, by its declaration's place: the two lexical forms, its {@link NormalMinimum}'s
- * and its {@link MasteryValue}'s, which `Mastery_range` orders (spec readings 9 and 149: each pair
- * judged where both have a value).
+ * mastery value, by its declaration's place: the two doubles, its {@link NormalMinimum}'s and its
+ * {@link MasteryValue}'s, which `Mastery_range` orders (spec readings 9 and 149: each pair judged
+ * where both have a value).
  */
 export const MasteryFloor = derived(
   "MasteryFloor",
-  query(QtiBase).rule((r) => {
-    const { lexical: normalMinimum, package: pkg, path, start } = v(NormalMinimum, "minimum");
-    const { lexical: masteryValue } = v(MasteryValue, "mastery");
+  query(QtiViews).rule((r) => {
+    const { package: pkg, path, start, value: normalMinimum } = v(NormalMinimum, "minimum");
+    const { value: masteryValue } = v(MasteryValue, "mastery");
 
     return r
-      .match(NormalMinimum, { lexical: normalMinimum, package: pkg, path, start })
-      .match(MasteryValue, { lexical: masteryValue, package: pkg, path, start })
+      .match(NormalMinimum, { package: pkg, path, start, value: normalMinimum })
+      .match(MasteryValue, { package: pkg, path, start, value: masteryValue })
       .find({ masteryValue, normalMinimum, package: pkg, path, start });
   }),
 );
 
 /**
- * Each outcome declaration that writes both a `mastery-value` and a `normal-maximum`, by its
+ * Each outcome declaration that has both a mastery value and a normal maximum, by its
  * declaration's place, as {@link MasteryFloor} holds the other pair: its {@link MasteryValue}'s and
- * its {@link NormalMaximum}'s lexical forms.
+ * its {@link NormalMaximum}'s doubles.
  */
 export const MasteryCeiling = derived(
   "MasteryCeiling",
-  query(QtiBase).rule((r) => {
-    const { lexical: masteryValue, package: pkg, path, start } = v(MasteryValue, "mastery");
-    const { lexical: normalMaximum } = v(NormalMaximum, "maximum");
+  query(QtiViews).rule((r) => {
+    const { package: pkg, path, start, value: masteryValue } = v(MasteryValue, "mastery");
+    const { value: normalMaximum } = v(NormalMaximum, "maximum");
 
     return r
-      .match(MasteryValue, { lexical: masteryValue, package: pkg, path, start })
-      .match(NormalMaximum, { lexical: normalMaximum, package: pkg, path, start })
+      .match(MasteryValue, { package: pkg, path, start, value: masteryValue })
+      .match(NormalMaximum, { package: pkg, path, start, value: normalMaximum })
       .find({ masteryValue, normalMaximum, package: pkg, path, start });
   }),
 );
@@ -477,29 +484,51 @@ type MasteryFloorRow = RowScalars<typeof MasteryFloor>;
 type MasteryCeilingRow = RowScalars<typeof MasteryCeiling>;
 
 /**
- * State `Mastery_range` over a mastery value written and a normal minimum, written or the XSD's
- * default (readings 9 and 149): the minimum is no greater than the mastery value, each form read
- * collapsed, as `xs:double`'s whiteSpace `collapse` reads it (XML Schema Part 2 §4.3.6; reading 7:
- * an attribute the XSD types as `xs:double` is read as the XSD reads it), and ordered by
- * `doublesInOrder` (`#pantry/qti/declarations.ts`). The rows hold the attributes as written
- * (`Attribute.lexical`), so the check collapses each, and a guard over the collapse narrows it in
- * the parse's branch (grizzle `c899acca`).
+ * State `Mastery_range` over a mastery value and a normal minimum, written or the XSD's default
+ * (readings 9 and 149): the minimum is no greater than the mastery value, each the double its
+ * attribute names, `NaN` ordered against nothing, so a pair with `NaN` holds. In `float8`'s order
+ * `NaN` equals `NaN` and is above every other value, so its arms stand beside the comparison.
  *
  * @param r - The row.
  * @returns The predicate.
  */
 const floorCheck = (r: MasteryFloorRow) =>
-  doublesInOrder(Compute.collapse(r.normalMinimum), Compute.collapse(r.masteryValue));
+  r.or(
+    r.eq(r.normalMinimum, Number.NaN),
+    r.eq(r.masteryValue, Number.NaN),
+    r.le(r.normalMinimum, r.masteryValue),
+  );
 
 /**
- * State `Mastery_range` over a mastery value and a normal maximum both written, each read as
- * {@link floorCheck} reads the other pair.
+ * State `Mastery_range` over a mastery value and a normal maximum, each read as {@link floorCheck}
+ * reads the other pair.
  *
  * @param r - The row.
  * @returns The predicate.
  */
 const ceilingCheck = (r: MasteryCeilingRow) =>
-  doublesInOrder(Compute.collapse(r.masteryValue), Compute.collapse(r.normalMaximum));
+  r.or(
+    r.eq(r.masteryValue, Number.NaN),
+    r.eq(r.normalMaximum, Number.NaN),
+    r.le(r.masteryValue, r.normalMaximum),
+  );
+
+/**
+ * Each named declaration beside its document's root kind, by the declaration's place: what the
+ * reserved names' laws read, an item's and a test's apart (spec readings 163 and 168).
+ */
+const RootedDeclaration = derived(
+  "RootedDeclaration",
+  query(QtiViews).rule((r) => {
+    const { declarationKind, identifier, package: pkg, path, start } = v(NamedDeclaration, "name");
+    const { rootKind } = v(Document, "document");
+
+    return r
+      .match(NamedDeclaration, { declarationKind, identifier, package: pkg, path, start })
+      .match(Document, { package: pkg, path, rootKind })
+      .find({ declarationKind, identifier, package: pkg, path, rootKind, start });
+  }),
+);
 
 /**
  * The declaration and mapping overlays' rules over their node, each named by its oracle law:
@@ -512,8 +541,8 @@ const ceilingCheck = (r: MasteryCeilingRow) =>
  * - **Declaration key** (spec reading 74): a document's declared names are distinct;
  * - **Declaration not reserved** (readings 72 and 168): no declaration names one of an item's three
  *   built-in session variables (information model table 4.5.1; §2.2.2);
- * - **E1 derived** and **Mapped response:** a reference's claim of its declaration's table, and a
- *   placed map response's or map response point's, names a table its declaration holds;
+ * - **Lookup type** and **Mapped response:** a declared placed lookup, map response or map response
+ *   point reads a table its declaration holds, one its kind reads (spec reading 166);
  * - **Lookup table cardinality:** a match or interpolation table's outcome is single, where it has a
  *   cardinality;
  * - **Mastery range** (C2, G-parse): the mastery value lies in the normal range, each pair judged
@@ -521,20 +550,22 @@ const ceilingCheck = (r: MasteryCeilingRow) =>
  * - **MappableBaseType:** a mapping's declaration is no record, where it has a cardinality, and its
  *   base type, where it has one, is in `MappableBaseType`;
  * - **Typed attribute value:** a map key, a table entry's target and a table's default are lexical
- *   forms of their declaration's base type, where it has one, written with no whitespace around
- *   them unless it is `string`;
+ *   forms of their declaration's base type, where it has one: read as written for `string`, and for
+ *   every other base type after XML Schema's `collapse`, the whitespace facet each typed simple
+ *   type fixes (XML Schema 1.0 Part 2 §4.3.6), so `" 3 "` is the integer 3 (reading 7);
  * - **Typed value:** each value's text is a lexical form of its base type, its declaration's or, a
  *   record's field's, its own, each value its node's string value, its set its parent and its
  *   declaration its grandparent;
- * - **E1 derived:** a normal minimum not written is the XSD's default (spec reading 149);
  * - **Record field key:** a set's fields are distinct by name;
- * - **Reserved type:** SCORE, MAXSCORE, PASSED and QTI_CONTEXT keep their specified types: a typed
- *   name has its type where it has a base type, QTI_CONTEXT is declared as a context, and, where it
- *   has a cardinality, a typed outcome name is no record and QTI_CONTEXT is one (reading 153);
- * - **Value cardinality:** a single variable's set holds one value, a record's set holds only fields,
- *   every value of it one, and a field stands only in a record's set, where its set's declaration
- *   has a cardinality; a value writes its field's two attributes both or neither
- *   (`#pantry/qti/declarations.ts`).
+ * - **Reserved type:** QTI_CONTEXT keeps its built-in shape: it is declared as a context and, where
+ *   it has a cardinality, is a record (reading 74). SCORE, MAXSCORE and PASSED are typed by no
+ *   normative rule: §4.5's "needs to be a float" and "needs to be a boolean" use no RFC 2119
+ *   keyword (§1.3), §2.2.2.3's "MUST" is NOT NORMATIVE, and no XSD or Schematron rule types them,
+ *   so a declaration of any type is admitted (J1);
+ * - **Value cardinality:** a single variable's set holds one value, and every value of a record's set
+ *   is a field, with its `field-identifier` and its `base-type` both; a value of any other set may
+ *   write either attribute, which types and names nothing there (information model §7.46.1,
+ *   §7.46.2: each "is only used for" a value that forms part of a record).
  */
 export const declarationOverlayLawsByName = {
   "AreaMapping base type": [
@@ -550,55 +581,28 @@ export const declarationOverlayLawsByName = {
   ],
   "Declaration key": [key(on(NamedDeclaration, "package", "path", "identifier"))],
   "Declaration not reserved": [
-    check("Declaration_not_reserved", NamedDeclaration, (d) =>
-      d.not(d.in(d.identifier, itemSessionVariables)),
-    ),
-  ],
-  "E1 derived": [
-    ...referencedTables.map((table) =>
-      contained(
-        on(tableClaims(table), "package", "path", "declaration"),
-        on(declarationTables(table), "package", "path", "declaration"),
+    check("Declaration_not_reserved", RootedDeclaration, (d) =>
+      d.or(
+        d.and(d.eq(d.rootKind, testKind), d.not(d.in(d.identifier, testSessionVariables))),
+        d.and(d.ne(d.rootKind, testKind), d.not(d.in(d.identifier, itemSessionVariables))),
       ),
-    ),
-    check("E1_derived", NormalMinimum, (n) =>
-      n.or(n.eq(n.written, true), n.eq(n.lexical, normalMinimumDefault)),
     ),
   ],
   "Lookup table cardinality": [
     check("Lookup_table_cardinality", LookupTableCardinality, (t) => t.eq(t.cardinality, "single")),
   ],
+  "Lookup type": [readsItsTable("qti-lookup-outcome-value")],
   MappableBaseType: [
     check("MappableBaseType", MappingCardinality, (m) => m.ne(m.cardinality, "record")),
     contained(on(MappingBaseType, "baseType"), on(MappableBaseType, "baseType")),
   ],
-  "Mapped response": [
-    contained(
-      on(placedTableReaders("qti-map-response"), "package", "assembly", "declaration"),
-      on(declarationTables("qti-mapping"), "package", "path", "declaration"),
-    ),
-    contained(
-      on(placedTableReaders("qti-map-response-point"), "package", "assembly", "declaration"),
-      on(declarationTables("qti-area-mapping"), "package", "path", "declaration"),
-    ),
-  ],
+  "Mapped response": [readsItsTable("qti-map-response"), readsItsTable("qti-map-response-point")],
   "Mastery range": [
     check("Mastery_range", MasteryFloor, floorCheck),
     check("Mastery_range", MasteryCeiling, ceilingCheck),
   ],
   "Record field key": [key(on(SetFieldName, "package", "path", "set", "identifier"))],
   "Reserved type": [
-    check("Reserved_type", TypedDeclarationName, (d) =>
-      d.and(
-        ...reservedBaseTypes.map((reserved) =>
-          d.or(
-            d.ne(d.declarationKind, reserved.kind),
-            d.ne(d.identifier, reserved.identifier),
-            d.eq(d.baseType, reserved.baseType),
-          ),
-        ),
-      ),
-    ),
     check("Reserved_type", NamedDeclaration, (d) =>
       d.or(
         d.ne(d.identifier, contextVariable.identifier),
@@ -606,32 +610,35 @@ export const declarationOverlayLawsByName = {
       ),
     ),
     check("Reserved_type", DeclarationName, (d) =>
-      d.and(
-        ...reservedBaseTypes.map((reserved) =>
-          d.or(
-            d.ne(d.declarationKind, reserved.kind),
-            d.ne(d.identifier, reserved.identifier),
-            d.ne(d.cardinality, "record"),
-          ),
-        ),
-        d.or(
-          d.ne(d.identifier, contextVariable.identifier),
-          d.eq(d.cardinality, contextVariable.cardinality),
-        ),
+      d.or(
+        d.ne(d.identifier, contextVariable.identifier),
+        d.eq(d.cardinality, contextVariable.cardinality),
       ),
     ),
   ],
   "Typed attribute value": [
     check("Typed_attribute_value", MapKeyType, (k) =>
-      k.and(
-        Compute.matches(k.key, BaseTypePattern.at("pattern", k.baseType)),
-        k.or(k.eq(k.baseType, "string"), Compute.matches(k.key, exactValuePattern)),
+      k.or(
+        k.and(
+          k.eq(k.baseType, "string"),
+          Text.matches(k.key, BaseTypePattern.at("pattern", k.baseType)),
+        ),
+        k.and(
+          k.ne(k.baseType, "string"),
+          Text.matches(Text.collapse(k.key), BaseTypePattern.at("pattern", k.baseType)),
+        ),
       ),
     ),
     check("Typed_attribute_value", LookupValueType, (l) =>
-      l.and(
-        Compute.matches(l.value, BaseTypePattern.at("pattern", l.baseType)),
-        l.or(l.eq(l.baseType, "string"), Compute.matches(l.value, exactValuePattern)),
+      l.or(
+        l.and(
+          l.eq(l.baseType, "string"),
+          Text.matches(l.value, BaseTypePattern.at("pattern", l.baseType)),
+        ),
+        l.and(
+          l.ne(l.baseType, "string"),
+          Text.matches(Text.collapse(l.value), BaseTypePattern.at("pattern", l.baseType)),
+        ),
       ),
     ),
   ],
@@ -640,14 +647,14 @@ export const declarationOverlayLawsByName = {
       t.or(
         t.eq(t.cardinality, "record"),
         t.in(t.baseType, unjudgedBaseTypes),
-        Compute.matches(t.text, BaseTypePattern.at("pattern", t.baseType)),
+        Text.matches(t.text, BaseTypePattern.at("pattern", t.baseType)),
       ),
     ),
     check("Typed_value", FieldValueText, (f) =>
       f.or(
         f.ne(f.cardinality, "record"),
         f.in(f.baseType, unjudgedBaseTypes),
-        Compute.matches(f.text, BaseTypePattern.at("pattern", f.baseType)),
+        Text.matches(f.text, BaseTypePattern.at("pattern", f.baseType)),
       ),
     ),
   ],
@@ -659,7 +666,10 @@ export const declarationOverlayLawsByName = {
       on(RecordSetValue, "package", "path", "start"),
       on(fieldIdentifiers, "package", "path", "start"),
     ),
-    check("Value_cardinality", FieldSetCardinality, (f) => f.eq(f.cardinality, "record")),
+    contained(
+      on(RecordSetValue, "package", "path", "start"),
+      on(fieldBaseTypes, "package", "path", "start"),
+    ),
   ],
 } as const;
 
@@ -667,11 +677,11 @@ export const declarationOverlayLawsByName = {
  * The queries of this module, each carrying its own name.
  */
 export const declarationOverlayRelations = [
+  RootedDeclaration,
   AreaMappingBaseType,
   AreaMappingCardinality,
   BaseTypeCardinality,
   DeclarationTable,
-  FieldSetCardinality,
   FieldValueText,
   LookupTableCardinality,
   LookupValueType,

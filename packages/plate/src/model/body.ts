@@ -47,8 +47,8 @@ import {
   sitsOn,
 } from "#plate/model/build.ts";
 import type { Build } from "#plate/model/build.ts";
-import { integerOrRefOf } from "#plate/model/expression.ts";
-import type { IntegerOrRef } from "#plate/model/expression.ts";
+import { integerOrRefOf } from "#plate/model/integer-ref.ts";
+import type { IntegerOrRef } from "#plate/model/integer-ref.ts";
 import { containerFor, modules, readerFor } from "#plate/model/interactions.ts";
 import type { ModuleReader } from "#plate/model/interactions.ts";
 import type {

@@ -1,8 +1,8 @@
 /**
- * The importer's front door (`#pantry/import/package.ts`): its retry schedule, as
- * `RetrySchedule`'s default gives it, and on the lease its verdicts, its reruns and a
- * `commitUnknown`'s resolution by running the insert-only write again, with the failures injected
- * through `WrapApply`.
+ * The importer's front door (`#pantry/import/package.ts`), on the lease: its verdicts, its run
+ * past a transient refusal (grizzle's `settled`), and a `commitUnknown`, which fails the import and
+ * which importing the package again settles, the write being insert-only, with the failures
+ * injected through `WrapApply`.
  *
  * A verdict on the lease is judged against the law oracle (`#pantry/test/oracle-verdict.ts`
  * `oracleVerdict`, a second implementation): a package the oracle accepts commits, and one it
@@ -13,12 +13,11 @@ import { randomUUID } from "node:crypto";
 import { Db } from "@bjornpagen/grizzle";
 import type { CallError } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";
-import { assert, it as plainIt, layer } from "@effect/vitest";
-import { Clock, Effect, Fiber, Layer, Ref, Result, Schedule } from "effect";
-import { TestClock } from "effect/testing";
+import { assert, layer } from "@effect/vitest";
+import { Effect, Layer, Ref, Result } from "effect";
 import { describe, inject } from "vitest";
 import { AuthorAppLayer } from "#pantry/db/layer.ts";
-import { RetrySchedule, WrapApply } from "#pantry/import/package.ts";
+import { WrapApply } from "#pantry/import/package.ts";
 import { memoryMediaStore } from "#pantry/package/media.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { packageStored } from "#pantry/test/apply-edited.ts";
@@ -51,120 +50,6 @@ const commitUnknown: CallError = {
   message: "the COMMIT was sent and no answer came",
   retry: "never",
 };
-
-/**
- * What a run of the default `RetrySchedule` against a failure that never clears did: the clock
- * reading at each attempt, in milliseconds after the first, and whether the retry gave up.
- */
-interface RetryRun {
-  readonly attemptAt: readonly number[];
-  readonly gaveUp: boolean;
-}
-
-/**
- * Run the default `RetrySchedule`, read unprovided as the import reads it, against an effect that
- * always fails, on the test clock, and advance the clock well past the schedule's bound.
- */
-const runRetrySchedule = Effect.gen(function* runRetrySchedule() {
-  const attemptAt = yield* Ref.make<readonly number[]>([]);
-  const started = yield* Clock.currentTimeMillis;
-  const attempt = Effect.gen(function* failsAlways() {
-    const now = yield* Clock.currentTimeMillis;
-
-    yield* Ref.update(attemptAt, (all) => [...all, now - started]);
-
-    return yield* Effect.fail("transient");
-  });
-  const fiber = yield* Effect.forkChild(Effect.result(Effect.retry(attempt, yield* RetrySchedule)));
-
-  yield* TestClock.adjust("120 seconds");
-
-  const result = yield* Fiber.join(fiber);
-  const run: RetryRun = { attemptAt: yield* Ref.get(attemptAt), gaveUp: Result.isFailure(result) };
-
-  return run;
-});
-
-describe("RetrySchedule's default", () => {
-  plainIt.effect("keeps retrying past the fifth retry while under its time bound", () =>
-    // Oracle: the specification as a checker, the schedule's contract: bounded by elapsed time,
-    // not by count.
-    Effect.gen(function* keepsRetrying() {
-      const { attemptAt } = yield* runRetrySchedule;
-
-      assert.isAbove(attemptAt.length, 6);
-      assert.isBelow(attemptAt[6] ?? Number.POSITIVE_INFINITY, 30_000);
-    }),
-  );
-
-  plainIt.effect("waits at most one second between attempts", () =>
-    // Oracle: the specification as a checker, the cap of one second before jitter.
-    Effect.gen(function* capsDelays() {
-      const { attemptAt } = yield* runRetrySchedule;
-      const gaps = attemptAt.slice(1).map((at, i) => at - (attemptAt[i] ?? 0));
-
-      assert.isAtMost(Math.max(...gaps), 1000);
-    }),
-  );
-
-  plainIt.effect("stops once thirty seconds have passed, and then fails", () =>
-    // Oracle: the specification as a checker, the schedule's bound of thirty seconds: the attempt
-    // that ends past it is the last.
-    Effect.gen(function* stopsAtBound() {
-      const { attemptAt, gaveUp } = yield* runRetrySchedule;
-      const last = attemptAt.at(-1) ?? 0;
-
-      assert.isTrue(gaveUp);
-      assert.isAbove(last, 30_000);
-      assert.isAtMost(last, 31_000);
-    }),
-  );
-});
-
-/**
- * Retries with no wait, so a test of the retry logic does not sleep.
- */
-const quickly = Schedule.recurs(2);
-
-/**
- * Fail `failures` times in a row, then succeed, retried on `schedule` while the failure is
- * transient, with the delays driven by the test clock so nothing sleeps. Gives the attempts made.
- *
- * @param schedule - The retries' schedule.
- * @param failures - How many attempts fail before one succeeds.
- * @returns The attempts made.
- */
-const attemptsUnder = (schedule: Schedule.Schedule<unknown>, failures: number) =>
-  Effect.gen(function* simulated() {
-    const attempts = yield* Ref.make(0);
-    const attempt = Effect.flatMap(
-      Ref.updateAndGet(attempts, (n) => n + 1),
-      (n) => (n <= failures ? Effect.fail(serializationFailure) : Effect.succeed(n)),
-    );
-    const fiber = yield* Effect.forkChild(Effect.result(Effect.retry(attempt, { schedule })));
-
-    yield* TestClock.adjust("10 seconds");
-    yield* Fiber.join(fiber);
-
-    return yield* Ref.get(attempts);
-  });
-
-describe("import/package.test.ts, the retry budget", () => {
-  plainIt.effect("the production schedule retries an injected failure and two real ones", () =>
-    // Oracle: the specification as a checker, the schedule's time bound, under which three
-    // transient failures are retried.
-    Effect.gen(function* survives() {
-      assert.strictEqual(yield* attemptsUnder(yield* RetrySchedule, 3), 4);
-    }),
-  );
-
-  plainIt.effect("the test schedule gives up after one injected failure and two real ones", () =>
-    // Oracle: the specification as a checker, `Schedule.recurs(2)`: three attempts in all.
-    Effect.gen(function* gaveUp() {
-      assert.strictEqual(yield* attemptsUnder(quickly, 3), 3);
-    }),
-  );
-});
 
 /**
  * The refusing fixtures, each a copy of `simple` with one hand edit.
@@ -266,9 +151,10 @@ describe.skipIf(!hasLease)("import/package.test.ts, on the lease", () => {
       );
     }
 
-    it.effect("retries one injected transient failure and then accepts", () =>
-      // Oracle: the specification as a checker, the retry rule: a transient failure is retried.
-      Effect.gen(function* retriesTransient() {
+    it.effect("runs the write again past one injected transient failure, and then accepts", () =>
+      // Oracle: the specification as a checker, grizzle's `settled`: a transient refusal changed
+      // nothing, and the call runs again to an answer.
+      Effect.gen(function* runsPastTransient() {
         const attempts = yield* Ref.make(0);
         yield* importDir(fixtures.simple).pipe(
           Effect.provideService(WrapApply, <A>(apply: Effect.Effect<A, CallError>) =>
@@ -284,72 +170,48 @@ describe.skipIf(!hasLease)("import/package.test.ts, on the lease", () => {
       }),
     );
 
-    it.effect("fails with the transient failure itself after the last retry", () =>
-      // Oracle: the specification as a checker, the retry rule: the last attempt's failure is the
-      // call's.
-      Effect.gen(function* givesUp() {
-        const attempts = yield* Ref.make(0);
-        const result = yield* Effect.result(
-          importDir(fixtures.simple).pipe(
-            Effect.provideService(RetrySchedule, quickly),
-            Effect.provideService(WrapApply, () =>
-              Effect.andThen(
-                Ref.update(attempts, (n) => n + 1),
-                Effect.fail(serializationFailure),
-              ),
-            ),
-          ),
-        );
-
-        assert.strictEqual(
-          Result.isFailure(result) ? result.failure : undefined,
-          serializationFailure,
-        );
-        assert.strictEqual(yield* Ref.get(attempts), 3);
-      }),
-    );
-
     it.effect(
-      "runs the write again when the commit's outcome is unknown, which finds it stored",
+      "fails with commitUnknown when the commit's outcome is unknown, and importing again finds the package stored",
       () =>
-        // Oracle: the specification as a checker, `commitUnknown`'s resolution: the write only
-        // inserts, so running it again reads it back; the first apply committed, so the rerun
-        // answers `unchanged` and the import answers that the database holds the package. Bound:
-        // `simple` under a name this run draws, stored nowhere before the import, so only this
-        // apply's commit can be what the rerun finds, on a lease any run has used before.
-        Effect.gen(function* rerunsWrite() {
-          const name = `commit-unknown-rerun-${randomUUID()}`;
+        // Oracle: the specification as a checker, `commitUnknown`'s resolution: the importer runs
+        // nothing again, so the call fails with it; the first apply committed and the write only
+        // inserts, so importing the package again answers `unchanged`. Bound: `simple` under a
+        // name this run draws, stored nowhere before the import, so only this apply's commit can
+        // be what the second import finds, on a lease any run has used before.
+        Effect.gen(function* settlesByImportingAgain() {
+          const name = `commit-unknown-again-${randomUUID()}`;
           const attempts = yield* Ref.make(0);
 
           assert.isFalse(yield* packageStored(name), `${name} is stored before the import`);
 
-          const imported = yield* importDir(fixtures.simple, name).pipe(
-            Effect.provideService(WrapApply, <A>(apply: Effect.Effect<A, CallError>) =>
-              Effect.flatMap(
-                Ref.getAndUpdate(attempts, (n) => n + 1),
-                (n): Effect.Effect<A, CallError> =>
-                  n === 0 ? Effect.andThen(apply, Effect.fail(commitUnknown)) : apply,
+          const failed = yield* Effect.flip(
+            importDir(fixtures.simple, name).pipe(
+              Effect.provideService(WrapApply, <A>(apply: Effect.Effect<A, CallError>) =>
+                Effect.andThen(
+                  Ref.update(attempts, (n) => n + 1),
+                  Effect.andThen(apply, Effect.fail(commitUnknown)),
+                ),
               ),
             ),
           );
+          const again = yield* importDir(fixtures.simple, name);
 
-          assert.strictEqual(imported.outcome, "unchanged");
-          assert.strictEqual(imported.package, name);
-          assert.strictEqual(yield* Ref.get(attempts), 2);
+          assert.strictEqual(failed, commitUnknown);
+          assert.strictEqual(yield* Ref.get(attempts), 1);
+          assert.strictEqual(again.outcome, "unchanged");
           assert.isTrue(yield* packageStored(name), name);
         }),
     );
 
-    it.effect("fails with the commitUnknown after the last rerun, and writes nothing", () =>
-      // Oracle: the specification as a checker, `commitUnknown`'s resolution: every attempt's
-      // commit got no answer and none ran, so the last failure is the call's and no package is
-      // there. Bound: `simple` under a name of its own, which no test stores and this one never
-      // writes, so no earlier import leaves a package there.
+    it.effect("fails with commitUnknown when no apply ran, and writes nothing", () =>
+      // Oracle: the specification as a checker, `commitUnknown`'s resolution: the commit got no
+      // answer and the apply never ran, so the call fails with it and no package is there. Bound:
+      // `simple` under a name of its own, which no test stores and this one never writes, so no
+      // earlier import leaves a package there.
       Effect.gen(function* notThere() {
         const name = "commit-unknown-never-stored";
         const result = yield* Effect.result(
           importDir(fixtures.simple, name).pipe(
-            Effect.provideService(RetrySchedule, quickly),
             Effect.provideService(WrapApply, () => Effect.fail(commitUnknown)),
           ),
         );

@@ -54,11 +54,11 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/impl
  */
+import { isNcName } from "@qti-pie/crust/text.ts";
 import { Option, Result } from "effect";
 import {
   format,
   isModelled,
-  isNcName,
   isRecordValue,
   isXmlText,
   nullOf,

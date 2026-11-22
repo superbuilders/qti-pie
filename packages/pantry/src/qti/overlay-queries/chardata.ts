@@ -9,17 +9,7 @@
  * a check reads, and under a foreign parent it is that parent's own {@link OpenElementName}, which a
  * query matches. So each law that reads it is stated twice, once over each.
  */
-import {
-  Bits,
-  check,
-  Compute,
-  contained,
-  derived,
-  on,
-  query,
-  select,
-  v,
-} from "@bjornpagen/grizzle";
+import { Bits, check, contained, derived, on, query, select, Text, v } from "@bjornpagen/grizzle";
 import {
   HeldRootsUnder,
   KindByNameUnder,
@@ -163,7 +153,7 @@ export const chardataOverlayLawsByName = {
   ],
   "OpenElementName canonical": [
     check("OpenElementName_canonical", OpenNameNode, (o) =>
-      o.not(Compute.matches(o.expanded, KindByNameUnder.at("names", o.parentKind))),
+      o.not(Text.matches(o.expanded, KindByNameUnder.at("names", o.parentKind))),
     ),
   ],
   "Strictly held": [
@@ -176,13 +166,13 @@ export const chardataOverlayLawsByName = {
                 o.and(
                   o.eq(o.kind, kind),
                   o.eq(
-                    Compute.disjoint(StrictlyHeld.row(o.parentKind), Bits.of(NodeKind, [kind])),
+                    Bits.disjoint(StrictlyHeld.row(o.parentKind), Bits.of(NodeKind, [kind])),
                     false,
                   ),
                 ),
               ),
             ),
-            o.not(Compute.matches(o.expanded, HeldRootsUnder.at("names", o.parentKind))),
+            o.not(Text.matches(o.expanded, HeldRootsUnder.at("names", o.parentKind))),
           ),
         ),
         "package",
@@ -198,13 +188,13 @@ export const chardataOverlayLawsByName = {
 
       return t.or(
         t.in(t.parentKind, openElementClasses),
-        Compute.matches(parentNamespace, TypeAvailable.at("namespaces", t.type)),
+        Text.matches(parentNamespace, TypeAvailable.at("namespaces", t.type)),
         t.not(t.in(parentNamespace, vocabularyNamespaceNames)),
       );
     }),
     check("XsiType_available", OpenTypeUnderForeign, (t) =>
       t.or(
-        Compute.matches(t.parentNamespace, TypeAvailable.at("namespaces", t.type)),
+        Text.matches(t.parentNamespace, TypeAvailable.at("namespaces", t.type)),
         t.not(t.in(t.parentNamespace, vocabularyNamespaceNames)),
       ),
     ),

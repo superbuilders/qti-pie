@@ -21,7 +21,6 @@ import { createElement, Fragment } from "react";
 import type { Attributes, Key, ReactNode } from "react";
 import { contentNodes, copyContent } from "#plate/content/modules.ts";
 import type { ContentNode } from "#plate/content/modules.ts";
-import type { Credit } from "#plate/credit.ts";
 import type { ContainerKind } from "#plate/interactions/contract.ts";
 import { message } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
@@ -37,7 +36,7 @@ import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import type { Glossary, Glossed, ReadsAloud } from "#plate/ui/item/contents/catalog.tsx";
 import { content as mathmlContent, missingInMath } from "#plate/ui/item/contents/mathml.tsx";
 import { content as rubricContent } from "#plate/ui/item/contents/rubric.tsx";
-import type { Position } from "#plate/ui/item/context.ts";
+import type { Credit, Position } from "#plate/ui/item/context.ts";
 import { NestedInteraction, UnrenderedNode } from "#plate/ui/item/errors.ts";
 import { feedbackBlockOf, isExplanation } from "#plate/ui/item/feedback.tsx";
 import {

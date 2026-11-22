@@ -1,6 +1,6 @@
 /**
- * Match: its model node, parse, redaction and response validation, on the module shape the
- * interaction-module contract states.
+ * Match: its model node, parse and redaction, on the module shape the interaction-module contract
+ * states. The QTI database judges its responses when an answer is posted.
  *
  * No reading of `docs/spec-readings.md` binds the Match interaction itself; the module keeps to the
  * QTI 3 information model as the ASI XSD writes it (`MatchInteractionDType`, `SimpleMatchSetDType`,
@@ -9,7 +9,7 @@
  * `directedPair` response of `single` or `multiple` cardinality, and a pair joins a choice of the
  * first set to one of the second. `max-associations` defaults to 1 and `min-associations` to 0, as
  * the XSD declares them, the most a cap in tier (a) and the least judged only under
- * `validateResponses` (reading 190), and 0 is no limit (reading 53). A `match-max` is required on
+ * `validate-responses` (reading 190), and 0 is no limit (reading 53). A `match-max` is required on
  * each choice and 0 is no limit; `match-min` defaults to 0; `match-group` lists the identifiers a
  * choice may pair with, any when absent.
  *
@@ -17,15 +17,10 @@
  * its `match-group` and `match-max`, and the pairs to show, each as posted, `"<source> <target>"`;
  * the server shell renders it (`#plate/ui/item/interactions/`).
  *
- * {@link matchModule}'s `validate` checks a value the caller decoded, in two tiers: tier (a)
- * always, tier (b) only under `validateResponses`.
- *
  * @module
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import {
   boundIn,
   choiceRegions,
@@ -40,16 +35,11 @@ import type {
   OwnRegion,
   Parsed,
   ReaderKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { countsOf } from "#plate/interactions/counts.ts";
-import { exclusionOf, listedIn, matchGroupOf } from "#plate/interactions/match-group.ts";
+import { listedIn, matchGroupOf } from "#plate/interactions/match-group.ts";
 import type { MatchGroup } from "#plate/interactions/match-group.ts";
-import { pairsOf, pairText } from "#plate/interactions/pair.ts";
+import { pairsOf } from "#plate/interactions/pair.ts";
 import type { Pair } from "#plate/interactions/pair.ts";
-import { selectionWords } from "#plate/interactions/selection.ts";
-import { counted, message } from "#plate/messages.ts";
-import type { Locale } from "#plate/messages.ts";
 import type {
   BodyNode,
   Level,
@@ -58,7 +48,6 @@ import type {
   RedactedLevel,
   ReferencingChoice,
 } from "#plate/model/item.ts";
-import type { Value } from "#plate/model/values.ts";
 import { presentedOrder } from "#plate/shuffle.ts";
 
 /**
@@ -351,147 +340,6 @@ const parse = (source: SourceElement, context: ModuleParseContext): Parsed<Match
 };
 
 /**
- * Give the messages for the choices of one set whose pairs break their `match-max` (tier a) or
- * their `match-min` (tier b), each naming the choice.
- *
- * @param choices The set's choices.
- * @param counts How many pairs each identifier is in.
- * @param bound Which bound is checked.
- * @param locale The locale the count is written in.
- * @returns One message text per choice at fault.
- */
-const perChoice = (
-  choices: readonly MatchChoice[],
-  counts: ReadonlyMap<string, bigint>,
-  bound: "max" | "min",
-  locale: Locale,
-): readonly string[] =>
-  choices.flatMap((choice) => {
-    const count = counts.get(choice.identifier) ?? 0n;
-
-    const named = { choice: choice.identifier };
-
-    if (bound === "max") {
-      return choice.matchMax > 0n && count > choice.matchMax
-        ? [
-            counted(
-              locale,
-              choice.matchMax,
-              { many: "matchChoiceAtMost", one: "matchChoiceAtMostOne" },
-              named,
-            ),
-          ]
-        : [];
-    }
-
-    return count < choice.matchMin
-      ? [
-          counted(
-            locale,
-            choice.matchMin,
-            { many: "matchChoiceAtLeast", one: "matchChoiceAtLeastOne" },
-            named,
-          ),
-        ]
-      : [];
-  });
-
-/**
- * Check a Match's response, which the caller decoded, in two tiers.
- *
- * The caller decodes the posted entries with `decode`, under the entry name its form gave the
- * Controls and the binding a `directedPair` response travels under, and passes the value, or the
- * {@link Malformed} `decode` gave; the entry name stays the caller's, while the messages and the
- * author's overrides stay here.
- *
- * - A {@link Malformed} input: `atMost` 1 when a single response was posted more than once, else
- *   `unknownChoice`.
- * - Tier (a), always: a pair whose source names no choice of the first set or whose target names none
- *   of the second (`unknownChoice`, so a pair written backwards is refused); a pair posted twice; a
- *   choice of either set in more pairs than its `match-max` (0 is no limit); a pair of two known
- *   choices outside the `match-group` of either; and `max-associations` above 0 capping the pairs
- *   (`atMost`).
- * - Tier (b), only under `validateResponses`: fewer pairs than `min-associations` (`atLeast`), and a
- *   choice of either set in fewer pairs than its `match-min`.
- *
- * The author's `data-max-selections-message` and `data-min-selections-message` replace the
- * renderer's text for `atMost` and `atLeast`. The messages of the other limits are the catalog's
- * `match…` keys, and each names the choice or the pair at fault.
- *
- * @param interaction The Match.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validate = (
-  interaction: MatchInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const { malformed, say, tooFew, tooMany } = selectionWords(interaction, locale);
-
-  if (input instanceof Malformed) {
-    return [malformed(input)];
-  }
-
-  const pairs = pairsOf(input.values);
-  const sources = new Map(interaction.sources.map((choice) => [choice.identifier, choice]));
-  const targets = new Map(interaction.targets.map((choice) => [choice.identifier, choice]));
-  const perSource = countsOf(pairs.map((pair) => pair.chip));
-  const perTarget = countsOf(pairs.map((pair) => pair.target));
-  const repeated = [...countsOf(pairs.map(pairText))]
-    .filter(([, count]) => count > 1n)
-    .map(([pair]) => pair);
-  const known = pairs.filter((pair) => sources.has(pair.chip) && targets.has(pair.target));
-  const outside = known.flatMap((pair) => {
-    const { chip: source, target } = pair;
-
-    return Option.match(exclusionOf(sources, source, target), {
-      onNone: () =>
-        Option.match(exclusionOf(targets, target, source), {
-          onNone: () => [],
-          onSome: (group) => [
-            [
-              pairText(pair),
-              message(locale, "matchNotInTargetGroup", { group: group.join(", "), source, target }),
-            ] as const,
-          ],
-        }),
-      onSome: (group) => [
-        [
-          pairText(pair),
-          message(locale, "matchNotInSourceGroup", { group: group.join(", "), source, target }),
-        ] as const,
-      ],
-    });
-  });
-  const tierA = [
-    ...(known.length < pairs.length ? [say(message(locale, "unknownChoice"))] : []),
-    ...repeated.map((pair) => say(message(locale, "matchRepeated", { pair }))),
-    ...perChoice(interaction.sources, perSource, "max", locale).map(say),
-    ...perChoice(interaction.targets, perTarget, "max", locale).map(say),
-    ...[...new Map(outside).values()].map(say),
-    ...(interaction.maxAssociations > 0n && BigInt(pairs.length) > interaction.maxAssociations
-      ? [tooMany(interaction.maxAssociations)]
-      : []),
-  ];
-
-  if (!configuration.validateResponses) {
-    return tierA;
-  }
-
-  return [
-    ...tierA,
-    ...(BigInt(pairs.length) < interaction.minAssociations
-      ? [tooFew(interaction.minAssociations)]
-      : []),
-    ...perChoice(interaction.sources, perSource, "min", locale).map(say),
-    ...perChoice(interaction.targets, perTarget, "min", locale).map(say),
-  ];
-};
-
-/**
  * Copy one set's choices into the payload, in presented order.
  *
  * @param choices The set's choices, in presented order.
@@ -548,8 +396,8 @@ const ownRegions = <L extends Level>(
 type MatchModule = InteractionModule<"match", MatchByLevel, MatchPayload>;
 
 /**
- * The Match module: the interaction module of the kind `match`, which reads, binds and
- * validates `qti-match-interaction`.
+ * The Match module: the interaction module of the kind `match`, which reads and binds
+ * `qti-match-interaction`.
  */
 export const matchModule: MatchModule = {
   binding,
@@ -592,5 +440,4 @@ export const matchModule: MatchModule = {
    * then each target's.
    */
   regions: ownRegions,
-  validate,
 };

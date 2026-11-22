@@ -32,14 +32,14 @@
  *
  * The genetic differential's judge (`judgeOne`) cannot see this: the operand typing is a set of
  * rules over the query `OperandOf` (`#pantry/qti/overlay-queries/expression.ts`), which the host
- * leaves to the database (`databaseJudgedLawNames`). So the import's `Expression` rows are held to
- * the law oracle's typing itself.
+ * leaves to the database (`databaseJudgedLawNames`). So the import's `PlacedExpression` rows are
+ * held to the law oracle's typing itself.
  *
  * Oracle: a second implementation, the law oracle's typing (`typedOf` of
  * `#pantry/test/oracle-laws/expressions.ts`) over the document as the oracle folds it, against the
- * `Expression` rows the import's overlay writes (`rowsOf`) over the same tree: each expression's
- * base type and cardinality agree; and the rules stated above for the Delete, the Index and the
- * Random themselves.
+ * `PlacedExpression` rows the import writes under the item's own placement (`placedRowsOf`) over
+ * the same tree: each expression's base type and cardinality agree; and the rules stated above for
+ * the Delete, the Index and the Random themselves.
  *
  * Bound: an expression in a response condition, under `qti-is-null`, which takes any type, so no
  * other rule reads it: a Delete with one operand (a single base value of each of QTI's eleven base
@@ -59,7 +59,7 @@ import { Array as Arr, Effect, Result } from "effect";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { grammar } from "#pantry/grammar/install.ts";
 import { ownViewOf } from "#pantry/import/fold.ts";
-import { rowsOf } from "#pantry/import/overlays/expressions.ts";
+import { placedRowsOf, placingPackageOf, rowsOf } from "#pantry/import/overlays/expressions.ts";
 import { foldGrammarOf, shredGrammarOf } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
@@ -301,7 +301,7 @@ describe("import/overlays/expressions.ts, the types a Delete, an Index and a Ran
             literal: (at) => itemOf(Arr.getUnsafe(cases, at)),
             oracle: {
               kind: "second-implementation",
-              name: "the law oracle's typing and Tables 6.9.20, 6.9.22 and 6.9.16, against the import's Expression rows",
+              name: "the law oracle's typing and Tables 6.9.20, 6.9.22 and 6.9.16, against the import's PlacedExpression rows",
             },
             suite: "import/overlays/expressions/operand-typing",
           },
@@ -317,12 +317,24 @@ describe("import/overlays/expressions.ts, the types a Delete, an Index and a Ran
               const folded = Result.getOrThrow(fold(tree, foldGrammarOf(grammar)));
               const typed = typedOf(viewOf("i.xml", folded, typedReadingOf(laws)), grammar);
               const view = ownViewOf(tree);
-              const rows = rowsOf(view, { package: "MANIFEST", path: "i.xml" });
+              const place = { package: "MANIFEST", path: "i.xml" };
+              const placed = placedRowsOf({
+                instances: [],
+                placing: placingPackageOf([
+                  {
+                    ids: { ...place, assembled: false },
+                    paths: [],
+                    references: rowsOf(view, place).VariableRef.values(),
+                    view,
+                  },
+                ]),
+                readingsOf: () => [],
+              });
               const kinds = new Map(
                 view.rows.nodes.map(({ kind, start }) => [start, kind] as const),
               );
 
-              const expressions = [...rows.Expression.values()];
+              const expressions = [...placed.PlacedExpression.values()];
               assert.isNotEmpty(expressions, item);
               for (const expression of expressions) {
                 const node = typed.rows.byStart.get(expression.start);

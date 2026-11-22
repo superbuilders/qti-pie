@@ -5,15 +5,15 @@ import { decode, entryName, partition } from "#plate/form/encoding.ts";
 import type { Entry } from "#plate/form/encoding.ts";
 import type { TextEntryPayload } from "#plate/interactions/text-entry.ts";
 import { redactedInteractionsIn } from "#plate/model/interactions.ts";
+import { recordOf } from "#plate/test/records.ts";
+import type { ItemRecord } from "#plate/model/record.ts";
 import type { RecordValue, ResponseValue } from "#plate/model/values.ts";
 import { interactionPayload } from "#plate/payload.ts";
 import { postings } from "#plate/postings.ts";
 import { redact } from "#plate/redact.ts";
-import { checkResponses } from "#plate/responses.ts";
 import { restore } from "#plate/restore.ts";
 import { pageOf, shownToCandidate } from "#plate/test/page.ts";
 import type { Page } from "#plate/test/page.ts";
-import { score } from "#plate/test/score.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
@@ -117,10 +117,10 @@ const typedFields: RecordValue["fields"] = [
 
 describe("a record answer from post to review", () => {
   it.effect(
-    "posts a record answer end to end: the Text Entry shows the string control, the post decodes to its fields, SCORE takes its floatValue, and the record and the control shown again keep the text as typed",
+    "posts a record answer end to end: the Text Entry shows the string control, the post decodes to its fields, and the record the attempt stores and the control shown again keep the text as typed",
     () =>
       Effect.gen(function* postsRecordAnswer() {
-        const configuration = yield* configure({ seed: "", validateResponses: false });
+        const configuration = yield* configure({ seed: "" });
         const accepted = yield* openMeasured();
         const redacted = redact(accepted, shownToCandidate);
 
@@ -152,21 +152,10 @@ describe("a record answer from post to review", () => {
             ? posted
             : assert.fail("the post does not decode NUMBER to a record");
         assert.deepStrictEqual(fieldsOf(decoded), fieldsOf({ fields: typedFields }));
-        assert.deepStrictEqual(checkResponses(accepted, responses, configuration), []);
 
-        const stored = ok(score(accepted, responses), "score");
-        assert.deepStrictEqual(stored.outcomes["SCORE"], {
-          baseType: "float",
-          cardinality: "single",
-          values: [{ baseType: "float", value: 1.5 }],
-        });
-        assert.notProperty(stored.responses, "NUMBER");
-        assert.deepStrictEqual(
-          fieldsOf(stored.records["NUMBER"] ?? assert.fail("the stored record holds no NUMBER")),
-          fieldsOf({ fields: typedFields }),
-        );
+        const stored: ItemRecord = recordOf({ attempt: "submitted", records: { NUMBER: decoded } });
 
-        const restored = ok(restore(accepted, stored), "restore");
+        const restored = restore(accepted, stored);
         const shownAgain = numberEntries(
           pageOf(redacted, { configuration, instance, values: restored.values }),
         );

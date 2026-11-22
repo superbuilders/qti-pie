@@ -1,0 +1,39 @@
+{
+  "name": "@qti-pie/ledger",
+  "private": true,
+  "description": "QTI 3.0.1's session facts and the derivations QTI defines over them, as grizzle levels above pantry's: the Registry (the custom-operator mechanism and its general-purpose roster), the Ledger (item and test sessions, their response snapshots, saves, attempts, assertions and operator evaluations), Delivery (outcomes in force, what is gradable and deliverable, test budgets, test outcomes and credit), and the SQL grader; and an item opened for serving over them, the one opening every application calls: its document written back by pantry and opened by plate for each of `<Item>`'s modes, a review showing what the database judged (`served-item.ts`), with plate's values written to and read from the ledger's typed sidecars (`served-values.ts`). A learner and a sitting are opaque keys here; what assigns them is an application's own level above.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "imports": {
+    "#ledger/*": "./src/*",
+    "#tools/*": "./tools/*"
+  },
+  "exports": {
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "toolchain-typecheck",
+    "test": "vitest run",
+    "generate": "node tools/gen/main.ts",
+    "generate:check": "node tools/gen/main.ts --check"
+  },
+  "dependencies": {
+    "@bjornpagen/grizzle": "workspace:*",
+    "@qti-pie/pantry": "workspace:*",
+    "@qti-pie/plate": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@bjornpagen/devtools": "workspace:*",
+    "@bjornpagen/grizzle-text": "workspace:*",
+    "@bjornpagen/testing": "workspace:*",
+    "@effect/platform-node": "catalog:",
+    "@effect/vitest": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "@types/react": "catalog:",
+    "pg": "catalog:",
+    "vitest": "catalog:"
+  }
+}

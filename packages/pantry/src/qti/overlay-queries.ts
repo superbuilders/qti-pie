@@ -52,6 +52,11 @@ import {
   packageOverlayRelations,
 } from "#pantry/qti/overlay-queries/package.ts";
 import {
+  readingLaws,
+  readingLawsByName,
+  readingRelations,
+} from "#pantry/qti/overlay-queries/readings.ts";
+import {
   referenceOverlayLaws,
   referenceOverlayLawsByName,
   referenceOverlayRelations,
@@ -80,6 +85,7 @@ export const overlayQueryRelations = [
   ...interactionOverlayRelations,
   ...packageOverlayRelations,
   ...quotationOverlayRelations,
+  ...readingRelations,
   ...referenceOverlayRelations,
   ...testOverlayRelations,
 ] as const;
@@ -98,6 +104,7 @@ export const overlayQueryLawsByName = [
   interactionOverlayLawsByName,
   packageOverlayLawsByName,
   quotationOverlayLawsByName,
+  readingLawsByName,
   referenceOverlayLawsByName,
   testOverlayLawsByName,
 ] as const;
@@ -115,6 +122,7 @@ export const overlayQueryLaws = [
   ...interactionOverlayLaws,
   ...packageOverlayLaws,
   ...quotationOverlayLaws,
+  ...readingLaws,
   ...referenceOverlayLaws,
   ...testOverlayLaws,
 ];

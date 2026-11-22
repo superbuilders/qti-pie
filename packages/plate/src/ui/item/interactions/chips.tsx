@@ -11,7 +11,7 @@ import { pairsOf, pairText } from "#plate/interactions/pair.ts";
 import type { Pair } from "#plate/interactions/pair.ts";
 import type { Locale } from "#plate/messages.ts";
 import { flag } from "#plate/ui/attributes.ts";
-import { bagMarks, missedShown } from "#plate/ui/item/interactions/marks.ts";
+import { bagMarks } from "#plate/ui/item/interactions/marks.ts";
 import type { AnswerMark, Marking } from "#plate/ui/item/interactions/marks.ts";
 import { markPart, wordsOfMark } from "#plate/ui/item/interactions/words.tsx";
 
@@ -136,34 +136,30 @@ export const missedOf = (byTarget: ReadonlyMap<string, readonly Shown[]>): Reado
   );
 
 /**
- * Lay a bag of pairs out as a review marks it: against the correct response, each pair given with
- * its mark, right while the correct bag holds a copy of it, as `qti-match` compares a `multiple`
- * response of `directedPair`s, then each correct pair no answer gave, missed; with nothing to mark
- * against, each pair given, unmarked.
+ * Lay a bag of pairs out as a review marks it: each pair given with the mark the host handed its
+ * value ({@link bagMarks}), then each correct pair handed `missed`; with no marks, each pair given,
+ * unmarked.
  *
  * @param given The pairs given.
- * @param marking How the review marks the response.
+ * @param marking The marks handed for the response.
  * @returns Each pair shown, with its mark where the review marks one.
  */
 const markedPairs = (
   given: readonly Pair[],
   marking: Marking,
 ): readonly (readonly [Pair, AnswerMark | undefined])[] => {
-  if (marking.kind !== "against") {
+  if (marking.kind !== "marked") {
     return given.map((pair) => [pair, undefined]);
   }
 
-  const marks = bagMarks(given, pairsOf(marking.correct.values), pairText);
+  const marks = bagMarks(given, marking, pairsOf, pairText);
 
   return [
     ...given.map((pair, index): readonly [Pair, AnswerMark | undefined] => [
       pair,
       marks.given[index],
     ]),
-    ...missedShown(marking, marks.missed).map((pair): readonly [Pair, AnswerMark] => [
-      pair,
-      "missed",
-    ]),
+    ...marks.missed.map((pair): readonly [Pair, AnswerMark] => [pair, "missed"]),
   ];
 };
 

@@ -53,7 +53,7 @@ import { contentNodes, copyContent } from "#plate/content/modules.ts";
 import { scopedId } from "#plate/form/encoding.ts";
 import { message } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
-import { addressUrl, classifyUrl } from "#plate/model/url.ts";
+import { addressUrl, classifyUrl, missingPathOf } from "#plate/model/url.ts";
 import { isInteraction } from "#plate/model/interactions.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
 import { writtenTag } from "#plate/ui/item/html.ts";
@@ -272,7 +272,10 @@ export const missingInCatalog = (
       const url = classifyUrl("link", file.href);
 
       if (url.kind !== "dropped") {
-        const missing = Result.getFailure(addressUrl(url, addressing.document, addressing.assets));
+        const missing = Option.flatMap(
+          Result.getFailure(addressUrl(url, addressing.document, addressing.assets)),
+          missingPathOf,
+        );
 
         if (Option.isSome(missing)) {
           return missing.value;

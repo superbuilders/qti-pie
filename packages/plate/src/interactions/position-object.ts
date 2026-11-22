@@ -17,9 +17,9 @@
  * the stage's size, the effective centre point, the effective `max-choices` and `min-choices`, the
  * entry name its points post under, and the positions the view shows. A point posts as one entry
  * under the entry name, its lexical form, x then y separated by white space
- * (`#plate/form/encoding.ts`). The check ({@link validatePositionObject}) always caps the count at
+ * (`#plate/form/encoding.ts`). The QTI database's admission always caps the count at
  * `max-choices`; it holds a point to the stage's edge, and the count to `min-choices`, only under
- * `validateResponses`, since the area mapping maps a point anywhere.
+ * `validate-responses`, since the area mapping maps a point anywhere.
  *
  * It follows two readings of `docs/spec-readings.md`, each cited by its wording:
  *
@@ -27,8 +27,8 @@
  *   notice for an interaction whose response is not a `single` or `multiple` `point`.
  * - "An area mapping holds a point on a shape's boundary, maps a point by the first area listed that
  *   holds it, maps each area once, and adds `default-value` once for each distinct point in no
- *   area." The engine scores it so (`qti-map-response-point`); the payload holds no area of the
- *   mapping, so the page shows nothing of the correct response.
+ *   area." The QTI database scores it so (`qti-map-response-point`); the payload holds no area of
+ *   the mapping, so the page shows nothing of the correct response.
  *
  * Beyond those readings, the module decides three defaults, each a notice rather than a guess:
  *
@@ -51,15 +51,12 @@
  * `picture`'s that of the `img` it holds, or an `object`'s text content, the fallback HTML shows in
  * its place, each counting only when it holds more than XML white space.
  *
- * The check's messages live in this module, in English ({@link words}).
- *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_PositionObjectInteraction
  */
 import { Array as Arr, Option } from "effect";
 import { attributePath } from "#plate/document/source.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { boundIn, contentRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
@@ -70,12 +67,9 @@ import type {
   ParseContext,
   ReaderKit,
   RedactKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
 import { authoredSizeOf, imageElementOf, imageElements } from "#plate/interactions/image-size.ts";
 import type { AuthoredSize, ImageSize } from "#plate/interactions/image-size.ts";
-import { counted, message } from "#plate/messages.ts";
-import type { Locale } from "#plate/messages.ts";
 import { collapseXmlSpace } from "#plate/model/attributes.ts";
 import type {
   BodyNode,
@@ -86,7 +80,7 @@ import type {
   RedactedLevel,
 } from "#plate/model/item.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
-import type { Single, Value } from "#plate/model/values.ts";
+import type { Single } from "#plate/model/values.ts";
 
 /**
  * Position Object's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -232,82 +226,6 @@ const shownOf = (values: readonly Single[]): readonly ShownPosition[] =>
   values.flatMap((single) =>
     single.baseType === "point" ? [{ x: Number(single.value[0]), y: Number(single.value[1]) }] : [],
   );
-
-/**
- * Check a Position Object's response, which the caller decoded, in two tiers.
- *
- * - A {@link Malformed} input: a position with one coordinate and not the other, or a coordinate that
- *   is no whole number.
- * - Tier (a), always: the effective `max-choices`, when above zero, caps the count.
- * - Tier (b), only under `validateResponses`: the effective `min-choices`, and every point lies on
- *   the stage, from 0 to its width and from 0 to its height. The stage's edge is tier (b) because
- *   the area mapping maps a point anywhere, a point in no area to its `default-value`, and the
- *   engine scores a stored point off the stage so; `validateResponses` holds a post to the stage.
- *
- * @param interaction The Position Object.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-const validatePositionObject = (
-  interaction: PositionObjectInteraction,
-  input: Value | Malformed,
-  configuration: { readonly locale: Locale; readonly validateResponses: boolean },
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const problem = (written: string): ValidationMessage => ({
-    response: interaction.response,
-    text: written,
-  });
-
-  if (input instanceof Malformed) {
-    return [problem(message(locale, "positionObjectHalfPoint"))];
-  }
-
-  const { maxChoices: max, minChoices: min } = interaction;
-  const points = input.values.flatMap((single) =>
-    single.baseType === "point" ? [single.value] : [],
-  );
-  const { stage } = interaction;
-  const offStage = points.some(
-    ([x, y]) => x < 0n || y < 0n || x > BigInt(stage.width) || y > BigInt(stage.height),
-  );
-  const count = BigInt(points.length);
-
-  return [
-    ...(max > 0n && count > max
-      ? [
-          problem(
-            counted(locale, max, { many: "positionObjectAtMost", one: "positionObjectAtMostOne" }),
-          ),
-        ]
-      : []),
-    ...(configuration.validateResponses
-      ? [
-          ...(offStage
-            ? [
-                problem(
-                  message(locale, "positionObjectOffStage", {
-                    height: String(stage.height),
-                    width: String(stage.width),
-                  }),
-                ),
-              ]
-            : []),
-          ...(count < min
-            ? [
-                problem(
-                  counted(locale, min, {
-                    many: "positionObjectAtLeast",
-                    one: "positionObjectAtLeastOne",
-                  }),
-                ),
-              ]
-            : []),
-        ]
-      : []),
-  ];
-};
 
 /**
  * The elements of the object the interaction holds, by the part of the region that holds them.
@@ -611,8 +529,4 @@ export const positionObjectModule: InteractionModule<
    * The object's region.
    */
   regions: ownRegions,
-  /**
-   * Check a Position Object's response: {@link validatePositionObject}.
-   */
-  validate: validatePositionObject,
 };

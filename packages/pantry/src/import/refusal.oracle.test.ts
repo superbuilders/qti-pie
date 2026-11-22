@@ -5,7 +5,6 @@ import {
   check,
   closed,
   closedId,
-  Compute,
   contained,
   counted,
   drawn,
@@ -15,6 +14,7 @@ import {
   key,
   lawsByStatement,
   lexical,
+  Logic,
   Monoid,
   mirrors,
   natural,
@@ -27,7 +27,9 @@ import {
   schema,
   select,
   str,
+  Text,
   tree,
+  Type,
 } from "@bjornpagen/grizzle";
 import type { Law, LawSide, RegexText } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
@@ -193,7 +195,7 @@ const scratch = (() => {
     attributeFamily,
     Monoid.or,
     on(
-      select(Attribute, (a) => Compute.not(Compute.in(a.name, ["data-*"]))),
+      select(Attribute, (a) => Logic.not(Logic.in(a.name, ["data-*"]))),
       "path",
       "start",
       "slot",
@@ -355,12 +357,11 @@ const containedFrom =
     );
 
 /**
- * The rules of each tier of the spec's order, from what pantry stores through QTI's own rules to
- * the representation's (the plan's §1.3 to §1.7, reading 228): a refusal that names laws of several
- * tiers names one of the most specific tier's.
+ * The rules of each tier of the spec's order, from QTI's own rules to the representation's (the
+ * plan's §1.3 to §1.7): a refusal that names laws of several tiers names one of the most specific
+ * tier's.
  */
 const tiers: readonly (readonly Rule[])[] = [
-  ["test-structure", "bank-shape"],
   [
     "document-key",
     "idref-target",
@@ -388,6 +389,7 @@ const tiers: readonly (readonly Rule[])[] = [
     "slider-bounds",
     "max-strings-required",
     "aria-value-range",
+    "pattern-language",
     "adaptive-feedback",
     "P2",
     "P8",
@@ -400,16 +402,29 @@ const tiers: readonly (readonly Rule[])[] = [
     "P25",
     "P26",
     "P27",
+    "P29",
     "mapping-base-type",
     "lookup-cardinality",
     "lom-identifier",
     "lom-title",
     "structure-identifier",
-    "bank-key",
+    "test-name-key",
+    "selection-bounds",
+    "selection-required",
+    "branch-target",
+    "branch-forward",
+    "section-identifier-target",
+    "variable-mapping-source",
+    "variable-mapping-target",
+    "template-default-target",
+    "weight-key",
     "stimulus-ref-key",
     "item-ref-target",
     "item-ref-identifier",
+    "prefixed-ref",
+    "section-ref-target",
     "stimulus-ref-target",
+    "include-parse",
     "include-target",
     "include-root",
     "inclusion-cycle",
@@ -431,18 +446,8 @@ const tiers: readonly (readonly Rule[])[] = [
   ],
   ["ancestry-ban", "owner-copy", "ordering", "child-set", "union-count", "admission"],
   [
-    "media-data",
-    "media-path",
-    "media-type",
-    "media-style",
-    "media-entity",
-    "media-foreign",
-    "entry-used",
-  ],
-  [
     "key-text-bound",
     "href-form",
-    "fragment-context",
     "well-formedness",
     "unmodeled-vocabulary",
     "derived",
@@ -746,11 +751,11 @@ describe("the merged axes and the laws no row states", () => {
     // vendored commit): a table's constraint and a domain's CHECK carry the name PostgreSQL holds
     // them under, and a write statement and a generated column's NOT NULL carry none, so the
     // refusal reads the name off the refusing object and nothing off the schema. Bound: a check Qti
-    // states (AL1's admission), a check it does not (a media install's media path), a primary key,
+    // states (AL1's admission), a check it does not (one a level an install stacks names), a primary key,
     // a contract and a generated field's law, each refused by each kind of object; exhausted.
     const laws: readonly Law[] = [
       { kind: "check", name: checkNameOf("AL1 admission"), relation: "Attribute" },
-      { kind: "check", name: checkNameOf("Media path"), relation: "Attribute" },
+      { kind: "check", name: "Planted_level_check", relation: "Attribute" },
       { fields: ["identifier"], kind: "primaryKey", relation: "Package" },
       { contract: "natural", kind: "contract" },
       { field: "value", kind: "generated", relation: "DocumentLang" },
@@ -826,24 +831,9 @@ const carriedText = ({ axis, laws }: Carried): string =>
  */
 const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   [
-    "test-structure",
-    "bank-shape",
-    "spec reading 1's limits on what pantry stores: a test's structure outside a bank before a bank's own shape, since a test is refused whole (reading 228)",
-  ],
-  [
-    "bank-shape",
     "document-key",
-    "the tiers: what pantry stores before QTI's own rules, so a test or a section that is no bank is named for that first, whatever else its content breaks (reading 228)",
-  ],
-  [
-    "document-key",
-    "item-key",
-    "O1 (plan §1.7): a document's own IDs before the package's item identities, the narrower scope first",
-  ],
-  [
-    "item-key",
     "idref-target",
-    "O1 (plan §1.7): an item's identity in its package stands before every reference a document makes",
+    "O1 (plan §1.7): a document's own IDs stand before every reference a document makes",
   ],
   [
     "idref-target",
@@ -962,8 +952,13 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   ["max-strings-required", "aria-value-range", "O3: QTI's counts before ARIA's range (reading 91)"],
   [
     "aria-value-range",
+    "pattern-language",
+    "O3: an attribute's own range, then its own language: readings 48, then 58",
+  ],
+  [
+    "pattern-language",
     "adaptive-feedback",
-    "O3: an attribute's own range (reading 48) before the item's adaptive flag (Q5.09)",
+    "O3: an attribute's own language (reading 58) before the item's adaptive flag (Q5.09)",
   ],
   ["adaptive-feedback", "source-srcset", "the tiers: O3 before the HTML content (plan §1.7)"],
   ["source-srcset", "source-src", "reading 124: a picture's source, then a media element's"],
@@ -986,7 +981,16 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   ["P24", "P25", "the old processing checker's numbering (Q5.10)"],
   ["P25", "P26", "the old processing checker's numbering (Q5.10)"],
   ["P26", "P27", "the old processing checker's numbering (Q5.10)"],
-  ["P27", "mapping-base-type", "the tiers: O4 before O5 (plan §1.7)"],
+  [
+    "P27",
+    "P29",
+    "O4's rules in the old checker's order: P27, then P29 (reading 167's weighted base)",
+  ],
+  [
+    "P29",
+    "mapping-base-type",
+    "O4 before O5 (plan §1.7): an expression's typing before a mapping's",
+  ],
   [
     "mapping-base-type",
     "lookup-cardinality",
@@ -1002,14 +1006,51 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   ],
   [
     "structure-identifier",
-    "bank-key",
-    "O7 (plan §1.7): a bank's names within its document before its identity across the package, the narrower scope first (reading 228)",
+    "test-name-key",
+    "reading 86: a name repeated within one document before the same name across the assembled test, the wider scope",
+  ],
+  ["test-name-key", "selection-bounds", "O7: a test's names before a section's selection (§5.129)"],
+  [
+    "selection-bounds",
+    "selection-required",
+    "§5.129.1's bound on select before §4.2.2's required parts, which reads the same select",
   ],
   [
-    "bank-key",
-    "stimulus-ref-key",
-    "O7 (plan §1.7): a bank's identity before an item's stimulus refs",
+    "selection-required",
+    "branch-target",
+    "O7: selection, the structure of a session, before branching over it (§2.8.1 before §2.8.3)",
   ],
+  [
+    "branch-target",
+    "branch-forward",
+    "reading 87: one fault, one rule: a target that names no element it may jump to before the order of one that does",
+  ],
+  [
+    "branch-forward",
+    "section-identifier-target",
+    "O7: the structure's navigation before outcome processing's section filters (§2.8 before §2.9)",
+  ],
+  [
+    "section-identifier-target",
+    "variable-mapping-source",
+    "O7: outcome processing's filters over sections before an item ref's mappings into its item",
+  ],
+  [
+    "variable-mapping-source",
+    "variable-mapping-target",
+    "§7.48.1 before §7.48.2: a mapping's source before its target, which reading 97 reads beside the source",
+  ],
+  [
+    "variable-mapping-target",
+    "template-default-target",
+    "O7: an item ref's references into its item, its mappings before its template defaults",
+  ],
+  [
+    "template-default-target",
+    "weight-key",
+    "O7: an item ref's references into its item before its own weights' key (§7.50.1)",
+  ],
+  ["weight-key", "stimulus-ref-key", "O7: a test's item refs before an item's stimulus refs"],
   [
     "stimulus-ref-key",
     "item-ref-target",
@@ -1022,10 +1063,25 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   ],
   [
     "item-ref-identifier",
-    "stimulus-ref-target",
-    "O7 (plan §1.7): a bank member's identity before a stimulus ref's target, both what a reference names",
+    "prefixed-ref",
+    "QTI §4.1.1's identity of an item ref before the readings through it (readings 48 and 88)",
   ],
-  ["stimulus-ref-target", "include-target", "O7: refs before includes (reading 115)"],
+  [
+    "prefixed-ref",
+    "section-ref-target",
+    "the readings over the assembled test before the sites that place its documents (reading 85)",
+  ],
+  [
+    "section-ref-target",
+    "stimulus-ref-target",
+    "the sites: a section ref's target (§7.5) before a stimulus ref's (§7.6)",
+  ],
+  ["stimulus-ref-target", "include-parse", "O7: refs before includes (reading 115)"],
+  [
+    "include-parse",
+    "include-target",
+    "reading 85: whether an include is read as XML (XInclude 1.0 §3.1) before what it names (reading 115)",
+  ],
   [
     "include-target",
     "include-root",
@@ -1111,94 +1167,15 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   ],
   [
     "admission",
-    "media-data",
-    "the tiers: the content model before a package-media install's policy, so content that is not valid QTI is named by the rule that says so",
-  ],
-  [
-    "media-data",
-    "media-path",
-    "the install's policy: a data: address is the cause its address outside the package follows from (media.ts)",
-  ],
-  [
-    "media-path",
-    "media-type",
-    "the install's policy: an address that names no file of the package before the type of the file it names, which only a path in the package has (media.ts)",
-  ],
-  [
-    "media-type",
-    "media-style",
-    "the install's policy: a file the player fetches before a style that fetches, which no fetched field is (media.ts)",
-  ],
-  [
-    "media-style",
-    "media-entity",
-    "the install's policy: what a value says it fetches before what an entity it keeps may make it fetch (media.ts)",
-  ],
-  [
-    "media-entity",
-    "media-foreign",
-    "the install's policy: markup it reads before markup pantry cannot read (media.ts)",
-  ],
-  [
-    "media-foreign",
-    "entry-used",
-    "the install's policy: what a document holds before a file no document names (media.ts)",
-  ],
-  [
-    "entry-used",
     "lom-vocabulary",
-    "the tiers: a package-media install's policy before an install's LOM policy (lom.ts), what a player fetches before what a package states of itself",
+    "the tiers: the content model before an install's LOM policy (lom.ts), so content that is not valid QTI is named by the rule that says so",
   ],
   [
     "lom-vocabulary",
     "lom-vcard",
-    "the LOM policy: a term of a record before the vCard a contribute names (IEEE 1484.12.1 §4.4, 2.3.2)",
+    "LOM's value spaces: a term of a record before the vCard a contribute names (IEEE 1484.12.1 §4.4, 2.3.2)",
   ],
-  [
-    "lom-vcard",
-    "package-identity",
-    "the LOM policy: what one row of a record writes before what the manifest's record states of the package (lom.ts)",
-  ],
-  [
-    "package-identity",
-    "package-classification",
-    "the LOM policy: the package's identity (QTI 3.0 Metadata §2.7.1.1) before what it is about (§2.7.9)",
-  ],
-  [
-    "package-classification",
-    "package-credit",
-    "the LOM policy: what the package is about before who made it (decisions 1 and 12)",
-  ],
-  [
-    "package-credit",
-    "source-pointer",
-    "the LOM policy: who made the package before what it was made from (decision 7)",
-  ],
-  [
-    "source-pointer",
-    "package-relation-target",
-    "the LOM policy: the package's own statements before the stored packages its relations name (decision 4)",
-  ],
-  [
-    "package-relation-target",
-    "version-lesson",
-    "the LOM policy: a named package that is stored before its being of the same lesson (decision 3), which only a stored one can be",
-  ],
-  [
-    "version-lesson",
-    "one-head",
-    "the LOM policy: each version a package names before the lesson's one head they leave (decision 5)",
-  ],
-  [
-    "one-head",
-    "deletion-version",
-    "the LOM policy: the lesson's head before what a head is, content or a deletion (decision 28)",
-  ],
-  [
-    "deletion-version",
-    "key-text-bound",
-    "the tiers: an install's policy before the document layer",
-  ],
+  ["lom-vcard", "key-text-bound", "the tiers: a level's laws above Qti before the document layer"],
   [
     "key-text-bound",
     "href-form",
@@ -1206,11 +1183,6 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
   ],
   [
     "href-form",
-    "fragment-context",
-    "limitRules' order: the href form (reading 102), then the fragment's one context (reading 117)",
-  ],
-  [
-    "fragment-context",
     "namespace-name",
     "the document layer: its stated limits before its laws, the first a namespace name (reading 131)",
   ],
@@ -1235,7 +1207,7 @@ const precedencePairs: readonly (readonly [Rule, Rule, string])[] = [
 describe("the rules of the laws one native object carries, in the precedence's order", () => {
   it("holds each adjacent pair of the precedence to the reading or source that orders it", () => {
     // Oracle: the readings and the plan's tiers, pair by pair (precedencePairs). Bound: every
-    // adjacent pair of the 111 rules, so a swap of any two neighbours, or a rule moved or added,
+    // adjacent pair of the 107 rules, so a swap of any two neighbours, or a rule moved or added,
     // breaks a pair, and the message names it.
     assert.deepStrictEqual(
       precedencePairs.map(([earlier, later]) => `${earlier} before ${later}`),
@@ -1435,7 +1407,7 @@ describe("the pattern laws, one per field", () => {
       "Club",
       { alias, code, id: natural, name: plain },
       ["id"],
-      (r) => ({ joined: generated(code, Compute.concat(r.code, r.alias)) }),
+      (r) => ({ joined: generated(code, Text.concat(r.code, r.alias)) }),
     );
     const club = schema("Club", [Club], []);
     const laws = schemaLawsOf(club).flatMap((law) => (law.kind === "pattern" ? [law] : []));
@@ -1563,42 +1535,46 @@ describe("the census of the composed Qti schema", () => {
   );
 
   it(
-    "refuses a site that names no document by its own law: an include under include-target, an absent file under file-exists",
+    "refuses a site that names no document by its own law: an include under include-target, a section ref under section-ref-target, an absent file under file-exists",
     () => {
       // Oracle: the specification as a checker, reading 115: an include whose path an entry holds
-      // but that names no document the manifest lists, or that writes no href that names a path of
-      // the package, breaks "Include target", the oracle's law for includes; and a site whose path
-      // no entry holds breaks "File exists", its SitePath's check, which gates it. Each is a law
-      // Qti states, under its own rule, so a dangling include is refused under one rule.
+      // but that names no document the manifest lists, and that holds no xi:fallback (XInclude 1.0
+      // §3.2 replaces one that does by its fallback), or that writes no href that names a path of
+      // the package, breaks "Include target", the oracle's law for includes; a section ref that
+      // does so breaks "Section ref target" (§7.5), its own; and a site whose path no entry holds
+      // breaks "File exists", its SitePath's check, which gates it. Each is a law Qti states, under
+      // its own rule, each containment of a site's kind stated once per kind, so a dangling site is
+      // refused under one rule.
       const stated = schemaLawsOf(Qti);
-      const kinds: readonly (readonly [LawSide, LawSide, Rule])[] = [
+      const kinds: readonly (readonly [LawSide, LawSide, readonly Rule[]])[] = [
         [
-          sideOf("SitePath", "package", "path", "start"),
+          sideOf("PlacedIncludePath", "package", "path", "start"),
           sideOf("SiteTarget", "package", "path", "start"),
-          "include-target",
+          ["include-target"],
         ],
         [
           sideOf("Site", "package", "path", "start", "kind"),
           sideOf("SitePath", "package", "path", "start", "kind"),
-          "include-target",
+          ["include-target", "section-ref-target"],
         ],
         [
           sideOf("SitePath", "package", "target"),
           sideOf("Entry", "package", "path"),
-          "file-exists",
+          ["file-exists"],
         ],
       ];
 
-      for (const [from, to, rule] of kinds) {
+      for (const [from, to, rules] of kinds) {
         const shown = Formatter.format({ from, to });
         const laws = stated.filter(
           (law) => law.kind === "contained" && readsAs(law.from, from) && readsAs(law.to, to),
         );
 
-        assert.isNotEmpty(laws, `${shown}: no containment Qti states`);
-        for (const law of laws) {
-          assert.deepStrictEqual(schemaRuleOfLaw(law), Option.some(rule), shown);
-        }
+        assert.deepStrictEqual(
+          laws.flatMap((law) => Option.toArray(schemaRuleOfLaw(law))).toSorted(),
+          [...rules],
+          shown,
+        );
       }
     },
     testTimeoutMs,
@@ -1611,7 +1587,7 @@ describe("the census of the composed Qti schema", () => {
       "Planted",
       { form: lexical(pg.bigint), start: natural },
       ["start"],
-      (r) => ({ value: generated(pg.bigint, Compute.cast(r.form, pg.bigint)) }),
+      (r) => ({ value: generated(pg.bigint, Type.cast(r.form, pg.bigint)) }),
     );
     const raised = schemaLawsOf(schema("Planted", [Planted], [])).filter(
       (law) => law.kind === "generated",

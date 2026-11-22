@@ -1,0 +1,104 @@
+  const answered = answeredOf.bind(answeredKey);
+
+  /**
+   * The answered session's latest attempt before the call, whose outcomes and completion status are
+   * the values in force, once its response processing ran.
+   */
+  const latestAtOf = query(delivery).rule((r) => {
+    const { child, package: pkg, path, n, stage } = v(answered, "answered");
+    const { at } = v(fields.Attempt, "attempt");
+
+    return r
+      .match(answered, { child, n, package: pkg, path, stage })
+      .match(fields.Attempt, { at, child, n, package: pkg, path })
+      .find({ child, latest: r.max(at), n, package: pkg, path, stage });
+  });
+  const latestAt = latestAtOf.bind(answeredKey);
+  const latestOf = query(delivery).rule((r) => {
+    const { child, package: pkg, path, n, stage, latest: at } = v(latestAt, "latest");
+
+    return r
+      .match(latestAt, { child, latest: at, n, package: pkg, path, stage })
+      .find({ at, child, n, package: pkg, path, stage });
+  });
+  const boundLatest = latestOf.bind(answeredKey);
+  const processedOf = query(delivery).rule((r) => {
+    const { child, package: pkg, path, n, stage, at } = v(boundLatest, "attempt");
+
+    return r
+      .match(boundLatest, { at, child, n, package: pkg, path, stage })
+      .match(fields.ProcessedAttempt, { at, child, n, package: pkg, path })
+      .find({ child, package: pkg, path, stage });
+  });
+  const processed = processedOf.bind(answeredKey);
+
+  /**
+   * The run admission judges: the answered session, by its run key (child, package, path, stage),
+   * under the validate-responses its session control states (QTI 3.0.1 §7.19.7), a fact of the run.
+   */
+  const runsOf = (validate: boolean) =>
+    query(delivery).rule((r) => {
+      const { child, package: pkg, path, stage } = v(answered, "answered");
+
+      return r
+        .match(answered, { child, package: pkg, path, stage })
+        .find({
+          child,
+          package: pkg,
+          path,
+          stage,
+          validate: Type.literal(AdmissionRun.fields.validate, validate),
+        });
+    });
+
+  /**
+   * The item body's element nodes, its `qti-item-body` among them, each kind by its name
+   * (`BodyNodeKind`).
+   */
+  const body = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(answered, "answered");
+    const { start: first, end: last } = v(fields.Node, "itemBody");
+    const { start, end, parent, kind } = v(fields.Node, "bodyNode");
+    const { token } = v(fields.BodyNodeKind, "kind");
+
+    return r
+      .match(answered, { package: pkg, path })
+      .match(fields.Node, {
+        end: last,
+        kind: "qti-item-body",
+        package: pkg,
+        parentKind: "qti-assessment-item",
+        path,
+        start: first,
+      })
+      .match(fields.Node, { end, kind, package: pkg, parent, path, start })
+      .match(fields.BodyNodeKind, { kind, token })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ end, kind: token, package: pkg, parent, path, start });
+  });
+
+  /**
+   * The attributes of the body's elements admission reads (`AdmittedAttributeName`), as pantry's
+   * Attribute holds their values.
+   */
+  const bodyAttributes = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(answered, "answered");
+    const { start: first, end: last } = v(fields.Node, "itemBody");
+    const { start, name, value } = v(fields.Attribute, "attribute");
+    const { token } = v(fields.AdmittedAttributeName, "name");
+
+    return r
+      .match(answered, { package: pkg, path })
+      .match(fields.Node, {
+        end: last,
+        kind: "qti-item-body",
+        package: pkg,
+        parentKind: "qti-assessment-item",
+        path,
+        start: first,
+      })
+      .match(fields.Attribute, { name, package: pkg, path, start, value })
+      .match(fields.AdmittedAttributeName, { name, token })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ name: token, package: pkg, path, start, value });
+  });

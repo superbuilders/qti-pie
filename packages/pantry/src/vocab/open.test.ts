@@ -8,7 +8,7 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Context, Duration, Effect, Formatter, Layer, Option, Result } from "effect";
 import { Digest } from "effect/crypto";
 import { XML_NAMESPACE } from "@qti-pie/crust/tree.ts";
-import { composed, coveredBy } from "#pantry/grammar/compose.ts";
+import { composed, coveredBy, namespaceLaxKinds } from "#pantry/grammar/compose.ts";
 import { foreignKinds, isForeignKind, openClasses } from "#pantry/grammar/kinds.ts";
 import {
   admitsWord,
@@ -1123,14 +1123,31 @@ interface ClassCell {
 }
 
 /**
- * Every cell: each kind a model states, with its element and attribute wildcards,
- * and each foreign kind, whose wildcards are `xs:anyType`'s and whose namespace, a foreign
- * element's own, is one no schema declares.
+ * Read a kind's element wildcards as the spec readings restate them: spec reading 61 reads
+ * `qti-ordering`'s extension slot as `##any`, laxly, where the XSD writes `##other`, since the
+ * information model says its child tags "may be new tags and reused QTI ASI tags" (§5.98.3).
+ *
+ * @param kind - The wildcards' kind.
+ * @param wildcards - Its element wildcards as the XSD writes them.
+ * @returns The wildcards the grammar states.
+ */
+const restatedWildcards = (
+  kind: string,
+  wildcards: readonly Extract<Particle, { readonly _tag: "any" }>[],
+): readonly Extract<Particle, { readonly _tag: "any" }>[] =>
+  kind === "qti-ordering"
+    ? wildcards.map((wildcard) => ({ ...wildcard, namespace: "##any", processing: "lax" }))
+    : wildcards;
+
+/**
+ * Every cell: each kind a model states, with its element and attribute wildcards, its element
+ * wildcards as the spec readings restate them, and each foreign kind, whose wildcards are
+ * `xs:anyType`'s and whose namespace, a foreign element's own, is one no schema declares.
  */
 const classCells: readonly ClassCell[] = [
   ...contentModels.map(({ content, kind }) => ({
     attributes: attributeWildcards.filter((row) => row.kind === kind),
-    elements: wildcardsIn(content),
+    elements: restatedWildcards(kind, wildcardsIn(content)),
     kind,
     own: namespaceOfKind.get(kind) ?? "",
   })),
@@ -1184,7 +1201,7 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
               literal: Formatter.format,
               oracle: {
                 kind: "specification",
-                name: "XML Schema 1.0 Part 1 §3.10.4's namespace constraints (constraintAdmits) over the leaf's wildcards, with spec readings 2, 81 and 90",
+                name: "XML Schema 1.0 Part 1 §3.10.4's namespace constraints (constraintAdmits) over the leaf's wildcards, with spec readings 2, 61, 81 and 90",
               },
               suite: "vocab/open-namespace-classes",
             },
@@ -1228,13 +1245,15 @@ describe("vocab/open.ts namespace classes against XML Schema 1.0, 3.10.4", () =>
                   )._tag;
                   // On an element the Schematron's extension rules cover, spec reading 90 admits no
                   // attribute its XSD does not declare but a `data-` one, whatever its wildcard
-                  // admits, and the drawn name is no `data-` name.
-                  const attributeSpecified =
-                    !covered(kind) &&
-                    attributes.some(
-                      ({ namespace: constraint, processing }) =>
-                        processing !== "strict" && constraintAdmits(constraint, own, namespace),
-                    );
+                  // admits, and the drawn name is no `data-` name; but a kind whose class states a
+                  // `NamespaceLax` extension (information model §5.36.1, SV-LAW-05) admits what its
+                  // `##other` wildcard does.
+                  const attributeSpecified = covered(kind)
+                    ? namespaceLaxKinds.has(kind) && constraintAdmits("##other", own, namespace)
+                    : attributes.some(
+                        ({ namespace: constraint, processing }) =>
+                          processing !== "strict" && constraintAdmits(constraint, own, namespace),
+                      );
                   const attributeRead = Option.isSome(
                     grammar.attributes.admission.lookup({ kind, name: attribute }),
                   );

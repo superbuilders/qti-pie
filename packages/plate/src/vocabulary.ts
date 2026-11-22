@@ -3,8 +3,7 @@
  * data.
  *
  * Every set is closed: a value outside it is unsupported or invalid, never guessed at. The item
- * and template models read {@link modelled}, so what plate models, marks and shows as a notice
- * is decided once.
+ * model reads {@link modelled}, so what plate models, marks and shows as a notice is decided once.
  *
  * What an element does comes from its QTI name, attributes and binding alone: no vocabulary class
  * changes it. `styles/theme.css` is the inventory of the classes plate presents, and
@@ -12,9 +11,8 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
+import { Option } from "effect";
 import { controlCap } from "#plate/control-cap.ts";
-import { collapseXmlSpace } from "#plate/model/attributes.ts";
 import type { ModuleKind } from "#plate/interactions/contract.ts";
 import type { Supports } from "#plate/supports.ts";
 
@@ -95,53 +93,6 @@ const declarations = [
 ] as const;
 
 /**
- * The response rules of the engine: `qti-response-condition` with its three branches,
- * `qti-set-outcome-value`, `qti-lookup-outcome-value`, `qti-exit-response`, and
- * `qti-response-processing-fragment`, whose rules run in its place. The expression kinds the engine
- * runs are not listed here: it runs each of the 64 (`expressionKinds` in
- * `#plate/model/expression.ts`), which the item model reads through the registry
- * (`#plate/model/expressions/read.ts`).
- *
- * An inline `qti-response-processing` that uses only these rules and expression kinds becomes a
- * rule tree; one that uses any other element is a mark keyed by that element's name, and one that
- * holds an XInclude `include` is the mark `xi:include`, since it is never fetched.
- */
-const engine = [
-  "qti-response-condition",
-  "qti-response-if",
-  "qti-response-else-if",
-  "qti-response-else",
-  "qti-set-outcome-value",
-  "qti-lookup-outcome-value",
-  "qti-exit-response",
-  "qti-response-processing-fragment",
-] as const;
-
-/**
- * The template rules: the six rule elements a `qti-template-processing`, a `qti-template-if`, a
- * `qti-template-else-if` and a `qti-template-else` hold (`qti-set-template-value`,
- * `qti-set-correct-response`, `qti-set-default-value`, `qti-template-condition`,
- * `qti-template-constraint` and `qti-exit-template`), and the three parts of a
- * `qti-template-condition`. The expression kinds they hold are every one the registry reads, as for
- * {@link engine}.
- *
- * The item model reads template processing through these (`templateRules` in
- * `#plate/model/template.ts`): template processing that holds any other element is none, and that
- * element is a mark keyed by its name. This is the one list of these names.
- */
-const templateRules = [
-  "qti-set-template-value",
-  "qti-set-correct-response",
-  "qti-set-default-value",
-  "qti-template-condition",
-  "qti-template-if",
-  "qti-template-else-if",
-  "qti-template-else",
-  "qti-template-constraint",
-  "qti-exit-template",
-] as const;
-
-/**
  * What makes an element carry an unsupported feature.
  *
  * - `element`: the element itself is present.
@@ -150,10 +101,9 @@ const templateRules = [
  * - `attribute-value`: the element's attribute `name` has the value `value`.
  * - `integer-above`: the element's attribute `name`, its outer whitespace gone, reads as an integer
  *   greater than `limit`. A value that is not an integer never is.
- * - `refused-pattern`: the element carries the attribute `name`, and the translator refuses its value
- *   as an XML Schema regular expression (`translate` in `#plate/model/regex.ts`), so the pattern
+ * - `refused-pattern`: the element carries the attribute `name`, and `compile` in
+ *   `#plate/model/regex.ts` refuses its value as an XML Schema regular expression, so the pattern
  *   cannot be checked.
- * - `template`: the element's `template` URI resolves to this built-in ({@link templateName}).
  * - `untyped`: the declaration carries no `base-type` and its cardinality is not `record`, the one
  *   cardinality that has none.
  */
@@ -163,7 +113,6 @@ export type Condition =
   | { readonly kind: "attribute-value"; readonly name: string; readonly value: string }
   | { readonly kind: "integer-above"; readonly limit: bigint; readonly name: string }
   | { readonly kind: "refused-pattern"; readonly name: string }
-  | { readonly kind: "template"; readonly name: TemplateName }
   | { readonly kind: "untyped" };
 
 /**
@@ -180,7 +129,7 @@ export interface FeatureRule {
 }
 
 /**
- * The "modelled" set, which the item and template models read.
+ * The "modelled" set, which the item model reads.
  */
 interface Modelled {
   /**
@@ -190,34 +139,23 @@ interface Modelled {
    */
   readonly controlNotices: readonly FeatureRule[];
   /**
-   * The `qti-*` elements plate renders or reads. They include the engine's response rules, the
-   * template declarations, the template processing and its template rules, `qti-printed-variable`,
+   * The `qti-*` elements plate renders or reads. They include the template declarations, the
+   * response and template processing (which the model skips: the QTI database runs both),
+   * `qti-printed-variable`,
    * `qti-template-block` (whose content is its `qti-content-body`'s), `qti-template-inline`,
    * `qti-feedback-block` (whose content is its `qti-content-body`'s too) and `qti-feedback-inline`,
    * which the item model holds as body nodes, and `qti-modal-feedback`, which it holds beside the
-   * body, its content its `qti-content-body`'s. The item model also reads the element of each of
-   * the 64 expression kinds (`expressionKinds` in `#plate/model/expression.ts`). Every element in
+   * body, its content its `qti-content-body`'s. Every element in
    * the QTI namespace without the `qti-` prefix is HTML and renders as itself.
    */
   readonly elements: readonly string[];
   /**
-   * The response rules the engine runs. The expression kinds it runs are every one the item model
-   * reads.
-   */
-  readonly engine: readonly string[];
-  /**
    * The features recorded on the verdict with no body notice. A declaration the model does not hold
    * carries one: `base-type=""` when it has no base type, or `cardinality="record"`, which an
    * outcome or template declaration of that cardinality carries; the model holds every record
-   * response and every base type, `file` included. Beyond these, a `qti-*` element
-   * outside the item body and outside `elements` is a mark keyed by its own name, response
-   * processing by a template URI outside the built-ins is a mark keyed `template="<uri>"`, inline
-   * response processing with an element outside `engine` and the expression kinds is a mark keyed
-   * by that element's name (an XInclude `include` there is keyed `xi:include`), the text family's
-   * reader marks a `qti-pattern-match` literal it cannot compile `pattern`, a `qti-inside`
-   * coordinate written with `%` `area-coords-percent`, and every `qti-custom-operator` by its own
-   * name, and the template processing reader marks a `qti-set-correct-response` or
-   * `qti-set-default-value` that sets a record response `record-set`.
+   * response and every base type, `file` included. Beyond these, a `qti-*` element outside the
+   * item body and outside `elements` is a mark keyed by its own name. Response and template
+   * processing carry no mark: the QTI database runs every construct of them.
    */
   readonly marks: readonly FeatureRule[];
   /**
@@ -227,18 +165,13 @@ interface Modelled {
    * `candidate` is none: no view plate writes holds it, so the body leaves it out.
    */
   readonly notices: readonly FeatureRule[];
-  /**
-   * The template rules the item model reads template processing through. The expression kinds
-   * they hold are every one the item model reads, as for `engine`.
-   */
-  readonly templateRules: readonly string[];
 }
 
 /**
  * What plate models, reads, shows a notice for and marks, as data.
  *
- * The item and template models read these lists, and the verdict names each feature they
- * find unsupported, so an element is modelled exactly when the verdict does not name it.
+ * The item model reads these lists, and the verdict names each feature it finds unsupported, so an
+ * element is modelled exactly when the verdict does not name it.
  */
 export const modelled = {
   controlNotices: [controlCap],
@@ -271,12 +204,9 @@ export const modelled = {
     "qti-feedback-block",
     "qti-feedback-inline",
     "qti-modal-feedback",
-    ...engine,
     "qti-template-declaration",
     "qti-template-processing",
-    ...templateRules,
   ],
-  engine,
   marks: [
     {
       feature: "string-identifier",
@@ -298,72 +228,17 @@ export const modelled = {
     // elements, and `<Item>` writes them to the page.
   ],
   notices: [
-    // A pattern the translator takes is checked. One it refuses keeps this notice and the item stays
-    // accepted: the schema types pattern-mask as xs:string, so such a pattern is unsupported, not
-    // invalid.
+    // Every pattern in Appendix F's language compiles and is checked, whatever its counts. A
+    // pattern-mask outside that grammar is no regular expression, which the information model's
+    // §5.48.4 and §5.162.5 forbid ("The regular expression language used is defined in Appendix F
+    // of [XSCHEMA, 01]"): there is nothing to check a response by, so the item keeps this notice.
     {
       feature: "pattern-mask",
       on: textInteractions,
       when: { kind: "refused-pattern", name: "pattern-mask" },
     },
   ],
-  templateRules,
 } as const satisfies Modelled;
-
-/**
- * The two URI prefixes of QTI 3's response-processing templates (reading 51).
- *
- * A built-in template is either prefix followed by its name, with or without `.xml`.
- */
-export const templatePrefixes = [
-  "https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/",
-  "https://www.imsglobal.org/question/qti_v3p0/rptemplates/",
-] as const;
-
-/**
- * The response-processing templates plate recognises by name (reading 51), each of which runs as
- * the rule tree its file gives: the three canonical
- * templates `match_correct`, `map_response` and `map_response_point`, and the Common Cartridge
- * templates `CC2_match` (the rules of `match_correct`), `CC2_match_basic` and `CC2_map_response`.
- * A name is the URI's final path segment, with or without `.xml`, under either of
- * {@link templatePrefixes}, as {@link templateName} resolves it.
- */
-export const templateNames = [
-  "match_correct",
-  "map_response",
-  "map_response_point",
-  "CC2_match",
-  "CC2_match_basic",
-  "CC2_map_response",
-] as const;
-
-/**
- * One of {@link templateNames}.
- */
-export type TemplateName = (typeof templateNames)[number];
-
-/**
- * Resolve a `template` URI to the built-in it names.
- *
- * The XSD types `template` as `xs:anyURI`, whose whitespace facet is `collapse`, so the URI is
- * collapsed before it is matched: the XML whitespace at either end is removed and each inner run
- * becomes one space. A padded built-in URI names its template; a URI with whitespace inside it
- * names none.
- *
- * @param uri The `template` attribute's value, as written.
- * @returns The built-in's name when the collapsed `uri` is one of {@link templatePrefixes} followed
- *   by it, with or without `.xml`; none for any other URI.
- */
-export const templateName = (uri: string): Option.Option<TemplateName> => {
-  const collapsed = collapseXmlSpace(uri);
-
-  return Arr.findFirst(templatePrefixes, (prefix) => collapsed.startsWith(prefix)).pipe(
-    Option.map((prefix) => collapsed.slice(prefix.length)),
-    Option.flatMap((rest) =>
-      Arr.findFirst(templateNames, (name) => rest === name || rest === `${name}.xml`),
-    ),
-  );
-};
 
 /**
  * The vocabulary classes an interaction's root leaves off for a candidate whose PNP shows

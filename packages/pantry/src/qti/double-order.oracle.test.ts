@@ -7,14 +7,16 @@
  * - **The schema's checks**, `Slider_bounds` (`#pantry/qti/interactions.ts`) and `Mastery_range`
  *   (`#pantry/qti/overlay-queries/declaration.ts`), as `Qti` states them, evaluated over each row
  *   of the case by grizzle's own host evaluator as PostgreSQL evaluates them (`rowEvaluator`,
- *   `#pantry/test/row-evaluation.ts`): a `Compute.matches` guard as a regular expression under `u`,
- *   `Compute.parseDouble` as the double the decimal text names, and `float8`'s order, in which NaN
+ *   `#pantry/test/row-evaluation.ts`): a `Text.matches` guard as a regular expression under `u`,
+ *   `Text.parseDouble` as the double the decimal text names, and `float8`'s order, in which NaN
  *   equals NaN and is above every other value. A check the host does not evaluate fails the case,
- *   so no predicate is ever judged in part. The rows are the case's bounds as the import copies
- *   them, at one element's place: a slider's collapsed (`InteractionAttribute.value`), a scale
- *   attribute's as written (`Attribute.lexical`), which the check collapses; the copies themselves
- *   are their containments' (C18), which other tests hold. A bound past keyText's bound is a row
- *   its domain refuses, which no check reads.
+ *   so no predicate is ever judged in part. The rows are the case's bounds as the schema reads
+ *   them, at one element's place: a slider's collapsed (`InteractionAttribute.value`), which the
+ *   check parses; and a scale attribute's double, which its view (`MasteryValue`, `NormalMinimum`,
+ *   `NormalMaximum` of `#pantry/qti/names.ts`) parses from its collapsed value by
+ *   `Text.parseDouble` where it is in grizzle's `doubleText`, read here by the reference's own map,
+ *   so the check orders doubles. Every bound drawn is within the bytes the regex engine reads
+ *   (`matchedTextBytes`), so its domain admits every row.
  * - **The law oracle** (`documentBreaches` of `#pantry/test/oracle.ts`) names `Slider bounds` or
  *   `Mastery range` over the item that writes the case's bounds.
  * - **The reference** written here from the specifications: a form is read where, once collapsed as
@@ -27,17 +29,17 @@
  *   numeral drawn has at most 20, its zero runs and its exponent of any length. A pair breaks its
  *   order where both forms have a value, neither is NaN, and the lower is above the upper.
  *
- * Five plants restate the deleted readings. Three restate the fallback under which a form outside
- * the bounded form stood as the end of the order that holds it: the schema's former checks, built
- * here as they were and evaluated as the installed ones are; the oracle's former `Mastery range`
- * reading, the bounded form; and its former `Slider bounds` reading, which read any collapsed text
- * as JavaScript's `Number` does, `+INF` and `0x10` among them. Two restate the scale read as
- * written, under which a form with outer whitespace stood as the end of the order that holds it,
- * a stated limit while grizzle's `Compute.matches` guard proved nothing of a `Compute.collapse`
- * subject (lifted by grizzle `c899acca`): the schema's uncollapsed `Mastery_range`, and the
- * oracle's uncollapsed reading. The search must catch each.
+ * Four plants restate the deleted readings. Three restate the fallback under which a form outside
+ * the bounded form stood as the end of the order that holds it: the schema's former
+ * `Slider_bounds`, built here as it was and evaluated as the installed one is; the oracle's former
+ * `Mastery range` reading, the bounded form; and its former `Slider bounds` reading, which read any
+ * collapsed text as JavaScript's `Number` does, `+INF` and `0x10` among them. One restates the
+ * scale read as written, under which a form with outer whitespace stood as the end of the order
+ * that holds it: the oracle's uncollapsed reading. The scale's own former checks read its texts,
+ * which no row of the schema holds since its views parse them (T3), so none is restated. The
+ * search must catch each.
  */
-import { check, Compute, lexicalForm, pg, schema } from "@bjornpagen/grizzle";
+import { check, lexicalForm, Logic, pg, schema, Text, Type } from "@bjornpagen/grizzle";
 import type { EvaluatedRow } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
@@ -55,11 +57,10 @@ import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
 import { MasteryCeiling, MasteryFloor } from "#pantry/qti/overlay-queries/declaration.ts";
 import { SliderBounds } from "#pantry/qti/overlay-queries/interaction.ts";
-import { doublePattern } from "#pantry/qti/operators.ts";
 import { searchTimeout } from "#pantry/test/gen/xdm.ts";
 import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
 import { Qti } from "#pantry/qti/schema.ts";
-import { brokenIn, evaluatorOf, insideDomains, pastKeyText } from "#pantry/test/row-evaluation.ts";
+import { brokenIn, evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
 
 /**
  * `Qti`'s rows as the host evaluates them, its two double orders' checks among them: Slider bounds
@@ -90,50 +91,14 @@ const former = [
       s.eq(s.lower, "NaN"),
       s.eq(s.upper, "NaN"),
       s.le(
-        Compute.when(
-          Compute.matches(s.lower, formerForm),
-          (lower) => Compute.cast(lower, pg["double precision"]),
+        Logic.when(
+          Text.matches(s.lower, formerForm),
+          (lower) => Type.cast(lower, pg["double precision"]),
           Number.NEGATIVE_INFINITY,
         ),
-        Compute.when(
-          Compute.matches(s.upper, formerForm),
-          (upper) => Compute.cast(upper, pg["double precision"]),
-          Number.POSITIVE_INFINITY,
-        ),
-      ),
-    ),
-  ),
-  check("Former_mastery_range", MasteryFloor, (r) =>
-    r.or(
-      r.eq(r.normalMinimum, "NaN"),
-      r.eq(r.masteryValue, "NaN"),
-      r.le(
-        Compute.when(
-          Compute.matches(r.normalMinimum, formerForm),
-          (low) => Compute.cast(low, pg["double precision"]),
-          Number.NEGATIVE_INFINITY,
-        ),
-        Compute.when(
-          Compute.matches(r.masteryValue, formerForm),
-          (mastery) => Compute.cast(mastery, pg["double precision"]),
-          Number.POSITIVE_INFINITY,
-        ),
-      ),
-    ),
-  ),
-  check("Former_mastery_range", MasteryCeiling, (r) =>
-    r.or(
-      r.eq(r.masteryValue, "NaN"),
-      r.eq(r.normalMaximum, "NaN"),
-      r.le(
-        Compute.when(
-          Compute.matches(r.masteryValue, formerForm),
-          (mastery) => Compute.cast(mastery, pg["double precision"]),
-          Number.NEGATIVE_INFINITY,
-        ),
-        Compute.when(
-          Compute.matches(r.normalMaximum, formerForm),
-          (high) => Compute.cast(high, pg["double precision"]),
+        Logic.when(
+          Text.matches(s.upper, formerForm),
+          (upper) => Type.cast(upper, pg["double precision"]),
           Number.POSITIVE_INFINITY,
         ),
       ),
@@ -142,58 +107,10 @@ const former = [
 ] as const;
 
 /**
- * The scale's checks before its forms were collapsed, restated as they were, each under a name of
- * its own: each form read by
- * `Compute.parseDouble` where it is in `doublePattern` as written, `NaN` ordered against nothing,
- * and any other form, one with outer whitespace among them, read as the end of the order that
- * holds it.
+ * `Qti`'s rows as the host evaluates them over a level above it that restates the deleted
+ * `Slider_bounds` under a name of its own beside the installed one.
  */
-const uncollapsed = [
-  check("Uncollapsed_mastery_range", MasteryFloor, (r) =>
-    r.or(
-      r.eq(r.normalMinimum, "NaN"),
-      r.eq(r.masteryValue, "NaN"),
-      r.le(
-        Compute.when(
-          Compute.matches(r.normalMinimum, doublePattern),
-          (low) => Compute.parseDouble(low),
-          Number.NEGATIVE_INFINITY,
-        ),
-        Compute.when(
-          Compute.matches(r.masteryValue, doublePattern),
-          (mastery) => Compute.parseDouble(mastery),
-          Number.POSITIVE_INFINITY,
-        ),
-      ),
-    ),
-  ),
-  check("Uncollapsed_mastery_range", MasteryCeiling, (r) =>
-    r.or(
-      r.eq(r.masteryValue, "NaN"),
-      r.eq(r.normalMaximum, "NaN"),
-      r.le(
-        Compute.when(
-          Compute.matches(r.masteryValue, doublePattern),
-          (mastery) => Compute.parseDouble(mastery),
-          Number.NEGATIVE_INFINITY,
-        ),
-        Compute.when(
-          Compute.matches(r.normalMaximum, doublePattern),
-          (high) => Compute.parseDouble(high),
-          Number.POSITIVE_INFINITY,
-        ),
-      ),
-    ),
-  ),
-] as const;
-
-/**
- * `Qti`'s rows as the host evaluates them over a level above it that restates the five deleted
- * checks, each under a name of its own beside the installed one.
- */
-const evaluatePlants = evaluatorOf(
-  schema.extend(Qti, "DoubleOrderPlants", [], [...former, ...uncollapsed]),
-);
+const evaluatePlants = evaluatorOf(schema.extend([Qti], "DoubleOrderPlants", [], [...former]));
 
 /**
  * XML Schema 1.0's `xs:double` lexical space (Part 2 §3.2.5.1), the reference's.
@@ -639,7 +556,7 @@ const itemOf = (attributes: ReadonlyMap<string, string>): string => {
 /**
  * The rows a case's item has for the two orders, each at one element's place, none where it writes
  * no pair: its slider's bounds collapsed, as `SliderBounds` delivers them, and each pair of its
- * scale attributes as written (`Attribute.lexical`), where it writes both.
+ * scale attributes as the doubles the scale views read from them, where both name one.
  */
 interface OrderRows {
   readonly ceiling: Option.Option<EvaluatedRow<typeof MasteryCeiling>>;
@@ -651,6 +568,22 @@ interface OrderRows {
  * The place every row of a case is at: one element of one item.
  */
 const place = { package: "item", path: "item.xml", start: 0n } as const;
+
+/**
+ * Grizzle's `doubleText`, the language the scale views parse (`attributeDoubles` of
+ * `#pantry/qti/names.ts`): {@link xsDouble} without `+INF`, which XML Schema 1.1 adds.
+ */
+const viewedForm = /^(?:[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?|-?INF|NaN)$/u;
+
+/**
+ * Read a scale attribute as its view does: its value collapsed, the double it names where it is in
+ * {@link viewedForm}, and no row otherwise.
+ *
+ * @param form - The attribute as written.
+ * @returns The double, none where the view holds no row.
+ */
+const viewedDouble = (form: string): Option.Option<number> =>
+  viewedForm.test(collapsed(form)) ? Option.some(doubleNamed(collapsed(form))) : Option.none();
 
 /**
  * Read a case's rows for the two orders ({@link OrderRows}).
@@ -665,20 +598,28 @@ const rowsOf = (attributes: ReadonlyMap<string, string>): OrderRows => {
       Option.fromUndefinedOr(attributes.get(second)),
     ]);
 
+  const doubles = (first: string, second: string): Option.Option<readonly [number, number]> =>
+    Option.flatMap(pair(first, second), ([low, high]) =>
+      Option.all([viewedDouble(low), viewedDouble(high)]),
+    );
+
   return {
     ceiling: Option.map(
-      pair("mastery-value", "normal-maximum"),
+      doubles("mastery-value", "normal-maximum"),
       ([masteryValue, normalMaximum]) => ({
         ...place,
         masteryValue,
         normalMaximum,
       }),
     ),
-    floor: Option.map(pair("normal-minimum", "mastery-value"), ([normalMinimum, masteryValue]) => ({
-      ...place,
-      masteryValue,
-      normalMinimum,
-    })),
+    floor: Option.map(
+      doubles("normal-minimum", "mastery-value"),
+      ([normalMinimum, masteryValue]) => ({
+        ...place,
+        masteryValue,
+        normalMinimum,
+      }),
+    ),
     slider: Option.map(pair("lower-bound", "upper-bound"), ([lower, upper]) => ({
       ...place,
       lower: collapsed(lower),
@@ -686,24 +627,6 @@ const rowsOf = (attributes: ReadonlyMap<string, string>): OrderRows => {
     })),
   };
 };
-
-/**
- * Each bound a case's rows hold, as the checks read them.
- *
- * @param rows - The case's rows.
- * @returns The bounds.
- */
-const boundsOf = (rows: OrderRows): readonly string[] => [
-  ...Option.toArray(rows.slider).flatMap(({ lower, upper }) => [lower, upper]),
-  ...Option.toArray(rows.floor).flatMap(({ masteryValue, normalMinimum }) => [
-    normalMinimum,
-    masteryValue,
-  ]),
-  ...Option.toArray(rows.ceiling).flatMap(({ masteryValue, normalMaximum }) => [
-    masteryValue,
-    normalMaximum,
-  ]),
-];
 
 /**
  * Whether some of a case's rows breaks a check over it, none where a domain refuses one of them.
@@ -761,8 +684,8 @@ const installedBroken = (rows: OrderRows, label: string): Option.Option<boolean>
  * @returns Whether one breaks, none where a domain refuses a row.
  */
 const formerBroken = (rows: OrderRows, label: string): Option.Option<boolean> =>
-  someBroken([
-    ...Option.toArray(rows.slider).map((row) =>
+  someBroken(
+    Option.toArray(rows.slider).map((row) =>
       brokenIn(
         Result.map(evaluatePlants.admit(SliderBounds, row), (admitted) =>
           evaluatePlants(SliderBounds, admitted),
@@ -771,54 +694,7 @@ const formerBroken = (rows: OrderRows, label: string): Option.Option<boolean> =>
         `the former Slider_bounds on ${label}`,
       ),
     ),
-    ...Option.toArray(rows.floor).map((row) =>
-      brokenIn(
-        Result.map(evaluatePlants.admit(MasteryFloor, row), (admitted) =>
-          evaluatePlants(MasteryFloor, admitted),
-        ),
-        ({ checks }) => checks.Former_mastery_range,
-        `the former Mastery_range on ${label}`,
-      ),
-    ),
-    ...Option.toArray(rows.ceiling).map((row) =>
-      brokenIn(
-        Result.map(evaluatePlants.admit(MasteryCeiling, row), (admitted) =>
-          evaluatePlants(MasteryCeiling, admitted),
-        ),
-        ({ checks }) => checks.Former_mastery_range,
-        `the former Mastery_range on ${label}`,
-      ),
-    ),
-  ]);
-
-/**
- * Whether a case's scale rows break the uncollapsed checks ({@link uncollapsed}).
- *
- * @param rows - The case's rows.
- * @param label - The case, for a failure's words.
- * @returns Whether one breaks, none where a domain refuses a row.
- */
-const uncollapsedBroken = (rows: OrderRows, label: string): Option.Option<boolean> =>
-  someBroken([
-    ...Option.toArray(rows.floor).map((row) =>
-      brokenIn(
-        Result.map(evaluatePlants.admit(MasteryFloor, row), (admitted) =>
-          evaluatePlants(MasteryFloor, admitted),
-        ),
-        ({ checks }) => checks.Uncollapsed_mastery_range,
-        `the uncollapsed Mastery_range on ${label}`,
-      ),
-    ),
-    ...Option.toArray(rows.ceiling).map((row) =>
-      brokenIn(
-        Result.map(evaluatePlants.admit(MasteryCeiling, row), (admitted) =>
-          evaluatePlants(MasteryCeiling, admitted),
-        ),
-        ({ checks }) => checks.Uncollapsed_mastery_range,
-        `the uncollapsed Mastery_range on ${label}`,
-      ),
-    ),
-  ]);
+  );
 
 /**
  * The law oracle's laws over the composed grammar, built once.
@@ -884,14 +760,12 @@ type Situation =
   | "caught: the oracle's former Slider bounds reading"
   | "caught: the oracle's uncollapsed scale"
   | "caught: the schema's former bounded form"
-  | "caught: the schema's uncollapsed scale"
   | "exponent past 293"
   | "held"
   | "outside the lexical space"
   | "overflow"
   | "padded"
   | "past 15 digits"
-  | "past the key text bound"
   | "rounds together"
   | "underflow"
   | "zero run past 255";
@@ -1018,10 +892,6 @@ const caughtOf = (
       scale(() => scaleAbove(formerScale, drawnCase.forms)),
     ],
     [
-      "caught: the schema's uncollapsed scale",
-      drawnCase.carrier === "slider" ? Option.none() : uncollapsedBroken(rows, label),
-    ],
-    [
       "caught: the oracle's uncollapsed scale",
       scale(() => scaleAbove(writtenScale, drawnCase.forms)),
     ],
@@ -1051,18 +921,13 @@ const judged = (drawnCase: OrderCase, note: (situation: Situation) => void) =>
     const expected = above(referenceOf(low), referenceOf(high));
     const label = `${drawnCase.carrier} ${Formatter.format(drawnCase.forms)}`;
 
-    Option.match(installedBroken(rows, label), {
-      onNone: () => {
-        assert.isTrue(
-          boundsOf(rows).some(pastKeyText),
-          `${label} is refused at a bound past keyText's bound`,
-        );
-        note("past the key text bound");
-      },
-      onSome: (broken) => {
-        assert.strictEqual(broken, expected, `the schema's checks on ${label}`);
-      },
-    });
+    assert.strictEqual(
+      Option.getOrElse(installedBroken(rows, label), () =>
+        assert.fail(`${label}: a row its domain refuses`),
+      ),
+      expected,
+      `the schema's checks on ${label}`,
+    );
     assert.strictEqual(
       documentBreaches("item.xml", folded, oracleLaws).some(
         ({ law }) => law === "Slider bounds" || law === "Mastery range",
@@ -1105,21 +970,19 @@ const situations: readonly [Situation | AdversarialName, ...(Situation | Adversa
   "rounds together",
   "outside the lexical space",
   "padded",
-  "past the key text bound",
   "caught: the schema's former bounded form",
   "caught: the oracle's former Slider bounds reading",
   "caught: the oracle's former Mastery range reading",
-  "caught: the schema's uncollapsed scale",
   "caught: the oracle's uncollapsed scale",
   ...adversarial.map(({ name }) => name),
 ];
 
 describe("qti/interactions.ts and qti/declarations.ts, the double orders", () => {
   it("evaluates each relation under its installed Slider_bounds or Mastery_range check, and under its former statements beside it", () => {
-    // Oracle: the schema's statements, which `Qti` holds once each, and the five restated here.
+    // Oracle: the schema's statements, which `Qti` holds once each, and the one restated here.
     const slider = { ...place, lower: "0", upper: "1" };
-    const floor = { ...place, masteryValue: "1", normalMinimum: "0" };
-    const ceiling = { ...place, masteryValue: "0", normalMaximum: "1" };
+    const floor = { ...place, masteryValue: 1, normalMinimum: 0 };
+    const ceiling = { ...place, masteryValue: 0, normalMaximum: 1 };
     assert.deepStrictEqual(
       namesOf(
         insideDomains(
@@ -1178,11 +1041,7 @@ describe("qti/interactions.ts and qti/declarations.ts, the double orders", () =>
         "a ceiling",
       ),
     ]) {
-      assert.deepStrictEqual(namesOf(evaluation), [
-        "Former_mastery_range",
-        "Mastery_range",
-        "Uncollapsed_mastery_range",
-      ]);
+      assert.deepStrictEqual(namesOf(evaluation), ["Mastery_range"]);
     }
   });
 

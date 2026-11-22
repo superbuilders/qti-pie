@@ -44,9 +44,9 @@ const pgPoolIdleTimeoutDefaultMs = 10_000;
  *
  * Grizzle chooses no size and no timeout: `DbLayer.make` takes the caller's `PoolBounds`, and
  * pantry takes node-postgres's own. Pantry's calls on a `Db` run one after another: the import
- * opens one `Db` and applies one ChangeSet, the export reads its documents' pages in order, and the
- * database tests run one file at a time (`maxWorkers: 1`, vite.config.ts) and import one package at
- * a time, so the pool never needs a second session, and no measurement asks for numbers of
+ * opens one `Db` and applies one ChangeSet, the export reads its documents' pages in order, and each
+ * database test file, in a worker process of its own with its own pool, imports one package at a
+ * time, so the pool never needs a second session, and no measurement asks for numbers of
  * pantry's own. The session kept open serves a process's next call, such as a test file's next
  * import through the same layer, without a new connection attempt, so a process between calls
  * holds one session of the server.
@@ -120,8 +120,8 @@ export const AuthorAppLayer = Layer.unwrap(
  *
  * It is built from the process's settings, read through Effect `Config`: the cluster's
  * (`QTI_PIE_PG_HOST`, `QTI_PIE_PG_PORT`, `QTI_PIE_PG_DATABASE`, `QTI_PIE_PG_CA`,
- * `QTI_PIE_PG_SECRETS`), and it opens the committed served file. The import's `RetrySchedule` and
- * `WrapApply` are references whose defaults are the live ones, so the layer provides neither.
+ * `QTI_PIE_PG_SECRETS`), and it opens the committed served file. The import's `WrapApply` is a
+ * reference whose default is the live one, so the layer provides none.
  * Building it fails as {@link AuthorAppLayer} fails.
  */
 export const ImportLive = Layer.merge(AuthorAppLayer, NodeFileSystem.layer);

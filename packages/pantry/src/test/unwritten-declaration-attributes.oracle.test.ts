@@ -9,21 +9,22 @@
  * and a record field whose unwritten `field-identifier` was `""`. So:
  *
  * - A value of a single variable that wrote `base-type` alone was refused under `derived`, its
- *   field's empty identifier, where its own law is Value cardinality (the genetic differential's
- *   class 10);
+ *   field's empty identifier, where no law refuses it: the attribute types nothing there (§7.46.2),
+ *   so the value is admitted (the genetic differential's class 10; SV-LAW-01);
  * - Nothing proved an outcome range's `""` stood for an unwritten attribute (lane NIL's audit, B14);
  * - `E1_derived` and the reverse copy of a declaration's base type read `""` as "unwritten".
  *
  * Now no row copies a declaration's base type or a value's field or base type: each is its
  * attribute, read by a view or a query only where it is written and, for a code, spells one
  * (`#pantry/qti/names.ts`, `#pantry/qti/overlay-queries/declaration.ts`), read here as the views
- * read it; and `MasteryValue`, `NormalMinimum` and `NormalMaximum` each hold a row exactly where
- * the attribute it reads is written (`#pantry/qti/declarations.ts`), but that a normal minimum
- * unwritten in this box's 3.0.1 package is its XSD default, `0.0` (spec reading 149, held by
+ * read it; and `MasteryValue`, `NormalMinimum` and `NormalMaximum` are views of the doubles the
+ * attributes name, each a row exactly where its attribute is written and names a double
+ * (`#pantry/qti/names.ts`), but that a normal minimum unwritten in this box's 3.0.1 package is its
+ * XSD default, `0.0` (spec reading 149, held by
  * `#pantry/test/normal-minimum-default.oracle.test.ts`), each pair of them their join. A record has
  * no base type, and no row copies a declaration's (B12; decision S3).
  *
- * The host reads a `Compute.when` term and `Compute.parseDouble` (`#pantry/test/predicates.ts`), so
+ * The host reads a `Logic.when` term and `Text.parseDouble` (`#pantry/test/predicates.ts`), so
  * it judges `Mastery_range` over each pair's join, restated over the host's rows
  * (`#pantry/test/declaration-queries.ts`), and the database judges it too.
  */
@@ -255,12 +256,14 @@ const disordered = (low: string | undefined, high: string | undefined): boolean 
  *   record that writes one and a single that writes none break Declaration base type; one spelling
  *   nothing breaks its value domain alone, since a preserving enumeration's padded form is no value
  *   (XML Schema 1.1 Part 2 §4.3.6; lane NIL's audit, B11);
- * - **a value's field attributes** (§7.46.1 and §7.46.2: each "is only used for" a value "that forms
- *   part of a record"): a record's value must write both, and any other set's value neither, or it
- *   breaks Value cardinality, where an attribute written counts as written whatever it spells; a
- *   base type spelling nothing breaks its value domain; the text breaks Typed value where it is no
- *   integer and the type it is read in, the set's, or a record's field's own where that spells one,
- *   is integer;
+ * - **a value's field attributes** (§8.16, record: "a set of independent values each identified by
+ *   its own identifier and having its own base-type"; §7.46.1 and §7.46.2: each "is only used for"
+ *   a value "that forms part of a record"): a record's value must write both, or it breaks Value
+ *   cardinality, where an attribute written counts as written whatever it spells, and any other
+ *   set's value may write either, which names and types nothing there (SV-LAW-01); a base type
+ *   spelling nothing breaks its value domain; the text breaks Typed value where it is no integer
+ *   and the type it is read in, the set's, or a record's field's own where that spells one, is
+ *   integer;
  * - **an outcome's scale** (reading 9: the Schematron's OUTCOMEDEC 1, each pair judged where both
  *   have a value, as `xs:double` values): a written mastery value below the minimum, written or
  *   3.0.1's default (reading 149), or above a written maximum breaks Mastery range; a text that is
@@ -283,7 +286,7 @@ const expectedOf = (drawn: Case): ReadonlySet<LawName> => {
     case "field": {
       const record = drawn.cardinality === "record";
       const baseWritten = drawn.baseType !== "unwritten";
-      const counted = record ? drawn.field && baseWritten : !drawn.field && !baseWritten;
+      const counted = !record || (drawn.field && baseWritten);
       const typed = record ? drawn.baseType === "spelled" : true;
 
       return new Set<LawName>([
@@ -367,20 +370,26 @@ const assertRows = (drawn: Case, inputs: PackageInputs, label: string): void => 
       break;
     }
     case "scale": {
+      // A scale is its declaration's three attributes as written, each read by a view where it
+      // stands (`MasteryValue`, `NormalMinimum`, `NormalMaximum` of `#pantry/qti/names.ts`).
+      const scaleAttributes = (name: string) =>
+        [...inputs.Attribute.values()].flatMap((attribute) =>
+          attribute.name === name ? [[attribute.lexical]] : [],
+        );
       assert.deepStrictEqual(
-        [...inputs.MasteryValue.values()].map(({ lexical }) => [lexical]),
+        scaleAttributes("mastery-value"),
         scaleRow(drawn.mastery),
-        `${label}: MasteryValue`,
+        `${label}: mastery-value`,
       );
       assert.deepStrictEqual(
-        [...inputs.NormalMinimum.values()].map(({ lexical, written }) => [lexical, written]),
-        [[minimumOf(drawn), drawn.minimum !== undefined]],
-        `${label}: NormalMinimum`,
+        scaleAttributes("normal-minimum"),
+        scaleRow(drawn.minimum),
+        `${label}: normal-minimum`,
       );
       assert.deepStrictEqual(
-        [...inputs.NormalMaximum.values()].map(({ lexical }) => [lexical]),
+        scaleAttributes("normal-maximum"),
         scaleRow(drawn.maximum),
-        `${label}: NormalMaximum`,
+        `${label}: normal-maximum`,
       );
       break;
     }

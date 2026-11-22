@@ -3,8 +3,9 @@
  * table, which the free oracle test (`negatives.oracle.test.ts`) holds the oracle to.
  *
  * The negatives over the stimulus and include positives are phase 5's; the bank negatives and
- * `test-document` state spec reading 228: pantry stores content and banks, a bank is a standalone
- * section document of item refs and nothing else, and a test is refused.
+ * `test-document` state the laws over a standalone section document and a test that pantry holds:
+ * a selection selects at most its section's parts without replacement (§5.129.1), and an item
+ * ref's identifier is its item's (§4.1.1).
  */
 import type { negativeNames } from "#pantry/test/fixtures.ts";
 
@@ -14,9 +15,8 @@ import type { negativeNames } from "#pantry/test/fixtures.ts";
  */
 export const expectations: Readonly<Record<(typeof negativeNames)[number], readonly string[]>> = {
   "bank-duplicate-identifier": ["structure-identifier"],
-  "bank-selection": ["bank-shape"],
-  "include-text": ["attribute-lexical"],
-  "include-xpointer": ["attribute-admission"],
+  "bank-selection": ["selection-bounds"],
+  "include-xpointer-text": ["include-parse", "item-ref-identifier"],
   "item-in-section": ["unmodeled-vocabulary"],
   "item-ref-missing": ["file-exists", "item-ref-target"],
   "item-ref-to-stimulus": ["item-ref-target"],
@@ -26,5 +26,5 @@ export const expectations: Readonly<Record<(typeof negativeNames)[number], reado
   "stimulus-ref-duplicate": ["stimulus-ref-key"],
   "stimulus-ref-to-item": ["stimulus-ref-target"],
   "stimulus-typed-test": ["root-type-reverse"],
-  "test-document": ["test-structure"],
+  "test-document": ["item-ref-identifier"],
 };

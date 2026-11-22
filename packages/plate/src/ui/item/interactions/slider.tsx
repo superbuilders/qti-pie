@@ -20,7 +20,7 @@ import type { Paired } from "#plate/payload.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Named } from "#plate/ui/attributes.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
-import { controlParts } from "#plate/ui/item/interactions/control-mark.tsx";
+import { controlMarkOf, controlParts } from "#plate/ui/item/interactions/control-mark.tsx";
 import type { ControlMark } from "#plate/ui/item/interactions/control-mark.tsx";
 import {
   controlNameOf,
@@ -29,7 +29,7 @@ import {
   promptAt,
   rootOf,
 } from "#plate/ui/item/interactions/labels.ts";
-import { markingOf, missedShown } from "#plate/ui/item/interactions/marks.ts";
+import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import type { Marking } from "#plate/ui/item/interactions/marks.ts";
 import { markPart } from "#plate/ui/item/interactions/words.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
@@ -107,33 +107,17 @@ const fractionOf = (
 };
 
 /**
- * Mark the value a review shows against the correct one, as `qti-match` compares two numbers: by
- * value, so `6` and `6.0` are one number. The mark is a Control's, its right answer the correct
- * value as the payload writes it: none marked where there is no solution to mark against, or in a
- * solution, whose value is the correct one; `unanswered` for a response left NULL.
+ * Mark the value a Slider's review shows, by the marks the host handed for its response
+ * ({@link controlMarkOf}): the right answer it writes for a wrong or missing value is the value
+ * handed `missed`, as the payload writes a number; `unanswered` where the Slider shows no value,
+ * a NULL or a value its thumb has no place for, such as NaN.
  *
- * @param given The value shown, as the payload writes it, none for NULL.
- * @param marking How the review marks the Slider's response.
- * @returns The mark: `unmarked` unless the review marks `against` a correct value.
+ * @param given The value shown, as the payload writes it, none for none.
+ * @param marking The marks handed for the Slider's response.
+ * @returns The mark.
  */
-const valueMarkOf = (given: Option.Option<string>, marking: Marking): ControlMark => {
-  if (marking.kind !== "against") {
-    return { kind: "unmarked" };
-  }
-
-  return Option.match(Option.map(Arr.head(marking.correct.values), format), {
-    onNone: (): ControlMark => ({ kind: "unmarked" }),
-    onSome: (correct) => {
-      const answer = Arr.head(missedShown(marking, [correct]));
-
-      return Option.match(given, {
-        onNone: (): ControlMark => ({ answer, kind: "unanswered" }),
-        onSome: (value): ControlMark =>
-          Number(value) === Number(correct) ? { kind: "right" } : { answer, kind: "wrong" },
-      });
-    },
-  });
-};
+const valueMarkOf = (given: Option.Option<string>, marking: Marking): ControlMark =>
+  controlMarkOf(marking, Option.isSome(given), (missed) => Option.map(Arr.head(missed), format));
 
 /**
  * Write the correct value after a value a review marks as not right.
@@ -223,7 +207,7 @@ export const island = (paired: Paired<"slider">, context: IslandContext): ReactN
  * stood: the server's markup carries no `style`, which the page's content security policy refuses,
  * and a theme reads the number with a typed `attr()`.
  *
- * In a review against the host's solution ({@link valueMarkOf}), the value carries `data-mark`:
+ * In a review by the host's marks ({@link valueMarkOf}), the value carries `data-mark`:
  * `right` where it is the correct value, as `qti-match` compares two numbers, else `wrong`; and
  * where it is not right, the correct value follows in a `plate-slider-answer` part,
  * `data-mark="missed"`, as a Text Entry's does. A response left NULL shows the `empty` label,

@@ -1,0 +1,7 @@
+
+/**
+ * The same arguments over each item session of the sitting at its latest attempt, processed or not: what a review
+ * reads beside the run (the marks' read family), from the one table gradeArgumentsOf is generated from.
+ */
+export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
+	const fields = delivery.relations

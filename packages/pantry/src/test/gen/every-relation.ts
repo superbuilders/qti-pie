@@ -40,8 +40,11 @@
  *   a comment, an `xml:base`, and an unexpanded entity reference in a closed attribute and in an
  *   open `data-*` one, and no reference the base would govern;
  * - **the bank**, a standalone section document, lists the three items by item refs whose identifiers
- *   are their items' own (QTI §4.1.1), and nothing else (spec reading 1's stated limit "Bank
- *   shape");
+ *   are their items' own (QTI §4.1.1);
+ * - **the test** places the first item in a section that selects with replacement, and an item
+ *   outside the package by an external href, and its outcome processing reads the first by a
+ *   numbered reading and the second by a link reading (spec readings 88 and 110), so the package
+ *   writes `NumberedReading` and `LinkReading`;
  * - **the usage data** holds a dated statistic with a typed value;
  * - **an image**, which two elements of the item reference, and its card's file.
  */
@@ -124,6 +127,7 @@ const paths = {
   section: "section.xml",
   stimulus: "items/stimulus.xml",
   templated: "items/item2.xml",
+  test: "assembly.xml",
   usage: "usage.xml",
 } as const;
 
@@ -474,7 +478,7 @@ const stimulus = [
 
 /**
  * The bank: a standalone section document of the three items, each item ref under its item's own
- * identifier (QTI §4.1.1), and nothing else (spec reading 1's stated limit "Bank shape").
+ * identifier (QTI §4.1.1).
  */
 const section = [
   declaration,
@@ -483,6 +487,34 @@ const section = [
   `  <qti-assessment-item-ref identifier="item2" href="${paths.templated}"/>`,
   `  <qti-assessment-item-ref identifier="item3" href="${paths.ruled}"/>`,
   "</qti-assessment-section>",
+  "",
+].join("\n");
+
+/**
+ * The test: one part of two sections, the first selecting twice with replacement from the first
+ * item, so `item1.1.SCORE` reads its first instance's `SCORE` (spec reading 88), and the second
+ * placing an item outside the package, stored as written (SV-LAW-02), so `remote.SCORE` reads a
+ * variable no document of the package declares (spec reading 110).
+ */
+const test = [
+  declaration,
+  `<qti-assessment-test xmlns="${asi}" identifier="test1" title="Every relation's test">`,
+  '  <qti-outcome-declaration identifier="TOTAL" cardinality="single" base-type="float"/>',
+  '  <qti-test-part identifier="part1" navigation-mode="nonlinear" submission-mode="individual">',
+  '    <qti-assessment-section identifier="drawn" title="Drawn" visible="true">',
+  '      <qti-selection select="2" with-replacement="true"/>',
+  `      <qti-assessment-item-ref identifier="item1" href="${paths.item}"/>`,
+  "    </qti-assessment-section>",
+  '    <qti-assessment-section identifier="linked" title="Linked" visible="true">',
+  '      <qti-assessment-item-ref identifier="remote" href="https://example.org/remote.xml"/>',
+  "    </qti-assessment-section>",
+  "  </qti-test-part>",
+  "  <qti-outcome-processing>",
+  '    <qti-set-outcome-value identifier="TOTAL">',
+  '      <qti-sum><qti-variable identifier="item1.1.SCORE"/><qti-variable identifier="remote.SCORE"/></qti-sum>',
+  "    </qti-set-outcome-value>",
+  "  </qti-outcome-processing>",
+  "</qti-assessment-test>",
   "",
 ].join("\n");
 
@@ -590,6 +622,10 @@ const manifest = [
   '      <dependency identifierref="item2-res"/>',
   '      <dependency identifierref="item3-res"/>',
   "    </resource>",
+  `    <resource identifier="assembly-res" type="imsqti_test_xmlv3p0" href="${paths.test}">`,
+  `      <file href="${paths.test}"/>`,
+  '      <dependency identifierref="item1-res"/>',
+  "    </resource>",
   `    <resource identifier="usage-res" type="qtiusagedata/xml" href="${paths.usage}">`,
   `      <file href="${paths.usage}"/>`,
   "    </resource>",
@@ -640,6 +676,7 @@ export const everyRelationPackage = (members: MemberCounts): PackageEntries => {
     [paths.rules, text.encode(rules)],
     [paths.stimulus, text.encode(stimulus)],
     [paths.section, text.encode(section)],
+    [paths.test, text.encode(test)],
     [paths.usage, text.encode(usage)],
     [paths.image, pixel],
   ]);

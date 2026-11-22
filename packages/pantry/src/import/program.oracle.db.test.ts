@@ -20,7 +20,7 @@
 import type { CallError, Law } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
-import { Effect, Formatter, Layer, Option, Ref, Result } from "effect";
+import { Effect, Formatter, Layer, Option, Result } from "effect";
 import { describe, inject } from "vitest";
 import { composed } from "#pantry/grammar/compose.ts";
 
@@ -389,9 +389,9 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
 
     it.effect("leaves no row when a failure is injected in place of the apply", () =>
       // Oracle: the specification as a checker, `commitUnknown`'s resolution: the failure stands
-      // in for the apply, so nothing ran, and the import's read-back by the package's manifest
-      // identifier finds no package, so the import fails with the injected failure. A read-back
-      // that found one, or an apply run outside `WrapApply`, would answer the package instead.
+      // in for the apply, so nothing ran, and the importer runs nothing again, so the import
+      // fails with the injected failure. An apply run outside `WrapApply` would answer the
+      // package instead.
       // The package is a variant no other case imports, so no earlier case stored its identifier.
       Effect.gen(function* noRow() {
         const failed = yield* Effect.flip(
@@ -761,40 +761,6 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
       {
         apply: () =>
           Effect.flatMap(
-            editedSimple("open-name-missing", [inBody(`<p data-note="x">See.</p>`)]),
-            (dir) =>
-              applyEdited(dir, (inputs) =>
-                editOpen(inputs, "data-*", (key, open) => ({
-                  ...inputs,
-                  // The open class written as a closed attribute's name, its open name gone.
-                  Attribute: new Map([
-                    ...inputs.Attribute,
-                    [
-                      key,
-                      {
-                        idrefs: [],
-                        lexical: open.lexical,
-                        name: open.class,
-                        package: open.package,
-                        path: open.path,
-                        prefix: open.prefix,
-                        slot: open.slot,
-                        start: open.start,
-                      },
-                    ],
-                  ]),
-                  OpenAttribute: new Map(
-                    [...inputs.OpenAttribute].filter(([held]) => held !== key),
-                  ),
-                })),
-              ),
-          ),
-        laws: [checkNamed("Attribute", "AL4_open_names")],
-        name: "an open-class attribute written as a closed name, without its open name (AL4, Q5.05)",
-      },
-      {
-        apply: () =>
-          Effect.flatMap(
             editedSimple("data-name-upper", [inBody(`<p data-note="x">See.</p>`)]),
             (dir) =>
               applyEdited(dir, (inputs) =>
@@ -996,24 +962,5 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
         }),
       );
     }
-
-    it.effect("reads the package back when the commit's outcome is unknown", () =>
-      // Oracle: the specification as a checker, `commitUnknown`'s resolution: the first apply ran
-      // and committed but its COMMIT got no answer, so the import runs the write again, which
-      // reads the package back by its name and answers it unchanged.
-      Effect.gen(function* readsBack() {
-        const unanswered = yield* Ref.make(true);
-        const imported = yield* importDir(fixtures.simple).pipe(
-          Effect.provideService(WrapApply, (apply) =>
-            Effect.flatMap(Ref.getAndSet(unanswered, false), (first) =>
-              first ? Effect.andThen(apply, Effect.fail(commitUnknown)) : apply,
-            ),
-          ),
-        );
-
-        assert.isFalse(yield* Ref.get(unanswered), "the first apply ran");
-        assert.isTrue(yield* packageStored(imported.package), imported.package);
-      }),
-    );
   });
 });

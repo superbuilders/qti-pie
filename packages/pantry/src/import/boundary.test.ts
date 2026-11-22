@@ -70,7 +70,6 @@ const xmlSide = [
  */
 const databaseSide = [
   "db/*.ts",
-  "export/attribute-names.ts",
   "export/pages.ts",
   "export/scan.ts",
   "grammar/*.ts",
@@ -163,7 +162,6 @@ const crossings: ByStep = [
     [
       "cli/output.ts: #pantry/package/refusal-origin.ts",
       "cli/refused.ts: #pantry/package/refusal-origin.ts",
-      "export/attribute-names.ts: #pantry/model/xdm.ts",
       "export/package.ts: #pantry/db/served.ts",
       "export/package.ts: #pantry/export/pages.ts",
       "export/package.ts: #pantry/qti/roles.ts",
@@ -198,10 +196,10 @@ const crossings: ByStep = [
       "import/overlays/data-ssml.ts: #pantry/qti/data-ssml.ts",
       "import/overlays/data-ssml.ts: #pantry/vocab/data-ssml.ts",
       "import/overlays/declarations.ts: #pantry/grammar/attributes.ts",
-      "import/overlays/declarations.ts: #pantry/qti/declarations.ts",
-      "import/overlays/expressions.ts: #pantry/grammar/domains.ts",
+      "import/overlays/declarations.ts: #pantry/qti/chardata.ts",
       "import/overlays/expressions.ts: #pantry/grammar/expression.ts",
       "import/overlays/expressions.ts: #pantry/qti/expressions.ts",
+      "import/overlays/expressions.ts: #pantry/qti/templates.ts",
       "import/overlays/expressions.ts: #pantry/qti/tests.ts",
       "import/overlays/html.ts: #pantry/qti/html.ts",
       "import/overlays/identity.ts: #pantry/grammar/domains.ts",
@@ -222,6 +220,9 @@ const crossings: ByStep = [
       "import/overlays/package.ts: #pantry/grammar/domains.ts",
       "import/overlays/package.ts: #pantry/grammar/references.ts",
       "import/overlays/package.ts: #pantry/qti/package.ts",
+      "import/overlays/readings.ts: #pantry/grammar/domains.ts",
+      "import/overlays/readings.ts: #pantry/qti/expressions.ts",
+      "import/overlays/readings.ts: #pantry/qti/tests.ts",
       "import/overlays/tests.ts: #pantry/grammar/compose.ts",
       "import/overlays/tests.ts: #pantry/qti/tests.ts",
       "import/record.ts: #pantry/qti/package.ts",

@@ -774,7 +774,9 @@ const usageCases: Gen<UsageCase> = (source) => ({
     element([
       { value: "", xml: "" },
       { value: "0.87", xml: "0.87" },
-      { value: " 0.87\n", xml: " 0.87\n" },
+      // A `ud:value`'s text is of a `whiteSpace="replace"` type, so its value holds each line feed
+      // as a space (XML Schema 1.0 Part 2 §4.3.6; SV-VALUE-01), no space trimmed.
+      { value: " 0.87 ", xml: " 0.87\n" },
       { value: "a&b", xml: "a&amp;b" },
     ]),
   ),

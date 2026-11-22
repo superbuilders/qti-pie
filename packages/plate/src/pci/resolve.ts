@@ -33,11 +33,16 @@
  *   contributes nothing.
  * - **R3** The timeout is the primary configuration's `waitSeconds` for primary loads and the
  *   secondary's for fallback loads, 7 when absent.
- * - **R4** A module with no primary location gives `pci-module-unresolved`; one with no fallback has
- *   none, it simply has no second chance.
+ * - **R4** A module with no location at all, primary or fallback, gives `pci-module-unresolved`; one
+ *   with no fallback has none, it simply has no second chance; one with a fallback alone loads from
+ *   it, since the frame tries the fallback where no primary is given.
  * - **R5** A package-relative location the manifest does not list is kept and gives
- *   `pci-module-unlisted`; an absolute location is kept only for `https:`, and any other scheme
- *   gives `pci-module-insecure` and is dropped.
+ *   `pci-module-unlisted`; an absolute location, of any scheme, is dropped and gives
+ *   `pci-module-remote`: plate loads no script from outside the package, whose files alone the host
+ *   vets ("may apply security rules to the URLs it loads script from", above), so a module whose
+ *   primary is a CDN's loads from its package fallback, as the implementation guide reads a
+ *   package-only context (informative, §3.7.12.1: "a high stakes secure browser context where
+ *   access is permitted only to files included in the QTI content package").
  * - **R6** Without `module`, every listed module is loaded, and the frame takes as the factory the
  *   one module that registers.
  *
@@ -69,8 +74,8 @@ export interface PciModules {
 /**
  * Where one AMD module loads from.
  *
- * `primary` and `fallback` are URLs: absolute `https:` URLs, or paths relative to the package's
- * base, each ending in `.js` exactly once (R1). `fallback` is tried after `primary` times out or
+ * `primary` and `fallback` are paths relative to the package's base, each ending in `.js` exactly
+ * once (R1), never an absolute URL (R5). `fallback` is tried after `primary` times out or
  * fails fatally; a module with none has no second chance (R4). `waitSeconds` is how long each
  * load waits before the host gives up on it, 0 for no timeout (R3).
  */
@@ -108,14 +113,14 @@ export interface PciResolution {
  *
  * `pci-configuration-invalid` (R2) names a configuration `file` the package holds that is not a
  * JSON object with an object `paths` of string locations and, when written, a non-negative
- * finite `waitSeconds`. `pci-module-unresolved` (R4) names a module with no primary location.
+ * finite `waitSeconds`. `pci-module-unresolved` (R4) names a module with no location at all.
  * `pci-module-unlisted` (R5) names a module and its package-relative `location`, kept though the
- * manifest does not list it. `pci-module-insecure` (R5) names a module and its absolute
- * `location`, dropped because its scheme is not `https:`.
+ * manifest does not list it. `pci-module-remote` (R5) names a module and its absolute
+ * `location`, dropped since plate loads no script from outside the package.
  */
 export type PciNotice =
   | { readonly kind: "pci-configuration-invalid"; readonly file: string }
-  | { readonly kind: "pci-module-insecure"; readonly id: string; readonly location: string }
+  | { readonly kind: "pci-module-remote"; readonly id: string; readonly location: string }
   | { readonly kind: "pci-module-unlisted"; readonly id: string; readonly location: string }
   | { readonly kind: "pci-module-unresolved"; readonly id: string };
 
@@ -190,12 +195,6 @@ const decodeConfiguration = Schema.decodeUnknownResult(Schema.fromJsonString(Con
 const schemePrefix = /^[A-Za-z][A-Za-z0-9+.-]*:/u;
 
 /**
- * The one scheme an absolute location may have (R5), compared without case as RFC 3986 section
- * 3.1 compares schemes.
- */
-const securePrefix = /^https:/iu;
-
-/**
  * Read a configuration file from the package (R2, R3).
  *
  * @param file The file's package-relative path, as written or defaulted.
@@ -240,8 +239,7 @@ const withScriptSuffix = (location: string): string =>
  * @param id The module's id, for the notices.
  * @param location The location, when the module has one.
  * @param listed Whether the manifest lists a package-relative path.
- * @returns The URL, dropped for an absolute location whose scheme is not `https:`, with the
- *   notices R5 gives.
+ * @returns The URL, dropped for an absolute location, with the notices R5 gives.
  */
 const placeLocation = (
   id: string,
@@ -254,9 +252,7 @@ const placeLocation = (
       const url = withScriptSuffix(written);
 
       if (schemePrefix.test(url)) {
-        return securePrefix.test(url)
-          ? { notices: [], url: Option.some(url) }
-          : { notices: [{ id, kind: "pci-module-insecure", location: url }], url: Option.none() };
+        return { notices: [{ id, kind: "pci-module-remote", location: url }], url: Option.none() };
       }
 
       return {
@@ -292,7 +288,7 @@ const locationOf = (
  * @param secondary The secondary configuration.
  * @param listed Whether the manifest lists a package-relative path.
  * @returns The route and its notices: the primary location's, the fallback location's, then
- *   `pci-module-unresolved` when no primary URL remains.
+ *   `pci-module-unresolved` when no URL remains, primary or fallback.
  */
 const routeModule = (
   id: string,
@@ -312,7 +308,9 @@ const routeModule = (
     notices: [
       ...placedPrimary.notices,
       ...placedFallback.notices,
-      ...(Option.isNone(placedPrimary.url) ? [{ id, kind: "pci-module-unresolved" } as const] : []),
+      ...(Option.isNone(placedPrimary.url) && Option.isNone(placedFallback.url)
+        ? [{ id, kind: "pci-module-unresolved" } as const]
+        : []),
     ],
     route: {
       fallback: placedFallback.url,

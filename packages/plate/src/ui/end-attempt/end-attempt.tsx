@@ -21,7 +21,7 @@
  * order when the child presses Enter in a text field, so the host puts a submit button of its own
  * before the item, or Enter in a Text Entry would end the attempt through this one.
  *
- * Whether pressing it counts an attempt (`count-attempt`) is the engine's to decide from the
+ * Whether pressing it counts an attempt (`count-attempt`) is the QTI database's to decide from the
  * response posted, so it is no prop.
  *
  * @module

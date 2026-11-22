@@ -6,10 +6,12 @@
  *
  * - **The schema's check**, `Aria_value_range` (`#pantry/qti/interactions.ts`), as `Qti` states it,
  *   evaluated over the case's `AriaBounds` row by grizzle's own host evaluator as PostgreSQL
- *   evaluates its rule (`rowEvaluator`, `#pantry/test/row-evaluation.ts`): a `Compute.matches`
- *   guard as a regular expression under `u`, `Compute.parseDecimal` as the decimal the text names
- *   exactly, and numeric's exact order. The row is the case's two values collapsed, as
- *   `InteractionAttribute` holds them and the query reads them, at one element's place.
+ *   evaluates its rule (`rowEvaluator`, `#pantry/test/row-evaluation.ts`): a `Text.matches` guard
+ *   as a regular expression under `u`, `Text.parseDecimal` as the decimal the text names exactly,
+ *   and numeric's exact order. The row is the case's two values collapsed, as
+ *   `InteractionAttribute` holds them and the query reads them, at one element's place. A decimal
+ *   past the bytes the parse reads (`parsedDecimalBytes`) holds the check by its own arm, and
+ *   `Key_text_bound` over the same row refuses it, a stated limit of the representation.
  * - **The law oracle** (`documentBreaches` of `#pantry/test/oracle.ts`) names `Aria value range` over
  *   the item that writes the case's values.
  * - **The reference** written here from XML Schema 1.1 (Part 2 §3.3.3): a value is read where its
@@ -24,7 +26,7 @@
  * order that holds it; and the oracle's former decimal form, which read `+`, `.`, `-.` and the
  * empty text as zero. The search must catch each.
  */
-import { check, Compute, Decimal, lexicalForm, pg, schema } from "@bjornpagen/grizzle";
+import { check, Decimal, lexicalForm, Logic, pg, schema, Text, Type } from "@bjornpagen/grizzle";
 import type { EvaluatedRow } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
@@ -40,11 +42,12 @@ import { grammar } from "#pantry/grammar/install.ts";
 import { foldGrammarOf, shredGrammarOf } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
 import { shred } from "#pantry/model/shred.ts";
+import { parsedDecimalBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { AriaBounds } from "#pantry/qti/overlay-queries/interaction.ts";
 import { searchTimeout } from "#pantry/test/gen/xdm.ts";
 import { documentBreaches, lawsOf } from "#pantry/test/oracle.ts";
 import { Qti } from "#pantry/qti/schema.ts";
-import { brokenIn, evaluatorOf, insideDomains, pastKeyText } from "#pantry/test/row-evaluation.ts";
+import { brokenIn, evaluatorOf, insideDomains } from "#pantry/test/row-evaluation.ts";
 
 /**
  * `Qti`'s rows as the host evaluates them, its ARIA range check among them.
@@ -62,20 +65,20 @@ const formerDecimal = pg.numeric(511, 255);
  * at the end of the order that holds it.
  */
 const formerLevel = schema.extend(
-  Qti,
+  [Qti],
   "FormerAriaValueRange",
   [],
   [
     check("Former_aria_value_range", AriaBounds, (r) =>
       r.le(
-        Compute.when(
-          Compute.matches(r.min, lexicalForm(formerDecimal)),
-          (min) => Compute.cast(min, formerDecimal),
+        Logic.when(
+          Text.matches(r.min, lexicalForm(formerDecimal)),
+          (min) => Type.cast(min, formerDecimal),
           Decimal.negativeInfinity,
         ),
-        Compute.when(
-          Compute.matches(r.max, lexicalForm(formerDecimal)),
-          (max) => Compute.cast(max, formerDecimal),
+        Logic.when(
+          Text.matches(r.max, lexicalForm(formerDecimal)),
+          (max) => Type.cast(max, formerDecimal),
           Decimal.infinity,
         ),
       ),
@@ -284,10 +287,23 @@ const spell = ({ fraction, negative, whole }: Value, spelling: Spelling): string
 };
 
 /**
- * The digit counts a part is drawn at: none, a few, and each side of the former form's bounds of
- * 256 integer and 255 fraction digits, and far past them, within the bytes a key text holds.
+ * The digit counts a part is drawn at: none, a few, each side of the former form's bounds of 256
+ * integer and 255 fraction digits, far past them, and at and one past the bytes the parse reads,
+ * `parsedDecimalBytes`, so a value is past them by a digit or a sign.
  */
-const partLengths = [0, 1, 3, 254, 255, 256, 257, 258, 600] as const;
+const partLengths = [
+  0,
+  1,
+  3,
+  254,
+  255,
+  256,
+  257,
+  258,
+  600,
+  parsedDecimalBytes,
+  parsedDecimalBytes + 1,
+] as const;
 
 /**
  * A nonzero digit.
@@ -587,7 +603,7 @@ type Situation =
   | "negative"
   | "outside the lexical space"
   | "padded"
-  | "past the key text bound"
+  | "past the parse's bytes"
   | "spelled apart";
 
 /**
@@ -671,8 +687,20 @@ const caughtOf = (
 };
 
 /**
- * Judge a case: the schema's check, the oracle and the reference agree on whether its order is
- * broken, and each plant that disagrees with the reference is caught.
+ * Whether a collapsed form is an `xs:decimal` past the bytes `Text.parseDecimal` reads,
+ * `parsedDecimalBytes`: a value "Aria value range" holds by its own arm and "Key text bound"
+ * refuses, a stated limit of the representation.
+ *
+ * @param form - The form, collapsed.
+ * @returns Whether it is.
+ */
+const pastParsedBytes = (form: string): boolean =>
+  xsDecimal.test(form) && utf8Length(form) > parsedDecimalBytes;
+
+/**
+ * Judge a case: the schema's checks, the oracle and the reference agree on whether its order is
+ * broken and whether a value is past the parse's bytes, and each plant that disagrees with the
+ * reference is caught.
  *
  * @param drawnCase - The case.
  * @param note - Where to note its situations.
@@ -684,35 +712,40 @@ const judged = (drawnCase: RangeCase, note: (situation: Situation) => void) =>
     const tree = yield* Effect.orDie(shred(xml, shredGrammarOf(grammar)));
     const folded = yield* Effect.orDie(Effect.fromResult(fold(tree, foldGrammarOf(grammar))));
     const read = formsRead(drawnCase.forms);
-    const expected = above(...read);
+    const pastParse = read.some(pastParsedBytes);
+    const expected = !pastParse && above(...read);
     const label = Formatter.format(drawnCase.forms);
-    const installed = brokenIn(
+    const evaluated = insideDomains(
       Result.map(evaluateQti.admit(AriaBounds, boundsRow(read)), (admitted) =>
         evaluateQti(AriaBounds, admitted),
       ),
-      ({ checks }) => checks.Aria_value_range,
-      `the schema's check on ${label}`,
+      label,
     );
+    const breaches = documentBreaches("item.xml", folded, oracleLaws);
 
-    Option.match(installed, {
-      onNone: () => {
-        assert.isTrue(
-          read.some(pastKeyText),
-          `${label} is refused at a value past keyText's bound`,
-        );
-        note("past the key text bound");
-      },
-      onSome: (broken) => {
-        assert.strictEqual(broken, expected, `the schema's check on ${label}`);
-      },
-    });
-    assert.strictEqual(
-      documentBreaches("item.xml", folded, oracleLaws).some(
-        ({ law }) => law === "Aria value range",
-      ),
-      expected,
-      `the oracle on ${label}`,
+    assert.deepStrictEqual(
+      [
+        Option.getOrThrow(
+          brokenIn(Result.succeed(evaluated), ({ checks }) => checks.Aria_value_range, label),
+        ),
+        Option.getOrThrow(
+          brokenIn(Result.succeed(evaluated), ({ checks }) => checks.Key_text_bound, label),
+        ),
+      ],
+      [expected, pastParse],
+      `the schema's Aria_value_range and Key_text_bound on ${label}`,
     );
+    assert.deepStrictEqual(
+      [
+        breaches.some(({ law }) => law === "Aria value range"),
+        breaches.some(({ law }) => law === "Key text bound"),
+      ],
+      [expected, pastParse],
+      `the oracle's Aria value range and Key text bound on ${label}`,
+    );
+    if (pastParse) {
+      note("past the parse's bytes");
+    }
 
     for (const situation of [...situationsOf(drawnCase, expected), ...caughtOf(read, expected)]) {
       note(situation);
@@ -730,7 +763,7 @@ const situations: readonly [Situation | AdversarialName, ...(Situation | Adversa
   "negative",
   "outside the lexical space",
   "padded",
-  "past the key text bound",
+  "past the parse's bytes",
   "spelled apart",
   "caught: the schema's former bounded form",
   "caught: the oracle's former decimal form",
@@ -750,7 +783,7 @@ describe("qti/interactions.ts, the ARIA range's decimal order", () => {
           "a row",
         ).checks,
       ),
-      ["Aria_value_range"],
+      ["Aria_value_range", "Key_text_bound"],
     );
     assert.deepStrictEqual(
       Object.keys(
@@ -761,7 +794,7 @@ describe("qti/interactions.ts, the ARIA range's decimal order", () => {
           "a row",
         ).checks,
       ).toSorted(),
-      ["Aria_value_range", "Former_aria_value_range"],
+      ["Aria_value_range", "Former_aria_value_range", "Key_text_bound"],
     );
   });
 

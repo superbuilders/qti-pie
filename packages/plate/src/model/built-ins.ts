@@ -52,7 +52,7 @@ export interface SingleBuiltInType {
 /**
  * The built-ins an item builds in whose value is single, each with its type there:
  * `completionStatus` a single identifier, `duration` a single float and `numAttempts` a single
- * integer. The engine and the scorer read an item built-in's type here, by name.
+ * integer. The item model reads an item built-in's type here, by name.
  */
 export const itemBuiltInTypes = {
   completionStatus: { baseType: "identifier", cardinality: "single" },
@@ -64,16 +64,6 @@ export const itemBuiltInTypes = {
  * A built-in an item builds in whose value is single: a key of {@link itemBuiltInTypes}.
  */
 export type ItemBuiltIn = keyof typeof itemBuiltInTypes;
-
-/**
- * Report whether a name is a built-in an item builds in whose value is single, by
- * {@link itemBuiltInTypes}' own keys, so an inherited member such as `constructor` is none.
- *
- * @param name The name.
- * @returns Whether it is one.
- */
-export const isItemBuiltIn = (name: string): name is ItemBuiltIn =>
-  Object.hasOwn(itemBuiltInTypes, name);
 
 /**
  * The four values the built-in `completionStatus` may hold: "There are four permitted values"
@@ -91,15 +81,6 @@ export const completionStatusValues: ReadonlySet<string> = new Set<CompletionSta
  * A value of the built-in `completionStatus`: one of its four ({@link completionStatusValues}).
  */
 export type CompletionStatus = "completed" | "incomplete" | "not_attempted" | "unknown";
-
-/**
- * Report whether an identifier is one of the built-in `completionStatus`'s four values.
- *
- * @param value The identifier.
- * @returns Whether it is a {@link CompletionStatus}.
- */
-export const isCompletionStatus = (value: string): value is CompletionStatus =>
-  completionStatusValues.has(value);
 
 /**
  * Give a single built-in's type as the table's {@link BuiltInType}.
@@ -157,11 +138,6 @@ const roster = [
  * The identifier of a built-in variable, one of {@link roster}'s.
  */
 export type BuiltInName = (typeof roster)[number]["identifier"];
-
-/**
- * Every built-in variable's identifier, in the roster's order.
- */
-export const builtInNames: readonly BuiltInName[] = roster.map((builtIn) => builtIn.identifier);
 
 /**
  * The built-in variables, by identifier.

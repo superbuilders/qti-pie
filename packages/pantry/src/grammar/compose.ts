@@ -29,7 +29,9 @@
  * - The open classes (`data-*`, `foreign`, `no-namespace`, `own-namespace`) are admitted, as free
  *   text, on every kind whose attribute wildcard's namespace classes let them through, and all but
  *   `data-*` on the foreign kinds (fin.md, D2). On a kind the Schematron's extension rules cover,
- *   only `data-*` is, and no `xml:` name the kind does not declare (spec reading 90, `coveredBy`).
+ *   only `data-*` is, and no `xml:` name the kind does not declare (spec reading 90, `coveredBy`),
+ *   but on `qti-custom-interaction`, whose `extension` characteristic is a `NamespaceLax`
+ *   (information model §5.36.1), which admits `foreign` and the `xml:` names as well.
  *
  * A triple two sources state is one fact: grizzle keeps a row of its family's admission map's
  * `AdmissionIn` rows written twice as one row.
@@ -335,6 +337,28 @@ const admitsWild = (attribute: { readonly domain: Domain }, declaresId: boolean)
   !declaresId || !isIdType(attribute);
 
 /**
+ * The kinds whose element the Schematron's extension rules cover but whose class the information
+ * model gives an `extension` characteristic beside its `dataExtension`: `qti-custom-interaction`,
+ * whose `extension` is a `NamespaceLax`, "an extension point to enable any set of characteristics
+ * to be entered to support the definition of the custom interaction(s)", Global ("+"), multiplicity
+ * [0..unbounded] (information model §5.36.1), bound by the XSD's `extensionNamespaceLax.Attr`, an
+ * `##other` `lax` wildcard. Its Schematron list names `extension` as though it were one attribute,
+ * which no attribute is: read by its intent (reading 9), the list admits the characteristic's
+ * attributes, every name in a namespace other than QTI's, so reading 90 holds such a kind to its
+ * declared attributes, its `data-` ones and those (SV-LAW-05).
+ */
+export const namespaceLaxKinds: ReadonlySet<string> = new Set(["qti-custom-interaction"]);
+
+/**
+ * Whether an open attribute is one an `##other` wildcard admits: a name in another namespace, or an
+ * `xml:` name, never one in no namespace or in the element's own.
+ *
+ * @param name - The open attribute's name or class.
+ * @returns Whether `##other` admits it.
+ */
+const inOtherNamespace = (name: string): boolean => name === "foreign" || name.startsWith("xml:");
+
+/**
  * Read the attributes a wildcard admits on an element of a kind, as {@link layerOf} states them.
  *
  * @param kinds - The composition's kinds.
@@ -354,7 +378,12 @@ const wildAttributesOf = (
   ): readonly open.GlobalAttribute[] =>
     open
       .attributesUnder(wildcard, namespaceOf(kind))
-      .filter(({ name }) => !covered(kind) || name === "data-*")
+      .filter(
+        ({ name }) =>
+          !covered(kind) ||
+          name === "data-*" ||
+          (namespaceLaxKinds.has(kind) && inOtherNamespace(name)),
+      )
       .filter((attribute) => admitsWild(attribute, declaresId));
 };
 
@@ -378,7 +407,9 @@ const xsiAttributesOn = (kind: string): readonly open.GlobalAttribute[] =>
  *   whose element the Schematron's extension rules cover ({@link coveredBy}), only `data-*`, where
  *   the wildcard admits it: spec reading 90 makes every attribute such an element does not declare
  *   an extension, and an extension a `data-` name in no namespace, so no other open class and no
- *   `xml:` name the kind does not declare is admitted there;
+ *   `xml:` name the kind does not declare is admitted there; but a kind whose class states an
+ *   `extension` characteristic ({@link namespaceLaxKinds}) admits the names in other namespaces
+ *   too, `foreign` and the `xml:` names its wildcard reads;
  * - On each foreign kind, the `xml:` names with `xml.xsd`'s types, and the open classes but `data-*`
  *   (`open.foreignAttributes`).
  *

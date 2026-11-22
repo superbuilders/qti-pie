@@ -28,13 +28,13 @@ import type {
   Unsupported,
   UnsupportedFeature,
 } from "#plate/model/item.ts";
-import { fresh } from "#plate/model/record.ts";
+import { recordOf } from "#plate/test/records.ts";
 import type { ItemRecord, RedactRecord } from "#plate/model/record.ts";
 import { nullOf } from "#plate/model/values.ts";
 import type { ResponseValue, Value } from "#plate/model/values.ts";
 import { interactionPayload } from "#plate/payload.ts";
 import type { PairedInteraction, View } from "#plate/payload.ts";
-import { postings } from "#plate/postings.ts";
+import { postings, unpostedEndAttempts } from "#plate/postings.ts";
 import type { Posting } from "#plate/postings.ts";
 import { redact } from "#plate/redact.ts";
 import { hiddenOnlyResponses, redactItem, redactStructure } from "#plate/redact/walk.ts";
@@ -48,15 +48,14 @@ import { acceptedItem, acceptForTest } from "#plate/validate/verdict.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
 
 /**
- * The strings only the hidden parts of {@link item} hold: its correct responses, a mapping key, an
- * outcome default and a value in its response processing. None appears in its body.
+ * The strings only the hidden parts of {@link item} hold: its correct responses, a mapping key and
+ * an outcome default. None appears in its body.
  */
 const markers = [
   "MarkerCorrectChoice",
   "MarkerCorrectText",
   "MarkerMapKey",
   "MarkerOutcomeDefault",
-  "MarkerRuleValue",
 ] as const;
 
 /**
@@ -279,49 +278,6 @@ const item: Item = {
       },
     ],
   ]),
-  processing: Option.some([
-    {
-      branches: [
-        {
-          rules: [
-            {
-              expression: {
-                kind: "base-value",
-                operands: [],
-                value: one({ baseType: "float", value: 1 }),
-              },
-              identifier: "SCORE",
-              kind: "set-outcome",
-            },
-          ],
-          when: {
-            kind: "match",
-            operands: [
-              {
-                identifier: "CAPITAL",
-                kind: "variable",
-                operands: [],
-                weightIdentifier: Option.none(),
-              },
-              { identifier: "CAPITAL", kind: "correct", operands: [] },
-            ],
-          },
-        },
-      ],
-      kind: "condition",
-      otherwise: Option.some([
-        {
-          expression: {
-            kind: "base-value",
-            operands: [],
-            value: one({ baseType: "identifier", value: "MarkerRuleValue" }),
-          },
-          identifier: "FEEDBACK",
-          kind: "set-outcome",
-        },
-      ]),
-    },
-  ]),
   records: new Map(),
   responses: new Map([
     [
@@ -378,7 +334,7 @@ const item: Item = {
         ] as const,
     ),
   ]),
-  templateProcessing: { kind: "absent" },
+  templated: false,
   templates: new Map(),
   title: "Capitals",
   unheld: new Map(),
@@ -734,7 +690,7 @@ const orderedOf = (members: readonly string[]): Value => ({
 });
 
 describe("redactItem", () => {
-  it("keeps no correct response, mapping key, outcome default or rule value, and keeps the response default a Text Entry starts at", () => {
+  it("keeps no correct response, mapping key or outcome default, and keeps the response default a Text Entry starts at", () => {
     const written = json(redacted);
 
     for (const marker of markers) {
@@ -928,7 +884,7 @@ const printingBody = (
 const printing: Item = {
   ...item,
   body: printingBody(printed),
-  templateProcessing: { kind: "runs", rules: [] },
+  templated: true,
   unsupported: [
     {
       feature: "qti-upload-interaction",
@@ -1126,7 +1082,7 @@ const templated: Item = {
     },
     noticeOf("qti-feedback-block", `${bodyPath}/qti-feedback-block`),
   ],
-  templateProcessing: { kind: "runs", rules: [] },
+  templated: true,
   templates: new Map(
     [
       templateOf("N", integerValue(3n)),
@@ -1144,16 +1100,16 @@ const templated: Item = {
  * {@link templated} without template processing, so with no record it reads as the record its
  * first attempt starts with: its declared values.
  */
-const untemplated: Item = { ...templated, templateProcessing: { kind: "absent" } };
+const untemplated: Item = { ...templated, templated: false };
 
 /**
  * The record of an attempt of {@link templated}: `N` 255, `POS` 2, `RADIX` 16, `LIST` 10, 20, 30,
  * and `SCORE` 2.675.
  */
 const drawn: ItemRecord = {
-  ...fresh(templated, instance),
+  ...recordOf(),
   attempt: "submitted",
-  outcomes: { ...fresh(templated, instance).outcomes, SCORE: floatValue(2.675) },
+  outcomes: { SCORE: floatValue(2.675) },
   templates: {
     LIST: orderedIntegers([10n, 20n, 30n]),
     N: integerValue(255n),
@@ -1256,36 +1212,11 @@ describe("redactItem with a record", () => {
     ]);
   });
 
-  it("with no record, prints what an item without template processing starts with: each template variable at its declared default, each outcome at its starting value", () => {
+  it("with no record, prints no template or outcome value, as an item with template processing does: each printed variable is its notice", () => {
     assert.deepStrictEqual(
       paragraphOf(redactItem(untemplated, shownToCandidate)),
-      texts("N ", "3", ", score ", "0.00", ", member ", "10;20;30", ", hex ", "3", ", raw ", "0"),
+      paragraphOf(redactItem(templated, shownToCandidate)),
     );
-  });
-
-  it("with no record, prints no template value of an item whose template processing does not run, which leaves its notice", () => {
-    const unrun: Item = {
-      ...untemplated,
-      templateProcessing: { kind: "stalled" },
-      unsupported: [
-        {
-          feature: "qti-template-processing",
-          path: "qti-assessment-item/qti-template-processing",
-          shown: "mark",
-        },
-        ...untemplated.unsupported,
-      ],
-    };
-
-    assert.deepStrictEqual(paragraphOf(redactItem(unrun, shownToCandidate)), [
-      text("N "),
-      printedNoticeAt(1),
-      ...texts(", score ", "0.00", ", member "),
-      printedNoticeAt(3),
-      text(", hex "),
-      printedNoticeAt(4),
-      ...texts(", raw ", "0"),
-    ]);
   });
 });
 
@@ -1417,7 +1348,7 @@ const visibility: Item = {
     visibleChoice,
     noticeOf("qti-feedback-block", `${bodyPath}/qti-feedback-block`),
   ],
-  templateProcessing: { kind: "runs", rules: [] },
+  templated: true,
   templates: new Map([["VISIBLE", visibleDeclaration]]),
   unsupported: [
     { feature: "qti-feedback-block", path: `${bodyPath}/qti-feedback-block`, shown: "notice" },
@@ -1673,27 +1604,13 @@ describe("redactItem on template blocks, inlines and choices", () => {
     );
   });
 
-  it("with no record, shows an item without template processing by its declared defaults, the values its first record holds", () => {
-    const untemplatedParts: Item = { ...visibility, templateProcessing: { kind: "absent" } };
-    const started = redactItem(untemplatedParts, shownToCandidate);
+  it("with no record, shows an item without template processing as one with it: no template value, so no template part's visibility is read", () => {
+    const untemplatedParts: Item = { ...visibility, templated: false };
 
     assert.deepStrictEqual(
-      started,
-      redactItem(untemplatedParts, shownToCandidate, holding({ VISIBLE: multipleOf("X") })),
+      redactItem(untemplatedParts, shownToCandidate),
+      redactItem(visibility, shownToCandidate),
     );
-    assert.deepStrictEqual<readonly BodyNode[]>(started.body, [
-      text("block"),
-      inlineParagraph(),
-      {
-        ...visibleChoice,
-        choices: [
-          choiceShownBy("X", Option.none()),
-          choiceShownBy("Y", Option.none()),
-          choiceShownBy("Z", Option.none()),
-        ],
-      },
-      noticeOf("qti-feedback-block", `${bodyPath}/qti-feedback-block`),
-    ]);
   });
 
   it("shows a notice inside a template block only where its template value shows the block", () => {
@@ -2289,7 +2206,6 @@ const planetsRedacted = redact(
   acceptForTest({
     ...item,
     body: [planets],
-    processing: Option.none(),
     responses: new Map([
       [
         "PLANET",
@@ -2316,7 +2232,7 @@ const planetsRedacted = redact(
  * @returns Each choice's identifier, in presented order.
  */
 const presentedOrder = Effect.fn(function* presentedOrder(seed: string, token: string) {
-  const configuration = yield* configure({ seed, validateResponses: false });
+  const configuration = yield* configure({ seed });
 
   return presentedChoices(pageOf(planetsRedacted, { configuration, instance: token }), "PLANET");
 });
@@ -2437,6 +2353,47 @@ const entriesItem = (count: number): Accepted => {
   });
 };
 
+/**
+ * Construct an End Attempt bound to a response, at a path, its `count-attempt` false.
+ *
+ * @param response The response it binds.
+ * @param path Its element path.
+ * @returns The End Attempt's model node.
+ */
+const endAttempt = (response: string, path: string) => ({
+  ariaLabel: Option.none(),
+  ariaLabelledby: Option.none(),
+  class: Option.none(),
+  countAttempt: false,
+  data: [],
+  kind: "end-attempt" as const,
+  path,
+  promptCatalog: Option.none(),
+  response,
+  title: response,
+});
+
+/**
+ * Construct a single boolean response declaration, by identifier, as a response map's entry.
+ *
+ * @param identifier The response.
+ * @param defaultValue Its default.
+ * @returns The entry.
+ */
+const booleanResponse = (identifier: string, defaultValue: Option.Option<Value>) =>
+  [
+    identifier,
+    {
+      areaMapping: Option.none(),
+      baseType: "boolean" as const,
+      cardinality: "single" as const,
+      correct: Option.none(),
+      defaultValue,
+      identifier,
+      mapping: Option.none(),
+    },
+  ] as const;
+
 describe("postings", () => {
   it("gives each posted response its binding and its first text interaction's base, in declaration order", () => {
     const bound: Item = {
@@ -2472,16 +2429,99 @@ describe("postings", () => {
 
     assert.deepStrictEqual(postings(acceptForTest(bound), instance), [
       postingOf("CAPITAL", "identifier"),
-      postingOf("FIRST", "string", 16),
-      postingOf("SECOND", "string", 10),
+      // A Text Entry's text is plain: white space alone reads as NULL (TextFormatEnum, SV-DESIGN-05).
+      { ...postingOf("FIRST", "string", 16), options: { base: 16, blankIsEmpty: true } },
+      { ...postingOf("SECOND", "string", 10), options: { base: 10, blankIsEmpty: true } },
       // A Text Entry starts at its response's default, which it posts (spec reading 183).
       {
         ...postingOf("NAMED", "string", 10),
+        options: { base: 10, blankIsEmpty: true },
         start: [[entryName(instance, "NAMED"), responseDefault]],
       },
       // An Extended Text of plain format reads white space alone as NULL (TextFormatEnum).
       { ...postingOf("ESSAY", "string", 8), options: { base: 8, blankIsEmpty: true } },
     ]);
+  });
+
+  it("reads a Text Entry's text of XML white space alone as NULL, and any other text whole, over every blank of up to four characters (TextFormatEnum plain, SV-DESIGN-05)", () => {
+    const [posting] = postings(acceptForTest({ ...item, body: [textEntry("FIRST")] }), instance);
+    const { binding, options } = posting ?? assert.fail("FIRST has no posting.");
+    const space = [" ", "\t", "\n", "\r"];
+    const blanks = [""];
+    for (let length = 1; length <= 4; length += 1) {
+      for (const shorter of blanks.filter((s) => s.length === length - 1)) {
+        blanks.push(...space.map((c) => shorter + c));
+      }
+    }
+    assert.lengthOf(blanks, 341);
+    for (const blank of blanks) {
+      assert.deepStrictEqual(
+        Result.getSuccess(decode([[binding.name, blank]], binding, options)),
+        Option.some(nullOf("string", "single")),
+        JSON.stringify(blank),
+      );
+    }
+    // A form's CR reads as a line feed, as plate's decode reads every posted line break, so the kept text is the
+    // blanks of space, tab and line feed alone.
+    for (const blank of blanks.slice(1).filter((s) => !s.includes("\r"))) {
+      for (const written of [`${blank}a`, `a${blank}`, `${blank}0${blank}`]) {
+        const read = Result.getSuccess(decode([[binding.name, written]], binding, options));
+        assert.deepStrictEqual(
+          read.pipe(
+            Option.map((value) =>
+              value.cardinality === "record" ? [] : value.values.map((single) => single.value),
+            ),
+          ),
+          Option.some([written]),
+          JSON.stringify(written),
+        );
+      }
+    }
+  });
+
+  it("gives every End Attempt the page does not show, inside hidden feedback, its false whatever its default, and none to one the page shows, which posts (SV-RP-01)", () => {
+    const yes: Value = {
+      baseType: "boolean",
+      cardinality: "single",
+      values: [{ baseType: "boolean", value: true }],
+    };
+    const no: Value = {
+      baseType: "boolean",
+      cardinality: "single",
+      values: [{ baseType: "boolean", value: false }],
+    };
+    const hidden: Item = {
+      ...item,
+      body: [
+        endAttempt("HINT", "qti-assessment-item/qti-item-body/qti-end-attempt-interaction[1]"),
+        {
+          content: [
+            endAttempt(
+              "MORE",
+              "qti-assessment-item/qti-item-body/qti-feedback-block/qti-end-attempt-interaction",
+            ),
+          ],
+          feedbackVisibility: { outcomeIdentifier: "FEEDBACK", showHide: "show" },
+          identifier: "clue",
+          kind: "feedback-block",
+          path: "qti-assessment-item/qti-item-body/qti-feedback-block",
+          responses: ["MORE"],
+        },
+      ],
+      responses: new Map([
+        booleanResponse("HINT", Option.none()),
+        booleanResponse("MORE", Option.some(yes)),
+      ]),
+    };
+    const accepted = acceptForTest(hidden);
+    const posted = postings(accepted, instance).map(({ identifier }) => identifier);
+
+    assert.include(posted, "HINT");
+    assert.notInclude(posted, "MORE");
+    assert.deepStrictEqual(unpostedEndAttempts(accepted, instance), [["MORE", no]]);
+
+    const shown: Item = { ...hidden, body: [hidden.body[0] ?? assert.fail("no body")] };
+    assert.deepStrictEqual(unpostedEndAttempts(acceptForTest(shown), instance), []);
   });
 
   it("gives an Inline Choice's response its posting with no base, which decodes an empty entry as NULL and refuses two entries", () => {
@@ -2536,7 +2576,8 @@ describe("postings", () => {
       {
         binding: { cardinality: "record", name: entryName(instance, "ANSWER") },
         identifier: "ANSWER",
-        options: {},
+        // A Text Entry's text is plain: white space alone reads as NULL (TextFormatEnum, SV-DESIGN-05).
+        options: { blankIsEmpty: true },
         start: [],
       },
     ]);
@@ -2952,26 +2993,23 @@ describe("redactItem on param-variable parameters", () => {
   );
 
   it.effect(
-    "with no record, gives an item without template processing's param-variable params their declared defaults, the values its first record holds",
+    "with no record, gives an item without template processing's param-variable params no value, as an item with template processing",
     () =>
-      Effect.gen(function* givesDeclaredDefaults() {
+      Effect.gen(function* givesNoValues() {
         const accepted = yield* Effect.fromOption(acceptedItem(admittedSource(parameterDocument)));
-        const started = redactItem(
-          { ...accepted.item, templateProcessing: { kind: "absent" } },
-          shownToCandidate,
-        );
 
-        assert.deepStrictEqual(parametersOf(objectChildren(started.body)), [
-          ["count", "3"],
-          ["ratio", "0.5"],
-          ["spot", "1 2"],
-          ["link", "C D"],
-          ["arrow", "C D"],
-          ["flag", "false"],
-          ["span", "90.5"],
-          ["plain", "PLAIN"],
-          ["literal", "hello"],
-        ]);
+        assert.deepStrictEqual(
+          parametersOf(
+            objectChildren(
+              redactItem({ ...accepted.item, templated: false }, shownToCandidate).body,
+            ),
+          ),
+          parametersOf(
+            objectChildren(
+              redactItem({ ...accepted.item, templated: true }, shownToCandidate).body,
+            ),
+          ),
+        );
       }),
   );
 });
@@ -3628,7 +3666,8 @@ describe("a record-bound control", () => {
       {
         binding: { cardinality: "record", name: entryName(instance, "NUMBER") },
         identifier: "NUMBER",
-        options: {},
+        // A Text Entry's text is plain: white space alone reads as NULL (TextFormatEnum, SV-DESIGN-05).
+        options: { blankIsEmpty: true },
         start: [],
       },
       {

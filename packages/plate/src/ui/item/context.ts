@@ -14,10 +14,10 @@
 import type { Option } from "effect";
 import type { ReactNode } from "react";
 import type { TextEntryKeypad } from "#plate/configuration.ts";
-import type { Credit } from "#plate/credit.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import type { ResponseValue } from "#plate/model/values.ts";
+import type { PartMark } from "#plate/ui/item/interactions/marks.ts";
 import type { ReadsAloud } from "#plate/ui/item/contents/catalog.tsx";
 import type { Writing } from "#plate/ui/item/html.ts";
 
@@ -127,6 +127,13 @@ export interface IslandContext {
 }
 
 /**
+ * How much of the item's score the attempt shown earned, as the QTI database's credit gives it
+ * (the ledger's `AttemptCredit`): `full` when the score reaches its maximum, `none` when it is 0 or
+ * below, and `partial` between. Plate computes no credit: the host hands it.
+ */
+export type Credit = "full" | "none" | "partial";
+
+/**
  * What a review that marks the candidate's answers shows of the correct response: `solution`, all
  * of it, each part the candidate did not give marked `missed` and a Control's right answer written
  * after it; `own`, none of it, so only the candidate's own answers are marked, each right or wrong,
@@ -139,19 +146,18 @@ export interface IslandContext {
 export type Reveals = "own" | "solution";
 
 /**
- * What a review marks the candidate's answers against: each response's correct response, by
- * response identifier, as `solution` gives them, and what the review shows of them.
+ * The marks a review draws, as the host hands them: the database's `AttemptMark` rows for the
+ * attempt it shows, by response identifier, and what the review shows of the correct response.
  */
 export interface GradedMarks {
-  readonly against: Readonly<Record<string, ResponseValue>>;
+  readonly parts: Readonly<Record<string, readonly PartMark[]>>;
   readonly reveals: Reveals;
 }
 
 /**
  * How the attempt a review shows did, as the host hands it to `<Item>` (`ItemProps.graded`): the
- * credit its verdict says, and what it marks the candidate's answers against. The review shows what
- * it is handed and grades nothing itself: it reads no score, and it judges no answer but against
- * the correct responses it is given.
+ * credit its verdict says, and the marks it draws on the candidate's answers. The review shows what
+ * it is handed and grades nothing itself: it reads no score, and it judges no answer.
  */
 export interface Graded {
   /**
@@ -162,24 +168,19 @@ export interface Graded {
    */
   readonly credit?: Credit;
   /**
-   * What the review marks the candidate's answers against; absent, it marks none.
+   * The marks the review draws; absent, it marks none.
    */
   readonly marks?: GradedMarks;
 }
 
 /**
  * What a review or a solution shows of each response: `answers`, a review's, the candidate's
- * answers, marked against the correct responses the host handed (`against`, by response
- * identifier, empty where it handed none), showing of them what `reveals` says; `solution`, the
+ * answers, with the marks the host handed (`marks`, none where it handed none); `solution`, the
  * correct responses, which it marks nothing on. Only `<Item>`'s mode decides its kind
  * (`#plate/ui/item/item.tsx`).
  */
 export type Shows =
-  | {
-      readonly against: ReadonlyMap<string, ResponseValue>;
-      readonly kind: "answers";
-      readonly reveals: Reveals;
-    }
+  | { readonly kind: "answers"; readonly marks: Option.Option<GradedMarks> }
   | { readonly kind: "solution" };
 
 /**

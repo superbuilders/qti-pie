@@ -312,8 +312,9 @@ interface ParseCase {
 }
 
 /**
- * The cases: `parse` spelled `xml`, as reading 85 binds it, and three spellings it refuses, each
- * on an include that splices, and one refused spelling on an include whose target is no file.
+ * The cases: `parse` spelled `xml` and `text`, the XSD's `xi:parseType` (reading 85), and two
+ * spellings it refuses, each on an include that splices, and one refused spelling on an include
+ * whose target is no file.
  */
 const parseCases: readonly ParseCase[] = [
   { href: "the fragment", parse: "xml" },
@@ -347,12 +348,12 @@ layer(NodeServices.layer, { excludeTestServices: true })(
   "an include that splices its target",
   (it) => {
     it.effect(
-      "keeps its own attributes, so both judges hold its parse to xml",
+      "keeps its own attributes, so both judges hold its parse to the XSD's xml or text",
       () =>
         // Oracle: two implementations side by side, the law oracle's attribute laws over the
         // unspliced include and the schema's laws over the import's rows. Bound: the include's
-        // parse in xml and three refused spellings on an include that splices, and one refused
-        // spelling on an include that names no file: five packages.
+        // parse in xml and text and two refused spellings on an include that splices, and one
+        // refused spelling on an include that names no file: five packages.
         Effect.forEach(
           parseCases,
           (drawn) =>
@@ -384,7 +385,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   breaches.some(
                     ({ keys, law }) => law === "value domain" && keys["name"] === "parse",
                   ),
-                  drawn.parse !== "xml",
+                  drawn.parse !== "xml" && drawn.parse !== "text",
                   Formatter.format(drawn),
                 );
                 assert.deepStrictEqual(shown, [], Formatter.format(drawn));

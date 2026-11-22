@@ -1,17 +1,17 @@
 /**
  * A review's marks on a picks group's options, a Choice's choices, a Hot Text's hottexts and a
  * Hotspot's areas, written once for the three: each option is one {@link PickReview}, read from the
- * identifiers the review shows picked and the review's {@link Marking}, and each review writes the
- * attributes and words {@link pickParts} gives it. Safe to import on the server.
+ * identifiers the review shows picked and the marks the host handed ({@link Marking}), and each
+ * review writes the attributes and words {@link pickParts} gives it. Safe to import on the server.
  *
- * A picks group's response never repeats an identifier (`validatePicks` refuses a repeat), so the
- * picks are a set: a picked option is right when the correct response holds it, as `qti-match`
- * compares a bag that holds no repeat (QTI 3.0 information model 6.9.25).
+ * A picks group's response never repeats an identifier (the QTI database's admission refuses a
+ * repeat), so each option carries at most one handed mark: `right` or `wrong` on a picked one,
+ * `missed` on one the candidate did not pick that the correct response holds.
  *
  * @module
  */
 import { format } from "#plate/model/values.ts";
-import { missedShown } from "#plate/ui/item/interactions/marks.ts";
+import { valuesMarked } from "#plate/ui/item/interactions/marks.ts";
 import type { AnswerMark, Marking } from "#plate/ui/item/interactions/marks.ts";
 import type { Words } from "#plate/ui/item/interactions/words.tsx";
 
@@ -21,9 +21,8 @@ import type { Words } from "#plate/ui/item/interactions/words.tsx";
  * - `unpicked`: not picked, and nothing marks it;
  * - `given`: picked, in a review with nothing to mark against, where only its look says so;
  * - `correct`: picked, in a solution, whose picks are the correct response;
- * - `right` and `wrong`: picked, and the correct response holds it, or does not;
- * - `missed`: not picked, and the correct response holds it, in a review that shows the solution
- *   (`missedShown` in `#plate/ui/item/interactions/marks.ts`).
+ * - `right` and `wrong`: picked, and handed that mark;
+ * - `missed`: not picked, and handed `missed`, which a review that shows the solution alone is.
  */
 export type PickReview = "correct" | "given" | "missed" | "right" | "unpicked" | "wrong";
 
@@ -56,7 +55,7 @@ export const pickParts = {
  *
  * @param picked The identifiers the review shows picked: the candidate's in a review, the correct
  *   ones in a solution.
- * @param marking What the review marks the picks against.
+ * @param marking The marks the host handed for the response.
  * @returns How the review shows the option of each identifier.
  */
 export const marksOf = (
@@ -72,14 +71,20 @@ export const marksOf = (
     case "solution": {
       return (identifier) => (shown.has(identifier) ? "correct" : "unpicked");
     }
-    case "against": {
-      const values = marking.correct.values.map(format);
-      const correct = new Set(values);
-      const missed = new Set(missedShown(marking, values));
+    case "marked": {
+      const handed = (mark: AnswerMark): ReadonlySet<string> =>
+        new Set(valuesMarked(marking, mark).map(format));
+      const right = handed("right");
+      const wrong = handed("wrong");
+      const missed = handed("missed");
 
       return (identifier) => {
         if (shown.has(identifier)) {
-          return correct.has(identifier) ? "right" : "wrong";
+          if (right.has(identifier)) {
+            return "right";
+          }
+
+          return wrong.has(identifier) ? "wrong" : "given";
         }
 
         return missed.has(identifier) ? "missed" : "unpicked";

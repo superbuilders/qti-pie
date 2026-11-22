@@ -822,17 +822,19 @@ describe("ReferenceAttribute, spec reading 103's census", () => {
 });
 
 describe("textReferenceKinds, spec reading R9-b's element-text form", () => {
-  it("lists the card file and the resource icon, each with the whitespace class its text's type states, and not a calculator's or a digital material's file", () => {
+  it("lists the card file, the calculator's and digital material's file and the resource icon, each with the whitespace class its text's type states", () => {
     // Oracle: the information model's statement (§6.6, §5.80.4: a card's file and a resource icon
-    // name files the package must hold; §5.80.3: a calculator's or digital material's file does
-    // not), the whitespace classes restated from the types it names (`xs:anyURI` collapses,
-    // `URLDType` is an `xs:normalizedString`, which replaces), and the inventory's text types,
-    // read by a second walk, for each listed kind's declaration.
-    // Bound: the whole list, and the one kind the information model leaves out.
+    // name files the package must hold; §5.80.3: a calculator's or digital material's file is "the
+    // URI for the associated content file", `FileHrefDType`, an `xs:anyURI`, xsd:24100-24102), the
+    // whitespace classes restated from the types it names (`xs:anyURI` collapses, `URLDType` is an
+    // `xs:normalizedString`, which replaces), and the inventory's text types, read by a second walk,
+    // for each listed kind's declaration.
+    // Bound: the whole list.
     assert.deepStrictEqual(
       textReferenceKinds.map(({ kind, whiteSpace }) => [kind, whiteSpace]),
       [
         ["qti-file-href.card", "collapse"],
+        ["qti-file-href", "collapse"],
         ["qti-resource-icon", "replace"],
       ],
     );
@@ -842,7 +844,5 @@ describe("textReferenceKinds, spec reading R9-b's element-text form", () => {
         kind,
       );
     }
-
-    assert.isFalse(textReferenceKinds.some(({ kind }) => kind === "qti-file-href"));
   });
 });

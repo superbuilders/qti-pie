@@ -6,7 +6,7 @@
  * The island takes the gap texts as presented and the sentence through the shell's walk, a `Gap`
  * standing wherever a gap the payload shows does, numbered in document order. The review shows the
  * bank, and the sentence with each gap holding the gap text the response puts there, each pair
- * marked against the host's solution, so the child reviews the gaps filled in context. Both know a
+ * marked by the host's marks, so the child reviews the gaps filled in context. Both know a
  * gap where the walk meets its element by the element's path, so neither reads a `qti-gap`'s
  * attributes.
  *

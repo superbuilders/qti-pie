@@ -49,10 +49,7 @@ const exportedAmong = (
  * closure reaches is a table serving never reads, loaded and parsed on every cold start for
  * nothing.
  */
-const servedTables = {
-  "src/model/blocks.generated.json":
-    "the block names of XML Schema Part 2, which model/regex.ts reads to check a pattern facet",
-} satisfies Readonly<Record<string, string>>;
+const servedTables = {} satisfies Readonly<Record<string, string>>;
 
 /**
  * List the committed JSON modules the roots reach that {@link servedTables} does not name.
@@ -178,11 +175,11 @@ describe("the published entries, every script entry of the exports map", () => {
 });
 
 describe("the core, from src/index.ts", () => {
-  it("reaches more than ten modules, redact, score and openAdmitted among them", () => {
+  it("reaches more than ten modules, redact, restore and openAdmitted among them", () => {
     assert.isAbove(closure.length, 10);
     assert.includeMembers(
       [...closure],
-      ["src/redact.ts", "src/score.ts", "src/validate/admitted.ts", "src/document/read.ts"],
+      ["src/redact.ts", "src/restore.ts", "src/validate/admitted.ts", "src/document/read.ts"],
     );
   });
 

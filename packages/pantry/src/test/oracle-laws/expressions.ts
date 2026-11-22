@@ -4,17 +4,24 @@
  * the schema's statement of it in `src/qti/expressions.ts`, over the grammar's typing of every
  * expression kind (`#pantry/grammar/expression.ts` `expressionTypings`).
  *
- * Each document is typed as the schema types it: every expression's value has a base type and a
- * cardinality, `unknown` for a variable no declaration types, which every rule passes;
- * every processing element and expression is written in the language its processing root opens,
- * `none` outside any; and every variable reference resolves among the document's declarations,
- * else among its root's built-in variables, else to nothing.
+ * Each document is typed as the schema types it, once in each of its placements (spec reading 117):
+ * every expression's value has a base type and a cardinality, `unknown` for a variable no
+ * declaration types, which every rule passes; every processing element and expression is written in
+ * the language its processing root opens, `none` outside any; and every variable reference resolves
+ * among the placement's root's declarations, else among the root's built-in variables, else, under
+ * a test, as its one reading through a scope (spec reading 167), else to nothing.
  *
- * - **Over each expression** (`Expression`): `Operand fit`, `One base`, `Condition type`, `Outcome
- *   only`.
- * - **Over each reference** (`VariableRef`): `Set type`, `Lookup type`, `Reference type`, `Template
- *   reads`, `Mapped response`, and `Variable kind` (the declaration kind each element reads or
- *   sets, `ReferenceDeclaration`).
+ * A document that heads its assembly, or is in none, is typed in its own placement with what it
+ * splices: {@link expressionDocumentBreaches}. A document a test places beyond its own copy is
+ * typed in each test that places it: {@link expressionPackageBreaches}. The oracle types an item's
+ * located template in the item's placement with {@link placedBreachesOf}.
+ *
+ * - **Over each placed expression** (`PlacedExpression`): `Operand fit`, `One base`, `Condition
+ *   type`, `Outcome only`.
+ * - **Over each placed reference** (`PlacedVariableRef`): `Set type`, `Lookup type`, `Reference
+ *   type`, `Template reads`, `Mapped response`, `Variable kind` (the declaration kind each element
+ *   reads or sets, `ReferenceDeclaration`), and in an item's located template, `Variable
+ *   declared`.
  * - **Over each literal:** `Literal lexical`.
  */
 import { Array as Arr, Option } from "effect";
@@ -38,7 +45,8 @@ import {
   typedValueOf,
   valueOf,
 } from "#pantry/test/oracle-view.ts";
-import type { LawBreach, Row, View } from "#pantry/test/oracle-view.ts";
+import type { LawBreach, PackageRows, Row, View } from "#pantry/test/oracle-view.ts";
+import { assembledDocumentsOf, inRootCopy, testsOf } from "#pantry/test/oracle-laws/assembly.ts";
 import { ncNameForm as ncName, typedValueHolds } from "#pantry/test/oracle-laws/typed.ts";
 
 /**
@@ -56,6 +64,7 @@ export const expressionLaws = [
   "Mapped response",
   "Literal lexical",
   "Variable kind",
+  "Variable declared",
 ] as const;
 
 /**
@@ -145,7 +154,7 @@ const referenceDeclarations: ReadonlyMap<string, readonly string[]> = new Map([
  * @param kind - The referring element's kind.
  * @returns The kinds, none for an element that names no variable by its `identifier`.
  */
-const declarationKindsOf = (kind: string): readonly string[] =>
+export const declarationKindsOf = (kind: string): readonly string[] =>
   referenceDeclarations.get(kind) ?? [];
 
 /**
@@ -171,19 +180,83 @@ const valueBaseOf = (baseType: Option.Option<string>): string =>
   Option.getOrElse(baseType, () => "unknown");
 
 /**
- * One variable reference a processing element makes, resolved: the attribute, the name, the
- * declaration it names or the built-in it is, and its type. `declarationKind` is the declaration's
- * kind, or the kind a built-in stands as, and none for a name that resolves to nothing.
+ * A declaration a reference names, in the document of its placement's root that holds it.
+ */
+interface Declaration {
+  readonly node: Row;
+  readonly view: View;
+}
+
+/**
+ * One variable reference a processing element makes, resolved in its placement (spec reading
+ * 117): the attribute, the name, the declaration it names or the built-in it is, and its type.
+ * `declarationKind` is the declaration's kind, or the kind a built-in stands as, and none for a
+ * name that resolves to nothing or that a test reads through a scope (`read`, spec reading 167).
  */
 interface Reference {
   readonly attribute: string;
-  readonly declaration: Option.Option<Row>;
+  readonly declaration: Option.Option<Declaration>;
   readonly declarationKind: Option.Option<string>;
   readonly identifier: string;
   readonly node: Row;
-  readonly resolution: "builtIn" | "declared" | "unresolved";
+  readonly resolution: "builtIn" | "declared" | "read" | "unresolved";
   readonly type: Type;
 }
+
+/**
+ * A reference as a test reads it through a scope: its name, the attribute that makes it and its
+ * element's kind.
+ */
+export interface ScopedReference {
+  readonly attribute: string;
+  readonly identifier: string;
+  readonly kind: string;
+}
+
+/**
+ * Where a placement resolves its documents' references (spec reading 117, `PlacedVariableRef`):
+ * its assembly's root's declarations, by name, the first of a name; the root's kind, whose
+ * built-in variables a name may be; and, under a test, the type of a reference's one reading
+ * through a scope, none where it has none, two, or one through an item ref that names no item
+ * document (readings 48, 110 and 167).
+ */
+export interface PlacementScope {
+  readonly declarations: ReadonlyMap<string, Declaration>;
+  readonly read: (reference: ScopedReference) => Option.Option<Type>;
+  readonly rootKind: string;
+}
+
+/**
+ * The scope of a document's own placement where it heads its assembly: its own declarations and
+ * its root's built-ins, with no reading through a scope.
+ *
+ * @param rows - The document, with every fragment it splices.
+ * @param grammar - The composed grammar, whose declaration kinds it reads.
+ * @param read - The readings through a scope, under a test.
+ * @returns The scope.
+ */
+export const rootScopeOf = (
+  rows: View,
+  grammar: ComposedGrammar,
+  read: PlacementScope["read"] = () => Option.none(),
+): PlacementScope => {
+  const declarations = new Map<string, Declaration>();
+  for (const node of rows.members) {
+    if (grammar.references.declarationKind.has(node.kind)) {
+      for (const identifier of Option.toArray(typedValueOf(rows, node.start, "identifier"))) {
+        if (!declarations.has(identifier)) {
+          declarations.set(identifier, { node, view: rows });
+        }
+      }
+    }
+  }
+
+  return {
+    declarations,
+    read,
+    rootKind: Option.match(rows.root, { onNone: () => "", onSome: ({ kind }) => kind }),
+  };
+};
 
 /**
  * One document typed: each expression's type and each element's language, and its references.
@@ -325,7 +398,7 @@ const oneBaseTyped = ({ operands, typing }: TypingInput): Type => ({
  * give):
  *
  * - `fixed`: the kind's one result;
- * - `declared`: the variable its `identifier` names;
+ * - `declared`: the variable its `identifier` names, a weighted integer one float;
  * - `attribute`: its own attribute's base type, single, or a test variables' multiple;
  * - `numeric`: `unknown` when an operand is, `integer` when every operand is, `float` otherwise;
  * - `container`: its operands' one base type, `any` for none, `unknown` for several;
@@ -338,7 +411,14 @@ const typers: Readonly<Record<ExpressionTyping["typing"], (input: TypingInput) =
     cardinality: resultCardinalityOf(typing),
   }),
   container: oneBaseTyped,
-  declared: ({ declared }) => declared,
+  // A weighted variable's value is its variable's "subject to the type promotion of weighted
+  // outcomes" (information model §7.47): "When applying a weight to the value of a variable with
+  // base-type integer the value is subject to type promotion and the result of the expression has
+  // base-type float" (§7.47.2), every other base kept.
+  declared: ({ declared, node, rows }) =>
+    declared.base === "integer" && Option.isSome(valueOf(rows, node.start, "weight-identifier"))
+      ? { ...declared, base: "float" }
+      : declared,
   first: oneBaseTyped,
   fixed: ({ typing }) => ({
     base: typing.resultBases[0] ?? "unknown",
@@ -374,21 +454,16 @@ const typers: Readonly<Record<ExpressionTyping["typing"], (input: TypingInput) =
  *
  * @param rows - The document.
  * @param grammar - The composed grammar.
+ * @param scope - Where its placement resolves its references, its own where it heads its
+ *   assembly.
  * @returns The typed document.
  */
-export const typedOf = (rows: View, grammar: ComposedGrammar): Typed => {
-  const rootKind = Option.match(rows.root, { onNone: () => "", onSome: ({ kind }) => kind });
-  const declared = new Map<string, Row>();
-  for (const node of rows.members) {
-    if (grammar.references.declarationKind.has(node.kind)) {
-      for (const identifier of Option.toArray(typedValueOf(rows, node.start, "identifier"))) {
-        if (!declared.has(identifier)) {
-          declared.set(identifier, node);
-        }
-      }
-    }
-  }
-
+export const typedOf = (
+  rows: View,
+  grammar: ComposedGrammar,
+  scope: PlacementScope = rootScopeOf(rows, grammar),
+): Typed => {
+  const { rootKind } = scope;
   const builtIns = new Map(
     grammar.references.builtIn.rows
       .filter(({ root }) => root === rootKind)
@@ -410,13 +485,13 @@ export const typedOf = (rows: View, grammar: ComposedGrammar): Typed => {
                 spelledName(lexical, spelling, node.kind),
               ),
             ).map((identifier): Reference => {
-              const declaration = declared.get(identifier);
+              const declaration = scope.declarations.get(identifier);
               const builtIn = builtIns.get(identifier);
               if (declaration !== undefined) {
                 return {
                   attribute,
                   declaration: Option.some(declaration),
-                  declarationKind: Option.some(declaration.kind),
+                  declarationKind: Option.some(declaration.node.kind),
                   identifier,
                   node,
                   resolution: "declared",
@@ -424,9 +499,11 @@ export const typedOf = (rows: View, grammar: ComposedGrammar): Typed => {
                   // one does: its declaration's value domain refuses it alone (the ruling of
                   // 2026-11-06; lane NIL's audit, B11).
                   type: {
-                    base: valueBaseOf(typedValueOf(rows, declaration.start, "base-type")),
+                    base: valueBaseOf(
+                      typedValueOf(declaration.view, declaration.node.start, "base-type"),
+                    ),
                     cardinality: Option.getOrElse(
-                      typedValueOf(rows, declaration.start, "cardinality"),
+                      typedValueOf(declaration.view, declaration.node.start, "cardinality"),
                       () => "unknown",
                     ),
                   },
@@ -434,15 +511,26 @@ export const typedOf = (rows: View, grammar: ComposedGrammar): Typed => {
               }
 
               return builtIn === undefined
-                ? {
-                    attribute,
-                    declaration: Option.none(),
-                    declarationKind: Option.none(),
-                    identifier,
-                    node,
-                    resolution: "unresolved",
-                    type: unknownType,
-                  }
+                ? Option.match(scope.read({ attribute, identifier, kind: node.kind }), {
+                    onNone: (): Reference => ({
+                      attribute,
+                      declaration: Option.none(),
+                      declarationKind: Option.none(),
+                      identifier,
+                      node,
+                      resolution: "unresolved",
+                      type: unknownType,
+                    }),
+                    onSome: (type): Reference => ({
+                      attribute,
+                      declaration: Option.none(),
+                      declarationKind: Option.none(),
+                      identifier,
+                      node,
+                      resolution: "read",
+                      type,
+                    }),
+                  })
                 : {
                     attribute,
                     declaration: Option.none(),
@@ -627,6 +715,18 @@ const expressionBreachesOf = (typed: Typed): readonly Breach[] =>
   });
 
 /**
+ * The literal stand-ins that may name an item variable of any kind, by the specification: each an
+ * `IntOrIdentifier` (information model §9.3.2, "the union of the primitiveType 'Int' and the
+ * primitiveType of 'NCName'"), `qti-index`'s `n` (§5.72) and `qti-repeat`'s `number-repeats`
+ * (§5.113), where every other stand-in names "a template or outcome variable" (§9.3.1, §9.3.3,
+ * §9.3.4).
+ */
+const anyKindSites: readonly (readonly [kind: string, attribute: string])[] = [
+  ["qti-index", "n"],
+  ["qti-repeat", "number-repeats"],
+];
+
+/**
  * The base type a variable named in place of a literal must have (`ReferenceBase`, rule P24): a
  * string for a pattern, a float for a random float's bounds, an integer for every other.
  *
@@ -701,17 +801,36 @@ const referenceLaws: readonly (readonly [ExpressionLaw, (read: Read) => boolean]
   ],
   [
     "Reference type",
-    ({ reference, referenceBase }) =>
-      reference.attribute !== "identifier" &&
-      reference.resolution !== "unresolved" &&
-      !(
-        reference.resolution === "declared" &&
-        Option.exists(reference.declarationKind, (kind) =>
-          ["qti-outcome-declaration", "qti-template-declaration"].includes(kind),
-        ) &&
+    ({ reference, referenceBase }) => {
+      // §9.3.2 IntOrIdentifier names no kind, as §9.3.3's "template or outcome variable" does: an
+      // index's n and a repeat's number-repeats may name any item variable, built-in or declared,
+      // of a single integer (§5.72: "'n' must be a positive integer"; §5.113.1).
+      const anyKind = anyKindSites.some(
+        ([kind, attribute]) => reference.node.kind === kind && reference.attribute === attribute,
+      );
+      const typed =
         (reference.type.base === referenceBase || silent.has(reference.type.base)) &&
-        (reference.type.cardinality === "single" || reference.type.cardinality === "unknown")
-      ),
+        (reference.type.cardinality === "single" || reference.type.cardinality === "unknown");
+
+      // A reference a test reads through a scope names no declaration or built-in of its
+      // placement's root, so its reading's type is judged by the readings' laws alone.
+      return (
+        reference.attribute !== "identifier" &&
+        (reference.resolution === "declared" || reference.resolution === "builtIn") &&
+        !(
+          (reference.resolution === "declared" &&
+            (anyKind ||
+              Option.exists(reference.declarationKind, (kind) =>
+                ["qti-outcome-declaration", "qti-template-declaration"].includes(kind),
+              )) &&
+            typed) ||
+          (reference.resolution === "builtIn" &&
+            anyKind &&
+            reference.type.base === "integer" &&
+            reference.type.cardinality === "single")
+        )
+      );
+    },
   ],
   [
     "Template reads",
@@ -774,7 +893,9 @@ const referenceBreachesOf = (typed: Typed, grammar: ComposedGrammar): readonly B
     const tables = tableKinds.get(node.kind) ?? [];
     const table = reference.declaration.pipe(
       Option.flatMap((declaration) =>
-        Arr.findFirst(elementsOf(rows, declaration.start), ({ kind }) => tables.includes(kind)),
+        Arr.findFirst(elementsOf(declaration.view, declaration.node.start), ({ kind }) =>
+          tables.includes(kind),
+        ),
       ),
       Option.map(({ kind }) => kind),
     );
@@ -813,14 +934,12 @@ const referenceBreachesOf = (typed: Typed, grammar: ComposedGrammar): readonly B
  * Judge each literal of a document: a base value's text is a lexical form of its base type (§8.13,
  * `Literal lexical`).
  *
- * @param typed - The document.
+ * @param rows - The document.
  * @param grammar - The composed grammar.
  * @returns The breaches.
  */
-const literalBreachesOf = (typed: Typed, grammar: ComposedGrammar): readonly Breach[] => {
-  const { rows } = typed;
-
-  return rows.members.flatMap((node): readonly Breach[] => {
+const literalBreachesOf = (rows: View, grammar: ComposedGrammar): readonly Breach[] =>
+  rows.members.flatMap((node): readonly Breach[] => {
     if (node.kind === "qti-base-value") {
       return Option.toArray(typedOr(rows, node.start, "base-type", "")).flatMap((baseType) =>
         typedValueHolds(grammar, baseType, node.stringValue)
@@ -831,24 +950,103 @@ const literalBreachesOf = (typed: Typed, grammar: ComposedGrammar): readonly Bre
 
     return [];
   });
+
+/**
+ * Judge each reference of a typed document that names nothing in its placement (§6.9.40: "an
+ * itemVariable that has been declared in a corresponding variableDeclaration or is one of the
+ * built-in variables"): a braced one, a string attribute's, is a string value where it names
+ * nothing (reading R15-k), so only a bare one breaks "Variable declared".
+ *
+ * @param typed - The document.
+ * @param grammar - The composed grammar.
+ * @returns The breaches.
+ */
+const undeclaredBreachesOf = (typed: Typed, grammar: ComposedGrammar): readonly Breach[] =>
+  typed.references.flatMap(({ attribute, identifier, node, resolution }): readonly Breach[] =>
+    resolution === "unresolved" &&
+    grammar.references.variableReference.rows.some(
+      (row) => row.kind === node.kind && row.attribute === attribute && row.spelling === "bare",
+    )
+      ? [breachAt(typed.rows, node, "Variable declared", { identifier, kind: node.kind })]
+      : [],
+  );
+
+/**
+ * Judge one document under one placement (spec reading 117): its expressions typed bottom-up and
+ * its references resolved in the placement's assembly ({@link PlacementScope}), each type law
+ * stated over them, and, under a placement whose own laws hold its unresolved references to a
+ * declaration, an item's, "Variable declared".
+ *
+ * @param rows - The document, merged with what it splices.
+ * @param grammar - The composed grammar.
+ * @param scope - Where the placement resolves the document's references.
+ * @param undeclared - Whether the placement refuses a bare reference that names nothing.
+ * @returns The breaches.
+ */
+export const placedBreachesOf = (
+  rows: View,
+  grammar: ComposedGrammar,
+  scope: PlacementScope,
+  undeclared: boolean,
+): readonly Breach[] => {
+  const typed = typedOf(rows, grammar, scope);
+
+  return [
+    ...expressionBreachesOf(typed),
+    ...referenceBreachesOf(typed, grammar),
+    ...(undeclared ? undeclaredBreachesOf(typed, grammar) : []),
+  ];
 };
 
 /**
- * Judge one folded document by the expression laws it states alone.
+ * Judge one folded document in its own placement, where it heads its assembly: the type laws over
+ * its own declarations and built-ins, a test's references read through its scopes too, and its
+ * literals, which no placement types.
  *
- * @param rows - The document, merged with what it includes.
+ * @param rows - The document, merged with what it splices.
  * @param grammar - The composed grammar.
+ * @param read - Under a test, the type of a reference's one reading through a scope.
  * @returns The breaches.
  */
 export const expressionDocumentBreaches = (
   rows: View,
   grammar: ComposedGrammar,
-): readonly Breach[] => {
-  const typed = typedOf(rows, grammar);
+  read: PlacementScope["read"] = () => Option.none(),
+): readonly Breach[] => [
+  ...placedBreachesOf(rows, grammar, rootScopeOf(rows, grammar, read), false),
+  ...literalBreachesOf(rows, grammar),
+];
 
-  return [
-    ...expressionBreachesOf(typed),
-    ...referenceBreachesOf(typed, grammar),
-    ...literalBreachesOf(typed, grammar),
-  ];
+/**
+ * Judge every document a test places outside its own merged document in each test that places it
+ * (spec reading 117, `PlacedExpression` and `PlacedVariableRef`): a section document a section ref
+ * places, a fragment a section includes and each fragment those splice, each over its own rows in
+ * the test's scope, the test's declarations, its built-ins and its readings through a scope. A
+ * document two tests place is judged in each, and one a test places twice is judged alike in each
+ * placement, so once; a breach two tests raise alike is one.
+ *
+ * @param input - The package.
+ * @param grammar - The composed grammar.
+ * @param readsOf - Each test's readings through a scope, by the test's path.
+ * @returns The breaches, each once.
+ */
+export const expressionPackageBreaches = (
+  input: PackageRows,
+  grammar: ComposedGrammar,
+  readsOf: (path: string) => PlacementScope["read"],
+): readonly Breach[] => {
+  const breaches = testsOf(input, assembledDocumentsOf(input, grammar)).flatMap(
+    ({ instances, test }) => {
+      const scope = rootScopeOf(test.listed.rows, grammar, readsOf(test.listed.path));
+      const placed = new Map(
+        instances
+          .filter((instance) => !inRootCopy(instances, instance))
+          .map(({ document }) => [document.listed.path, document.listed.rows] as const),
+      );
+
+      return [...placed.values()].flatMap((rows) => placedBreachesOf(rows, grammar, scope, false));
+    },
+  );
+
+  return [...new Map(breaches.map((held) => [JSON.stringify(held), held] as const)).values()];
 };

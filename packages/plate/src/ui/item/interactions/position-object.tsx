@@ -10,8 +10,8 @@
  * its object and its placed copies, built from its payload node alone. In `review` and `solution`
  * both are plain server markup with the island's `data-slot` names: the stage image with each shown
  * position drawn over it, and each interaction's object with its positions listed. Neither marks a
- * position: an exact match on points is no measure of a placement, and the engine scores one by the
- * areas of its area mapping, which the page never shows (plate's ruling R4; 2.4.3.6).
+ * position: an exact match on points is no measure of a placement, and the QTI database scores one
+ * by the areas of its area mapping, which the page never shows (plate's ruling R4; 2.4.3.6).
  *
  * Every prop is read from the payload, which holds no correct response and no area of the mapping:
  * the stage's size, each interaction's entry name, its effective `max-choices`, its object, its
@@ -46,6 +46,8 @@ import type { Addressing } from "#plate/ui/item/html.ts";
 import { limitOf } from "#plate/ui/item/interactions/facts.ts";
 import { controlNameOf, labelsOf, ownName, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { imageText, shownText } from "#plate/ui/item/interactions/text.ts";
+import { markingOf, pointMarksOf } from "#plate/ui/item/interactions/marks.ts";
+import { markPart, wordsOfMark } from "#plate/ui/item/interactions/words.tsx";
 import { fillLabel } from "#plate/ui/labels.ts";
 import type { Limit } from "#plate/ui/limit.ts";
 import { positionObjectKeys } from "#plate/ui/position-object/labels.ts";
@@ -232,8 +234,10 @@ export const island = (
 
 /**
  * Render a Position Object's review or solution: its object, and the positions the view shows,
- * each a line naming its place, the candidate's in `review` and the correct ones in `solution`,
- * none marked (ruling R4).
+ * each a line naming its place, the candidate's in `review` and the correct ones in `solution`;
+ * in a review each with the mark the host handed it and its words, then each correct position
+ * handed missed (proposal 2026-11-18-grading-in-sql, Decision 6: a Position Object's review marks
+ * each point by area).
  *
  * @param paired The Position Object and its payload node.
  * @param paired.model The redacted model node the payload node was given for.
@@ -248,6 +252,10 @@ export const review = (
   const { locale } = context;
   const { position } = labelsOf(positionObjectKeys, locale, {});
   const object = objectNameOf(model, context);
+  const marks = pointMarksOf(
+    node.positions.map((point) => ({ x: String(point.x), y: String(point.y) })),
+    markingOf(node.response, context),
+  );
 
   return (
     <div
@@ -262,13 +270,30 @@ export const review = (
       <ol data-slot="plate-position-object-copies" role="list">
         {node.positions.map((point, index) => (
           // A copy is a place in its object's order, not an item: its place is its key.
-          <li key={index} data-slot="plate-position-object-copy">
+          <li key={index} data-mark={marks.given[index]} data-slot="plate-position-object-copy">
             {fillLabel(position, {
               n: numeral(locale, index + 1),
               object,
               x: numeral(locale, point.x),
               y: numeral(locale, point.y),
             })}
+            {markPart(wordsOfMark(marks.given[index]), locale)}
+          </li>
+        ))}
+        {marks.missed.map((point, index) => (
+          // A missed position follows the copies shown, numbered after them: its place is its key.
+          <li
+            key={`missed-${String(index)}`}
+            data-mark="missed"
+            data-slot="plate-position-object-copy"
+          >
+            {fillLabel(position, {
+              n: numeral(locale, node.positions.length + index + 1),
+              object,
+              x: numeral(locale, Number(point.x)),
+              y: numeral(locale, Number(point.y)),
+            })}
+            {markPart(wordsOfMark("missed"), locale)}
           </li>
         ))}
       </ol>

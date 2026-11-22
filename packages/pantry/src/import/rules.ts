@@ -30,31 +30,22 @@ const codecRules = [
 
 /**
  * The rules that name a stated limit of the representation, never a law of the specification:
- * `test-structure` and `bank-shape` hold a package to content and banks (spec reading 1, `tests.ts`
- * "Test structure" and "Bank shape"), since pantry stores what a test delivers and never a test;
- * `item-key` two items of one package that share an identifier (reading 1, `metadata.ts` "Item
- * key"), since an item is its package and its identifier;
- * `key-text-bound` is the bound on a text a key holds (`src/qti/limits.ts` `keyText`), which
- * grizzle's representability rule derives from PostgreSQL's `BTMaxItemSize`, and `href-form` an
- * href the importer reads no name from (reading 102, `overlays/package.ts` `Limit`), and
- * `fragment-context` the one context an included fragment's rows are judged in (reading 117,
- * `tests.ts` `Fragment_context`): a fragment two includes place in different interactions would
- * need two rows per node.
+ * `key-text-bound` is a bound on a text the store holds (`src/qti/limits.ts`), PostgreSQL's: the
+ * regex engine's and the decimal parse's on a text a query matches or parses (`matchedText`, a
+ * foreign element's names at `foreignNameBytes`, which a query matches as one expanded name, and
+ * `parsedDecimalBytes`); and `href-form` an href the importer reads no name from (reading 102,
+ * `overlays/package.ts` `Limit`).
  *
- * A value over the bound is valid QTI the model cannot key, so its verdict says so by its rule. The
- * import meets it as the bound's pattern law: grizzle's encoder and its family fill check a text's
- * type, its NUL and its surrogates and never its pattern (`core/text.ts` `validateText`,
+ * A value over the bound is valid QTI the model cannot hold, so its verdict says so by its rule.
+ * The import meets it as the bound's pattern law: grizzle's encoder and its family fill check a
+ * text's type, its NUL and its surrogates and never its pattern (`core/text.ts` `validateText`,
  * `write/family/fold.ts` `admittedAt`), so the column's domain CHECK refuses it as the statement
  * casts it, `invariant-rejected` on its field's pattern law, its witness the key of the stated row
  * that holds the value (README, "Errors and outcomes").
  */
 export const limitRules = [
-  "test-structure",
-  "bank-shape",
-  "item-key",
   "key-text-bound",
   "href-form",
-  "fragment-context",
 ] as const satisfies readonly (typeof precedence)[number][];
 
 /**

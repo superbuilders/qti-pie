@@ -191,10 +191,13 @@ describe("qti/expressions.ts, its typing tables", () => {
   });
 
   it("reads reading 34's boolean and reading 45's integer", () => {
-    // Oracle: spec readings 34 (true and false only) and 45 (no bound on an integer).
+    // Oracle: spec readings 34 (xs:boolean's true, false, 1 and 0, XML Schema Part 2 §3.2.2.1)
+    // and 45 (no bound on an integer).
     assert.deepStrictEqual(
-      ["true", "false", " true ", "1", "0", "TRUE"].map((form) => patternOf("boolean").test(form)),
-      [true, true, true, false, false, false],
+      ["true", "false", " true ", "1", "0", " 0 ", "TRUE", "2", "yes"].map((form) =>
+        patternOf("boolean").test(form),
+      ),
+      [true, true, true, true, true, true, false, false, false],
     );
     assert.isTrue(patternOf("integer").test("1000000000000000000000000000001"));
     assert.deepStrictEqual(

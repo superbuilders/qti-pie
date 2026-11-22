@@ -14,13 +14,14 @@
  * or to a libxml2 departure from XML Schema that a {@link proofs} case shows, or it is a defect of
  * one of the two sides.
  */
+import { isNcName } from "@bjornpagen/grizzle-text/regex/xml";
 import { matching } from "@bjornpagen/testing/pattern";
 import { floorSeed } from "@bjornpagen/testing/random";
 import { sample } from "@bjornpagen/testing/source";
 import { Effect, FileSystem, Option, Result } from "effect";
 import type { ValueDomain } from "#pantry/grammar/attributes.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
-import { isNcName, patternFlags, unboundPrefixesOf } from "#pantry/grammar/domains.ts";
+import { patternFlags, unboundPrefixesOf } from "#pantry/grammar/domains.ts";
 import type { DoubleBound } from "#pantry/grammar/domains.ts";
 import { openClasses } from "#pantry/grammar/kinds.ts";
 import { loadXsd, nameKey, xsdContents } from "#pantry/test/gen/grammar.ts";
@@ -198,9 +199,9 @@ const fifthNameChars = new RegExp(`^[${nameChars}]+$`, "u");
  * Whether a value is names that XML 1.0 Fifth Edition admits and its Second Edition refuses: split
  * at XML whitespace and colons, every part a run of Fifth Edition `NameChar`s, and some part
  * holding a character no Second Edition `NameChar` is, or beginning with a Fifth Edition
- * `NameStartChar` that is no Second Edition start of a name. The Second Edition's verdict is the
- * grammar's own (`isNcName`), whose tables `#pantry/grammar/domains.test.ts` holds to the Second
- * Edition's Appendix B.
+ * `NameStartChar` that is no Second Edition start of a name. The Second Edition's verdict is
+ * grizzle-text's `isNcName`, over the Second Edition's Appendix B, the tables the grammar's NCName
+ * is built from (`#pantry/grammar/domains.test.ts` holds the grammar's to it).
  *
  * @param value - The value.
  * @returns Whether it is.
@@ -295,17 +296,6 @@ export const recorded: readonly Recorded[] = [
       why: "an order interaction's min-choices is at least 1, so zero is refused however its collapsed form is padded",
     },
     value: /^[\t\n\r ]*[+-]?0+[\t\n\r ]*$/u,
-    xsd: "valid",
-  },
-  {
-    domain: /\(reading [^)]*\b85\b/u,
-    reason: {
-      _tag: "reading",
-      reading: 85,
-      says: "all included fragments must be treated as parsed xml",
-      why: "an xi:include's parse is xml: every included fragment is treated as parsed XML (information model §2.12)",
-    },
-    value: /^[\t\n\r ]*text[\t\n\r ]*$/u,
     xsd: "valid",
   },
   {
@@ -479,6 +469,17 @@ export const recorded: readonly Recorded[] = [
       why: "the information model's center-point is an offset 'in horizontal, vertical order' (§5.107.1), two Int values, where the XSD's list of xs:int admits any length",
     },
     value: /^[\t\n\r ]*(?:[^\t\n\r ]+(?:[\t\n\r ]+[^\t\n\r ]+){2,}|[^\t\n\r ]+)?[\t\n\r ]*$/u,
+    xsd: "valid",
+  },
+  {
+    domain: /\(reading [^)]*\b239\b/u,
+    reason: {
+      _tag: "reading",
+      reading: 239,
+      says: "A `col`'s and a `colgroup`'s `span` is at least 1.",
+      why: "the information model's Col and ColGroup say a span's 'value must be a valid non-negative integer greater than zero' (§5.31, §5.32), where the XSD's xs:int admits 0 and every negative",
+    },
+    value: /^[\t\n\r ]*(?:-[0-9]+|\+?0+)[\t\n\r ]*$/u,
     xsd: "valid",
   },
   {

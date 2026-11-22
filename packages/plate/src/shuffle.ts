@@ -7,7 +7,7 @@
  * which the choices are initially presented, subject to the value of the fixed attribute of each
  * choice" (the information model's ChoiceInteraction). A choice's rank is HMAC-SHA-256 keyed by the
  * shuffle seed over the set's fields and the choice's identifier (`keyedDigest` in
- * `#plate/engine/random.ts`): the response's identifier, the set's name for an interaction that
+ * `#plate/digest.ts`): the response's identifier, the set's name for an interaction that
  * shuffles two sets apart (Match's sources and targets), then the choice's. So the order is a
  * function of the seed and the identifiers alone, never of a position: the same seed presents the
  * same order on every request and host, and a choice added to or removed from the set leaves every
@@ -15,13 +15,13 @@
  * (`presented` in `#plate/interactions/choice.ts`), Order, Gap Match, Graphic Gap Match, Associate
  * and Match, all present through it.
  *
- * The seed is the served item's shuffle seed (`itemSeeds` in `#plate/seed.ts`), which the host
+ * The seed is the served item's shuffle seed (`shuffleSeed` in `#plate/seed.ts`), which the host
  * passes as the configuration's `seed`.
  *
  * @module
  */
 import { Array as Arr, Order } from "effect";
-import { keyedDigest } from "#plate/engine/random.ts";
+import { keyedDigest } from "#plate/digest.ts";
 
 /**
  * Give a shuffled set's choices in the order they are presented: the choices that are not fixed in

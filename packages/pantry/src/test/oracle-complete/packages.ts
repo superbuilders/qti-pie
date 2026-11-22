@@ -9,7 +9,7 @@
  * names, so no law ahead of its own breaks first.
  */
 import { element, int } from "@bjornpagen/testing/gen";
-import { keyTextBytes } from "#pantry/qti/limits.ts";
+import { parsedDecimalBytes } from "#pantry/qti/limits.ts";
 import {
   passageAt,
   replaceDrawn,
@@ -260,6 +260,18 @@ export const packageMutations = {
     '<xi:include href="fragment.xml"/>',
     ['<xi:include href="fragment.xml#part"/>'],
   ),
+  // Include parse (XInclude 1.0 §3.1, reading 85): beside the second item's include of its
+  // fragment, an include of the package's picture written with an xpointer and parse="text", which
+  // XInclude makes a fatal error ("The xpointer attribute must not be present when
+  // parse="text""); either alone is admitted and includes nothing.
+  "Include parse": passageAt(
+    "Include parse",
+    "items/item2.xml",
+    '<xi:include href="fragment.xml"/>',
+    [
+      '<xi:include href="fragment.xml"/><xi:include href="media/pic.png" parse="text" xpointer="p"/>',
+    ],
+  ),
   "Include root": passageAt(
     "Include root",
     "items/item2.xml",
@@ -279,30 +291,27 @@ export const packageMutations = {
   "Inclusion cycle": passageAt("Inclusion cycle", "items/fragment.xml", '  <p id="fragment-note"', [
     '  <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="fragment.xml"/>\n  <p id="fragment-note"',
   ]),
-  // Key text bound (the stated limit, keyText): an IDREF token of more UTF-8 bytes than a key text
-  // holds, each character ASCII, one byte, naming a span the edit gives that id, so it resolves.
-  // An ID's own value is no key text (`IdValue`), and an IDREF's token is (`Idref.token`).
+  // Key text bound (the stated limit, reading 133): the item's division's aria-valuemin, an
+  // `xs:decimal` of zeros past `parsedDecimalBytes`, the most `Text.parseDecimal` reads
+  // (`AriaBounds.min`), each digit one byte, its value 0, so its range holds: the smallest bound
+  // the law refuses a drawn text at. A foreign element's names are bounded at half and a text a
+  // query matches at all of `matchedTextBytes`, a quarter of a gigabyte, which no drawn package
+  // reaches; a prefix, an open attribute's names, an IDREF's token, an ID and an href are of any
+  // length, a key holding each by its image.
   "Key text bound": {
     law: "Key text bound",
     mutate:
       ({ entries }) =>
-      (source) => {
-        const id = `k${"x".repeat(keyTextBytes + source.draw(int(0, 40)))}`;
-
-        return withText(
+      (source) =>
+        withText(
           entries,
           item,
           replaceOnce(
-            replaceOnce(
-              textOf(entries, item),
-              'aria-labelledby="caption"',
-              `aria-labelledby="caption ${id}"`,
-            ),
-            '<span id="caption">',
-            `<span id="caption"><span id="${id}">`,
-          ).replace("Look at the picture.</span>", "Look at the picture.</span></span>"),
-        );
-      },
+            textOf(entries, item),
+            'aria-valuemin="0" aria-valuemax="10"',
+            `aria-valuemin="${"0".repeat(parsedDecimalBytes + 1 + source.draw(int(0, 40)))}" aria-valuemax="10"`,
+          ),
+        ),
     over: "package",
   },
   // LOM learning resource type (reading 122): a record of the LOM vocabulary typing its object
@@ -464,6 +473,18 @@ export const packageMutations = {
     [
       '    <table><colgroup span="2"><col/></colgroup><tbody><tr><td>x</td></tr></tbody></table>\n    <p>It says <q>read this</q> and stops.</p>',
       '    <table><colgroup span="3"><col/><col/></colgroup><tbody><tr><td>x</td></tr></tbody></table>\n    <p>It says <q>read this</q> and stops.</p>',
+    ],
+  ),
+  // Pattern language (§5.162.5, §5.48.4; reading 58): the fragment's text entry given a pattern-mask
+  // that is no Appendix F regular expression: a flag group, an unclosed class, a lone `{`.
+  "Pattern language": passageAt(
+    "Pattern language",
+    "items/fragment.xml",
+    '<qti-text-entry-interaction response-identifier="TEXT"/>',
+    [
+      '<qti-text-entry-interaction response-identifier="TEXT" pattern-mask="(?i)yes"/>',
+      '<qti-text-entry-interaction response-identifier="TEXT" pattern-mask="[a-z"/>',
+      '<qti-text-entry-interaction response-identifier="TEXT" pattern-mask="a{"/>',
     ],
   ),
   // Picture source srcset (reading 124): a picture's source that names no image candidates.

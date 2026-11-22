@@ -53,7 +53,6 @@
 import {
   check,
   closedId,
-  Compute,
   contained,
   counted,
   drawn,
@@ -62,8 +61,10 @@ import {
   on,
   relation,
   select,
+  Text,
 } from "@bjornpagen/grizzle";
 import {
+  anyText,
   AttributeName,
   CnBase,
   CnBaseSpelling,
@@ -75,7 +76,7 @@ import {
   CnType,
   CnTypeSpelling,
 } from "#pantry/grammar/install.ts";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
 
@@ -92,13 +93,13 @@ export const MathCn = relation(
   "MathCn",
   {
     base: closedId(CnBase),
-    baseLexical: keyText,
+    baseLexical: anyText,
     package: PackageName,
     parts: drawn(natural),
     path: EntryPath,
     start: natural,
     type: closedId(CnType),
-    typeLexical: keyText,
+    typeLexical: anyText,
   },
   ["package", "path", "start"],
 );
@@ -117,7 +118,7 @@ export const CnPartText = relation(
     part: closedId(CnPart),
     path: EntryPath,
     start: natural,
-    text: keyText,
+    text: anyText,
     type: closedId(CnType),
   },
   ["package", "path", "start", "part"],
@@ -137,7 +138,7 @@ export const CnCount = relation(
     path: EntryPath,
     start: natural,
     type: closedId(CnType),
-    typeLexical: keyText,
+    typeLexical: anyText,
   },
   ["package", "path", "start"],
 );
@@ -162,16 +163,13 @@ export const CnSlot = relation(
 
 /**
  * One `type` or `base` attribute of an `m:cn`, keyed by its node and its name: its lexical form as
- * written, whether or not the `cn` is judged, copied so that a law can compare it in a key. A value
- * over `keyText`'s bound is refused under "Key text bound", a stated limit, as the
- * `InteractionAttribute` copies are (`#pantry/qti/interactions.ts`); the schemas enumerate `type`
- * and `base` only for the values a `cn` is judged under, so a `cn` whose `type` is a word the bound
- * excludes is refused too.
+ * written, whether or not the `cn` is judged, copied so that a law can compare it in a key, which
+ * holds a value of any length by its image (`#pantry/qti/limits.ts`).
  */
 export const CnAttribute = relation(
   "CnAttribute",
   {
-    lexical: keyText,
+    lexical: anyText,
     name: closedId(AttributeName),
     package: PackageName,
     path: EntryPath,
@@ -292,11 +290,11 @@ export const cnLaws = [
     c.and(
       c.or(
         c.and(c.eq(c.typeLexical, ""), c.eq(c.type, "real")),
-        Compute.matches(c.typeLexical, CnTypeSpelling.at("pattern", c.type)),
+        Text.matches(c.typeLexical, CnTypeSpelling.at("pattern", c.type)),
       ),
       c.or(
         c.and(c.eq(c.baseLexical, ""), c.eq(c.base, "10")),
-        Compute.matches(c.baseLexical, CnBaseSpelling.at("pattern", c.base)),
+        Text.matches(c.baseLexical, CnBaseSpelling.at("pattern", c.base)),
       ),
     ),
   ),
@@ -322,7 +320,7 @@ export const cnLaws = [
   check("E1_derived", CnCount, (c) =>
     c.or(
       c.and(c.eq(c.typeLexical, ""), c.eq(c.type, "real")),
-      Compute.matches(c.typeLexical, CnTypeSpelling.at("pattern", c.type)),
+      Text.matches(c.typeLexical, CnTypeSpelling.at("pattern", c.type)),
     ),
   ),
   slotFamily,
@@ -337,6 +335,6 @@ export const cnLaws = [
     on(CnCount, "package", "path", "start", "type"),
   ),
   check("MathML_cn_form", CnPartText, (p) =>
-    Compute.matches(p.text, CnPattern.at("pattern", p.form, p.base)),
+    Text.matches(p.text, CnPattern.at("pattern", p.form, p.base)),
   ),
 ];

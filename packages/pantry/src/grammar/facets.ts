@@ -123,6 +123,15 @@ const particle = (
 const templateBlockKinds = ["qti-template-block", "qti-template-block.rubric"] as const;
 
 /**
+ * The template kinds, block and inline, each of an item's body and of its rubric block's content.
+ */
+const templateKinds = [
+  ...templateBlockKinds,
+  "qti-template-inline",
+  "qti-template-inline.rubric",
+] as const;
+
+/**
  * The attribute every interaction declares and no other kind does: the response variable it is
  * bound to (information model, the `Interaction` class's `responseIdentifier`). The ASI XSDs
  * declare `response-identifier`, required, on exactly the 22 interaction kinds.
@@ -276,13 +285,153 @@ const templateConstraintEdits: readonly ModelEdit[] = contentModels.flatMap(
 );
 
 /**
+ * Where spec reading 240 restates a table's columns from: the information model's Table class,
+ * whose `col` and `colgroup` exclude each other where the XSD's sequence admits both.
+ */
+const tableColumnsSource =
+  "spec reading 240: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Table (§5.142.3, col: 'If a table directly contains a col then it must not contain any colgroup elements'; §5.142.4, colgroup: 'If a table contains a colgroup it must not directly contain any col elements')";
+
+/**
+ * Whether a particle is an element particle of one kind alone.
+ *
+ * @param held - The particle, none past a group's last.
+ * @param kind - The kind.
+ * @returns Whether it names that kind and no other.
+ */
+const solely = (held: Particle | undefined, kind: string): boolean =>
+  held?._tag === "element" && held.kinds.length === 1 && held.kinds[0] === kind;
+
+/**
+ * A particle that occurs one or more times, its own bounds aside.
+ *
+ * @param held - The particle.
+ * @returns It, at least once and unbounded.
+ */
+const atLeastOne = (held: Particle): Particle => ({
+  ...held,
+  occurs: { max: Option.none(), min: 1 },
+});
+
+/**
+ * Restate a table's columns as spec reading 240 reads them: wherever a group holds a `col` particle
+ * and the `colgroup` particle right after it, the two become one optional choice of one or more
+ * `col`s or one or more `colgroup`s, so a table holds the one or the other, never both, in the
+ * order and number the XSD's sequence gives each.
+ *
+ * @param model - The XSD's model.
+ * @param source - The reading's source.
+ * @returns The restated model.
+ */
+const columnsApart = (model: Particle, source: Source): Particle => {
+  if (model._tag !== "group") {
+    return model;
+  }
+
+  const at = model.particles.findIndex(
+    (held, index) => solely(held, "col") && solely(model.particles[index + 1], "colgroup"),
+  );
+  const col = model.particles[at];
+  const colgroup = model.particles[at + 1];
+  if (col === undefined || colgroup === undefined) {
+    return { ...model, particles: model.particles.map((held) => columnsApart(held, source)) };
+  }
+
+  const columns: Particle = {
+    _tag: "group",
+    compositor: "choice",
+    occurs: { max: Option.some(1), min: 0 },
+    particles: [atLeastOne(col), atLeastOne(colgroup)],
+    source,
+  };
+
+  return {
+    ...model,
+    particles: [...model.particles.slice(0, at), columns, ...model.particles.slice(at + 2)],
+    source,
+  };
+};
+
+/**
+ * Spec reading 240's restatement of `table`: the XSD's `TableDType` with its columns apart
+ * ({@link columnsApart}).
+ */
+const tableColumnEdits: readonly ModelEdit[] = contentModels.flatMap(
+  (model): readonly ModelEdit[] =>
+    model.kind === "table" && model.content._tag === "element-only"
+      ? [
+          {
+            _tag: "restate",
+            parent: model.kind,
+            particle: columnsApart(model.content.particle, cited(tableColumnsSource)),
+            source: tableColumnsSource,
+          },
+        ]
+      : [],
+);
+
+/**
+ * Spec reading 241's cap: a `figure` holds at most one `figcaption`, the multiplicity the
+ * information model gives it, where the XSD's unbounded choice repeats it.
+ */
+const figcaptionCap: ModelEdit = {
+  _tag: "cap",
+  kind: "figcaption",
+  parent: "figure",
+  source:
+    "spec reading 241: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Figure (§5.54.1, figcaption: Multiplicity '[0..1]'), and the binding's normative Schematron rules, https://www.imsglobal.org/spec/qti/v3p0/bind (§5.1.1 Figure Unordered Class Rules: 'figcaption ... Multiplicity must be: [0..1]')",
+};
+
+/**
+ * Where `qti-ordering`'s restated model comes from: spec reading 61, which the information model's
+ * §5.98.3 states and the XSD's own mapping of the same sentence elsewhere writes.
+ */
+const orderingSource =
+  "spec reading 61: information model §5.98.3, 'may be new tags and reused QTI ASI tags', as the XSD writes the same sentence at §5.36.2 and §5.144.1 (##any)";
+
+/**
+ * `qti-ordering`'s content, as spec reading 61 restates it: any number of elements of any
+ * namespace, assessed laxly, `sequence(any ##any lax 0..n)`.
+ *
+ * The XSD writes `##other` (`imsqti_asiv3p0p1_v1p0.xsd` lines 29976 and 24031), which refuses an
+ * element in QTI's own namespace or in none. The information model says the extension's child tags
+ * "may be new tags and reused QTI ASI tags" (§5.98.3), and the XSD's own mapping of that sentence
+ * elsewhere is `##any`: the custom interaction's (§5.36.2, XSD line 26364) and the template's
+ * (§5.144.1, XSD line 32555); where the information model says "must be new tags" it writes
+ * `##other` (§5.33.6, §5.37.5 and §5.129.4). The information model outranks the XSD, so the slot is
+ * `##any`: a QTI element there is kept as extension content, a foreign element of its own namespace
+ * (a QTI root stays foreign by spec reading 6), an HTML, MathML, SSML or XInclude global is read as
+ * its kind, and an element in no namespace is admitted too, which "any set of child tags" allows.
+ * `qti-selection`'s slot keeps the XSD's `##other` (§5.129.4: "must be new tags i.e. not reused QTI
+ * ASI tags").
+ */
+const orderingModel: Particle = {
+  _tag: "group",
+  compositor: "sequence",
+  occurs: { max: Option.some(1), min: 1 },
+  particles: [
+    {
+      _tag: "any",
+      namespace: "##any",
+      occurs: { max: Option.none(), min: 0 },
+      processing: "lax",
+      source: cited(orderingSource),
+    },
+  ],
+  source: cited(orderingSource),
+};
+
+/**
  * The ASI vocabulary's facets, its HTML and its test, PCI, catalog and stimulus kinds included, the
  * one namespace they share:
  *
  * - Its 22 interactions, and the expression kinds' arities, both projected from the IR;
- * - The ancestry blocks of an item's content;
+ * - The ancestry blocks of an item's content, and a test's rubric block and feedback entering `test`,
+ *   under which no template sits (spec reading 25);
+ * - Spec reading 61, `qti-ordering`'s extension slot admits any namespace ({@link orderingModel});
  * - HTML's `colgroup` with `span` holding no `col`, and the default hotspot that ends its
  *   interaction;
+ * - A table's `col`s or its `colgroup`s, never both (spec reading 240), and a figure's one
+ *   `figcaption` at most (spec reading 241);
  * - The response bindings, the package roots and the references.
  */
 export const asi: Facets = {
@@ -290,6 +439,7 @@ export const asi: Facets = {
     banning: [
       { flags: ["rubric"], kinds: ["qti-rubric-block"] },
       { flags: ["htx"], kinds: ["qti-hottext"] },
+      { flags: ["test"], kinds: templateKinds },
     ],
     entering: [
       { flags: ["gap"], kinds: ["qti-gap-match-interaction"] },
@@ -313,6 +463,7 @@ export const asi: Facets = {
         flags: ["fb"],
         kinds: ["qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline"],
       },
+      { flags: ["test"], kinds: ["qti-rubric-block.test", "qti-test-feedback"] },
     ] satisfies readonly Block[],
     needing: [{ flags: ["gap"], kinds: ["qti-gap"] }],
   },
@@ -341,7 +492,12 @@ export const asi: Facets = {
     ],
   },
   content: {
-    edits: templateConstraintEdits,
+    edits: [
+      ...templateConstraintEdits,
+      ...tableColumnEdits,
+      figcaptionCap,
+      { _tag: "restate", parent: "qti-ordering", particle: orderingModel, source: orderingSource },
+    ],
     models: [],
     roots: [],
   },
@@ -1426,7 +1582,15 @@ const includeSource =
 
 /**
  * Any number of elements an include ignores: of another namespace than XInclude's, or of none, each
- * assessed laxly, as `XInclude.xsd`'s `includeType` writes them.
+ * skipped, never assessed: "Other content (text, processing instructions, comments, elements not in
+ * the XInclude namespace, descendants of child elements) is not constrained by this specification
+ * and is ignored by the XInclude processor, that is, it has no effect on include processing"
+ * (XInclude 1.0 Second Edition, §3.1), and the item a package delivers is XInclude's result, in
+ * which the include and that content are replaced (§4; information model §9.4.1, "the use of the
+ * XInclude feature"). `XInclude.xsd`'s `includeType` writes them `lax` (spec reading 118), so a
+ * wildcard element of a known declaration would be judged by it and could refuse a package whose
+ * delivered item never holds it; skipped, each is its namespace class's foreign kind, stored as
+ * written.
  *
  * @returns The particle.
  */
@@ -1438,7 +1602,7 @@ const ignoredContent = (): Particle => ({
     _tag: "any",
     namespace,
     occurs: { max: Option.some(1), min: 1 },
-    processing: "lax",
+    processing: "skip",
     source: cited(includeSource),
   })),
   source: cited(includeSource),

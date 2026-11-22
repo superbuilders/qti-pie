@@ -1,15 +1,18 @@
 /**
- * The mutations of the law oracle's laws over banks and what they hold
- * (`#pantry/test/oracle-laws/tests.ts`), each drawn to break exactly its law in an accepted package
- * (`src/test/complete.oracle.test.ts`).
+ * The mutations of the law oracle's laws over tests, sections, banks and what they hold
+ * (`#pantry/test/oracle-laws/tests.ts`, `#pantry/test/oracle-laws/readings.ts`), each drawn to
+ * break exactly its law in an accepted package (`src/test/complete.oracle.test.ts`).
  *
  * Each edits the every-relation package's bank (`section.xml`: the bank `bank1` of the item refs
  * `item1`, `item2` and `item3`, each named by its item's identifier), its manifest or an item, or
- * adds a document beside them. A mutation never renames an element another reference names, since
- * the reference would break a law of its own first.
+ * lists the base test beside them (`#pantry/test/gen/base-test.ts`) and edits that. A mutation
+ * never renames an element another reference names, since the reference would break a law of its
+ * own first.
  */
 import { element, int } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
+import { branchTo, testText } from "#pantry/test/gen/base-test.ts";
+import type { TestEdit } from "#pantry/test/gen/base-test.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
 import {
   duplicateDrawn,
@@ -31,11 +34,6 @@ const bank = "section.xml";
 const manifest = "imsmanifest.xml";
 
 /**
- * The QTI 3.0 assessment namespace every document of the package is written in.
- */
-const asi = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
-
-/**
  * The bank's item refs as the every-relation package writes them, each under its item's
  * identifier.
  */
@@ -44,11 +42,6 @@ const members = [
   { href: "items/item2.xml", identifier: "item2" },
   { href: "items/item3.xml", identifier: "item3" },
 ] as const;
-
-/**
- * The bank's first item ref, as the every-relation package writes it.
- */
-const firstRef = '<qti-assessment-item-ref identifier="item1" href="items/item.xml"/>';
 
 /**
  * Write an item ref of the bank's.
@@ -137,99 +130,70 @@ const listed = (
   );
 
 /**
- * A test of one part and one section that places an item by its own identifier, valid QTI but for
- * being a test.
+ * List the base test beside the bank, written with a drawn edit of its places.
  *
- * @param member - The item ref it holds.
- * @param member.href - Its href.
- * @param member.identifier - Its identifier.
- * @returns The test's text.
+ * @param edits - The drawn edit.
+ * @returns The mutation's edit.
  */
-const testOf = (member: { readonly href: string; readonly identifier: string }): string =>
-  [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    `<qti-assessment-test xmlns="${asi}" identifier="test1" title="A test">`,
-    '  <qti-test-part identifier="part1" navigation-mode="linear" submission-mode="individual">',
-    '    <qti-assessment-section identifier="s1" title="A section" visible="true">',
-    `      ${refOf(member)}`,
-    "    </qti-assessment-section>",
-    "  </qti-test-part>",
-    "</qti-assessment-test>",
-    "",
-  ].join("\n");
+const withTest =
+  (edits: Gen<TestEdit>) =>
+  ({ entries }: Base): Gen<PackageEntries> =>
+  (source) =>
+    listed(entries, {
+      dependency: "item1-res",
+      identifier: "test-res",
+      path: "test.xml",
+      text: testText(source.draw(edits)),
+      type: "imsqti_test_xmlv3p0",
+    });
 
 /**
- * What a bank holds besides its item refs, each in a place its section's content model admits: a
- * selection or an ordering before its parts, a rubric block, a nested section around its first
- * item ref, or a section ref after its last.
+ * Draw one of a list of edits of the base test's places.
+ *
+ * @param edits - The edits.
+ * @returns The drawn edit.
  */
-const bankExtras = [
-  { at: firstRef, text: `<qti-selection select="1"/>${firstRef}` },
-  { at: firstRef, text: `<qti-ordering shuffle="true"/>${firstRef}` },
-  {
-    at: firstRef,
-    text: `<qti-rubric-block use="instructions" view="candidate"><qti-content-body><p>Read.</p></qti-content-body></qti-rubric-block>${firstRef}`,
-  },
-  {
-    at: firstRef,
-    text: `<qti-assessment-section identifier="inner" title="Inner" visible="true">${firstRef}</qti-assessment-section>`,
-  },
-  {
-    at: "</qti-assessment-section>",
-    text: '<qti-assessment-section-ref identifier="ref" href="section.xml"/></qti-assessment-section>',
-  },
-] as const;
+const oneEdit = (edits: readonly TestEdit[] & Readonly<{ 0: TestEdit }>): Gen<TestEdit> =>
+  element(edits);
+
+/**
+ * Draw one of the edits of the base test's places a list of values writes, one per value.
+ *
+ * @param values - The values.
+ * @param edit - Each value's edit.
+ * @returns The drawn edit.
+ */
+const eachEdit =
+  <const A>(
+    values: readonly A[] & Readonly<{ 0: A }>,
+    edit: (value: A) => TestEdit,
+  ): Gen<TestEdit> =>
+  (source) =>
+    edit(source.draw(element(values)));
 
 /**
  * Each law's mutation, by law.
  */
 export const testMutations = {
-  // Bank key (the placement mandate, ruling 2): a second bank listed beside the first under its
-  // identifier, as written or padded, holding no item ref, so no member of the two repeats.
-  "Bank key": {
-    law: "Bank key",
-    mutate:
-      ({ entries }) =>
-      (source) =>
-        listed(entries, {
-          dependency: "item1-res",
-          identifier: "bank2-res",
-          path: "bank2.xml",
-          text: `<?xml version="1.0" encoding="UTF-8"?>\n<qti-assessment-section xmlns="${asi}" identifier="${source.draw(element(["bank1", " bank1", "bank1 "]))}" title="Another bank" visible="false"/>\n`,
-          type: "imsqti_section_xmlv3p0",
-        }),
+  // Branch forward (§5.23, §2.8.3.2, reading 87): an item ref's rule names itself, or the second
+  // item ref's names the first, which comes before it in every order a delivery draws.
+  "Branch forward": {
+    law: "Branch forward",
+    mutate: withTest(
+      oneEdit([
+        { item1: branchTo("item1") },
+        { item1: branchTo("s1") },
+        {
+          parts: `<qti-assessment-item-ref identifier="item3" href="items/item3.xml">${branchTo("item1")}</qti-assessment-item-ref>`,
+        },
+      ]),
+    ),
     over: "package",
   },
-  // Bank shape (spec reading 1's stated limit): the bank holding what only a test's structure
-  // holds, a child under one of its item refs, or an item ref's attribute only a test's delivery
-  // reads.
-  "Bank shape": {
-    law: "Bank shape",
-    mutate: oneOf([
-      drawnIn(bank, (text) => (source) => {
-        const extra = source.draw(element(bankExtras));
-
-        return replaceOnce(text, extra.at, extra.text);
-      }),
-      fixed(bank, (text) =>
-        replaceOnce(
-          text,
-          firstRef,
-          '<qti-assessment-item-ref identifier="item1" href="items/item.xml"><qti-weight identifier="W" value="2"/></qti-assessment-item-ref>',
-        ),
-      ),
-      drawnIn(bank, (text) => (source) => {
-        const attribute = source.draw(
-          element(['required="true"', 'fixed="false"', 'category="c"']),
-        );
-
-        return replaceOnce(
-          text,
-          firstRef,
-          `<qti-assessment-item-ref identifier="item1" href="items/item.xml" ${attribute}/>`,
-        );
-      }),
-    ]),
+  // Branch target (§5.23, reading 87): an item ref's rule names nothing, or a test part.
+  "Branch target": {
+    law: "Branch target",
+    mutate: withTest(oneEdit([{ item1: branchTo("nowhere") }, { item1: branchTo("part1") }])),
     over: "package",
   },
   // Item ref identifier (QTI §4.1.1): a bank member under another identifier than its item's.
@@ -289,6 +253,71 @@ export const testMutations = {
     ]),
     over: "package",
   },
+  // Prefixed reference (reading 48): the test declares the name a prefixed reading also reads.
+  "Prefixed reference": {
+    law: "Prefixed reference",
+    mutate: withTest(
+      oneEdit([
+        {
+          declarations:
+            '<qti-outcome-declaration identifier="item1.SCORE" cardinality="single" base-type="float"/>',
+        },
+      ]),
+    ),
+    over: "package",
+  },
+  // Section identifier target (§7.27.1, §7.28.1, §7.39.1): a filter names no section the test
+  // places, or an item ref.
+  "Section identifier target": {
+    law: "Section identifier target",
+    mutate: withTest(
+      eachEdit(["nosuch", "item1", "part1"], (identifier) => ({
+        processing: `<qti-set-outcome-value identifier="TOTAL"><qti-sum><qti-test-variables variable-identifier="SCORE" section-identifier="${identifier}"/></qti-sum></qti-set-outcome-value>`,
+      })),
+    ),
+    over: "package",
+  },
+  // Section ref target (§7.5): a section ref names an item or the stimulus, no section document.
+  "Section ref target": {
+    law: "Section ref target",
+    mutate: withTest(
+      eachEdit(["items/item.xml", "items/stimulus.xml"], (href) => ({
+        parts: `<qti-assessment-section-ref identifier="placed" href="${href}"/>`,
+      })),
+    ),
+    over: "package",
+  },
+  // Selection bound (§5.129.1, reading 79): the section selects more than its two parts, without
+  // replacement.
+  "Selection bound": {
+    law: "Selection bound",
+    mutate: withTest(
+      oneEdit([
+        { section: '<qti-selection select="3"/>' },
+        { section: '<qti-selection select="9" with-replacement="false"/>' },
+      ]),
+    ),
+    over: "package",
+  },
+  // Selection required (§4.2.2): the section selects fewer than its required parts.
+  "Selection required": {
+    law: "Selection required",
+    mutate: withTest(
+      oneEdit([
+        {
+          parts:
+            '<qti-assessment-item-ref identifier="item3" href="items/item3.xml" required="true"/>',
+          section: '<qti-selection select="0"/>',
+        },
+        {
+          parts:
+            '<qti-assessment-item-ref identifier="item3" href="items/item3.xml" required="true"/><qti-assessment-section identifier="s2" title="Inner" visible="true" required="1"><qti-assessment-item-ref identifier="again" href="items/item3.xml"/></qti-assessment-section>',
+          section: '<qti-selection select="1"/>',
+        },
+      ]),
+    ),
+    over: "package",
+  },
   // Stimulus ref key (§7.6.2): a second stimulus ref of the item's identifier, beside the first.
   "Stimulus ref key": {
     law: "Stimulus ref key",
@@ -315,23 +344,101 @@ export const testMutations = {
     ),
     over: "package",
   },
-  // Test structure (spec reading 1's stated limit): a test document listed beside the bank,
-  // placing an item of the package under its own identifier.
-  "Test structure": {
-    law: "Test structure",
-    mutate:
-      ({ entries }) =>
-      (source) => {
-        const member = source.draw(element(members));
-
-        return listed(entries, {
-          dependency: `${member.identifier}-res`,
-          identifier: "test-res",
-          path: "test.xml",
-          text: testOf(member),
-          type: "imsqti_test_xmlv3p0",
-        });
-      },
+  // Template default target (§5.152.1, A37): a template default names a name its item declares no
+  // template of.
+  "Template default target": {
+    law: "Template default target",
+    mutate: withTest(
+      eachEdit(["NOPE", "SCORE"], (template) => ({
+        item1: `<qti-template-default template-identifier="${template}"><qti-base-value base-type="integer">1</qti-base-value></qti-template-default>`,
+      })),
+    ),
+    over: "package",
+  },
+  // Test name key (reading 86): the test places the bank by a section ref, whose item refs share
+  // the test's own item refs' identifiers.
+  "Test name key": {
+    law: "Test name key",
+    mutate: withTest(
+      oneEdit([
+        { parts: '<qti-assessment-section-ref identifier="placed" href="section.xml"/>' },
+        { section: '<qti-assessment-section-ref identifier="placed" href="section.xml"/>' },
+      ]),
+    ),
+    over: "package",
+  },
+  // Variable mapping source (§7.48, A34): a mapping maps a name its item declares no outcome of.
+  "Variable mapping source": {
+    law: "Variable mapping source",
+    mutate: withTest(
+      eachEdit(["NOPE", "SHOWN"], (source) => ({
+        item1: `<qti-variable-mapping source-identifier="${source}" target-identifier="MAPPED"/>`,
+      })),
+    ),
+    over: "package",
+  },
+  // Variable mapping target (§7.48, readings 97 and 110): a mapping targets a session variable,
+  // another variable of its item, or another mapping's target.
+  "Variable mapping target": {
+    law: "Variable mapping target",
+    mutate: withTest(
+      oneEdit([
+        {
+          item1:
+            '<qti-variable-mapping source-identifier="SCORE" target-identifier="numAttempts"/>',
+        },
+        { item1: '<qti-variable-mapping source-identifier="SCORE" target-identifier="COUNT"/>' },
+        {
+          item1:
+            '<qti-variable-mapping source-identifier="SCORE" target-identifier="MAPPED"/><qti-variable-mapping source-identifier="GRADE" target-identifier="MAPPED"/>',
+        },
+      ]),
+    ),
+    over: "package",
+  },
+  // Weight key (§7.50.1): two weights of one item ref share an identifier.
+  "Weight key": {
+    law: "Weight key",
+    mutate: withTest(
+      eachEdit(["W", " W "], (second) => ({
+        item1: `<qti-weight identifier="W" value="2"/><qti-weight identifier="${second}" value="3"/>`,
+      })),
+    ),
+    over: "package",
+  },
+  // Weighted base (§7.39.5, reading 167): a weighted test variables writes a base type other than
+  // float.
+  "Weighted base": {
+    law: "Weighted base",
+    mutate: withTest(
+      oneEdit([
+        {
+          processing:
+            '<qti-set-outcome-value identifier="COUNTED"><qti-sum><qti-test-variables variable-identifier="COUNT" weight-identifier="W" base-type="integer"/></qti-sum></qti-set-outcome-value>',
+        },
+      ]),
+    ),
+    over: "package",
+  },
+  // Weighted variable (§7.47.2): a weighted variable reads the test's own variable, or a part's
+  // duration, through no item ref.
+  // Each read is set into an outcome of its own type, so no Set type stands ahead: the test's float
+  // TOTAL, and a part's duration, the test's duration built-in (spec reading 167), into a duration.
+  "Weighted variable": {
+    law: "Weighted variable",
+    mutate: withTest(
+      eachEdit(
+        [
+          { identifier: "TOTAL", into: "TOTAL" },
+          { identifier: "part1.duration", into: "SPENT" },
+        ],
+        ({ identifier, into }) => ({
+          declarations:
+            '<qti-outcome-declaration identifier="SPENT" cardinality="single" base-type="duration"/>',
+          processing: `<qti-set-outcome-value identifier="${into}"><qti-variable identifier="${identifier}" weight-identifier="W"/></qti-set-outcome-value>`,
+        }),
+      ),
+    ),
     over: "package",
   },
 } as const satisfies Readonly<Record<string, Mutation>>;

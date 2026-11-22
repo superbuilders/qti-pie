@@ -1,8 +1,8 @@
 /**
  * Every law of the catalog (`lawTable` of `#pantry/vocab/laws.ts`) is stated somewhere: by a module
- * that names its statements (`namedLaws`), by a level an install stacks over `Qti` (the
- * package-media level's `mediaLawsByName` of `#pantry/qti/media.ts`, the LOM level's
- * `lomLawsByName` of `#pantry/qti/lom.ts`), by a law the importer writes out
+ * that names its statements (`namedLaws`), by a level an install stacks over `Qti` (the LOM
+ * level's `lomLawsByName` of `#pantry/qti/lom.ts`; the package-media level states none), by a law
+ * the importer writes out
  * (`statedLaws`: primary keys, patterns and generated fields, among them the stated limits'
  * bounds), by a part of a statement the oracle states in parts (`statedInParts`), or by a statement
  * grizzle gives its own structure, listed below with why. A law the catalog names that none of
@@ -13,7 +13,6 @@ import { assert, describe, it } from "@effect/vitest";
 import { lawNames } from "#pantry/import/refusal.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
 import { lomLawsByName } from "#pantry/qti/lom.ts";
-import { mediaLawsByName } from "#pantry/qti/media.ts";
 import { statedInParts } from "#pantry/test/oracle-laws.ts";
 import { namedLaws, statedLaws } from "#pantry/test/law-namer.ts";
 
@@ -26,6 +25,8 @@ import { namedLaws, statedLaws } from "#pantry/test/law-namer.ts";
  * every one is a row of the table that a module names or the importer writes, so it is stated.
  */
 const structurallyStated = {
+  "AL4 open names":
+    "`Attribute.name` is `closedId(AttributeName, { except: openClasses })` and `OpenAttribute.class` is `closedId(AttributeName, { only: openClasses })`: each column's subset CHECK holds every stored row to it, and grizzle's codec refuses any other handle before SQL",
   "N1 one document node":
     'the tree statement\'s root pin (`nodeTree`, `root: "document"`) admits one document node per document and no other root',
   "N2 mirrors":
@@ -55,7 +56,7 @@ const unstated = (stated: ReadonlySet<string>): readonly LawName[] =>
  */
 const statedByModules = (): ReadonlySet<string> =>
   new Set([
-    ...[...namedLaws, mediaLawsByName, lomLawsByName].flatMap((byName) =>
+    ...[...namedLaws, lomLawsByName].flatMap((byName) =>
       Object.entries(byName).flatMap(([name, statements]) => (statements.length > 0 ? [name] : [])),
     ),
     ...statedLaws().map(([, name]) => name),

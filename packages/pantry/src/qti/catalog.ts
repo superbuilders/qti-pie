@@ -40,8 +40,8 @@
  *
  * No row here copies a card's `support`, an entry's `default` or a reference's token: each is its
  * attribute's `value` or its `Idref` piece, selected by the queries of
- * `#pantry/qti/overlay-queries/catalog.ts` (C18).
- * Every copied text that takes part in a cross-row equality is `keyText`
+ * `#pantry/qti/overlay-queries/catalog.ts` (C18). Every copied text that takes part in a cross-row
+ * equality is of any length, a key, a containment's target and a lookup holding it by its image
  * (`#pantry/qti/limits.ts`). Every check is named by its oracle law (`#pantry/test/oracle.ts`
  * `LawName`) with spaces written as underscores; the overlays' agreement with what the tree holds
  * is "E1 derived" (rule `derived`).
@@ -51,7 +51,8 @@
  */
 import { check, contained, key, natural, on, relation } from "@bjornpagen/grizzle";
 import { attributesOf } from "#pantry/qti/attributes.ts";
-import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { anyText } from "#pantry/grammar/install.ts";
 
 /**
  * One `qti-catalog` that carries an ID, keyed by its element: its `id`, the ID's value as `IdValue`
@@ -61,7 +62,7 @@ import { EntryPath, keyText, PackageName } from "#pantry/qti/limits.ts";
 export const CatalogId = relation(
   "CatalogId",
   {
-    id: keyText,
+    id: anyText,
     owner: natural,
     package: PackageName,
     path: EntryPath,
@@ -79,7 +80,7 @@ export const AssembledCatalog = relation(
   "AssembledCatalog",
   {
     assembly: EntryPath,
-    id: keyText,
+    id: anyText,
     owner: natural,
     package: PackageName,
     path: EntryPath,

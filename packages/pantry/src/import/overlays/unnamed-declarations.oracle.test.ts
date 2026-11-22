@@ -19,6 +19,7 @@
  * identifier each of {@link identifiers}, its mapping each of {@link mappings}, alone or beside an
  * outcome declaration that writes the same identifier: 7 × 5 × 2 = 70 packages, exhausted.
  */
+import { keyTextBytes } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";
@@ -38,7 +39,6 @@ import {
 } from "#pantry/test/gen/genetic/judge.ts";
 import type { Signature } from "#pantry/test/gen/genetic/judge.ts";
 import { fixed, known } from "#pantry/test/gen/genetic/known.ts";
-import { keyTextBytes } from "#pantry/qti/limits.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 
@@ -123,16 +123,18 @@ const identifiers: readonly { readonly attribute: string; readonly naming: Namin
 ];
 
 /**
- * A key past the key-text bound: one more ASCII character than `keyText` holds.
+ * A map key one byte past what a B-tree entry holds as itself, grizzle's `keyTextBytes` beside no
+ * other field: a key holds it by its image. A map key is a `matchedText`, whose bound,
+ * PostgreSQL's regex limit (`matchedTextBytes`, a quarter of a gigabyte), no drawn key approaches.
  */
-const longKey = "q".repeat(keyTextBytes + 1);
+const longKey = "q".repeat(keyTextBytes([]) + 1);
 
 /**
  * The mappings the declaration holds, each with its cardinality and base type and what the law
  * oracle judges of it: one lawful key; a key written twice, lawful too (spec reading 165); a key
- * past the key-text
- * bound ("Key text bound"); a key outside its base type ("Typed attribute value", beside its
- * correct response's "Typed value"); and a record's mapping ("MappableBaseType").
+ * past every B-tree entry, lawful too ({@link longKey}); a key outside its base type ("Typed
+ * attribute value", beside its correct response's "Typed value"); and a record's mapping
+ * ("MappableBaseType").
  */
 const mappings: readonly {
   readonly keys: readonly string[];
@@ -143,7 +145,7 @@ const mappings: readonly {
   { keys: ["A", "A"], name: "repeated", typing: ' cardinality="single" base-type="identifier"' },
   {
     keys: [longKey],
-    name: "past the bound",
+    name: "past every B-tree entry",
     typing: ' cardinality="single" base-type="identifier"',
   },
   {
@@ -214,7 +216,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
 
             return yield* exhaust(
               {
-                box: "an item's response declaration with a correct response and a mapping, its identifier unwritten, no NCName or a name, its mapping lawful, repeating a key, past the key-text bound, outside its base type or a record's, alone or beside an outcome of its identifier",
+                box: "an item's response declaration with a correct response and a mapping, its identifier unwritten, no NCName or a name, its mapping lawful, repeating a key, past every B-tree entry, outside its base type or a record's, alone or beside an outcome of its identifier",
                 caseHang: Duration.minutes(5),
                 concurrency: 1,
                 coverage: requiredInSpace<Naming | "beside its twin">([

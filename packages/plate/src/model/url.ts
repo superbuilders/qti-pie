@@ -12,6 +12,13 @@
  * whiteSpace facet reads it ({@link urlValueOf}), so the parser reads QTI's value, never the
  * lexical form.
  *
+ * Plate fetches nothing the host did not vet: a remote URL is kept only where it is a link, which
+ * the candidate follows and plate never fetches, and is dropped in every context plate would fetch
+ * it in (an image, a sound, a video, a nested document, a module), and a package file the host
+ * withholds (`assets`, {@link Asset}) is written as no address. Both are unsupported features the
+ * item renders without, as QTI 3.0 Conformance §3 asks of an application ("the applications must
+ * be able to ignore or remove the unsupported data"), never a refusal of the item.
+ *
  * A package path is resolved against the item's own location, the path from the package root the
  * host named the item by, as RFC 3986 section 5.2 resolves a relative reference: `media/a.png` in
  * `items/q1.xml` names the file `items/media/a.png`, and `../images/a.png` names `images/a.png`
@@ -36,16 +43,18 @@ import type { SourceAttribute, SourceElement } from "#plate/document/source.ts";
  * How a URL attribute is used, which decides what it admits.
  *
  * - `link`: navigated to or cited (`a@href`, `img@longdesc`, `cite`). Package paths, `http`, `https`
- *   and same-document fragments.
- * - `resource`: fetched as passive media (`src`, `poster`). Package paths, `http` and `https`.
+ *   and same-document fragments: the only context that keeps a remote URL, since a link is followed
+ *   by the candidate and fetched by no player.
+ * - `resource`: fetched as passive media (`src`, `poster`). Package paths only.
  * - `embed`: a nested document (`object@data`, and a stimulus ref's `href`). Package paths only.
  * - `srcset`: a list of image candidates, each a `resource`.
  * - `package`: a location the host loads as a script or a configuration, which the page never fetches
  *   itself (a PCI's module locations). A package path, resolved against the package root rather
  *   than the item's directory ({@link baseLocationOf}) and addressed through the configuration's
- *   `assets` as a `resource` is, or an `https` URL; `http` and every other scheme is dropped with
- *   {@link schemeFeature}, since the page serving a module over `https` cannot load it over
- *   `http`.
+ *   `assets` as a `resource` is. A remote location is dropped, so the module loads from its package
+ *   fallback, as the implementation guide reads a package-only context (informative, §3.7.12.1: "a
+ *   high stakes secure browser context where access is permitted only to files included in the QTI
+ *   content package").
  */
 export type UrlContext = "embed" | "link" | "package" | "resource" | "srcset";
 
@@ -249,7 +258,7 @@ export const urlValueOf = (
 /**
  * The feature key of a URL that resolves outside the package: a host-absolute path (`/x`), a path
  * that climbs above the package root (`../x` in an item at the root), a network path (`//host`,
- * `\\host`), or a remote URL where the context admits only package paths.
+ * `\\host`), or a remote URL in a context plate would fetch it in, every context but a link.
  */
 const outsidePackageFeature = "url-outside-package";
 
@@ -314,11 +323,12 @@ interface FragmentUrl {
 }
 
 /**
- * One image candidate of a kept `srcset`: its URL and its width, density or height descriptors.
+ * One image candidate of a kept `srcset`: its URL, a package path, and its width, density or height
+ * descriptors.
  */
 interface SrcsetCandidate {
   readonly descriptors: readonly string[];
-  readonly url: PackageUrl | RemoteUrl;
+  readonly url: PackageUrl;
 }
 
 /**
@@ -506,8 +516,8 @@ const isBlank = (value: string): boolean => {
 };
 
 /**
- * Classify one fetched URL: a package path, an absolute `http` or `https` URL where remote URLs
- * are admitted, or dropped.
+ * Classify one URL as a link reads it: a package path, an absolute `http` or `https` URL, or
+ * dropped.
  *
  * `https:evil.com/x` resolves against the `https` base as the package path `evil.com/x`, so it
  * is kept and written as that path, never as `https://evil.com/x`. A network path (`//host`) is
@@ -517,13 +527,9 @@ const isBlank = (value: string): boolean => {
  * its fallback content.
  *
  * @param value The attribute value as written.
- * @param remoteAdmitted Whether the context keeps remote URLs.
  * @returns The classification.
  */
-const classifyFetched = (
-  value: string,
-  remoteAdmitted: boolean,
-): DroppedUrl | PackageUrl | RemoteUrl => {
+const classifyLinked = (value: string): DroppedUrl | PackageUrl | RemoteUrl => {
   const url = isBlank(value) ? null : URL.parse(value, packageBase);
   if (url === null) {
     return dropped(invalidUrlFeature);
@@ -534,13 +540,27 @@ const classifyFetched = (
   }
 
   if (URL.parse(value)?.href === url.href) {
-    return remoteAdmitted ? { href: url.href, kind: "remote" } : dropped(outsidePackageFeature);
+    return { href: url.href, kind: "remote" };
   }
 
   return Option.match(relativePathOf(value), {
     onNone: () => dropped(outsidePackageFeature),
     onSome: packageUrl,
   });
+};
+
+/**
+ * Classify one URL plate would fetch: a package path, or dropped. A remote URL, which
+ * {@link classifyLinked} keeps for a link, is dropped as {@link outsidePackageFeature}: plate
+ * fetches no file from outside the package, whose files alone the host vets and addresses.
+ *
+ * @param value The attribute value as written.
+ * @returns The classification.
+ */
+const classifyFetched = (value: string): DroppedUrl | PackageUrl => {
+  const url = classifyLinked(value);
+
+  return url.kind === "remote" ? dropped(outsidePackageFeature) : url;
 };
 
 /**
@@ -741,6 +761,38 @@ const validDescriptors = (descriptors: readonly string[]): boolean => {
 export type PackagePath = Brand.Branded<string, "PackagePath">;
 
 /**
+ * What the host gives one file of the package an item names, in the configuration's `assets`: the
+ * address it serves the file at, or that it withholds it. A withheld file is one the host holds
+ * and serves no player (a type its policy does not serve), so a URL that names it is written as
+ * none and the item renders without it, QTI 3.0 Conformance §3's "ignore or remove the
+ * unsupported data". A file `assets` holds neither way is no file the host knows: the map and the
+ * package disagree, so `<Item>` refuses the item (`AssetMissing`).
+ */
+export type Asset =
+  | { readonly address: string; readonly kind: "served" }
+  | { readonly kind: "withheld" };
+
+/**
+ * Why {@link addressUrl} writes no address for a package path: `assets` holds no entry for the
+ * file it names (`missing`, a defect of the host's map), or the host withholds the file
+ * (`withheld`, rendered without). `path` is the file's path from the package root.
+ */
+export interface Unaddressed {
+  readonly kind: "missing" | "withheld";
+  readonly path: string;
+}
+
+/**
+ * Give the path of the file an unaddressed URL names when `assets` holds no entry for it, the one
+ * failure `<Item>` refuses an item for; none for a file the host withholds.
+ *
+ * @param unaddressed Why the URL has no address.
+ * @returns The file's path, none when the host withholds it.
+ */
+export const missingPathOf = (unaddressed: Unaddressed): Option.Option<string> =>
+  unaddressed.kind === "missing" ? Option.some(unaddressed.path) : Option.none();
+
+/**
  * Report whether a text is a {@link PackagePath}: not empty, neither starting with `/` (a path from
  * a host's root) nor ending with one (a directory, which names no file), and holding no `.` or
  * `..` segment. An empty segment between two others is a segment of its name, so `media//a.png`
@@ -875,7 +927,8 @@ export const formatUrl = (url: KeptUrl): string => {
  * Write a kept URL as the page's attribute value: a package path as the address `assets` gives the
  * file it names ({@link assetReferenceOf}), followed by its query and fragment; a remote URL as its
  * href; a fragment as `#<fragment>`, which the server shell rewrites to its scoped id itself; and a
- * `srcset` candidate by candidate, each followed by its descriptors, joined by `, `.
+ * `srcset` candidate by candidate, each followed by its descriptors, joined by `, `, a candidate
+ * whose file the host withholds left out.
  *
  * No package path is ever written relative to the page: a file `assets` gives no address fails
  * the write. The configuration holds every address to a URL with no ASCII whitespace that neither
@@ -883,16 +936,17 @@ export const formatUrl = (url: KeptUrl): string => {
  *
  * @param url The kept value.
  * @param location The item's location, its path from the package root.
- * @param assets The address of each file, by its path from the package root.
- * @returns The attribute value, or the path of the first file a package path names that `assets`
- *   gives no address. A package path that climbs above the package root, which `checkAdmitted`
- *   drops, fails with the item's directory and then the path as written (`items/../../a.png`).
+ * @param assets What the host gives each file, by its path from the package root ({@link Asset}).
+ * @returns The attribute value, or why a package path it names has none ({@link Unaddressed}): the
+ *   first file `assets` holds no entry for, or else, where every file it names is withheld, the
+ *   first of them. A package path that climbs above the package root, which `checkAdmitted` drops,
+ *   is missing, with the item's directory and then the path as written (`items/../../a.png`).
  */
 export const addressUrl = (
   url: KeptUrl,
   location: string,
-  assets: ReadonlyMap<PackagePath, string>,
-): Result.Result<string, string> => {
+  assets: ReadonlyMap<PackagePath, Asset>,
+): Result.Result<string, Unaddressed> => {
   switch (url.kind) {
     case "fragment": {
       return Result.succeed(`#${url.fragment}`);
@@ -901,11 +955,20 @@ export const addressUrl = (
     case "package": {
       return Option.match(assetReferenceOf(location, url), {
         onNone: () =>
-          Result.fail([...location.split("/").slice(0, -1), withoutQuery(url.path)].join("/")),
+          Result.fail({
+            kind: "missing",
+            path: [...location.split("/").slice(0, -1), withoutQuery(url.path)].join("/"),
+          }),
         onSome: ({ params, path }) => {
-          const address = isPackagePath(path) ? assets.get(path) : undefined;
+          const asset = isPackagePath(path) ? assets.get(path) : undefined;
 
-          return address === undefined ? Result.fail(path) : Result.succeed(`${address}${params}`);
+          if (asset === undefined) {
+            return Result.fail({ kind: "missing", path });
+          }
+
+          return asset.kind === "served"
+            ? Result.succeed(`${asset.address}${params}`)
+            : Result.fail({ kind: "withheld", path });
         },
       });
     }
@@ -915,16 +978,24 @@ export const addressUrl = (
     }
 
     case "srcset": {
-      return Result.map(
-        Result.all(
-          url.candidates.map((candidate) =>
-            Result.map(addressUrl(candidate.url, location, assets), (written) =>
-              [written, ...candidate.descriptors].join(" "),
-            ),
-          ),
+      const written = url.candidates.map((candidate) =>
+        Result.map(addressUrl(candidate.url, location, assets), (address) =>
+          [address, ...candidate.descriptors].join(" "),
         ),
-        (candidates) => candidates.join(", "),
       );
+      const failures = written.flatMap((result) => Result.getFailure(result).pipe(Option.toArray));
+      const missing = failures.find((failure) => failure.kind === "missing");
+      const kept = written.flatMap((result) => Result.getSuccess(result).pipe(Option.toArray));
+
+      const [withheld] = failures;
+
+      if (missing !== undefined) {
+        return Result.fail(missing);
+      }
+
+      return kept.length === 0 && withheld !== undefined
+        ? Result.fail(withheld)
+        : Result.succeed(kept.join(", "));
     }
 
     default: {
@@ -954,7 +1025,7 @@ const splitsBack = (written: string): boolean => !written.startsWith(",") && !wr
 const classifySrcset = (value: string): DroppedUrl | SrcsetUrl => {
   const candidates: SrcsetCandidate[] = [];
   for (const split of splitSrcset(value)) {
-    const url = classifyFetched(split.url, true);
+    const url = classifyFetched(split.url);
     if (url.kind === "dropped") {
       return url;
     }
@@ -975,14 +1046,14 @@ const classifySrcset = (value: string): DroppedUrl | SrcsetUrl => {
  * Classify a URL attribute value in its context, wherever the item sits in its package.
  *
  * The value is resolved against a sentinel directory standing for the item's own directory. It is
- * kept when it is a package path (a relative path, which may climb above that directory), an
- * absolute `http` or `https` URL where the context admits remote URLs (`https` alone in the
- * package context), or a same-document fragment in the link context. Everything else is dropped
- * with its feature key: {@link schemeFeature} for any other scheme (`javascript:`, `data:`,
- * `mailto:`, `tel:`, and `http:` in the package context), {@link outsidePackageFeature} for `/x`,
- * `//host` and `\\host`, and {@link invalidUrlFeature} for a value the parser refuses and for a
- * blank one (empty, or only spaces and control characters). Whether a climb stays inside the
- * package depends on the item's location, which {@link classifyUrlAt} reads.
+ * kept when it is a package path (a relative path, which may climb above that directory), and in
+ * the link context alone an absolute `http` or `https` URL or a same-document fragment. Everything
+ * else is dropped with its feature key: {@link schemeFeature} for any other scheme (`javascript:`,
+ * `data:`, `mailto:`, `tel:`), {@link outsidePackageFeature} for `/x`, `//host`, `\\host` and an
+ * `http` or `https` URL in a context plate would fetch it in, and {@link invalidUrlFeature} for a
+ * value the parser refuses and for a blank one (empty, or only spaces and control characters).
+ * Whether a climb stays inside the package depends on the item's location, which
+ * {@link classifyUrlAt} reads.
  *
  * Classifying a kept value's {@link formatUrl} form gives the same classification.
  *
@@ -994,28 +1065,19 @@ const classifySrcset = (value: string): DroppedUrl | SrcsetUrl => {
 export const classifyUrl = (context: UrlContext, value: string): ClassifiedUrl => {
   switch (context) {
     case "embed": {
-      return classifyFetched(value, false);
+      return classifyFetched(value);
     }
 
     case "link": {
       return Option.match(fragmentOf(value), {
-        onNone: () => classifyFetched(value, true),
+        onNone: () => classifyLinked(value),
         onSome: (fragment): FragmentUrl => ({ fragment, kind: "fragment" }),
       });
     }
 
-    case "package": {
-      const url = classifyFetched(value, true);
-
-      // A remote URL's href is its parsed form, so its scheme is lower case: `http:` names the one
-      // remote scheme the fetched rule keeps and this context does not.
-      return url.kind === "remote" && url.href.startsWith("http:")
-        ? dropped(schemeFeature("http"))
-        : url;
-    }
-
+    case "package":
     case "resource": {
-      return classifyFetched(value, true);
+      return classifyFetched(value);
     }
 
     case "srcset": {

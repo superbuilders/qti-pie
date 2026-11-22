@@ -54,6 +54,21 @@ const takenOut: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Read a parent's wildcard as the spec readings restate it: spec reading 61 reads `qti-ordering`'s
+ * extension slot as `##any`, where the XSD writes `##other`, since the information model says its
+ * child tags "may be new tags and reused QTI ASI tags" (§5.98.3; `facets.ts`, `orderingModel`).
+ *
+ * @param parent - The wildcard's parent.
+ * @param wildcard - The wildcard as the XSD writes it.
+ * @returns The wildcard the grammar states.
+ */
+const restatedWildcard = (
+  parent: string,
+  wildcard: ReturnType<typeof wildcardsOf>[number],
+): ReturnType<typeof wildcardsOf>[number] =>
+  parent === "qti-ordering" ? { ...wildcard, namespace: "##any" } : wildcard;
+
+/**
  * The composed grammar of production, failing the test that reads it when a generator refuses.
  */
 const grammar = Effect.fromResult(composed());
@@ -154,7 +169,9 @@ describe("Admission against the XSD", () => {
                   ),
                 ),
             );
-            const wildcards = particles.flatMap(wildcardsOf);
+            const wildcards = particles
+              .flatMap(wildcardsOf)
+              .map((wildcard) => restatedWildcard(parent, wildcard));
             const admitted = admission
               .filter((row) => row.parent === parent)
               .map(({ child }) => child);
@@ -228,8 +245,9 @@ describe("Admission against the XSD", () => {
       // foreign; any other name is undeclared there. A parent read from several roots finds a
       // declaration any of their sets holds, as reading 81's limit says. The document node
       // declares the roots its model (R5) names, spec reading 44 takes `voice` out of
-      // `ssml:token` and `ssml:w`, and spec reading 22 takes `qti-template-constraint` out of the
-      // template branches (`takenOut`). The box is every parent the walks reach, by every
+      // `ssml:token` and `ssml:w`, spec reading 22 takes `qti-template-constraint` out of the
+      // template branches (`takenOut`), and spec reading 61 reads `qti-ordering`'s wildcard as
+      // `##any` (`restatedWildcard`). The box is every parent the walks reach, by every
       // element name.
       Effect.gen(function* locality() {
         const { kinds } = yield* grammar;
@@ -288,7 +306,9 @@ describe("Admission against the XSD", () => {
                 }
               }
 
-              for (const wildcard of wildcardsOf(particle)) {
+              for (const wildcard of wildcardsOf(particle).map((held) =>
+                restatedWildcard(parent, held),
+              )) {
                 for (const name of names) {
                   const key = `{${name.namespace}}${name.local}`;
                   if (

@@ -26,7 +26,7 @@ import { noSupports } from "#plate/supports.ts";
  * and the candidate's view.
  */
 export const shownToCandidate: RedactOptions = {
-  configuration: Effect.runSync(configure({ seed: "", validateResponses: false })),
+  configuration: Effect.runSync(configure({ seed: "" })),
   supports: noSupports,
   view: defaultView,
 };

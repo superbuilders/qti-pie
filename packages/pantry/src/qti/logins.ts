@@ -66,11 +66,12 @@ const deletingEvery = <C>(
  * relations' names: {@link removeWrite}'s deletes. A tree, `Node`, is deleted whole by its root
  * field, and every other relation by its rows; a delete of a family's owner removes every row
  * nested under it, through every family, so no family's member is listed: `Instance`, a tree whose
- * nodes are the members of `TestDocument.instances`, goes with its `TestDocument`. `Package` is not
- * listed: a removal names it by its key.
+ * nodes are the members of `AssembledDocument.instances`, goes with its `AssembledDocument`.
+ * `Package` is not listed: a removal names it by its key.
  */
 const packageRows = {
   AssembledCatalog: byPackage,
+  AssembledDocument: byPackage,
   AttributeEntity: byPackage,
   BoundVariable: byPackage,
   CandidatePath: byPackage,
@@ -103,11 +104,11 @@ const packageRows = {
   ItemRefHref: byPackage,
   LabelUse: byPackage,
   LeastCount: byPackage,
+  LinkReading: byPackage,
   Literal: byPackage,
   LiteralTyped: byPackage,
   LookupValue: byPackage,
   MapKey: byPackage,
-  MasteryValue: byPackage,
   MathAction: byPackage,
   MathAlignScope: byPackage,
   MathCell: byPackage,
@@ -118,13 +119,14 @@ const packageRows = {
   Named: byPackage,
   Namespace: byPackage,
   Node: byPackage,
-  NormalMaximum: byPackage,
-  NormalMinimum: byPackage,
+  NumberedReading: byPackage,
   OpenAttributeEntity: byPackage,
   OpenElementName: byPackage,
   OpenElementType: byPackage,
   Pi: byPackage,
+  PlacedExpression: byPackage,
   PlacedMathRank: byPackage,
+  PlacedVariableRef: byPackage,
   PrintedVariableRef: byPackage,
   Processing: byPackage,
   Reference: byPackage,
@@ -146,13 +148,12 @@ const packageRows = {
   TableHeader: byPackage,
   TableScope: byPackage,
   TemplateRef: byPackage,
-  TestDocument: byPackage,
   TextReference: byPackage,
   TextReferencePath: byPackage,
   Tolerance: byPackage,
   UsageValue: byPackage,
   UsageValueBaseType: byPackage,
-  VariableRefTable: byPackage,
+  VariableRef: byPackage,
   XmlDecl: byPackage,
 } as const;
 

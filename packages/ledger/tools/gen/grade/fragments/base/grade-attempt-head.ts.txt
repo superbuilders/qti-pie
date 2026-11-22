@@ -1,0 +1,10 @@
+] as const
+
+/**
+ * The response processing of every attempt of the sitting its write records, in a stratum after the one that records
+ * them: each attempt's completion status and every outcome after the machine's run, each in the sidecar its
+ * declaration names. completionStatus has its one home in ProcessedAttempt and no sidecar row. An attempt already
+ * processed is not run again.
+ */
+export const gradeAttemptOf = (delivery: DeliveryLevel) => {
+	const fields = delivery.relations

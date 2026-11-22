@@ -1,35 +1,30 @@
 /**
  * The expression and processing overlays' rows (plan §1.7 O4, §C's `rowsOf`): from one document's
- * view (`DocumentView` of `#pantry/import/fold.ts`), the rows of every relation
- * `#pantry/qti/expressions.ts` declares, each relation's rows a keyed set.
+ * view (`DocumentView` of `#pantry/import/fold.ts`), the rows of every document relation
+ * `#pantry/qti/expressions.ts` declares, each relation's rows a keyed set; and, over a whole
+ * package, each placement's rows (spec reading 117, {@link placedRowsOf}).
  *
- * The rows restate what the tree says and nothing else: each element's key, each
- * processing element's language as its root opens it, each reference as its attribute spells it
- * and as the document's declarations resolve it, and each expression's type, derived from its
- * operands, its attributes and its variable by the same rules the laws state. A derived value is
- * written as the rule gives it even where the content breaks a law, so the database refuses the
- * content under the law it breaks (`expressionLaws`); a row this builder gets wrong is refused,
- * never accepted.
+ * The rows restate what the tree says and nothing else: each element's key, each processing
+ * element's language as its root opens it, and each reference as its attribute spells it; and,
+ * under each placement, each reference as the placement's assembly resolves it and each
+ * expression's type, derived from its operands, its attributes and its variable there by the same
+ * rules the laws state. A derived value is written as the rule gives it even where the content
+ * breaks a law, so the database refuses the content under the law it breaks (`expressionLaws`); a
+ * row this builder gets wrong is refused, never accepted.
  */
 import type { Addition } from "@bjornpagen/grizzle";
+import { isNcName } from "@bjornpagen/grizzle-text/regex/xml";
 import { Array as Arr, Option } from "effect";
-import { integerMathOperators, tableReaders, valueBases } from "#pantry/grammar/expression.ts";
-import type {
-  Language,
-  ReferencedTable,
-  ValueBase,
-  ValueCardinality,
-} from "#pantry/grammar/expression.ts";
-import { isNcName } from "#pantry/grammar/domains.ts";
+import { integerMathOperators, valueBases } from "#pantry/grammar/expression.ts";
+import type { Language, ValueBase, ValueCardinality } from "#pantry/grammar/expression.ts";
 import { builtInBaseTypes, BuiltInVariable, nonElementKinds } from "#pantry/grammar/install.ts";
 import type { BaseType, Cardinality } from "#pantry/grammar/install.ts";
 import { keyTextOf } from "#pantry/import/key-text.ts";
 import { spelledBaseTypeOf, typedDeclarationOf } from "#pantry/import/overlays/declarations.ts";
-import type { DocumentName } from "#pantry/import/overlays/declarations.ts";
 import { attributeValueOf, namedBy, valueAt } from "#pantry/import/names.ts";
 import { piecesOf } from "#pantry/import/pieces.ts";
 import { charactersIn } from "#pantry/import/overlays/characters.ts";
-import type { TypedHrefRow } from "#pantry/import/overlays/package.ts";
+import type { ReferenceRows, TypedHrefRow } from "#pantry/import/overlays/package.ts";
 import { itemRefPathsOf } from "#pantry/import/overlays/tests.ts";
 import type { InstanceMember, InstanceRoot, TestIds } from "#pantry/import/overlays/tests.ts";
 import { governorOf, lexicalOf } from "#pantry/import/fold.ts";
@@ -41,11 +36,12 @@ import type {
   Expression,
   Literal,
   LiteralTyped,
+  PlacedExpression,
   PlacedVariableRef,
   Processing,
   VariableRef,
-  VariableRefTable,
 } from "#pantry/qti/expressions.ts";
+import { publishedTemplates, urisOf } from "#pantry/qti/templates.ts";
 import type { ItemRefDocument, ItemRefHref } from "#pantry/qti/tests.ts";
 import {
   expressionKinds,
@@ -56,7 +52,12 @@ import {
   valueBaseOf,
   valueCardinalityOf,
 } from "#pantry/vocab/terms/expression-types.ts";
-import { itemKind, itemResourceType, linkResourceTypes } from "#pantry/vocab/terms/tests.ts";
+import {
+  itemKind,
+  itemResourceType,
+  linkResourceTypes,
+  testKind,
+} from "#pantry/vocab/terms/tests.ts";
 
 /**
  * A document's expression and processing rows, one keyed set per relation: each map from the text
@@ -70,13 +71,12 @@ export interface ExpressionRows {
   readonly LiteralTyped: ReadonlyMap<string, Addition<typeof LiteralTyped>>;
   readonly Processing: ReadonlyMap<string, Addition<typeof Processing>>;
   readonly VariableRef: ReadonlyMap<string, Addition<typeof VariableRef>>;
-  readonly VariableRefTable: ReadonlyMap<string, Addition<typeof VariableRefTable>>;
 }
 
 /**
  * A type as the laws give it: a base type and a cardinality.
  */
-interface Typed {
+export interface Typed {
   readonly baseType: ValueBase;
   readonly cardinality: ValueCardinality;
 }
@@ -113,26 +113,13 @@ const cardinalityOf = (
   });
 
 /**
- * A reference's element type as {@link unknownType} gives it, which `withTypes` fills once every
- * expression is typed, and which stays where its element is no expression: the null object
- * `VariableRef` holds in the fields its case leaves unread.
- */
-const unfilledTypes = {
-  elementBase: unknownType.baseType,
-  elementCardinality: unknownType.cardinality,
-} as const;
-
-/**
- * One declaration of the document as a reference resolves to it: its `start`, kind and codes, its
- * base type none where it has none, a record's or one that spells nothing (lane NIL's audit, B12),
- * and its cardinality none where it has none, unwritten or spelling nothing (spec reading 159).
+ * One declaration of the document as a reference resolves to it: its codes, its base type none
+ * where it has none, a record's or one that spells nothing (lane NIL's audit, B12), and its
+ * cardinality none where it has none, unwritten or spelling nothing (spec reading 159).
  */
 interface DeclarationEntry {
   readonly baseType: Option.Option<(typeof BaseType.handles)[number]>;
   readonly cardinality: Option.Option<(typeof Cardinality.handles)[number]>;
-  readonly kind: string;
-  readonly start: bigint;
-  readonly tables: ReadonlySet<string>;
 }
 
 /**
@@ -143,16 +130,6 @@ const declarationKinds: ReadonlySet<string> = new Set([
   "qti-outcome-declaration",
   "qti-response-declaration",
   "qti-template-declaration",
-]);
-
-/**
- * The tables a declaration may hold, which a map response or a lookup reads.
- */
-const tableKinds: ReadonlySet<string> = new Set([
-  "qti-area-mapping",
-  "qti-interpolation-table",
-  "qti-mapping",
-  "qti-match-table",
 ]);
 
 /**
@@ -298,40 +275,6 @@ const oneCardinalityOf = (types: readonly Typed[]): ValueCardinality =>
       onNonEmpty: ([only, ...rest]) => (rest.length === 0 ? only : unknownType.cardinality),
     },
   );
-
-/**
- * The tables each kind of reference reads, in the order it reads them (`tableReaders` of
- * `#pantry/grammar/expression.ts`, `TableReader`'s rows).
- */
-const tablesRead: ReadonlyMap<string, readonly ReferencedTable[]> = new Map(
-  [...Map.groupBy(tableReaders, ({ kind }) => kind)].map(([kind, rows]) => [
-    kind,
-    rows.map(({ table }) => table),
-  ]),
-);
-
-/**
- * Read the table a declared reference claims of its declaration (`VariableRefTable`): by its
- * `identifier`, the first table its kind reads that the declaration holds. A reference by another
- * attribute, of a kind that reads no table, or to a declaration that holds none of those its kind
- * reads claims none, and has no claim row, so `Mapped_response` or `Lookup_type` judges a map
- * response, a map response point or a lookup that claims none.
- *
- * @param kind - The reference's kind.
- * @param attribute - The attribute the reference is made by.
- * @param held - The tables its declaration holds.
- * @returns The table, or none.
- */
-const claimedTableOf = (
-  kind: string,
-  attribute: string,
-  held: ReadonlySet<string>,
-): Option.Option<ReferencedTable> =>
-  attribute === "identifier"
-    ? Option.flatMap(Option.fromNullishOr(tablesRead.get(kind)), (tables) =>
-        Arr.findFirst(tables, (table) => held.has(table)),
-      )
-    : Option.none();
 
 /**
  * The base type a numeric aggregate gives: `unknown` when an operand is unknown, `integer` when
@@ -517,7 +460,14 @@ const typeOf = (kind: string, inputs: TypeInputs): Typed => {
       return { baseType: oneOf(basesOf(later)), cardinality: oneCardinalityOf(later) };
     }
     case "declared": {
-      return typeIn(inputs.reference);
+      const read = typeIn(inputs.reference);
+
+      // A weighted variable's value is its variable's, "subject to the type promotion of weighted
+      // outcomes" (information model §7.47): "When applying a weight to the value of a variable
+      // with base-type integer the value is subject to type promotion and the result of the
+      // expression has base-type float" (§7.47.2). Only a `qti-variable` writes a weight among
+      // the kinds typed so.
+      return inputs.weighted && read.baseType === "integer" ? { ...read, baseType: "float" } : read;
     }
     case "attribute": {
       return {
@@ -655,23 +605,20 @@ const languagesOf = (rows: FlatRows<Composed>, tree: Tree): ((node: bigint) => L
 
 /**
  * The document's declarations by name: each that has a name (`typedDeclarationOf`), its
- * identifier naming something, whatever its cardinality and base type
- * spell (spec reading 159), the first of a repeated one (which `Declaration key` refuses), with
- * its codes, each none where it has none, and the tables it holds. A reference to a name whose
- * declaration has no cardinality resolves to it, and only a law over the cardinality reads none:
- * AL3 or the value domain refuses the declaration's attribute alone (spec reading 158). A
- * declaration whose identifier is unwritten or names nothing has no name, so no reference resolves
- * to it (spec reading 157).
+ * identifier naming something, whatever its cardinality and base type spell (spec reading 159),
+ * the first of a repeated one (which `Declaration key` refuses), with its codes, each none where it
+ * has none. A reference to a name whose declaration has no cardinality resolves to it, and only a
+ * law over the cardinality reads none: AL3 or the value domain refuses the declaration's attribute
+ * alone (spec reading 158). A declaration whose identifier is unwritten or names nothing has no
+ * name, so no reference resolves to it (spec reading 157).
  *
  * @param rows - The document's flat rows.
  * @param attributes - Each element's attributes.
- * @param childrenOf - Each node's children.
  * @returns The declarations.
  */
 const declarationsOf = (
   rows: FlatRows<Composed>,
   attributes: Document["attributes"],
-  childrenOf: Tree["childrenOf"],
 ): Document["declarations"] => {
   const declarations = new Map<string, DeclarationEntry>();
   for (const node of rows.nodes.filter(({ kind }) => declarationKinds.has(kind))) {
@@ -682,15 +629,7 @@ const declarationsOf = (
     });
     for (const name of Option.toArray(typed.name)) {
       if (!declarations.has(name)) {
-        declarations.set(name, {
-          baseType: typed.baseType,
-          cardinality: typed.cardinality,
-          kind: node.kind,
-          start: node.start,
-          tables: new Set(
-            childrenOf(node.start).flatMap(({ kind }) => (tableKinds.has(kind) ? [kind] : [])),
-          ),
-        });
+        declarations.set(name, { baseType: typed.baseType, cardinality: typed.cardinality });
       }
     }
   }
@@ -715,7 +654,7 @@ const documentOf = (view: DocumentView, place: Place): Document => {
     ...indexed,
     attributes,
     charsOf: charactersIn(rows),
-    declarations: declarationsOf(rows, attributes, indexed.childrenOf),
+    declarations: declarationsOf(rows, attributes),
     folds: view.folds,
     languageOf: languagesOf(rows, indexed),
     place,
@@ -763,33 +702,29 @@ const spelledBy = (
 };
 
 /**
- * Resolve a referenced name: to a declaration of the document, else to a built-in variable, else
- * to nothing, with the type each gives.
+ * The type a declaration gives the references that name it: its base type's and its cardinality's
+ * expression-typing codes, `unknown` for one it does not have.
  *
- * @param doc - The document.
- * @param name - The name.
- * @returns The resolution and the type.
+ * @param declared - The declaration.
+ * @returns The type.
  */
-const resolve = (doc: Document, name: string) => {
-  const declared = doc.declarations.get(name);
-  if (declared !== undefined) {
-    return {
-      resolution: "declared" as const,
-      type: {
-        baseType: baseOf(declared.baseType),
-        cardinality: cardinalityOf(declared.cardinality),
-      },
-    };
-  }
-
-  return Option.match(builtInOf(doc.rootKind, name), {
-    onNone: () => ({ resolution: "unresolved" as const, type: unknownType }),
-    onSome: (builtIn) => ({ resolution: "builtIn" as const, type: builtIn.type }),
-  });
-};
+const declaredTypeOf = (declared: DeclarationEntry): Typed => ({
+  baseType: baseOf(declared.baseType),
+  cardinality: cardinalityOf(declared.cardinality),
+});
 
 /**
- * Build one reference's row, its element's type to fill.
+ * The type a built-in variable of a root stands as, none for a name that is none of its built-ins.
+ *
+ * @param root - The root's kind.
+ * @param name - The name.
+ * @returns The type.
+ */
+export const builtInTypeOf = (root: string, name: string): Typed | undefined =>
+  Option.getOrUndefined(Option.map(builtInOf(root, name), ({ type }) => type));
+
+/**
+ * Build one reference's row, or none for a literal value.
  *
  * @param doc - The document.
  * @param node - The element.
@@ -806,20 +741,14 @@ const referenceOf = (
     return undefined;
   }
 
-  const { resolution, type } = resolve(doc, spelled.name);
-
   return {
     after: spelled.after,
     attribute: attribute.name,
-    baseType: type.baseType,
     before: spelled.before,
-    cardinality: type.cardinality,
-    ...unfilledTypes,
     identifier: spelled.name,
     language: doc.languageOf(node.start),
     package: doc.place.package,
     path: doc.place.path,
-    resolution,
     rootKind: doc.rootKind,
     start: node.start,
   };
@@ -837,16 +766,17 @@ const pairKey = (place: Place, start: bigint, attribute: string): string =>
   keyTextOf(place.package, place.path, start, attribute);
 
 /**
- * Type every expression of a document bottom-up, in reverse document order, so each operand is
- * typed before its operator.
+ * Type every expression of a document under one placement bottom-up, in reverse document order, so
+ * each operand is typed before its operator.
  *
  * @param doc - The document.
- * @param references - Its references, before their element types are filled.
+ * @param referenceTypeOf - The type of the variable an element's `identifier` names under the
+ *   placement, none where it names none.
  * @returns Each expression's type.
  */
 const typesOf = (
   doc: Document,
-  references: ReadonlyMap<string, Addition<typeof VariableRef>>,
+  referenceTypeOf: (start: bigint) => Option.Option<Typed>,
 ): ReadonlyMap<bigint, Typed> => {
   const typed = new Map<bigint, Typed>();
   const operandOf = (child: NodeRow<Composed>): Typed =>
@@ -867,9 +797,7 @@ const typesOf = (
           operands: elementsOf(doc, node.start).flatMap((child) =>
             expressions.has(child.kind) ? [operandOf(child)] : [],
           ),
-          reference: Option.fromNullishOr(
-            references.get(pairKey(doc.place, node.start, "identifier")),
-          ),
+          reference: referenceTypeOf(node.start),
           weighted: Option.isSome(lexicalOf(doc, node.start, "weight-identifier")),
         }),
       );
@@ -909,12 +837,12 @@ const processingRowsOf = (
 };
 
 /**
- * Add an expression's rows: its `Expression` row, and a base value's `Literal` row, with its
- * `LiteralTyped` where its `base-type` spells a base.
+ * Add an expression's rows: its `Expression` row, and a base value's `Literal` row, typed as
+ * {@link typesOf} types it, with its `LiteralTyped` where its `base-type` spells a base.
  *
  * @param doc - The document.
  * @param node - The expression.
- * @param type - Its type.
+ * @param type - Its type, which for a base value is the same under every placement.
  * @param built - The rows built so far, which this adds to.
  */
 const expressionRowsOf = (
@@ -929,7 +857,7 @@ const expressionRowsOf = (
 ): void => {
   const key = keyTextOf(doc.place.package, doc.place.path, node.start);
   const at = placeOf(doc, node);
-  built.Expression.set(key, { ...at, ...type, language: doc.languageOf(node.start) });
+  built.Expression.set(key, { ...at, language: doc.languageOf(node.start) });
 
   if (node.kind === "qti-base-value") {
     const text = doc.childrenOf(node.start).map(doc.charsOf).join("");
@@ -944,75 +872,8 @@ const expressionRowsOf = (
 };
 
 /**
- * Fill a reference's element type, an expression's own, once every expression is typed.
- *
- * @param typed - Each expression's type.
- * @param reference - The reference's row.
- * @returns The row with it filled, `unknown` where its element is no expression.
- */
-const withTypes = (
-  typed: ReadonlyMap<bigint, Typed>,
-  reference: Addition<typeof VariableRef>,
-): Addition<typeof VariableRef> => {
-  const element = typeIn(Option.fromNullishOr(typed.get(reference.start)));
-
-  return {
-    ...reference,
-    elementBase: element.baseType,
-    elementCardinality: element.cardinality,
-  };
-};
-
-/**
- * Write each table a declared reference claims of its declaration ({@link claimedTableOf}), a row
- * of its own where it claims one. The declaration its name resolves to, whatever its cardinality
- * spells (spec reading 159), is its document's of the name, which the laws read through a query
- * (`#pantry/qti/overlay-queries/reference.ts`), so no row here copies it. A reference to a built-in
- * variable or to nothing claims none.
- *
- * @param doc - The document.
- * @param references - Its references, their types filled.
- * @returns The rows, by {@link pairKey}.
- * @throws {Error} When a declared reference's name has no declaration of the document, which its
- *   resolution read: a defect of the builder.
- */
-const tableClaimsOf = (
-  doc: Document,
-  references: ReadonlyMap<string, Addition<typeof VariableRef>>,
-): ReadonlyMap<string, Addition<typeof VariableRefTable>> => {
-  const tables = new Map<string, Addition<typeof VariableRefTable>>();
-  for (const [at, reference] of references) {
-    if (reference.resolution === "declared") {
-      const declared = Option.getOrThrowWith(
-        Option.fromNullishOr(doc.declarations.get(reference.identifier)),
-        () =>
-          new Error(
-            `The reference by ${reference.attribute} at ${String(reference.start)} of ${reference.path} resolved to a declaration of ${reference.identifier}, which its document's declarations do not hold. Resolve a reference against its own document's declarations.`,
-          ),
-      );
-      for (const table of Option.toArray(
-        claimedTableOf(doc.nodeOf(reference.start).kind, reference.attribute, declared.tables),
-      )) {
-        tables.set(at, {
-          attribute: reference.attribute,
-          package: reference.package,
-          path: reference.path,
-          start: reference.start,
-          table,
-        });
-      }
-    }
-  }
-
-  return tables;
-};
-
-/**
- * Build the rows of every expression and processing overlay of one document.
- *
- * An expression's type is derived after its operands', and a reference's element type and a
- * holder's type are filled once their expressions are typed, so each rule the laws state reads
- * values already derived.
+ * Build the rows of every expression and processing overlay of one document: what it holds
+ * whatever places it. Each placement's types and resolutions are {@link placedRowsOf}'s.
  *
  * @param view - The document's view.
  * @param place - Where the document stands in its package, the key every row holds.
@@ -1020,26 +881,23 @@ const tableClaimsOf = (
  */
 export const rowsOf = (view: DocumentView, place: Place): ExpressionRows => {
   const doc = documentOf(view, place);
-  const references = new Map<string, Addition<typeof VariableRef>>();
-  for (const attribute of doc.rows.attributes) {
-    const reference = referenceOf(doc, doc.nodeOf(attribute.start), attribute);
-    if (reference !== undefined) {
-      references.set(pairKey(place, attribute.start, attribute.name), reference);
-    }
-  }
-
-  const typed = typesOf(doc, references);
-  for (const [at, reference] of references) {
-    references.set(at, withTypes(typed, reference));
-  }
-
   const built = {
     Expression: new Map<string, Addition<typeof Expression>>(),
     Literal: new Map<string, Addition<typeof Literal>>(),
     LiteralTyped: new Map<string, Addition<typeof LiteralTyped>>(),
     Processing: new Map<string, Addition<typeof Processing>>(),
-    VariableRef: references,
+    VariableRef: new Map<string, Addition<typeof VariableRef>>(),
   };
+  for (const attribute of doc.rows.attributes) {
+    const reference = referenceOf(doc, doc.nodeOf(attribute.start), attribute);
+    if (reference !== undefined) {
+      built.VariableRef.set(pairKey(place, attribute.start, attribute.name), reference);
+    }
+  }
+
+  // A base value's type is its attributes' alone, the same under every placement, so the typing
+  // with no variable gives the one its `Literal` holds.
+  const typed = typesOf(doc, () => Option.none());
   for (const node of doc.rows.nodes) {
     if (rules.has(node.kind)) {
       processingRowsOf(doc, node, built);
@@ -1051,12 +909,7 @@ export const rowsOf = (view: DocumentView, place: Place): ExpressionRows => {
     }
   }
 
-  const claims = tableClaimsOf(doc, references);
-
-  return {
-    ...built,
-    VariableRefTable: claims,
-  };
+  return built;
 };
 
 /**
@@ -1163,84 +1016,319 @@ export const assembledExpressionRowsOf = (
 };
 
 /**
- * A package's variable references placed under each instance of an item's assembly (spec reading
- * 117).
+ * A package's rows under each placement (spec reading 117): each expression typed and each
+ * reference resolved and typed there.
  */
-export interface PlacedVariableRows {
+export interface PlacedRows {
+  readonly PlacedExpression: ReadonlyMap<string, Addition<typeof PlacedExpression>>;
   readonly PlacedVariableRef: ReadonlyMap<string, Addition<typeof PlacedVariableRef>>;
 }
 
 /**
- * Resolve a name among an item's declarations, else its built-in variables, else to nothing.
- *
- * @param declaration - The item's declaration of the name, if any.
- * @param name - The name.
- * @returns The resolution.
+ * One document of a package as the per-placement typing reads it: its view, where it stands and
+ * whether it is in an assembly (`TestIds`' `assembled`), its references ({@link rowsOf}'s
+ * `VariableRef`), and its references to files the package holds (`ReferencePath`), which name the
+ * template an item locates.
  */
-const placedResolutionOf = (
-  declaration: DocumentName | undefined,
-  name: string,
-): Addition<typeof PlacedVariableRef>["resolution"] => {
-  if (declaration !== undefined) {
-    return "declared";
-  }
+export interface PlacingInput {
+  readonly ids: Place & { readonly assembled: boolean };
+  readonly paths: Iterable<
+    ReferenceRows["ReferencePath"] extends ReadonlyMap<string, infer Row> ? Row : never
+  >;
+  readonly references: Iterable<Addition<typeof VariableRef>>;
+  readonly view: DocumentView;
+}
 
-  return Option.isSome(builtInOf(itemKind, name)) ? "builtIn" : "unresolved";
+/**
+ * One document as the per-placement typing reads it: the document, indexed, whether it is in an
+ * assembly, the templates it locates, and its references.
+ */
+interface Placing {
+  readonly assembled: boolean;
+  readonly doc: Document;
+  readonly located: readonly string[];
+  readonly references: readonly Addition<typeof VariableRef>[];
+}
+
+/**
+ * A package's documents as the per-placement typing reads them, by path.
+ */
+export interface PlacingPackage {
+  readonly documents: ReadonlyMap<string, Placing>;
+}
+
+/**
+ * The root a located template's document has, and the element whose `template-location` an item
+ * locates it by: a response processing template's (information model §4.6).
+ */
+const responseProcessingKind = "qti-response-processing";
+
+/**
+ * The URIs that name a published template, whose own rules "Template needs" holds its item to.
+ */
+const publishedUris: ReadonlySet<string> = new Set(urisOf(publishedTemplates));
+
+/**
+ * The templates an item locates, as `LocatedTemplate` of `#pantry/qti/names.ts` reads them: for
+ * each `qti-response-processing` of the item's root that holds no element, the document its
+ * `template-location` resolves to in the package (its `ReferencePath`), where that document's root
+ * is a `qti-response-processing` and the processing's `template` is unwritten or names no published
+ * template (§4.6.1, §4.6.2, spec reading 51). A document that is no item locates none.
+ *
+ * @param doc - The document.
+ * @param locations - Each `template-location`'s resolved path, by its element's place.
+ * @param rootKindOf - The root kind of each document of the package, by path.
+ * @returns The templates' paths.
+ */
+const locatedTemplatesOf = (
+  doc: Document,
+  locations: ReadonlyMap<bigint, string>,
+  rootKindOf: (path: string) => string | undefined,
+): readonly string[] =>
+  doc.rootKind === itemKind
+    ? doc.rows.nodes.flatMap((node) =>
+        node.kind === responseProcessingKind &&
+        node.parent !== node.start &&
+        doc.nodeOf(node.parent).kind === itemKind &&
+        elementsOf(doc, node.start).length === 0 &&
+        !Option.exists(valueAt(doc, node, "template"), (uri) => publishedUris.has(uri))
+          ? Option.toArray(Option.fromNullishOr(locations.get(node.start))).filter(
+              (target) => rootKindOf(target) === responseProcessingKind,
+            )
+          : [],
+      )
+    : [];
+
+/**
+ * Read a package's documents for the per-placement typing.
+ *
+ * @param inputs - Every document of the package.
+ * @returns The package, by path.
+ */
+export const placingPackageOf = (inputs: readonly PlacingInput[]): PlacingPackage => {
+  const rootKinds = new Map(
+    inputs.map(({ ids, view }) => [ids.path, view.tree.root.kind] as const),
+  );
+
+  return {
+    documents: new Map(
+      inputs.map(({ ids, paths, references, view }) => {
+        const doc = documentOf(view, ids);
+        const locations = new Map(
+          [...paths]
+            .filter(({ name }) => name === "template-location")
+            .map(({ start, target }) => [start, target] as const),
+        );
+
+        return [
+          ids.path,
+          {
+            assembled: ids.assembled,
+            doc,
+            located: locatedTemplatesOf(doc, locations, (path) => rootKinds.get(path)),
+            references: [...references],
+          },
+        ] as const;
+      }),
+    ),
+  };
 };
 
 /**
- * Build a package's variable references in place (spec reading 117): under each instance of an
- * item's assembly, every `VariableRef` of the instance's document, its name resolved as an item's
- * own is, among the item's declarations, whatever their cardinality spells (spec reading 159),
- * else to one of an item's built-in variables, else to nothing, which "Variable declared" refuses.
- * The declaration a declared one names is the item's of its name, which the laws read through a
- * query.
+ * The type a document's declaration of a name gives a reference to it, none where the document
+ * declares none of the name.
  *
- * @param input - The package's rows the placed references read.
- * @param input.declarations - Every name the package's documents declare (`documentNamesOf`).
- * @param input.instances - Every assembly's root instance, its tree nested (Q5.13's
- *   `assembledRowsOf`).
- * @param input.references - Every document's references ({@link rowsOf}'s `VariableRef`).
+ * @param placing - The package.
+ * @param path - The document's path.
+ * @param name - The name.
+ * @returns The type.
+ */
+export const declaredTypeIn = (
+  placing: PlacingPackage,
+  path: string,
+  name: string,
+): Typed | undefined =>
+  Option.getOrUndefined(
+    Option.map(
+      Option.fromNullishOr(placing.documents.get(path)?.doc.declarations.get(name)),
+      declaredTypeOf,
+    ),
+  );
+
+/**
+ * One placement (spec reading 117): its assembly's head path, its place in the assembly's instance
+ * tree, the document at the head, the root whose declarations and built-ins its references resolve
+ * among, and the documents it types: an instance's document, a document in no assembly as its own,
+ * and beside an item's own the templates the item locates (`placedDocuments` of
+ * `#pantry/qti/overlay-queries/expression.ts`).
+ */
+interface Placement {
+  readonly assembly: string;
+  readonly documents: readonly string[];
+  readonly instance: bigint;
+  readonly root: Placing;
+}
+
+/**
+ * Every placement of a package: each instance of each assembly, numbered in pre-order as the
+ * instance tree draws it, and each document in no assembly, its own one, numbered 0 as a root is.
+ *
+ * @param placing - The package.
+ * @param instances - Every assembly's root instance, its tree nested (`assembledRowsOf`).
+ * @returns The placements.
+ */
+const placementsOf = (
+  placing: PlacingPackage,
+  instances: Iterable<InstanceRoot>,
+): readonly Placement[] => [
+  ...[...instances].flatMap((root) =>
+    Option.toArray(Option.fromNullishOr(placing.documents.get(root.assembly))).flatMap((head) =>
+      instancesIn(root).map(({ instance, start }) => ({
+        assembly: root.assembly,
+        documents: [
+          instance.document,
+          ...(instance.document === root.assembly ? head.located : []),
+        ],
+        instance: start,
+        root: head,
+      })),
+    ),
+  ),
+  ...[...placing.documents].flatMap(([path, standalone]) =>
+    standalone.assembled
+      ? []
+      : [
+          {
+            assembly: path,
+            documents: [path, ...standalone.located],
+            instance: 0n,
+            root: standalone,
+          },
+        ],
+  ),
+];
+
+/**
+ * What a placement's reference names: its resolution and the type it gives.
+ */
+interface Resolved {
+  readonly resolution: Addition<typeof PlacedVariableRef>["resolution"];
+  readonly type: Typed;
+}
+
+/**
+ * Resolve a reference in a placement's assembly: among its root's declarations, else its root's
+ * built-in variables, else, under a test, the one reading of its name through a scope that gives it
+ * a type (spec readings 48 and 167), else to nothing. A reading through an item ref that names no
+ * item document gives none (reading 110), and a name read twice is "Prefixed reference"'s to
+ * refuse (reading 86), unresolved here.
+ *
+ * @param placement - The placement.
+ * @param reference - The reference.
+ * @param readingsOf - Each reading of a reference through a scope under a test, its type, or none
+ *   for one that gives none.
+ * @returns What it names.
+ */
+const resolvedIn = (
+  placement: Placement,
+  reference: Addition<typeof VariableRef>,
+  readingsOf: PlacedTypingInput["readingsOf"],
+): Resolved => {
+  const { doc } = placement.root;
+  const declared = doc.declarations.get(reference.identifier);
+  if (declared !== undefined) {
+    return { resolution: "declared", type: declaredTypeOf(declared) };
+  }
+
+  return Option.match(builtInOf(doc.rootKind, reference.identifier), {
+    onNone: () => {
+      const [only, ...others] =
+        doc.rootKind === testKind ? readingsOf(placement.assembly, reference) : [];
+
+      return only !== undefined && others.length === 0
+        ? { resolution: "read", type: only }
+        : { resolution: "unresolved", type: unknownType };
+    },
+    onSome: ({ type }) => ({ resolution: "builtIn", type }),
+  });
+};
+
+/**
+ * What the per-placement typing reads of a package: its documents, its assemblies, and each test's
+ * readings of a reference through a scope (`scopedReadingsOf` of
+ * `#pantry/import/overlays/readings.ts`).
+ */
+export interface PlacedTypingInput {
+  readonly instances: Iterable<InstanceRoot>;
+  readonly placing: PlacingPackage;
+  readonly readingsOf: (
+    assembly: string,
+    reference: Addition<typeof VariableRef>,
+  ) => readonly (Typed | undefined)[];
+}
+
+/**
+ * Build a package's rows under each placement (spec reading 117): for each placement and each of
+ * its documents, every reference of the document resolved and typed in the placement's assembly
+ * ({@link resolvedIn}), and every expression typed bottom-up with them ({@link typesOf}), the one
+ * typing every placement shares.
+ *
+ * @param input - The package's rows the placements read.
  * @returns The rows.
  */
-export const placedVariableRowsOf = (input: {
-  readonly declarations: Iterable<DocumentName>;
-  readonly instances: Iterable<InstanceRoot>;
-  readonly references: Iterable<Addition<typeof VariableRef>>;
-}): PlacedVariableRows => {
-  const declared = new Map(
-    [...input.declarations].map((named) => [keyTextOf(named.path, named.name), named] as const),
-  );
-  const referencesOf = Map.groupBy(input.references, ({ path }) => path);
-  const placed = new Map<string, Addition<typeof PlacedVariableRef>>();
-  for (const root of input.instances) {
-    for (const { instance, start } of root.assemblyKind === itemKind ? instancesIn(root) : []) {
-      for (const reference of Option.getOrElse(
-        Option.fromNullishOr(referencesOf.get(instance.document)),
-        Arr.empty,
-      )) {
-        const declaration = declared.get(keyTextOf(root.assembly, reference.identifier));
-        const at = keyTextOf(
-          root.assembly,
-          start,
-          reference.path,
-          reference.start,
-          reference.attribute,
+export const placedRowsOf = (input: PlacedTypingInput): PlacedRows => {
+  const expressionsAt = new Map<string, Addition<typeof PlacedExpression>>();
+  const referencesAt = new Map<string, Addition<typeof PlacedVariableRef>>();
+  for (const placement of placementsOf(input.placing, input.instances)) {
+    const { assembly, instance } = placement;
+    for (const placing of placement.documents.flatMap((path) =>
+      Option.toArray(Option.fromNullishOr(input.placing.documents.get(path))),
+    )) {
+      const resolved = new Map(
+        placing.references.map(
+          (reference) =>
+            [
+              keyTextOf(reference.start, reference.attribute),
+              { reference, ...resolvedIn(placement, reference, input.readingsOf) },
+            ] as const,
+        ),
+      );
+      for (const { reference, resolution, type } of resolved.values()) {
+        referencesAt.set(
+          keyTextOf(assembly, instance, reference.path, reference.start, reference.attribute),
+          {
+            assembly,
+            attribute: reference.attribute,
+            ...type,
+            identifier: reference.identifier,
+            instance,
+            package: reference.package,
+            path: reference.path,
+            resolution,
+            rootKind: placement.root.doc.rootKind,
+            start: reference.start,
+          },
         );
-        placed.set(at, {
-          assembly: root.assembly,
-          attribute: reference.attribute,
-          identifier: reference.identifier,
-          instance: start,
-          package: root.package,
-          path: reference.path,
-          resolution: placedResolutionOf(declaration, reference.identifier),
-          rootKind: itemKind,
-          start: reference.start,
+      }
+
+      const { place } = placing.doc;
+      for (const [start, type] of typesOf(placing.doc, (element) =>
+        Option.map(
+          Option.fromNullishOr(resolved.get(keyTextOf(element, "identifier"))),
+          (found) => found.type,
+        ),
+      )) {
+        expressionsAt.set(keyTextOf(assembly, instance, place.path, start), {
+          assembly,
+          ...type,
+          instance,
+          package: place.package,
+          path: place.path,
+          start,
         });
       }
     }
   }
 
-  return { PlacedVariableRef: placed };
+  return { PlacedExpression: expressionsAt, PlacedVariableRef: referencesAt };
 };

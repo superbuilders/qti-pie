@@ -338,13 +338,13 @@ const testNames = [
  * The names of the negative fixtures over phase 5's positives, each a data-only edit set over one
  * of {@link testNames} or `rtest01` that breaks the laws of one rule: phase 5's that state a law
  * pantry still holds, and those of spec reading 228's banks, each a bank added to `stimulus-shared`
- * (`withBank`), with `test-document`, a test added to it, refused under "Test structure" alone.
+ * (`withBank`), with `test-document`, a test added to it whose item ref names its item under
+ * another identifier, refused under "Item ref identifier" alone.
  */
 export const negativeNames = [
   "bank-duplicate-identifier",
   "bank-selection",
-  "include-text",
-  "include-xpointer",
+  "include-xpointer-text",
   "item-in-section",
   "item-ref-missing",
   "item-ref-to-stimulus",
@@ -640,7 +640,7 @@ const pciNames = [
  *   `pci-markup-text`, `template-outside` and `pci-nested`.
  * - The lexical forms: `pci-type-malformed` and `pci-path-malformed` (each `%zz`),
  *   `pci-module-malformed` and `pci-module-id-malformed` (each `1shading`), and `custom-attribute`
- *   (a namespaced attribute on a custom interaction).
+ *   (an undeclared attribute in no namespace on a custom interaction).
  * - The corpus cuts of `pci_item_examples`, each with exactly one of the corpus's defects left:
  *   `pci-items-fallback`, `pci-items-unlisted`, `pci-items-missing` and
  *   `pci-configuration-missing`.
@@ -686,8 +686,9 @@ export const pciNegativeNames = [
  * - `pci-markup-text` is the automaton's character-data rule, predicted `admission`.
  * - `template-outside` is `unmodeled-vocabulary`, reading 57's rule: an HTML `template` is admitted
  *   only inside a PCI's markup.
- * - `custom-attribute` is reading 90's refusal of an undeclared attribute on the custom interaction
- *   (open question O5 can turn it into a positive).
+ * - `custom-attribute` is reading 90's refusal of an undeclared attribute in no namespace on the
+ *   custom interaction: its `extension`, a `NamespaceLax` (information model §5.36.1), is the XSD's
+ *   `##other` wildcard, which admits a namespaced attribute (SV-LAW-05) and none in no namespace.
  * - `pci-items-fallback` is reading 11; `pci-configuration-missing` is `file-exists`, or the
  *   description rule (reading 103: `file-listed`) when the missing path is also unlisted.
  */
@@ -2377,7 +2378,7 @@ const rtest01Include = '<xi:include href="rtest01-fragment.xml" parse="xml"/>';
 
 /**
  * A fragment of hottexts alone, which `rtest01-fragment-context` places inside two items'
- * interactions (spec reading 117's limit).
+ * interactions, the second placement unplaced (spec reading 117, `UnplacedInclude`'s `context`).
  */
 const rtest01Words: BytesResource = {
   href: `${rtest01Directory}/rtest01-words.xml`,
@@ -3922,13 +3923,14 @@ const emptyStimulus: string = [
 
 /**
  * The test `test-document` adds to `stimulus-shared`: one part of one section of one item ref,
- * which names the package's `Item1` by its own identifier, so the test breaks nothing but spec
- * reading 1's "Test structure" (reading 228: pantry stores no test).
+ * which names the package's `Item1` under another identifier, so the test breaks nothing but "Item
+ * ref identifier" (QTI §4.1.1: "When an Item is referenced using a 'qti-assesasment-item-ref' the
+ * values of the two 'identifier' characteristics MUST be the same").
  */
 const stimulusTest: string = testDocument("STIMULUS-TEST", [
   '  <qti-test-part identifier="PART" navigation-mode="linear" submission-mode="individual">',
   '    <qti-assessment-section identifier="SECTION" title="Section" visible="true">',
-  '      <qti-assessment-item-ref identifier="Item1" href="exemplar06.xml"/>',
+  '      <qti-assessment-item-ref identifier="Item9" href="exemplar06.xml"/>',
   "    </qti-assessment-section>",
   "  </qti-test-part>",
 ]);
@@ -3984,22 +3986,15 @@ const negativeSpecs: Record<(typeof negativeNames)[number], FixtureSpec> = {
   "bank-selection": withBank(
     "bank-selection",
     sectionDocument("BANK", [
-      '  <qti-selection select="1"/>',
+      '  <qti-selection select="2"/>',
       '  <qti-assessment-item-ref identifier="Item1" href="exemplar06.xml"/>',
     ]),
   ),
-  "include-text": overSimple(
-    "include-text",
-    rtest01Edits(
-      [],
-      [rtest01IncludeAs("01", '<xi:include href="rtest01-fragment.xml" parse="text"/>')],
-    ),
-  ),
-  "include-xpointer": negativeOver("include-xpointer", "test-include", [
+  "include-xpointer-text": negativeOver("include-xpointer-text", "test-include", [
     replaceIn(
       "rtest01.xml",
       '<xi:include href="rtest01-ref.xml" parse="xml"/>',
-      '<xi:include href="rtest01-ref.xml" parse="xml" xpointer="element(/1)"/>',
+      '<xi:include href="rtest01-ref.xml" parse="text" xpointer="element(/1)"/>',
     ),
   ]),
   "item-in-section": negativeOver("item-in-section", "test-linear", [
@@ -5702,7 +5697,7 @@ const pciNegativeSpecs: Record<(typeof pciNegativeNames)[number], FixtureSpec> =
   "custom-attribute": overPciSimple(
     "custom-attribute",
     '<qti-response-declaration identifier="RESPONSE" cardinality="record"/>',
-    '<div><qti-custom-interaction response-identifier="RESPONSE" xmlns:x="urn:example:widget" x:mode="draw"/></div>',
+    '<div><qti-custom-interaction response-identifier="RESPONSE" mode="draw"/></div>',
   ),
   "pci-configuration-missing": {
     edits: pciConfigurationsEdits(

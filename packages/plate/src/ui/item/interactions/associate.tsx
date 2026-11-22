@@ -98,7 +98,7 @@ export const island = (
  * `plate-prompt`, `plate-placement`, its bank of `plate-placement-chip`s (`data-copies` where a
  * choice's `match-max` is not 1, `data-used` once it is in as many pairs as that allows), and
  * `plate-placement-boxes`, each `plate-placement-box` `data-paired`, with its `data-mark` and its
- * mark's words in `review` against the host's solution, holding its two halves, each a
+ * mark's words in `review` by the host's marks, holding its two halves, each a
  * `plate-placement-target` named as the island names it ("Pair n, first", "Pair n, second") with
  * its choice's `plate-placement-chip`.
  *

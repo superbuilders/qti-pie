@@ -1,28 +1,24 @@
 /**
- * The seeds a decision's one seed derives: each item's shuffle and processing seeds, apart and
- * stable, and a stage's order, which an item leaving the stage leaves otherwise as it was.
+ * The values a decision's one seed derives: each item's shuffle seed, stable and apart from
+ * another item's, and a stage's order, which an item leaving the stage leaves otherwise as it was.
  */
 import { assert, describe, it } from "@effect/vitest";
-import { itemSeeds, stageOrder } from "#plate/seed.ts";
+import { shuffleSeed, stageOrder } from "#plate/seed.ts";
 
 /**
  * A decision's seed.
  */
 const decision = "3f9c0a1be47d52c6908e1f2a7b3d4c5e";
 
-describe("itemSeeds", () => {
-  it("gives two seeds of 64 hex digits, apart from each other and from another item's, the same every call", () => {
-    const seeds = itemSeeds(decision, { identifier: "q1", package: "pilot" });
-    const other = itemSeeds(decision, { identifier: "q2", package: "pilot" });
-    const elsewhere = itemSeeds(decision, { identifier: "q1", package: "shadow" });
+describe("shuffleSeed", () => {
+  it("gives 64 hex digits, apart from another item's, the same every call", () => {
+    const seed = shuffleSeed(decision, { identifier: "q1", package: "pilot" });
 
-    assert.match(seeds.shuffle, /^[0-9a-f]{64}$/u);
-    assert.match(seeds.processing, /^[0-9a-f]{64}$/u);
-    assert.notStrictEqual(seeds.shuffle, seeds.processing);
-    assert.deepStrictEqual(itemSeeds(decision, { identifier: "q1", package: "pilot" }), seeds);
-    assert.notDeepEqual(other, seeds);
-    assert.notDeepEqual(elsewhere, seeds);
-    assert.notDeepEqual(itemSeeds("another", { identifier: "q1", package: "pilot" }), seeds);
+    assert.match(seed, /^[0-9a-f]{64}$/u);
+    assert.strictEqual(shuffleSeed(decision, { identifier: "q1", package: "pilot" }), seed);
+    assert.notStrictEqual(shuffleSeed(decision, { identifier: "q2", package: "pilot" }), seed);
+    assert.notStrictEqual(shuffleSeed(decision, { identifier: "q1", package: "shadow" }), seed);
+    assert.notStrictEqual(shuffleSeed("another", { identifier: "q1", package: "pilot" }), seed);
   });
 });
 

@@ -1,16 +1,18 @@
 /**
- * The terms of banks and their assembly that the schema (`#pantry/qti/tests.ts`) and the importer
- * (`#pantry/import/overlays/tests.ts` and its siblings) both read: the kinds of a test's structure,
- * which roots assemble, which include parents splice, and the resource types an item ref names.
- * Each is a function of the grammar's rosters alone, so loading this module builds no relation of
- * the schema.
+ * The terms of tests, sections, banks and their assembly that the schema (`#pantry/qti/tests.ts`,
+ * `#pantry/qti/overlay-queries/tests.ts`) and the importer (`#pantry/import/overlays/tests.ts` and
+ * its siblings) both read: the kinds of a test's structure, which roots assemble, which include
+ * parents splice, the resource types an item ref names, and the reserved branch targets. Each is a
+ * function of the grammar's rosters alone, so loading this module builds no relation of the
+ * schema.
  */
-import type { Kind, Name } from "#pantry/grammar/compose.ts";
+import type { Kind } from "#pantry/grammar/compose.ts";
 import { includeKind as include } from "#pantry/grammar/include.ts";
-import { includeParentKinds, ResourceType } from "#pantry/grammar/install.ts";
+import { grammar, includeParentKinds, NodeKind, ResourceType } from "#pantry/grammar/install.ts";
 
 /**
- * The test's root kind, which no package holds ("Test structure").
+ * The test's root kind: a test document's root, the head of its own assembly (information model
+ * §4.4, AssessmentTest).
  */
 export const testKind = "qti-assessment-test" satisfies Kind;
 
@@ -21,22 +23,24 @@ export const testKind = "qti-assessment-test" satisfies Kind;
 export const itemKind = "qti-assessment-item" satisfies Kind;
 
 /**
- * The section's kind: a bank's root, and no other element ("Bank shape", "Test structure").
+ * The section's kind: a section document's root, a bank's among them, and every section a test
+ * part or a section holds.
  */
 export const sectionKind = "qti-assessment-section" satisfies Kind;
 
 /**
- * The test part's kind, which no package holds ("Test structure").
+ * The test part's kind, which only a test holds.
  */
 export const partKind = "qti-test-part" satisfies Kind;
 
 /**
- * The item ref's kind: a bank's member, under its root ("Bank shape").
+ * The item ref's kind: a bank's member, under its root, or a test's, under a section.
  */
 export const itemRefKind = "qti-assessment-item-ref" satisfies Kind;
 
 /**
- * The section ref's kind, which no package holds ("Test structure", "Bank shape").
+ * The section ref's kind: a site that places its section document in its test's assembly, and a
+ * name (information model §7.5).
  */
 export const sectionRefKind = "qti-assessment-section-ref" satisfies Kind;
 
@@ -52,22 +56,74 @@ export const includeKind = include satisfies Kind;
 export const stimulusRefKind = "qti-assessment-stimulus-ref" satisfies Kind;
 
 /**
- * The root kinds whose documents are in an assembly whether or not they hold a site: a bank's, a
+ * A section's selection (information model §5.129).
+ */
+export const selectionKind = "qti-selection" satisfies Kind;
+
+/**
+ * A section's adaptive selection (information model §4.2.13, the IMS CAT sequencing engine).
+ */
+export const adaptiveSelectionKind = "qti-adaptive-selection" satisfies Kind;
+
+/**
+ * A section's ordering (information model §5.98).
+ */
+export const orderingKind = "qti-ordering" satisfies Kind;
+
+/**
+ * A branch rule (information model §5.23).
+ */
+export const branchRuleKind = "qti-branch-rule" satisfies Kind;
+
+/**
+ * An item ref's variable mapping (information model §7.48).
+ */
+export const mappingKind = "qti-variable-mapping" satisfies Kind;
+
+/**
+ * An item ref's weight (information model §7.50).
+ */
+export const weightKind = "qti-weight" satisfies Kind;
+
+/**
+ * An item ref's template default (information model §5.152).
+ */
+export const templateDefaultKind = "qti-template-default" satisfies Kind;
+
+/**
+ * A scope's time limits (information model §7.40): a test's, a test part's, a section's or an item
+ * ref's.
+ */
+export const timeLimitsKind = "qti-time-limits" satisfies Kind;
+
+/**
+ * A scope's item session control (information model §7.19): a test part's, a section's or an item
+ * ref's.
+ */
+export const sessionControlKind = "qti-item-session-control" satisfies Kind;
+
+/**
+ * The root kinds whose documents are in an assembly whether or not they hold a site: a test, and a
  * section document, whose own chain of inclusions reading 85 refuses as the oracle does, over every
- * listed document. Each keeps its names (`TestDocument`); which documents head an assembly is
+ * listed document. Each keeps its names (`AssembledDocument`); which documents head an assembly is
  * {@link splicingParents}'s.
  */
-export const assembledRoots = [sectionKind] as const satisfies readonly Kind[];
+export const assembledRoots = [testKind, sectionKind] as const satisfies readonly Kind[];
 
 /**
  * The include parents whose include splices its fragment in place, the one statement of which
  * documents head an assembly: a document heads its own unless an include under one of these places
  * it and may stand for its root (`IncludeRoot`, `Inclusion.splices`), since an included fragment is
  * judged in place, as its merged document holds it, and not alone (spec reading 117). An include
- * that may not stand for its target's root places no fragment there: "Include root" refuses it, and
- * the document it names is judged as its own. Every parent the information model gives an Include
+ * that may not stand for its target's root places no fragment there, and the document it names is
+ * judged as its own: "Include root" refuses it, unless its root is the name of a kind the
+ * composition splits by context whose split kind it may stand for (spec reading 116), admitted and
+ * placed nowhere. Every parent the information model gives an Include
  * is one but a section, whose include stands for an item ref, a section or a section ref alone
- * (`IncludeRoot`), which "Bank shape" refuses in a bank.
+ * (`IncludeRoot`) and places its fragment whole, as a section ref places its section document
+ * (reading 117: "Reading 86's rule that a section document a test places twice is written once is
+ * the information model's for section documents in a test's assembly ... and includes in a section
+ * follow it").
  *
  * The schema's heads (the query `HeadDocument`, `#pantry/qti/queries.ts`) and the import's
  * (`#pantry/import/overlays/tests.ts` `assembledRowsOf`) read this list and `IncludeRoot`, through
@@ -78,23 +134,12 @@ export const assembledRoots = [sectionKind] as const satisfies readonly Kind[];
 export const splicingParents = includeParentKinds.filter((kind) => kind !== sectionKind);
 
 /**
- * The kinds whose identifiers name a bank and its members: a bank's root section and its item refs.
+ * The kinds whose identifiers are one namespace across an assembled test (reading 86): a test part,
+ * a section, a section ref and an item ref (information model §4.2.1: "The identifier of the
+ * section or item reference must be unique within the test and must not be the identifier of any
+ * testPart"; §5.159.1; §7.5.3: "each reference must have a unique identifier").
  */
-export const namedKinds = [sectionKind, itemRefKind] as const satisfies readonly Kind[];
-
-/**
- * The resource type of a bank, a standalone section document (the placement mandate, ruling 2): the
- * one type whose documents hold a section or an item ref ("Test structure").
- */
-export const bankResourceType =
-  "imsqti_section_xmlv3p0" satisfies (typeof ResourceType.handles)[number];
-
-/**
- * The kinds a test's structure is made of, which no document but a bank holds ("Test structure"):
- * a test and its parts, and a section, a section ref and an item ref outside a bank.
- */
-export const testStructureKinds = [
-  testKind,
+export const namedKinds = [
   partKind,
   sectionKind,
   sectionRefKind,
@@ -102,15 +147,26 @@ export const testStructureKinds = [
 ] as const satisfies readonly Kind[];
 
 /**
- * The attributes of an item ref that only a test's delivery reads, which a bank's item ref writes
- * none of ("Bank shape"): `required` and `fixed`, read by a parent's selection and ordering, and
- * `category`, read by a test's outcome processing (information model §5.6).
+ * The kinds a section holds as its parts (`SectionPart`, information model §4.2.15): an item ref, a
+ * section, a section ref, or an include standing in for one. Reading 79 counts each once.
  */
-export const bankUnreadAttributes = [
-  "required",
-  "fixed",
-  "category",
-] as const satisfies readonly Name[];
+export const sectionParts: readonly Kind[] = NodeKind.handles.filter((kind) =>
+  grammar.references.sectionPart.rows.some((row) => row.kind === kind),
+);
+
+/**
+ * The reserved targets every branch rule may name (information model §5.23.1: "The following values
+ * are reserved and have special meaning when used as a target identifier: EXIT_SECTION ...;
+ * EXIT_TESTPART ... and EXIT_TEST").
+ */
+export const exits = ["EXIT_SECTION", "EXIT_TESTPART", "EXIT_TEST"] as const;
+
+/**
+ * The resource type of a standalone section document (the content-packaging profile's
+ * `imsqti_section_xmlv3p0`), a bank's among them.
+ */
+export const bankResourceType =
+  "imsqti_section_xmlv3p0" satisfies (typeof ResourceType.handles)[number];
 
 /**
  * The resource type of an item document.

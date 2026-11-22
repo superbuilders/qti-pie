@@ -10,7 +10,7 @@
 import { Option, Predicate } from "effect";
 import type { Item } from "#plate/model/item.ts";
 import { isPackagePath } from "#plate/model/url.ts";
-import type { PackagePath } from "#plate/model/url.ts";
+import type { Asset, PackagePath } from "#plate/model/url.ts";
 import type { Value } from "#plate/model/values.ts";
 
 /**
@@ -32,18 +32,30 @@ export const jsonField = <A>(_key: string, field: A): A | string | readonly unkn
 };
 
 /**
- * Build the addresses a configuration's `assets` holds, as `configure` would decode them from the
- * same entries, for a test that builds a configuration by hand.
+ * Build what a configuration's `assets` holds, as `configure` would decode it from the same
+ * entries, for a test that builds a configuration by hand.
  *
- * @param entries Each file's path from the package root and its address.
- * @returns The map from each path to its address, leaving out an entry whose path is no
+ * @param entries Each file's path from the package root and its address, `null` for a file the
+ *   host withholds.
+ * @returns The map from each path to what the host gives it, leaving out an entry whose path is no
  *   `PackagePath`, which `configure` refuses.
  */
 export const assetsOf = (
-  entries: readonly (readonly [string, string])[],
-): ReadonlyMap<PackagePath, string> =>
+  entries: readonly (readonly [string, string | null])[],
+): ReadonlyMap<PackagePath, Asset> =>
   new Map(
-    entries.flatMap(([file, address]) => (isPackagePath(file) ? [[file, address] as const] : [])),
+    entries.flatMap(([file, address]) =>
+      isPackagePath(file)
+        ? [
+            [
+              file,
+              address === null
+                ? ({ kind: "withheld" } as const)
+                : ({ address, kind: "served" } as const),
+            ] as const,
+          ]
+        : [],
+    ),
   );
 
 /**
@@ -177,7 +189,6 @@ export const bg007Item: Item = {
       },
     ],
   ]),
-  processing: Option.none(),
   records: new Map(),
   responses: new Map([
     [
@@ -197,7 +208,7 @@ export const bg007Item: Item = {
       },
     ],
   ]),
-  templateProcessing: { kind: "absent" },
+  templated: false,
   templates: new Map(),
   title: "BG true false example ",
   unheld: new Map(),

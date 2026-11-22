@@ -1,7 +1,7 @@
 /**
  * The table of interaction modules, the regions of an interaction, the content it holds of its
  * own, the walk that finds an item body's interactions, and the steps of each interaction's module,
- * which response validation, the payload, the results, the verdict and the server shell share.
+ * which the payload, the results, the verdict and the server shell share.
  *
  * Every interaction kind plate reads is a module ({@link modules}), so each hub dispatches on an
  * interaction in one place. {@link regionsOf} is the one place that knows which content each
@@ -25,9 +25,7 @@
  */
 import { Array as Arr, Data, Option } from "effect";
 
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import type { Malformed } from "#plate/form/encoding.ts";
 import { associateModule } from "#plate/interactions/associate.ts";
 import { choiceModule } from "#plate/interactions/choice.ts";
 import { endAttemptModule } from "#plate/interactions/end-attempt.ts";
@@ -62,12 +60,10 @@ import type {
   OwnRegion,
   Parsed,
   RedactKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
 import type {
   BodyNode,
   Interaction,
-  Item,
   Level,
   ModelLevel,
   Nodes,
@@ -179,21 +175,6 @@ type Stepped = { readonly [K in ModuleKind]: InteractionModule<K, ByLevelOf<K>, 
  * give its own model and payload nodes.
  */
 const stepped: Stepped = modules;
-
-/**
- * Tell whether a module kind's model node counts a submission as an attempt, by its kind's
- * module: true when the module does not say.
- *
- * @param kind The kind.
- * @param interaction The node.
- * @param posted The submission's responses, by identifier.
- * @returns The module's `countsAttempt` answer, true when it has none.
- */
-const moduleCountsAttempt = <K extends ModuleKind>(
-  kind: K,
-  interaction: ModelOf<K>,
-  posted: Readonly<Record<string, Value>>,
-): boolean => stepped[kind].countsAttempt?.(interaction, posted) ?? true;
 
 /**
  * Give the value a module kind's model node takes for its response when the form posted no entry,
@@ -545,28 +526,6 @@ export const redactedInteractionsIn = (
   });
 
 /**
- * Tell whether a submission of an item counts an attempt: the one place the engine asks the item's
- * interactions, so `runAttempt` (`#plate/engine/attempt.ts`) raises `numAttempts` without naming a
- * kind. Every interaction the body holds ({@link interactionsIn}) answers through its module's
- * `countsAttempt` (`InteractionModule` in `#plate/interactions/contract.ts`), and the attempt
- * counts when every answer is true: a module that leaves the member unset answers true, so an item
- * of those alone counts every submission, and one module that answers false, as an End Attempt with
- * `count-attempt` false does for the attempt ended through its button, is enough to leave the count
- * where it was.
- *
- * @param item The item, by its body.
- * @param posted The submission's responses, by identifier, as `runAttempt` is given them.
- * @returns Whether the attempt is counted.
- */
-export const countsAttempt = (
-  item: Pick<Item, "body">,
-  posted: Readonly<Record<string, Value>>,
-): boolean =>
-  interactionsIn(item.body).every((interaction) =>
-    moduleCountsAttempt(interaction.kind, interaction, posted),
-  );
-
-/**
  * Give the value an interaction's response takes when the form posted no entry for it, in place
  * of NULL: each node answers through its module's `absentValue` (`InteractionModule` in
  * `#plate/interactions/contract.ts`), and a module that leaves the member unset answers none, so no
@@ -590,10 +549,6 @@ interface ModuleSteps {
    * when it has none.
    */
   readonly shown: (value: ResponseValue) => ResponseValue;
-  readonly validate: (
-    input: Value | Malformed,
-    configuration: Configuration,
-  ) => readonly ValidationMessage[];
 }
 
 /**
@@ -609,7 +564,6 @@ const stepsOf = <K extends ModuleKind>(kind: K, interaction: ModelOf<K>): Module
 
   return {
     shown: (value) => module.shown?.(interaction, value) ?? value,
-    validate: (input, configuration) => module.validate(interaction, input, configuration),
   };
 };
 

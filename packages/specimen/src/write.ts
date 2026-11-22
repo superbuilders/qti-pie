@@ -22,14 +22,13 @@ import { element, text } from "#specimen/xml.ts";
 const caseSeed = "specimen";
 
 /**
- * What plate's `configure` takes for a case: the address of each file the item names, the case's
- * own shuffle seed, which a host may replace with its own, and whether the description's session
- * validates responses.
+ * What plate's `configure` takes for a case: the address of each file the item names, and the
+ * case's own shuffle seed, which a host may replace with its own. Whether the description's session
+ * validates responses is the QTI database's to judge by, so it is no part of plate's configuration.
  */
 export interface ConfigurationInput {
   readonly assets: readonly Asset[];
   readonly seed: string;
-  readonly validateResponses: boolean;
 }
 
 /**
@@ -393,7 +392,6 @@ export const itemOf = (description: Description): Item => {
         ...kind.assets,
       ],
       seed: caseSeed,
-      validateResponses: description.session.validateResponses,
     },
     host: kind.host,
     location: itemLocation,

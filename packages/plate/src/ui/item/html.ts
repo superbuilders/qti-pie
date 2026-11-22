@@ -12,8 +12,8 @@
  */
 import { Option, Result } from "effect";
 import { qtiNamespace } from "#plate/document/source.ts";
-import { addressUrl, classifyUrl, urlContextOf } from "#plate/model/url.ts";
-import type { KeptUrl, PackagePath } from "#plate/model/url.ts";
+import { addressUrl, classifyUrl, missingPathOf, urlContextOf } from "#plate/model/url.ts";
+import type { Asset, KeptUrl, PackagePath } from "#plate/model/url.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import { authoredId, authoredIdrefs } from "#plate/ui/item/ids.ts";
@@ -109,8 +109,9 @@ const keyShortcuts = "aria-keyshortcuts";
 
 /**
  * The XSD's misspelling of {@link keyShortcuts}, which it declares on the empty elements in its
- * place. Reading 10 accepts both spellings there, and the shell writes either as ARIA's, so a
- * screen reader announces it (operator ruling `96840ced`).
+ * place, as the information model's ARIABaseEmpty does (§7.1.44). Reading 10 admits it alone
+ * there, and the shell writes it as ARIA's, so a screen reader announces it (operator ruling
+ * `96840ced`).
  */
 const keyShortcutsMisspelt = "aria-keyshorts";
 
@@ -371,7 +372,7 @@ const admits = (declared: ReadonlySet<string>, name: string): boolean =>
  * and its location and the configuration's assets, which address its package URLs.
  */
 export interface Addressing {
-  readonly assets: ReadonlyMap<PackagePath, string>;
+  readonly assets: ReadonlyMap<PackagePath, Asset>;
   readonly document: string;
   readonly instance: string;
   /**
@@ -505,7 +506,8 @@ export const propsOf = (
 };
 
 /**
- * Find the first file an element's own URL attributes name that `assets` gives no address.
+ * Find the first file an element's own URL attributes name that `assets` holds no entry for; a file
+ * the host withholds is none, since the shell writes its URL as no address and renders the rest.
  *
  * @param element The element as the redacted body holds it.
  * @param addressing The item's location and the assets.
@@ -523,7 +525,10 @@ export const missingIn = (
 
         return url.kind === "dropped"
           ? Option.none()
-          : Result.getFailure(addressUrl(url, addressing.document, addressing.assets));
+          : Option.flatMap(
+              Result.getFailure(addressUrl(url, addressing.document, addressing.assets)),
+              missingPathOf,
+            );
       },
     );
 

@@ -28,8 +28,8 @@
  *   positions and no other's (README, "Closed relations").
  * - A lexical form's code is a `<Roster>Lexical` payload, and a one-position law a function of the
  *   parent ({@link CountedOf}, {@link BarredOf}). A singleton set is no relation's row: a schema
- *   module writes `Compute.singleton(id)`, and a handle's membership in a set is
- *   `Compute.subset(Compute.singleton(id), set)` (README, "Tables and types").
+ *   module writes `Bits.singleton(id)`, and a handle's membership in a set is
+ *   `Bits.subset(Bits.singleton(id), set)` (README, "Tables and types").
  * - A function holds a row only where its value is: a law says what holds where a key has none with
  *   `C.has`, `or(not(C.has(k)), φ(C.at(f, k)))`, never through a row that stands for the absence
  *   (README, "Closed relations"). {@link CountedOf}, {@link BarredOf}, {@link SharedModelOf},
@@ -100,7 +100,7 @@ const nonEmpty = <H extends string>(name: string, handles: readonly H[]): readon
  */
 export const anyText = str.regex("^.*$", "su");
 
-// Handle lists (C8): membership is `Compute.in`, so these sets are lists, never installed.
+// Handle lists (C8): membership is `Logic.in`, so these sets are lists, never installed.
 
 /**
  * The kinds that are no element: the document node, character data, comments, instructions,
@@ -1039,11 +1039,11 @@ export const AttributeCountOf = closed.relation(
  * pattern its lexical forms match as written, its lexical space, and the whitespace class a form is
  * normalized in to its value, a mixed union's rest's ({@link LeadingMembers}), which an attribute's
  * generated `value` reads (`#pantry/qti/attributes.ts`). AL1 and the text law read `pattern`
- * through `Compute.matches`, so `pattern` is a pattern payload (`str.pattern`): grizzle admits each
+ * through `Text.matches`, so `pattern` is a pattern payload (`str.pattern`): grizzle admits each
  * row's pattern once, where the schema's closed relations are read, and a match reads that row's
  * ARE by its key. Every domain has a row: an empty domain, whose lexical space holds no value
  * (`xs:NOTATION`'s in the pinned grammar, the text domain of a foreign element whose `xsi:type`
- * names it, C47), has the empty language's pattern, which grizzle admits as a `Compute.matches`
+ * names it, C47), has the empty language's pattern, which grizzle admits as a `Text.matches`
  * pattern that holds of no text.
  */
 export const ValueDomainOf = closed.relation(
@@ -1212,8 +1212,8 @@ export const KindNamespace = closed.relation(
  * `KindByNameUnder`: parent → names, for every parent that admits a foreign element: the pattern
  * of the expanded names, `namespace}local` (`expandedText` of `names.ts`), of the element kinds the
  * parent admits. A name the parent admits resolves to its kind, so no foreign element under it
- * holds one (C8): `¬Compute.matches(expanded, KindByNameUnder.at("names", parentKind))`, where
- * `expanded` is `Compute.concat(Compute.concat(namespace, "}"), local)`.
+ * holds one (C8): `¬Text.matches(expanded, KindByNameUnder.at("names", parentKind))`, where
+ * `expanded` is `Text.concat(Text.concat(namespace, "}"), local)`.
  *
  * A foreign element's name is open text, and a closed relation is keyed by closed ids only, so the
  * relation is keyed by what the law has, the parent, not by the name.
@@ -1232,7 +1232,7 @@ export const KindByNameUnder = closed.relation(
  * documents' schema set (C13, `cp:manifest` under `drd:accessForAllResource`), `^$` where there is
  * none. Such a root is stored as a foreign element and governed by no type, and Strictly held lets
  * it stand: the foreign elements that need a type, which hold an `OpenElementType`, are those with
- * `StrictlyHeld(parentKind, kind) ∧ ¬Compute.matches(Compute.concat(Compute.concat(namespace, "}"),
+ * `StrictlyHeld(parentKind, kind) ∧ ¬Text.matches(Text.concat(Text.concat(namespace, "}"),
  * local), HeldRootsUnder.at("names", parentKind))`.
  */
 export const HeldRootsUnder = closed.relation(
@@ -1247,8 +1247,8 @@ export const HeldRootsUnder = closed.relation(
  * namespaces under whose elements an element's `xsi:type` may name the type, every namespace for
  * XML Schema's own types (spec readings 60 and 81; C15, C36). An element whose parent's namespace
  * is no vocabulary's stands in documents of every schema set, so it may name any type: the law
- * over a foreign element's `OpenElementType` is `Compute.matches(parentNamespace,
- * TypeAvailable.at("namespaces", type)) ∨ ¬Compute.matches(parentNamespace,
+ * over a foreign element's `OpenElementType` is `Text.matches(parentNamespace,
+ * TypeAvailable.at("namespaces", type)) ∨ ¬Text.matches(parentNamespace,
  * vocabularyNamespacePattern)`.
  */
 export const TypeAvailable = closed.relation(
@@ -1583,6 +1583,48 @@ export const IncludeMember = closed.relation(
 );
 
 /**
+ * The handles of `NodeKind`, as a set.
+ */
+const nodeKindHandles: ReadonlySet<string> = new Set(NodeKind.handles);
+
+/**
+ * Tell whether a text is a handle of `NodeKind`.
+ *
+ * @param kind - The text.
+ * @returns Whether it is.
+ */
+const isNodeKind = (kind: string): kind is (typeof NodeKind.handles)[number] =>
+  nodeKindHandles.has(kind);
+
+/**
+ * The kinds an include stands for that the composition splits by context, by the kind of the same
+ * name (spec reading 116): `qti-template-block.rubric`, `qti-template-inline.rubric` and
+ * `qti-feedback-block.template`, whose fragment, rooted at its document's root, is read by its
+ * name alone as the kind of that name. Every split kind an include set holds, with the kind its
+ * handle's name before its `.` is, one split per name.
+ */
+const splitIncludeKinds = [
+  ...new Set(grammar.include.includeMember.rows.map(({ kind }) => kind)),
+].flatMap((split) => {
+  const root = split.slice(0, Math.max(split.indexOf("."), 0));
+
+  return isNodeKind(root) && isNodeKind(split) ? [{ root, split }] : [];
+});
+
+/**
+ * `SplitRoot`: root → split, an include's target root read by its name and the split kind of that
+ * name an include set may hold in its place ({@link splitIncludeKinds}): an include whose parent
+ * admits only the split kind places such a fragment nowhere, and is admitted, unplaced
+ * (`UnplacedInclude`, `#pantry/qti/tests.ts`), since a valid package may write one.
+ */
+export const SplitRoot = closed.relation(
+  "SplitRoot",
+  { root: closedId(NodeKind), split: closedId(NodeKind) },
+  ["root"],
+  splitIncludeKinds,
+);
+
+/**
  * The include parents ({@link IncludeSetOf}'s parents): the kinds a law selects an include's site
  * by.
  */
@@ -1885,6 +1927,7 @@ export const grammarRelations = [
   RootOfType,
   SectionPart,
   SharedModelOf,
+  SplitRoot,
   StrictlyHeld,
   SymbolMember,
   SymbolSetOf,

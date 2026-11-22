@@ -28,11 +28,6 @@ import type { Mutation } from "#pantry/test/oracle-complete/mutation.ts";
 const item = "items/item.xml";
 
 /**
- * The every-relation item that places the fragment.
- */
-const templated = "items/item2.xml";
-
-/**
  * The every-relation item's SSML document, a speak whose one mark is `start`.
  */
 const speak =
@@ -131,47 +126,6 @@ export const contentEdits = {
             widget,
             `<w:widget xmlns:w="urn:example:widget" xsi:type="${type}">A <${child}>widget</${child}>.</w:widget>`,
           ),
-        );
-      },
-    over: "package",
-  },
-  // Fragment context (reading 117): a fragment placed inside a choice of an interaction and
-  // outside every interaction.
-  "Fragment context": {
-    law: "Fragment context",
-    mutate:
-      ({ entries }) =>
-      (source) => {
-        const [choice, words] = source.draw(
-          element([
-            ["ChoiceA", "Yes."],
-            ["ChoiceB", "No."],
-          ] as const),
-        );
-        const root = source.draw(element(["p", "div"]));
-        const listed = editText(entries, "imsmanifest.xml", (text) =>
-          replaceOnce(
-            text,
-            "  </resources>",
-            '    <resource identifier="note-res" type="imsqti_fragment_xmlv3p0" href="items/note.xml"><file href="items/note.xml"/></resource>\n  </resources>',
-          ),
-        );
-        const placed = editText(listed, templated, (text) =>
-          replaceOnce(
-            replaceOnce(
-              text,
-              `<qti-simple-choice identifier="${choice}">${words}</qti-simple-choice>`,
-              `<qti-simple-choice identifier="${choice}">${words}<xi:include href="note.xml"/></qti-simple-choice>`,
-            ),
-            '<xi:include href="fragment.xml"/>',
-            '<xi:include href="fragment.xml"/><xi:include href="note.xml"/>',
-          ),
-        );
-
-        return withText(
-          placed,
-          "items/note.xml",
-          `<?xml version="1.0" encoding="UTF-8"?>\n<${root} xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0">A note.</${root}>\n`,
         );
       },
     over: "package",

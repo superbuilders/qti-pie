@@ -13,7 +13,7 @@
  * closed relation's key is closed ids only (grizzle's README, "Closed relations"), so neither
  * relation is keyed by a name: each key is the closed ids a law has (the parent's kind, the
  * governing type), and the payload is a pattern of grizzle's pattern grammar, which a law
- * reads through `Compute.matches(text, R.at(field, key…))`. Each pattern matches its finite set of
+ * reads through `Text.matches(text, R.at(field, key…))`. Each pattern matches its finite set of
  * texts and nothing else: its alternatives are literals, anchored at both ends.
  */
 import { Array as Arr, Option, Order } from "effect";
@@ -41,7 +41,7 @@ export const patternLiteral = (text: string): string =>
 const noText = "^$";
 
 /**
- * The pattern of every text: an empty match at the start of any text, which `Compute.matches`
+ * The pattern of every text: an empty match at the start of any text, which `Text.matches`
  * finds, since it asks whether the text holds a match.
  */
 const everyText = "^";
@@ -61,9 +61,9 @@ export const textsPattern = (texts: Iterable<string>): string => {
 
 /**
  * Spell an element's expanded name as one text, `namespace}local`: the subject a law matches
- * `KindByNameUnder`'s pattern against, as `Compute.concat(Compute.concat(namespace, "}"), local)`.
+ * `KindByNameUnder`'s pattern against, as `Text.concat(Text.concat(namespace, "}"), local)`.
  * The separator follows the namespace, so it stands second, a plain string; a leading literal would
- * be a typed constant, `Compute.literal` (grizzle's README, "Text"). A local name is an NCName,
+ * be a typed constant, `Type.literal` (grizzle's README, "Text"). A local name is an NCName,
  * which holds no `}`, so the text's last `}` ends the namespace and one text spells one name: James
  * Clark's `{namespace}local` without its opening brace.
  *

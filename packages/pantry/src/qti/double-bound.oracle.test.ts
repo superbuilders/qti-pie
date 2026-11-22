@@ -2,7 +2,7 @@
  * A bounded double's lower bound, judged on its typed value two ways alike: the law oracle's own
  * reading (`boundBroken` of `#pantry/test/oracle.ts`, through its `numberOf`), and the schema's
  * `Double_bound` checks over the import's rows, which read the value by grizzle's
- * `Compute.parseDouble` of the collapsed form, here by the host judge's reading of that parse;
+ * `Text.parseDouble` of the collapsed form, here by the host judge's reading of that parse;
  * the database holds the same rows to the same checks in the database tier.
  *
  * Oracle: XML Schema's value bound as a table (`expected`): a literal is in its domain when it is

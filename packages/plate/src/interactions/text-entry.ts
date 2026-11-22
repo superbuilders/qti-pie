@@ -1,27 +1,19 @@
 /**
- * Text Entry (Q-20), the `qti-text-entry-interaction`: its model node, parse, redaction and
- * response validation, on the module shape the interaction-module contract states, and the facts
- * of a text control it shares with Extended Text (`#plate/interactions/extended-text.ts`).
+ * Text Entry (Q-20), the `qti-text-entry-interaction`: its model node, parse and redaction, on the
+ * module shape the interaction-module contract states, and the facts of a text control it shares
+ * with Extended Text (`#plate/interactions/extended-text.ts`). The QTI database judges its
+ * responses (its `pattern-mask` among them) when an answer is posted.
  *
  * A Text Entry binds a single `string`, `integer` or `float` response, or a record response, which
  * makes it a string control: the text typed gives the record's fields. Any other binding is the
  * notice naming the one it breaks, and a `pattern-mask` the translator refuses is the notice
  * `pattern-mask` (the vocabulary's `modelled.notices`).
  *
- * {@link validateTextEntry} checks a value the caller decoded. Tier (a) always applies: a posted
- * text that is not a number of the bound base type, or a file or a second entry, which a text
- * input never posts. Tier (b), under `validateResponses`, adds the `pattern-mask` check
- * (`patternMessage` in `#plate/interactions/pattern.ts`). A record is judged as the string it was
- * typed as, its `stringValue`, which `checkResponses` passes. `expected-length` is never judged,
- * for any binding: it sizes the Control only, as it is not a validity constraint.
- *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_TextEntryInteraction
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { boundIn } from "#plate/interactions/contract.ts";
 import type {
   BoundDeclaration,
@@ -33,11 +25,9 @@ import type {
   Parsed,
   ReaderKit,
   RedactKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { malformedMessage, patternMessage } from "#plate/interactions/pattern.ts";
 import { format } from "#plate/model/values.ts";
-import type { Single, Value } from "#plate/model/values.ts";
+import type { Single } from "#plate/model/values.ts";
 import type { BaseType, Cardinality } from "#plate/vocabulary.ts";
 
 /**
@@ -270,51 +260,6 @@ export const textControlPayload = (
 });
 
 /**
- * Check a Text Entry's response, which the caller decoded.
- *
- * The caller decodes the posted entry with `decode`, under the entry name its form gave the
- * Control, the Text Entry's binding (a single value of its base type) and its `base`, and passes
- * the value, or the {@link Malformed} `decode` gave. So the entry name stays the caller's, while
- * the message and the author's override stay here. For a record binding, `checkResponses` passes
- * the record's `stringValue` as a single string, NULL when it has none.
- *
- * - A {@link Malformed} input of any binding, by its reason (`malformedMessage`):
- *   `malformedSingleMany` for a second entry; for a text that is not a number of an `integer` or
- *   `float` binding, the author's `data-patternmask-message` when set, else `malformedNumber`;
- *   `notAccepted` for any other reason.
- * - A decoded value, under `validateResponses`: one message when it mismatches the Text Entry's
- *   `pattern-mask` (`patternMessage`), the author's `data-patternmask-message` or else
- *   `patternMismatch`. NULL, a Text Entry without a `pattern-mask`, and every value without
- *   `validateResponses` give none, and so does a text longer than `expected-length`.
- *
- * @param interaction The Text Entry.
- * @param input The decoded value, or why the entry did not decode.
- * @param configuration The configuration, which gives `validateResponses` and the locale.
- * @returns One message per problem, none when the response is accepted.
- */
-export const validateTextEntry = (
-  interaction: TextEntryInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  if (!(input instanceof Malformed)) {
-    return Option.toArray(
-      Option.map(patternMessage(interaction, input, configuration), (words) => ({
-        response: interaction.response,
-        text: words,
-      })),
-    );
-  }
-
-  return [
-    {
-      response: interaction.response,
-      text: malformedMessage(interaction, input.reason, configuration.locale),
-    },
-  ];
-};
-
-/**
  * Read a `qti-text-entry-interaction`: its binding ({@link bindText}), then the fields every text
  * control holds ({@link textFields}).
  *
@@ -378,5 +323,4 @@ export const textEntryModule: InteractionModule<
    * No region: a Text Entry holds no content of its own.
    */
   regions: () => [],
-  validate: validateTextEntry,
 };

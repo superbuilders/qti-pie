@@ -15,7 +15,7 @@
 import { Db } from "@bjornpagen/grizzle/runtime";
 import type { CallError } from "@bjornpagen/grizzle";
 import type { DbLayer, OpenError } from "@bjornpagen/grizzle/runtime";
-import { Effect, FileSystem, Path, Schema, Stream } from "effect";
+import { Array as Arr, Effect, FileSystem, Order, Path, Schema, Stream } from "effect";
 import type { PlatformError } from "effect";
 import { AuthorLogin } from "#pantry/db/served.ts";
 
@@ -29,6 +29,7 @@ import type { MediaMissing } from "#pantry/package/media.ts";
 import { writeZip } from "#pantry/package/zip.ts";
 import type { ZipEntry } from "#pantry/package/zip.ts";
 import type { AuthorRole } from "#pantry/qti/roles.ts";
+import { codePointOrder } from "@qti-pie/crust/charset.ts";
 import type { EncodeError } from "@qti-pie/crust/errors.ts";
 
 /**
@@ -118,7 +119,12 @@ export const exportEntries = Effect.fn("export.exportEntries")(function* exportE
     return yield* new PackageNotFound({ package: name });
   }
 
-  const listed = [...(yield* db.workload.entriesOf.once({ facts: {}, params: { package: name } }))];
+  // The database delivers the entries as a set; the zip's order is the paths' code point order, the
+  // database's own text order (C.UTF-8), so an export of one package is one zip, byte for byte.
+  const listed = Arr.sort(
+    yield* db.workload.entriesOf.once({ facts: {}, params: { package: name } }),
+    Order.mapInput(codePointOrder, ({ path }: { readonly path: string }) => path),
+  );
   const entries = yield* Effect.all(
     listed.map((entry): Effect.Effect<ZipEntry, EntriesError> => {
       const { path } = entry;

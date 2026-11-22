@@ -1,0 +1,388 @@
+
+/**
+ * The tree of a sitting's test outcome processing (P4-TEST's run, `#ledger/test-run-call.ts`, the
+ * flat test entry's `programs`, `program_attributes`, `program_texts`, `declarations`,
+ * `declaration_attributes` and `declaration_texts`), each a query over the call's `child` and
+ * `stage` alone, every row keyed by its own document: the subtree of the test document's
+ * `qti-outcome-processing` (§5.102), crossed as an item's response processing is, by the
+ * machine's tokens; and the declarations of the test and of every member item of the stage's item
+ * sessions, each as the item reader reads one item's. A test with no outcome processing gives no
+ * program row.
+ */
+export const testTreeOf = (delivery: DeliveryLevel) => {
+  const fields = delivery.relations;
+  const sitting = {
+    child: param("child", LearnerId),
+    stage: param("stage", pg.bigint),
+  } as const;
+
+  /**
+   * The sitting's test outcome processing root, by the test's document.
+   */
+  const rootsOf = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(fields.TestSession, "sitting");
+    const { start, end } = v(fields.Node, "root");
+
+    return r
+      .match(fields.TestSession, { child: sitting.child, package: pkg, path, stage: sitting.stage })
+      .match(fields.Node, {
+        end,
+        kind: "qti-outcome-processing",
+        package: pkg,
+        parentKind: "qti-assessment-test",
+        path,
+        start,
+      })
+      .find({ end, package: pkg, path, start });
+  });
+  const roots = rootsOf.bind(sitting);
+
+  /**
+   * The documents whose declarations the run reads: the test's, and each member item's.
+   */
+  const documentsOf = query(delivery)
+    .rule((r) => {
+      const { package: pkg, path } = v(fields.TestSession, "test");
+
+      return r
+        .match(fields.TestSession, { child: sitting.child, package: pkg, path, stage: sitting.stage })
+        .find({ package: pkg, path });
+    })
+    .rule((r) => {
+      const { package: pkg, path } = v(fields.ItemSession, "member");
+
+      return r
+        .match(fields.ItemSession, { child: sitting.child, package: pkg, path, stage: sitting.stage })
+        .find({ package: pkg, path });
+    });
+  const documents = documentsOf.bind(sitting);
+
+  /**
+   * The program's elements, each of a processing kind, by the machine's token.
+   */
+  const programs = query(delivery).rule((r) => {
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, end, parent, kind } = v(fields.Node, "node");
+    const { token } = v(fields.ProgramNodeKind, "kind");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.Node, { end, kind, package: pkg, parent, path, start })
+      .match(fields.ProgramNodeKind, { kind, token })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ end, kind: token, package: pkg, parent, path, start });
+  });
+
+  /**
+   * The attributes of the program's elements the machine reads.
+   */
+  const programAttributes = query(delivery).rule((r) => {
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, name, value } = v(fields.Attribute, "attribute");
+    const { token } = v(fields.GradedAttributeName, "name");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.Attribute, { name, package: pkg, path, start, value })
+      .match(fields.GradedAttributeName, { name, token })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ name: token, package: pkg, path, start, value });
+  });
+
+  /**
+   * Each base value's text in the program (pantry's Literal).
+   */
+  const programTexts = query(delivery).rule((r) => {
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, text } = v(fields.Literal, "literal");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.Literal, { package: pkg, path, start, text })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path, start, text });
+  });
+
+  /**
+   * Each document's declarations' nodes of the kinds the machine reads.
+   */
+  const declarations = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { start, end, parent, kind } = v(fields.Node, "node");
+    const { token } = v(fields.DeclarationNodeKind, "kind");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.Node, { end, kind, package: pkg, parent, path, start })
+      .match(fields.DeclarationNodeKind, { kind, token })
+      .find({ end, kind: token, package: pkg, parent, path, start });
+  });
+
+  /**
+   * Their attributes the machine reads.
+   */
+  const declarationAttributes = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { start, kind } = v(fields.Node, "node");
+    const { name, value } = v(fields.Attribute, "attribute");
+    const { token } = v(fields.GradedAttributeName, "name");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.Node, { kind, package: pkg, path, start })
+      .match(fields.DeclarationNodeKind, { kind })
+      .match(fields.Attribute, { name, package: pkg, path, start, value })
+      .match(fields.GradedAttributeName, { name, token })
+      .find({ name: token, package: pkg, path, start, value });
+  });
+
+  /**
+   * Each qti-value's string value.
+   */
+  const declarationTexts = query(delivery).rule((r) => {
+    const { package: pkg, path } = v(documents, "document");
+    const { start, stringValue } = v(fields.Node, "value");
+
+    return r
+      .match(documents, { package: pkg, path })
+      .match(fields.Node, { kind: "qti-value", package: pkg, path, start, stringValue })
+      .find({ package: pkg, path, start, text: stringValue });
+  });
+
+  return {
+    declaration_attributes: declarationAttributes,
+    declaration_texts: declarationTexts,
+    declarations,
+    program_attributes: programAttributes,
+    program_texts: programTexts,
+    programs,
+  } as const;
+};
+
+/**
+ * Each member's state after its latest attempt, processed or not, as the flat test entry reads it
+ * (P4-TEST's run, `#ledger/test-run-call.ts`, the entry's twenty `doc_*` arguments), each a query
+ * over the call's `child` and `stage` alone, every row keyed by the member's item session, its run
+ * key (child, package, path, stage), and held `value`: every value the attempt's snapshot holds, a single's as it is in force
+ * (`OutcomeInForceSingle<T>`, an asserted outcome's latest assertion), a multiple's bag as its
+ * copies at places from 0, an ordered value at its place and a record's at its field; a variable
+ * row for every declared response, NULL ones among them; and, only once its response processing
+ * ran (`ProcessedAttempt`), one for every declared outcome and its completion status, so an
+ * unprocessed attempt leaves its outcomes at the entry's defaults. A member with no attempt gives
+ * nothing, and no built-in but completionStatus is read here: the run states numAttempts and
+ * duration itself.
+ */
+export const memberValuesOf = (delivery: DeliveryLevel) => {
+  const fields = delivery.relations;
+  const sitting = {
+    child: param("child", LearnerId),
+    stage: param("stage", pg.bigint),
+  } as const;
+
+  /**
+   * Each item session of the sitting and the instant of its latest attempt.
+   */
+  const latestAtOf = query(delivery).rule((r) => {
+    const { package: pkg, path, n } = v(fields.ItemSession, "session");
+    const { at } = v(fields.Attempt, "attempt");
+
+    return r
+      .match(fields.ItemSession, { child: sitting.child, n, package: pkg, path, stage: sitting.stage })
+      .match(fields.Attempt, { at, child: sitting.child, n, package: pkg, path })
+      .find({ child: sitting.child, latest: r.max(at), n, package: pkg, path, stage: sitting.stage });
+  });
+  const latestAt = latestAtOf.bind(sitting);
+
+  /**
+   * Each item session's latest attempt, by its key, with its sitting's stage: the run key's.
+   */
+  const latestOf = query(delivery).rule((r) => {
+    const { child, package: pkg, path, n, stage, latest: at } = v(latestAt, "latest");
+
+    return r
+      .match(latestAt, { child, latest: at, n, package: pkg, path, stage })
+      .find({ at, child, n, package: pkg, path, stage });
+  });
+  const boundLatest = latestOf.bind(sitting);
+
+  /**
+   * Each latest attempt whose response processing ran.
+   */
+  const processedOf = query(delivery).rule((r) => {
+    const { child, package: pkg, path, n, stage, at } = v(boundLatest, "attempt");
+
+    return r
+      .match(boundLatest, { at, child, n, package: pkg, path, stage })
+      .match(fields.ProcessedAttempt, { at, child, n, package: pkg, path })
+      .find({ child, package: pkg, path, stage });
+  });
+  const processed = processedOf.bind(sitting);
+
+  /**
+   * The variables: each declared response, always; each declared outcome and completionStatus, once
+   * the attempt is processed.
+   */
+  const vars = query(delivery)
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(boundLatest, "attempt");
+      const { identifier, cardinality } = v(fields.ItemVariable, "response");
+      const { token: card } = v(fields.CardinalityToken, "card");
+
+      return r
+        .match(boundLatest, { child, package: pkg, path, stage })
+        .match(fields.ItemVariable, {
+          cardinality,
+          declarationKind: "qti-response-declaration",
+          identifier,
+          package: pkg,
+          path,
+        })
+        .match(fields.CardinalityToken, { cardinality, token: card })
+        .find({
+          card,
+          child,
+          holds: Type.literal(DocVar.fields.holds, "value"),
+          identifier: Type.cast(identifier, DocVar.fields.identifier),
+          kind: Type.literal(DocVar.fields.kind, "response"),
+          package: pkg,
+          path,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(boundLatest, "attempt");
+      const { identifier } = v(fields.ItemRecordVariable, "response");
+
+      return r
+        .match(boundLatest, { child, package: pkg, path, stage })
+        .match(fields.ItemRecordVariable, {
+          declarationKind: "qti-response-declaration",
+          identifier,
+          package: pkg,
+          path,
+        })
+        .find({
+          card: Type.literal(DocVar.fields.card, "record"),
+          child,
+          holds: Type.literal(DocVar.fields.holds, "value"),
+          identifier: Type.cast(identifier, DocVar.fields.identifier),
+          kind: Type.literal(DocVar.fields.kind, "response"),
+          package: pkg,
+          path,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(processed, "processed");
+      const { identifier, cardinality } = v(fields.ItemVariable, "outcome");
+      const { token: card } = v(fields.CardinalityToken, "card");
+
+      return r
+        .match(processed, { child, package: pkg, path, stage })
+        .match(fields.ItemVariable, {
+          cardinality,
+          declarationKind: "qti-outcome-declaration",
+          identifier,
+          package: pkg,
+          path,
+        })
+        .match(fields.CardinalityToken, { cardinality, token: card })
+        .find({
+          card,
+          child,
+          holds: Type.literal(DocVar.fields.holds, "value"),
+          identifier: Type.cast(identifier, DocVar.fields.identifier),
+          kind: Type.literal(DocVar.fields.kind, "outcome"),
+          package: pkg,
+          path,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(processed, "processed");
+      const { identifier } = v(fields.ItemRecordVariable, "outcome");
+
+      return r
+        .match(processed, { child, package: pkg, path, stage })
+        .match(fields.ItemRecordVariable, {
+          declarationKind: "qti-outcome-declaration",
+          identifier,
+          package: pkg,
+          path,
+        })
+        .find({
+          card: Type.literal(DocVar.fields.card, "record"),
+          child,
+          holds: Type.literal(DocVar.fields.holds, "value"),
+          identifier: Type.cast(identifier, DocVar.fields.identifier),
+          kind: Type.literal(DocVar.fields.kind, "outcome"),
+          package: pkg,
+          path,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(processed, "processed");
+
+      return r.match(processed, { child, package: pkg, path, stage }).find({
+        card: Type.literal(DocVar.fields.card, "single"),
+        child,
+        holds: Type.literal(DocVar.fields.holds, "value"),
+        identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
+        kind: Type.literal(DocVar.fields.kind, "outcome"),
+        package: pkg,
+        path,
+        stage,
+      });
+    });
+
+  /**
+   * The base type of each variable above that has one: a record has none.
+   */
+  const bases = query(delivery)
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(boundLatest, "attempt");
+      const { identifier, baseType } = v(fields.ItemVariable, "response");
+      const { token: base } = v(fields.BaseTypeToken, "base");
+
+      return r
+        .match(boundLatest, { child, package: pkg, path, stage })
+        .match(fields.ItemVariable, {
+          baseType,
+          declarationKind: "qti-response-declaration",
+          identifier,
+          package: pkg,
+          path,
+        })
+        .match(fields.BaseTypeToken, { baseType, token: base })
+        .find({ base, child, identifier: Type.cast(identifier, DocBase.fields.identifier), package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(processed, "processed");
+      const { identifier, baseType } = v(fields.ItemVariable, "outcome");
+      const { token: base } = v(fields.BaseTypeToken, "base");
+
+      return r
+        .match(processed, { child, package: pkg, path, stage })
+        .match(fields.ItemVariable, {
+          baseType,
+          declarationKind: "qti-outcome-declaration",
+          identifier,
+          package: pkg,
+          path,
+        })
+        .match(fields.BaseTypeToken, { baseType, token: base })
+        .find({ base, child, identifier: Type.cast(identifier, DocBase.fields.identifier), package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(processed, "processed");
+
+      return r.match(processed, { child, package: pkg, path, stage }).find({
+        base: Type.literal(DocBase.fields.base, "identifier"),
+        child,
+        identifier: Type.literal(DocBase.fields.identifier, "completionStatus"),
+        package: pkg,
+        path,
+        stage,
+      });
+    });

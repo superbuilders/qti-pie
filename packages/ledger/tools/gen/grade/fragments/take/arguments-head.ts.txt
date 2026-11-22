@@ -1,0 +1,11 @@
+
+/**
+ * The arguments of template processing at the take (QTI 3.0.1 §2.2.1: "item sessions are created in the initial state
+ * ... template processing"), each a query over the call's sitting, whose item sessions the take's stratum before
+ * wrote: each session's item's template processing, its declarations and its run (its SessionSeed's seed, under the
+ * item's templateLabel), and the values the run is given, gradeArgumentsOf's readers over the session's attempts and
+ * what its template processing set, of which a session its take just wrote holds none: so the run starts every
+ * variable at its declared default and is given no response.
+ */
+export const takeArgumentsOf = (delivery: DeliveryLevel) => {
+	const fields = delivery.relations

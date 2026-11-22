@@ -3,8 +3,7 @@
  * it does not render named as a notice or a mark.
  *
  * {@link buildItem} reads the declarations (`#plate/model/declarations.ts`), the template
- * processing (`#plate/model/template.ts`), the body (`#plate/model/body.ts`) and the response
- * processing (`#plate/model/processing.ts`) into one {@link Item}, each through the build those
+ * the body (`#plate/model/body.ts`) into one {@link Item}, each through the build those
  * modules share (`#plate/model/build.ts`). This module holds the model's types and the build. The
  * vocabulary module's `modelled` decides what is modelled and what is unsupported, so the verdict,
  * the payload and the server shell meet the same decision. A document reaches it only once the
@@ -33,7 +32,6 @@ import {
   elementsOf,
   identifierAttribute,
   isQti,
-  pathOf,
   replaceXmlSpace,
   requiredValue,
   valueOf,
@@ -43,7 +41,6 @@ import type { ItemContentBuild } from "#plate/model/body.ts";
 import {
   adaptiveOf,
   declarationsOf,
-  markAt,
   markElement,
   markUnreadWithin,
   pathsOf,
@@ -57,24 +54,8 @@ import {
   templateDeclaration,
   unheldDeclaration,
 } from "#plate/model/declarations.ts";
-import type { IntegerOrRef, Rule, TemplateRule } from "#plate/model/expression.ts";
+import type { IntegerOrRef } from "#plate/model/integer-ref.ts";
 import type { ModuleModel } from "#plate/model/interactions.ts";
-import {
-  declaredIdentifiers,
-  declaredNames,
-  heldBuiltIns,
-  processingOf,
-  readingOf,
-  runnable,
-  unheldIdentifiers,
-} from "#plate/model/processing.ts";
-import type {
-  HeldContexts,
-  ReadProcessing,
-  ReadTemplateProcessing,
-} from "#plate/model/processing.ts";
-import { qtiContextName } from "#plate/model/record.ts";
-import { templateRules } from "#plate/model/template.ts";
 import type { ModelledBaseType, RecordValue, Single, Value } from "#plate/model/values.ts";
 import type { AdmittedDocument } from "#plate/validate/verdict.ts";
 import type {
@@ -190,8 +171,8 @@ export interface MatchTableEntry {
    */
   readonly sourceValue: bigint;
   /**
-   * `target-value`, a value of the outcome's base type (reading 8), read exactly as written
-   * (reading 7).
+   * `target-value`, a value of the outcome's base type (reading 8), read as written for `string`
+   * and collapsed for every other base type (reading 7).
    */
   readonly targetValue: Single;
 }
@@ -201,8 +182,8 @@ export interface MatchTableEntry {
  */
 interface MatchTable {
   /**
-   * `default-value`, a value of the outcome's base type read exactly as written (reading 7), when
-   * the table has one.
+   * `default-value`, a value of the outcome's base type, read as written for `string` and
+   * collapsed for every other base type (reading 7), when the table has one.
    */
   readonly defaultValue: Option.Option<Single>;
   readonly entries: readonly MatchTableEntry[];
@@ -224,7 +205,8 @@ export interface InterpolationTableEntry {
    */
   readonly sourceValue: number;
   /**
-   * `target-value`, a value of the outcome's base type read exactly as written (reading 7).
+   * `target-value`, a value of the outcome's base type, read as written for `string` and
+   * collapsed for every other base type (reading 7).
    */
   readonly targetValue: Single;
 }
@@ -234,8 +216,8 @@ export interface InterpolationTableEntry {
  */
 interface InterpolationTable {
   /**
-   * `default-value`, a value of the outcome's base type read exactly as written (reading 7), when
-   * the table has one.
+   * `default-value`, a value of the outcome's base type, read as written for `string` and
+   * collapsed for every other base type (reading 7), when the table has one.
    */
   readonly defaultValue: Option.Option<Single>;
   readonly entries: readonly InterpolationTableEntry[];
@@ -342,8 +324,8 @@ export interface TemplateDeclaration {
 /**
  * A `qti-context-declaration` of a modelled base type and cardinality: a context variable, which no
  * processing sets and which template, response and outcome processing may read (the information
- * model's ContextDeclaration). The engine holds it at its default for the whole session, as no
- * host supplies the value of a declared context variable.
+ * model's ContextDeclaration). The QTI database's processing holds it at its default for the whole
+ * session, as no host supplies the value of a declared context variable.
  */
 export interface ContextDeclaration {
   readonly baseType: ModelledBaseType;
@@ -751,36 +733,22 @@ interface UnheldType {
 export type UnheldDeclaration = UnheldType & { readonly kind: "outcome" | "template" };
 
 /**
- * An item's template processing: `absent` when the item has no `qti-template-processing`; `runs`
- * with its rules in document order; and `stalled` when it holds anything the engine does not run,
- * which `unsupported` then marks. Template processing runs exactly when it is `runs`. A stalled one
- * computes no template value, so the item's first attempt holds none (`firstAttempt` in
- * `#plate/engine/attempt.ts`), and its response processing does not run either, since template
- * processing may set a value it reads.
- */
-export type TemplateProcessing =
-  | { readonly kind: "absent" }
-  | { readonly kind: "runs"; readonly rules: readonly TemplateRule[] }
-  | { readonly kind: "stalled" };
-
-/**
  * A valid `qti-assessment-item` as plate models it.
  *
  * `responses`, `outcomes` and `templates` hold the declarations of modelled base types and
  * cardinalities, in document order, and `records` the record response declarations; every other
- * declaration is a mark, and `unheld` holds those by identifier ({@link UnheldDeclaration}).
- * `processing` is none when the item has no response processing, or when plate cannot run it,
- * which `unsupported` then marks. Plate cannot run it beside a `qti-template-processing` that does
- * not run (`templateProcessing` `stalled`, an element in it marked), which may set a value response
- * processing reads, such as a correct response. `unsupported` lists every feature not rendered, in
+ * declaration is a mark, and `unheld` holds those by identifier ({@link UnheldDeclaration}). Plate
+ * reads no response or template processing: the QTI database runs both from the stored document, so
+ * the model holds only whether the item has template processing ({@link Item.templated}).
+ * `unsupported` lists every feature not rendered, in
  * document order, each once per feature and path. `content` holds the nodes the item-placed content
  * modules read, by element.
  */
 export interface Item {
   /**
-   * Whether the root's `adaptive` is true: an item whose outcomes the engine keeps across attempts
-   * (`startingOutcomes` in `#plate/engine/adaptive.ts`) and whose attempts close at completion
-   * (`attemptsClosed`). False when the attribute is absent, the XSD default.
+   * Whether the root's `adaptive` is true: an item whose outcomes the QTI database keeps across
+   * attempts and whose item session closes at completion. False when the attribute is absent, the
+   * XSD default.
    */
   readonly adaptive: boolean;
   readonly body: readonly BodyNode[];
@@ -791,8 +759,8 @@ export interface Item {
    */
   readonly content: ItemNodesHeld;
   /**
-   * The context declarations of a modelled type, keyed by identifier, each held at its default
-   * (`contextValues` in `#plate/model/record.ts`). A context declaration of base type `file` or
+   * The context declarations of a modelled type, keyed by identifier, which the QTI database's
+   * processing reads and the page never shows. A context declaration of base type `file` or
    * cardinality `record` is not here, and stays marked `qti-context-declaration`.
    */
   readonly contexts: ReadonlyMap<string, ContextDeclaration>;
@@ -810,7 +778,6 @@ export interface Item {
    */
   readonly modalFeedback: readonly ModalFeedback[];
   readonly outcomes: ReadonlyMap<string, OutcomeDeclaration>;
-  readonly processing: Option.Option<readonly Rule[]>;
   /**
    * The response declarations of cardinality `record` the item holds a value of, keyed by
    * identifier.
@@ -818,9 +785,11 @@ export interface Item {
   readonly records: ReadonlyMap<string, RecordDeclaration>;
   readonly responses: ReadonlyMap<string, ResponseDeclaration>;
   /**
-   * The template processing ({@link TemplateProcessing}): absent, running its rules, or stalled.
+   * Whether the item has a `qti-template-processing`, which the QTI database runs at the take: its
+   * template values, correct responses and defaults are the item session's, so a page renders them
+   * only from the record the database returns, never from the declarations alone.
    */
-  readonly templateProcessing: TemplateProcessing;
+  readonly templated: boolean;
   /**
    * The item's template variables, keyed by identifier.
    */
@@ -854,7 +823,6 @@ const freshBuild = (
 ): Build => ({
   declarations: declarationsOf(source),
   document: source,
-  names: declaredNames(source.root),
   paths: pathsOf(source),
   recorded: new Map(),
   records: new Map(),
@@ -963,44 +931,22 @@ export const buildStimulus = (source: AdmittedDocument): Stimulus => {
  *
  * The body keeps text and HTML elements as written. Each interaction becomes its model, or its
  * notice, by its module's `parse` (the table of modules in `#plate/model/interactions.ts`), which
- * binds it to its response by the binding its kind renders with; a `qti-printed-variable`
- * becomes its model, and a `qti-template-block` or `qti-template-inline` its model with its
- * content; any other `qti-*` element in the body becomes a notice, its subtree dropped. Each
- * `modelled` mark adds an unsupported feature, and so does each `qti-*` element outside the body
- * that the model does not read; the root's `adaptive` is read into `adaptive`, unmarked, since the
- * engine delivers an adaptive item (`#plate/engine/adaptive.ts`). Response
- * processing is a rule tree: a
- * built-in template resolves to the tree its text gives, and inline rules become their tree when
- * every element is in the engine. The tree is kept only when the engine holds every identifier it
- * names, the item provides every declaration a built-in template's tree needs, every outcome a
- * lookup sets is single, and it maps no point through an area mapping with a `%` coordinate; each
- * identifier it does not hold is the mark `variable:<identifier>` at the processing element's path,
- * each such need unmet its mark there (`mapping:<identifier>`, `area-mapping:<identifier>` or
- * `outcome-type:<identifier>`), such a point mapping the mark `area-coords-percent` there, and the
- * processing is then none. A response declaration of cardinality `record` is held in `records`,
- * with no mark, whatever interaction binds it: its `qti-correct-response` and `qti-default-value`
- * are read field by field ({@link recordResponse}). The engine holds its record beside response
- * processing, read whole as an operand of `qti-field-value`, `qti-is-null` or `qti-match`
- * ({@link unheldIdentifiers}); a processing that reads it anywhere else is marked
- * `variable:<identifier>`, a template rule that sets its default or its correct response is marked
- * `record-set`, and a Text Entry or an Extended Text bound to one is the string control of
- * cardinality `record`. A declaration of base type `file` is held as one of any other base type,
- * its value a file's name, size and type and never its bytes; Upload and Drawing, which bind one,
- * are notices, as any `qti-*` element the body walk does not read is. An outcome or template
- * declaration of cardinality `record` is held in `unheld`, beside its mark. `records` and `unheld`
- * are each absent when empty. Template declarations of modelled types are read into `templates`,
- * and a `qti-template-processing` into `templateProcessing` through `templateRules` in
- * `#plate/model/template.ts`, which marks what the engine does not run as response processing's
- * reader does. Its rules are kept only when the engine holds every name they read and set while
- * they run: each name {@link unheldIdentifiers} finds, such as `QTI_CONTEXT`, a context variable,
- * or a template variable, response or outcome the model does not hold, is the mark
- * `variable:<identifier>` at the `qti-template-processing` element's path, and the template
- * processing is then none. Nothing is refused: such an item is accepted with that mark. A template
- * variable the model holds is one the engine holds, unless the item's `qti-template-processing`
- * does not run: then no template variable is held, so a tree that reads one is marked
- * `variable:<identifier>`, and the item has no processing, whatever the tree, since that template
- * processing may set a template variable, a default value or a correct response, so a score
- * computed without it could be wrong.
+ * binds it to its response by the binding its kind renders with; a `qti-printed-variable` becomes
+ * its model, and a `qti-template-block` or `qti-template-inline` its model with its content; any
+ * other `qti-*` element in the body becomes a notice, its subtree dropped. Each `modelled` mark
+ * adds an unsupported feature, and so does each `qti-*` element outside the body that the model
+ * does not read; the root's `adaptive` is read into `adaptive`, unmarked, since the QTI database
+ * delivers an adaptive item. `qti-response-processing` and `qti-template-processing` are read into
+ * nothing and marked nothing: the database runs both from the stored document, and the model holds
+ * only whether template processing is there ({@link Item.templated}). A response declaration of
+ * cardinality `record` is held in `records`, with no mark, whatever interaction binds it: its
+ * `qti-correct-response` and `qti-default-value` are read field by field ({@link recordResponse}),
+ * and a Text Entry or an Extended Text bound to one is the string control of cardinality `record`.
+ * A declaration of base type `file` is held as one of any other base type, its value a file's name,
+ * size and type and never its bytes; Upload and Drawing, which bind one, are notices, as any
+ * `qti-*` element the body walk does not read is. An outcome or template declaration of cardinality
+ * `record` is held in `unheld`, beside its mark. `records` and `unheld` are each absent when empty.
+ * Template declarations of modelled types are read into `templates`. Nothing is refused.
  *
  * @param source A document the database admitted.
  * @returns The item.
@@ -1045,8 +991,6 @@ export const buildItem = (source: AdmittedDocument): Item => {
       collectItemPart(content, itemPart(build, part));
     }
   };
-  let processing: Option.Option<ReadProcessing> = Option.none();
-  let templateRead: Option.Option<ReadTemplateProcessing> = Option.none();
 
   for (const part of elementsOf(root).filter((child) => isQti(child))) {
     if (part.local === "qti-item-body") {
@@ -1054,17 +998,12 @@ export const buildItem = (source: AdmittedDocument): Item => {
       for (const node of bodyNodes(build, part)) {
         body.push(node);
       }
-    } else if (part.local === "qti-response-processing") {
+    } else if (
+      part.local === "qti-response-processing" ||
+      part.local === "qti-template-processing"
+    ) {
+      // The QTI database runs both from the stored document; the page renders neither.
       markElement(build, part, false);
-
-      const parsed = processingOf(build, part);
-      processing = parsed.pipe(
-        Option.map((read) => ({
-          ...read,
-          at: build.unsupported.length,
-          path: pathOf(build, part),
-        })),
-      );
     } else if (part.local === "qti-response-declaration") {
       markElement(build, part, false);
 
@@ -1101,79 +1040,10 @@ export const buildItem = (source: AdmittedDocument): Item => {
       holdUnheld(part, "template");
     } else if (part.local === "qti-modal-feedback") {
       modalFeedback.push(modalFeedbackOf(build, part));
-    } else if (part.local === "qti-template-processing") {
-      markElement(build, part, false);
-
-      // The XSD puts every declaration before template processing, so `records` holds each
-      // record response by now; template processing that sets one is marked `record-set`.
-      const parsed = templateRules(readingOf(build), part, new Set(records.keys()));
-      templateRead = parsed.pipe(
-        Option.map((tree) => ({
-          at: build.unsupported.length,
-          path: pathOf(build, part),
-          tree,
-        })),
-      );
     } else {
       markElement(build, part, false);
       readOtherPart(part);
     }
-  }
-
-  const heldContexts: HeldContexts = {
-    builtIn: !declaredIdentifiers(root).has(qtiContextName),
-    declared: new Set(contexts.keys()),
-  };
-  // The names template processing reads or sets that the engine does not hold while it runs. The
-  // engine gives it no response or outcome value (`#plate/engine/template.ts`), but the database
-  // refuses every read of one, and of every built-in but `QTI_CONTEXT`, so on an admitted item these are
-  // `QTI_CONTEXT` read other than whole, a context variable the model does not hold, a template
-  // variable, response or outcome the model does not hold, and the built-in `duration` a rule
-  // sets the default or correct response of.
-  const templateMarks = Option.match(templateRead, {
-    onNone: () => [],
-    onSome: (read) =>
-      unheldIdentifiers(
-        read.tree,
-        responses,
-        outcomes,
-        templateDeclarations,
-        new Set(),
-        heldBuiltIns,
-        build.names,
-        heldContexts,
-      ).map((name) => `variable:${name}`),
-  });
-  const ruleTree = templateRead.pipe(
-    Option.filter(() => templateMarks.length === 0),
-    Option.map((read) => read.tree),
-  );
-  // A `qti-template-processing` that does not run: its rules hold an element the engine does not
-  // run, which `templateRules` marked, or name a variable the engine does not hold while they run.
-  const stalled =
-    childrenNamed(root, "qti-template-processing").length > 0 && Option.isNone(ruleTree);
-  const templateProcessing: TemplateProcessing = Option.match(ruleTree, {
-    onNone: (): TemplateProcessing => (stalled ? { kind: "stalled" } : { kind: "absent" }),
-    onSome: (tree): TemplateProcessing => ({ kind: "runs", rules: tree }),
-  });
-  const runs = processing.pipe(
-    Option.flatMap((read) =>
-      runnable(
-        build,
-        read,
-        responses,
-        outcomes,
-        stalled ? new Map() : templateDeclarations,
-        records,
-        heldContexts,
-      ),
-    ),
-  );
-  // Placed after `runnable`'s: a valid item's `qti-template-processing` precedes its
-  // `qti-response-processing`, so these go at a count no greater than response processing's, and
-  // placing them second keeps both in document order.
-  if (Option.isSome(templateRead)) {
-    markAt(build, templateRead.value.at, templateRead.value.path, templateMarks);
   }
 
   return {
@@ -1186,10 +1056,9 @@ export const buildItem = (source: AdmittedDocument): Item => {
     lang: valueOf(root, "xml:lang"),
     modalFeedback,
     outcomes,
-    processing: stalled ? Option.none() : runs,
     records,
     responses,
-    templateProcessing,
+    templated: childrenNamed(root, "qti-template-processing").length > 0,
     templates: templateDeclarations,
     title,
     unheld,

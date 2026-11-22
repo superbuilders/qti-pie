@@ -94,6 +94,23 @@ export type Term =
     };
 
 /**
+ * A `Text.matches` pattern as a description holds it, a literal or a guard's: its language's key
+ * and its spelling, the source `Text.pattern` admitted, which a match reads.
+ */
+interface PatternValue {
+  readonly pattern: string;
+  readonly spelling: string;
+}
+
+/**
+ * The schema of a {@link PatternValue}.
+ */
+const PatternValueSchema: Schema.Codec<PatternValue> = Schema.Struct({
+  pattern: Schema.String,
+  spelling: Schema.String,
+});
+
+/**
  * A predicate's term as grizzle keeps it, read field by field: every field a term of
  * {@link Term} has, each optional, and a literal's value unread.
  */
@@ -102,7 +119,7 @@ interface StoredTerm {
   readonly args?: readonly StoredTerm[];
   readonly field?: string;
   readonly fn?: string;
-  readonly guard?: { readonly kind: string; readonly pattern?: string };
+  readonly guard?: { readonly kind: string; readonly pattern?: PatternValue };
   readonly kind: string;
   readonly left?: StoredTerm;
   readonly onFalse?: StoredTerm;
@@ -130,7 +147,7 @@ const StoredTermSchema: Schema.Codec<StoredTerm> = Schema.Struct({
   field: Schema.optionalKey(Schema.String),
   fn: Schema.optionalKey(Schema.String),
   guard: Schema.optionalKey(
-    Schema.Struct({ kind: Schema.String, pattern: Schema.optionalKey(Schema.String) }),
+    Schema.Struct({ kind: Schema.String, pattern: Schema.optionalKey(PatternValueSchema) }),
   ),
   kind: Schema.String,
   left: Schema.optionalKey(Schema.suspend((): Schema.Codec<StoredTerm> => StoredTermSchema)),
@@ -204,7 +221,7 @@ const numericNamed = (text: string): Numeric | undefined => {
 
 /**
  * The double a decimal text names, `INF`, `+INF`, `-INF` and `NaN` by name: grizzle's
- * `Compute.parseDouble` over its operand, and PostgreSQL's `float8in` over a text a guard has held
+ * `Text.parseDouble` over its operand, and PostgreSQL's `float8in` over a text a guard has held
  * to a double's form, each XML Schema 1.1's doubleLexicalMap, which `Number` computes exactly for a
  * decimal of at most 20 significant digits.
  *
@@ -524,6 +541,12 @@ export const termOf = (stored: StoredTerm): Term => {
             ),
           ),
           Option.orElse(() =>
+            Option.map(
+              Schema.decodeUnknownOption(PatternValueSchema)(stored.value),
+              ({ spelling }) => spelling,
+            ),
+          ),
+          Option.orElse(() =>
             Option.flatMap(
               Schema.decodeUnknownOption(DecimalLiteralSchema)(stored.value),
               ({ text }) => Option.fromUndefinedOr(numericNamed(text)),
@@ -552,7 +575,7 @@ export const termOf = (stored: StoredTerm): Term => {
           : {
               kind: "when",
               otherwise: termOf(otherwise),
-              pattern: guard.pattern,
+              pattern: guard.pattern.spelling,
               proved: termOf(proved),
               subject: termOf(subject),
             },
@@ -809,13 +832,13 @@ const closedHeld = (closed: Closed, relation: string, args: readonly Datum[]): D
   );
 
 /**
- * The patterns `Compute.matches` reads, compiled once each: `str.regex`'s grammar under `u`,
+ * The patterns `Text.matches` reads, compiled once each: `str.regex`'s grammar under `u`,
  * anchored by `^` and `$`, as grizzle's agent guide states it.
  */
 const compiledPatterns = new Map<string, RegExp>();
 
 /**
- * Test a text against a pattern `Compute.matches` reads.
+ * Test a text against a pattern `Text.matches` reads.
  *
  * @param text - The text.
  * @param pattern - The pattern.
@@ -1025,7 +1048,7 @@ const translated = ([text = "", from = "", to = ""]: readonly string[]): string 
 };
 
 /**
- * The `Compute` functions a predicate reads, by name: grizzle's set algebra over sets of handles
+ * The scalar functions a predicate reads, by name: grizzle's set algebra over sets of handles
  * (`subset`, `disjoint`, `union`, `difference`, `cardinality`, and `singleton`, the set holding a
  * closed id's one handle), its text terms (`matches`, `startsWith`, `endsWith`, `concat`,
  * `translate`, `lowerAscii`, `collapse`), `add` of two naturals, and the parses of a text a guard
@@ -1058,7 +1081,7 @@ const computers: ReadonlyMap<string, (args: readonly Datum[]) => Datum | undefin
   ["concat", (args) => ofTexts(args, 2, ([left = "", right = ""]) => left + right)],
   ["translate", (args) => ofTexts(args, 3, translated)],
   [
-    // As the database's `Compute.lowerAscii` folds: each capital A to Z to its small letter, as
+    // As the database's `Text.lowerAscii` folds: each capital A to Z to its small letter, as
     // PostgreSQL's pg_ascii_tolower does, and every other character itself, never as
     // `String.prototype.toLowerCase` folds, which also folds every other cased script.
     "lowerAscii",
@@ -1068,7 +1091,7 @@ const computers: ReadonlyMap<string, (args: readonly Datum[]) => Datum | undefin
       ),
   ],
   [
-    // As the database's `Compute.collapse` is `btrim(regexp_replace(x, '[ \t\n\r]+', ' ', 'g'))`:
+    // As the database's `Text.collapse` is `btrim(regexp_replace(x, '[ \t\n\r]+', ' ', 'g'))`:
     // the one space a run leaves at either end is trimmed and nothing else, never as
     // `String.prototype.trim` trims, which also strips U+00A0 and the other Unicode whitespace.
     "collapse",
@@ -1164,7 +1187,7 @@ const among = (
 };
 
 /**
- * Apply a closed read or a `Compute` function to its arguments' values.
+ * Apply a closed read or a scalar function to its arguments' values.
  *
  * @param term - The read or the call.
  * @param args - Its arguments' values, none when any is unknown.
@@ -1197,7 +1220,7 @@ const negated = (held: Datum | undefined): boolean | undefined =>
   Predicate.isBoolean(held) ? !held : undefined;
 
 /**
- * Take the branch of a `Compute.when` a subject reaches, as grizzle's `CASE` does: its proved
+ * Take the branch of a `Logic.when` a subject reaches, as grizzle's `CASE` does: its proved
  * branch where the subject matches the guard's pattern, its otherwise elsewhere.
  *
  * @param term - The when.
@@ -1213,7 +1236,7 @@ const branchOf = (
     : Option.none();
 
 /**
- * Choose the arm of a `Compute.cond` its predicate's value takes. grizzle lowers `Compute.cond(p,
+ * Choose the arm of a `Logic.cond` its predicate's value takes. grizzle lowers `Logic.cond(p,
  * a, b)` to `CASE WHEN p THEN a ELSE b END` (grizzle-engine `physical/ddl/expr.ts`, "cond"), so a
  * true predicate takes the first arm and a false one the else arm. A predicate the host holds no
  * value of, a field the row lacks or SQL's NULL, takes neither: the host cannot tell the two apart,
@@ -1238,8 +1261,8 @@ const armOf = (
  * Evaluate a term over a row in SQL's three-valued logic: a field the row does not know, a closed
  * read at a key its relation holds no tuple at, and an unread term are unknown, `and`, `or` and
  * `not` are Kleene's, and every other operation of an unknown operand is unknown. A
- * `Compute.when` takes its branch where its subject matches its guard's pattern and its otherwise
- * elsewhere, as grizzle's `CASE` does, and a `Compute.cond` the arm {@link armOf} chooses. A
+ * `Logic.when` takes its branch where its subject matches its guard's pattern and its otherwise
+ * elsewhere, as grizzle's `CASE` does, and a `Logic.cond` the arm {@link armOf} chooses. A
  * comparison `forced` holds is read as false wherever it occurs.
  *
  * @param term - The term.

@@ -4,10 +4,10 @@
  *
  * The test holds an import at one point of its write with a lock of its own: a trigger on
  * `qti.package`, fired by the insert of a package whose name has its prefix, waits on an advisory
- * lock the test's own session holds, either as the insert's statement runs or, deferred, at
- * COMMIT. The run's limit passes on the test clock, and only once the database shows the import's
- * backend waiting there, so the stop lands at a known point of the write; the lock is then let go,
- * every backend but the test's left to end, and the outcome the command line reported compared with
+ * lock the test's own session holds, either as the insert's statement runs or, deferred, at COMMIT.
+ * The run's limit passes on the test clock, and only once the database shows the import's backend
+ * waiting there, so the stop lands at a known point of the write; the lock is then let go, every
+ * transaction the run began left to end, and the outcome the command line reported compared with
  * what a plain SQL read of `qti.package` and `qti.entry` finds. Nothing of pantry's or grizzle's
  * reads takes part in that read.
  */
@@ -16,7 +16,18 @@ import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
-import { Cause, Config, Effect, Exit, Fiber, FileSystem, Option, Schedule, Schema } from "effect";
+import {
+  Cause,
+  Config,
+  Duration,
+  Effect,
+  Exit,
+  Fiber,
+  FileSystem,
+  Option,
+  Schedule,
+  Schema,
+} from "effect";
 import { TestClock } from "effect/testing";
 import { Client } from "pg";
 import { describe, inject } from "vitest";
@@ -168,8 +179,29 @@ const releaseHold = (client: Client) =>
   Effect.asVoid(sql(client, "SELECT pg_advisory_unlock_all()"));
 
 /**
+ * How long the hold's wait lets pass between two reads of `pg_locks` ({@link heldAt}).
+ *
+ * @limitKind provisional
+ * @owner timeout.db.test.ts (heldAt, the wait for the import's backend at the hold)
+ * @unit milliseconds
+ * @scope each pause between two reads of `pg_locks` in one held run's wait
+ * @guards with no pause, the wait reads `pg_locks` back to back on the test's session while the
+ *   import starts, spending a CPU and the member's time until the backend arrives
+ * @measure time from the run's start to the backend's arrival at the hold over many runs on the
+ *   lease, and keep the longest pause that adds no more than a tenth of that to the wait
+ * @origin written with no evidence with the hold's wait, which polled once every 100 ms
+ * @recorded 2026-11-21
+ */
+const holdReadPauseMillis = 100;
+
+/**
  * Wait, on the live clock, until a backend of the lease database waits on one of the hold's locks,
- * and say where it waits. A run that ends first fails the wait with how it ended.
+ * and say where it waits. A run that ends first fails the wait with how it ended. It reads
+ * `pg_locks` again after a pause ({@link holdReadPauseMillis}) until it finds the waiter:
+ * PostgreSQL offers no blocking wait for another session to begin waiting, since `pg_locks` is a
+ * view and a lock request blocks only until a holder lets go, so no read of the test's session can
+ * block until the import arrives. The suite's `testTimeout` bounds the wait; it has no limit of its
+ * own.
  *
  * @param client - The test's session.
  * @param run - The run of the command line being held.
@@ -195,28 +227,21 @@ const heldAt = (client: Client, run: Fiber.Fiber<{ readonly stderr: string }, un
       const point = yield* Effect.fromOption(Option.fromNullishOr(waiting[0]?.["point"]));
 
       return point === holdPoint.commit ? "commit" : "statement";
-    }).pipe(Effect.retry(Schedule.spaced("100 millis")), Effect.timeout("40 seconds")),
+    }).pipe(Effect.retry(Schedule.spaced(Duration.millis(holdReadPauseMillis)))),
   );
 
 /**
- * Wait, on the live clock, until no client backend of the lease database but the test's own is
- * left, so every transaction the run began has committed or rolled back before the database is
- * read.
+ * Wait until every transaction the run began has committed or rolled back, so the database is read
+ * as the run left it: each of them writes `qti.package` and holds its ROW EXCLUSIVE lock from that
+ * insert until it ends, and a SHARE lock conflicts with it (PostgreSQL's table-level lock modes),
+ * so taking one blocks until the last of them ends, and it is let go at once. The run has ended
+ * before this wait, so none of its writes begins after it.
  *
  * @param client - The test's session.
- * @returns Completes once the test's session is the database's only one.
+ * @returns Completes once no transaction of the run is open.
  */
 const quiesced = (client: Client) =>
-  TestClock.withLive(
-    sql(
-      client,
-      "SELECT count(*)::text AS n FROM pg_stat_activity WHERE datname = current_database() AND backend_type = 'client backend' AND pid <> pg_backend_pid()",
-    ).pipe(
-      Effect.filterOrFail((rows) => rows[0]?.["n"] === "0"),
-      Effect.retry(Schedule.spaced("100 millis")),
-      Effect.timeout("20 seconds"),
-    ),
-  );
+  Effect.asVoid(sql(client, "BEGIN; LOCK TABLE qti.package IN SHARE MODE; COMMIT"));
 
 /**
  * One media file of a package: its path and the SHA-256 of its bytes in lowercase hex.
@@ -319,7 +344,7 @@ describe.skipIf(!hasLease)("timeout.db.test.ts, on the lease", () => {
     it.effect(
       "at COMMIT, once every statement of the import has run, reports the import the database shows committed",
       () =>
-        // Oracle: a plain SQL read after every backend but the test's has ended, of
+        // Oracle: a plain SQL read after every transaction the run began has ended, of
         // `qti.package`, `qti.entry` and `qti.media`, against the fixture's folder: an entry for
         // every file, and for its one media file, `images/sign.png`, the digest Node's SHA-256
         // gives its bytes. The stop lands
@@ -367,8 +392,8 @@ describe.skipIf(!hasLease)("timeout.db.test.ts, on the lease", () => {
     it.effect(
       "in the insert's statement, before COMMIT, reports nothing written, which the database shows",
       () =>
-        // Oracle: the same plain SQL read, after the hold's lock is let go and every backend but
-        // the test's has ended, so a write the stop did not cancel would have committed by then
+        // Oracle: the same plain SQL read, after the hold's lock is let go and every transaction
+        // the run began has ended, so a write the stop did not cancel would have committed by then
         // and be found.
         Effect.scoped(
           Effect.gen(function* stopInStatement() {

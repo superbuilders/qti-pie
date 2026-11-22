@@ -5,8 +5,8 @@
  * Data-SSML 1.0's JSON Schema (`#pantry/qti/data-ssml.ts`, law "Data SSML"): which members and
  * properties it lists, the enumerated and the normalized values, and the required properties.
  * This module judges none of that. It reads the JSON into rows, which no grizzle term derives from
- * a text: grizzle has no JSON type and no `Compute` term that splits a text (grizzle's README,
- * "Tables and types", and TODO, "A Compute term that splits a text"), so the rows the laws read
+ * a text: grizzle has no JSON type and no scalar term that splits a text (grizzle's README,
+ * "Tables and types", and TODO, "A Text split"), so the rows the laws read
  * are the importer's to write, as a document's XML is. A value that is not one JSON object of
  * objects of strings has no rows, so the database refuses its attribute under "Data SSML", which
  * requires every closed `data-ssml` to have them.

@@ -1,6 +1,6 @@
 /**
- * Inline Choice (Q-12), the `qti-inline-choice-interaction`: its model node, parse, redaction and
- * response validation, on the module shape the interaction-module contract states.
+ * Inline Choice (Q-12), the `qti-inline-choice-interaction`: its model node, parse and redaction,
+ * on the module shape the interaction-module contract states.
  *
  * An Inline Choice stands inside the author's sentence and binds an identifier response of single
  * cardinality; any other binding is the notice naming the one it breaks. Its choices are read and
@@ -10,16 +10,11 @@
  * decided by the redaction through its region. Each choice holds the content `InlineChoiceDType`
  * admits, which the island shows as the server rendered it.
  *
- * {@link validateInlineChoice} checks a value the caller decoded, in two tiers: tier (a) always,
- * tier (b) only under `validateResponses`.
- *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_InlineChoiceInteraction
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import type { SourceElement } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { presented, simpleChoiceOf, simpleChoiceRegions } from "#plate/interactions/choice.ts";
 import type {
   ByLevel,
@@ -28,9 +23,7 @@ import type {
   ModuleParseContext,
   OwnRegion,
   Parsed,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { message, numeral } from "#plate/messages.ts";
 import type {
   BodyNode,
   Level,
@@ -40,7 +33,6 @@ import type {
   SimpleChoice,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
-import type { Value } from "#plate/model/values.ts";
 
 /**
  * Inline Choice's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -88,7 +80,7 @@ export interface InlineChoiceInteraction<
   readonly messages: { readonly min: Option.Option<string> };
   /**
    * `min-choices`, 0 when absent: a count, 0 to 2^63-1, held exactly (reading 46). One above 1 is
-   * kept as written, so under `validateResponses` no response of a single binding meets it.
+   * kept as written, so under `validate-responses` no response of a single binding meets it.
    */
   readonly minChoices: bigint;
   /**
@@ -96,7 +88,7 @@ export interface InlineChoiceInteraction<
    */
   readonly placeholder: Option.Option<string>;
   /**
-   * `required`, an `xs:boolean`, false when absent: under `validateResponses`, a NULL response is
+   * `required`, an `xs:boolean`, false when absent: under `validate-responses`, a NULL response is
    * refused even when `min-choices` is 0.
    */
   readonly required: boolean;
@@ -180,71 +172,6 @@ const labelRegion = <L extends Level>(
       },
     ],
   });
-
-/**
- * Check an Inline Choice's response, which the caller decoded, in two tiers.
- *
- * The caller decodes the posted entry with `decode`, under the entry name its form gave the
- * Control and the Inline Choice's binding (one identifier), and passes the value, or the
- * {@link Malformed} `decode` gave. The Placeholder posts `""`, which decodes to NULL. So the entry
- * name stays the caller's, while the messages and the author's override stay here.
- *
- * - A {@link Malformed} input: `atMost` 1 when the response was posted more than once, else
- *   `unknownChoice`.
- * - Tier (a), always: an identifier that names no choice gives `unknownChoice`. Identifiers compare
- *   exactly, so `a` does not name a choice `A`.
- * - Tier (b), only under `validateResponses`: fewer identifiers than needed gives `atLeast` with the
- *   count needed. That count is `min-choices`, raised to 1 when `required` is true; NULL is
- *   accepted when it is 0. A `min-choices` above 1 is validated as written, so then every response
- *   is refused (section 5.74.3).
- *
- * The author's `data-min-selections-message` replaces the renderer's text for `atLeast`.
- *
- * @param interaction The Inline Choice.
- * @param input The decoded value, or why the entries did not decode.
- * @param configuration The configuration, which gives the locale and `validateResponses`.
- * @returns One message per problem, none when the response is accepted.
- */
-export const validateInlineChoice = (
-  interaction: InlineChoiceInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-  const say = (words: string): ValidationMessage => ({
-    response: interaction.response,
-    text: words,
-  });
-
-  if (input instanceof Malformed) {
-    return [
-      say(
-        input.reason === "single-many"
-          ? message(locale, "atMost", { n: numeral(locale, 1n) })
-          : message(locale, "unknownChoice"),
-      ),
-    ];
-  }
-
-  const presentedIds = new Set(interaction.choices.map((choice) => choice.identifier));
-  const chosen = input.values.map(format);
-  const needed = interaction.required && interaction.minChoices < 1n ? 1n : interaction.minChoices;
-
-  return [
-    ...(chosen.some((identifier) => !presentedIds.has(identifier))
-      ? [say(message(locale, "unknownChoice"))]
-      : []),
-    ...(configuration.validateResponses && BigInt(chosen.length) < needed
-      ? [
-          say(
-            Option.getOrElse(interaction.messages.min, () =>
-              message(locale, "atLeast", { n: numeral(locale, needed) }),
-            ),
-          ),
-        ]
-      : []),
-  ];
-};
 
 /**
  * Read a `qti-inline-choice-interaction`: its binding, its Label, the author's names, messages and
@@ -337,5 +264,4 @@ export const inlineChoiceModule: InteractionModule<
    * choice's.
    */
   regions: (interaction) => [...labelRegion(interaction), ...simpleChoiceRegions(interaction)],
-  validate: validateInlineChoice,
 };

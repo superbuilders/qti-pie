@@ -1,0 +1,5 @@
+  const answeredKey = {
+    child: param("child", LearnerId),
+    item: param("item", fields.Named.fields.identifier),
+    stage: param("stage", pg.bigint),
+  } as const;

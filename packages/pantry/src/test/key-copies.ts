@@ -3,29 +3,30 @@
  * statements rather than listed by hand, for the law oracle's "Key text bound"
  * (`#pantry/test/oracle.ts` `keyTexts`).
  *
- * A text the database holds in a field of type `keyText` (`#pantry/qti/limits.ts`) is refused past
- * its bound by that type, so the oracle must count exactly the document texts some statement writes
- * into such a field. Three statement shapes do, each over a document relation the oracle has rows
- * for, `Attribute` or `Node`:
+ * A text the database holds in a field of type `matchedText` (`#pantry/qti/limits.ts`) is refused
+ * past its bound by that type, so the oracle must count exactly the document texts some statement
+ * writes into such a field. Three statement shapes can, each over a document relation the oracle
+ * has rows for, `Attribute` or `Node`:
  *
  * - **A containment** (`contained`, either way of a `mirrors`) whose source side pairs a field of no
- *   `keyText` type with a `keyText` field of its target: every source row its selection holds is
- *   copied, as an `m:cn`'s `base` or `type` is into `CnAttribute.lexical`.
- * - **A check** that equates a field of no `keyText` type with a `keyText` field of the same row
- *   where the rest of the check leaves no other way to hold, as `E1_derived` equates an IDREF
- *   attribute's lexical form with its `idrefText`.
- * - **A fold** of `Monoid.concat` into a `keyText` accumulator over the document tree: an owner's end
- *   is held where any member its step selects steps, as a checked or copied element's string value
- *   is.
+ *   `matchedText` type with a `matchedText` field of its target: every source row its selection
+ *   holds is copied, as an outcome declaration's `mastery-value` is into `MasteryValue.lexical`.
+ * - **A check** that equates a field of no `matchedText` type with a `matchedText` field of the same
+ *   row where the rest of the check leaves no other way to hold, which the schema states nowhere
+ *   now: an IDREF attribute's `idrefText`, which `E1_derived` equates with its lexical form, is of
+ *   any length.
+ * - **A fold** of `Monoid.concat` into a `matchedText` accumulator over the document tree: an owner's
+ *   end is held where any member its step selects steps, as a checked or copied element's string
+ *   value is.
  *
- * A copy out of a `keyText` field is bounded where that field is written, so only these first hops
- * are listed. Each selection and check is read from the predicate grizzle keeps for it and
+ * A copy out of a `matchedText` field is bounded where that field is written, so only these first
+ * hops are listed. Each selection and check is read from the predicate grizzle keeps for it and
  * evaluated on the host in SQL's three-valued logic (`#pantry/test/predicates.ts`, which reads no
  * schema of its own), over the fields the oracle knows of a row ({@link attributeFields},
  * {@link nodeFields}).
  */
 // GRIZZLE-PENDING: Q10. The key copies are read from the statements' kept predicates; the
-// installation map would list which fields of `keyText` type each law writes.
+// installation map would list which fields of `matchedText` type each law writes.
 import type { Law, LawSide, Statement } from "@bjornpagen/grizzle";
 import { Array as Arr, Option, Predicate, Result, Schema } from "effect";
 import {
@@ -41,8 +42,8 @@ import {
   termOf,
 } from "#pantry/test/predicates.ts";
 import type { Row, StoredSide, StoredStatement, Term } from "#pantry/test/predicates.ts";
-import { keyText } from "#pantry/qti/limits.ts";
 import { Qti } from "#pantry/qti/schema.ts";
+import { matchedText } from "#pantry/qti/limits.ts";
 
 /**
  * The fields of an `Attribute` row the oracle knows before the database writes it: its owner's
@@ -148,7 +149,7 @@ type CopiedBy = "check" | "contained" | "fold";
 interface Copy {
   readonly by: CopiedBy;
   /**
-   * The `keyText` field that holds the text, `Relation.field`.
+   * The `matchedText` field that holds the text, `Relation.field`.
    */
   readonly field: string;
   /**
@@ -244,9 +245,9 @@ const StoredRelationSchema = Schema.Struct({
 });
 
 /**
- * Every field of the composed schema whose type is `keyText`, as `Relation.field`, and whether the
- * database fills it: grizzle keeps an accumulator's type at its `field` and a generated field's at
- * its `type`, and the import writes neither.
+ * Every field of the composed schema whose type is `matchedText`, as `Relation.field`, and whether
+ * the database fills it: grizzle keeps an accumulator's type at its `field` and a generated field's
+ * at its `type`, and the import writes neither.
  */
 const keyTextFieldFills: readonly { readonly field: string; readonly filled: boolean }[] =
   Object.values(Qti.relations).flatMap((member) =>
@@ -255,17 +256,17 @@ const keyTextFieldFills: readonly { readonly field: string; readonly filled: boo
       onSome: ({ fields, name }) =>
         Object.entries(fields).flatMap(([field, type]) => {
           const filled =
-            (Predicate.hasProperty(type, "field") && type.field === keyText) ||
-            (Predicate.hasProperty(type, "type") && type.type === keyText);
+            (Predicate.hasProperty(type, "field") && type.field === matchedText) ||
+            (Predicate.hasProperty(type, "type") && type.type === matchedText);
 
-          return type === keyText || filled ? [{ field: `${name}.${field}`, filled }] : [];
+          return type === matchedText || filled ? [{ field: `${name}.${field}`, filled }] : [];
         }),
     }),
   );
 
 /**
- * Every field of the composed schema whose type is `keyText`, an accumulator or a generated field
- * of it included, as `Relation.field`.
+ * Every field of the composed schema whose type is `matchedText`, an accumulator or a generated
+ * field of it included, as `Relation.field`.
  */
 export const keyTextFields: ReadonlySet<string> = new Set(
   keyTextFieldFills.map(({ field }) => field),
@@ -280,7 +281,7 @@ export const filledKeyTextFields: ReadonlySet<string> = new Set(
 );
 
 /**
- * Whether a relation's field is of type `keyText`.
+ * Whether a relation's field is of type `matchedText`.
  *
  * @param relation - The relation's name.
  * @param field - The field's name.
@@ -399,8 +400,9 @@ const containedCopies = (
 };
 
 /**
- * Draft the copy a fold makes: a `Monoid.concat` fold into a `keyText` accumulator of a document
- * relation whose members are its own rows holds its owner's end where a member it steps steps.
+ * Draft the copy a fold makes: a `Monoid.concat` fold into a `matchedText` accumulator of a
+ * document relation whose members are its own rows holds its owner's end where a member it steps
+ * steps.
  *
  * @param fold - The fold.
  * @param statement - The statement's place among the schema's.
@@ -444,12 +446,12 @@ const foldCopies = (
 };
 
 /**
- * Read the equation a term states between a field of no `keyText` type and a `keyText` field of
- * one relation's row.
+ * Read the equation a term states between a field of no `matchedText` type and a `matchedText`
+ * field of one relation's row.
  *
  * @param relation - The row's relation.
  * @param term - The term.
- * @returns The `keyText` field and the field it equals, none for any other term.
+ * @returns The `matchedText` field and the field it equals, none for any other term.
  */
 const equationOf = (
   relation: string,
@@ -475,9 +477,9 @@ const equationOf = (
 };
 
 /**
- * Draft the copies a check makes on a document relation: each equation of a field of no `keyText`
- * type with a `keyText` field of the same row, which the row must hold where the rest of the check
- * leaves it no other way to.
+ * Draft the copies a check makes on a document relation: each equation of a field of no
+ * `matchedText` type with a `matchedText` field of the same row, which the row must hold where the
+ * rest of the check leaves it no other way to.
  *
  * @param check - The check.
  * @param statement - The statement's place among the schema's.

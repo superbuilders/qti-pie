@@ -9,6 +9,7 @@
  * reading of `cn` (§4.2.1: the parts a `type` implies, separated by `sep`; §2.1.7: whitespace
  * around character data is collapsed), never computed by the builder's own code.
  */
+import { keyTextBytes } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { Option } from "effect";
 import { rowsOf } from "#pantry/import/overlays/mathml-cn.ts";
@@ -25,7 +26,7 @@ import type {
   XdmText,
   XdmWhitespace,
 } from "#pantry/model/xdm.ts";
-import { keyTextBytes, utf8Length } from "#pantry/qti/limits.ts";
+import { utf8Length } from "#pantry/qti/limits.ts";
 import { ownViewOf } from "#pantry/import/fold.ts";
 
 /**
@@ -375,9 +376,10 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     assert.sameMembers(keysOf(rows.MathCn), [keyAt(2), keyAt(6)]);
   });
 
-  it("copies a type longer than the key-text bound unchanged, for the database to refuse under Key text bound", () => {
-    // The builder restates the tree; the stated limit (reading 2, findings row 24) is the schema's.
-    const long = "t".repeat(keyTextBytes + 1);
+  it("copies a type longer than any B-tree entry holds as itself unchanged, a key holding it by its image", () => {
+    // The builder restates the tree; `CnAttribute.lexical` is of any length (reading 2), so the
+    // database holds the copy by its image and no length refuses it.
+    const long = "t".repeat(keyTextBytes([]) + 1);
     const rows = rowsOf(
       ownViewOf(
         documentOf(
@@ -389,7 +391,11 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
 
     const copied = rows.CnAttribute.get(attributeKey(2, "type"));
     assert.strictEqual(copied?.lexical, long);
-    assert.isAbove(utf8Length(copied?.lexical ?? ""), keyTextBytes, "the copy is past the bound");
+    assert.isAbove(
+      utf8Length(copied?.lexical ?? ""),
+      keyTextBytes([]),
+      "the copy is past what a B-tree entry holds as itself",
+    );
     assert.sameMembers(keysOf(rows.MathCn), []);
   });
 

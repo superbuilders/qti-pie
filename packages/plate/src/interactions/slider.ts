@@ -1,6 +1,7 @@
 /**
- * Slider (Q-19), the `qti-slider-interaction`: its model node, parse, redaction and response
- * validation, on the module shape the interaction-module contract states.
+ * Slider (Q-19), the `qti-slider-interaction`: its model node, parse and redaction, on the module
+ * shape the interaction-module contract states. The QTI database refuses a value off its range or
+ * its steps when an answer is posted.
  *
  * - **Binding.** A response of cardinality `single` and base type `integer` or `float`; any other
  *   binding is the notice naming the one it breaks, as for the four shipped kinds. Under an
@@ -26,17 +27,11 @@
  * label, the hints, the author's names as written and the value to start at; the server shell
  * renders it (`#plate/ui/item/interactions/`).
  *
- * {@link validateSlider} checks a value the caller decoded in tier (a) only: below the lower bound,
- * above the upper bound, or off the steps counted from the lower bound. The messages are English
- * and live in this module.
- *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_SliderInteraction
  */
 import { Option } from "effect";
-import type { Configuration } from "#plate/configuration.ts";
 import { attributePath } from "#plate/document/source.ts";
-import { Malformed } from "#plate/form/encoding.ts";
 import { boundIn, promptRegion } from "#plate/interactions/contract.ts";
 import type {
   ByLevel,
@@ -44,14 +39,9 @@ import type {
   ModuleInteraction,
   Parsed,
   ReaderKit,
-  ValidationMessage,
 } from "#plate/interactions/contract.ts";
-import { malformedMessage } from "#plate/interactions/pattern.ts";
-import { message } from "#plate/messages.ts";
-import type { Locale } from "#plate/messages.ts";
 import type { Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
 import { format, trimXmlSpace } from "#plate/model/values.ts";
-import type { Single, Value } from "#plate/model/values.ts";
 
 /**
  * Slider's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -212,7 +202,7 @@ interface Range {
  * step that is not above 0 constrains nothing, so it counts as none.
  *
  * @param interaction The Slider's binding, bounds and step.
- * @returns The range the slider and the validation share.
+ * @returns The range the slider moves in.
  */
 const rangeOf = (
   interaction: Pick<SliderInteraction, "baseType" | "lowerBound" | "step" | "upperBound">,
@@ -260,101 +250,6 @@ const startOf = (candidates: readonly string[]): Option.Option<string> =>
   Option.fromUndefinedOr(
     candidates.map(trimXmlSpace).find((candidate) => decimalNumber.test(candidate)),
   ).pipe(Option.map((found) => String(Number(found))));
-
-/**
- * Give the number a single value holds, none for a value no slider takes.
- *
- * @param single One value of the response.
- * @returns Its number, an integer as a `Number`, none for another base type.
- */
-const numberOf = (single: Single): Option.Option<number> => {
-  if (single.baseType === "integer") {
-    return Option.some(Number(single.value));
-  }
-
-  return single.baseType === "float" ? Option.some(single.value) : Option.none();
-};
-
-/**
- * Judge one number against a range.
- *
- * @param range The range.
- * @param value The number.
- * @param locale The locale of the message.
- * @returns The message for the first rule it breaks: below the lower bound, above the upper bound,
- *   then off the steps; none when it keeps all three.
- */
-const judge = (range: Range, value: number, locale: Locale): Option.Option<string> => {
-  if (value < range.lower) {
-    return Option.some(message(locale, "sliderBelow", { bound: String(range.lower) }));
-  }
-
-  if (value > range.upper) {
-    return Option.some(message(locale, "sliderAbove", { bound: String(range.upper) }));
-  }
-
-  return range.step.pipe(
-    Option.filter((step) => {
-      const steps = (value - range.lower) / step;
-
-      return Math.abs(steps - Math.round(steps)) > stepTolerance * Math.max(1, Math.abs(steps));
-    }),
-    Option.map((step) =>
-      message(locale, "sliderOffStep", { from: String(range.lower), step: String(step) }),
-    ),
-  );
-};
-
-/**
- * Check a Slider's response, which the caller decoded, in tier (a) alone.
- *
- * The caller decodes the posted entry with `decode`, under the entry name its form gave the
- * Control, the Slider's binding (a single `integer` or `float`), and passes the value, or the
- * {@link Malformed} `decode` gave. So the entry name stays the caller's, while the messages stay
- * here.
- *
- * - A {@link Malformed} input, by its reason ({@link malformedMessage}): `malformedNumber` for text
- *   that is no number, `malformedSingleMany` for a second entry.
- * - A decoded value outside the range ({@link rangeOf}): below the lower bound, above the upper
- *   bound, or off the steps counted from the lower bound, each message naming the bound or the
- *   step. A value that breaks two rules gets the first.
- *
- * NULL, the response of a slider the candidate never set, gives none, and `validateResponses` adds
- * no check: a slider states no count to hold its response to.
- *
- * @param interaction The Slider.
- * @param input The decoded value, or why the entry did not decode.
- * @param configuration The configuration, which gives the locale.
- * @returns One message per problem, none when the response is accepted.
- */
-const validateSlider = (
-  interaction: SliderInteraction,
-  input: Value | Malformed,
-  configuration: Configuration,
-): readonly ValidationMessage[] => {
-  const { locale } = configuration;
-
-  if (input instanceof Malformed) {
-    return [
-      {
-        response: interaction.response,
-        text: malformedMessage(
-          { baseType: interaction.baseType, patternMaskMessage: Option.none() },
-          input.reason,
-          locale,
-        ),
-      },
-    ];
-  }
-
-  const range = rangeOf(interaction);
-
-  return input.values.flatMap((single) =>
-    Option.toArray(Option.flatMap(numberOf(single), (value) => judge(range, value, locale))).map(
-      (wording) => ({ response: interaction.response, text: wording }),
-    ),
-  );
-};
 
 /**
  * Throw an attribute's defect at its path in the document, for the readers that take one.
@@ -466,5 +361,4 @@ export const sliderModule: InteractionModule<"slider", SliderByLevel, SliderPayl
    * The Prompt, the one content a Slider holds.
    */
   regions: promptRegion,
-  validate: validateSlider,
 };

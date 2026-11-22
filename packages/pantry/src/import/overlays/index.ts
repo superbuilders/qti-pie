@@ -21,20 +21,25 @@ import { placedCatalogRowsOf, rowsOf as catalogRowsOf } from "#pantry/import/ove
 import type { CatalogRows, PlacedCatalogRows } from "#pantry/import/overlays/catalog.ts";
 import { rowsOf as dataSsmlRowsOf } from "#pantry/import/overlays/data-ssml.ts";
 import type { DataSsmlRows } from "#pantry/import/overlays/data-ssml.ts";
+import { documentNamesOf } from "#pantry/import/overlays/declarations.ts";
 import {
-  documentNamesOf,
-  rowsOf as declarationRowsOf,
-} from "#pantry/import/overlays/declarations.ts";
-import type { DeclarationRows } from "#pantry/import/overlays/declarations.ts";
+  numberedReadingRowsOf,
+  readingDocumentOf,
+  scopedReadingsOf,
+} from "#pantry/import/overlays/readings.ts";
+import type { NumberedReadingRows } from "#pantry/import/overlays/readings.ts";
 import {
   assembledExpressionRowsOf,
+  builtInTypeOf,
+  declaredTypeIn,
   rowsOf as expressionRowsOf,
-  placedVariableRowsOf,
+  placedRowsOf,
+  placingPackageOf,
 } from "#pantry/import/overlays/expressions.ts";
 import type {
   AssembledExpressionRows,
   ExpressionRows,
-  PlacedVariableRows,
+  PlacedRows,
 } from "#pantry/import/overlays/expressions.ts";
 import { rowsOf as htmlRowsOf } from "#pantry/import/overlays/html.ts";
 import type { HtmlRows } from "#pantry/import/overlays/html.ts";
@@ -87,7 +92,6 @@ type OverlayRows = AssembledExpressionRows &
   AssembledRows &
   CatalogRows &
   DataSsmlRows &
-  DeclarationRows &
   ExpressionRows &
   HtmlRows &
   IdentityRows &
@@ -100,10 +104,11 @@ type OverlayRows = AssembledExpressionRows &
   PlacedBindingRows &
   PlacedCatalogRows &
   PlacedIdRows &
+  PlacedRows &
   PlacedShareRows &
-  PlacedVariableRows &
   ReferenceRows &
   FragmentRows &
+  NumberedReadingRows &
   TestRows;
 
 /**
@@ -112,7 +117,6 @@ type OverlayRows = AssembledExpressionRows &
 interface DocumentRows {
   readonly catalog: CatalogRows;
   readonly dataSsml: DataSsmlRows;
-  readonly declarations: DeclarationRows;
   readonly expressions: ExpressionRows;
   readonly html: HtmlRows;
   readonly identity: IdentityRows;
@@ -143,7 +147,6 @@ interface DocumentRows {
 const documentRowsOf = ({ ids, listed: { path }, view }: PlacedDocument): DocumentRows => ({
   catalog: catalogRowsOf(view, ids),
   dataSsml: dataSsmlRowsOf(view, ids),
-  declarations: declarationRowsOf(view, ids),
   expressions: expressionRowsOf(view, ids),
   html: htmlRowsOf(view, ids),
   identity: identityRowsOf(view, ids),
@@ -306,11 +309,48 @@ export const overlayPartsOf = (
     sites: built.flatMap(({ rows }) => [...rows.tests.Site.values()]),
   });
 
+  const readingDocuments = built.map(({ document, rows }) =>
+    readingDocumentOf({
+      declared: documentNamesOf(document.view, document.ids).map(({ name }) => name),
+      itemRefDocuments: referenced.ItemRefDocument.values(),
+      names: rows.tests.Named.values(),
+      path: document.ids.path,
+      references: rows.expressions.VariableRef.values(),
+      view: document.view,
+    }),
+  );
+  const readings = numberedReadingRowsOf({
+    documents: readingDocuments,
+    instances: assembled.Instance.values(),
+  });
+  // Every placement types its documents' expressions and resolves their references in its
+  // assembly (spec reading 117), a test's through its readings (spec reading 167).
+  const placing = placingPackageOf(
+    built.map(({ document, rows }) => ({
+      ids: document.ids,
+      paths: rows.references.ReferencePath.values(),
+      references: rows.expressions.VariableRef.values(),
+      view: document.view,
+    })),
+  );
+  const placed = placedRowsOf({
+    instances: assembled.Instance.values(),
+    placing,
+    readingsOf: scopedReadingsOf({
+      documents: readingDocuments,
+      instances: assembled.Instance.values(),
+      readings,
+      types: {
+        builtIn: builtInTypeOf,
+        declared: (path, name) => declaredTypeIn(placing, path, name),
+      },
+    }),
+  });
+
   return [
     ...built.flatMap(({ rows }) => [
       rows.catalog,
       rows.dataSsml,
-      rows.declarations,
       rows.expressions,
       rows.html,
       rows.identity,
@@ -325,11 +365,8 @@ export const overlayPartsOf = (
     ]),
     assembled,
     referenced,
-    placedVariableRowsOf({
-      declarations: built.flatMap(({ document }) => documentNamesOf(document.view, document.ids)),
-      instances: assembled.Instance.values(),
-      references: built.flatMap(({ rows }) => [...rows.expressions.VariableRef.values()]),
-    }),
+    placed,
+    readings,
     placedBindingRowsOf({
       adaptive: built.flatMap(({ rows }) => [...rows.interactions.ItemMode.values()]),
       choices: built.flatMap(({ rows }) => [...rows.interactions.Choice.values()]),

@@ -776,14 +776,18 @@ const statedReadings: ReadonlyMap<string, ReadonlySet<number>> = (() => {
 /**
  * Every exemption the differentials below rule a disagreement by, each keyed to the reading it
  * cites and the parents it holds at: reading 2 under the MathML models the RelaxNG decides,
- * reading 44 where `ssml:token` and `ssml:w` drop `voice`, and reading 118 at an include's
- * fallbacks. Reading 96 is libxml2's departure, not the grammar's, and
- * its own differential fails once xmllint stops widening ({@link widenedOnly}).
+ * reading 44 where `ssml:token` and `ssml:w` drop `voice`, reading 61 at `qti-ordering`'s extension
+ * slot, which it reads as `##any` where the XSD writes `##other`, and reading 118 at an include's
+ * fallbacks. Reading 96 is libxml2's departure, not the grammar's, and its own differential fails
+ * once xmllint stops widening ({@link widenedOnly}).
  */
 const exemptions: readonly { readonly parents: readonly string[]; readonly reading: number }[] = [
   { parents: [...relaxNgModels.keys()], reading: 2 },
   { parents: ["ssml:token", "ssml:w"], reading: 44 },
+  { parents: ["qti-ordering"], reading: 61 },
   { parents: ["xi:include"], reading: 118 },
+  { parents: ["table"], reading: 240 },
+  { parents: ["figure"], reading: 241 },
 ];
 
 /**
@@ -803,9 +807,13 @@ const exempts = (reading: number, parent: string): boolean =>
 /**
  * Classify the grammar's verdict on an xmllint probe against xmllint's: they agree, a spec reading
  * rules their difference, or they disagree. Reading 96 rules a family the grammar refuses and
- * xmllint accepts: one only libxml2's widened sequence accepts ({@link widenedOnly}). Spec reading
- * 118 rules a family of `xi:include` holding two fallbacks, which XInclude 1.0 §3.1 refuses and
- * `XInclude.xsd` admits.
+ * xmllint accepts: one only libxml2's widened sequence accepts ({@link widenedOnly}). A spec
+ * reading that narrows the XSD rules a family the grammar refuses and xmllint accepts
+ * ({@link narrowedByReading}): reading 44's `voice` in a `token`, reading 118's two fallbacks,
+ * reading 240's table of both `col` and `colgroup`, and reading 241's two figure captions.
+ * Spec reading 61 rules a family of `qti-ordering` the grammar accepts and xmllint refuses: its
+ * model is one wildcard, which the reading widens from `##other` to `##any`, so xmllint refuses
+ * there only an element of the slot's own namespace or of none (§5.98.3).
  *
  * @param input - The probe and both verdicts.
  * @param input.expected - The grammar's verdict.
@@ -821,19 +829,18 @@ const xmllintRuling = (input: {
   readonly probe: KindProbe;
   readonly readings: readonly Content[] | undefined;
   readonly verdict: Validated | undefined;
-}): "agrees" | "disagrees" | "reading 118" | "reading 96" => {
+}): "agrees" | "disagrees" | "narrowed" | "reading 61" | "reading 96" => {
   const { expected, probe, verdict } = input;
   if (verdict !== undefined && verdict.refused !== expected) {
     return "agrees";
   }
 
-  if (
-    !expected &&
-    verdict?.refused === false &&
-    exempts(118, probe.parentKind) &&
-    probe.kinds.filter((kind) => kind === "xi:fallback").length > 1
-  ) {
-    return "reading 118";
+  if (expected && verdict?.refused === true && exempts(61, probe.parentKind)) {
+    return "reading 61";
+  }
+
+  if (!expected && verdict?.refused === false && narrowedByReading(probe.parentKind, probe.kinds)) {
+    return "narrowed";
   }
 
   if (expected || verdict?.refused !== false) {
@@ -855,7 +862,49 @@ const xmllintRuling = (input: {
  */
 const narrowedByReading = (parent: string, children: readonly string[]): boolean =>
   (exempts(44, parent) && children.includes("ssml:voice")) ||
-  (exempts(118, parent) && children.filter((child) => child === "xi:fallback").length > 1);
+  (exempts(118, parent) && children.filter((child) => child === "xi:fallback").length > 1) ||
+  (exempts(240, parent) && children.includes("col") && children.includes("colgroup")) ||
+  (exempts(241, parent) && children.filter((child) => child === "figcaption").length > 1);
+
+/**
+ * The grammar's verdict on a family holding an undeclared element at a wildcard: its automaton,
+ * its count laws, and `StrictlyHeld`'s refusal of a foreign kind only strict wildcards admit, since
+ * a drawn element carries no xsi:type (spec reading 81, §3.10.4 clause 2).
+ *
+ * @param composedGrammar - The grammar.
+ * @param probe - The family.
+ * @returns Whether the grammar accepts it.
+ */
+const foreignExpected = (composedGrammar: ComposedGrammar, probe: KindProbe): boolean =>
+  accepts(composedGrammar, probe.parentKind, probe.kinds) &&
+  countsHold(composedGrammar, probe.parentKind, probe.kinds) &&
+  arityHolds(composedGrammar, probe.parentKind, probe.kinds) &&
+  !probe.kinds.some(
+    (kind) =>
+      isForeignKind(kind) &&
+      Option.isSome(
+        composedGrammar.content.strictlyHeld.lookup({ child: kind, parent: probe.parentKind }),
+      ),
+  );
+
+/**
+ * Whether the grammar and xmllint disagree on a family holding an undeclared element: xmllint gave
+ * no verdict, or gave the other one, but where spec reading 61 rules it. The reading widens
+ * `qti-ordering`'s wildcard to `##any`, so a family there the grammar accepts and xmllint, reading
+ * `##other`, refuses is the reading's.
+ *
+ * @param expected - The grammar's verdict.
+ * @param verdict - What xmllint said of the family.
+ * @param parent - The family's parent.
+ * @returns Whether they disagree.
+ */
+const foreignDisagrees = (
+  expected: boolean,
+  verdict: Validated | undefined,
+  parent: string,
+): boolean =>
+  !(expected && verdict?.refused === true && exempts(61, parent)) &&
+  (verdict === undefined || verdict.refused === expected);
 
 describe("the differentials' exemptions", () => {
   it("are each keyed to a spec reading the composed facets state at every parent it holds at", () => {
@@ -882,7 +931,8 @@ describe("the content automata against the XSD", () => {
     "accept exactly the child sequences the independent reading's automaton accepts, every model with one content: every sequence of at most 2 children (3 over an alphabet of at most 4) over at most 4 kinds it names, one only its wildcard admits and one it refuses, drawn from the run seed",
     (ctx) =>
       // Oracle: a second implementation, the tests' own automaton of each XSD particle
-      // (`acceptorOf`), with spec readings 2, 44 and 118 ruled where they narrow the XSD.
+      // (`acceptorOf`), with spec readings 2, 44, 118, 240 and 241 ruled where they narrow the
+      // XSD.
       // Bound: namedBound of the kinds a model names (every one where it names at most that many),
       // one kind only its wildcard admits and one element kind it does not admit, each a fresh draw
       // each run (TEST_SEED replays it); every sequence of at most 2 children over that alphabet, 3
@@ -977,7 +1027,7 @@ describe("the content automata against the XSD", () => {
 
         yield* Effect.promise(() =>
           ctx.annotate(
-            `${models} models (${drawnFrom} naming more than ${namedBound} kinds, whose ${namedBound} the run seed drew), ${compared} sequences, ${ruled} ruled by readings 2, 44 and 118; ${skipped} kinds skipped for holding more than one content`,
+            `${models} models (${drawnFrom} naming more than ${namedBound} kinds, whose ${namedBound} the run seed drew), ${compared} sequences, ${ruled} ruled by readings 2, 44, 118, 240 and 241; ${skipped} kinds skipped for holding more than one content`,
             "bound",
           ),
         );
@@ -1025,7 +1075,7 @@ describe("the content automata against the XSD", () => {
               readings: contents.get(probe.parentKind),
               verdict,
             });
-            ruled += ruling === "reading 96" || ruling === "reading 118" ? 1 : 0;
+            ruled += ruling === "agrees" || ruling === "disagrees" ? 0 : 1;
             if (ruling === "disagrees") {
               failures.push(
                 `${probe.parentKind} [${probe.kinds.join(", ")}]: the grammar ${expected ? "accepts" : "refuses"}, xmllint ${verdict?.refused === true ? "refuses" : "accepts"}${(verdict?.messages.length ?? 0) > 0 ? `: ${verdict?.messages[0] ?? ""}` : ""}`,
@@ -1036,7 +1086,7 @@ describe("the content automata against the XSD", () => {
 
         yield* Effect.promise(() =>
           ctx.annotate(
-            `${probed} probes, ${ruled} ruled by readings 96 and 118; ${skipped} kinds skipped for holding more than one content`,
+            `${probed} probes, ${ruled} ruled by readings 96, 44, 61, 118, 240 and 241; ${skipped} kinds skipped for holding more than one content`,
             "xmllint",
           ),
         );
@@ -1089,23 +1139,9 @@ describe("the content automata against the XSD", () => {
           const verdicts = yield* Effect.scoped(validateContents(root, target, probes));
           for (const [index, probe] of probes.entries()) {
             probed += 1;
-            const strictlyHeld = probe.kinds.some(
-              (kind) =>
-                isForeignKind(kind) &&
-                Option.isSome(
-                  composedGrammar.content.strictlyHeld.lookup({
-                    child: kind,
-                    parent: probe.parentKind,
-                  }),
-                ),
-            );
-            const expected =
-              accepts(composedGrammar, probe.parentKind, probe.kinds) &&
-              countsHold(composedGrammar, probe.parentKind, probe.kinds) &&
-              arityHolds(composedGrammar, probe.parentKind, probe.kinds) &&
-              !strictlyHeld;
+            const expected = foreignExpected(composedGrammar, probe);
             const verdict = verdicts[index];
-            if (verdict === undefined || verdict.refused === expected) {
+            if (foreignDisagrees(expected, verdict, probe.parentKind)) {
               failures.push(
                 `${root} ${probe.parentKind} [${probe.kinds.join(", ")}]: the grammar ${expected ? "accepts" : "refuses"}, xmllint ${verdict?.refused === true ? "refuses" : "accepts"}${(verdict?.messages.length ?? 0) > 0 ? `: ${verdict?.messages[0] ?? ""}` : ""}`,
               );
@@ -1281,7 +1317,7 @@ describe("the occurrence bounds the automata relax", () => {
   beforeAll(xsdCachePresent);
 
   it.effect(
-    "are laws beside them: an element particle's in Counted and CountedMax, a group's in OperatorArity and OperatorMax at exactly its bound, and Capped the LOM binding's Schematron caps, nothing else",
+    "are laws beside them: an element particle's in Counted and CountedMax, a group's in OperatorArity and OperatorMax at exactly its bound, and Capped the LOM binding's Schematron caps and a figure's one caption, nothing else",
     () =>
       // Oracle: the tests' own reading of the XSDs, and of the LOM binding's embedded Schematron
       // from its text. A position automaton holds a particle's bound exactly when its least is 0
@@ -1346,6 +1382,10 @@ describe("the occurrence bounds the automata relax", () => {
         for (const { child, parent } of schematron.caps) {
           counted(parent, child, 0, 1);
         }
+
+        // Spec reading 241: a figure's caption has multiplicity [0..1] (information model §5.54.1),
+        // which the XSD's unbounded choice repeats.
+        counted("figure", "figcaption", 0, 1);
 
         assert.deepStrictEqual(schematron.unread, []);
         assert.strictEqual(schematron.caps.length, 94);

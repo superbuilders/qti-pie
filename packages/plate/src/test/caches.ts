@@ -87,8 +87,8 @@ export const caches: readonly Cache[] = [
   },
   {
     fetch:
-      "record it there with node packages/qti-pie/packages/plate/scripts/golden.ts, from the bank's local copies and the corpus, as the recording src/test/golden.ts pins",
-    files: ["SHA256SUMS"],
+      "record it there with plate's recorder from a checkout that still holds it and plate's grader (qti-pie 6200430: node packages/qti-pie/packages/plate/scripts/golden.ts), from the bank's local copies and the corpus, as the recording src/test/golden.ts pins",
+    files: ["SHA256SUMS", "corpus.jsonl"],
     path: goldenDirectory,
     tag: "grading-golden",
     variable: "HOME",

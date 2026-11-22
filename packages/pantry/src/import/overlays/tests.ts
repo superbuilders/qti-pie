@@ -23,7 +23,7 @@ import { Bits } from "@bjornpagen/grizzle";
 import type { Addition } from "@bjornpagen/grizzle";
 import type { Kind } from "#pantry/grammar/compose.ts";
 import { Flag, grammar } from "#pantry/grammar/install.ts";
-import { isSiteKind } from "#pantry/import/context.ts";
+import { isSite as isReadSite } from "#pantry/import/context.ts";
 import { foldAt, governorOf } from "#pantry/import/fold.ts";
 import type { AttributeIndex, DocumentView, Folds } from "#pantry/import/fold.ts";
 import { namedBy, valueAt } from "#pantry/import/names.ts";
@@ -40,12 +40,14 @@ import type {
   SitePath,
   SiteTarget,
   StimulusRef,
-  TestDocument,
+  AssembledDocument,
 } from "#pantry/qti/tests.ts";
 import {
   includeKind,
   itemRefKind,
   namedKinds,
+  sectionKind,
+  sectionRefKind,
   splicingParents,
   stimulusRefKind,
 } from "#pantry/vocab/terms/tests.ts";
@@ -84,13 +86,13 @@ export interface TestIds {
  * merge unions every document's sets (`unionOf` of `#pantry/import/overlays/index.ts`).
  */
 export interface TestRows {
+  readonly AssembledDocument: ReadonlyMap<string, Addition<typeof AssembledDocument>>;
   readonly Inclusion: ReadonlyMap<string, Addition<typeof Inclusion>>;
   readonly Named: ReadonlyMap<string, Addition<typeof Named>>;
   readonly Site: ReadonlyMap<string, Addition<typeof Site>>;
   readonly SitePath: ReadonlyMap<string, Addition<typeof SitePath>>;
   readonly SiteTarget: ReadonlyMap<string, Addition<typeof SiteTarget>>;
   readonly StimulusRef: ReadonlyMap<string, Addition<typeof StimulusRef>>;
-  readonly TestDocument: ReadonlyMap<string, Addition<typeof TestDocument>>;
 }
 
 /**
@@ -128,26 +130,36 @@ const among = (kinds: readonly string[], kind: string): boolean => kinds.include
 
 /**
  * Decide whether a site places the document it names (`SiteTarget.places`, spec readings 85 and
- * 117): an include that may stand for that document's root (`IncludeRoot`, reading 114), whatever
- * its parent. An include that may not stand for its target's root names it but places nothing, and
- * "Include root" alone refuses it.
+ * 117): a section ref whose target's root is a section (information model §7.5: "The only
+ * documents that can be refered to by qti-assessment-section-ref are XML documents that contain a
+ * single qti-assessment-section as a single root"), or an include that may stand for that
+ * document's root (`IncludeRoot`, reading 114), whatever its parent. A section ref to a document of
+ * any other root names it but places nothing, and "Section ref target" refuses it; an include that
+ * may not stand for its target's root names it but places nothing, and "Include root" alone
+ * refuses it.
  *
- * @param site - The site: its parent's kind.
+ * @param site - The site: its kind and its parent's kind.
  * @param root - The root kind of the document its href names.
  * @returns Whether it places it.
  */
-const placesAt = (site: Pick<Addition<typeof Site>, "parentKind">, root: string): boolean =>
-  Option.isSome(
-    Option.flatMap(grammar.include.includeSetOf.lookup({ parent: site.parentKind }), ({ set }) =>
-      grammar.include.includeMember.lookup({ kind: root, set }),
-    ),
-  );
+const placesAt = (
+  site: Pick<Addition<typeof Site>, "kind" | "parentKind">,
+  root: string,
+): boolean =>
+  site.kind === sectionRefKind
+    ? root === sectionKind
+    : Option.isSome(
+        Option.flatMap(
+          grammar.include.includeSetOf.lookup({ parent: site.parentKind }),
+          ({ set }) => grammar.include.includeMember.lookup({ kind: root, set }),
+        ),
+      );
 
 /**
  * Decide whether a site splices the document it names in place (`Inclusion.splices`, spec reading
  * 117): it is an include under one of `splicingParents` that places that document, as
- * {@link placesAt} decides. An include under a section, which "Bank shape" refuses, places its
- * target whole.
+ * {@link placesAt} decides. An include under a section places its target whole, as a section ref
+ * places its section document (reading 117).
  *
  * @param site - The site: its kind and its parent's kind.
  * @param root - The root kind of the document its href names.
@@ -318,15 +330,16 @@ const namedOf = (view: View, token: TokenOf): ReadonlyMap<string, Addition<typeo
   );
 
 /**
- * Whether a node is a site: a section ref, or an include under a parent whose model holds an
- * explicit include particle (spec reading 114).
+ * Whether a node is a site: an include under a parent whose model holds an explicit include
+ * particle (spec reading 114), that pantry reads (spec reading 85, `isSite` of
+ * `#pantry/import/context.ts`).
  *
  * @param view - The document.
  * @param node - The node.
  * @returns Whether it is.
  */
 const isSite = (view: View, node: NodeRow<Composed>): boolean =>
-  isSiteKind(node.kind, parentKindOf(view, node));
+  isReadSite(view, node, parentKindOf(view, node));
 
 /**
  * An item ref's or a site's href, resolved as its `ReferencePath` is: its element (`package`,
@@ -384,7 +397,7 @@ const hrefsOf = (view: View): ReadonlyMap<bigint, ResolvedHref> => {
 /**
  * Resolve the hrefs of a document's item refs, which `ItemRefHref` copies: each item ref's path,
  * as its `ReferencePath` resolves it, whatever the document's root, so "Item ref target" judges
- * every item ref and "Test structure" alone refuses one outside a bank.
+ * every item ref that names a path of the package.
  *
  * @param document - The document's view.
  * @param ids - Where it stands in its package.
@@ -592,16 +605,16 @@ export const rowsOf = (document: DocumentView, ids: TestIds): TestRows => {
   const targets = siteTargetsOf(view, sites, paths);
 
   return {
+    AssembledDocument: keptIf(
+      ids.assembled,
+      new Map([[keyTextOf(ids.package, ids.path), { package: ids.package, path: ids.path }]]),
+    ),
     Inclusion: inclusionsOf(targets),
     Named: keptIf(ids.assembled, namedOf(view, token)),
     Site: sites,
     SitePath: paths,
     SiteTarget: targets,
     StimulusRef: stimulusRefsOf(view, token),
-    TestDocument: keptIf(
-      ids.assembled,
-      new Map([[keyTextOf(ids.package, ids.path), { package: ids.package, path: ids.path }]]),
-    ),
   };
 };
 
@@ -639,11 +652,11 @@ export interface AssemblyInput {
 }
 
 /**
- * A document that heads or joins an assembly: its `TestDocument` row, its root's kind and every
- * row it writes.
+ * A document that heads or joins an assembly: its `AssembledDocument` row, its root's kind and
+ * every row it writes.
  */
-interface AssembledDocument extends AssemblyInput {
-  readonly document: Addition<typeof TestDocument>;
+interface AssemblyDocument extends AssemblyInput {
+  readonly document: Addition<typeof AssembledDocument>;
 }
 
 /**
@@ -661,7 +674,7 @@ interface Walked {
  */
 interface Walk {
   readonly assemblyKind: Kind;
-  readonly byDocument: ReadonlyMap<string, AssembledDocument>;
+  readonly byDocument: ReadonlyMap<string, AssemblyDocument>;
 }
 
 /**
@@ -682,7 +695,7 @@ interface Walk {
 const place = (
   walk: Walk,
   chain: readonly string[],
-  placed: AssembledDocument,
+  placed: AssemblyDocument,
   fields: Omit<InstanceMember, "children">,
 ): InstanceMember => {
   const self: Walked = { document: fields.document, rows: placed.rows };
@@ -735,7 +748,7 @@ export const assembledRowsOf = (documents: readonly AssemblyInput[]): AssembledR
     ),
   );
   const assembledDocuments = documents.flatMap(({ rootKind, rows }) =>
-    [...rows.TestDocument.values()].map((document): AssembledDocument => ({
+    [...rows.AssembledDocument.values()].map((document): AssemblyDocument => ({
       document,
       rootKind,
       rows,
