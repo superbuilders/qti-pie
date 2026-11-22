@@ -21,12 +21,28 @@ Requires Node 26 or later, pnpm and [Git LFS](https://git-lfs.com). Install Git 
 snapshots check out as pointer files.
 
 ```bash
-git clone https://github.com/bjornpagen/qti-pie.git
+git clone --recurse-submodules https://github.com/superbuilders/qti-pie.git
 cd qti-pie
 pnpm install --frozen-lockfile
 ```
 
-TypeScript runs directly on Node. There is no build step.
+TypeScript runs directly on Node. There is no build step. Two submodules join the workspace and run from source:
+`vendor/grizzle` (the schema compiler pantry's and the ledger's levels are written in) and `vendor/toolchain` (the dev
+tools and the testing library), the latter at the one toolchain commit qti-pie's consumers and grizzle pin.
+
+### Installing qti-pie by itself, and inside a consumer
+
+qti-pie is also a submodule of edullm and of metis. Inside a consumer, the consumer's `pnpm-workspace.yaml` is the
+workspace and its catalog gives every version; qti-pie's own `pnpm-workspace.yaml`, catalog and `pnpm-lock.yaml` play no
+part there, as grizzle's do inside qti-pie. They are read only when qti-pie is installed by itself: in its own checkout,
+and in trunk@qti-pie's worktree, whose gate is `pnpm run trunk`.
+
+So qti-pie's catalog is a second copy of its consumers' entries for the 24 packages its workspace names by `catalog:`,
+and no check holds the two equal: the toolchain's workspace gate reads one workspace at a time. The risk is drift, a
+version qti-pie's gate proves that its consumers do not run. Keep them equal by hand: a change to one of those entries in
+a consumer's catalog is made here in the same change, and a bump here only follows the consumers'. grizzle carries the
+same arrangement inside qti-pie, with the same risk. `vendor/toolchain` and grizzle's own `vendor/toolchain` stay at the
+consumers' toolchain commit, which the consumers' `toolchain-pin:check` holds.
 
 ## Start
 
@@ -55,10 +71,10 @@ outlandish packages that pantry and its reference oracle both refuse while namin
 ## Development
 
 ```bash
-pnpm types         # the incremental typecheck, after every edit
-pnpm check         # the full gate the push runs: format, lint and typecheck, in parallel
-pnpm test          # every package's tests, the packages in parallel
-pnpm format:write  # format and apply lint fixes
+pnpm -r run typecheck   # every package's typecheck
+pnpm run oxlint         # type-aware lint of the repository
+pnpm run trunk          # the whole gate trunk@qti-pie runs: typecheck, lint, format, generated files, pantry's
+                        # grizzle check and every package's tests
 ```
 
 Agents and contributors start at [`AGENTS.md`](AGENTS.md).

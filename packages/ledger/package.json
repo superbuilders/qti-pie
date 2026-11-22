@@ -33,6 +33,7 @@
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
     "@types/react": "catalog:",
+    "arkregex": "catalog:",
     "pg": "catalog:",
     "vitest": "catalog:"
   }

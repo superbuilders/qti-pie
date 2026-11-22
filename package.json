@@ -10,12 +10,15 @@
     "typecheck": "toolchain-typecheck",
     "fixtures:oxlint": "node tools/classes-live-in-styles.fixtures.ts",
     "oxlint": "oxlint --type-aware --disable-nested-config",
-    "test:specimen-db": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run --config suites/vitest.config.ts"
+    "test:specimen-db": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run --config suites/vitest.config.ts",
+    "trunk": "pnpm -r --include-workspace-root --filter '!./vendor/**' run typecheck && pnpm run oxlint && pnpm run fixtures:oxlint && oxfmt --check && pnpm --dir packages/ledger run generate:check && pnpm --dir packages/pantry run grizzle:check && pnpm -r --filter './packages/**' run test"
   },
   "devDependencies": {
     "@bjornpagen/devtools": "workspace:*",
     "@bjornpagen/testing": "workspace:*",
+    "@effect/language-service": "catalog:",
     "@effect/platform-node": "catalog:",
+    "@effect/tsgo": "catalog:",
     "@effect/vitest": "catalog:",
     "@qti-pie/crust": "workspace:*",
     "@qti-pie/pantry": "workspace:*",
@@ -24,6 +27,7 @@
     "@stylistic/eslint-plugin": "catalog:",
     "@types/node": "catalog:",
     "effect": "catalog:",
+    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",
     "typescript": "catalog:",
