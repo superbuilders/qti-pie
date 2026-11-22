@@ -168,8 +168,10 @@ export const gradedAttributes = [
   "base-type",
   "cardinality",
   "case-sensitive",
+  "class",
   "coords",
   "default-value",
+  "definition",
   "exclude-category",
   "field-identifier",
   "figures",
@@ -203,7 +205,7 @@ export const gradedAttributes = [
 ] as const;
 
 const GradedAttribute = str.regex(
-  "^(base-type|cardinality|case-sensitive|coords|default-value|exclude-category|field-identifier|figures|identifier|include-boundary|include-category|include-lower-bound|include-upper-bound|lower-bound|map-key|mapped-value|max|min|n|name|number-repeats|outcome-identifier|pattern|rounding-mode|section-identifier|shape|source-value|step|substring|target-value|tolerance|tolerance-mode|upper-bound|variable-identifier|weight-identifier)$",
+  "^(base-type|cardinality|case-sensitive|class|coords|default-value|definition|exclude-category|field-identifier|figures|identifier|include-boundary|include-category|include-lower-bound|include-upper-bound|lower-bound|map-key|mapped-value|max|min|n|name|number-repeats|outcome-identifier|pattern|rounding-mode|section-identifier|shape|source-value|step|substring|target-value|tolerance|tolerance-mode|upper-bound|variable-identifier|weight-identifier)$",
 );
 
 /**

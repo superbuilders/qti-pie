@@ -233,7 +233,7 @@ const quoted = (text: string): string[] =>
  * markup-text and when-present beside normalize-space. The module's token is generated from it; the
  * registry's own roster must equal it.
  *
- * @param documentSql Document.sql's text.
+ * @param documentSql The text of document.sql.
  * @returns The classes.
  */
 const customOperatorClasses = (documentSql: string): string[] => {
@@ -362,44 +362,6 @@ const declarationParts = [
   "qti-match-table-entry",
   "qti-interpolation-table",
   "qti-interpolation-table-entry",
-];
-
-const gradedAttributes = [
-  "base-type",
-  "cardinality",
-  "case-sensitive",
-  "coords",
-  "default-value",
-  "exclude-category",
-  "field-identifier",
-  "figures",
-  "identifier",
-  "include-boundary",
-  "include-category",
-  "include-lower-bound",
-  "include-upper-bound",
-  "lower-bound",
-  "map-key",
-  "mapped-value",
-  "max",
-  "min",
-  "n",
-  "name",
-  "number-repeats",
-  "outcome-identifier",
-  "pattern",
-  "rounding-mode",
-  "section-identifier",
-  "shape",
-  "source-value",
-  "step",
-  "substring",
-  "target-value",
-  "tolerance",
-  "tolerance-mode",
-  "upper-bound",
-  "variable-identifier",
-  "weight-identifier",
 ];
 
 const processingKinds = [
@@ -538,6 +500,34 @@ const codePointOrder = (a: string, b: string): number => {
   }
 
   return a.length - b.length;
+};
+
+/**
+ * The attributes of a processing program's and a declaration's elements the machine reads, by name:
+ * every name document.sql's readers filter an attribute by (`y.name = '<attr>'`, in program_of,
+ * inputs_of, declared and var_kinds), each once, in code point order. The roster a statement passes
+ * those attributes through is derived from the SQL that reads them, so a name the machine reads can
+ * never be filtered out before it arrives (as `class` and `definition`, which bind every custom
+ * operator, once were).
+ *
+ * @param documentSql The text of document.sql.
+ * @returns The names.
+ */
+const gradedAttributesOf = (documentSql: string): readonly string[] => {
+  const names = [
+    ...new Set(
+      [...documentSql.matchAll(/\by\.name = '(?<name>[\w-]+)'/gu)].map(
+        (m) => m.groups?.["name"] ?? "",
+      ),
+    ),
+  ].toSorted(codePointOrder);
+  if (names.length === 0) {
+    throw new Error(
+      "document.sql filters no attribute by name as the generator reads it (y.name = '<attr>')",
+    );
+  }
+
+  return names;
 };
 
 /**
@@ -979,6 +969,7 @@ export const machineModules = (): MachineModules => {
   const typesSql = typeFiles.map(read).join("\n");
   const fnSql = functionFiles.map(read).join("\n");
   const CustomOperatorClass = customOperatorClasses(read("document.sql"));
+  const gradedAttributes = gradedAttributesOf(read("document.sql"));
   const { admittedAttributes, admissionWords, admissionCounts, admissionNumbers } =
     admissionRosters(read("admission.sql"));
   const types = rowTypes(typesSql);
