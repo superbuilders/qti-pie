@@ -11,7 +11,9 @@
  * (`#plate/ui/graphic/stage.tsx`) draws the image and each hotspot's area over it, and here each
  * area is a target of the primitive: a tap on it while a choice is held, or a drag released on it,
  * puts the choice there, the first listed of two overlapping areas taking the point (QTI 3.0
- * information model 5.60, after 5.67). The areas are pointer targets only: the image's overlay is
+ * information model 5.60, after 5.67). The stage is given no `onPress`, so it takes no press and
+ * holds no pointer, and a tap on an area reaches the area's target. The areas are pointer targets
+ * only: the image's overlay is
  * hidden from assistive technology, and below the image every hotspot is a target again, a row
  * named by its `hotspot-label` holding the choices placed there and a place to put one, which a
  * keyboard, a screen reader and a finger use alike, at a K–3 target's full size, and the only way
@@ -94,6 +96,11 @@ export interface GraphicGapHotspot extends StageArea, Spoken {
    * writes 0 as no limit (see {@link Limit}).
    */
   readonly matchMax: Limit;
+  /**
+   * Whether `label` is plate's "Area n of count", the author having named the hotspot nothing,
+   * which its row writes as `data-unnamed`.
+   */
+  readonly unnamed: boolean;
 }
 
 /**
@@ -245,6 +252,8 @@ const StagePlaced = (props: { readonly placed: readonly PlacedIn[] }) => {
  *   in the stage's pins the choices each hotspot holds (`#plate/ui/graphic-gap-match/placed.tsx`);
  * - `plate-graphic-gap-match-targets`, the list of hotspots below the image, in document order: each
  *   hotspot a `plate-placement-target`, a group named by the hotspot's name through `aria-label`,
+ *   `data-unnamed` where that name is plate's "Area n of count", the author having named the
+ *   hotspot nothing, so a theme can hide such a row from the eye and keep it for a screen reader,
  *   so it and its slot are named in the server's markup too, before the primitive reads the page,
  *   showing the name in its `plate-placement-target-label`, hidden from assistive technology since
  *   it repeats the group's name, then, where the candidate hears the hotspot read aloud,
@@ -357,6 +366,7 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
           {hotspots.map((hotspot) => (
             <PlacementTarget
               key={hotspot.identifier}
+              data-unnamed={flag(hotspot.unnamed)}
               name={{ by: "aria-label", text: hotspot.label }}
               spot={{ id: hotspot.identifier, kind: "target" }}
               onBlur={() => {

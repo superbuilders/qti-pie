@@ -406,6 +406,7 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-system",
   "data-tone",
   "data-unchecked",
+  "data-unnamed",
   "data-use",
   "data-used",
 ]);

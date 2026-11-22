@@ -22,11 +22,16 @@ type PayloadArea = ReferencingChoice & { readonly label: Option.Option<string> }
 
 /**
  * One area as the island and the review show it: every fact of its payload's but the catalog it
- * references, which no island reads, and its name.
+ * references, which no island reads; its name; and `unnamed`, whether that name is plate's "Area n
+ * of count" because the author named the area nothing, which the parts that show the name write as
+ * `data-unnamed`, so a theme can tell a name the author wrote from one plate made up.
  *
  * @template H The payload's area.
  */
-type NamedArea<H extends PayloadArea> = Omit<H, "catalog" | "label"> & { readonly label: string };
+type NamedArea<H extends PayloadArea> = Omit<H, "catalog" | "label"> & {
+  readonly label: string;
+  readonly unnamed: boolean;
+};
 
 /**
  * Name one area as the island and the review show it: the author's `hotspot-label`, else
@@ -34,7 +39,7 @@ type NamedArea<H extends PayloadArea> = Omit<H, "catalog" | "label"> & { readonl
  * `#plate/interactions/area.ts`); else "Area n of count", its place among the areas, so every
  * control and target has a name (WCAG 1.1.1). Every other fact of the area passes as the payload
  * holds it, but the catalog it references, which read-aloud reads on the server alone
- * ({@link spokenAreasOf}).
+ * ({@link spokenAreasOf}), and it is `unnamed` exactly where its name is plate's.
  *
  * @template H The payload's area, with its name as the core read it.
  * @param area The area, as its payload holds it.
@@ -54,6 +59,7 @@ const namedAt = <H extends PayloadArea>(
       n: numeral(locale, place.n),
     }),
   ),
+  unnamed: Option.isNone(label),
 });
 
 /**

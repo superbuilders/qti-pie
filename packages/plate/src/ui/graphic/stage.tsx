@@ -436,13 +436,15 @@ const graphic = definePrimitive({
 
       /**
        * Take a pointer going down on the stage: a primary press on the image, outside the marks,
-       * may begin a press. A tap on a mark is the mark's own.
+       * may begin a press, on a stage that takes presses. A tap on a mark is the mark's own, and
+       * on a stage given no `onPress` every tap is its target's: the stage begins no press, so it
+       * never holds the pointer, which would send the tap's `click` to the stage instead.
        *
        * @param event The `pointerdown`.
        * @param root The root part.
        */
       pointerDown: (event: PointerEvent, root: Element | undefined) => {
-        if (event.button !== 0 || onMarks(event)) {
+        if (context.options().onPress === undefined || event.button !== 0 || onMarks(event)) {
           return;
         }
 
@@ -676,7 +678,10 @@ const groupRole: StageRole = { kind: "group" };
  *
  * A tap on the image calls `onPress` on release, where it began, with its point and the hotspot it
  * fell in, the same area scoring's `areaHolds` names, boundary included: the island picks, places
- * or puts a point by it.
+ * or puts a point by it. A stage given no `onPress` takes no press at all and holds no pointer, so
+ * a tap on an area reaches the area's own element: a Graphic Gap Match's hotspots are the
+ * placement primitive's targets, which take the tap that drops the held choice, and a pointer held
+ * to the stage would take that tap from them.
  *
  * @param props.children The image, as the server rendered it.
  * @param props.labels The stage's words: the region's name of last resort and its scroll hint.
@@ -686,7 +691,8 @@ const groupRole: StageRole = { kind: "group" };
  * @param props.naming What names the interaction's group, as the server resolved it, which names
  *   the stage's region too; the image's own name, then `labels.picture`, name it where this names
  *   it by nothing ({@link stageNameOf}).
- * @param props.onPress Called with each committed tap on the image ({@link StagePress}).
+ * @param props.onPress Called with each committed tap on the image ({@link StagePress}); absent,
+ *   the stage takes no press and leaves every tap to the element under it.
  * @param props.pins What the island pins over the image at the page's own size, each a `Pin`:
  *   badges, points, placed cards. The pins take no pointer unless a pin asks for it, and a tap on
  *   one is its own, as on a mark.

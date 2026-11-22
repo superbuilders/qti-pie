@@ -11,7 +11,8 @@
  * hotspot's area and the choices it holds over it, where the author wrote both of the image's
  * dimensions, since the server cannot measure an image, and the list of hotspots, each holding the
  * choices the response puts there, each pair marked when the review marks, the response a bag in
- * which a pair may repeat.
+ * which a pair may repeat. A hotspot's row in either is `data-unnamed` where its name is plate's,
+ * the author having named it nothing.
  *
  * @module
  */
@@ -226,6 +227,7 @@ export const review = (
                 aria-labelledby={labelId}
                 data-empty={flag(chips.length === 0)}
                 data-slot="plate-placement-target"
+                data-unnamed={flag(hotspot.unnamed)}
                 role="group"
               >
                 <div data-slot="plate-placement-target-label" id={labelId}>
