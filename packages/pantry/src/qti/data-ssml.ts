@@ -27,11 +27,22 @@
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/data-ssml_infobind/imsqtiv3p0_datassml_v1p0_InfoBind.html#JSOND | IMS Data-SSML 1.0, 3.4 Description of the JSON Schema}
  */
-import { check, contained, law, on, relation, select, Text } from "@bjornpagen/grizzle";
+import {
+  check,
+  contained,
+  Crypto,
+  generated,
+  law,
+  on,
+  relation,
+  select,
+  sha256,
+  Text,
+} from "@bjornpagen/grizzle";
 import { Attribute } from "#pantry/qti/attributes.ts";
-import { EntryPath, PackageName, SsmlMemberText } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { dataSsmlMembers } from "#pantry/vocab/data-ssml.ts";
-import { anyText, natural } from "#pantry/grammar/install.ts";
+import { anyText, Chars, natural } from "#pantry/grammar/install.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
 
@@ -55,37 +66,46 @@ export const DataSsml = law(
 
 /**
  * One member of a `data-ssml` object as written, keyed by its element and its place in the object,
- * from 0: its decoded name.
+ * from 0: its decoded name, of any length (Data-SSML and RFC 8259 bound none), and `memberDigest`,
+ * its SHA-256, which a property's reference to its member compares, so no key holds the name.
  */
 export const DataSsmlMember = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "DataSsmlMember",
-    { at: natural, member: SsmlMemberText, package: PackageName, path: EntryPath, start: natural },
+    { at: natural, member: Chars, package: PackageName, path: EntryPath, start: natural },
     ["package", "path", "start", "at"],
+    (m) => ({
+      memberDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(m.member))),
+    }),
   ),
 );
 
 /**
  * One property of a member as written, keyed by its element, its member's place and its own place
- * in the member, from 0: its member's name (`memberName`, its {@link DataSsmlMember}'s), its
- * decoded name and its decoded value.
+ * in the member, from 0: its member's name (`memberName`, its {@link DataSsmlMember}'s, compared
+ * there by `memberNameDigest`, its SHA-256), its decoded name (`nameDigest` its SHA-256, by which a
+ * required property is held to it) and its decoded value, each name of any length.
  */
 export const DataSsmlProperty = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "DataSsmlProperty",
     {
       at: natural,
       member: natural,
-      memberName: SsmlMemberText,
-      name: SsmlMemberText,
+      memberName: Chars,
+      name: Chars,
       package: PackageName,
       path: EntryPath,
       start: natural,
       value: anyText,
     },
     ["package", "path", "start", "member", "at"],
+    (p) => ({
+      memberNameDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(p.memberName))),
+      nameDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(p.name))),
+    }),
   ),
 );
 
@@ -171,8 +191,8 @@ export const dataSsmlLawsByName = {
       on(DataSsml, "package", "path", "start"),
     ),
     contained(
-      on(DataSsmlProperty, "package", "path", "start", "member", "memberName"),
-      on(DataSsmlMember, "package", "path", "start", "at", "member"),
+      on(DataSsmlProperty, "package", "path", "start", "member", "memberNameDigest"),
+      on(DataSsmlMember, "package", "path", "start", "at", "memberDigest"),
     ),
   ]),
 } as const;

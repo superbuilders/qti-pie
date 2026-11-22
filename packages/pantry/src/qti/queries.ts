@@ -38,6 +38,7 @@ import { integerMathOperators } from "#pantry/grammar/expression.ts";
 import type { DeclarationKind } from "#pantry/grammar/install.ts";
 import {
   anyText,
+  Chars,
   documentTypes,
   nonElementKinds,
   ResourceTypeLexical,
@@ -1935,10 +1936,23 @@ const interactionQueryLawsByName = {
 } as const;
 
 /**
+ * A required property's name and its SHA-256, the digest `DataSsmlProperty.nameDigest` holds of a
+ * written property's name, so the reference compares no name in a key.
+ *
+ * @param name - The property's name.
+ * @returns Its name and digest, as a rule's head holds them.
+ */
+const requiredProperty = (name: string) => ({
+  name,
+  nameDigest: Crypto.sha256(Type.literal(Chars, name)),
+});
+
+/**
  * Each property a `data-ssml` member requires, by the member's element's place, the member's place
  * in the value and the property's name (Data-SSML 1.0 §3.4: `phoneme`'s `ph`, `say-as`'s
  * `interpret-as`, `sub`'s `alias`): one rule per required property, each a member of that name,
- * beside the property's name. "Data SSML" holds each to a property its member writes.
+ * beside the property's name and its SHA-256, by which "Data SSML" holds each to a property its
+ * member writes ({@link requiredProperty}).
  */
 const RequiredSsmlProperty = derived(
   "RequiredSsmlProperty",
@@ -1948,21 +1962,21 @@ const RequiredSsmlProperty = derived(
 
       return r
         .match(DataSsmlMember, { at, member: "phoneme", package: pkg, path, start })
-        .find({ member: at, name: "ph", package: pkg, path, start });
+        .find({ member: at, ...requiredProperty("ph"), package: pkg, path, start });
     })
     .rule((r) => {
       const { at, package: pkg, path, start } = v(DataSsmlMember, "member");
 
       return r
         .match(DataSsmlMember, { at, member: "say-as", package: pkg, path, start })
-        .find({ member: at, name: "interpret-as", package: pkg, path, start });
+        .find({ member: at, ...requiredProperty("interpret-as"), package: pkg, path, start });
     })
     .rule((r) => {
       const { at, package: pkg, path, start } = v(DataSsmlMember, "member");
 
       return r
         .match(DataSsmlMember, { at, member: "sub", package: pkg, path, start })
-        .find({ member: at, name: "alias", package: pkg, path, start });
+        .find({ member: at, ...requiredProperty("alias"), package: pkg, path, start });
     }),
 );
 
@@ -1972,8 +1986,8 @@ const RequiredSsmlProperty = derived(
 const dataSsmlQueryLawsByName = {
   "Data SSML": declared("Data SSML", [
     contained(
-      on(RequiredSsmlProperty, "package", "path", "start", "member", "name"),
-      on(DataSsmlProperty, "package", "path", "start", "member", "name"),
+      on(RequiredSsmlProperty, "package", "path", "start", "member", "nameDigest"),
+      on(DataSsmlProperty, "package", "path", "start", "member", "nameDigest"),
     ),
   ]),
 } as const;

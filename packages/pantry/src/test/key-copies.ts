@@ -57,8 +57,6 @@ import {
   matchedText,
   matchedTextBytes,
   QtiIdentifier,
-  SsmlMemberText,
-  ssmlMemberBytes,
   UriText,
   uriBytes,
   xmlNameBytes,
@@ -82,7 +80,6 @@ export const keyTextBounds: ReadonlyMap<unknown, number> = new Map<unknown, numb
   [KeyMatchedText, keyMatchedTextBytes],
   [UriText, uriBytes],
   [LiteralText, literalTextBytes],
-  [SsmlMemberText, ssmlMemberBytes],
   [Qti.relations.Namespace.fields.prefix, xmlNameBytes],
   [Qti.relations.OpenAttribute.fields.local, xmlNameBytes],
 ]);

@@ -337,8 +337,9 @@ describe("the oracle's key-text list", () => {
     // (overlay-queries/catalog.ts), no copy of a text into a narrower field. A derived
     // relation's column is a codec to grizzle, its bound unread, so a copy from one is listed
     // where its column is a stored field of the target's own type read unchanged: a placed
-    // reference site's identifier, its `VariableRef.identifier`; and a required SSML property's name, a
-    // literal of its rule (queries.ts). A copy into an entry path holds an entry's path, which
+    // reference site's identifier, its `VariableRef.identifier`. A required SSML property's name
+    // is held to a written one by their SHA-256s (queries.ts), no copy of a text into a narrower
+    // field. A copy into an entry path holds an entry's path, which
     // `Entry.path` bounds where the import writes its entry, so none is listed: a file's target in
     // the package is an entry path already (`FilePath.target`), so "File exists" narrows no bound.
     // Read by the oracle where its
@@ -373,7 +374,6 @@ describe("the oracle's key-text list", () => {
         "LeastCountNode.least → InteractionAttribute.value",
         "MostCountNode.most → InteractionAttribute.value",
         "PlacedReferenceSite.identifier → PlacedVariableRef.identifier",
-        "RequiredSsmlProperty.name → DataSsmlProperty.name",
       ],
     );
   });

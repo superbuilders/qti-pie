@@ -15,7 +15,6 @@ import {
   keyMatchedTextBytes,
   literalTextBytes,
   PackageName,
-  ssmlMemberBytes,
   UriText,
   uriBytes,
   xmlNameBytes,
@@ -57,8 +56,5 @@ describe("qti/key-bounds", () => {
     assert.isAtMost(xmlNameBytes, keyTextBytes([PackageName, EntryPath, natural]));
     // Literal's reference target (package, path, start, text, baseType).
     assert.isAtMost(literalTextBytes, keyTextBytes([PackageName, EntryPath, natural, code]));
-    // DataSsmlProperty's lookup (package, path, start, member, name) and DataSsmlMember's target
-    // (package, path, start, at, member).
-    assert.isAtMost(ssmlMemberBytes, keyTextBytes([PackageName, EntryPath, natural, natural]));
   });
 });

@@ -293,28 +293,6 @@ export const literalTextBytes = 1501;
 export const LiteralText = law(entryOf("Key text bound"), str.bytes(literalTextBytes, Chars));
 
 /**
- * The most UTF-8 bytes a `data-ssml` member's name holds: what one B-tree entry leaves it in the
- * reference target `DataSsmlMember (package, path, start, at, member)` and `DataSsmlProperty`'s
- * lookup `(package, path, start, member, name)`.
- *
- * @limitKind derived
- * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
- * @unit UTF-8 bytes
- * @scope one `data-ssml` member's name in any key or index grizzle builds over it
- * @constraint QTI puts no bound on a member's name; a longer one is refused at import
- * @derivation grizzle's `keyTextBytes` over `DataSsmlProperty`'s lookup `(package, path, start,
- *   member, name)`, the name beside a name of {@link nameMaxBytes} and a path of
- *   {@link entryPathBytes}
- * @from nameMaxBytes, entryPathBytes
- */
-export const ssmlMemberBytes = 1592;
-
-/**
- * A `data-ssml` member's name as a key holds it, of at most {@link ssmlMemberBytes} UTF-8 bytes.
- */
-export const SsmlMemberText = law(entryOf("Key text bound"), str.bytes(ssmlMemberBytes, Chars));
-
-/**
  * The most UTF-8 bytes of a text a query reads by a pattern, `Text.matches`: grizzle's
  * `regexTextMaxBytes`, the longest text PostgreSQL's regex engine reads. A longer one is refused,
  * a stated limit of the representation.
