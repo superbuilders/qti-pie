@@ -14,6 +14,8 @@
  * `materialMajorIncrement`, each with the value as written. `stimuli` names the region of the
  * stimuli an item references, which the candidate reads beside the item, and `question` the region
  * of the item itself beside it, so a screen reader moves between the two by its landmarks.
+ * `pictureUnloaded` is the line a picture that fails to load shows under its words, as AlphaTest's
+ * player wrote "[Image failed to load]", telling the child what to do.
  */
 export const contentMessages = {
   glossarySummary: "Definition",
@@ -25,6 +27,7 @@ export const contentMessages = {
   materialMinimumLength: "minimum length {length}",
   materialMinorIncrement: "minor increment {increment}",
   materialsHeading: "Materials you may use",
+  pictureUnloaded: "This picture didn't load. Tell your teacher.",
   question: "Question",
   stimuli: "Passage",
 } as const;

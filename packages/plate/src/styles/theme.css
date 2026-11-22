@@ -378,6 +378,21 @@
   }
 
   /*
+   * A picture that failed to load: its line under its words, framed as a notice is, in the item's
+   * own text size and colour whatever the picture's box.
+   */
+  :where([data-slot="plate-item"]) img[data-plate-unloaded]::after {
+    margin-block-start: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    border: 2px dashed var(--ui-input);
+    color: var(--ui-foreground);
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
+    white-space: normal;
+  }
+
+  /*
    * A glossary term's definition (A-15), a native disclosure after the block that holds the term:
    * a framed card, its summary, "Definition", keeping the browser's own triangle. The term, which
    * names the disclosure by `aria-details`, is underlined dotted, a quiet cue that it has one.

@@ -896,7 +896,9 @@ const termProps = (props: ReturnType<typeof propsOf>, glossed: Glossed) => {
  * walk of the body, an element at a flow position is preceded by its read-aloud control
  * ({@link readAloudBefore}) and followed by the right answers the seam writes apart from the
  * interactions it holds ({@link answersAfter}), then the glossary's disclosure of each term it owns
- * ({@link ownedTerms}), and a term names its disclosure.
+ * ({@link ownedTerms}), and a term names its disclosure. A picture, in any walk, carries the line
+ * `data-plate-unloaded`, the catalog's `pictureUnloaded`, which the stylesheet shows under the
+ * picture's words where it fails to load.
  *
  * @param element The element, as the redacted body holds it.
  * @param key Its key among its siblings.
@@ -923,7 +925,12 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
     standing: standingBelow(element.tag, walk.standing),
   };
   const entries = placed(element.children, element.tag);
-  const written = propsOf(element, declared, walk.addressing);
+  const authored = propsOf(element, declared, walk.addressing);
+  // A picture carries the line the stylesheet shows under its words where it fails to load.
+  const written =
+    element.tag === "img"
+      ? { ...authored, "data-plate-unloaded": message(walk.locale, "pictureUnloaded") }
+      : authored;
   const glossed = walk.scope.kind === "body" ? walk.scope.glossary(element) : Option.none();
   const attributes = Option.match(glossed, {
     onNone: () => written,

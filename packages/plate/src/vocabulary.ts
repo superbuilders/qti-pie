@@ -434,7 +434,9 @@ const isSharedVocabulary = (name: string): boolean =>
  * card's `support`, what a companion material says a host supplies, the states the islands and the
  * review markup set (a slider's bound and direction, a slider review value's place along its scale,
  * a placement's pairing, a bank chip a review shows as missing, a marker's index and tone, a media
- * island's playing, an End Attempt's pending post, a PCI island's loading and failure), and the
+ * island's playing, an End Attempt's pending post, a PCI island's loading and failure), the line
+ * every picture of the body carries for the stylesheet to show where it fails to load
+ * (`data-plate-unloaded`), and the
  * states of UI SDK's components that `styles/base.css` and `styles/theme.css` select, and a
  * formula's: `data-display` on its root, and the names plate writes into the MathML it hands
  * MathJax (`data-mjx-texclass`, a slot's `data-plate-slot`) or reads in the SVG MathJax draws
@@ -492,6 +494,7 @@ const reservedDataNames: ReadonlySet<string> = new Set([
   "data-placed",
   "data-placeholder",
   "data-plate-slot",
+  "data-plate-unloaded",
   "data-playing",
   "data-position",
   "data-pressed",

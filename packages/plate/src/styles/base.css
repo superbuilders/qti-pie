@@ -1008,6 +1008,20 @@
     cursor: progress;
   }
 
+  /* == a picture that fails to load == */
+
+  /*
+   * A picture that fails to load says so under its words, as AlphaTest's player wrote "[Image
+   * failed to load]", and answering goes on: Chrome and Firefox draw a broken picture's alternative
+   * text and its `::after`, which a picture that loads never has, so the line the server writes on
+   * every picture (`data-plate-unloaded`) shows only then, with no script, before any island
+   * hydrates and in a review alike.
+   */
+  :where([data-slot="plate-item"]) img[data-plate-unloaded]::after {
+    content: attr(data-plate-unloaded);
+    display: block;
+  }
+
   /* == read aloud == */
 
   /*
