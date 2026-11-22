@@ -28,6 +28,7 @@ import { createElement } from "react";
 import type { ReactNode } from "react";
 import type { MathAttribute, MathChild, MathElement } from "#plate/content/mathml.ts";
 import { elementAttributes } from "#plate/content/mathml-attributes.ts";
+import { formulaText } from "#plate/content/text.ts";
 import type { ContentPayload } from "#plate/content/modules.ts";
 import { mathmlNamespace } from "#plate/document/source.ts";
 import { addressUrl, classifyUrl, missingPathOf, urlContextOf } from "#plate/model/url.ts";
@@ -308,6 +309,21 @@ const childrenOf = (
   });
 
 /**
+ * Give a formula's accessible name: the text it says (`formulaText` in `#plate/content/text.ts`),
+ * none for a formula that says nothing, so an option, a label or a prompt holding the formula names
+ * it, where Chrome would read none of its MathML into their names. An author's own `aria-label` on
+ * the `math` stands over it.
+ *
+ * @param formula The `math` element.
+ * @returns The name, undefined where the formula says nothing.
+ */
+const spokenName = (formula: MathContent["payload"]): string | undefined => {
+  const text = formulaText(formula);
+
+  return text === "" ? undefined : text;
+};
+
+/**
  * Render a `math` element's content node: `plate-math`, a `span`, holding the formula as MathJax
  * draws it ({@link draw}) and the `math` element as plate writes it, for assistive technology.
  *
@@ -318,7 +334,8 @@ const childrenOf = (
  * - `plate-math-box`, an inline block as wide as the formula whose baseline is the formula's: its
  *   first line holds `plate-math-height`, an empty `svg` as tall as the formula reaches above its
  *   baseline, standing on it, and below that line stands `plate-math-depth`, an empty `svg` as deep
- *   as the formula reaches below it;
+ *   as the formula reaches below it, both hidden from assistive technology, which would announce
+ *   each as an unnamed image;
  * - `plate-math-drawing`, MathJax's `svg`, hidden from assistive technology, which the base sheet
  *   lays over the box from its foot, so the formula's baseline is the box's and the line's, as
  *   MathJax's `vertical-align` would place it, with no `style` written;
@@ -352,11 +369,17 @@ export const content = (node: MathContent, walk: ContentWalk): ReactNode => {
       "span",
       { "data-slot": "plate-math-box" },
       createElement("svg", {
+        "aria-hidden": "true",
         "data-slot": "plate-math-height",
         height: formula.height,
         width: formula.width,
       }),
-      createElement("svg", { "data-slot": "plate-math-depth", height: formula.depth, width: "0" }),
+      createElement("svg", {
+        "aria-hidden": "true",
+        "data-slot": "plate-math-depth",
+        height: formula.depth,
+        width: "0",
+      }),
       createElement(
         "svg",
         {
@@ -395,7 +418,10 @@ export const content = (node: MathContent, walk: ContentWalk): ReactNode => {
     ),
     createElement(
       "math",
-      propsOf("math", node.payload.attributes, addressing),
+      {
+        "aria-label": spokenName(node.payload),
+        ...propsOf("math", node.payload.attributes, addressing),
+      },
       childrenOf(node.payload.children, walk),
     ),
   );

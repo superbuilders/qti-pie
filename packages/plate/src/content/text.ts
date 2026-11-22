@@ -67,15 +67,18 @@ const tokensOf = (children: readonly MathChild<unknown>[]): readonly string[] =>
 /**
  * Give the text a formula says: its `alttext`, collapsed and not blank, the text MathML gives a
  * formula for a reader that does not render it (MathML 3 §2.2.1); else its tokens' words, one space
- * between each, as Chrome reads a `math` element and as AlphaTest's player named a choice holding
- * one (a fraction's choice was "1250 × 2 4 × 60").
+ * between each, as AlphaTest's player named a choice holding one (a fraction's choice was "1250 ×
+ * 2 4 × 60"). It is every formula's accessible name on the page (`content` in
+ * `#plate/ui/item/contents/mathml.tsx`), so a name Chrome computes from content holding a formula,
+ * an option's, a label's, a prompt's, says it: Chrome reads no MathML into such a name, `alttext`
+ * included, but it reads an element's `aria-label`.
  *
  * @param formula The formula's `math` element.
  * @param formula.attributes Its attributes.
  * @param formula.children Its children.
  * @returns The text, empty for a formula that says nothing.
  */
-const formulaText = (formula: {
+export const formulaText = (formula: {
   readonly attributes: readonly { readonly name: string; readonly value: string }[];
   readonly children: readonly MathChild<unknown>[];
 }): string => {
