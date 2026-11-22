@@ -180,23 +180,20 @@ export const keyedIdentifier = (identifier: TextTerm) =>
   );
 
 /**
- * The most UTF-8 bytes a matched text a key holds: a LOM term's catalog, entry, source or id, and a
- * numbered reading's number, what one B-tree entry leaves it in `NumberedReading`'s key beside two
- * paths.
+ * The most UTF-8 bytes a LOM term's catalog, entry, source or id holds in the typed LOM views, what
+ * one B-tree entry leaves two of them in the QTI database's ordered reads of those views beside two
+ * package names. A numbered reading's number is no such text: it is a stretch of its reference's
+ * identifier, a {@link QtiIdentifier}.
  *
  * @limitKind derived
  * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
  * @unit UTF-8 bytes
  * @scope one such text in any key or index grizzle builds over it
- * @constraint LOM and QTI put no bound on these texts; a longer numbered reading's number is refused
- *   at import, and a longer LOM text is left out of the typed LOM view that keys it
- *   ({@link fitsKeyMatchedText}), never refused
- * @derivation grizzle's `keyTextBytes` over `NumberedReading`'s key `(package, assembly, path,
- *   start, attribute, scopeInstance, scope, number)`, the number beside a name of
- *   {@link nameMaxBytes}, two paths of {@link entryPathBytes}, three naturals and a code; the QTI
- *   database's `ItemSet` `(purpose, source, id, package, path)` and `History` `(catalog, entry,
- *   package, earlier)` leave it more
- * @from nameMaxBytes, entryPathBytes
+ * @constraint LOM puts no bound on these texts; a longer one is left out of the typed LOM view that
+ *   keys it ({@link fitsKeyMatchedText}), never refused
+ * @derivation grizzle's `keyTextBytes` over the QTI database's `History` `(catalog, entry, package,
+ *   earlier)`, each text beside the other and two names of {@link nameMaxBytes}
+ * @from nameMaxBytes
  */
 export const keyMatchedTextBytes = 777;
 

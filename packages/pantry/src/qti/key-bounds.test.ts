@@ -10,6 +10,8 @@ import { assert, describe, it } from "@effect/vitest";
 import {
   EntryPath,
   entryPathBytes,
+  identifierBytes,
+  KeyMatchedText,
   keyMatchedTextBytes,
   literalTextBytes,
   PackageName,
@@ -36,11 +38,14 @@ describe("qti/key-bounds", () => {
       keyTextBytes([PackageName, code, EntryPath, natural, EntryPath, natural]),
     );
     // NumberedReading's key (package, assembly, path, start, attribute, scopeInstance, scope,
-    // number).
+    // number), its number a stretch of its reference's identifier.
     assert.isAtMost(
-      keyMatchedTextBytes,
+      identifierBytes,
       keyTextBytes([PackageName, EntryPath, EntryPath, natural, code, natural, natural]),
     );
+    // The QTI database's History (catalog, entry, package, earlier), two LOM texts beside two
+    // package names.
+    assert.isAtMost(keyMatchedTextBytes, keyTextBytes([KeyMatchedText, PackageName, PackageName]));
     // OpenAttributeEntity's key (package, path, start, uri, local, offset), its uri and local name
     // each beside the other.
     assert.isAtMost(uriBytes, keyTextBytes([PackageName, EntryPath, natural, OpenLocal, natural]));

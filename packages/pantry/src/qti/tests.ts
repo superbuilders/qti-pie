@@ -90,7 +90,7 @@ import {
 import { attributesOf } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
 import { namePattern } from "#pantry/qti/declarations.ts";
-import { EntryPath, KeyMatchedText, PackageName, QtiIdentifier } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName, QtiIdentifier } from "#pantry/qti/limits.ts";
 import { Node, nodeContext } from "#pantry/qti/node.ts";
 import { Entry, hrefPaths, Reference } from "#pantry/qti/package.ts";
 import {
@@ -403,14 +403,15 @@ export const ItemRefDocument = law(
  * replaced ... a number that denotes the instance's place in the sequence of the item's
  * instantiation is inserted between the item variable identifier and the item variable, separated
  * by a period character"; spec reading 88): `scopeInstance`, `scopePath` and `scope`, the placement
- * and the element of the item ref the reading names, `number`, the instance number as written, and
- * `variable`, the item variable it names. The importer states one row for each numbered reading
- * that resolves, and the database proves each one: its spelling, its item ref a selection with
- * replacement can repeat, its number at least 1, and its variable one the item names
- * (`#pantry/qti/overlay-queries/readings.ts`). The database enumerates every other reading itself;
- * a numbered one it cannot, since no text operation it has splits a name at a period (a grizzle ask
- * of 2026-11-20), so a name whose only readings are two numbered ones is the importer's to tell
- * apart, a recorded under-refusal (spec reading 88).
+ * and the element of the item ref the reading names, `number`, the instance number as written, a
+ * stretch of the reference's own identifier and so a `QtiIdentifier` within its bound, which no
+ * number refuses on its own, and `variable`, the item variable it names. The importer states one
+ * row for each numbered reading that resolves, and the database proves each one: its spelling, its
+ * item ref a selection with replacement can repeat, its number at least 1, and its variable one the
+ * item names (`#pantry/qti/overlay-queries/readings.ts`). The database enumerates every other
+ * reading itself; a numbered one it cannot, since no text operation it has splits a name at a
+ * period (a grizzle ask of 2026-11-20), so a name whose only readings are two numbered ones is the
+ * importer's to tell apart, a recorded under-refusal (spec reading 88).
  */
 export const NumberedReading = law(
   entryOf("E1 derived"),
@@ -419,7 +420,7 @@ export const NumberedReading = law(
     {
       assembly: EntryPath,
       attribute: closedId(AttributeName),
-      number: KeyMatchedText,
+      number: QtiIdentifier,
       package: PackageName,
       path: EntryPath,
       scope: natural,
