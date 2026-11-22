@@ -19,6 +19,7 @@
     "./styles/theme.css": "./src/styles/theme.css",
     "./test/admitted": "./src/test/admitted.ts",
     "./test/corpus": "./src/test/corpus.ts",
+    "./test/imports": "./src/test/imports.ts",
     "./test/records": "./src/test/records.ts"
   },
   "scripts": {

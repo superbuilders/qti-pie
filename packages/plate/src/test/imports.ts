@@ -1,6 +1,8 @@
 /**
  * Static imports, read from TypeScript source, for the tests that hold the package's module graph
- * to a rule, such as the served tables (`src/boundary.test.ts`).
+ * to a rule, such as the served tables (`src/boundary.test.ts`), and for the lint config, which
+ * derives the modules a page loads from the islands' closure as it loads (`plateClientModules` in
+ * the repository's `oxlint.config.ts`, through `@qti-pie/plate/test/imports`).
  *
  * {@link readImports} parses a module with vite's `parseAst` (Oxc's parser, which `vitest/node`
  * re-exports) and reads every top-level `import` declaration and every `export … from`. A dynamic
@@ -12,7 +14,7 @@
  * `export type`): under `verbatimModuleSyntax`, `import { type A } from "x"` is kept as
  * `import {} from "x"`.
  *
- * Test support: nothing outside `src/test/` and test files imports it.
+ * Test support: nothing outside `src/test/`, test files and the lint config imports it.
  *
  * @module
  */

@@ -2,6 +2,7 @@ import { builtinModules } from "node:module";
 import { defineConfig } from "oxlint";
 import core from "ultracite/oxlint/core";
 import antiSlop from "ultracite/oxlint/anti-slop";
+import { clientModules, sourceModules, valueClosure } from "@qti-pie/plate/test/imports";
 
 /**
  * Matches module declarations and calls without spacing local call groups.
@@ -87,33 +88,23 @@ const plateCorePatterns = [
 ];
 
 /**
- * Plate's modules outside `src/ui/` that a `"use client"` module loads, and so a page: what the
- * islands import from the core, and what that imports in turn: a module that joins that closure
- * joins the list.
+ * Plate's own modules, read from disk as the config loads, by path under the package (`src/<x>`).
  */
-const plateClientModules = [
-  "packages/plate/src/form/encoding.ts",
-  "packages/plate/src/graphic/arrows.ts",
-  "packages/plate/src/graphic/geometry.ts",
-  "packages/plate/src/graphic/holds.ts",
-  "packages/plate/src/graphic/plot.ts",
-  "packages/plate/src/graphic/scale.ts",
-  "packages/plate/src/interactions/eliminated.ts",
-  "packages/plate/src/interactions/pair.ts",
-  "packages/plate/src/interactions/xhtml-text.ts",
-  "packages/plate/src/math-entry/field.ts",
-  "packages/plate/src/model/regex.ts",
-  "packages/plate/src/model/values.ts",
-  "packages/plate/src/model/whitespace.ts",
-  "packages/plate/src/pci/json.ts",
-  "packages/plate/src/pci/type-identifier.ts",
-  "packages/plate/src/placement/limit.ts",
-  "packages/plate/src/placement/machine.ts",
-  "packages/plate/src/placement/match-board.ts",
-  "packages/plate/src/placement/order-list.ts",
-  "packages/plate/src/placement/rules.ts",
-  "packages/plate/src/read-aloud/session.ts",
-];
+const plateModules = sourceModules();
+
+/**
+ * Plate's modules outside `src/ui/` that a `"use client"` module loads, and so a page: what the
+ * islands import from the core, and what that imports in turn, by path from the repository's root.
+ * The list is derived as the config loads, by the reader plate's tests hold its module graph with
+ * (`@qti-pie/plate/test/imports`): every `"use client"` module, and every module reached from one
+ * through a declaration that loads its module (`import type` and `export type` load nothing), less
+ * the UI's own. So a module that joins the closure joins the list, and nothing keeps the list by
+ * hand.
+ */
+const plateClientModules = valueClosure(plateModules, clientModules(plateModules))
+  .filter((module) => !module.startsWith("src/ui/"))
+  .map((module) => `packages/plate/${module}`)
+  .toSorted();
 
 /**
  * The React Compiler's rules, as the toolchain preset turns them on in edullm's apps: oxlint's
