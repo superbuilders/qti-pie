@@ -124,6 +124,11 @@ export interface IslandContext {
    * under its box.
    */
   readonly textEntryKeypad: TextEntryKeypad;
+  /**
+   * The configuration's `picksInstruction`: whether a Choice writes the line that tells a child how
+   * many options to pick.
+   */
+  readonly picksInstruction: boolean;
 }
 
 /**

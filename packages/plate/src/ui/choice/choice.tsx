@@ -90,6 +90,12 @@ export interface ChoiceProps extends Authored<Named> {
    */
   readonly picks: Picks;
   /**
+   * The line that tells the child how many to pick, written under the prompt as
+   * `plate-choice-instruction`, where the host asks for it (`picksInstruction`); undefined where it
+   * does not.
+   */
+  readonly instruction: string | undefined;
+  /**
    * The `qti-prompt`, server-rendered, under the id that names the group; undefined where the
    * interaction has none.
    */
@@ -115,17 +121,25 @@ export interface ChoiceProps extends Authored<Named> {
  * - `plate-choice-row`, for a choice with a read-aloud control, holding its `plate-choice-option` and
  *   then the control: a `label` may hold no labelable element but its own control (HTML, the
  *   `label` element), so the control's button stands beside the option, never in it;
- * - `plate-choice-limit`, the `limit` label, shown from a refused pick until the next accepted one.
+ * - `plate-choice-limit`, the `limit` label, shown from a refused pick until the next accepted one;
+ * - `plate-choice-instruction`, under the prompt, the `instruction` where the host asks for one.
  *
  * @param props The interaction, its response's entry name and its labels ({@link ChoiceProps}).
  * @returns The Choice, its controls bound to the response.
  */
 export const Choice = (props: ChoiceProps) => {
-  const { choices, labels, name, naming, orientation, picks, prompt, root } = props;
+  const { choices, instruction, labels, name, naming, orientation, picks, prompt, root } = props;
 
   return (
     <PicksGroup
-      before={<PromptPart prompt={prompt} />}
+      before={
+        <>
+          <PromptPart prompt={prompt} />
+          {instruction === undefined ? null : (
+            <p data-slot="plate-choice-instruction">{instruction}</p>
+          )}
+        </>
+      }
       limit={labels.limit}
       naming={naming}
       picks={picks}

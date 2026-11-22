@@ -21,6 +21,7 @@ const refused = [
   { field: "hotspotPicks", input: { hotspotPicks: true, seed: "" } },
   { field: "hotspotList", input: { hotspotList: "hidden", seed: "" } },
   { field: "hotspotList", input: { hotspotList: false, seed: "" } },
+  { field: "picksInstruction", input: { picksInstruction: "true", seed: "" } },
   { field: "textEntryKeypad", input: { seed: "", textEntryKeypad: "onscreen" } },
   { field: "textEntryKeypad", input: { seed: "", textEntryKeypad: true } },
   { field: "maxAttempts", input: { maxAttempts: 1, seed: "" } },
@@ -123,6 +124,7 @@ describe("configure", () => {
         hotspotPicks: "ring",
         locale: "en",
         outputBudget: 16_777_216,
+        picksInstruction: false,
         seed: "7",
         textEntryKeypad: "none",
       });
@@ -192,7 +194,7 @@ describe("configure", () => {
       const error = yield* Effect.flip(configure({ seed: "", showSolutions: true }));
 
       assert.include(error.message, "has no field showSolutions");
-      assert.include(error.message, "outputBudget, seed, textEntryKeypad");
+      assert.include(error.message, "outputBudget, picksInstruction, seed, textEntryKeypad");
     }),
   );
 

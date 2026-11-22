@@ -38,6 +38,10 @@
  * `matchTable…` keys in place of the primitive's refusals, a row's source `{chip}` and a column's
  * target `{target}`, and `matchTableMoved` when a row of radios' tick moves to `{target}`.
  *
+ * A Choice whose host asks for it (`picksInstruction`) writes `picksInstructionOne` under its
+ * prompt where the child picks one, `picksInstructionMany` where more, and `picksInstructionReview`
+ * in a review, AlphaTest's player's words.
+ *
  * Match, Gap Match and Order refuse a response past their own limits with the `match…`,
  * `gapMatch…` and `order…` keys that name a choice, a gap or a pair by its identifier (`{choice}`,
  * `{gap}`, `{source}`, `{target}`, `{pair}`) and the identifiers a `match-group` lists
@@ -103,6 +107,9 @@ export const coreMessages = {
   orderSwapped: "{chip} is number {target}. {other} is number {from}.",
   orderSwappedBack: "{chip} is number {target}. {other} went back.",
   patternMismatch: "Enter an answer in the form this question asks for.",
+  picksInstructionMany: "Select all that apply:",
+  picksInstructionOne: "Select your answer:",
+  picksInstructionReview: "Your Answer:",
   placementBankSlot: "Put it back",
   placementCanceled: "{chip} put down.",
   placementChipUsedUp: "{chip} is used up.",

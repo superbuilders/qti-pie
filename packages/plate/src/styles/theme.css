@@ -485,6 +485,13 @@
 
   /* == choice == */
 
+  /* A Choice's instruction line, where the host asks for it: under the prompt, quieter than it. */
+  :where([data-slot="plate-choice"]) [data-slot="plate-choice-instruction"] {
+    margin: 0 0 0.5rem;
+    color: var(--ui-muted-foreground);
+    font-weight: 600;
+  }
+
   /* A Choice: its prompt, its options, and the message a refused pick shows, 12 px apart. */
   [data-slot="plate-choice"] {
     display: grid;

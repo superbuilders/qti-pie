@@ -367,6 +367,7 @@ export const Item = (props: ItemProps): ReactNode => {
     content,
     instance,
     locale: configuration.locale,
+    picksInstruction: configuration.picksInstruction,
     shows: showsOf(props),
     textEntryKeypad: configuration.textEntryKeypad,
     values: mapOf(props.values),

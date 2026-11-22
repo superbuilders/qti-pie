@@ -28,7 +28,8 @@ import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import { picksKeys } from "#plate/ui/picks/labels.ts";
 import { marksOf } from "#plate/ui/picks/marks.ts";
 import { optionName } from "#plate/ui/picks/names.ts";
-import { groupSlotOf, picksOf } from "#plate/ui/picks/picks.ts";
+import { message } from "#plate/messages.ts";
+import { groupSlotOf, instructionOf, picksOf } from "#plate/ui/picks/picks.ts";
 import { ReviewedPick } from "#plate/ui/picks/review.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 
@@ -60,6 +61,9 @@ export const island = (
         ),
         ...spokenOf(choice, index + 1, "readAloudChoice", context),
       }))}
+      instruction={
+        context.picksInstruction ? message(context.locale, instructionOf(picksOf(node))) : undefined
+      }
       labels={labelsOf(picksKeys, context.locale, { limit: model.messages.max })}
       name={node.formName}
       naming={controlNameOf(prompt, node, ownName(model, context), context)}
@@ -92,6 +96,11 @@ export const review = (
   return (
     <div {...rootOf(model, context)} data-orientation={node.orientation} data-slot="plate-choice">
       <PromptPart prompt={prompt} />
+      {context.picksInstruction ? (
+        <p data-slot="plate-choice-instruction">
+          {message(context.locale, "picksInstructionReview")}
+        </p>
+      ) : null}
       <div
         {...controlNameOf(prompt, node, ownName(model, context), context)}
         data-slot={groupSlotOf(picksOf(node))}

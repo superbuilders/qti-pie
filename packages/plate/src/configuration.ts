@@ -144,6 +144,9 @@ export type TextEntryKeypad = (typeof textEntryKeypads)[number];
  * QTI's `qti-unselected-hidden` class, never the host's. `textEntryKeypad` is whether every Text
  * Entry of the item shows an on-screen keypad under its box, `none` by default; the islands read
  * it, and its keys type through the box's own input, so it changes no response or its scoring.
+ * `picksInstruction` is whether every Choice of the item writes the line AlphaTest's player wrote
+ * under its prompt, "Select your answer:" for one pick, "Select all that apply:" for more, and
+ * "Your Answer:" in a review, `false` by default; it is words alone, changing no response.
  * `assets` maps each file an item's package URLs may name, by its path from the package root, to
  * its address, the URL `<Item>` writes in its place, or to `null` for a file the host withholds,
  * which `<Item>` writes no URL for and renders the item without: `<Item>` resolves each package URL
@@ -176,6 +179,7 @@ export const ConfigurationSchema = Schema.Struct({
   outputBudget: Schema.Int.check(
     Schema.isBetween({ maximum: maximumOutputBudget, minimum: 1 }),
   ).pipe(Schema.withDecodingDefaultKey(Effect.succeed(defaultOutputBudget))),
+  picksInstruction: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   seed: Schema.String,
   textEntryKeypad: Schema.Literals(textEntryKeypads).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed("none")),
@@ -204,6 +208,8 @@ const allowedValues: Readonly<Record<Field, string>> = {
   locale: `a supported locale: ${locales.map((locale) => `"${locale}"`).join(", ")}`,
   outputBudget:
     "an integer from 1 to 536,870,888, the most characters an item's printed variables may print",
+  picksInstruction:
+    "true or false, whether every Choice writes the line that tells a child how many to pick",
   seed: 'a string, the served item\'s shuffle seed, such as "7"',
   textEntryKeypad: `how a child types into a Text Entry: ${textEntryKeypads.map((value) => `"${value}"`).join(" or ")}`,
 };
