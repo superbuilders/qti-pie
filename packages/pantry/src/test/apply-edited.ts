@@ -11,6 +11,7 @@ import type { CallError, Law, WriteOutcome } from "@bjornpagen/grizzle";
 import { Duration, Effect } from "effect";
 import { AuthorLogin } from "#pantry/db/served.ts";
 import { readProgram } from "#pantry/import/program.ts";
+import { lawsOfRefusal } from "#pantry/import/refusal.ts";
 import { packageFactsOf } from "#pantry/import/write.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
 import type { QtiPackage } from "#pantry/import/read.ts";
@@ -109,7 +110,8 @@ export const keyOn =
     law.side.terms.map(({ field }) => field).join(" ") === fields.join(" ");
 
 /**
- * Whether an apply was `refused` with a law among its `refused.laws` one of the predicates picks.
+ * Whether an apply was `refused` with a law among the laws it names ({@link lawsOfRefusal}: its own
+ * laws, or an `above` refusal's laws above and then its own) one of the predicates picks.
  *
  * @param outcome - The apply's outcome or refusal.
  * @param picks - The laws the case may be refused under.
@@ -117,4 +119,4 @@ export const keyOn =
  */
 export const rejectedBy = (outcome: Applied, picks: readonly ((law: Law) => boolean)[]): boolean =>
   outcome.kind === "refused" &&
-  outcome.refused.laws.some(({ law }) => picks.some((pick) => pick(law)));
+  lawsOfRefusal(outcome.refused).some(({ law }) => picks.some((pick) => pick(law)));

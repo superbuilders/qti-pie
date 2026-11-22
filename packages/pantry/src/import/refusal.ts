@@ -31,10 +31,10 @@ import type { Types } from "effect";
 
 import type { RefusedLaw, RefusalDecision } from "#pantry/package/refusal-origin.ts";
 
-import { lawTable } from "#pantry/vocab/laws.ts";
 import { ruleOrder, ImportRefused } from "#pantry/import/rules.ts";
 import type { Rule } from "#pantry/import/rules.ts";
 import lawNamesFile from "#pantry/vocab/law-names.json" with { type: "json" };
+import { lawTable } from "#pantry/vocab/laws.ts";
 
 /**
  * The name of a law of {@link lawTable}.
@@ -101,16 +101,56 @@ type RefusalLawsOf<Laws> = { readonly [At in keyof Laws]: RefusalLaw };
  * A refusal of laws, as the importer reads one: each shape of grizzle's `Refused`, its kind, its
  * `own` where it is `above`, and its laws in their positions, read as {@link RefusalLaw}s, so every
  * shape grizzle states is one here and no other is, each with as many laws: `every` and `first`
- * one or more, `some` two or more, `above` with `own` `every` two or more and with `none` or
- * `unjudged` one. `every`, `first` and `some` hold the login's own laws; `above` holds first the
- * law of a level above the login's that PostgreSQL named, then, where its `own` is `every`, each
- * own law the first stated row breaks.
+ * one or more in `laws`, `some` two or more; `above` one or more in `above`, every law of the
+ * levels above the login's that the object PostgreSQL named serves, in code point order of their
+ * identities, and, where its `own` is `every` and only there, one or more in `laws`, each own law
+ * the first stated row breaks. `every`, `first` and `some` hold the login's own laws.
  */
 export type RefusalOf = Refused extends infer Decided
-  ? Decided extends { readonly laws: infer Laws }
-    ? Omit<Decided, "laws"> & { readonly laws: RefusalLawsOf<Laws> }
+  ? Decided extends unknown
+    ? {
+        readonly [Field in keyof Decided]: Field extends "above" | "laws"
+          ? RefusalLawsOf<Decided[Field]>
+          : Decided[Field];
+      }
     : never
   : never;
+
+/**
+ * Every law a refusal names, in its positions: the login's own laws of an `every`, `first` or
+ * `some` refusal; an `above` refusal's laws of the levels above the login's, then, where its `own`
+ * is `every`, its own laws. Each shape of {@link RefusalOf} is read by its own case and each
+ * switch's default is typed `never`, so a kind or an `own` grizzle adds fails to compile here.
+ *
+ * @param refused - The refusal.
+ * @returns Its laws, one at least.
+ */
+export const lawsOfRefusal = (refused: RefusalOf): readonly [RefusalLaw, ...RefusalLaw[]] => {
+  switch (refused.kind) {
+    case "every":
+    case "first":
+    case "some": {
+      return refused.laws;
+    }
+    case "above": {
+      switch (refused.own) {
+        case "every": {
+          return [...refused.above, ...refused.laws];
+        }
+        case "none":
+        case "unjudged": {
+          return refused.above;
+        }
+        default: {
+          return refused satisfies never;
+        }
+      }
+    }
+    default: {
+      return refused satisfies never;
+    }
+  }
+};
 
 /**
  * Name a refusal's shape, as its origin records it (`RefusedKind` of
@@ -362,17 +402,18 @@ const lawFactOf = (refused: RefusalLaw): typeof RefusedLaw.Type => {
  * @returns The refusal.
  */
 export const refusalOf = (refused: RefusalOf, witness: Witness): ImportRefused => {
-  const { detail, sources } = explain(refused.laws, witness);
+  const laws = lawsOfRefusal(refused);
+  const { detail, sources } = explain(laws, witness);
 
   return new ImportRefused({
     detail,
     origin: {
       _tag: "Database",
       kind: decisionOf(refused),
-      laws: pipe(refused.laws, Arr.map(lawFactOf)),
+      laws: pipe(laws, Arr.map(lawFactOf)),
       sources,
       witness: witness.kind,
     },
-    rules: rulesOf(refused.laws),
+    rules: rulesOf(laws),
   });
 };

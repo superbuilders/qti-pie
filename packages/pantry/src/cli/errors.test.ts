@@ -1,4 +1,4 @@
-import { CompileError, OpenError, TokenError } from "@bjornpagen/grizzle";
+import { CompileError, OpenError, TokenRefused } from "@bjornpagen/grizzle";
 import type { CallError } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { Config, ConfigProvider, Effect, Option, Result } from "effect";
@@ -275,7 +275,7 @@ describe("describeFailure, a program grizzle refused to compile", () => {
     }
 
     assert.deepStrictEqual(
-      identity(new OpenError({ reason: new TokenError({ cause: new Error("refused") }) })),
+      identity(new OpenError({ reason: new TokenRefused({ cause: new Error("refused") }) })),
       database,
     );
   });

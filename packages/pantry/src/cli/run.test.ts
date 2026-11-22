@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { assert, describe, it, layer } from "@effect/vitest";
-import { CredentialError, OpenError, TokenError } from "@bjornpagen/grizzle";
+import { CredentialError, OpenError, TokenRefused } from "@bjornpagen/grizzle";
 import { Cause, Effect, Exit, PlatformError } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { NotADirectory } from "#pantry/cli/args.ts";
@@ -21,7 +21,7 @@ import { captureCli, spawnCli } from "#pantry/test/cli.ts";
  * read from the prototype's name without constructing an error. A tag grizzle renames fails the
  * roster test below instead of silently mapping to `internal`.
  */
-const grizzleErrors = [CredentialError, OpenError, TokenError].map((error) => ({
+const grizzleErrors = [CredentialError, OpenError, TokenRefused].map((error) => ({
   name: error.name,
   tag: error.prototype.name,
 }));

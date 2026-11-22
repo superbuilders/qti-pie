@@ -103,7 +103,7 @@ const longerLimit =
 const grizzleKinds = {
   CredentialError: "database",
   OpenError: "database",
-  TokenError: "database",
+  TokenRefused: "database",
 } as const satisfies Readonly<Record<string, Kind>>;
 
 /**

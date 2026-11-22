@@ -319,15 +319,15 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
         const refusalsByDecision = {
           "above every": {
             facts: [aboveFact, lawFact],
-            refused: { kind: "above", laws: [refusedAbove, own], own: "every" },
+            refused: { above: [refusedAbove], kind: "above", laws: [own], own: "every" },
           },
           "above none": {
             facts: [aboveFact],
-            refused: { kind: "above", laws: [refusedAbove], own: "none" },
+            refused: { above: [refusedAbove], kind: "above", own: "none" },
           },
           "above unjudged": {
             facts: [aboveFact],
-            refused: { kind: "above", laws: [refusedAbove], own: "unjudged" },
+            refused: { above: [refusedAbove], kind: "above", own: "unjudged" },
           },
           every: { facts: [lawFact], refused: { kind: "every", laws: [own] } },
           first: { facts: [lawFact], refused: { kind: "first", laws: [own] } },

@@ -33,7 +33,7 @@ import type { CallError, MemberHandle } from "@bjornpagen/grizzle";
 import { Context, Duration, Effect } from "effect";
 import { importRowsOf } from "#pantry/import/program.ts";
 import type { QtiPackage } from "#pantry/import/read.ts";
-import { refusalOf } from "#pantry/import/refusal.ts";
+import { lawsOfRefusal, refusalOf } from "#pantry/import/refusal.ts";
 import type { ImportRefused } from "#pantry/import/rules.ts";
 import { MediaStore } from "#pantry/package/media.ts";
 import type { MediaUnstored } from "#pantry/package/media.ts";
@@ -76,7 +76,7 @@ const nameRefusal = ({
   Effect.sync(() => refusalOf(refused, witness)).pipe(
     Effect.tap((built) =>
       Effect.annotateCurrentSpan({
-        lawsNamed: refused.laws.length,
+        lawsNamed: lawsOfRefusal(refused).length,
         refusedKind: refused.kind,
         rules: built.rules.join("|"),
       }),

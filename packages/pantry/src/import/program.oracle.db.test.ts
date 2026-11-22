@@ -1,9 +1,9 @@
 /**
  * The import on the lease, PostgreSQL itself the judge (testing doctrine, rule 3): each accepted
  * package commits whole in one transaction, and each refused one is refused under the law its one
- * edit breaks (membership in the outcome's `refused.laws`, since one native object may discharge
- * several, C22). Written to run at N1 on the lease and restated in the network seat's probe, never
- * by a hand.
+ * edit breaks (membership in the laws the outcome's refusal names, `lawsOfRefusal`, since one
+ * native object may discharge several, C22). Written to run at N1 on the lease and restated in the
+ * network seat's probe, never by a hand.
  *
  * The cases over a whole package that the slices left to the importer (their reports, and the
  * orchestrator's lists of 2026-11-06) run through one helper: a valid package, one edit, the
@@ -858,7 +858,7 @@ describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () 
 
     for (const { apply, laws, name } of cases) {
       it.effect(`refuses ${name}`, () =>
-        // Oracle: PostgreSQL, the law the case's one edit breaks, named in the outcome's `refused.laws`.
+        // Oracle: PostgreSQL, the law the case's one edit breaks, among the laws its refusal names.
         Effect.gen(function* refused() {
           const { outcome, package: identifier } = yield* apply();
 
