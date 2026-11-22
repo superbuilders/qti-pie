@@ -125,6 +125,37 @@ begin
   return case when f < 0 then '-' || t else t end;
 end $$;
 
+-- A character reference of an xhtml value, read as plate reads one (`resolved` in plate's interactions/xhtml-text.ts):
+-- `&#x` and hex digits or `&#` and decimal digits as the code point it names, where that is at most U+10FFFF and one
+-- PostgreSQL's text holds (neither U+0000 nor a surrogate, which no XML value holds either); `&amp;`, `&lt;`, `&gt;`,
+-- `&quot;`, `&apos;` and `&nbsp;` as what each stands for; any other as written.
+create function p3.xhtml_reference(r text) returns text language sql immutable as $$
+  select case
+    when r !~ '^&#' then case r when '&amp;' then '&' when '&lt;' then '<' when '&gt;' then '>' when '&quot;' then '"'
+      when '&apos;' then '''' when '&nbsp;' then chr(160) else r end
+    when c between 1 and 1114111 and c not between 55296 and 57343 then chr(c)
+    else r end
+  from (select case when d = '' then 0 when hex and length(d) <= 6 then ('x' || lpad(d, 8, '0'))::bit(32)::integer
+      when not hex and length(d) <= 7 then d::integer end as c
+    from (select r ~ '^&#x' as hex, ltrim(substring(r from '^&#x?([0-9A-Fa-f]*);$'), '0') as d) h) n
+$$;
+
+-- The text of an xhtml Extended Text's value, the text its box shows, as plate reads a value (`textOfXhtml` in plate's
+-- interactions/xhtml-text.ts; reading 244): each `br` a line feed, each boundary between two `p` elements a blank
+-- line, every other tag removed, then each character reference resolved in one pass (p3.xhtml_reference), so `&amp;lt;`
+-- reads `&lt;`. White space inside a tag is JavaScript's `\s`, as plate's expressions read it. A value plate wrote reads
+-- back exactly as the text typed. An xhtml Extended Text's pattern-mask is matched against this text, never the markup.
+create function p3.xhtml_text(x text) returns text language sql immutable as $$
+  select coalesce(string_agg(case when m[1] is null then m[2] else xhtml_reference(r => m[1]) end, '' order by o), '')
+  from regexp_matches(
+    regexp_replace(
+      regexp_replace(
+        regexp_replace(x, '<br[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*/?>', E'\n', 'gi'),
+        '</p[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*>[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*<p(?:[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF][^>]*)?>', E'\n\n', 'gi'),
+      '<[^>]*>', '', 'g'),
+    '(&#x[0-9A-Fa-f]+;|&#[0-9]+;|&[A-Za-z]+;)|([^&]+|&)', 'g') with ordinality t(m, o)
+$$;
+
 -- One run's admission: its document's body's element nodes and their attributes, its responses as posted (each
 -- declared response a variable, NULL where it has no single), the outcome and template values in force, and the run,
 -- whose key every row it gives back is keyed by and whose validate-responses it judges under.
@@ -586,10 +617,12 @@ returns p3.admission language sql immutable as $$
   -- number separate (non-empty) strings required from the candidate to form a valid response" (§5.48.7), whatever
   -- a renderer draws; Text Entry and Extended Text: a pattern-mask every string matches, by XML Schema's regular
   -- expressions (QTI 3.0.1 §5.48.4, Appendix F of XML Schema Part 2), by the machine's matcher; a mask that is no
-  -- Appendix F expression compiles to NULL and matches as NULL: no reason, as QTI gives such a mask no meaning.
+  -- Appendix F expression compiles to NULL and matches as NULL: no reason, as QTI gives such a mask no meaning. An
+  -- xhtml Extended Text's strings are matched on their text (p3.xhtml_text, reading 244), every other as posted.
   texts as (
     select i.start, i.response, i.kind, coalesce(g.n, 0) as n, trim_xml(t => e.max_strings)::numeric as most,
-      coalesce(trim_xml(t => e.min_strings)::numeric, 0) as least, e.pattern_mask
+      coalesce(trim_xml(t => e.min_strings)::numeric, 0) as least, e.pattern_mask,
+      i.kind = 'qti-extended-text-interaction' and coalesce(trim_xml(t => e.format), 'plain') = 'xhtml' as xhtml
     from shown i join el e on e.start = i.start left join given g on g.response = i.response
     where i.kind in ('qti-text-entry-interaction', 'qti-extended-text-interaction')
   ),
@@ -939,7 +972,8 @@ returns p3.admission language sql immutable as $$
     from texts t
       cross join lateral (values ('', 0, null::text, null::float8)) a(name, place, word, number)
     where t.pattern_mask is not null
-      and exists (select 1 from p where p.response = t.response and xsd_run(program => xsd_compile(p => t.pattern_mask), v => p.value) is false)
+      and exists (select 1 from p where p.response = t.response
+        and xsd_run(program => xsd_compile(p => t.pattern_mask), v => case when t.xhtml then xhtml_text(x => p.value) else p.value end) is false)
   ),
   -- The closed roster AdmissionCode: each reason code once, its id its place from 0 across the two lists, tier (a)'s,
   -- refused whatever validate-responses says, then tier (b)'s, refused only under it. The ledger's generator builds

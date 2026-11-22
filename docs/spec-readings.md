@@ -890,7 +890,8 @@ against it. A reading that is not an information-model-over-XSD case says which 
     form (Part 2, section 3.3.13.2). A float is written as the shortest decimal that reads back to the same double, as
     JavaScript writes a number (`1.5`, `100`, `1e+21`), with `INF`, `-INF` and `NaN` by name. That is not XML
     Schema's canonical double form (section 3.2.5.2), which writes `1.0E2`. A `string` binding is matched as the
-    candidate typed it, its line breaks made LF, and each member of a container is matched on its own. The form is
+    candidate typed it, its line breaks made LF (an `xhtml` Extended Text's on its text, reading 244), and each member
+    of a container is matched on its own. The form is
     weaker than an author's mask in one direction and stricter in the other. On a `float` binding `1e2` is matched as
     `100` and `+5` as `5`, so a mask that forbids `e` and `+` admits both. On an `integer` binding `007` is matched as
     `7`, so `[0-9]{3}` refuses what the candidate typed. This binds plate, which checks responses; pantry stores
@@ -5302,3 +5303,29 @@ C2: the oracle's own reader.)
      two weights of one name. This binds pantry and every delivery alike. This is not a case of documents in conflict.
      (Stated 2026-11-20 by lane IMPL-TESTS; upheld by the lead the same day: a weight reference must name one
      definition, section 7.47.2, so the reading refuses only invalid content.)
+
+244. **An `xhtml` Extended Text's `pattern-mask` is matched against the text the candidate entered, never against the
+     markup its response holds.** The information model gives the format: "xhtml - indicates that the text to be
+     entered by the candidate is structured text. The value of the response variable is text marked up in XHTML. The
+     delivery engine should present an interface suitable for capturing structured text, this might be plain typed text
+     interpreted with a set of simple text markup conventions such as those used in wiki page editors or a complete
+     WYSIWYG editor" (section 8.42, TextFormatEnum), and says the mask "specifies a regular expression that the
+     candidate's response must match in order to be considered valid" (section 5.48.4). It does not say whether, for an
+     `xhtml` response, the mask judges the markup the value holds or the text the candidate entered. This reading judges
+     the text: the value with each `br` read as a line feed, each boundary between two `p` elements as a blank line,
+     every other tag removed and its character references resolved, which for a value plate writes is exactly the text
+     typed. The mask constrains what the candidate enters, and the candidate enters text; the markup is how one editor
+     encodes it (plate's textarea writes `p` and `br`, a WYSIWYG editor writes others), so a mask matched against markup
+     would judge one entry differently by editor, and a mask that counts words would count tags as words. So
+     `<p>one</p><p>two</p>` is matched as `one`, a blank line and `two`, and `<p>hel<b>lo</b></p>` as `hello`. A
+     `plain` or `preformatted` Extended Text is matched as typed (reading 54). The QTI database states the text once,
+     `p3.xhtml_text` in the ledger's machine (`machine/admission.sql`), and its admission matches the mask against it;
+     plate's `textOfXhtml` (`src/interactions/xhtml-text.ts`), which its island's box shows and its hint judges, reads
+     the same text, and the ledger's `xhtml-text.db.test.ts` holds the two to one reading over drawn values. A numeric
+     reference to U+0000 or to a surrogate, which neither an XML value nor PostgreSQL's text can hold, stands as written
+     in the database's text. This binds the QTI database's admission and plate; pantry stores `pattern-mask` as written.
+     This changes no verdict: no item of the 1EdTech corpus or of AlphaTest's content holds a `pattern-mask` on an
+     `xhtml` Extended Text. This is not a case of documents in conflict: the information model leaves the matched text
+     open. (Decided 2026-11-22 by lane WORDCAP on the coordinator's ruling, for parity with AlphaTest's player, which
+     counts an essay's words on its text: mastery-track-player 941a86a,
+     `src/components/questions/ExtendedTextInteraction.tsx`, `getWordCount`.)
