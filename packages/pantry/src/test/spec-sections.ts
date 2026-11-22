@@ -25,6 +25,18 @@
 import { Option } from "effect";
 
 /**
+ * How a specification's cached HTML is held to the copy its sections were judged on: by its own
+ * SHA-256, or, for a page its publisher serves with a token of its own on every request, so that no
+ * two downloads share their bytes, by its text rendering alone: where the token stands inside
+ * what the recorded command (`#pantry/test/spec-cache/render.ts`) strips as a tag, every download
+ * renders to the same text, so the rendering's SHA-256, {@link SpecDocument.textSha256}, holds
+ * what was judged, and the cached HTML is any download whose rendering hashes to it.
+ */
+export type HtmlPin =
+  | { readonly kind: "bytes"; readonly sha256: string }
+  | { readonly kind: "rendering" };
+
+/**
  * A specification a law source may cite: the URL a citation of it starts with, and its cached
  * renderings under `~/.cache/qti-pie/` with the SHA-256 of each as its sections were judged.
  */
@@ -34,9 +46,9 @@ export interface SpecDocument {
    */
   readonly html: string;
   /**
-   * The SHA-256 of {@link SpecDocument.html}.
+   * How {@link SpecDocument.html} is held to the copy the sections were judged on.
    */
-  readonly htmlSha256: string;
+  readonly htmlPin: HtmlPin;
   /**
    * The specification's name, for an offence's message.
    */
@@ -63,13 +75,17 @@ export interface SpecDocument {
  * it does not support. That document marks no section either way: its §1.2 says "All sections
  * marked as non-normative ... are non-normative. Everything else in this specification is
  * normative." IMS publishes it only as a page whose settings script carries a token of its own on
- * every request, so its pin is the copy fetched on 2026-11-22, which a fresh download never
- * matches.
+ * every request, inside an HTML comment the recorded command strips as a tag, so it is held to its
+ * text rendering alone ({@link HtmlPin}): two downloads of it share no bytes, and every download
+ * renders to the same text.
  */
 export const specDocuments: readonly SpecDocument[] = [
   {
     html: "anyuri-specs/qti/info.html",
-    htmlSha256: "6cf0658f86de0731e28a35917bb088c866b3a6982f98c611e128ba419c1dbc5c",
+    htmlPin: {
+      kind: "bytes",
+      sha256: "6cf0658f86de0731e28a35917bb088c866b3a6982f98c611e128ba419c1dbc5c",
+    },
     name: "the QTI 3.0 information model",
     text: "anyuri-specs/qti/info.txt",
     textSha256: "a3e8e38e19af9c865172553edec17d20a7b063493ebc15f075dc130834d4bf3c",
@@ -77,7 +93,10 @@ export const specDocuments: readonly SpecDocument[] = [
   },
   {
     html: "qti301/info301.html",
-    htmlSha256: "dde409f5d4266480457edbad98e8cf6e1bc7c831ff6be2fbc348038642f0b3c6",
+    htmlPin: {
+      kind: "bytes",
+      sha256: "dde409f5d4266480457edbad98e8cf6e1bc7c831ff6be2fbc348038642f0b3c6",
+    },
     name: "the QTI 3.0.1 information model",
     text: "qti301/info301.txt",
     textSha256: "bc654efa8bb0c9ceb54058f51cb0c0713740198b072c1db5f61924eb2a269a63",
@@ -85,7 +104,10 @@ export const specDocuments: readonly SpecDocument[] = [
   },
   {
     html: "anyuri-specs/qti/bind.html",
-    htmlSha256: "2fd34e2f2fb3cc709d047a8f53aacdfce1d55517a8349aa88cbdafaed0d070cc",
+    htmlPin: {
+      kind: "bytes",
+      sha256: "2fd34e2f2fb3cc709d047a8f53aacdfce1d55517a8349aa88cbdafaed0d070cc",
+    },
     name: "the QTI 3.0 XML binding",
     text: "anyuri-specs/qti/bind.txt",
     textSha256: "6ae52db3f77e11553f2467ecc650381ebc6b0377ccbb8a4f92624834796e0c1f",
@@ -93,7 +115,10 @@ export const specDocuments: readonly SpecDocument[] = [
   },
   {
     html: "qti-md-bind/index.html",
-    htmlSha256: "540be500930b7cad7700775062ae09fff0a77160d245d0ba300f8287729a7c3a",
+    htmlPin: {
+      kind: "bytes",
+      sha256: "540be500930b7cad7700775062ae09fff0a77160d245d0ba300f8287729a7c3a",
+    },
     name: "the QTI 3.0 metadata binding",
     text: "qti-md-bind/index.txt",
     textSha256: "616430681f3caf7647988ed75b2095f165da2988eb9fa6a647259cd8151afa3a",
@@ -101,7 +126,10 @@ export const specDocuments: readonly SpecDocument[] = [
   },
   {
     html: "pm-ud/ud-bind.html",
-    htmlSha256: "6e5d9d9d3e832ff4e79bd80aab92fcbabbefafe08d7d2bc5c2d16975e570310d",
+    htmlPin: {
+      kind: "bytes",
+      sha256: "6e5d9d9d3e832ff4e79bd80aab92fcbabbefafe08d7d2bc5c2d16975e570310d",
+    },
     name: "the QTI 3.0 usage data binding",
     text: "pm-ud/ud-bind.txt",
     textSha256: "3a993bee11e80f69e92d55b46d9ecfbe473c579466f7629702e5b2fb71b7a258",
@@ -109,7 +137,10 @@ export const specDocuments: readonly SpecDocument[] = [
   },
   {
     html: "datassml/infobind.html",
-    htmlSha256: "e7c7473c1431a7dc4a072b74ef5053aeec7d6ed502b49595450a2ea5e1b0bc26",
+    htmlPin: {
+      kind: "bytes",
+      sha256: "e7c7473c1431a7dc4a072b74ef5053aeec7d6ed502b49595450a2ea5e1b0bc26",
+    },
     name: "Data-SSML 1.0, its information model and JSON binding",
     text: "datassml/infobind.txt",
     textSha256: "54eb1ac14b80dfd7eb4d71f682f9d917a9b97143693797190c286ec619af7d62",
@@ -117,7 +148,7 @@ export const specDocuments: readonly SpecDocument[] = [
   },
   {
     html: "qti-conf/conf.html",
-    htmlSha256: "2b2c860e16ee6c7ae10863c43d33e2efe071f2f29d8544a9b0301247e2b20279",
+    htmlPin: { kind: "rendering" },
     name: "the QTI 3.0 conformance and certification document",
     text: "qti-conf/conf.txt",
     textSha256: "aa6e54fe1b7377dd345826fb4640a2aa8463035f70be712deca9202f042a8e6d",

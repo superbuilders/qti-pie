@@ -15,7 +15,7 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Layer, Option } from "effect";
 import { Digest } from "effect/crypto";
 import { lawTable } from "#pantry/vocab/laws.ts";
-import { readPinned } from "#pantry/test/spec-cache/read.ts";
+import { readPinned, readPinnedHtml } from "#pantry/test/spec-cache/read.ts";
 import * as differential from "#pantry/test/xsd-differential.ts";
 import type { Recorded } from "#pantry/test/xsd-differential.ts";
 import {
@@ -37,15 +37,15 @@ const decoded = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
 
 /**
  * Each specification's HTML and its text rendering, read from the spec cache at load, each checked
- * against its pin (`readPinned`). Every test here reads them, so without them the file fails to
- * load, as `SpecFileMissing` or `SpecFileMismatch`, which name the command that fetches them; it
- * never skips.
+ * against its pin (`readPinnedHtml`, `readPinned`). Every test here reads them, so without them the
+ * file fails to load, as `SpecFileMissing`, `SpecFileMismatch` or `SpecRenderingMismatch`, which
+ * name the command that fetches them; it never skips.
  */
 const cached = await Effect.runPromise(
   Effect.all(
     specDocuments.map((document) =>
       Effect.all({
-        html: readPinned({ path: document.html, sha256: document.htmlSha256 }),
+        html: readPinnedHtml(document.html, document.htmlPin, document.textSha256),
         text: readPinned({ path: document.text, sha256: document.textSha256 }),
       }).pipe(
         Effect.map(({ html, text }) => ({

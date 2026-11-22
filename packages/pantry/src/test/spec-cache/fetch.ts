@@ -21,12 +21,17 @@
  * @see {@link https://github.com/aidenzepp/qti-pie/issues/98 | qti-pie#98, a script that fills the spec caches}
  */
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
-import { Console, Effect, FileSystem, Layer, Path, Result, Schema } from "effect";
+import { Console, Effect, FileSystem, Layer, Option, Path, Result, Schema } from "effect";
 import { Command } from "effect/cli";
 import { Digest } from "effect/crypto";
 import { FetchHttpClient, HttpClient } from "effect/http";
 import { cacheDirectory, pins } from "#pantry/test/spec-cache/pins.ts";
-import type { FetchedSource, Rendering, SpecPins } from "#pantry/test/spec-cache/pins.ts";
+import type {
+  FetchedSource,
+  RenderPinnedSource,
+  Rendering,
+  SpecPins,
+} from "#pantry/test/spec-cache/pins.ts";
 import { fetchSpecsCommand } from "#pantry/test/spec-cache/read.ts";
 import { renderText } from "#pantry/test/spec-cache/render.ts";
 import {
@@ -128,7 +133,34 @@ class SpecPublishedChanged extends Schema.TaggedError<SpecPublishedChanged>()(
 /**
  * Why one source could not be settled: its download failed, or it served other bytes than its pin.
  */
-type SpecFailure = SpecDownloadFailed | SpecPublishedChanged;
+/**
+ * A source held to its rendering alone (`RenderPinnedSource`) renders, as now published, to a text
+ * whose SHA-256 is not its rendering's pin, so neither it nor its rendering was written.
+ *
+ * `actual` is the SHA-256 of the download's rendering by the recorded command, or the reference it
+ * holds that the command does not decode; `staleCopy` says whether a cached copy that does not
+ * render to the pin was left in place.
+ */
+class SpecPublishedRenderingChanged extends Schema.TaggedError<SpecPublishedRenderingChanged>()(
+  "SpecPublishedRenderingChanged",
+  {
+    actual: Schema.String,
+    expected: Schema.String,
+    path: Schema.String,
+    rendering: Schema.String,
+    staleCopy: Schema.Boolean,
+    url: Schema.String,
+  },
+) {
+  /**
+   * Which page, what its rendering hashed to against the pin, and whether a stale copy is left.
+   */
+  override get message(): string {
+    return `${this.url} serves a page whose rendering, ${this.rendering}, has SHA-256 ${this.actual}, not the pinned ${this.expected}, so ${this.path} was not written.${this.staleCopy ? " The cached copy, which does not render to its pin, was left as it was." : ""}`;
+  }
+}
+
+type SpecFailure = SpecDownloadFailed | SpecPublishedChanged | SpecPublishedRenderingChanged;
 
 /**
  * Keep a source's failure as a value, so a run attempts every pin before it fails.
@@ -147,7 +179,9 @@ const keptFailure = (failure: SpecFailure) =>
  */
 class SpecFetchIncomplete extends Schema.TaggedError<SpecFetchIncomplete>()("SpecFetchIncomplete", {
   directory: Schema.String,
-  failures: Schema.Array(Schema.Union([SpecDownloadFailed, SpecPublishedChanged])),
+  failures: Schema.Array(
+    Schema.Union([SpecDownloadFailed, SpecPublishedChanged, SpecPublishedRenderingChanged]),
+  ),
   pinned: Schema.Number,
 }) {
   /**
@@ -166,6 +200,11 @@ class SpecFetchIncomplete extends Schema.TaggedError<SpecFetchIncomplete>()("Spe
       ...(this.failures.some((failure) => failure._tag === "SpecPublishedChanged")
         ? [
             "For a file that changed where it is published, review the change, then re-pin it in src/test/spec-cache/pins.ts (src/test/spec-sections.ts for an IMS specification), re-anchor the tests that cite its lines, and run them again.",
+          ]
+        : []),
+      ...(this.failures.some((failure) => failure._tag === "SpecPublishedRenderingChanged")
+        ? [
+            "For a page held to its rendering alone whose rendering changed, download it twice: when both render to the same new text, review that text, then re-pin its textSha256 in src/test/spec-sections.ts.",
           ]
         : []),
     ];
@@ -341,6 +380,96 @@ const settle = Effect.fn("test.specCache.fetchSpec")(function* settle(
 });
 
 /**
+ * Settle one source held to its rendering alone, with its rendering: keep both when the cached
+ * source renders to the pin and the cached rendering is that text, and otherwise download the
+ * source, render it by the recorded command, and write both when the rendering hashes to the pin.
+ *
+ * @param source - The source's path under the cache directory, its URL and the rendering it is
+ *   held to.
+ * @param scratch - A path in the scratch directory, inside the cache directory, that nothing else
+ *   uses; the source is written there, and the rendering beside it, before each is renamed into
+ *   place.
+ * @param directory - The cache directory.
+ * @param client - The client the download is made with, refusing every status but 2xx.
+ * @returns What was done; a {@link SpecDownloadFailed} when the download failed, or a
+ *   {@link SpecPublishedRenderingChanged} when the download does not render to the pin.
+ */
+const settleRenderPinned = Effect.fn("test.specCache.fetchRenderPinned")(
+  function* settleRenderPinned(
+    source: RenderPinnedSource,
+    scratch: string,
+    directory: string,
+    client: HttpClient.HttpClient,
+  ) {
+    const { path, rendering, url } = source;
+
+    yield* Effect.annotateCurrentSpan({ path, rendering: rendering.path, url });
+
+    const fs = yield* FileSystem.FileSystem;
+    const paths = yield* Path.Path;
+    const digest = yield* Digest.Digest;
+    const destination = paths.join(directory, path);
+    const textDestination = paths.join(directory, rendering.path);
+    const renderedOf = (bytes: Uint8Array) =>
+      Result.match(renderText(new TextDecoder().decode(bytes)), {
+        onFailure: ({ entity, offset }) =>
+          Effect.succeed({
+            actual: `an undecodable ${entity} at offset ${String(offset)}`,
+            text: Option.none<Uint8Array>(),
+          }),
+        onSuccess: (text) => {
+          const encoded = new TextEncoder().encode(text);
+
+          return Effect.map(digest.digestHex(Digest.sha256, encoded), (actual) => ({
+            actual,
+            text: Option.some(encoded),
+          }));
+        },
+      });
+    const cached = yield* fs.readFile(destination).pipe(
+      Effect.map(Option.some),
+      Effect.catchIf(
+        (error) => error.reason._tag === "NotFound",
+        () => Effect.succeedNone,
+      ),
+    );
+
+    if (Option.isSome(cached)) {
+      const held = yield* renderedOf(cached.value);
+      const text = yield* heldAgainstPin(textDestination, rendering.sha256);
+
+      if (held.actual === rendering.sha256 && text === "pinned") {
+        return "present" satisfies Settled;
+      }
+    }
+
+    const staleCopy = Option.isSome(cached);
+    const bytes = yield* downloadBytes(client, url).pipe(
+      Effect.mapError(
+        (error) => new SpecDownloadFailed({ path, reason: reasonOf(error), staleCopy, url }),
+      ),
+    );
+    const published = yield* renderedOf(bytes);
+
+    if (published.actual !== rendering.sha256 || Option.isNone(published.text)) {
+      return yield* new SpecPublishedRenderingChanged({
+        actual: published.actual,
+        expected: rendering.sha256,
+        path,
+        rendering: rendering.path,
+        staleCopy,
+        url,
+      });
+    }
+
+    yield* placeFile(bytes, scratch, destination);
+    yield* placeFile(published.text.value, `${scratch}.txt`, textDestination);
+
+    return staleCopy ? ("replaced" satisfies Settled) : ("fetched" satisfies Settled);
+  },
+);
+
+/**
  * Derive one rendering: keep the cached file when it hashes to the pin, and otherwise render its
  * source by the recorded command and write the rendering when it does.
  *
@@ -392,6 +521,16 @@ const derive = Effect.fn("test.specCache.deriveRendering")(function* derive(
 
   return staleCopy ? ("replaced" satisfies Rendered) : ("derived" satisfies Rendered);
 });
+
+/**
+ * What a run did with a render-pinned source's rendering, which is written with the source: present
+ * when the source was, and derived anew when the source was downloaded.
+ *
+ * @param settled - What the run did with the source.
+ * @returns What it did with the rendering.
+ */
+const renderedWith = (settled: Settled): Rendered =>
+  settled === "present" ? "present" : "derived";
 
 /**
  * What a run left in the spec cache: the XSD run's report, and, in the table's order, every source
@@ -451,12 +590,34 @@ const fetchSpecs = Effect.fn("test.specCache.fetchSpecs")(function* fetchSpecs(
       ),
     ),
   );
-  const failures = results.flatMap(({ result }) =>
+  const renderPinned = yield* Effect.all(
+    table.renderPinned.map((source, index) =>
+      settleRenderPinned(
+        source,
+        paths.join(scratch, `held-${String(index)}`),
+        directory,
+        client,
+      ).pipe(
+        Effect.map((outcome): Result.Result<Settled, SpecFailure> => Result.succeed(outcome)),
+        // A source's own failure is kept and the others go on; a file system failure ends the run.
+        Effect.catchTags({
+          SpecDownloadFailed: keptFailure,
+          SpecPublishedRenderingChanged: keptFailure,
+        }),
+        Effect.map((result) => ({ path: source.path, rendering: source.rendering.path, result })),
+      ),
+    ),
+  );
+  const failures = [...results, ...renderPinned].flatMap(({ result }) =>
     Result.isFailure(result) ? [result.failure] : [],
   );
 
   if (failures.length > 0) {
-    return yield* new SpecFetchIncomplete({ directory, failures, pinned: results.length });
+    return yield* new SpecFetchIncomplete({
+      directory,
+      failures,
+      pinned: results.length + renderPinned.length,
+    });
   }
 
   const derived = yield* Effect.forEach(
@@ -488,10 +649,18 @@ const fetchSpecs = Effect.fn("test.specCache.fetchSpecs")(function* fetchSpecs(
 
   return {
     directory,
-    renderings: derived.flatMap(({ path, result }) =>
-      Result.isSuccess(result) ? [{ outcome: result.success, path }] : [],
-    ),
-    settled: results.flatMap(({ path, result }) =>
+    renderings: [
+      ...derived.flatMap(({ path, result }) =>
+        Result.isSuccess(result) ? [{ outcome: result.success, path }] : [],
+      ),
+      // A render-pinned source's rendering is written with it: present with it, or derived anew.
+      ...renderPinned.flatMap(({ rendering, result }) =>
+        Result.isSuccess(result)
+          ? [{ outcome: renderedWith(result.success), path: rendering }]
+          : [],
+      ),
+    ],
+    settled: [...results, ...renderPinned].flatMap(({ path, result }) =>
       Result.isSuccess(result) ? [{ outcome: result.success, path }] : [],
     ),
     xsds: report,

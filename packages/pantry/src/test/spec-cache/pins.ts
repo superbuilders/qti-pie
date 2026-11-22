@@ -5,8 +5,9 @@
  * that read a cached file take its path and pin from here, and so does anything that fills the
  * cache.
  *
- * The five IMS specifications come from {@link specDocuments}, whose entries already pin both
- * renderings; nothing about them is restated here.
+ * The IMS specifications come from {@link specDocuments}, whose entries already pin each one's
+ * HTML, by its own bytes or by its text rendering alone, and that text rendering; nothing about
+ * them is restated here.
  *
  * @see {@link https://github.com/aidenzepp/qti-pie/issues/98 | qti-pie#98, a script that fills the spec caches}
  */
@@ -112,15 +113,40 @@ export const relaxNg: readonly FetchedSource[] = Object.entries({
 }));
 
 /**
+ * A source its publisher serves with a token of its own on every request, so that no two downloads
+ * share their bytes, held to its rendering alone (`HtmlPin`'s `rendering` in
+ * `#pantry/test/spec-sections.ts`): the cached source is any download whose rendering by the
+ * recorded command hashes to the rendering's pin, and both are written together.
+ */
+export interface RenderPinnedSource {
+  /**
+   * The source's path under the cache directory.
+   */
+  readonly path: string;
+  /**
+   * The rendering it is held to: its path under the cache directory and its SHA-256.
+   */
+  readonly rendering: Rendering;
+  /**
+   * Where the source is published.
+   */
+  readonly url: string;
+}
+
+/**
  * Every pinned file of the spec cache, each kind in its own list.
  */
 export interface SpecPins {
+  /**
+   * The sources held to their renderings alone, each written with its rendering.
+   */
+  readonly renderPinned: readonly RenderPinnedSource[];
   /**
    * The renderings derived from {@link SpecPins.sources}.
    */
   readonly renderings: readonly Rendering[];
   /**
-   * The sources fetched as published.
+   * The sources fetched as published, each held to its own SHA-256.
    */
   readonly sources: readonly FetchedSource[];
 }
@@ -130,16 +156,21 @@ export interface SpecPins {
  * from them.
  */
 export const pins: SpecPins = {
+  renderPinned: specDocuments.flatMap(({ html, htmlPin, text, textSha256, url }) =>
+    htmlPin.kind === "rendering"
+      ? [{ path: html, rendering: { from: html, path: text, sha256: textSha256 }, url }]
+      : [],
+  ),
   renderings: [
-    ...specDocuments.map(({ html, text, textSha256 }) => ({
-      from: html,
-      path: text,
-      sha256: textSha256,
-    })),
+    ...specDocuments.flatMap(({ html, htmlPin, text, textSha256 }) =>
+      htmlPin.kind === "bytes" ? [{ from: html, path: text, sha256: textSha256 }] : [],
+    ),
     xsdPart2Text,
   ],
   sources: [
-    ...specDocuments.map(({ html, htmlSha256, url }) => ({ path: html, sha256: htmlSha256, url })),
+    ...specDocuments.flatMap(({ html, htmlPin, url }) =>
+      htmlPin.kind === "bytes" ? [{ path: html, sha256: htmlPin.sha256, url }] : [],
+    ),
     xsdPart2Html,
     xmlSecondEdition,
     ...relaxNg,
