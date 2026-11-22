@@ -546,6 +546,18 @@ const input = new MathML<LiteElement, LiteText, LiteDocument>();
  */
 const output = new SVG<LiteElement, LiteText, LiteDocument>({ fontCache: "none" });
 
+/*
+ * A superscript and a subscript stand where AlphaTest's CHTML put them: MathJax's layout sets a
+ * script 0.033 em past its base (`extra_ic`) and closes it with 0.05 em (`scriptspace`), and its
+ * SVG output draws both, but its CHTML output gives them only through its `mjx-script` padding,
+ * whose rule it adds to a page's stylesheet only once an `msubsup` stands on the page (its adaptive
+ * CSS), so AlphaTest's formulas, nearly all on pages with none, drew every `msup` and `msub`
+ * without them: 1 to 4 px tighter a formula, measured glyph by glyph against MathJax's CHTML. With
+ * both nought, the corpus's worst formulas place every glyph within a quarter of a pixel of it.
+ */
+output.font.params.extra_ic = 0;
+output.font.params.scriptspace = 0;
+
 /**
  * The MathJax document every formula is typeset in, over an empty lite DOM page.
  */
