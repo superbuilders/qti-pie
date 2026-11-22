@@ -12,8 +12,9 @@
  * `#specimen/ui/math-entry.ts`: each key `{"keycap": <latex or label>}`, `{"typed": <character>}`
  * or `{"pressed": <key>}`), and writes one line per sequence, in the same order: `{"keys": [...],
  * "latex": "..."}`. With `--draw <count>` it draws that many sequences over every key a child has
- * (`keySequence`), from the stream `--seed <integer>` fixes (0 when absent), and writes the same
- * lines, so a seed reproduces its sequences. It types on one field per core at once.
+ * on the keyboard (`keySequenceOn`), from the stream `--seed <integer>` fixes (0 when absent), and
+ * writes the same lines, so a seed reproduces its sequences. It types on one field per core at
+ * once.
  *
  * @module
  */
@@ -25,7 +26,8 @@ import { sample } from "@bjornpagen/testing/source";
 import { Effect, Schema } from "effect";
 import {
   KeySequenceSchema,
-  keySequence,
+  keyboards,
+  keySequenceOn,
   mathEntryFields,
   typedAll,
 } from "#specimen/ui/math-entry.ts";
@@ -37,9 +39,14 @@ import type { MathEntryKey } from "#specimen/ui/math-entry.ts";
 const decodeLine = Schema.decodeUnknownEffect(Schema.fromJsonString(KeySequenceSchema));
 
 const { values } = parseArgs({
-  options: { draw: { type: "string" }, seed: { type: "string" } },
+  options: { draw: { type: "string" }, keyboard: { type: "string" }, seed: { type: "string" } },
   strict: true,
 });
+
+/**
+ * The keyboard the sequences are typed on: plate's unless `--keyboard alphatest` names AlphaTest's.
+ */
+const keyboard = Schema.decodeUnknownSync(Schema.Literals(keyboards))(values.keyboard ?? "plate");
 
 /**
  * The key sequences to type: drawn, or read from standard input.
@@ -56,7 +63,7 @@ const sequences: Effect.Effect<readonly (readonly MathEntryKey[])[], Schema.Sche
       )
     : Effect.succeed(
         sample(
-          keySequence,
+          keySequenceOn(keyboard),
           rotatingSeed(Number(values.seed ?? "0"), floorSeed("specimen/math-entry")),
           Number(values.draw),
         ),
@@ -66,7 +73,10 @@ await Effect.runPromise(
   Effect.scoped(
     Effect.gen(function* run() {
       const keys = yield* sequences;
-      const fields = yield* mathEntryFields(Math.min(availableParallelism(), keys.length));
+      const fields = yield* mathEntryFields(
+        Math.min(availableParallelism(), keys.length),
+        keyboard,
+      );
       const latex = yield* typedAll(fields, keys);
 
       for (const [at, sequence] of keys.entries()) {

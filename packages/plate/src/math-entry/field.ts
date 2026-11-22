@@ -5,30 +5,35 @@
  * stays a standard `qti-text-entry-interaction`, so any other player shows its plain box, and the
  * class changes how plate presents it, never what its response is: a string, read as the box's is.
  *
- * Everything here is AlphaTest's player as it shipped (mastery-track-player at 941a86a, MathLive
+ * The field is AlphaTest's player's as it shipped (mastery-track-player at 941a86a, MathLive
  * 0.105.3 by its `package-lock.json`), so the same keystrokes give the same LaTeX:
  *
  * - {@link fieldSettings}, the options its player set on every math field
  *   (`src/components/questions/NumericEntry.tsx` lines 1060–1094 and 1852–1880,
  *   `src/components/questions/CompositeItem.tsx` lines 826–841); every other option is MathLive's
  *   default there and here;
- * - {@link keyboardLayout}, its virtual keyboard, the one layout it gave `mathVirtualKeyboard`
- *   (`NumericEntry.tsx` lines 1111–1172, `CompositeItem.tsx` lines 851–912), character for
- *   character;
+ * - {@link alphaTestRows}, its virtual keyboard's keys as its one layout wrote them
+ *   (`NumericEntry.tsx` lines 1111–1176, `CompositeItem.tsx` lines 851–916), character for
+ *   character, and {@link keyboardLayout}, plate's layout of them, every key as AlphaTest wrote it
+ *   but the {@link keyFates};
  * - {@link setUpField}, which applies both to a connected field, as its player did once the field was
  *   in the page.
  *
- * Two of AlphaTest's settings are kept although they read as slips, since each changes what a key
- * gives or shows: a key's `latex` writes `▢` as the character U+25A2, which MathLive inserts as a
- * symbol, not a placeholder, so the fraction key gives `\frac{▢}{▢}` and the child replaces each
- * square; and the bottom row's `class` `.digit` replaces the classes MathLive's own shortcut keys
- * carry, so those keys show as a digit's do, the stylesheet's `.digit` matching no key.
+ * What plate does not keep, each a defect of AlphaTest's player and not of the field (edullm-bd's
+ * rulings, 2026-11-22):
  *
- * Two of its behaviours are not kept, each a defect of its player, not of the field: it cut a value
- * longer than 100 characters to its first 100, which can split a LaTeX command, and its build
- * served MathLive's fonts and sounds from no address, so its fields drew in fallback fonts and its
- * keys made no sound. plate's fonts come from its base sheet and its sounds from the host
- * (`#plate/ui/text-entry/math-entry.tsx`).
+ * - Its template keys' squares: each wrote `▢` as the character U+25A2, which MathLive inserts as a
+ *   symbol and not a box to fill, so a child who filled a fraction without deleting both squares
+ *   posted `\frac{▢3}{▢4}`, which grades wrong. plate's keys hold MathLive's boxes instead
+ *   ({@link keyFates});
+ * - Its cut of a value longer than 100 characters to its first 100, which can split a LaTeX command;
+ * - Its fonts and sounds, which its build served from no address, so its fields drew in fallback
+ *   fonts and its keys made no sound. plate's base sheet serves MathLive's fonts, and the field
+ *   plays no sound, as AlphaTest's never did, so no click competes with read-aloud.
+ *
+ * The bottom row's `class` `.digit` is kept although it reads as a slip, since it changes what the
+ * keys show: it replaces the classes MathLive's own shortcut keys carry, so those keys show as a
+ * digit's do, the layer's `.digit` rule matching no key.
  *
  * The module is data and one self-contained function, imported by the island and by the field's
  * test support (`#specimen/ui/math-entry.ts` in qti-pie's specimen), which runs
@@ -37,7 +42,12 @@
  * @module
  * @see https://mathlive.io/mathfield/guides/virtual-keyboard/
  */
-import type { MathfieldElement, VirtualKeyboardInterface, VirtualKeyboardLayout } from "mathlive";
+import type {
+  MathfieldElement,
+  VirtualKeyboardInterface,
+  VirtualKeyboardKeycap,
+  VirtualKeyboardLayout,
+} from "mathlive";
 
 /**
  * The class an author writes on a `qti-text-entry-interaction` for plate to answer it in a math
@@ -48,26 +58,31 @@ export const mathEntryClass = "plate-math-entry";
 
 /**
  * The options AlphaTest's player set on each math field, each by the property it assigned, which
- * {@link setUpField} assigns in turn:
+ * {@link setUpField} assigns in turn, with MathLive's default for the one it left alone that plate
+ * changes:
  *
- * - `inlineShortcuts` empty (`NumericEntry.tsx` line 1874, `CompositeItem.tsx` line 836): no typed
- *   word becomes a command, so `pi` stays the letters p and i, and `sqrt` five letters;
- * - `menuItems` empty (`NumericEntry.tsx` line 1876, `CompositeItem.tsx` line 838): the field offers
- *   no context menu;
- * - `placeholderSymbol` `▢` (`NumericEntry.tsx` line 1857, `CompositeItem.tsx` line 831), MathLive's
- *   own default as well;
+ * - `inlineShortcuts` empty (`NumericEntry.tsx` lines 1096 and 1875, `CompositeItem.tsx` line 837):
+ *   no typed word becomes a command, so `pi` stays the letters p and i, and `sqrt` five letters;
+ * - `mathModeSpace` empty, MathLive's default, which AlphaTest left: a typed space is nothing;
+ * - `menuItems` empty (`NumericEntry.tsx` lines 1098 and 1877, `CompositeItem.tsx` line 839): the
+ *   field offers no context menu;
+ * - `placeholderSymbol` `▢` (`NumericEntry.tsx` lines 1071 and 1857, `CompositeItem.tsx` line 831),
+ *   MathLive's own default as well;
  * - `scriptDepth` 4 (`NumericEntry.tsx` line 1073), on every field of a numeric entry, its standalone
  *   text entry: a superscript or subscript nests at most four deep. The composite item's fields
  *   kept MathLive's unbounded default, which differs only past four;
- * - `smartFence` on (`NumericEntry.tsx` line 1854, `CompositeItem.tsx` line 828): a typed `(` opens a
- *   `\left(` … `\right)` pair, and a typed `|` a `\left|` … `\right|` one;
- * - `smartMode` off (`NumericEntry.tsx` line 1855, `CompositeItem.tsx` line 829): the field never
- *   switches to text by itself;
- * - `smartSuperscript` off (`NumericEntry.tsx` line 1856, `CompositeItem.tsx` line 830): after a
- *   superscript's first digit the caret stays in the superscript, so `x^2+1` typed is `x^{2+1}`.
+ * - `smartFence` on (`NumericEntry.tsx` lines 1067 and 1854, `CompositeItem.tsx` line 828): a typed
+ *   `(` opens a `\left(` … `\right)` pair, and a typed `|` a `\left|` … `\right|` one;
+ * - `smartMode` off (`NumericEntry.tsx` lines 1093 and 1855, `CompositeItem.tsx` line 829; line 1068
+ *   turned it on a moment before line 1093 turned it off): the field never switches to text by
+ *   itself;
+ * - `smartSuperscript` off (`NumericEntry.tsx` lines 1094 and 1856, `CompositeItem.tsx` line 830):
+ *   after a superscript's first digit the caret stays in the superscript, so `x^2+1` typed is
+ *   `x^{2+1}`.
  */
-export const fieldSettings = {
+export const alphaTestSettings = {
   inlineShortcuts: {},
+  mathModeSpace: "",
   menuItems: [],
   placeholderSymbol: "▢",
   scriptDepth: 4,
@@ -78,6 +93,7 @@ export const fieldSettings = {
   Pick<
     MathfieldElement,
     | "inlineShortcuts"
+    | "mathModeSpace"
     | "menuItems"
     | "placeholderSymbol"
     | "scriptDepth"
@@ -88,16 +104,29 @@ export const fieldSettings = {
 >;
 
 /**
- * The settings {@link setUpField} applies, as {@link fieldSettings} holds them.
+ * Plate's options: {@link alphaTestSettings} with `mathModeSpace` `\,`, so a typed space is a thin
+ * space and a mixed number typed `2 1/2` is `2\,\frac12`, two and a half, where AlphaTest's field
+ * dropped the space and the fraction typed after it took both digits, `\frac{21}{2}` (edullm-bd's
+ * ruling, 2026-11-22; GRADING-SQL reads `\,` as a mixed number's join and as nothing elsewhere).
+ * A fate of its own beside the {@link keyFates}.
  */
-export type FieldSettings = typeof fieldSettings;
+export const fieldSettings: FieldSettings = { ...alphaTestSettings, mathModeSpace: String.raw`\,` };
 
 /**
- * AlphaTest's virtual keyboard's keys, row by row: six rows of six keys each inserting its
- * `latex`, then the row of MathLive's shortcut keys that hide the keyboard, move the caret left
- * and right, and delete before it (`NumericEntry.tsx` lines 1124–1167).
+ * The settings {@link setUpField} applies, as {@link alphaTestSettings} holds them.
  */
-export const keyboardRows = [
+export type FieldSettings = Omit<typeof alphaTestSettings, "mathModeSpace"> & {
+  readonly mathModeSpace: string;
+};
+
+/**
+ * AlphaTest's virtual keyboard's keys, row by row, as its player wrote them: six rows of six keys
+ * each inserting its `latex`, then the row of MathLive's shortcut keys that hide the keyboard, move
+ * the caret left and right, and delete before it (`NumericEntry.tsx` lines 1119–1174). A key is
+ * named by this `latex`, or its shortcut's `label`, wherever plate names one, so a key sequence
+ * means the same keys on AlphaTest's keyboard and plate's.
+ */
+export const alphaTestRows = [
   [{ latex: "1" }, { latex: "2" }, { latex: "3" }, { latex: "+" }, { latex: "<" }, { latex: ">" }],
   [
     { latex: "4" },
@@ -148,19 +177,103 @@ export const keyboardRows = [
 ] as const;
 
 /**
- * AlphaTest's virtual keyboard: one layout, `calculator`, of one layer, {@link keyboardRows}, with
- * the layer's `style` (`NumericEntry.tsx` lines 1111–1172).
+ * The keys plate's keyboard changes from AlphaTest's, each by the `latex` AlphaTest wrote, the line
+ * of `NumericEntry.tsx` that wrote it, and the `latex` plate writes: every key whose template held
+ * squares, each square now one of MathLive's boxes. The first box takes what the child selected
+ * before pressing the key, `#0`, which is a box when nothing is selected; every other box is empty,
+ * `#?`. A box is never `#@`, which takes the number before the caret when nothing is selected, so
+ * the fraction key after a 3 would make 3 its numerator where AlphaTest's gave a mixed number, 3
+ * and an empty fraction. After the key the caret stands in its first box, and the arrow keys and
+ * the keyboard's own move from box to box.
+ *
+ * The mom test, for each: filling the boxes of a key gives the expression the key shows with what
+ * the child filled in, the LaTeX AlphaTest's field posted when the child deleted every square and
+ * typed into its place (`#specimen/ui/math-entry.test.ts` holds plate to it). Nine fates, each
+ * counted once.
  */
-export const keyboardLayout: VirtualKeyboardLayout = {
+export const keyFates = [
+  { alphaTest: String.raw`\frac{▢}{▢}`, line: 1133, plate: String.raw`\frac{#0}{#?}` },
+  { alphaTest: String.raw`▢\frac{▢}{▢}`, line: 1134, plate: String.raw`#0\frac{#?}{#?}` },
+  { alphaTest: "(▢)", line: 1141, plate: "(#0)" },
+  { alphaTest: "▢^{▢}", line: 1142, plate: "#0^{#?}" },
+  { alphaTest: "[▢]", line: 1149, plate: "[#0]" },
+  { alphaTest: String.raw`\sqrt{▢}`, line: 1150, plate: String.raw`\sqrt{#0}` },
+  { alphaTest: String.raw`\mid▢\mid`, line: 1155, plate: String.raw`\mid#0\mid` },
+  {
+    alphaTest: String.raw`▢^{\frac{▢}{▢}}`,
+    line: 1156,
+    plate: String.raw`#0^{\frac{#?}{#?}}`,
+  },
+  {
+    alphaTest: String.raw`(▢)^{\frac{▢}{▢}}`,
+    line: 1157,
+    plate: String.raw`(#0)^{\frac{#?}{#?}}`,
+  },
+] as const;
+
+/**
+ * The keys plate's keyboard adds to AlphaTest's, in a row of their own above the bottom row: the
+ * degree sign and theta, which answers in AlphaTest's items hold and its keyboard had no key for
+ * (edullm-bd's ruling, 2026-11-22). AlphaTest's field reached them only through MathLive's LaTeX
+ * mode, `\degree` or `\theta` typed after a backslash, and plate's still does. The row's rest is
+ * a gap, so every key AlphaTest had keeps its place and its size.
+ */
+export const addedRow = [
+  { latex: String.raw`\degree` },
+  { latex: String.raw`\theta` },
+  { label: "[separator]", width: 2 },
+  { label: "[separator]", width: 2 },
+] as const;
+
+/**
+ * Plate's virtual keyboard's keys, row by row, each by its name: {@link alphaTestRows} with
+ * {@link addedRow} above the bottom row. A key AlphaTest had keeps AlphaTest's `latex` as its name,
+ * whatever plate's key inserts ({@link keyboardRows}).
+ */
+export const keyboardKeys = [...alphaTestRows.slice(0, -1), addedRow, ...alphaTestRows.slice(-1)];
+
+/**
+ * Plate's virtual keyboard's keys, row by row, as its layout writes them: {@link keyboardKeys}, each
+ * key whose template held squares writing plate's template in their place ({@link keyFates}).
+ */
+export const keyboardRows: Partial<VirtualKeyboardKeycap>[][] = keyboardKeys.map((row) =>
+  row.map((key): Partial<VirtualKeyboardKeycap> =>
+    "latex" in key
+      ? { latex: keyFates.find((fate) => fate.alphaTest === key.latex)?.plate ?? key.latex }
+      : { ...key },
+  ),
+);
+
+/**
+ * A layout of AlphaTest's: its one layout, `calculator`, of one layer, with the layer's `style`
+ * (`NumericEntry.tsx` lines 1111–1176), over the keys given.
+ *
+ * @param rows The keys, row by row.
+ * @returns The layout.
+ */
+const calculatorOf = (rows: Partial<VirtualKeyboardKeycap>[][]): VirtualKeyboardLayout => ({
   label: "calculator",
   layers: [
     {
-      rows: keyboardRows.map((row) => [...row]),
+      rows,
       style: ".digit { background: var(--keycap-background); color: var(--keycap-text) }",
     },
   ],
   tooltip: "Calculator layout",
-};
+});
+
+/**
+ * Plate's virtual keyboard: AlphaTest's layout over {@link keyboardRows}.
+ */
+export const keyboardLayout: VirtualKeyboardLayout = calculatorOf(keyboardRows);
+
+/**
+ * AlphaTest's virtual keyboard as its player gave it, over {@link alphaTestRows}: what the field's
+ * suite holds plate's keys against, and what a grader types AlphaTest's answers on.
+ */
+export const alphaTestLayout: VirtualKeyboardLayout = calculatorOf(
+  alphaTestRows.map((row) => [...row]),
+);
 
 /**
  * Set a math field up as AlphaTest's player did once the field stood in the page: its options,
@@ -187,6 +300,7 @@ export const setUpField = (
   field.placeholderSymbol = settings.placeholderSymbol;
   field.scriptDepth = settings.scriptDepth;
   field.inlineShortcuts = settings.inlineShortcuts;
+  field.mathModeSpace = settings.mathModeSpace;
   field.menuItems = settings.menuItems;
   keyboard.layouts = [layout];
 };

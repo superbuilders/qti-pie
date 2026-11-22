@@ -33,20 +33,51 @@ import { array, element, map, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
 import { Array as Arr, Data, Effect, Option, Schema } from "effect";
 import type { Scope } from "effect";
-import type { MathfieldElement } from "mathlive";
 import { chromium } from "playwright-core";
 import type { Browser, Page } from "playwright-core";
-import { fieldSettings, keyboardLayout, keyboardRows, setUpField } from "@qti-pie/plate/math-entry";
+import {
+  alphaTestLayout,
+  alphaTestRows,
+  alphaTestSettings,
+  fieldSettings,
+  keyboardKeys,
+  keyboardLayout,
+  setUpField,
+} from "@qti-pie/plate/math-entry";
+import type { FieldSettings } from "@qti-pie/plate/math-entry";
+import type { MathfieldElement, VirtualKeyboardLayout } from "mathlive";
 
 /**
- * The keys of the virtual keyboard, each by what names it in the layout: its `latex`, or its
- * shortcut's `label` for the bottom row, in the layout's order, row by row. A key's index here is
- * its place among the keyboard's keys in the page.
+ * The names of a keyboard's keys, in the order the page shows them: each key's `latex`, or its
+ * shortcut's `label`, its gaps left out, since MathLive draws a gap as no key.
+ *
+ * @param rows The keyboard's keys, row by row, by name.
+ * @returns The names.
  */
-export const keycaps: Arr.NonEmptyReadonlyArray<string> = Arr.map(
-  Arr.flatten(keyboardRows),
-  (key) => ("latex" in key ? key.latex : key.label),
-);
+const namesOf = (
+  rows: readonly (readonly ({ readonly latex: string } | { readonly label: string })[])[],
+): readonly string[] =>
+  rows.flatMap((row) =>
+    row.flatMap((each) => {
+      if ("latex" in each) {
+        return [each.latex];
+      }
+
+      return each.label === "[separator]" ? [] : [each.label];
+    }),
+  );
+
+/**
+ * The keys of plate's virtual keyboard, each by its name: a key AlphaTest had by AlphaTest's
+ * `latex` or shortcut `label`, whatever plate's inserts, and a key plate added by its own `latex`.
+ * A key's name means the same key on plate's keyboard and AlphaTest's.
+ */
+export const keycaps: Arr.NonEmptyReadonlyArray<string> = Arr.match(namesOf(keyboardKeys), {
+  // Plate's keyboard holds every key of AlphaTest's, so it is never without keys.
+  onEmpty: () =>
+    Arr.map(Arr.flatten(alphaTestRows), (each) => ("latex" in each ? each.latex : each.label)),
+  onNonEmpty: (names) => names,
+});
 
 /**
  * The shifted characters of a US keyboard's symbol keys, each by the `code` of its key.
@@ -159,23 +190,77 @@ export type MathEntryKey = typeof MathEntryKeySchema.Type;
 export const KeySequenceSchema = Schema.Array(MathEntryKeySchema);
 
 /**
- * Draw a key: a key of the virtual keyboard half the time, since that is how most children answer,
- * a typed character a third, and a key that types nothing the rest.
+ * The keyboards a field can be typed on: plate's, whose template keys hold MathLive's boxes, and
+ * AlphaTest's, whose template keys insert the square character, as its player gave it.
  */
-const key: Gen<MathEntryKey> = oneOf([
-  map(element(keycaps), (keycap): MathEntryKey => ({ keycap })),
-  map(element(keycaps), (keycap): MathEntryKey => ({ keycap })),
-  map(element(keycaps), (keycap): MathEntryKey => ({ keycap })),
-  map(element(typedCharacters), (typed): MathEntryKey => ({ typed })),
-  map(element(typedCharacters), (typed): MathEntryKey => ({ typed })),
-  map(element(pressedKeys), (pressed): MathEntryKey => ({ pressed })),
-]);
+export const keyboards = ["plate", "alphatest"] as const;
 
 /**
- * Draw a key sequence of up to a dozen keys over every key a child has: the length of a short
- * answer, a fraction filled in or a few corrections.
+ * A keyboard a field can be typed on, one of {@link keyboards}.
  */
-export const keySequence: Gen<readonly MathEntryKey[]> = array(key, { max: 12, min: 0 });
+export type Keyboard = (typeof keyboards)[number];
+
+/**
+ * What a field is set up with on a keyboard: its options, its layout, and its keys' names in the
+ * order the page shows them, which places a key among the page's keys.
+ */
+interface Setup {
+  readonly layout: VirtualKeyboardLayout;
+  readonly names: readonly string[];
+  readonly settings: FieldSettings;
+}
+
+/**
+ * What a field is set up with on each keyboard ({@link Setup}).
+ */
+const setups: Readonly<Record<Keyboard, Setup>> = {
+  alphatest: {
+    layout: alphaTestLayout,
+    names: namesOf(alphaTestRows),
+    settings: alphaTestSettings,
+  },
+  plate: { layout: keyboardLayout, names: namesOf(keyboardKeys), settings: fieldSettings },
+};
+
+/**
+ * Draw a key of a keyboard's: a key of the virtual keyboard half the time, since that is how most
+ * children answer, a typed character a third, and a key that types nothing the rest.
+ *
+ * @param names The keyboard's keys' names.
+ * @returns The draw.
+ */
+const keyOf = (names: Arr.NonEmptyReadonlyArray<string>): Gen<MathEntryKey> =>
+  oneOf([
+    map(element(names), (keycap): MathEntryKey => ({ keycap })),
+    map(element(names), (keycap): MathEntryKey => ({ keycap })),
+    map(element(names), (keycap): MathEntryKey => ({ keycap })),
+    map(element(typedCharacters), (typed): MathEntryKey => ({ typed })),
+    map(element(typedCharacters), (typed): MathEntryKey => ({ typed })),
+    map(element(pressedKeys), (pressed): MathEntryKey => ({ pressed })),
+  ]);
+
+/**
+ * Draw a key sequence of up to a dozen keys over every key a child has on a keyboard: the length of
+ * a short answer, a fraction filled in or a few corrections.
+ *
+ * @param keyboard The keyboard.
+ * @returns The draw.
+ */
+export const keySequenceOn = (keyboard: Keyboard): Gen<readonly MathEntryKey[]> =>
+  array(
+    keyOf(
+      Arr.match(setups[keyboard].names, {
+        onEmpty: () => keycaps,
+        onNonEmpty: (names) => names,
+      }),
+    ),
+    { max: 12, min: 0 },
+  );
+
+/**
+ * Draw a key sequence over every key a child has on plate's keyboard ({@link keySequenceOn}).
+ */
+export const keySequence: Gen<readonly MathEntryKey[]> = keySequenceOn("plate");
 
 /**
  * The page could not be served, Chrome could not start or be driven, or the field did not take a
@@ -326,15 +411,17 @@ const twoFrames = async (): Promise<void> => {
 };
 
 /**
- * How long MathLive's field takes, from the moment it is focused, to finish taking focus and join
- * the virtual keyboard: its `onFocus` does both in a timer of this delay (`mathlive.mjs` 0.105.3,
- * `onFocus`, `setTimeout(..., 60)`), and until it fires the keyboard's keys reach no field. A timer
- * of the same delay set after the focus fires after MathLive's, so the first key lands on a field
- * that takes it, as every key of a child's does, a child being slower than this.
+ * How long MathLive's timers that follow a change of focus run, the longer of its two: a field that
+ * takes focus finishes taking it and joins the virtual keyboard in a timer of 60 ms (`mathlive.mjs`
+ * 0.105.3, `onFocus`), until which the keyboard's keys reach no field, and the keyboard hides
+ * itself in a timer of 300 ms after a field loses focus unless another holds it by then
+ * (`VirtualKeyboard`'s `focusout` listener). A timer of this delay set after the focus moved fires
+ * after both, so the first key lands on a field that takes it and on a keyboard no late timer
+ * hides, as every key of a child's does, a child being slower than this.
  *
  * @formatConstant
  */
-const focusDelay = 60;
+const focusDelay = 300;
 
 /**
  * Wait in the page for a timer of `delay` milliseconds set now to fire.
@@ -352,18 +439,22 @@ const timerFired = async (delay: number): Promise<void> => {
 };
 
 /**
- * Put a fresh field in the page, the last one gone, set it up as the island does, and focus it with
- * a click as a child does, waiting until it has joined the virtual keyboard ({@link focusDelay}).
+ * Put a fresh field in the page, the keyboard hidden and the last field gone, set it up as the
+ * island does, and focus it with a click as a child does, waiting until it has joined the virtual
+ * keyboard and the last field's timers have run ({@link focusDelay}). The sequence's first key of
+ * the keyboard shows it again.
  *
  * @param page The page.
+ * @param setup The keyboard's setup.
  * @returns The field, ready for its first key.
  */
-const freshField = (page: Page): Effect.Effect<void, MathEntryFailure> =>
+const freshField = (page: Page, setup: Setup): Effect.Effect<void, MathEntryFailure> =>
   Effect.andThen(
     attempt("put a fresh field in the page", () =>
       page.evaluate(
         async ([settings, layout]) => {
           await window.fieldReady;
+          window.mathVirtualKeyboard.hide();
           document.querySelector("math-field")?.remove();
           const field = new window.MathfieldElement();
 
@@ -371,7 +462,7 @@ const freshField = (page: Page): Effect.Effect<void, MathEntryFailure> =>
           document.body.append(field);
           window.setUpField(field, window.mathVirtualKeyboard, settings, layout);
         },
-        [fieldSettings, keyboardLayout] as const,
+        [setup.settings, setup.layout] as const,
       ),
     ),
     attempt("focused the field", async () => {
@@ -467,30 +558,34 @@ const keyboardShown = (page: Page): Effect.Effect<void, MathEntryFailure> =>
  * Press one key on the focused field, as a child does.
  *
  * @param page The page.
+ * @param setup The keyboard's setup, whose keys' names place a key of the keyboard.
  * @param pressedKey The key.
- * @returns The press.
+ * @returns The press; a failure for a key the keyboard has not, which no child can press.
  */
-const press = (page: Page, pressedKey: MathEntryKey): Effect.Effect<void, MathEntryFailure> => {
+const press = (
+  page: Page,
+  setup: Setup,
+  pressedKey: MathEntryKey,
+): Effect.Effect<void, MathEntryFailure> => {
   if ("keycap" in pressedKey) {
     const step = `pressed the keyboard's ${pressedKey.keycap}`;
+    const at = setup.names.indexOf(pressedKey.keycap);
 
-    return keyboardShown(page).pipe(
-      Effect.andThen(
-        attempt(step, () =>
-          page.evaluate(aimAt, [keycaps.indexOf(pressedKey.keycap), aimFrames] as const),
-        ),
-      ),
-      Effect.flatMap((aim) =>
-        "missed" in aim
-          ? Effect.fail(
-              new MathEntryFailure({
-                cause: `its centre showed ${aim.missed} for ${String(aimFrames)} frames`,
-                step,
-              }),
-            )
-          : attempt(step, () => page.mouse.click(aim.x, aim.y)),
-      ),
-    );
+    return at === -1
+      ? Effect.fail(new MathEntryFailure({ cause: "the keyboard has no such key", step }))
+      : keyboardShown(page).pipe(
+          Effect.andThen(attempt(step, () => page.evaluate(aimAt, [at, aimFrames] as const))),
+          Effect.flatMap((aim) =>
+            "missed" in aim
+              ? Effect.fail(
+                  new MathEntryFailure({
+                    cause: `its centre showed ${aim.missed} for ${String(aimFrames)} frames`,
+                    step,
+                  }),
+                )
+              : attempt(step, () => page.mouse.click(aim.x, aim.y)),
+          ),
+        );
   }
 
   if ("typed" in pressedKey) {
@@ -519,11 +614,13 @@ export interface MathEntryField {
  *
  * @param browser The Chrome it opens in.
  * @param url The page's address.
+ * @param setup The keyboard's setup.
  * @returns The field, its page closed with the scope.
  */
 const fieldIn = (
   browser: Browser,
   url: string,
+  setup: Setup,
 ): Effect.Effect<MathEntryField, MathEntryFailure, Scope.Scope> =>
   Effect.map(
     Effect.acquireRelease(
@@ -543,8 +640,8 @@ const fieldIn = (
     (page): MathEntryField => ({
       typed: (keys) =>
         Effect.gen(function* typed() {
-          yield* freshField(page);
-          yield* Effect.forEach(keys, (each) => press(page, each), { discard: true });
+          yield* freshField(page, setup);
+          yield* Effect.forEach(keys, (each) => press(page, setup, each), { discard: true });
           yield* attempt("waited for the page to paint", () => page.evaluate(twoFrames));
 
           return yield* attempt("read the field's value", () =>
@@ -559,10 +656,12 @@ const fieldIn = (
  * with the scope.
  *
  * @param count How many fields: one per sequence typed at once.
+ * @param keyboard The keyboard they are typed on, plate's unless named.
  * @returns The fields.
  */
 export const mathEntryFields = (
   count: number,
+  keyboard: Keyboard = "plate",
 ): Effect.Effect<Arr.NonEmptyReadonlyArray<MathEntryField>, MathEntryFailure, Scope.Scope> =>
   Effect.gen(function* fields() {
     const url = yield* pageServer;
@@ -570,7 +669,7 @@ export const mathEntryFields = (
 
     return yield* Effect.forEach(
       Arr.makeBy(Math.max(1, count), () => url),
-      (at) => fieldIn(browser, at),
+      (at) => fieldIn(browser, at, setups[keyboard]),
       { concurrency: "unbounded" },
     );
   });
