@@ -3,7 +3,11 @@
 -- the one-document packages named a-<digest> and the packages imported whole named s-<folder>, each closed value
 -- (a node's kind, an attribute's name and class, a reference's scope) by its roster's name, through the database's
 -- own name functions. Run by psql as the installation's owner after `admit.ts import`, with
--- `-v out=<the run's directory>`; `admit.ts write` reads the files it writes there.
+-- `-v out=<the run's directory>`; `admit.ts write` reads the files it writes there. It sets its own output, unaligned
+-- rows with no header or footer, so the files hold one JSON object a line whatever flags psql is run with.
+\set QUIET on
+\pset format unaligned
+\pset tuples_only on
 select proname as node_kind_names from pg_proc where proname like '\_\_node\_kind\_names\_%' limit 1 \gset
 select proname as attribute_name_names from pg_proc where proname like '\_\_attribute\_name\_names\_%' limit 1 \gset
 \set nodes :out '/nodes.raw.jsonl'
