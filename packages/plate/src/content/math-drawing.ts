@@ -611,21 +611,12 @@ const input = new MathML<LiteElement, LiteText, LiteDocument>();
 /**
  * MathJax's SVG output, as AlphaTest's player configured MathJax's output (its defaults: scale 1,
  * TeX's spacing, `mtext` in MathJax's own fonts), every glyph drawn where it stands (`fontCache:
- * "none"`), so a drawing holds no id and needs no other.
+ * "none"`), so a drawing holds no id and needs no other. Its scripts keep MathJax's own spacing:
+ * AlphaTest's CHTML padded a script only on a page that drew an `msubsup`, a page-dependent
+ * artefact plate does not copy, and on any other page CHTML's scripts stand where MathJax's SVG
+ * output puts them (edullm-bd, 2026-11-22).
  */
 const output = new SVG<LiteElement, LiteText, LiteDocument>({ fontCache: "none" });
-
-/*
- * A superscript and a subscript stand where AlphaTest's CHTML put them: MathJax's layout sets a
- * script 0.033 em past its base (`extra_ic`) and closes it with 0.05 em (`scriptspace`), and its
- * SVG output draws both, but its CHTML output gives them only through its `mjx-script` padding,
- * whose rule it adds to a page's stylesheet only once an `msubsup` stands on the page (its adaptive
- * CSS), so AlphaTest's formulas, nearly all on pages with none, drew every `msup` and `msub`
- * without them: 1 to 4 px tighter a formula, measured glyph by glyph against MathJax's CHTML. With
- * both nought, the corpus's worst formulas place every glyph within a quarter of a pixel of it.
- */
-output.font.params.extra_ic = 0;
-output.font.params.scriptspace = 0;
 
 /**
  * The MathJax document every formula is typeset in, over an empty lite DOM page.
