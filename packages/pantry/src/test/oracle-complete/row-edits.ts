@@ -127,7 +127,7 @@ export const rowEdits = {
     };
   }),
   // AL4 open name key (AL4): a second row of an open-class attribute's expanded name on its
-  // element, its `OpenAttribute` key `(package, path, start, uri, local)`.
+  // element, its `OpenAttribute` key "AL4 open name key" `(package, path, start, uriDigest, local)`.
   "AL4 open name key": editingRows("AL4 open name key", item, (rows) => (source) => {
     const open = rows.openAttributes[source.draw(int(0, rows.openAttributes.length - 1))];
     if (open === undefined) {

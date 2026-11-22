@@ -127,7 +127,6 @@ import {
   identifierBytes,
   matchedTextBytes,
   parsedDecimalBytes,
-  uriBytes,
   utf8Length,
   xmlNameBytes,
 } from "#pantry/qti/limits.ts";
@@ -3084,8 +3083,8 @@ const checkedIdentifiers: readonly {
  * - The texts the host writes from the document where they stand, each at its type's bound: each
  *   namespace declaration's prefix and each closed and open attribute's (`Namespace.prefix`,
  *   `Attribute.prefix`, `OpenAttribute.prefix`, `xmlNameBytes`), each open attribute's local name
- *   (`OpenAttribute.local`, `xmlNameBytes`) and namespace name (`OpenAttribute.uri`, `uriBytes`),
- *   each choice's and hottext's identifier (`Choice.identifier`, `Hottext.identifier`,
+ *   (`OpenAttribute.local`, `xmlNameBytes`; its namespace name is held by its SHA-256, of any
+ *   length), each choice's and hottext's identifier (`Choice.identifier`, `Hottext.identifier`,
  *   `identifierBytes`), each interaction's binding that names a variable
  *   (`BindingName.identifier`), and each identifier a check holds where a view keys it
  *   ({@link checkedIdentifiers});
@@ -3156,10 +3155,9 @@ const keyTexts = (
       node: start,
       value: prefix,
     })),
-    ...view.rows.openAttributes.flatMap(({ local, prefix, start, uri }) => [
+    ...view.rows.openAttributes.flatMap(({ local, prefix, start }) => [
       { bound: xmlNameBytes, field: "OpenAttribute.prefix", node: start, value: prefix },
       { bound: xmlNameBytes, field: "OpenAttribute.local", node: start, value: local },
-      { bound: uriBytes, field: "OpenAttribute.uri", node: start, value: uri },
     ]),
     ...view.members.flatMap((node) => [
       ...(choiceClasses.has(node.kind)

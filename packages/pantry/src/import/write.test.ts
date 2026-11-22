@@ -213,8 +213,11 @@ const flatRowsOf = (root: NodeRoot, flat: DocumentLayerRows): FlatRows<Composed>
       uri,
     })),
     nodes,
-    openAttributeEntities: [...flat.OpenAttributeEntity.values()].map(
-      ({ entity, local, offset, start, uri }) => ({ entity, local, offset, start, uri }),
+    openAttributeEntities: [...flat.OpenAttributeEntity.values()].flatMap(
+      ({ at, entity, offset, start }) =>
+        [...flat.OpenAttribute.values()]
+          .filter((attribute) => attribute.start === start && attribute.at === at)
+          .map(({ local, uri }) => ({ entity, local, offset, start, uri })),
     ),
     openAttributes: [...flat.OpenAttribute.values()].flatMap(
       ({ class: open, lexical, local, prefix, start, uri }) =>
@@ -848,6 +851,7 @@ describe("the written types", () => {
     } as const satisfies Record<keyof AttributeInsert, true>;
     const openAttribute = {
       ...keyed,
+      at: true,
       class: true,
       elementNamespace: true,
       lexical: true,
@@ -866,10 +870,9 @@ describe("the written types", () => {
     >;
     const openEntity = {
       ...keyed,
+      at: true,
       entity: true,
-      local: true,
       offset: true,
-      uri: true,
     } as const satisfies Record<keyof Inserted<"OpenAttributeEntity">, true>;
     const namespace = { ...keyed, prefix: true, uri: true } as const satisfies Record<
       keyof Inserted<"Namespace">,

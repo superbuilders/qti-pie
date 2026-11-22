@@ -101,6 +101,7 @@ import {
   fin,
   fold,
   generated,
+  key,
   law,
   Logic,
   Monoid,
@@ -140,7 +141,7 @@ import { namingText, referenceIdentities } from "#pantry/grammar/domains.ts";
 import { openClasses } from "#pantry/grammar/kinds.ts";
 import { handlePrefixes } from "#pantry/model/xdm.ts";
 import { NamespacePrefix, OpenElementName } from "#pantry/qti/chardata.ts";
-import { EntryPath, PackageName, UriText, xmlNameBytes } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName, xmlNameBytes } from "#pantry/qti/limits.ts";
 import { holdsCheckedText, Node } from "#pantry/qti/node.ts";
 import { tokenFields, tokenPiece, whitespaceTokens } from "#pantry/qti/token-list.ts";
 import { dataName } from "#pantry/vocab/open.ts";
@@ -302,23 +303,28 @@ export const Attribute = law(
 );
 
 /**
- * One attribute of an open class on an element (fin.md D2, C14), keyed by its element and its
- * expanded name as written, `(uri, local)`: an open class's handle names many attributes (`data-a`
- * and `data-b` share `data-*`), so the written name is its identity.
+ * One attribute of an open class on an element (fin.md D2, C14), keyed by its element and its place
+ * among the element's open attributes as written, `at`, from 0: an open class's handle names many
+ * attributes (`data-a` and `data-b` share `data-*`), so the written name is its identity, which
+ * "AL4 open name key" holds once on its element by `(uriDigest, local)`, the namespace name's
+ * SHA-256 beside the local name, since Namespaces in XML and RFC 3986 bound no namespace name and
+ * no key holds one as itself.
  *
- * - **the host's:** `package`, `path` and `start`, its element's key; `class`, the open class its
- *   name falls in; `local` and `uri`, its local name and namespace name as written (an empty
- *   namespace for `data-*` and `no-namespace`); `prefix`, `lexical` and `slot`, as a closed
- *   attribute's; and `elementNamespace`, its element's namespace name, which the class is read
- *   against;
+ * - **the host's:** `package`, `path` and `start`, its element's key; `at`, its place; `class`, the
+ *   open class its name falls in; `local` and `uri`, its local name and namespace name as written
+ *   (an empty namespace for `data-*` and `no-namespace`), the namespace name of any length;
+ *   `prefix`, `lexical` and `slot`, as a closed attribute's; and `elementNamespace`, its element's
+ *   namespace name, which the class is read against;
+ * - **generated:** `uriDigest`, the namespace name's SHA-256;
  * - **accumulated** along the owner axis: its element's `kind` and `governor`, by which
  *   `AL4_declared_data_name` reads its attribute model.
  */
 export const OpenAttribute = law(
-  entryOf("AL4 open name key"),
-  relation(
+  entryOf("E1 derived"),
+  relation.generated(
     "OpenAttribute",
     {
+      at: natural,
       class: closedId(AttributeName, { only: openClasses }),
       elementNamespace: anyText,
       governor: accumulated(closedId(Governor), "document"),
@@ -330,9 +336,10 @@ export const OpenAttribute = law(
       prefix: NamespacePrefix,
       slot: bits(AttributeSlot),
       start: natural,
-      uri: UriText,
+      uri: Chars,
     },
-    ["package", "path", "start", "uri", "local"],
+    ["package", "path", "start", "at"],
+    (o) => ({ uriDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(o.uri))) }),
   ),
 );
 
@@ -393,23 +400,23 @@ export const AttributeEntity = law(
 );
 
 /**
- * One unexpanded entity reference inside an open attribute's lexical form, keyed by its attribute
- * and its offset, as {@link AttributeEntity} is a closed attribute's.
+ * One unexpanded entity reference inside an open attribute's lexical form, keyed by its attribute,
+ * its element and its place `at` ({@link OpenAttribute}), and its offset, as {@link AttributeEntity}
+ * is a closed attribute's.
  */
 export const OpenAttributeEntity = law(
   entryOf("AttributeEntity owner"),
   relation(
     "OpenAttributeEntity",
     {
+      at: natural,
       entity: EntityName,
-      local: OpenLocal,
       offset: natural,
       package: PackageName,
       path: EntryPath,
       start: natural,
-      uri: UriText,
     },
-    ["package", "path", "start", "uri", "local", "offset"],
+    ["package", "path", "start", "at", "offset"],
   ),
 );
 
@@ -752,6 +759,9 @@ export const attributeLawsByName = {
       ),
     ),
   ]),
+  "AL4 open name key": declared("AL4 open name key", [
+    key(on(OpenAttribute, "package", "path", "start", "uriDigest", "local")),
+  ]),
   "AL5 attribute count": declared("AL5 attribute count", [
     check("AL5_attribute_count", Node, (n) => {
       const model = AttributeModelOf.at("model", n.governor);
@@ -791,8 +801,8 @@ export const attributeLawsByName = {
       on(Attribute, "package", "path", "start", "name"),
     ),
     contained(
-      on(OpenAttributeEntity, "package", "path", "start", "uri", "local"),
-      on(OpenAttribute, "package", "path", "start", "uri", "local"),
+      on(OpenAttributeEntity, "package", "path", "start", "at"),
+      on(OpenAttribute, "package", "path", "start", "at"),
     ),
   ]),
   "Double bound": declared("Double bound", [

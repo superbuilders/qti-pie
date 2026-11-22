@@ -208,7 +208,7 @@ export const lawTable = {
   "AL4 open name key": {
     rule: "attribute-admission",
     source:
-      "fin.md D2 and Namespaces in XML 1.0 §6.3: an open-class attribute keeps its exact name, its expanded name its element's at most once, OpenAttribute's key (package, path, start, uri, local); reading 13",
+      "fin.md D2 and Namespaces in XML 1.0 §6.3: an open-class attribute keeps its exact name, its expanded name its element's at most once, OpenAttribute's key (package, path, start, uriDigest, local), its namespace name by its SHA-256 since none is bounded; reading 13",
   },
   "AL4 open names": {
     rule: "attribute-admission",

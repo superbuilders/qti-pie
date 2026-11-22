@@ -358,6 +358,52 @@ const ownerIn = <V>(records: ReadonlyMap<bigint, V>, owner: bigint, what: string
 };
 
 /**
+ * Each open attribute's place among its element's open attributes as `flatten` writes them, from 0,
+ * by its element and its expanded name: `OpenAttribute.at`, its key beside its element's, and the
+ * place its entity references name it by.
+ *
+ * @param attributes - The document's open attributes, in `flatten`'s order.
+ * @returns Each one's place, by `keyTextOf(start, uri, local)`.
+ */
+const openPlacesOf = (
+  attributes: readonly { readonly local: string; readonly start: bigint; readonly uri: string }[],
+): ReadonlyMap<string, bigint> => {
+  const counted = new Map<bigint, bigint>();
+
+  return new Map(
+    attributes.map(({ local, start, uri }) => {
+      const place = counted.get(start) ?? 0n;
+      counted.set(start, place + 1n);
+
+      return [keyTextOf(start, uri, local), place] as const;
+    }),
+  );
+};
+
+/**
+ * Read an open attribute's place ({@link openPlacesOf}).
+ *
+ * @param places - The document's open attributes' places.
+ * @param row - The attribute's element and expanded name, an attribute's or an entity reference's.
+ * @returns Its place.
+ * @throws {Error} When `flatten` writes an entity reference of an open attribute it wrote no row
+ *   of: its defect, never the document's.
+ */
+const openPlaceIn = (
+  places: ReadonlyMap<string, bigint>,
+  row: { readonly local: string; readonly start: bigint; readonly uri: string },
+): bigint => {
+  const place = places.get(keyTextOf(row.start, row.uri, row.local));
+  if (place === undefined) {
+    throw new Error(
+      `flatten writes an entity reference of the open attribute {${row.uri}}${row.local} at ${String(row.start)}, and no row of the attribute. Correct flatten.`,
+    );
+  }
+
+  return place;
+};
+
+/**
  * Read an element's namespace name: a foreign element's from its `OpenElementName` row, any other
  * element's from `KindNamespace`, which holds every element kind but the foreign ones.
  *
@@ -557,6 +603,7 @@ export const documentRowsOf = (document: {
   const { path } = listed;
   const at = { package: pkg, path };
   const byStart = new Map(rows.nodes.map((node) => [node.start, node] as const));
+  const openPlaces = openPlacesOf(rows.openAttributes);
   const foreignNamespace = new Map(
     rows.openElementNames.map(({ namespace, start }) => [start, namespace] as const),
   );
@@ -653,11 +700,13 @@ export const documentRowsOf = (document: {
     OpenAttribute: new Map(
       rows.openAttributes.map((row) => {
         const element = ownerIn(byStart, row.start, `attribute ${row.local}`);
+        const place = openPlaceIn(openPlaces, row);
 
         return [
-          keyTextOf(pkg, path, row.start, row.uri, row.local),
+          keyTextOf(pkg, path, row.start, place),
           {
             ...at,
+            at: place,
             class: row.class,
             elementNamespace: namespaceOf(element),
             lexical: row.lexical,
@@ -671,10 +720,14 @@ export const documentRowsOf = (document: {
       }),
     ),
     OpenAttributeEntity: new Map(
-      rows.openAttributeEntities.map(({ entity, local, offset, start, uri }) => [
-        keyTextOf(pkg, path, start, uri, local, offset),
-        { ...at, entity, local, offset, start, uri },
-      ]),
+      rows.openAttributeEntities.map((row) => {
+        const place = openPlaceIn(openPlaces, row);
+
+        return [
+          keyTextOf(pkg, path, row.start, place, row.offset),
+          { ...at, at: place, entity: row.entity, offset: row.offset, start: row.start },
+        ] as const;
+      }),
     ),
     OpenElementName: new Map(
       rows.openElementNames.map(

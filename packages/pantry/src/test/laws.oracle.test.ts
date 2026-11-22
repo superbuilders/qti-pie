@@ -39,7 +39,7 @@ import {
   test,
   withItem,
 } from "#pantry/test/probe.ts";
-import { uriBytes, xmlNameBytes } from "#pantry/qti/limits.ts";
+import { xmlNameBytes } from "#pantry/qti/limits.ts";
 import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { grammar } from "#pantry/grammar/install.ts";
@@ -1001,8 +1001,9 @@ describe("each law, on a package that breaks it", () => {
 /**
  * The UTF-8 bytes of each name the long-names case writes ({@link longNamed}): its paragraph's
  * prefix and the declaration binding it, its `data-*` attribute's local name and a foreign
- * attribute's local name, each an XML name a key holds; the foreign attribute's namespace name, a
- * URI a key holds; and a foreign element's local name and namespace name, which no key holds.
+ * attribute's local name, each an XML name a key holds; and the foreign attribute's namespace name
+ * and a foreign element's local name and namespace name, which no key holds as themselves (the
+ * attribute's namespace name is held by its SHA-256).
  */
 interface NameBytes {
   readonly attributeNamespace: number;
@@ -1014,11 +1015,11 @@ interface NameBytes {
 
 /**
  * The names at their bounds (`#pantry/qti/limits.ts`): each XML name a key holds at
- * `xmlNameBytes`, the foreign attribute's namespace name at `uriBytes`, and a foreign element's
- * names, which no key holds, at 64 KiB.
+ * `xmlNameBytes`, and the foreign attribute's namespace name and a foreign element's names, which
+ * no key holds as themselves, at 64 KiB.
  */
 const atNameBounds: NameBytes = {
-  attributeNamespace: uriBytes,
+  attributeNamespace: 65_536,
   dataLocal: xmlNameBytes,
   elementName: 65_536,
   foreignLocal: xmlNameBytes,
@@ -1033,7 +1034,6 @@ const pastNameBounds: readonly { readonly bytes: NameBytes; readonly field: stri
   { bytes: { ...atNameBounds, prefix: xmlNameBytes + 1 }, field: "Namespace.prefix" },
   { bytes: { ...atNameBounds, dataLocal: xmlNameBytes + 1 }, field: "OpenAttribute.local" },
   { bytes: { ...atNameBounds, foreignLocal: xmlNameBytes + 1 }, field: "OpenAttribute.local" },
-  { bytes: { ...atNameBounds, attributeNamespace: uriBytes + 1 }, field: "OpenAttribute.uri" },
 ];
 
 /**

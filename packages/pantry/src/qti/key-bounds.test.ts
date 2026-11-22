@@ -5,7 +5,7 @@
  * whose B-tree entry a text could outgrow (`UnrepresentableKey`). A key the ledger or the QTI
  * database binds a bound by (the identifier's, the base value's) is held where it is declared.
  */
-import { keyTextBytes, natural, pg } from "@bjornpagen/grizzle";
+import { keyTextBytes, natural, pg, sha256 } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import {
   EntryPath,
@@ -15,11 +15,8 @@ import {
   keyMatchedTextBytes,
   literalTextBytes,
   PackageName,
-  UriText,
-  uriBytes,
   xmlNameBytes,
 } from "#pantry/qti/limits.ts";
-import { OpenLocal } from "#pantry/qti/attributes.ts";
 
 /**
  * A closed id's column, a code of its roster, as a key holds it.
@@ -45,13 +42,9 @@ describe("qti/key-bounds", () => {
     // The QTI database's History (catalog, entry, package, earlier), two LOM texts beside two
     // package names.
     assert.isAtMost(keyMatchedTextBytes, keyTextBytes([KeyMatchedText, PackageName, PackageName]));
-    // OpenAttributeEntity's key (package, path, start, uri, local, offset), its uri and local name
-    // each beside the other.
-    assert.isAtMost(uriBytes, keyTextBytes([PackageName, EntryPath, natural, OpenLocal, natural]));
-    assert.isAtMost(
-      xmlNameBytes,
-      keyTextBytes([PackageName, EntryPath, natural, UriText, natural]),
-    );
+    // OpenAttribute's key "AL4 open name key" (package, path, start, uriDigest, local), its local
+    // name beside its namespace name's SHA-256.
+    assert.isAtMost(xmlNameBytes, keyTextBytes([PackageName, EntryPath, natural, sha256]));
     // Namespace's key (package, path, start, prefix).
     assert.isAtMost(xmlNameBytes, keyTextBytes([PackageName, EntryPath, natural]));
     // Literal's reference target (package, path, start, text, baseType).

@@ -303,11 +303,10 @@ const attributesOf = (node: NodeInput) =>
 
 /**
  * Build an element's attributes of open names (`data-*`, foreign, no-namespace and own-namespace
- * attributes), a set keyed by expanded name, delivered in no order, each with its class and its
- * entity references by offset, correlated to its key `(package, path, start, uri, local)` as
+ * attributes), a set distinct by expanded name, delivered in no order, each with its class and its
+ * entity references by offset, correlated to its key `(package, path, start, at)` as
  * {@link attributesOf}'s are. XML gives an element's attributes no order, so no index orders by a
- * namespace name or a local name: the model orders them on the host (`#pantry/model/assemble.ts`),
- * and the key holds each as itself, within its type's bound (`#pantry/qti/limits.ts`).
+ * namespace name or a local name: the model orders them on the host (`#pantry/model/assemble.ts`).
  *
  * @param node - The element's key.
  * @returns The open attributes, with `entities` attached.
@@ -315,10 +314,18 @@ const attributesOf = (node: NodeInput) =>
 const openAttributesOf = (node: NodeInput) =>
   query(Qti)
     .rule((r) => {
-      const { class: openClass, lexical, local, prefix, uri } = v(OpenAttribute, "openAttribute");
+      const {
+        at,
+        class: openClass,
+        lexical,
+        local,
+        prefix,
+        uri,
+      } = v(OpenAttribute, "openAttribute");
 
       return r
         .match(OpenAttribute, {
+          at,
           class: openClass,
           lexical,
           local,
@@ -329,6 +336,7 @@ const openAttributesOf = (node: NodeInput) =>
           uri,
         })
         .find({
+          at,
           class: openClass,
           lexical,
           local,
@@ -348,13 +356,12 @@ const openAttributesOf = (node: NodeInput) =>
 
             return r
               .match(OpenAttributeEntity, {
+                at: attribute.at,
                 entity,
-                local: attribute.local,
                 offset,
                 package: attribute.package,
                 path: attribute.path,
                 start: attribute.start,
-                uri: attribute.uri,
               })
               .find({ entity, offset });
           })
