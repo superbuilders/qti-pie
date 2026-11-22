@@ -26,10 +26,16 @@ import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 /**
  * The catalog's names of read-aloud's control beside a choice, by what the choice is to the child:
  * `readAloudChoice` for an option, one it picks, moves or orders, `readAloudGroup` for a Match's
- * group, which the options go to, and `readAloudArea` for an area of a graphic interaction's
- * image. `{n}` is the choice's place among its set as presented.
+ * group, which the options go to, `readAloudRow` and `readAloudColumn` for a row's and a column's
+ * header of a Match laid out as a table, and `readAloudArea` for an area of a graphic
+ * interaction's image. `{n}` is the choice's place among its set as presented.
  */
-type SpokenPart = "readAloudArea" | "readAloudChoice" | "readAloudGroup";
+type SpokenPart =
+  | "readAloudArea"
+  | "readAloudChoice"
+  | "readAloudColumn"
+  | "readAloudGroup"
+  | "readAloudRow";
 
 /**
  * Write a run of content through the shell, as server React elements.

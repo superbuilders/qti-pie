@@ -8,8 +8,9 @@
  * It follows the Choice island's pattern (`#plate/ui/choice/choice.tsx`) on the placement primitive
  * (`#plate/ui/placement/parts.tsx`), whose machine holds QTI's limits and whose parts take a tap, a
  * drag or a key, refuse a move before anything changes, and announce every step. The island gives
- * the primitive Match's board and turns its placements into the response and back; it decides no
- * rule of its own.
+ * the primitive Match's board (`matchBoardOf` in `#plate/ui/match/board.ts`), which a Match laid
+ * out as a table moves its ticks on too (`#plate/ui/match/table.tsx`), and turns its placements
+ * into the response and back; it decides no rule of its own.
  *
  * @module
  */
@@ -17,9 +18,10 @@ import { useMemo } from "react";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import type { Limit } from "#plate/ui/limit.ts";
 import type { MatchLabels } from "#plate/ui/match/labels.ts";
-import { chipRuleOf, placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
+import { matchBoardOf } from "#plate/ui/match/board.ts";
+import { placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
-import type { Pairs, PairsBoard } from "#plate/ui/placement/machine.ts";
+import type { Pairs } from "#plate/ui/placement/machine.ts";
 import type { TargetName } from "#plate/ui/placement/primitive.ts";
 import {
   PlacementBank,
@@ -160,18 +162,7 @@ export const Match = (props: MatchProps) => {
     [sources],
   );
   const board = useMemo(
-    (): PairsBoard => ({
-      chips: sources.map(chipRuleOf),
-      kind: "pairs",
-      repeats: false,
-      swap: false,
-      targets: targets.map((target) => ({
-        capacity: target.matchMax,
-        chips: target.matchGroup,
-        id: target.identifier,
-      })),
-      total: maxAssociations,
-    }),
+    () => matchBoardOf(sources, targets, maxAssociations),
     [maxAssociations, sources, targets],
   );
   const placements = useMemo(() => placementsOf(texts), [texts]);

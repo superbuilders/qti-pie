@@ -470,6 +470,7 @@
     [data-slot="plate-hotspot-limit"],
     [data-slot="plate-hottext-limit"],
     [data-slot="plate-placement-message"],
+    [data-slot="plate-match-message"],
     [data-slot="plate-graphic-associate-message"],
     [data-slot="plate-graphic-order-refusal"],
     [data-slot="plate-position-object-message"],
@@ -1996,6 +1997,63 @@
     margin-block: 0 0.5rem;
     padding-inline: calc(0.75rem + 2px);
     font-weight: 600;
+  }
+
+  /*
+   * Match laid out as a table (`qti-match-tabular`, the shared vocabulary's 1.2.8.2): the item's
+   * full grid across the item's width, its row headers at the start and its column headers and tick
+   * boxes centred, every header on its row's middle, as AlphaTest's player drew it. A cell a press would refuse dots its
+   * tick box's edge, where AlphaTest greyed it out, and its box stays pressable, so the press says
+   * why.
+   */
+  [data-slot="plate-match-table"] {
+    inline-size: 100%;
+    margin-block: 0 1rem;
+  }
+
+  [data-slot="plate-match-table"] :is(th, td) {
+    vertical-align: middle;
+  }
+
+  [data-slot="plate-match-table-head"] :is(th, td) + th {
+    text-align: center;
+  }
+
+  [data-slot="plate-match-cell"][data-refuses] [data-slot="checkbox"] {
+    border-style: dotted;
+  }
+
+  /*
+   * `qti-header-hidden` (1.2.8.2): "Do not display the top row of the table where the column
+   * headers are displayed." The row keeps no height and its headers' words leave the eye but stay
+   * in the page, the way UI SDK hides a native input, so a screen reader still reads each column's
+   * header and each tick box's name, which those words give; the row's read-aloud controls go with
+   * the row.
+   */
+  [data-slot="plate-match"].qti-header-hidden [data-slot="plate-match-table-head"] :is(th, td) {
+    padding: 0;
+    border-block: 0;
+    line-height: 0;
+  }
+
+  [data-slot="plate-match"].qti-header-hidden
+    [data-slot="plate-match-table-head"]
+    [data-slot="plate-match-table-label"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  [data-slot="plate-match"].qti-header-hidden
+    [data-slot="plate-match-table-head"]
+    [data-slot="plate-read-aloud"] {
+    display: none;
   }
 
   /* Gap match: each gap a place inside the sentence, at least 160 px wide, standing on the line. */

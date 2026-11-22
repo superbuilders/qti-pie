@@ -49,9 +49,10 @@ export interface AssociableChoice extends Spoken {
 }
 
 /**
- * What a choice of a board of boxes brings to its rule: an associate's choice, or a graphic
- * associate's `qti-associable-hotspot`, whose `match-group` and `match-max` mean the same (5.7.4,
- * 5.7.8).
+ * What a choice brings to its rule on a board: its identifier, `match-group` and `match-max`, a
+ * Match's or a Gap Match's choice on a board of pairs, an associate's choice or a graphic
+ * associate's `qti-associable-hotspot` on a board of boxes, whose `match-group` and `match-max`
+ * mean the same (5.7.4, 5.7.8).
  */
 export type Associable = Pick<AssociableChoice, "identifier" | "matchGroup" | "matchMax">;
 
@@ -62,7 +63,7 @@ export type Associable = Pick<AssociableChoice, "identifier" | "matchGroup" | "m
  * @param choice The choice.
  * @returns Its chip.
  */
-export const chipRuleOf = (choice: AssociableChoice): ChipRule => ({
+export const chipRuleOf = (choice: Associable): ChipRule => ({
   id: choice.identifier,
   targets: choice.matchGroup,
   uses: choice.matchMax,

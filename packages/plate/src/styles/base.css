@@ -261,7 +261,12 @@
    * UI SDK's radio and checkbox, buttons inside an option: 28 px, with the option's ring for their
    * focus and the option's press for theirs.
    */
-  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+  :where(
+      [data-slot="plate-choice"],
+      [data-slot="plate-hotspot"],
+      [data-slot="plate-hottext"],
+      [data-slot="plate-match"]
+    )
     :is([data-slot="radio"], [data-slot="checkbox"]) {
     position: relative;
     display: inline-grid;
@@ -279,23 +284,43 @@
     appearance: none;
   }
 
-  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+  :where(
+      [data-slot="plate-choice"],
+      [data-slot="plate-hotspot"],
+      [data-slot="plate-hottext"],
+      [data-slot="plate-match"]
+    )
     :is([data-slot="radio"], [data-slot="checkbox"]):focus-visible {
     outline: none;
   }
 
-  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+  :where(
+      [data-slot="plate-choice"],
+      [data-slot="plate-hotspot"],
+      [data-slot="plate-hottext"],
+      [data-slot="plate-match"]
+    )
     [data-slot="radio"] {
     border-radius: 50%;
   }
 
-  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+  :where(
+      [data-slot="plate-choice"],
+      [data-slot="plate-hotspot"],
+      [data-slot="plate-hottext"],
+      [data-slot="plate-match"]
+    )
     [data-slot="radio"][data-checked] {
     border-color: var(--ui-primary);
   }
 
   /* The radio's dot: a border, not a background, so forced colours keep it. */
-  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+  :where(
+      [data-slot="plate-choice"],
+      [data-slot="plate-hotspot"],
+      [data-slot="plate-hottext"],
+      [data-slot="plate-match"]
+    )
     [data-slot="radio-indicator"] {
     width: 0;
     height: 0;
@@ -303,13 +328,23 @@
     border-radius: 50%;
   }
 
-  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+  :where(
+      [data-slot="plate-choice"],
+      [data-slot="plate-hotspot"],
+      [data-slot="plate-hottext"],
+      [data-slot="plate-match"]
+    )
     [data-slot="checkbox"]:is([data-checked], [data-indeterminate]) {
     border-color: var(--ui-primary);
     background: var(--ui-primary);
   }
 
-  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+  :where(
+      [data-slot="plate-choice"],
+      [data-slot="plate-hotspot"],
+      [data-slot="plate-hottext"],
+      [data-slot="plate-match"]
+    )
     [data-slot="checkbox-indicator"] {
     display: grid;
     place-items: center;
@@ -319,7 +354,12 @@
    * The checkbox's tick, and a select option's, drawn with two borders: an image would need the
    * page's policy to allow it.
    */
-  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+  :where(
+      [data-slot="plate-choice"],
+      [data-slot="plate-hotspot"],
+      [data-slot="plate-hottext"],
+      [data-slot="plate-match"]
+    )
     [data-slot="checkbox-indicator"]:not(:has(svg))::before,
   :where([data-slot="plate-inline-choice"]) [data-slot="select-item"][data-selected]::after {
     content: "";
@@ -332,7 +372,12 @@
     rotate: 45deg;
   }
 
-  :where([data-slot="plate-choice"], [data-slot="plate-hotspot"], [data-slot="plate-hottext"])
+  :where(
+      [data-slot="plate-choice"],
+      [data-slot="plate-hotspot"],
+      [data-slot="plate-hottext"],
+      [data-slot="plate-match"]
+    )
     :is([data-slot="radio-indicator"], [data-slot="checkbox-indicator"])[data-unchecked] {
     visibility: hidden;
   }
@@ -1102,6 +1147,72 @@
     [data-slot="plate-placement-bank"]
     > [data-slot="plate-placement-slot"] {
     visibility: hidden;
+  }
+
+  /* == match laid out as a table == */
+
+  /*
+   * A cell of a Match's table (`qti-match-tabular`): the whole cell is its tick box's target, at
+   * least 64 px each way whatever the headers hold, since the `label` that fills it presses the box
+   * from anywhere in it. Its ring shows on the cell, where a child looks, while its box has a
+   * keyboard focus.
+   */
+  [data-slot="plate-match-cell"] {
+    position: relative;
+    min-inline-size: var(--plate-target-size);
+    block-size: var(--plate-target-size);
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  [data-slot="plate-match-toggle"] {
+    display: grid;
+    place-items: center;
+    min-block-size: var(--plate-target-size);
+    min-inline-size: var(--plate-target-size);
+    block-size: 100%;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  [data-slot="plate-match-cell"]:has(:focus-visible) {
+    outline: var(--plate-focus-ring);
+    outline-offset: -4px;
+    box-shadow: inset var(--plate-focus-halo);
+  }
+
+  /*
+   * A review's tick in a cell, which no press changes: drawn as the island's tick box is, 28 px in
+   * an edge at 3:1, filled and ticked where the review shows the cell's pair, its mark's badge on
+   * its corner.
+   */
+  [data-slot="plate-match-tick"] {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 2px solid var(--ui-input);
+    background: var(--ui-background);
+    color: var(--ui-primary-foreground);
+    vertical-align: middle;
+  }
+
+  [data-slot="plate-match-tick"][data-selected] {
+    border-color: var(--ui-primary);
+    background: var(--ui-primary);
+  }
+
+  [data-slot="plate-match-tick"][data-selected]::before {
+    content: "";
+    width: 0.4375rem;
+    height: 0.8125rem;
+    margin-block-start: -0.1875rem;
+    border: solid currentColor;
+    border-width: 0 3px 3px 0;
+    rotate: 45deg;
   }
 
   /* == match, gap match, order and associate: their layouts == */
@@ -2007,7 +2118,8 @@
       [data-slot="plate-placement-chip"],
       [data-slot="plate-placement-slot"],
       [data-slot="plate-placement-box"],
-      [data-slot="plate-portable-custom-value"]
+      [data-slot="plate-portable-custom-value"],
+      [data-slot="plate-match-tick"]
     ) {
     border-style: dashed;
   }
@@ -2056,6 +2168,18 @@
   :is([data-slot="plate-text-entry"], [data-slot="plate-inline-choice"])[data-mark]
     :is([data-slot="input"], [data-slot="select-trigger"]) {
     padding-inline-end: 2.5rem;
+  }
+
+  /*
+   * A review's tick in a table's cell is smaller than its badge would leave visible, so the badge
+   * stands after the tick, on its middle, clear of it, where the corner rule put it over the tick.
+   * Its weight, (0,3,1), passes the corner rule's, which a slider value's branch raises to (0,3,1),
+   * so this one, after it, wins.
+   */
+  [data-slot^="plate-"]:is([data-slot="plate-match-tick"])[data-mark]::after {
+    inset-block: 0;
+    inset-inline: calc(100% + 0.375rem) auto;
+    margin-block: auto;
   }
 
   /*

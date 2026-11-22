@@ -8,6 +8,13 @@
  * catalog's. The review shows the bank under the author's `data-first-column-header`, and each
  * group holding the chips the response puts there, each pair marked by the host's marks.
  *
+ * A Match whose root carries QTI's `qti-match-tabular` class is laid out as a table instead (QTI
+ * 3.0 shared vocabulary, 1.2.8.2): the first set's choices head its rows, the second's its
+ * columns, and each cell is a tick box for its row's and column's pair, on the same board as the
+ * bank (`#plate/ui/match/table.tsx`). Its review is the same table, each cell ticked where the
+ * response holds its pair and marked by the host's marks. The class lays the Match out and changes
+ * nothing it does: the same limits, the same response.
+ *
  * @module
  */
 import { Option } from "effect";
@@ -27,15 +34,23 @@ import {
   missedOf,
   pairsByTarget,
 } from "#plate/ui/item/interactions/chips.tsx";
+import type { Shown } from "#plate/ui/item/interactions/chips.tsx";
 import { limitOf } from "#plate/ui/item/interactions/facts.ts";
 import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
+import type { Marking } from "#plate/ui/item/interactions/marks.ts";
+import { markPart } from "#plate/ui/item/interactions/words.tsx";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import { chipName, shownText } from "#plate/ui/item/interactions/text.ts";
 import type { Place } from "#plate/ui/item/interactions/text.ts";
-import { matchKeys } from "#plate/ui/match/labels.ts";
+import { matchKeys, matchTableKeys } from "#plate/ui/match/labels.ts";
 import { Match } from "#plate/ui/match/match.tsx";
 import type { MatchHeader, MatchTarget } from "#plate/ui/match/match.tsx";
+import { MatchTable } from "#plate/ui/match/table.tsx";
+import type { TableHeader } from "#plate/ui/match/table.tsx";
+import { pickParts } from "#plate/ui/picks/marks.ts";
+import type { PickReview } from "#plate/ui/picks/marks.ts";
+import { classTokensOf } from "#plate/vocabulary.ts";
 
 /**
  * Give a choice of a Match's second set as the island takes it, a group: its content written where
@@ -88,8 +103,65 @@ const headerOf = (
   );
 
 /**
+ * How a Match is laid out: `bank`, its first set's choices as chips sorted into its second set's
+ * choices as groups; or `table`, QTI's tabular Match, its first set heading the rows and its second
+ * the columns, a tick box in each cell.
+ */
+type MatchLayout = "bank" | "table";
+
+/**
+ * Give a Match's layout from the class its root carries: a table where it holds QTI's
+ * `qti-match-tabular`, "Render a visual table with the choices of the first Simple Match Set as the
+ * table row headers, and the choices of the second Simple Match Set as the table column headers"
+ * (QTI 3.0 shared vocabulary, 1.2.8.2), else the bank.
+ *
+ * @param context What the shell knows: the class the root carries.
+ * @returns The layout.
+ */
+const layoutOf = (context: Pick<IslandContext, "className">): MatchLayout =>
+  Option.exists(context.className, (classes) =>
+    classTokensOf(classes).includes("qti-match-tabular"),
+  )
+    ? "table"
+    : "bank";
+
+/**
+ * Give one header of a Match's table as the island takes it: the choice, its content written where
+ * flow content stands, its limits, its `label` where its content shows no text, its name, that
+ * label or the text it shows, its read-aloud, named as a row's or a column's, and the id its
+ * content's part takes, which names the tick boxes of its row or column.
+ *
+ * @param choice The choice, as the payload presents it.
+ * @param place Its place among its set as presented.
+ * @param side Which set it heads: the rows, the first set's, or the columns, the second's.
+ * @param context What the shell knows: its content walk, the instance, the locale and read-aloud.
+ * @param response The response the Match binds, which scopes the id.
+ * @returns The header.
+ */
+const headerAt = (
+  choice: PayloadOf<"match">["sources"][number],
+  place: Place,
+  side: "column" | "row",
+  context: Pick<IslandContext, "content" | "instance" | "locale" | "readAloud">,
+  response: string,
+): TableHeader => {
+  const label = chipName(choice.content, Option.none(), place, context.locale);
+
+  return {
+    content: contentOf(choice.content, "flow", context),
+    id: scopedId(context.instance, response, side, place.n - 1),
+    identifier: choice.identifier,
+    label,
+    matchGroup: choice.matchGroup,
+    matchMax: limitOf(choice.matchMax),
+    name: label ?? shownText(choice.content, context.locale),
+    ...spokenOf(choice, place.n, side === "row" ? "readAloudRow" : "readAloudColumn", context),
+  };
+};
+
+/**
  * Render a Match's island: the first set's choices as the chips, the second's as the groups, each
- * as presented.
+ * as presented, or, laid out as a table, as its rows and its columns.
  *
  * @param paired The Match.
  * @param paired.model Its model node: the author's `data-max-selections-message`.
@@ -102,6 +174,38 @@ export const island = (
   context: IslandContext,
 ): ReactNode => {
   const prompt = promptAt(node.prompt, node.response, context);
+
+  if (layoutOf(context) === "table") {
+    return (
+      <MatchTable
+        header={headerOf(node, context)}
+        labels={labelsOf(matchTableKeys, context.locale, { totalReached: model.messages.max })}
+        maxAssociations={limitOf(node.maxAssociations)}
+        name={node.formName}
+        naming={groupNameOf(prompt, node, context)}
+        prompt={prompt}
+        root={rootOf(model, context)}
+        sources={node.sources.map((source, index) =>
+          headerAt(
+            source,
+            { count: node.sources.length, n: index + 1 },
+            "row",
+            context,
+            node.response,
+          ),
+        )}
+        targets={node.targets.map((target, index) =>
+          headerAt(
+            target,
+            { count: node.targets.length, n: index + 1 },
+            "column",
+            context,
+            node.response,
+          ),
+        )}
+      />
+    );
+  }
 
   return (
     <Match
@@ -128,16 +232,122 @@ export const island = (
 };
 
 /**
- * Render a Match's review: its bank, under the author's `data-first-column-header` as its visible
- * heading when there is one (5.89.6), and each group holding the chips the response puts there,
- * each pair marked when the review marks.
+ * Give how a review shows each cell of a Match's table: ticked where the pairs it shows hold the
+ * cell's pair, marked `right` or `wrong` where the host's marks say, `given` where they mark
+ * nothing, and `correct` in a solution, whose pairs are the correct response; and `missed` where
+ * the review shows a right pair the response does not hold. A Match makes each pair once, so a
+ * cell holds at most one pair given and one missed.
+ *
+ * @param byTarget Each column's pairs, by the column's identifier, as the review marks them
+ *   (`pairsByTarget` in `#plate/ui/item/interactions/chips.tsx`).
+ * @param marking How the review marks the response.
+ * @returns How the review shows the cell of a row and a column.
+ */
+const cellsOf =
+  (byTarget: ReadonlyMap<string, readonly Shown[]>, marking: Marking) =>
+  (row: string, column: string): PickReview => {
+    const shown = (byTarget.get(column) ?? []).find((chip) => chip.identifier === row);
+
+    if (shown === undefined) {
+      return "unpicked";
+    }
+
+    if (shown.mark !== undefined) {
+      return shown.mark;
+    }
+
+    return marking.kind === "solution" ? "correct" : "given";
+  };
+
+/**
+ * Render a Match's table in a review: the island's table, its head and its row headers, each cell
+ * a `plate-match-cell` with no control, ticked and marked as {@link cellsOf} shows it, its
+ * `plate-match-tick` drawn as the island's tick box is and saying its mark's words.
  *
  * @param paired The Match.
+ * @param paired.model Its model node: the author's `data-*`.
  * @param paired.payload Its payload: its sets as presented and the pairs it shows.
  * @param context What the shell knows.
  * @returns The markup.
  */
-export const review = (
+const reviewTable = (
+  { model, payload: node }: Paired<"match">,
+  context: ReviewContext,
+): ReactNode => {
+  const { locale } = context;
+  const prompt = promptAt(node.prompt, node.response, context);
+  const marking = markingOf(node.response, context);
+  const reviewed = cellsOf(pairsByTarget(node.pairs, marking), marking);
+  const header = headerOf(node, context);
+
+  return (
+    <div
+      {...rootOf(model, context)}
+      {...groupNameOf(prompt, node, context)}
+      data-slot="plate-match"
+      role="group"
+    >
+      <PromptPart prompt={prompt} />
+      <div data-slot="plate-table">
+        <table data-slot="plate-match-table">
+          <thead data-slot="plate-match-table-head">
+            <tr>
+              {header === undefined ? (
+                <td />
+              ) : (
+                <th id={header.id} scope="col">
+                  <div data-slot="plate-match-table-label">{header.text}</div>
+                </th>
+              )}
+              {node.targets.map((target) => (
+                <th key={target.identifier} scope="col">
+                  <div data-slot="plate-match-table-label">
+                    {context.content(target.content, { position: "flow" })}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {node.sources.map((source) => (
+              <tr key={source.identifier}>
+                <th scope="row">
+                  <div data-slot="plate-match-table-label">
+                    {context.content(source.content, { position: "flow" })}
+                  </div>
+                </th>
+                {node.targets.map((target) => {
+                  const review = reviewed(source.identifier, target.identifier);
+
+                  return (
+                    <td key={target.identifier} data-slot="plate-match-cell">
+                      <span {...pickParts[review].attributes} data-slot="plate-match-tick">
+                        {markPart(pickParts[review].words, locale)}
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Render a Match's bank in a review: its bank, under the author's `data-first-column-header` as its
+ * visible heading when there is one (5.89.6), and each group holding the chips the response puts
+ * there, each pair marked when the review marks.
+ *
+ * @param paired The Match.
+ * @param paired.model Its model node: the author's `data-*`.
+ * @param paired.payload Its payload: its sets as presented and the pairs it shows.
+ * @param context What the shell knows.
+ * @returns The markup.
+ */
+const reviewBank = (
   { model, payload: node }: Paired<"match">,
   context: ReviewContext,
 ): ReactNode => {
@@ -228,3 +438,14 @@ export const review = (
     </div>
   );
 };
+
+/**
+ * Render a Match's review in its layout: its bank ({@link reviewBank}), or its table
+ * ({@link reviewTable}).
+ *
+ * @param paired The Match.
+ * @param context What the shell knows: the class its root carries, which lays it out.
+ * @returns The markup.
+ */
+export const review = (paired: Paired<"match">, context: ReviewContext): ReactNode =>
+  layoutOf(context) === "table" ? reviewTable(paired, context) : reviewBank(paired, context);

@@ -21,7 +21,7 @@
  * @module
  */
 import type { Pair } from "#plate/interactions/pair.ts";
-import { reached } from "#plate/ui/limit.ts";
+import { isOne, reached } from "#plate/ui/limit.ts";
 import type { Limit } from "#plate/ui/limit.ts";
 
 /**
@@ -370,14 +370,6 @@ export const samePlace = (a: Place | null, b: Place | null): boolean => {
     ? b.kind === "target" && a.id === b.id
     : b.kind === "position" && a.index === b.index;
 };
-
-/**
- * Report whether a limit is exactly one: a chip that is no stack, a target that holds one chip.
- *
- * @param limit The limit.
- * @returns Whether it allows one and no more.
- */
-const one = (limit: Limit): boolean => limit.kind === "at-most" && limit.n === 1;
 
 /**
  * Find a chip's rule on a board of pairs.
@@ -801,7 +793,7 @@ export const hasCopies = (arrangement: Arrangement, chip: string): boolean => {
   const rule =
     arrangement.kind === "boxes" ? partnerRule(arrangement, chip) : chipRule(arrangement, chip);
 
-  return rule !== undefined && !one(rule.uses);
+  return rule !== undefined && !isOne(rule.uses);
 };
 
 /**
@@ -850,7 +842,7 @@ export const showsFull = (arrangement: Arrangement, spot: Spot): boolean => {
   return (
     rule !== undefined &&
     reached(rule.capacity, matching(arrangement.placements, { target: spot.id }).length) &&
-    !(arrangement.swap && one(rule.capacity))
+    !(arrangement.swap && isOne(rule.capacity))
   );
 };
 
@@ -1027,7 +1019,7 @@ const placePair = (arrangement: PairsArrangement, picked: Picked, to: Place): St
 
   const [occupant] = held;
 
-  return arrangement.swap && one(rule.capacity) && occupant !== undefined
+  return arrangement.swap && isOne(rule.capacity) && occupant !== undefined
     ? swapPair(arrangement, picked, source, occupant, to)
     : refuse("targetFull", chip, to);
 };

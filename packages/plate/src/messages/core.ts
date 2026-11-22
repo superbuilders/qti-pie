@@ -34,7 +34,9 @@
  * `{other}` the chip a swap displaced, and `{from}` where that chip went. Match says
  * `matchChipUsedUp` and `matchFull` in place of the primitive's words for a chip used up and a full
  * group, Order its `order…` keys wherever a label names a position, by its number, and Gap Match
- * names each gap `gapMatchGap`.
+ * names each gap `gapMatchGap`. A Match laid out as a table (`qti-match-tabular`) says its
+ * `matchTable…` keys in place of the primitive's refusals, a row's source `{chip}` and a column's
+ * target `{target}`, and `matchTableMoved` when a row of radios' tick moves to `{target}`.
  *
  * Match, Gap Match and Order refuse a response past their own limits with the `match…`,
  * `gapMatch…` and `order…` keys that name a choice, a gap or a pair by its identifier (`{choice}`,
@@ -80,6 +82,11 @@ export const coreMessages = {
     "{source} cannot be matched with {target}; match it with one of {group} instead.",
   matchNotInTargetGroup: "{source} cannot be matched with {target}, which matches only {group}.",
   matchRepeated: "Make the match {pair} once.",
+  matchTableColumnFull: "{target} has all its ticks. Take one out first.",
+  matchTableMoved: "{chip} moved to {target}.",
+  matchTableNotInGroup: "{chip} doesn't go with {target}.",
+  matchTableRowFull: "{chip} has all its ticks. Take one out first.",
+  matchTableTotalReached: "That's all the ticks. Take one out first.",
   notAccepted: "Not accepted",
   notice: "Not supported here: {feature}",
   orderAll: "Put all {n} choices in order.",

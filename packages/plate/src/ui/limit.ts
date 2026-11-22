@@ -29,3 +29,12 @@ export type Limit = { readonly kind: "none" } | { readonly kind: "at-most"; read
  */
 export const reached = (limit: Limit, count: number): boolean =>
   limit.kind === "at-most" && count >= limit.n;
+
+/**
+ * Report whether a limit is exactly one: a choice that goes in one place at a time, a target that
+ * holds one chip.
+ *
+ * @param limit The limit.
+ * @returns Whether it allows one and no more.
+ */
+export const isOne = (limit: Limit): boolean => limit.kind === "at-most" && limit.n === 1;

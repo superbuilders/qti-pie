@@ -6,8 +6,10 @@
  * model reads {@link modelled}, so what plate models, marks and shows as a notice is decided once.
  *
  * What an element does comes from its QTI name, attributes and binding alone: no vocabulary class
- * changes it. `styles/theme.css` is the inventory of the classes plate presents, and
- * {@link carriedClass} the one class plate leaves off for a candidate's PNP.
+ * changes it. `styles/theme.css` is the inventory of the classes plate presents, but for
+ * `qti-match-tabular`, which lays a Match out as a table whose markup no stylesheet could write
+ * (`#plate/ui/item/interactions/match.tsx`), and {@link carriedClass} the one class plate leaves off
+ * for a candidate's PNP.
  *
  * @module
  */
@@ -265,6 +267,17 @@ const showsLowVision = (supports: Pick<Supports, "catalog" | "display">): boolea
   supports.catalog.has("high-contrast");
 
 /**
+ * Read a `class` attribute's tokens: its value split on ASCII whitespace, as HTML reads a set of
+ * space-separated tokens, empty tokens left out.
+ *
+ * @param classes The attribute's value.
+ * @returns Its tokens, in written order.
+ * @see https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#set-of-space-separated-tokens
+ */
+export const classTokensOf = (classes: string): readonly string[] =>
+  classes.split(/[\t\n\f\r ]+/u).filter((token) => token !== "");
+
+/**
  * Give the class an interaction's root carries for a candidate: the author's `class` as written,
  * less each class {@link lowVisionIgnored} names for its owner when the candidate's supports show
  * low-vision indications ({@link showsLowVision}), and none when no class token is left.
@@ -282,7 +295,7 @@ export const carriedClass = (
   written.pipe(
     Option.flatMap((classes) => {
       const ignored = lowVisionIgnored.get(owner) ?? [];
-      const tokens = classes.split(/[\t\n\f\r ]+/u).filter((token) => token !== "");
+      const tokens = classTokensOf(classes);
       const kept =
         ignored.length === 0 || !showsLowVision(supports)
           ? tokens
