@@ -26,6 +26,23 @@ printf 'PGPASSWORD=%s %s\\n' "$PGPASSWORD" "$6" >> "$(dirname "$0")/../psql.log"
 `;
 
 /**
+ * A grizzle config with grizzle.config.ts's connection over a scratch installation, as small as
+ * grizzle builds one, written beside a case's stub psql (`work/` is inside the package, so its
+ * `#pantry/` import resolves): grizzle migrate builds the connection before it reads a migration,
+ * and loading `Qti` would only stand between the script and the connection the case observes.
+ */
+const probeConfig = `import { defineConfig, natural, relation, schema } from "@bjornpagen/grizzle";
+import { migrationConnectionNow } from "#pantry/db/connection.ts";
+
+export default defineConfig({
+  connection: migrationConnectionNow,
+  logins: [],
+  migrations: "migrations",
+  schemas: [schema("ConnectionProbe", [relation("Probe", { id: natural }, ["id"])], [])],
+});
+`;
+
+/**
  * The variables of the process the tests run in that scripts/db.sh or the grizzle config reads,
  * removed from each run, so only a case's own settings reach it. `HOME` stays, for corepack's
  * pnpm; every default the script derives from it is set.
@@ -276,18 +293,24 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     it.effect(
       "gives grizzle migrate the CA file it gives psql, which the config reads from QTI_PIE_PG_CA and names when it cannot read it",
       () =>
-        // Bound: one grizzle migrate, whose config reads the CA from QTI_PIE_PG_CA alone, so the
-        // script must export it; the config's own reading of the variable is
-        // db/connection.test.ts's.
+        // Bound: one grizzle migrate of the probe config, whose connection, grizzle.config.ts's,
+        // reads the CA from QTI_PIE_PG_CA alone, so the script must export it; the config's own
+        // reading of the variable is db/connection.test.ts's.
         Effect.gen(function* exportedCa() {
+          const fs = yield* FileSystem.FileSystem;
           const scratch = yield* scriptScratch;
           const command = yield* scratch.command("password.sh", "echo the-password");
           const missing = `${scratch.root}/no-such-ca.crt`;
+          const config = `${scratch.root}/grizzle.config.ts`;
           const environment = {
             ...scratch.environment,
+            QTI_PIE_GRIZZLE_CONFIG: config,
             QTI_PIE_PG_CA: missing,
             QTI_PIE_PG_PASSWORD_COMMAND: command,
           };
+
+          yield* fs.writeFileString(config, probeConfig);
+
           const run = yield* runScript("migrate", environment);
 
           assert.notStrictEqual(run.code, 0);
