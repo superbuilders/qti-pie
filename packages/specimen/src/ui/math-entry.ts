@@ -17,7 +17,10 @@
  *   character is a shifted one, as a person types it, so MathLive reads the key and its modifiers
  *   as it reads a person's (a `|` is Shift and the backslash key, and the backslash key alone opens
  *   MathLive's LaTeX mode);
- * - `pressed`, a key that types nothing: deleting, moving the caret, and Enter.
+ * - `pressed`, a key that types nothing: deleting, moving the caret, and Enter;
+ * - `box`, a tap on one of the field's empty boxes, the `n`th in reading order from 0, which puts the
+ *   caret in it, as a child taps a box a template key left; a tap on a box the field has not does
+ *   nothing.
  *
  * The page is served from this machine, MathLive's own files from its package, so nothing loads
  * from another host. Chrome is the machine's, through Playwright's `chrome` channel, headless.
@@ -25,14 +28,16 @@
  * @module
  */
 import { createServer } from "node:http";
+import { tmpdir } from "node:os";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inspect } from "node:util";
 import { array, element, map, oneOf } from "@bjornpagen/testing/gen";
 import type { Gen } from "@bjornpagen/testing/gen";
-import { Array as Arr, Data, Effect, Option, Schema } from "effect";
-import type { Scope } from "effect";
+import { Array as Arr, Config, Data, Effect, Option, Schema } from "effect";
+import type { Result, Scope } from "effect";
 import { chromium } from "playwright-core";
 import type { Browser, Page } from "playwright-core";
 import {
@@ -170,13 +175,15 @@ export const pressedKeys = [
 ] as const;
 
 /**
- * One thing a child does to the field: a key of the virtual keyboard, a character typed, or a key
- * that types nothing, as a key sequence's line of JSON writes it.
+ * One thing a child does to the field: a key of the virtual keyboard, a character typed, a key that
+ * types nothing, or a tap on one of the squares the field draws, by its place among them from 0,
+ * as a key sequence's line of JSON writes it.
  */
 export const MathEntryKeySchema = Schema.Union([
   Schema.Struct({ keycap: Schema.Literals(keycaps) }),
   Schema.Struct({ typed: Schema.Literals(typedCharacters) }),
   Schema.Struct({ pressed: Schema.Literals(pressedKeys) }),
+  Schema.Struct({ box: Schema.Number }),
 ]);
 
 /**
@@ -201,12 +208,17 @@ export const keyboards = ["plate", "alphatest"] as const;
 export type Keyboard = (typeof keyboards)[number];
 
 /**
- * What a field is set up with on a keyboard: its options, its layout, and its keys' names in the
- * order the page shows them, which places a key among the page's keys.
+ * What a field is set up with on a keyboard: its options, its layout, the function that applies
+ * them, and its keys' names in the order the page shows them, which places a key among the page's
+ * keys.
  */
-interface Setup {
+export interface Setup {
   readonly layout: VirtualKeyboardLayout;
   readonly names: readonly string[];
+  /**
+   * The function that sets a field up, `setUpField`'s shape, whose own source runs in the page.
+   */
+  readonly setUp: typeof setUpField;
   readonly settings: FieldSettings;
 }
 
@@ -217,10 +229,30 @@ const setups: Readonly<Record<Keyboard, Setup>> = {
   alphatest: {
     layout: alphaTestLayout,
     names: namesOf(alphaTestRows),
+    setUp: setUpField,
     settings: alphaTestSettings,
   },
-  plate: { layout: keyboardLayout, names: namesOf(keyboardKeys), settings: fieldSettings },
+  plate: {
+    layout: keyboardLayout,
+    names: namesOf(keyboardKeys),
+    setUp: setUpField,
+    settings: fieldSettings,
+  },
 };
+
+/**
+ * Give what a field is set up with on a keyboard.
+ *
+ * @param keyboard The keyboard.
+ * @returns Its setup.
+ */
+export const setupOf = (keyboard: Keyboard): Setup => setups[keyboard];
+
+/**
+ * Give the names of a keyboard's keys, as its layout's rows name them ({@link namesOf}), for a
+ * setup of a test's own.
+ */
+export { namesOf };
 
 /**
  * Draw a key of a keyboard's: a key of the virtual keyboard half the time, since that is how most
@@ -274,7 +306,7 @@ export class MathEntryFailure extends Data.TaggedError("MathEntryFailure")<{
    * The step that failed and its cause.
    */
   override get message(): string {
-    return `The math entry's field failed while it ${this.step}: ${String(this.cause)}`;
+    return `The math entry's field failed while it ${this.step}: ${inspect(this.cause, { depth: 3 })}`;
   }
 }
 
@@ -304,7 +336,6 @@ const pageHtml = `<!doctype html>
 import { MathfieldElement } from "/mathlive/mathlive.min.mjs";
 MathfieldElement.fontsDirectory = null;
 MathfieldElement.soundsDirectory = null;
-window.setUpField = ${String(setUpField)};
 window.fieldReady = customElements.whenDefined("math-field");
 </script></head><body></body></html>`;
 
@@ -387,10 +418,26 @@ const pageServer: Effect.Effect<string, MathEntryFailure, Scope.Scope> = Effect.
 );
 
 /**
+ * The folder Chrome keeps its process singleton's socket in: the session's runtime folder, whose
+ * path is short. A socket's path is at most 107 bytes, and a suite runs with its temporary folder
+ * in its package's `work/`, a path too long for Chrome's socket beneath it, so Chrome would stop at
+ * its start. The system's temporary folder where the session has no runtime folder.
+ */
+const runtimeFolder = Config.String("XDG_RUNTIME_DIR").pipe(Config.withDefault(tmpdir()));
+
+/**
  * The machine's Google Chrome, headless, closed with its scope.
  */
 const chrome: Effect.Effect<Browser, MathEntryFailure, Scope.Scope> = Effect.acquireRelease(
-  attempt("started Chrome", () => chromium.launch({ channel: "chrome", headless: true })),
+  Effect.flatMap(Effect.orDie(runtimeFolder), (temporary) =>
+    attempt("started Chrome", () =>
+      chromium.launch({
+        channel: "chrome",
+        env: { ...process.env, TMPDIR: temporary },
+        headless: true,
+      }),
+    ),
+  ),
   (browser) => Effect.promise(() => browser.close()),
 );
 
@@ -439,10 +486,32 @@ const timerFired = async (delay: number): Promise<void> => {
 };
 
 /**
- * Put a fresh field in the page, the keyboard hidden and the last field gone, set it up as the
- * island does, and focus it with a click as a child does, waiting until it has joined the virtual
- * keyboard and the last field's timers have run ({@link focusDelay}). The sequence's first key of
- * the keyboard shows it again.
+ * Put a fresh field in the page, the keyboard hidden and the last field gone, set up by the setup's
+ * own function, from its source, as the island sets it up.
+ *
+ * @param page The page.
+ * @param setup The keyboard's setup.
+ * @returns The field in the page.
+ */
+const placedField = (page: Page, setup: Setup): Effect.Effect<void, MathEntryFailure> =>
+  attempt("put a fresh field in the page", () =>
+    page.evaluate(
+      `(async () => {
+          await window.fieldReady;
+          window.mathVirtualKeyboard.hide();
+          document.querySelector("math-field")?.remove();
+          const field = new window.MathfieldElement();
+          field.id = "field";
+          document.body.append(field);
+          (${String(setup.setUp)})(field, window.mathVirtualKeyboard, ${JSON.stringify(setup.settings)}, ${JSON.stringify(setup.layout)});
+        })()`,
+    ),
+  );
+
+/**
+ * Put a fresh field in the page ({@link placedField}) and focus it with a click as a child does,
+ * waiting until it has joined the virtual keyboard and the last field's timers have run
+ * ({@link focusDelay}). The sequence's first key of the keyboard shows the keyboard again.
  *
  * @param page The page.
  * @param setup The keyboard's setup.
@@ -450,21 +519,7 @@ const timerFired = async (delay: number): Promise<void> => {
  */
 const freshField = (page: Page, setup: Setup): Effect.Effect<void, MathEntryFailure> =>
   Effect.andThen(
-    attempt("put a fresh field in the page", () =>
-      page.evaluate(
-        async ([settings, layout]) => {
-          await window.fieldReady;
-          window.mathVirtualKeyboard.hide();
-          document.querySelector("math-field")?.remove();
-          const field = new window.MathfieldElement();
-
-          field.id = "field";
-          document.body.append(field);
-          window.setUpField(field, window.mathVirtualKeyboard, settings, layout);
-        },
-        [setup.settings, setup.layout] as const,
-      ),
-    ),
+    placedField(page, setup),
     attempt("focused the field", async () => {
       await page.click("#field");
       await page.evaluate(timerFired, focusDelay);
@@ -546,13 +601,25 @@ const aimAt = async ([at, frames]: readonly [number, number]): Promise<Aim> => {
  * @returns The show.
  */
 const keyboardShown = (page: Page): Effect.Effect<void, MathEntryFailure> =>
-  attempt("showed the virtual keyboard", () =>
-    page.evaluate(() => {
-      if (!window.mathVirtualKeyboard.visible) {
-        window.mathVirtualKeyboard.show();
-      }
-    }),
-  );
+  attempt("showed the virtual keyboard", async () => {
+    const toggle = await page.evaluate(() => {
+      const box = window.mathVirtualKeyboard.visible
+        ? undefined
+        : document
+            .querySelector<MathfieldElement>("#field")
+            ?.shadowRoot?.querySelector("[part=virtual-keyboard-toggle]")
+            ?.getBoundingClientRect();
+
+      return box === undefined
+        ? undefined
+        : { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+    });
+
+    if (toggle !== undefined) {
+      await page.mouse.click(toggle.x, toggle.y);
+      await page.evaluate(timerFired, focusDelay);
+    }
+  });
 
 /**
  * Press one key on the focused field, as a child does.
@@ -588,6 +655,35 @@ const press = (
         );
   }
 
+  if ("box" in pressedKey) {
+    const { box } = pressedKey;
+
+    return attempt(`tapped box ${String(box)}`, async () => {
+      // MathLive draws a change on the next frame: the boxes stand where they are drawn once it has.
+      await page.evaluate(twoFrames);
+      const aim = await page.evaluate((at) => {
+        const field = document.querySelector<MathfieldElement>("#field");
+        const squares = [
+          ...(field?.shadowRoot?.querySelectorAll(".ML__content [data-atom-id]") ?? []),
+        ]
+          .filter(
+            (each) => each.children.length === 0 && each.textContent === field?.placeholderSymbol,
+          )
+          .map((each) => each.getBoundingClientRect())
+          .toSorted((a, b) => Math.round(a.left) - Math.round(b.left) || a.top - b.top);
+        const square = squares[at];
+
+        return square === undefined
+          ? undefined
+          : { x: square.left + (square.width * 3) / 4, y: square.top + square.height / 2 };
+      }, box);
+
+      if (aim !== undefined) {
+        await page.mouse.click(aim.x, aim.y);
+      }
+    });
+  }
+
   if ("typed" in pressedKey) {
     const { typed } = pressedKey;
 
@@ -602,10 +698,14 @@ const press = (
  */
 export interface MathEntryField {
   /**
-   * Press keys in order on a fresh field, and give the LaTeX it holds once the last has landed:
-   * its `value`, which the island posts as the response.
+   * Press keys in order on a fresh field, set up as `setup` gives or as the field was opened, and
+   * give the LaTeX it holds once the last has landed: its `value`, which the island posts as the
+   * response.
    */
-  readonly typed: (keys: readonly MathEntryKey[]) => Effect.Effect<string, MathEntryFailure>;
+  readonly typed: (
+    keys: readonly MathEntryKey[],
+    setup?: Setup,
+  ) => Effect.Effect<string, MathEntryFailure>;
 }
 
 /**
@@ -638,10 +738,10 @@ const fieldIn = (
       (page) => Effect.promise(() => page.close()),
     ),
     (page): MathEntryField => ({
-      typed: (keys) =>
+      typed: (keys, given = setup) =>
         Effect.gen(function* typed() {
-          yield* freshField(page, setup);
-          yield* Effect.forEach(keys, (each) => press(page, setup, each), { discard: true });
+          yield* freshField(page, given);
+          yield* Effect.forEach(keys, (each) => press(page, given, each), { discard: true });
           yield* attempt("waited for the page to paint", () => page.evaluate(twoFrames));
 
           return yield* attempt("read the field's value", () =>
@@ -656,12 +756,12 @@ const fieldIn = (
  * with the scope.
  *
  * @param count How many fields: one per sequence typed at once.
- * @param keyboard The keyboard they are typed on, plate's unless named.
+ * @param setup What each is set up with: plate's field unless given ({@link setupOf}).
  * @returns The fields.
  */
 export const mathEntryFields = (
   count: number,
-  keyboard: Keyboard = "plate",
+  setup: Setup = setups.plate,
 ): Effect.Effect<Arr.NonEmptyReadonlyArray<MathEntryField>, MathEntryFailure, Scope.Scope> =>
   Effect.gen(function* fields() {
     const url = yield* pageServer;
@@ -669,7 +769,7 @@ export const mathEntryFields = (
 
     return yield* Effect.forEach(
       Arr.makeBy(Math.max(1, count), () => url),
-      (at) => fieldIn(browser, at, setups[keyboard]),
+      (at) => fieldIn(browser, at, setup),
       { concurrency: "unbounded" },
     );
   });
@@ -680,12 +780,15 @@ export const mathEntryFields = (
  *
  * @param fields The fields, each in a page of its own ({@link mathEntryFields}).
  * @param sequences The key sequences.
- * @returns The LaTeX each sequence leaves, in the sequences' order.
+ * @param setup What each field is set up with, as each was opened unless given.
+ * @returns The LaTeX each sequence leaves, or why it could not be typed (a key the keyboard has
+ *   not), in the sequences' order: one sequence's failure leaves the others typed.
  */
 export const typedAll = (
   fields: Arr.NonEmptyReadonlyArray<MathEntryField>,
   sequences: readonly (readonly MathEntryKey[])[],
-): Effect.Effect<readonly string[], MathEntryFailure> =>
+  setup?: Setup,
+): Effect.Effect<readonly Result.Result<string, MathEntryFailure>[]> =>
   Effect.map(
     Effect.forEach(
       fields,
@@ -694,7 +797,8 @@ export const typedAll = (
           sequences.flatMap((keys, at) =>
             at % fields.length === share ? [[at, keys] as const] : [],
           ),
-          ([at, keys]) => Effect.map(field.typed(keys), (latex) => [at, latex] as const),
+          ([at, keys]) =>
+            Effect.map(Effect.result(field.typed(keys, setup)), (latex) => [at, latex] as const),
         ),
       { concurrency: "unbounded" },
     ),
@@ -711,9 +815,5 @@ declare global {
      * Resolves once MathLive has defined `math-field` in the page.
      */
     readonly fieldReady: Promise<unknown>;
-    /**
-     * Plate's `setUpField`, from its own source.
-     */
-    readonly setUpField: typeof setUpField;
   }
 }

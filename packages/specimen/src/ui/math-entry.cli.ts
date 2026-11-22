@@ -23,12 +23,13 @@ import { text } from "node:stream/consumers";
 import { parseArgs } from "node:util";
 import { floorSeed, rotatingSeed } from "@bjornpagen/testing/random";
 import { sample } from "@bjornpagen/testing/source";
-import { Effect, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 import {
   KeySequenceSchema,
   keyboards,
   keySequenceOn,
   mathEntryFields,
+  setupOf,
   typedAll,
 } from "#specimen/ui/math-entry.ts";
 import type { MathEntryKey } from "#specimen/ui/math-entry.ts";
@@ -75,12 +76,20 @@ await Effect.runPromise(
       const keys = yield* sequences;
       const fields = yield* mathEntryFields(
         Math.min(availableParallelism(), keys.length),
-        keyboard,
+        setupOf(keyboard),
       );
-      const latex = yield* typedAll(fields, keys);
+      const typed = yield* typedAll(fields, keys);
 
-      for (const [at, sequence] of keys.entries()) {
-        process.stdout.write(`${JSON.stringify({ keys: sequence, latex: latex[at] })}\n`);
+      for (const [sequence, result] of keys.map((each, at) => [each, typed[at]] as const)) {
+        const line =
+          result === undefined
+            ? { error: "not typed", keys: sequence }
+            : Result.match(result, {
+                onFailure: (failure) => ({ error: failure.message, keys: sequence }),
+                onSuccess: (latex) => ({ keys: sequence, latex }),
+              });
+
+        process.stdout.write(`${JSON.stringify(line)}\n`);
       }
     }),
   ),

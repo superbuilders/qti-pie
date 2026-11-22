@@ -80,7 +80,7 @@ export const mathEntryClass = "plate-math-entry";
  *   after a superscript's first digit the caret stays in the superscript, so `x^2+1` typed is
  *   `x^{2+1}`.
  */
-export const alphaTestSettings = {
+export const alphaTestSettings: FieldSettings = {
   inlineShortcuts: {},
   mathModeSpace: "",
   menuItems: [],
@@ -89,7 +89,22 @@ export const alphaTestSettings = {
   smartFence: true,
   smartMode: false,
   smartSuperscript: false,
-} satisfies Partial<
+};
+
+/**
+ * Plate's options: {@link alphaTestSettings} with `mathModeSpace` `\,`, so a typed space is a thin
+ * space and a mixed number typed `2 1/2` is `2\,\frac12`, two and a half, where AlphaTest's field
+ * dropped the space and the fraction typed after it took both digits, `\frac{21}{2}` (edullm-bd's
+ * ruling, 2026-11-22; GRADING-SQL reads `\,` as a mixed number's join and as nothing elsewhere).
+ * A fate of its own beside the {@link keyFates}.
+ */
+export const fieldSettings: FieldSettings = { ...alphaTestSettings, mathModeSpace: String.raw`\,` };
+
+/**
+ * The settings {@link setUpField} applies: the options AlphaTest's player set, each as its
+ * `MathfieldElement` property types it.
+ */
+export type FieldSettings = Readonly<
   Pick<
     MathfieldElement,
     | "inlineShortcuts"
@@ -102,22 +117,6 @@ export const alphaTestSettings = {
     | "smartSuperscript"
   >
 >;
-
-/**
- * Plate's options: {@link alphaTestSettings} with `mathModeSpace` `\,`, so a typed space is a thin
- * space and a mixed number typed `2 1/2` is `2\,\frac12`, two and a half, where AlphaTest's field
- * dropped the space and the fraction typed after it took both digits, `\frac{21}{2}` (edullm-bd's
- * ruling, 2026-11-22; GRADING-SQL reads `\,` as a mixed number's join and as nothing elsewhere).
- * A fate of its own beside the {@link keyFates}.
- */
-export const fieldSettings: FieldSettings = { ...alphaTestSettings, mathModeSpace: String.raw`\,` };
-
-/**
- * The settings {@link setUpField} applies, as {@link alphaTestSettings} holds them.
- */
-export type FieldSettings = Omit<typeof alphaTestSettings, "mathModeSpace"> & {
-  readonly mathModeSpace: string;
-};
 
 /**
  * AlphaTest's virtual keyboard's keys, row by row, as its player wrote them: six rows of six keys
