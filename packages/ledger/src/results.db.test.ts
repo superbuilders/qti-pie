@@ -230,7 +230,7 @@ const pointWhen = (condition: string) =>
  */
 const operatorsXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="${asi}" identifier="operators" title="operators" adaptive="false" time-dependent="false" xml:lang="en">
-<qti-response-declaration identifier="MATH" cardinality="single" base-type="string"/><qti-response-declaration identifier="PHRASE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>2</qti-value></qti-default-value></qti-outcome-declaration><qti-item-body><p><qti-text-entry-interaction response-identifier="MATH"/></p><p><qti-text-entry-interaction response-identifier="PHRASE"/></p></qti-item-body><qti-response-processing>${pointWhen(`<qti-match>${customOperator("math-canonical", '<qti-variable identifier="MATH"/>')}${customOperator("math-canonical", `<qti-base-value base-type="string">${MATH_KEY}</qti-base-value>`)}</qti-match>`)}${pointWhen(`<qti-lte>${customOperator("phrase-distance", `<qti-variable identifier="PHRASE"/><qti-multiple><qti-base-value base-type="string">${PHRASE_KEY}</qti-base-value></qti-multiple>`)}<qti-base-value base-type="integer">0</qti-base-value></qti-lte>`)}</qti-response-processing>
+<qti-response-declaration identifier="MATH" cardinality="single" base-type="string"/><qti-response-declaration identifier="PHRASE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>2</qti-value></qti-default-value></qti-outcome-declaration><qti-item-body><p><qti-text-entry-interaction response-identifier="MATH"/></p><p><qti-text-entry-interaction response-identifier="PHRASE"/></p></qti-item-body><qti-response-processing>${pointWhen(`<qti-match>${customOperator("math-canonical", '<qti-variable identifier="MATH"/><qti-base-value base-type="boolean">false</qti-base-value>')}${customOperator("math-canonical", `<qti-base-value base-type="string">${MATH_KEY}</qti-base-value><qti-base-value base-type="boolean">false</qti-base-value>`)}</qti-match>`)}${pointWhen(`<qti-lte>${customOperator("phrase-distance", `<qti-variable identifier="PHRASE"/><qti-multiple><qti-base-value base-type="string">${PHRASE_KEY}</qti-base-value></qti-multiple><qti-multiple><qti-base-value base-type="string">the</qti-base-value></qti-multiple>`)}<qti-base-value base-type="integer">0</qti-base-value></qti-lte>`)}</qti-response-processing>
 </qti-assessment-item>`;
 
 /**
@@ -1008,11 +1008,18 @@ const rowsOf = <K extends Parameters<typeof decoder.decode>[0]>(
 ) => Result.getOrThrow(decoder.decode(relation, rows));
 
 /**
- * The seed every case's item session draws under (`SessionSeed`), which nothing the table reads
- * depends on: a seed is a SHA-256, 32 raw bytes, as the take computes one, so the suite's is the
- * digest of `result-suite`'s UTF-8 bytes.
+ * A seed an item session draws under (`SessionSeed`), named by a text: a seed is a SHA-256, 32 raw
+ * bytes, as the take computes one, so the suite's seeds are the digests of their names' UTF-8
+ * bytes.
+ *
+ * @param name - The seed's name.
  */
-const SEED = Sha256.ofBytes(new TextEncoder().encode("result-suite"));
+const seedOf = (name: string) => Sha256.ofBytes(new TextEncoder().encode(name));
+
+/**
+ * The seed every case's item session draws under, which nothing the table reads depends on.
+ */
+const SEED = seedOf("result-suite");
 
 /**
  * The scorer of a person's value, the suite's own.
@@ -1240,8 +1247,8 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
   });
 
 /**
- * A take's case: a fresh child's session of the templated item under one seed, whose T is whatever
- * the machine's template processing draws under it.
+ * A take's case: a fresh child's session of the templated item under one seed, named (`seedOf`),
+ * whose T is whatever the machine's template processing draws under it.
  */
 type TakeCase = Readonly<{ name: string; seed: string }>;
 
@@ -1348,7 +1355,7 @@ const holdTake = (c: TakeCase, child: string, note: (situation: TakeSituation) =
           ProcessedAttempt: rowsOf("ProcessedAttempt", []),
           ResponseSnapshot: rowsOf("ResponseSnapshot", []),
           SessionSeed: rowsOf("SessionSeed", [
-            { child, package: PACKAGE, path: TAKE, seed: c.seed, stage },
+            { child, package: PACKAGE, path: TAKE, seed: seedOf(c.seed), stage },
           ]),
           SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
           SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
