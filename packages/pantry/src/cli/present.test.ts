@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { Law, Witness } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";
-import { assert, beforeAll, layer } from "@effect/vitest";
+import { assert, layer } from "@effect/vitest";
 import { Cause, Effect, Exit, FileSystem, Formatter, Schema } from "effect";
 import { Command } from "effect/cli";
 import { inject } from "vitest";
@@ -21,6 +21,14 @@ import { readerOrigin, RefusedKind, WitnessKind } from "#pantry/package/refusal-
 import { lawTable } from "#pantry/vocab/laws.ts";
 import { captureCli, matchesCommitted, packageCopy } from "#pantry/test/cli.ts";
 import { fileScratchDirectory, makeScratch, scratchEnv } from "#pantry/test/scratch.ts";
+// The modules this file's commands import lazily, loaded with the file, so no test or hook pays that
+// load inside its timeout: the package name's check, which `import` and `roundtrip` run first
+// (`requireName`, `#pantry/cli/args.ts`), and the layers `withAuthorApp` (`#pantry/cli/engine.ts`)
+// builds, where a missing local set-up fails with kind `config`. No command here reaches an
+// importer, a preview or an exporter, so none of them loads.
+import "#pantry/qti/limits.ts";
+import "#pantry/db/layer.ts";
+import "#pantry/package/media.ts";
 
 const fixtures = inject("fixtures");
 
@@ -58,23 +66,6 @@ const differing = Command.make(
     yield* new RoundtripDiffers({ differing: 1, exportDir: "work/export/x" });
   }),
 ).pipe(Command.withGlobalFlags(outputGlobalFlags));
-
-/**
- * Loads the modules this file's commands import lazily, once, before its first test, so no test
- * pays that load inside its own timeout: the package name's check, which `import` and `roundtrip`
- * run first (`requireName`, `#pantry/cli/args.ts`), and the layers `withAuthorApp`
- * (`#pantry/cli/engine.ts`) builds, where a missing local set-up fails with kind `config`. No
- * command here reaches an importer, a preview or an exporter, so none of them loads.
- */
-beforeAll(() =>
-  Effect.promise(() =>
-    Promise.all([
-      import("#pantry/qti/limits.ts"),
-      import("#pantry/db/layer.ts"),
-      import("#pantry/package/media.ts"),
-    ]),
-  ),
-);
 
 layer(NodeServices.layer, { excludeTestServices: true })("the text error shape", (it) => {
   it.effect("an unknown command prints its usage and the valid commands, not the whole help", () =>
