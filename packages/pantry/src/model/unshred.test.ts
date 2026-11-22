@@ -178,7 +178,13 @@ describe("unshred", { timeout: searchTimeout }, () => {
               const whole = editElement(document, target, (owner) => {
                 const at = owner.children.findIndex(({ _tag }) => _tag === "text" || _tag === "ws");
                 const found = owner.children[at];
-                const value = found !== undefined && "value" in found ? found.value : run;
+                // A run of an element whose text is an `xs:normalizedString` is stored replaced, each
+                // tab, line feed and carriage return a space (XML Schema 1.0 Part 2, §4.3.6; shred's
+                // `characterOf`), so the run a tree of shred's holds there is the drawn one replaced.
+                const held = shredGrammar.replacesText(owner.kind, owner.governs)
+                  ? run.replaceAll(/[\t\n\r]/gu, " ")
+                  : run;
+                const value = found !== undefined && "value" in found ? found.value : held;
                 // The run is cut between two characters, never inside one: a code point above
                 // U+FFFF is two UTF-16 units, and a run holding one alone holds no character XML
                 // allows.

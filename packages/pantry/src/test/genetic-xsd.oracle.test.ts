@@ -429,17 +429,19 @@ const judgeAll = Effect.fn("test.geneticXsd.judgeAll")(function* judgeAll(input:
  *
  * The last eight are genetic repair round 4's X3b, X4a, X4b and X5: the search's reduced document
  * of each, verbatim, beside the trace's reduction of it to its cause (X3b, X4a, X4b) or a plain
- * item that shows it (X5). An SSML speak whose version is no `1.1`, in an
- * include's content or in a paragraph, is reading 39's: SSML 1.1 says the version is `1.1`, where
- * QTI's XSD types it `xs:NMTOKEN`. Whitespace in a MathML `exists` beside text in a nested item, in
- * one include, is two recorded classes in one difference, reading 2's whitespace and reading 6's
- * nested root (`nestedRootBesideMath`). A truncate whose `xsi:type` admits one expression and holds
- * two, beneath a no-namespace element of an include, is reading 50's limit: the law oracle accepts
- * a laxly held element whose `xsi:type` names a complex type without checking it against the type,
- * and xmllint checks it (`laxComplexType`). An interaction beneath a hottext through SSML and HTML
- * wrappers is the specification's (§5.65: a hottext holds no nested interaction), a ban the XSD
- * loses beneath a foreign element's lax wildcard; the reduced stimulus holds a custom interaction,
- * and the item's text entry interaction shows it too.
+ * item that shows it (X5). An SSML speak whose version is no `1.1`, in a paragraph, is reading
+ * 39's: SSML 1.1 says the version is `1.1`, where QTI's XSD types it `xs:NMTOKEN`; in an include's
+ * content it is reading 118's, which ignores that content, where xmllint assesses it laxly and
+ * refuses the speak for its missing `xml:lang` (`ignoredIncludeContent`). Whitespace in a MathML
+ * `exists` beside text in a nested item, in one include, is two recorded classes in one difference,
+ * reading 2's whitespace and reading 6's nested root (`nestedRootBesideMath`). A truncate whose
+ * `xsi:type` admits one expression and holds two, beneath a no-namespace element of an include, is
+ * reading 50's limit: the law oracle accepts a laxly held element whose `xsi:type` names a complex
+ * type without checking it against the type, and xmllint checks it (`laxComplexType`). An
+ * interaction beneath a hottext through SSML and HTML wrappers is the specification's (§5.65: a
+ * hottext holds no nested interaction), a ban the XSD loses beneath a foreign element's lax
+ * wildcard; the reduced stimulus holds a custom interaction, and the item's text entry interaction
+ * shows it too.
  */
 const keptDocuments: readonly { readonly name: string; readonly text: string }[] = [
   {

@@ -60,9 +60,12 @@ const evaluateQti = evaluatorOf(Qti);
 const formerDecimal = pg.numeric(511, 255);
 
 /**
- * The deleted check, restated as it was over a level above `Qti`, under a name of its own: each
- * value cast through {@link formerDecimal}'s lexical form, a value outside it read as the infinity
- * at the end of the order that holds it.
+ * The deleted check, restated over a level above `Qti`, under a name of its own: each value cast
+ * through {@link formerDecimal}'s lexical form, a value outside it read as the infinity at the end
+ * of the order that holds it. No infinity is a value of the bounded numeric (grizzle refuses a
+ * literal compared with one it cannot hold, README, "Arithmetic"), so the cast value is compared in
+ * numeric of no typmod, `pg.numeric`, which holds both infinities and every value the bounded cast
+ * gives, as it is: the order the deleted check compared in.
  */
 const formerLevel = schema.extend(
   [Qti],
@@ -73,12 +76,12 @@ const formerLevel = schema.extend(
       r.le(
         Logic.when(
           Text.matches(r.min, lexicalForm(formerDecimal)),
-          (min) => Type.cast(min, formerDecimal),
+          (min) => Type.cast(Type.cast(min, formerDecimal), pg.numeric),
           Decimal.negativeInfinity,
         ),
         Logic.when(
           Text.matches(r.max, lexicalForm(formerDecimal)),
-          (max) => Type.cast(max, formerDecimal),
+          (max) => Type.cast(Type.cast(max, formerDecimal), pg.numeric),
           Decimal.infinity,
         ),
       ),
@@ -772,7 +775,8 @@ const situations: readonly [Situation | AdversarialName, ...(Situation | Adversa
 
 describe("qti/interactions.ts, the ARIA range's decimal order", () => {
   it("evaluates AriaBounds under the installed Aria_value_range check, and under its former statement beside it", () => {
-    // Oracle: the schema's statements, which `Qti` holds once each, and the one restated here.
+    // Oracle: the schema's statements, which `Qti` holds once each, and the one restated here,
+    // each set read in name order, as the evaluator's checks are keyed in law order.
     const row = boundsRow(["0", "1"]);
     assert.deepStrictEqual(
       Object.keys(
@@ -782,7 +786,7 @@ describe("qti/interactions.ts, the ARIA range's decimal order", () => {
           ),
           "a row",
         ).checks,
-      ),
+      ).toSorted(),
       ["Aria_value_range", "Key_text_bound"],
     );
     assert.deepStrictEqual(

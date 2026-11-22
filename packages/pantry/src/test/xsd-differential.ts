@@ -24,6 +24,7 @@ import { governorOf } from "#pantry/grammar/attributes.ts";
 import { composed } from "#pantry/grammar/compose.ts";
 import type { ComposedGrammar } from "#pantry/grammar/compose.ts";
 import { fragmentRoots } from "#pantry/grammar/facets.ts";
+import { fallbackKind, includeKind } from "#pantry/grammar/include.ts";
 import { isForeignKind } from "#pantry/grammar/kinds.ts";
 import { foldGrammarOf, shredGrammarOf } from "#pantry/model/composed.ts";
 import { fold } from "#pantry/model/folds.ts";
@@ -567,6 +568,42 @@ export const isLaxComplexType = (
 ): boolean =>
   difference.direction === laxComplexType.direction &&
   difference.detail.split(" | ").every((message) => isMessageOn(message, laxComplex));
+
+/**
+ * The class of disagreement spec reading 118 departs from the XSD by: an include's content other
+ * than its `xi:fallback` is ignored ("Other content ... is not constrained by this specification
+ * and is ignored by the XInclude processor", XInclude 1.0 Second Edition §3.1), skipped and never
+ * assessed, where `XInclude.xsd`'s `includeType` holds it under a `lax` wildcard, which finds each
+ * element's global declaration and assesses it (XML Schema Part 1, 3.10.4), so `xmllint` refuses
+ * whatever in it the declaration does not admit.
+ *
+ * Only that content is this class, decided from the law oracle's own rows: each child of an
+ * include that is no fallback, and every element within it ({@link ForeignNames}' `ignored`).
+ */
+export const ignoredIncludeContent: Recorded = {
+  direction: "xsd-only",
+  reason: {
+    _tag: "reading",
+    reading: 118,
+    says: "the content of an include other than its `xi:fallback` is ignored: skipped, never assessed laxly, as `XInclude.xsd`'s wildcard would assess it, and never refused, by the importer (`ignoredContent`, `src/grammar/facets.ts`) and the law oracle alike.",
+    why: "an include's content other than its fallback is ignored, never assessed; xmllint assesses it laxly under XInclude.xsd's wildcard",
+  },
+};
+
+/**
+ * Decide whether a difference is reading 118's class ({@link ignoredIncludeContent}): every message
+ * `xmllint` gave for it is on an element at or within an include's ignored content.
+ *
+ * @param difference - The difference.
+ * @param ignored - The expanded names of those elements.
+ * @returns Whether it is.
+ */
+export const isIgnoredIncludeContent = (
+  difference: Difference,
+  ignored: ReadonlySet<string>,
+): boolean =>
+  difference.direction === ignoredIncludeContent.direction &&
+  difference.detail.split(" | ").every((message) => isMessageOn(message, ignored));
 
 /**
  * The class of disagreement spec reading 6 departs from the XSD by: a QTI root, processing root or
@@ -1833,6 +1870,11 @@ export const generatedRecorded: readonly Recorded[] = [
  * holder's place (`xmlIds`), which a "DocumentId key" breach names ({@link paddedIdRecord}).
  */
 export interface ForeignNames {
+  /**
+   * The expanded names of the elements at or within an include's content other than its
+   * fallback, which reading 118 ignores ({@link ignoredIncludeContent}).
+   */
+  readonly ignored: ReadonlySet<string>;
   readonly lax: ReadonlySet<string>;
   /**
    * The expanded names of the elements at or within a foreign element in a foreign element's
@@ -1898,6 +1940,7 @@ export const foreignNamesOf = Effect.fn("test.foreignNamesOf")(function* foreign
   );
   if (Result.isFailure(tree)) {
     return {
+      ignored: new Set(),
       lax: new Set(),
       laxComplex: new Set(),
       lomReads: new Set(),
@@ -2000,6 +2043,10 @@ export const foreignNamesOf = Effect.fn("test.foreignNamesOf")(function* foreign
       Option.isNone(governorOf(grammar.attributes, node)) &&
       isForeignKind(byStart.get(node.parent)?.kind ?? ""),
   );
+  // XInclude ignores an include's children but its fallback, and what they hold (reading 118).
+  const ignoredChildren = rows.nodes.filter(
+    (node) => byStart.get(node.parent)?.kind === includeKind && node.kind !== fallbackKind,
+  );
   const nameOf = (node: (typeof rows.nodes)[number]) =>
     Option.toArray(
       Option.orElse(Option.fromNullishOr(opened.get(node.start)), () =>
@@ -2008,6 +2055,7 @@ export const foreignNamesOf = Effect.fn("test.foreignNamesOf")(function* foreign
     );
 
   return {
+    ignored: new Set([...ignoredChildren, ...below(ignoredChildren)].flatMap(nameOf)),
     lax: new Set(opened.values()),
     laxComplex: new Set([...complexTyped, ...below(complexTyped)].flatMap(nameOf)),
     lomReads,
@@ -2509,6 +2557,10 @@ export const generatedRecordOf = (
     return laxComplexType;
   }
 
+  if (isIgnoredIncludeContent(difference, names.ignored)) {
+    return ignoredIncludeContent;
+  }
+
   const holds = (held: Recorded): boolean => gateHolds(held, difference, names, Option.some(root));
   // WHY: nilValueRecord's gate is judged after the match, so a difference it matches by detail in a
   // document that holds no such xsi:nil is matched by no record rather than by a later one.
@@ -2532,6 +2584,7 @@ export const everyRecord: readonly Recorded[] = [
   ...generatedRecorded,
   ...libxml2Records,
   fragmentRoot,
+  ignoredIncludeContent,
   laxComplexType,
   laxXsiType,
   nestedRoot,

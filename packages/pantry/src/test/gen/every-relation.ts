@@ -9,8 +9,11 @@
  * the content that writes the overlays of its kind, each written the way its laws admit:
  *
  * - **the manifest** lists every entry once, with a LOM record whose identifier and title are its
- *   document's for each item, dependencies, a qtiMetadata record, a language string, and a learning
- *   resource type of the LOM vocabulary whose value, `exercise`, reading 122 allows;
+ *   document's for each item, dependencies, a qtiMetadata record, a language string, a learning
+ *   resource type of the LOM vocabulary whose value, `exercise`, reading 122 allows, and a web
+ *   content resource outside the package, its href and its file's naming one URL as written
+ *   (reading 102: "The Href of the associated File object shall reference the same file as the
+ *   Resource{ Href }", IMS Content Packaging 1.2 §6.6.2), stored and never fetched;
  * - **the item** declares a context variable, mapped responses of an identifier and of each base type
  *   whose map keys have typed values (integer, float, point, pair and directed pair), an area
  *   mapping, outcomes with a normal range, a match table, an interpolation table and a record
@@ -628,6 +631,9 @@ const manifest = [
   "    </resource>",
   `    <resource identifier="usage-res" type="qtiusagedata/xml" href="${paths.usage}">`,
   `      <file href="${paths.usage}"/>`,
+  "    </resource>",
+  '    <resource identifier="remote-res" type="webcontent" href="https://example.org/remote.html">',
+  '      <file href="https://example.org/remote.html"/>',
   "    </resource>",
   "  </resources>",
   "</manifest>",
