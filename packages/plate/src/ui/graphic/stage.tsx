@@ -67,7 +67,7 @@ import type { GraphicLabels } from "#plate/ui/graphic/labels.ts";
 import { noPress, pressStep } from "#plate/ui/graphic/press.ts";
 import type { Press, PressEvent, Spot } from "#plate/ui/graphic/press.ts";
 import { floorWidthOf, smallestTargetOf, stageScaleOf } from "#plate/graphic/scale.ts";
-import type { StageScale } from "#plate/graphic/scale.ts";
+import type { StageScale, TargetFloor } from "#plate/graphic/scale.ts";
 import { sizeOf } from "#plate/ui/graphic/size.ts";
 import type { NameAttributes } from "#plate/ui/attributes.ts";
 
@@ -604,6 +604,11 @@ export type StageRole =
 export type StageTargets<A extends StageArea> =
   | {
       readonly areas: readonly A[];
+      /**
+       * The target size the areas keep (`TargetFloor` in `#plate/graphic/scale.ts`):
+       * `minimum` for a tiled lattice, else `enhanced`.
+       */
+      readonly floor: TargetFloor;
       readonly kind: "areas";
       readonly renderArea: (area: A, drawing: Drawing) => ReactNode;
       readonly selected: readonly string[];
@@ -625,7 +630,9 @@ const noAreas: readonly StageArea[] = [];
  * @returns The scale.
  */
 const scaleOf = <A extends StageArea>(targets: StageTargets<A>, size: ImageSize): StageScale =>
-  targets.kind === "scaled" ? targets.scale : stageScaleOf(smallestTargetOf(targets.areas, size));
+  targets.kind === "scaled"
+    ? targets.scale
+    : stageScaleOf(smallestTargetOf(targets.areas, size), targets.floor);
 
 /**
  * Tell whether a stage's region scrolls at the narrowest reflow viewport, as the server can tell

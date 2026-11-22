@@ -344,6 +344,7 @@ export const GraphicAssociate = (props: GraphicAssociateProps) => {
                 size={size}
                 targets={{
                   areas,
+                  floor: "enhanced",
                   kind: "areas",
                   renderArea: (area, drawing) => (
                     <GraphicMark

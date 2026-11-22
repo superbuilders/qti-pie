@@ -2234,6 +2234,46 @@
     stroke: transparent;
   }
 
+  /* == plate's renderer vocabulary on a graphic interaction's root == */
+
+  /*
+   * `plate-lattice` (plate's vocabulary, R10): a graph whose hotspots tile its plot, a cell about
+   * each lattice point or tick, draws no cell's outline at rest, as AlphaTest's plane drew none and
+   * let a tap anywhere snap to the nearest point. A cell's outline shows while it holds a choice,
+   * which may not fit on it to be drawn there and whose row the list below hides, so the ring is
+   * what shows it filled; while a dragged choice is over it or it would refuse it; while its row's
+   * control has keyboard focus; and where a review marks it.
+   */
+  :where([data-slot="plate-graphic-gap-match"].plate-lattice)
+    [data-slot="plate-graphic-mark"]:not(
+      [data-placed],
+      [data-focus-visible],
+      [data-mark],
+      :has(> [data-slot="plate-placement-target"]:is([data-over], [data-refuses]))
+    )
+    > [data-tone] {
+    stroke: transparent;
+  }
+
+  /*
+   * A lattice's list of its cells below the picture leaves the eye, as AlphaTest showed nothing
+   * under its graphs, and stays in the page, the way UI SDK hides a native input: a screen reader
+   * reads every cell by its name and the keyboard reaches each, its focus shown on its cell on the
+   * picture (`data-focus-visible`), while a tap places on the picture itself.
+   */
+  :where([data-slot="plate-graphic-gap-match"].plate-lattice)
+    [data-slot="plate-graphic-gap-match-targets"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   /* == the host's settings for a Hotspot, on the item's root == */
 
   /*

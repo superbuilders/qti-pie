@@ -2,7 +2,11 @@
  * The least scale a graphic interaction's stage renders at, so every area is a target a child can
  * hit: 44 CSS px across, the size WCAG 2.2's 2.5.5 Target Size (Enhanced) sets, past the 24 px of
  * 2.5.8 Target Size (Minimum), so the stage never leans on 2.5.8's exception for an equivalent
- * control. Pure, and safe to import on the server and the client.
+ * control; and 24 px for a tiled lattice, a graph whose areas tile its plot cell by cell (plate's
+ * class `plate-lattice`), where every cell is a target and none is spaced from the next, so 2.5.8's
+ * minimum holds with no exception, and AlphaTest drew such cells at 20 to 31 px, which 44 px would
+ * have drawn past a thousand pixels wide (the owner's decision Q4 of metis's no-regression plan,
+ * 2026-11-22). Pure, and safe to import on the server and the client.
  *
  * An area's target size is the diameter of the largest circle its tap region holds, the points a
  * tap gives it once the areas listed before it have taken the points they share (`tapDiameterOf` in
@@ -25,28 +29,35 @@ import type { GraphicArea } from "#plate/graphic/geometry.ts";
 
 /**
  * The least factor a stage scales its authored size by, `floor`: the one at which its smallest
- * target is 44 CSS px across, below the author's size where the targets are larger than that, and
- * 0 for a stage with no target, whose image may be drawn at any size.
+ * target is its target size across ({@link TargetFloor}), below the author's size where the targets
+ * are larger than that, and 0 for a stage with no target, whose image may be drawn at any size.
  */
 export interface StageScale {
   readonly floor: number;
 }
 
 /**
- * The target size a stage never draws an area under: 2.5.5's 44 CSS px.
+ * The target size a stage never draws an area under, in CSS px, by its floor: `enhanced`, 2.5.5's
+ * 44, for every stage; `minimum`, 2.5.8's 24, for a tiled lattice.
  */
-const enhancedTarget = 44;
+const targetSizes = { enhanced: 44, minimum: 24 } as const;
+
+/**
+ * Which target size a stage keeps ({@link targetSizes}).
+ */
+export type TargetFloor = keyof typeof targetSizes;
 
 /**
  * Give the least scale a stage renders at from its smallest target, in authored pixels: the one
- * that makes it 44 px across.
+ * that makes it its target size across.
  *
  * @param smallestTarget The smallest target's diameter in the image's authored pixels, more than
  *   0; infinite for a stage with no target, whose floor is 0.
+ * @param floor The target size the stage keeps.
  * @returns The scale.
  */
-export const stageScaleOf = (smallestTarget: number): StageScale => ({
-  floor: enhancedTarget / smallestTarget,
+export const stageScaleOf = (smallestTarget: number, floor: TargetFloor): StageScale => ({
+  floor: targetSizes[floor] / smallestTarget,
 });
 
 /**

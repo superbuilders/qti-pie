@@ -47,6 +47,7 @@ import { DrawnArea, GraphicMark } from "#plate/ui/graphic/drawn.tsx";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
 import { GraphicStage, useGraphicStage } from "#plate/ui/graphic/stage.tsx";
 import type { StageArea } from "#plate/ui/graphic/stage.tsx";
+import type { TargetFloor } from "#plate/graphic/scale.ts";
 import { isOne } from "#plate/placement/limit.ts";
 import type { Limit } from "#plate/placement/limit.ts";
 import { placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
@@ -147,6 +148,12 @@ export interface GraphicGapMatchProps extends Authored<NameAttributes> {
    * `min-associations` and `match-min` are not props: they decide whether a submitted response is
    * valid, which the server judges, and a child is never stopped short of them.
    */
+  /**
+   * The target size the hotspots keep on the stage (`TargetFloor` in
+   * `#plate/graphic/scale.ts`): `minimum`, 24 px, for a tiled lattice (plate's class
+   * `plate-lattice`), else `enhanced`, 44 px.
+   */
+  readonly floor: TargetFloor;
   readonly maxAssociations: Limit;
   /**
    * The entry name the response posts under, plate's `entryName` for the item's instance.
@@ -295,8 +302,19 @@ const StageArrows = (props: { readonly hotspots: readonly GraphicGapHotspot[] })
  * @returns The Graphic Gap Match, its placements bound to the response.
  */
 export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
-  const { gapChoices, hotspots, image, labels, maxAssociations, name, naming, prompt, root, size } =
-    props;
+  const {
+    floor,
+    gapChoices,
+    hotspots,
+    image,
+    labels,
+    maxAssociations,
+    name,
+    naming,
+    prompt,
+    root,
+    size,
+  } = props;
   const [texts, set] = useResponse(name);
   const [focused, setFocused] = useState<string>();
   const board = useMemo(
@@ -368,6 +386,7 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
           size={size}
           targets={{
             areas: hotspots,
+            floor,
             kind: "areas",
             renderArea: (area, drawing) => (
               <GraphicMark

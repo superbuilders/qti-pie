@@ -176,6 +176,22 @@ describe("plate's renderer vocabulary", () => {
     assert.deepStrictEqual(unpresented(Object.keys(rendererClasses), sourceModules(), sheets), []);
   });
 
+  it("names every plate- class a stylesheet selects", () => {
+    const selected = new Set(
+      sheets.flatMap((sheet) =>
+        [...sheet.matchAll(/\.(?<name>plate-[a-z0-9-]+)/gu)].map(
+          (match) => match.groups?.["name"] ?? "",
+        ),
+      ),
+    );
+
+    assert.deepStrictEqual(
+      [...selected].filter((name) => !Object.hasOwn(rendererClasses, name)),
+      [],
+      "a plate- class a stylesheet selects that the renderer vocabulary does not name",
+    );
+  });
+
   it("refuses a class nothing presents (the plant)", () => {
     assert.deepStrictEqual(
       unpresented([...Object.keys(rendererClasses), "plate-planted"], sourceModules(), sheets),

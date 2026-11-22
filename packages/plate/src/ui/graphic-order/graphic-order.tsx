@@ -297,6 +297,7 @@ export const GraphicOrder = (props: GraphicOrderProps) => {
         size={size}
         targets={{
           areas: hotspots,
+          floor: "enhanced",
           kind: "areas",
           renderArea: (area, drawing) => (
             <GraphicMark

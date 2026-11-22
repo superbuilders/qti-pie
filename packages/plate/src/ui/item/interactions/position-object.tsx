@@ -377,7 +377,7 @@ const framingOf = (
       "aria-label":
         imageText(image) ?? (text === "" ? messageText(locale, "positionObjectStage") : text),
     },
-    scale: stageScaleOf(smallestCopyOf(staged)),
+    scale: stageScaleOf(smallestCopyOf(staged), "enhanced"),
   };
 };
 

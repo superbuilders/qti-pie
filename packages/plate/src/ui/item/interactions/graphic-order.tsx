@@ -242,7 +242,7 @@ export const review = (
               );
             })
           }
-          stage={reviewStageOf(hotspots, node.size)}
+          stage={reviewStageOf(hotspots, node.size, "enhanced")}
         />
         {left.length === 0 ? null : (
           <div data-slot="plate-placement-dock">

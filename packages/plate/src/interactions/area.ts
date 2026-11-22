@@ -13,7 +13,7 @@ import type { ReaderKit } from "#plate/interactions/contract.ts";
 import { message, numeral } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
-import { hasClass, plateClasses } from "#plate/vocabulary.ts";
+import { carriesRendererClass } from "#plate/vocabulary.ts";
 
 /**
  * One coordinate of an area's `coords`, as written: its number, and whether it was written with
@@ -26,9 +26,9 @@ export interface AreaCoordinate {
 
 /**
  * The two directions of the arrow an area's author asks the page to draw beside it, by plate's
- * classes `plate-arrow-up` and `plate-arrow-down` (`plateClasses` in `#plate/vocabulary.ts`), which
- * metis's converter writes on the `qti-associable-hotspot` an AlphaTest drop zone becomes, where
- * AlphaTest's player drew an arrow above the zone pointing up, or below it pointing down
+ * classes `plate-arrow-up` and `plate-arrow-down` (`rendererClasses` in `#plate/vocabulary.ts`),
+ * which metis's converter writes on the `qti-associable-hotspot` an AlphaTest drop zone becomes,
+ * where AlphaTest's player drew an arrow above the zone pointing up, or below it pointing down
  * (mastery-track-player 941a86a, `GapMatchInteraction.tsx` 434 and 457). It lays nothing out and
  * answers nothing.
  */
@@ -48,9 +48,9 @@ export type ArrowDirection = (typeof arrowDirections)[number];
  * @returns The arrow's direction, none for no arrow.
  */
 export const arrowOf = (classes: Option.Option<string>): Option.Option<ArrowDirection> => {
-  const up = hasClass(classes, plateClasses.arrowUp);
+  const up = carriesRendererClass(classes, "plate-arrow-up");
 
-  if (up === hasClass(classes, plateClasses.arrowDown)) {
+  if (up === carriesRendererClass(classes, "plate-arrow-down")) {
     return Option.none();
   }
 

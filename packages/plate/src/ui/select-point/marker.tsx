@@ -77,7 +77,7 @@ const crossArm = 24;
  * @returns The stage's scale.
  */
 export const selectPointScaleOf = (size: ImageSize): StageScale =>
-  stageScaleOf(Math.min(size.width, size.height));
+  stageScaleOf(Math.min(size.width, size.height), "enhanced");
 
 /**
  * Give a marker's reach in the image's pixels, where a tap or the keyboard's cross takes it: its

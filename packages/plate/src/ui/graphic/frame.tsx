@@ -46,7 +46,7 @@ import type { NameAttributes, Named } from "#plate/ui/attributes.ts";
 import type { GraphicArea, ImagePoint } from "#plate/graphic/geometry.ts";
 import type { GraphicLabels } from "#plate/ui/graphic/labels.ts";
 import { floorWidthOf, smallestTargetOf, stageScaleOf } from "#plate/graphic/scale.ts";
-import type { StageScale } from "#plate/graphic/scale.ts";
+import type { StageScale, TargetFloor } from "#plate/graphic/scale.ts";
 import { sizeOf } from "#plate/ui/graphic/size.ts";
 import { collapsedText } from "#plate/model/whitespace.ts";
 
@@ -294,22 +294,24 @@ type SizedStage = Extract<ReviewStage, { readonly kind: "sized" }>;
 
 /**
  * Give a review's stage for an interaction whose targets are its areas: sized by the author's size
- * where it is written in full, at the scale its smallest area gives it, as the answering stage is;
- * else unsized.
+ * where it is written in full, at the scale its smallest area gives it at its target size, as the
+ * answering stage is; else unsized.
  *
  * @param areas The interaction's areas, in document order.
  * @param authored The size the author wrote on the image.
+ * @param floor The target size the areas keep: `minimum` for a tiled lattice, else `enhanced`.
  * @returns The stage.
  */
 export const reviewStageOf = (
   areas: readonly GraphicArea[],
   authored: AuthoredSize,
+  floor: TargetFloor,
 ): ReviewStage => {
   const size = sizeOf(authored);
 
   return size === undefined
     ? { kind: "unsized" }
-    : { kind: "sized", scale: stageScaleOf(smallestTargetOf(areas, size)), size };
+    : { kind: "sized", scale: stageScaleOf(smallestTargetOf(areas, size), floor), size };
 };
 
 /**

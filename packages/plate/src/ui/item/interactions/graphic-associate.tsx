@@ -158,7 +158,7 @@ export const review = (
           </>
         )}
         naming={names}
-        stage={reviewStageOf(areas, node.size)}
+        stage={reviewStageOf(areas, node.size, "enhanced")}
       />
       <div data-slot="plate-placement">
         <div data-slot="plate-placement-dock">

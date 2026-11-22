@@ -35,6 +35,7 @@ import { GraphicMark } from "#plate/ui/graphic/drawn.tsx";
 import { StageFrame, reviewStageOf } from "#plate/ui/graphic/frame.tsx";
 import { paintedOf } from "#plate/graphic/geometry.ts";
 import { floorWidthOf } from "#plate/graphic/scale.ts";
+import { floorOf } from "#plate/graphic/plot.ts";
 import { sizeOf } from "#plate/ui/graphic/size.ts";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
 import type { IslandContext, ReviewContext } from "#plate/ui/item/context.ts";
@@ -124,6 +125,7 @@ export const island = (
       }))}
       hotspots={hotspotsOf(spokenAreasOf(node.hotspots, context))}
       image={contentOf(node.image, "flow", context)}
+      floor={floorOf(context.className)}
       labels={labelsOf(graphicGapMatchKeys, context.locale, { totalReached: model.messages.max })}
       maxAssociations={limitOf(node.maxAssociations)}
       name={node.formName}
@@ -226,7 +228,7 @@ export const review = (
               <PlacedChoices floor={floorWidthOf(size, scale)} placed={placed} size={size} />
             </>
           )}
-          stage={reviewStageOf(hotspots, node.size)}
+          stage={reviewStageOf(hotspots, node.size, floorOf(context.className))}
         />
         <div data-slot="plate-graphic-gap-match-targets">
           {hotspots.map((hotspot, index) => {

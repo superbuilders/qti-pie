@@ -139,6 +139,7 @@ const HotspotStage = (props: {
       size={size}
       targets={{
         areas: hotspots,
+        floor: "enhanced",
         kind: "areas",
         renderArea: (area, drawing) => (
           <GraphicMark

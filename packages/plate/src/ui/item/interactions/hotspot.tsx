@@ -126,7 +126,7 @@ export const review = (
             ) : null,
           )
         }
-        stage={reviewStageOf(hotspots, node.size)}
+        stage={reviewStageOf(hotspots, node.size, "enhanced")}
       />
       <div
         {...controlNameOf(prompt, node, ownName(model, context), context)}
