@@ -1,20 +1,25 @@
 /**
- * Where the body walk puts read-aloud's controls (`readAloudBefore` in
+ * Where the body walk puts read-aloud's controls (`readAloudBefore` and `interactionOf` in
  * `#plate/ui/item/content.tsx`): at the top of what each reads, as AlphaTest's player put a
- * question's and a passage's control. Each property is checked on bodies a seeded generator draws:
- * divisions, paragraphs and phrasing runs nested to three levels, each element referencing a
- * catalog or not.
+ * question's and a passage's control, and for an interaction whose own root references a catalog,
+ * its prompt's control before it. Each property is checked on bodies a seeded generator draws:
+ * divisions, paragraphs, phrasing runs and Text Entries nested to three levels, each element and
+ * each interaction referencing a catalog or not.
  *
  * The properties:
  *
  * - **before:** each element at a flow position that references a catalog is preceded, as its
  *   previous sibling, by exactly one control, the `text` control for its catalog;
- * - **only:** no other control stands on the page, so an element at a phrasing position, whose parent
- *   may admit no control beside it, has none.
+ * - **prompt:** each interaction at a flow position whose root references a catalog is preceded, as
+ *   its previous sibling, by exactly one control, the `prompt` control for its catalog, which a
+ *   chain plays first;
+ * - **only:** no other control stands on the page, so an element or an interaction at a phrasing
+ *   position, whose parent may admit no control beside it, has none.
  *
- * Kills: a writing that puts the control after its element, as plate did before, one that writes
- * an element's control twice, and one that writes a control before an element at a phrasing
- * position are each refused.
+ * Kills: a writing that puts the control after what it reads, as plate did before, one that writes
+ * an element's control twice, one that writes a control before an element at a phrasing position,
+ * one that reads no interaction root's catalog, as plate did before, and one that gives a root's
+ * control the `text` role are each refused.
  *
  * @module
  */
@@ -25,6 +30,7 @@ import { liteAdaptor } from "mathjax-full/js/adaptors/liteAdaptor.js";
 import { createElement, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
+import { textEntry } from "#plate/test/slotted.ts";
 import { noSlots, nodesOf } from "#plate/ui/item/content.tsx";
 import type { Walk } from "#plate/ui/item/content.tsx";
 
@@ -34,8 +40,8 @@ import type { Walk } from "#plate/ui/item/content.tsx";
 const adaptor = liteAdaptor();
 
 /**
- * The body walk the suite writes with: instance `i`, ids written, every interaction a defect (the
- * bodies hold none), and read-aloud's control a `span` named by its role and its catalog.
+ * The body walk the suite writes with: instance `i`, ids written, each interaction an input named
+ * by its response, and read-aloud's control a `span` named by its role and its catalog.
  */
 const walk: Walk = {
   addressing: { assets: new Map(), document: "items/x.xml", instance: "i", writing: "original" },
@@ -46,7 +52,8 @@ const walk: Walk = {
     answer: () => null,
     container: () => null,
     glossary: () => Option.none(),
-    interaction: () => null,
+    interaction: (model, key) =>
+      createElement("input", { "aria-label": model.response, key, readOnly: true }),
     kind: "body",
     readAloud: (catalog, role, _label, key) =>
       Option.some(
@@ -80,13 +87,14 @@ const generator = (seed: number): (() => number) => {
 };
 
 /**
- * One element of a drawn body, as the oracle knows it: its name, the catalog it references, and
- * whether it stands at a flow position.
+ * One element or interaction of a drawn body, as the oracle knows it: its name, the catalog it or
+ * its root references, whether it stands at a flow position, and the role its control reads it in.
  */
 interface Drawn {
   readonly catalog: string | undefined;
   readonly flow: boolean;
   readonly name: string;
+  readonly role: "prompt" | "text";
 }
 
 /**
@@ -102,7 +110,7 @@ interface Body {
  * phrasing run; at a phrasing position a `span` or an `em`.
  *
  * @param flow Whether the element stands at a flow position.
- * @param pick The draw, in [0.2, 1).
+ * @param pick The draw, in [0.3, 1).
  * @returns The tag.
  */
 const tagOf = (flow: boolean, pick: number): string => {
@@ -119,8 +127,9 @@ const tagOf = (flow: boolean, pick: number): string => {
 
 /**
  * Draw a body: at a flow position, divisions, paragraphs and phrasing runs; below a paragraph or a
- * phrasing run, phrasing runs and text alone. Each element is named by its `aria-label` and
- * references a catalog of its own half the time.
+ * phrasing run, phrasing runs and text alone; anywhere, a Text Entry. Each element is named by its
+ * `aria-label` and each Text Entry by its response, and each references a catalog of its own half
+ * the time.
  *
  * @param seed The seed.
  * @returns The body.
@@ -136,11 +145,20 @@ const bodyOf = (seed: number): Body => {
         return { kind: "text", text: "words " };
       }
 
-      const tag = tagOf(flow, pick);
-      const name = `e${String(elements.length)}`;
       const catalog = draw() < 0.5 ? `c${String(elements.length)}` : undefined;
 
-      elements.push({ catalog, flow, name });
+      if (pick < 0.3) {
+        const name = `i${String(elements.length)}`;
+
+        elements.push({ catalog, flow, name, role: "prompt" });
+
+        return textEntry(name, Option.none(), Option.fromUndefinedOr(catalog));
+      }
+
+      const tag = tagOf(flow, pick);
+      const name = `e${String(elements.length)}`;
+
+      elements.push({ catalog, flow, name, role: "text" });
 
       const element: BodyElement<RedactedLevel> = {
         attributes: [{ name: "aria-label", value: name }],
@@ -243,7 +261,7 @@ const broken = (mutation?: Mutation): ReadonlyMap<string, string> => {
       const controls = all.filter(
         (control) =>
           isControl(control) &&
-          adaptor.getAttribute(control, "aria-label") === `text ${drawn.catalog}`,
+          adaptor.getAttribute(control, "aria-label") === `${drawn.role} ${drawn.catalog}`,
       );
 
       if (
@@ -254,7 +272,7 @@ const broken = (mutation?: Mutation): ReadonlyMap<string, string> => {
         controls[0] !== before
       ) {
         report(
-          "before",
+          drawn.role === "text" ? "before" : "prompt",
           `body ${String(index + 1)}: ${drawn.name} has ${String(controls.length)} controls, none just before it`,
         );
       }
@@ -300,7 +318,7 @@ const afterwards: Mutation = (page) => {
 };
 
 describe("read-aloud's control at the top of what it reads", () => {
-  it("precedes each element at a flow position that references a catalog, once, and stands nowhere else", () => {
+  it("precedes each element at a flow position that references a catalog, and each interaction whose root does, once, and stands nowhere else", () => {
     assert.deepStrictEqual(Object.fromEntries(broken()), {});
   });
 
@@ -339,6 +357,28 @@ describe("read-aloud's control at the top of what it reads", () => {
 
             adaptor.insert(control, element);
           }
+        }
+      },
+    ],
+    [
+      "no interaction root's catalog read",
+      "prompt",
+      (page: LiteElement) => {
+        for (const control of below(page).filter(isControl)) {
+          if (String(adaptor.getAttribute(control, "aria-label")).startsWith("prompt ")) {
+            adaptor.remove(control);
+          }
+        }
+      },
+    ],
+    [
+      "a root's control read as text",
+      "prompt",
+      (page: LiteElement) => {
+        for (const control of below(page).filter(isControl)) {
+          const label = String(adaptor.getAttribute(control, "aria-label"));
+
+          adaptor.setAttribute(control, "aria-label", label.replace(/^prompt /u, "text "));
         }
       },
     ],

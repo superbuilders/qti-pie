@@ -16,6 +16,8 @@ import type { SourceChild, SourceElement } from "#plate/document/source.ts";
 import { misfitOf } from "#plate/interactions/contract.ts";
 import type {
   BoundDeclaration,
+  ModuleInteraction,
+  ModuleKind,
   ParseContext,
   Parsed,
   ReaderKit,
@@ -572,8 +574,8 @@ const moduleRead = (
 /**
  * Read a QTI interaction element by its module ({@link moduleRead}), with the fields the walk sets
  * on what the module read ({@link withWalkFields}). The context is built only for an element a
- * module reads. Its prompt's catalog reference is recorded before the module reads the prompt's
- * content, so the references stay in document order.
+ * module reads. Its root's catalog reference, then its prompt's, are recorded before the module
+ * reads the prompt's content, so the references stay in document order.
  *
  * @param build The build.
  * @param element The element.
@@ -587,34 +589,36 @@ const moduleNode = (
 ): Option.Option<BodyNode> =>
   isQti(element)
     ? Option.map(readerFor(element.local), (reader) => {
-        const promptCatalog = Option.flatMap(
-          Arr.head(childrenNamed(element, "qti-prompt")),
-          (prompt) => catalogReference(build, prompt),
-        );
+        const catalogs = {
+          catalog: catalogReference(build, element),
+          promptCatalog: Option.flatMap(Arr.head(childrenNamed(element, "qti-prompt")), (prompt) =>
+            catalogReference(build, prompt),
+          ),
+        };
 
-        return withWalkFields(moduleRead(build, element, parent, reader), element, promptCatalog);
+        return withWalkFields(moduleRead(build, element, parent, reader), element, catalogs);
       })
     : Option.none();
 
 /**
  * Set the fields the body walk gives an interaction on the node its module read: the author's
  * `data-*` of its root, each attribute securing kept that plate does not reserve (`isAuthorData`),
- * in document order, its `id`, and the catalog its prompt references. Securing already removed and
- * marked each reserved name, so none is marked here. The module never sees them, a notice carries
- * none, and a Portable Custom Interaction keeps its own route for its `data-*`: they are its
- * properties, which its module reads, so it takes its prompt's catalog alone.
+ * in document order, its `id`, and the catalogs its root and its prompt reference. Securing already
+ * removed and marked each reserved name, so none is marked here. The module never sees them, a
+ * notice carries none, and a Portable Custom Interaction keeps its own route for its `data-*`: they
+ * are its properties, which its module reads, so it takes its prompt's catalog alone.
  *
  * @param node The node the module read, or its notice.
  * @param element The interaction root.
- * @param promptCatalog The `data-catalog-idref` of its `qti-prompt`, none where it has no prompt
- *   or its prompt references no catalog.
+ * @param catalogs The catalogs it references: `catalog`, its root's `data-catalog-idref`, and
+ *   `promptCatalog`, its `qti-prompt`'s, each none where it references none.
  * @returns The node with its fields, no `data-*` listed where the root carries none; the notice as
  *   it is.
  */
 const withWalkFields = (
   node: Parsed<Interaction> | Unsupported,
   element: SourceElement,
-  promptCatalog: Option.Option<string>,
+  catalogs: Pick<ModuleInteraction<ModuleKind>, "catalog" | "promptCatalog">,
 ): BodyNode => {
   if (node.kind === "unsupported") {
     return node;
@@ -626,18 +630,18 @@ const withWalkFields = (
   );
 
   if (node.kind === "portable-custom") {
-    return { ...node, id, promptCatalog };
+    return { ...node, ...catalogs, id };
   }
 
   return {
     ...node,
+    ...catalogs,
     data: element.attributes.flatMap((attribute): readonly BodyAttribute[] =>
       attribute.namespace === "" && isAuthorData(attribute.local)
         ? [{ name: attribute.local, value: attribute.value }]
         : [],
     ),
     id,
-    promptCatalog,
   };
 };
 

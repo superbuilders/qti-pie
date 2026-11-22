@@ -179,6 +179,17 @@ export interface ModuleInteraction<K extends ModuleKind> {
    */
   readonly ariaLabelledby: Option.Option<string>;
   /**
+   * The catalog the interaction's own root references: its `data-catalog-idref` as written, which
+   * QTI declares on every interaction as on any body element, and which the body walk records for
+   * the catalog module before its prompt's ({@link promptCatalog}), the order the two stand in.
+   * None where the root references no catalog. The body walk sets it after the module's `parse`
+   * ({@link Parsed}); a module never reads or writes it, and the server shell presents the
+   * catalog's spoken audio before the interaction as the control for its prompt, first in the
+   * item's chain (`interactionOf` in `#plate/ui/item/content.tsx`), as AlphaTest's player showed a
+   * question's prompt clip however the question was written.
+   */
+  readonly catalog: Option.Option<string>;
+  /**
    * The author's `data-*` attributes on the interaction's root, in document order, as securing kept
    * them (decision D24): each a name plate does not reserve (`isAuthorData` in
    * `#plate/vocabulary.ts`). The body walk sets it after the module's `parse` ({@link Parsed}); a
@@ -218,13 +229,16 @@ export interface ModuleInteraction<K extends ModuleKind> {
 }
 
 /**
- * A module's node as its `parse` gives it: every field but the author's `data-*`
- * ({@link ModuleInteraction.data}), its `id` ({@link ModuleInteraction.id}) and its prompt's
- * catalog ({@link ModuleInteraction.promptCatalog}), which the body walk sets on it.
+ * A module's node as its `parse` gives it: every field but the catalog its root references
+ * ({@link ModuleInteraction.catalog}), the author's `data-*` ({@link ModuleInteraction.data}), its
+ * `id` ({@link ModuleInteraction.id}) and its prompt's catalog
+ * ({@link ModuleInteraction.promptCatalog}), which the body walk sets on it.
  *
  * @template N The node, or a union of nodes, each read as itself.
  */
-export type Parsed<N> = N extends unknown ? Omit<N, "data" | "id" | "promptCatalog"> : never;
+export type Parsed<N> = N extends unknown
+  ? Omit<N, "catalog" | "data" | "id" | "promptCatalog">
+  : never;
 
 /**
  * The response declaration an interaction's `response-identifier` names, as the body walk hands it

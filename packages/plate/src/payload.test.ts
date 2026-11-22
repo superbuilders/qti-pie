@@ -115,6 +115,7 @@ const textEntry = (response: string): TextEntryInteraction => ({
   base: 10,
   baseType: "string",
   cardinality: "single",
+  catalog: Option.none(),
   class: Option.none(),
   data: [],
   expectedLength: Option.none(),
@@ -135,6 +136,7 @@ const choice: ChoiceInteraction = {
   ariaLabel: Option.none(),
   ariaLabelledby: Option.none(),
   cardinality: "single",
+  catalog: Option.none(),
   choices: [
     {
       catalog: Option.none(),
@@ -548,6 +550,7 @@ const inlineChoiceFor = (built: Built, response: string): InlineChoicePayload =>
 const river: InlineChoiceInteraction = {
   ariaLabel: Option.none(),
   ariaLabelledby: Option.none(),
+  catalog: Option.none(),
   choices: [
     {
       catalog: Option.none(),
@@ -2366,6 +2369,7 @@ const entriesItem = (count: number): Accepted => {
 const endAttempt = (response: string, path: string) => ({
   ariaLabel: Option.none(),
   ariaLabelledby: Option.none(),
+  catalog: Option.none(),
   class: Option.none(),
   countAttempt: false,
   data: [],

@@ -889,6 +889,7 @@ describe("buildItem", () => {
         const expected: InlineChoiceInteraction = {
           ariaLabel: Option.some("Colour"),
           ariaLabelledby: Option.none(),
+          catalog: Option.none(),
           choices: [
             {
               catalog: Option.none(),
@@ -974,6 +975,7 @@ describe("buildItem", () => {
       const expected: InlineChoiceInteraction = {
         ariaLabel: Option.none(),
         ariaLabelledby: Option.none(),
+        catalog: Option.none(),
         choices: [
           {
             catalog: Option.none(),
@@ -1029,6 +1031,7 @@ describe("buildItem", () => {
       base: 10,
       baseType: "string",
       cardinality: "single",
+      catalog: Option.none(),
       class: Option.none(),
       data: [],
       expectedLength: Option.some(12n),
@@ -1588,6 +1591,7 @@ describe("buildItem", () => {
       base: 16,
       baseType: "string",
       cardinality: "record",
+      catalog: Option.none(),
       class: Option.none(),
       data: [],
       expectedLength: Option.some(8n),
@@ -1606,6 +1610,7 @@ describe("buildItem", () => {
       base: 10,
       baseType: "string",
       cardinality: "record",
+      catalog: Option.none(),
       class: Option.none(),
       data: [],
       expectedLength: Option.none(),

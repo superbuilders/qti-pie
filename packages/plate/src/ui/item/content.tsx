@@ -969,7 +969,11 @@ const elementOf = (element: BodyElement<RedactedLevel>, key: Key, walk: Walk): R
 /**
  * Render an interaction of the walk through the seam: at a flow position it is its own block, so
  * the right answer the seam writes for it apart from it (`answer` in {@link Scope}'s `body` arm)
- * follows it there.
+ * follows it there, and read-aloud's control for the catalog its own root references
+ * (`ModuleInteraction.catalog` in `#plate/interactions/contract.ts`) precedes it, the control for
+ * its prompt, which a chain plays first, as AlphaTest's player showed a question's prompt clip
+ * however its markup carried it. At a phrasing position it stands alone: its parent may admit no
+ * control beside it.
  *
  * @param interaction The interaction, as the redacted body holds it.
  * @param key Its key among its siblings.
@@ -987,12 +991,24 @@ const interactionOf = (
   }
 
   const rendered = walk.scope.interaction(interaction, key);
-  const following =
-    walk.standing === "flow" ? writtenOf(walk.scope.answer(interaction, "answer")) : [];
 
-  return following.length === 0
+  if (walk.standing !== "flow") {
+    return rendered;
+  }
+
+  const { readAloud } = walk.scope;
+  const preceding = Option.toArray(
+    interaction.catalog.pipe(
+      Option.flatMap((catalog) =>
+        readAloud(catalog, "prompt", message(walk.locale, "readAloudPrompt"), "read-aloud"),
+      ),
+    ),
+  );
+  const following = writtenOf(walk.scope.answer(interaction, "answer"));
+
+  return preceding.length === 0 && following.length === 0
     ? rendered
-    : createElement(Fragment, { key }, rendered, ...following);
+    : createElement(Fragment, { key }, ...preceding, rendered, ...following);
 };
 
 /**

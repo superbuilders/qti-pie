@@ -1,7 +1,8 @@
 /**
- * Interactions as the redacted body holds them, for the suite of the interactions a formula draws
- * in its slots (`src/ui/item/slots.test.ts`): written here, outside plate's UI, whose lint refuses
- * an object's `class` key, which a model node's field carries.
+ * Interactions as the redacted body holds them, for the suites of the interactions a formula draws
+ * in its slots (`src/ui/item/slots.test.ts`) and of where read-aloud's controls stand
+ * (`src/ui/item/read-aloud-placement.test.ts`): written here, outside plate's UI, whose lint
+ * refuses an object's `class` key, which a model node's field carries.
  *
  * Test support: nothing outside `src/test/` and test files imports it.
  *
@@ -15,14 +16,20 @@ import type { TextEntryInteraction } from "#plate/interactions/text-entry.ts";
  *
  * @param response Its response.
  * @param id Its `id`, none where it has none.
+ * @param catalog The catalog its root references, none where it references none.
  * @returns The interaction, its expected length drawn from its response's length.
  */
-export const textEntry = (response: string, id: Option.Option<string>): TextEntryInteraction => ({
+export const textEntry = (
+  response: string,
+  id: Option.Option<string>,
+  catalog: Option.Option<string> = Option.none(),
+): TextEntryInteraction => ({
   ariaLabel: Option.none(),
   ariaLabelledby: Option.none(),
   base: 10,
   baseType: "string",
   cardinality: "single",
+  catalog,
   class: Option.none(),
   data: [],
   expectedLength: Option.some(BigInt(response.length % 7)),
