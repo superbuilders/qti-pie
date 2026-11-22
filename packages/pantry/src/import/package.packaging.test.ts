@@ -20,6 +20,7 @@ import { importAgreesWithOracle, packagingFixtures } from "#pantry/test/oracle-v
 import { danglingIncludeName, materializeProcessing } from "#pantry/test/processing-fixtures.ts";
 import { hasLease } from "#pantry/test/settings.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
+import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
 /**
  * The packaging search's timeout, in milliseconds: a hang guard past the describe's, which
@@ -28,10 +29,15 @@ import { ImportRefused } from "#pantry/import/rules.ts";
 const searchTimeoutMs = 600_000;
 
 describe.skipIf(!hasLease)("import/package.packaging.test.ts, on the lease", () => {
-  layer(Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore), {
-    excludeTestServices: true,
-    timeout: "120 seconds",
-  })("importPackage of the packaging fixtures on the lease", (it) => {
+  layer(
+    Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore).pipe(
+      Layer.provideMerge(fileDatabaseOf("packaging")),
+    ),
+    {
+      excludeTestServices: true,
+      timeout: "120 seconds",
+    },
+  )("importPackage of the packaging fixtures on the lease", (it) => {
     it.effect(
       "gives each drawn packaging fixture the law oracle's verdict",
       (ctx) =>

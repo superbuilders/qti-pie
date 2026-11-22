@@ -36,28 +36,55 @@ the specifications.
 
 ## Local database
 
-pantry runs on its own local cluster, `packages/pantry/pg.config.ts`: grizzle's patched PostgreSQL 19 build (`pnpm
-pg:build` in the grizzle checkout makes it), on `localhost:5447`, verify-full TLS only, owned by `qti_pie_dev`, made by
-the testing library's cluster maker. `scripts/db.sh` and the command line make and start it the first time they need
-it; `pnpm exec toolchain-pg <command>` from `packages/qti-pie/packages/pantry` runs its life by hand (`status`, `start`,
-`stop`, `doctor`, `psql`, `env`), and `TOOLCHAIN_PG_CLUSTER=<port>` names a private cluster of the same spec for every
-command and test. Never run `initdb` by hand. From `packages/qti-pie/packages/pantry`:
+pantry runs on the machine's one shared PostgreSQL 19 (`systemctl --user start postgres`: grizzle's pinned build on
+`localhost:5432`, verify-full TLS against the CA `$PGSSLROOTCERT` names). It never starts, makes or stops a server:
+never run `initdb` or `pg_ctl`. A lane takes a database of its own there and an owner role of its own, and drops both
+when it is done.
+
+Roles are the server's, unlike databases, so two lanes must never share one. The database's name is its installation's
+role prefix (every role grizzle installs is `<database>__<role>`), so a lane names its database for itself
+(`edullm_<lane>`, `metis_<lane>`), and its owner role sits under that prefix, `<database>_owner`. Make the owner as
+`bjorn`, with a random password in a mode-600 file:
 
 ```sh
-scripts/db.sh create    # database qti_pie from the cluster's template, owned by qti_pie_dev
-scripts/db.sh migrate   # grizzle migrate, then give each login its local password
-scripts/db.sh reset     # grizzle uninstall (or create, where the database is missing), then migrate
-scripts/db.sh drop      # grizzle uninstall, then drop the database and its password folder
-scripts/db.sh check-clear  # list this installation's roles (grizzle roles) and database left on the cluster
+db=edullm_<lane>; secrets=~/.local/var/qti-pie/$db; mkdir -p "$secrets"; chmod 700 "$secrets"
+(umask 077 && openssl rand -hex 24 > "$secrets/owner.password")
+psql -h localhost -d postgres -c "CREATE ROLE ${db}_owner LOGIN CREATEDB CREATEROLE REPLICATION PASSWORD '$(cat "$secrets/owner.password")'"
 ```
 
-`scripts/db.sh` reads each `QTI_PIE_PG_*` setting left unset (the port, `QTI_PIE_PG_CA`, the migration role, the
-template and the owner's password file) from the cluster, once, through `toolchain-pg env`, and the command line its
-port and CA from the cluster maker; setting them reaches another server. Run `grizzle migrate` through `scripts/db.sh`:
-the config's migration connection reads the CA from `QTI_PIE_PG_CA` alone, which the script sets. Login passwords live
-in `~/.local/var/qti-pie/<database>/<role>.password`. Each database is its own installation: its `rolePrefix` is its
-name, so two databases hold the Qti schema at once without sharing a role. pantry's database tests run only under a
-lease: `QTI_PIE_PG_DATABASE=<database>` names a migrated database. Drop a database you made when you are done with it.
+Every setting is required, and a missing one is refused, naming it:
+
+```sh
+export QTI_PIE_PG_HOST=localhost QTI_PIE_PG_PORT=5432 QTI_PIE_PG_CA="$PGSSLROOTCERT"
+export QTI_PIE_PG_DATABASE=$db QTI_PIE_PG_MIGRATION_ROLE=${db}_owner
+export QTI_PIE_PG_MIGRATION_PASSWORD_FILE=$secrets/owner.password QTI_PIE_PG_TEMPLATE=template0
+```
+
+From `packages/qti-pie/packages/pantry`:
+
+```sh
+scripts/db.sh create    # the database, from QTI_PIE_PG_TEMPLATE, owned by the owner role
+scripts/db.sh migrate   # grizzle migrate, then give each login its password
+scripts/db.sh reset     # grizzle uninstall (or create, where the database is missing), then migrate
+scripts/db.sh drop      # grizzle uninstall, then drop the database and its password folder
+scripts/db.sh check-clear  # list this installation's roles (grizzle roles) and database left on the server
+```
+
+Run `grizzle migrate` through `scripts/db.sh`, which exports the settings and the owner's password for the config's
+migration connection. Login passwords live in `QTI_PIE_PG_SECRETS` (`~/.local/var/qti-pie/<database>/<role>.password`
+by default); `QTI_PIE_PG_PASSWORD_COMMAND` gives every role's password in their place. pantry's database tests run only
+under a lease: `QTI_PIE_PG_DATABASE` names a migrated database and `QTI_PIE_PG_MIGRATION_PASSWORD` its
+owner's password, and each file that writes runs on a copy of that database of its own
+(`src/test/file-database.ts`), `${db}_<file>`, dropped when the file ends. When the lane is done,
+drop any copy a killed run left first, since a copy holds grants of the installation's roles, then
+`scripts/db.sh drop`, then the owner, and remove its secrets folder:
+
+```sh
+psql -h localhost -d postgres -Atc "SELECT format('DROP DATABASE %I;', datname) FROM pg_database WHERE starts_with(datname, '${db}_')" \
+  | psql -h localhost -d postgres
+scripts/db.sh drop
+psql -h localhost -d postgres -c "DROP ROLE ${db}_owner"
+```
 
 ## grizzle
 

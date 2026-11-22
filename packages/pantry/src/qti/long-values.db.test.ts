@@ -28,6 +28,7 @@ import { entryPathBytes, uriBytes, utf8Length, xmlNameBytes } from "#pantry/qti/
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { hasLease } from "#pantry/test/settings.ts";
+import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
 /**
  * The UTF-8 bytes of each case's correct response: 433, the served item's; one past what a lone
@@ -166,10 +167,15 @@ const namedPackageOf = (bytes: NameBytes): ReadonlyMap<string, Uint8Array> => {
 };
 
 describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
-  layer(Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore), {
-    excludeTestServices: true,
-    timeout: "120 seconds",
-  })("a long string value, stored and exported", (it) => {
+  layer(
+    Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore).pipe(
+      Layer.provideMerge(fileDatabaseOf("long_values")),
+    ),
+    {
+      excludeTestServices: true,
+      timeout: "120 seconds",
+    },
+  )("a long string value, stored and exported", (it) => {
     for (const bytes of lengths) {
       it.effect(
         `imports an item whose string correct response is ${String(bytes)} bytes and exports it as it was read`,

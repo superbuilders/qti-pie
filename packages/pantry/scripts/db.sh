@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
-# The QTI package's local database on pantry's own cluster (pg.config.ts), which the testing library's cluster maker
-# makes and starts the first time this script needs it (`pnpm exec toolchain-pg <command>` from this directory runs its
-# life by hand).
+# The QTI package's database for one lane on the machine's shared PostgreSQL 19 (`systemctl --user start postgres`),
+# which this script never starts or makes: a lane takes a database and an owner role of its own there, never a server.
 #
-#   scripts/db.sh create    create the database from the cluster's template, owned by the migration identity
+#   scripts/db.sh create    create the database from QTI_PIE_PG_TEMPLATE, owned by the migration identity
 #   scripts/db.sh migrate   grizzle migrate, then give each of this package's logins its local password
 #   scripts/db.sh reset     grizzle uninstall where the database exists, then create and migrate
 #   scripts/db.sh drop      grizzle uninstall where the database exists, then drop it and the password directory
-#   scripts/db.sh check-clear  list the installation's roles and the database left on the cluster, read from the
-#                              cluster's catalog without connecting to the database; exit 1 if any, 2 if it cannot
+#   scripts/db.sh check-clear  list the installation's roles and the database left on the server, read from the
+#                              server's catalog without connecting to the database; exit 1 if any, 2 if it cannot
 #                              list them, else 0
+#
+# Every setting is required, and a missing one stops every command with exit 2, naming it: QTI_PIE_PG_HOST,
+# QTI_PIE_PG_PORT and QTI_PIE_PG_CA (the server, verified verify-full against its CA, PGSSLROOTCERT on this machine),
+# QTI_PIE_PG_DATABASE (the lane's database), QTI_PIE_PG_MIGRATION_ROLE (the lane's owner role, which owns the database
+# and every schema grizzle migrate installs), QTI_PIE_PG_MIGRATION_PASSWORD_FILE (the owner's password, a mode-600
+# file) unless QTI_PIE_PG_PASSWORD_COMMAND gives every password, and, for create, QTI_PIE_PG_TEMPLATE. Only
+# QTI_PIE_PG_SECRETS, the folder of the logins' password files, has a default: ~/.local/var/qti-pie/<database>.
 #
 # The database's name is its installation's role prefix (src/db/connection.ts), so grizzle names every role here.
 # QTI_PIE_PG_DATABASE must be a lowercase letter, then at most 62 lowercase letters, digits or underscores, with no __
@@ -25,14 +31,26 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# psql is grizzle's pinned build's, the server pg.config.ts runs the cluster on: <prefix>/bin of scripts/pg/pin.env in
-# the vendor/grizzle submodule, which grizzle's pnpm pg:build makes. The pin assigns without checking, so a caller's
-# GRIZZLE_PG_BIN is kept before it is read, and wins.
+# psql is grizzle's pinned build's, the build the shared server runs: <prefix>/bin of scripts/pg/pin.env in the
+# vendor/grizzle submodule. The pin assigns without checking, so a caller's GRIZZLE_PG_BIN is kept before it is read,
+# and wins.
 caller_bin="${GRIZZLE_PG_BIN:-}"
 source ../../vendor/grizzle/scripts/pg/pin.env
 GRIZZLE_PG_BIN="${caller_bin:-$GRIZZLE_PG_PREFIX/bin}"
-: "${QTI_PIE_PG_HOST:=localhost}"
-: "${QTI_PIE_PG_DATABASE:=qti_pie}"
+
+# Usage: required <setting>. Stops the script with exit 2, naming the setting, where it is unset or empty.
+required() {
+	[[ -n "${!1:-}" ]] && return 0
+	echo "$1 is unset: scripts/db.sh reaches the shared PostgreSQL server only through the QTI_PIE_PG_* settings, every one of them set (packages/qti-pie/AGENTS.md, \"Local database\")." >&2
+	exit 2
+}
+
+required QTI_PIE_PG_HOST
+required QTI_PIE_PG_PORT
+required QTI_PIE_PG_CA
+required QTI_PIE_PG_DATABASE
+required QTI_PIE_PG_MIGRATION_ROLE
+[[ -n "${QTI_PIE_PG_PASSWORD_COMMAND:-}" ]] || required QTI_PIE_PG_MIGRATION_PASSWORD_FILE
 : "${QTI_PIE_PG_SECRETS:=$HOME/.local/var/qti-pie/$QTI_PIE_PG_DATABASE}"
 config="${QTI_PIE_GRIZZLE_CONFIG:-grizzle.config.ts}"
 
@@ -41,38 +59,8 @@ if [[ ! $QTI_PIE_PG_DATABASE =~ ^[a-z][a-z0-9_]{0,62}$ || $QTI_PIE_PG_DATABASE =
 	exit 2
 fi
 
-# The local cluster member's facts, as `toolchain-pg env` prints them, one TOOLCHAIN_PG_<fact>=<value> line each: read
-# the first time a setting needs one, which brings the cluster up (made where it is missing, started where it is
-# stopped), and never where the caller set every setting, so a caller that names another server brings nothing up.
-member=""
-
-# Usage: from_member <setting> <fact>. Leaves the variable <setting> as the caller set it, unless it is unset or empty,
-# as `:=` reads it; then sets it to the member's TOOLCHAIN_PG_<fact>.
-from_member() {
-	[[ -z "${!1:-}" ]] || return 0
-	[[ -n "$member" ]] || member="$(node_modules/.bin/toolchain-pg env)" || exit
-	local name value
-	while IFS="=" read -r name value; do
-		if [[ $name == "TOOLCHAIN_PG_$2" ]]; then
-			printf -v "$1" "%s" "$value"
-			return
-		fi
-	done <<<"$member"
-	echo "toolchain-pg env printed no TOOLCHAIN_PG_$2 for pantry's cluster (pg.config.ts): run \`pnpm exec toolchain-pg env\` in $PWD to see what it prints." >&2
-	exit 2
-}
-
-# The server's port, its CA file and the migration identity, each the local cluster's where the caller leaves it unset:
-# its port, its CA and its owner, which owns every database create makes and so every schema grizzle migrate installs.
-# They are exported with the host, the database and the secrets folder, so the grizzle config connects where this
-# script does (src/db/connection.ts reads the same variables, and its migration connection reads the CA from
-# QTI_PIE_PG_CA alone). The owner's password file, QTI_PIE_PG_MIGRATION_PASSWORD_FILE, is the local cluster's where
-# it is unset and no password command gives the password; the template create makes the database from,
-# QTI_PIE_PG_TEMPLATE, is read by create alone.
-from_member QTI_PIE_PG_PORT PORT
-from_member QTI_PIE_PG_CA CA
-from_member QTI_PIE_PG_MIGRATION_ROLE OWNER
-[[ -n "${QTI_PIE_PG_PASSWORD_COMMAND:-}" ]] || from_member QTI_PIE_PG_MIGRATION_PASSWORD_FILE PASSWORD_FILE
+# The settings are exported, so the grizzle config connects where this script does (src/db/connection.ts reads the same
+# variables).
 export QTI_PIE_PG_HOST QTI_PIE_PG_PORT QTI_PIE_PG_CA QTI_PIE_PG_DATABASE QTI_PIE_PG_SECRETS QTI_PIE_PG_MIGRATION_ROLE
 
 owner="$QTI_PIE_PG_MIGRATION_ROLE"
@@ -89,7 +77,7 @@ owner_password() {
 	local password status=0
 	password="$("$QTI_PIE_PG_PASSWORD_COMMAND" "$owner")" || status=$?
 	if ((status != 0)); then
-		echo "The password command $QTI_PIE_PG_PASSWORD_COMMAND exited with code $status for the role $owner, so the connection has no password. Run it by hand with $owner as its one argument to see why it fails, and sign in if it asks you to; or unset QTI_PIE_PG_PASSWORD_COMMAND to use the local cluster's passwords." >&2
+		echo "The password command $QTI_PIE_PG_PASSWORD_COMMAND exited with code $status for the role $owner, so the connection has no password. Run it by hand with $owner as its one argument to see why it fails, and sign in if it asks you to; or unset QTI_PIE_PG_PASSWORD_COMMAND to read the owner's password file QTI_PIE_PG_MIGRATION_PASSWORD_FILE instead." >&2
 		return 1
 	fi
 	password="${password#"${password%%[![:space:]]*}"}"
@@ -117,7 +105,7 @@ installation_roles() {
 	as_migration roles | paste -sd , -
 }
 
-# Exits 1 where the database is missing; stops the script where the cluster cannot be read.
+# Exits 1 where the database is missing; stops the script where the server cannot be read.
 exists() {
 	local found
 	found="$(as_owner postgres -c "SELECT 1 FROM pg_database WHERE datname = '$QTI_PIE_PG_DATABASE'")" || exit
@@ -138,14 +126,14 @@ as_migration() {
 	fi
 }
 
-# The template is the local cluster's where QTI_PIE_PG_TEMPLATE is unset: the cluster maker's, which carries what the
-# schema needs of it, no extension.
+# The template is QTI_PIE_PG_TEMPLATE, read by create alone: one that carries what the schema needs of it, no extension
+# (template0 does).
 create() {
+	required QTI_PIE_PG_TEMPLATE
 	if exists; then
 		echo "$QTI_PIE_PG_DATABASE: exists"
 		return
 	fi
-	from_member QTI_PIE_PG_TEMPLATE TEMPLATE
 	as_owner postgres -c "CREATE DATABASE $QTI_PIE_PG_DATABASE OWNER $owner TEMPLATE $QTI_PIE_PG_TEMPLATE"
 	echo "$QTI_PIE_PG_DATABASE: created"
 }
@@ -182,12 +170,13 @@ reset() {
 	migrate
 }
 
-# Prints each leftover as "role: <name>" or "database: <name>"; exits 1 if any were found. It reads the cluster's
+# Prints each leftover as "role: <name>" or "database: <name>"; exits 1 if any were found. It reads the server's
 # catalog through the postgres database and never connects to the installation's own, which drop removes: grizzle
 # names every cluster role of an installation <prefix>__<name>, its roles, its logins, its decoder login and a role set
 # aside alike (roleInSpace in grizzle's packages/engine/src/core/identity.ts), and the prefix is the database's name
 # (src/db/connection.ts), which holds no __, so the roles that start with <database>__ are exactly this installation's
-# role space, whatever levels and logins its config lists today.
+# role space, whatever levels and logins its config lists today. Roles are the server's, not a database's, so the
+# database's name, and so its prefix, is the lane's own: two lanes never share one.
 check_clear() {
 	local found
 	found="$(as_owner postgres -c "SELECT 'role: ' || rolname FROM pg_roles WHERE starts_with(rolname, '${QTI_PIE_PG_DATABASE}__')

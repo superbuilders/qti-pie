@@ -1,8 +1,8 @@
 /**
- * The importer's front door (`#pantry/import/package.ts`), on the lease: its verdicts, its run
- * past a transient refusal (grizzle's `settled`), and a `commitUnknown`, which fails the import and
- * which importing the package again settles, the write being insert-only, with the failures
- * injected through `WrapApply`.
+ * The importer's front door (`#pantry/import/package.ts`), on the lease: its verdicts, its one
+ * attempt, which a transient refusal fails with the refusal itself, and a `commitUnknown`, which
+ * fails the import and which importing the package again settles, the write being insert-only,
+ * with the failures injected through `WrapApply`.
  *
  * A verdict on the lease is judged against the law oracle (`#pantry/test/oracle-verdict.ts`
  * `oracleVerdict`, a second implementation): a package the oracle accepts commits, and one it
@@ -28,6 +28,7 @@ import { importAgreesWithOracle } from "#pantry/test/oracle-verdict.ts";
 import { hasLease } from "#pantry/test/settings.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
 import { AuthorLogin } from "#pantry/db/served.ts";
+import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
 const fixtures = inject("fixtures");
 
@@ -83,10 +84,15 @@ const brokenBeyondOracle: readonly (readonly [FixtureName, readonly string[]])[]
 const clean: readonly FixtureName[] = ["utf16", "padded-identifier-value"];
 
 describe.skipIf(!hasLease)("import/package.test.ts, on the lease", () => {
-  layer(Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore), {
-    excludeTestServices: true,
-    timeout: "60 seconds",
-  })("importPackage on the lease", (it) => {
+  layer(
+    Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore).pipe(
+      Layer.provideMerge(fileDatabaseOf("package")),
+    ),
+    {
+      excludeTestServices: true,
+      timeout: "60 seconds",
+    },
+  )("importPackage on the lease", (it) => {
     it.effect("stores simple under its name, and again is no change", () =>
       // Oracle: PostgreSQL, every law over `simple`, the package read back by its name, and
       // grizzle's `unchanged` for the same rows a second time.
@@ -151,23 +157,35 @@ describe.skipIf(!hasLease)("import/package.test.ts, on the lease", () => {
       );
     }
 
-    it.effect("runs the write again past one injected transient failure, and then accepts", () =>
-      // Oracle: the specification as a checker, grizzle's `settled`: a transient refusal changed
-      // nothing, and the call runs again to an answer.
-      Effect.gen(function* runsPastTransient() {
-        const attempts = yield* Ref.make(0);
-        yield* importDir(fixtures.simple).pipe(
-          Effect.provideService(WrapApply, <A>(apply: Effect.Effect<A, CallError>) =>
-            Effect.flatMap(
-              Ref.getAndUpdate(attempts, (n) => n + 1),
-              (n): Effect.Effect<A, CallError> =>
-                n === 0 ? Effect.fail(serializationFailure) : apply,
+    it.effect(
+      "fails with the transient refusal itself after one attempt, and writes nothing; importing again stores the package",
+      () =>
+        // Oracle: the specification as a checker: a transient refusal changed nothing, and the
+        // importer makes its apply once, so the call fails with grizzle's typed `transient`
+        // CallError and no package is there; running it again is the caller's. Bound: `simple`
+        // under a name this run draws, stored nowhere before.
+        Effect.gen(function* failsOnTransient() {
+          const name = `transient-once-${randomUUID()}`;
+          const attempts = yield* Ref.make(0);
+          const failed = yield* Effect.flip(
+            importDir(fixtures.simple, name).pipe(
+              Effect.provideService(WrapApply, <A>(_apply: Effect.Effect<A, CallError>) =>
+                Effect.andThen(
+                  Ref.update(attempts, (n) => n + 1),
+                  Effect.fail(serializationFailure),
+                ),
+              ),
             ),
-          ),
-        );
+          );
 
-        assert.isAtLeast(yield* Ref.get(attempts), 2);
-      }),
+          assert.strictEqual(failed, serializationFailure);
+          assert.strictEqual(yield* Ref.get(attempts), 1);
+          assert.isFalse(yield* packageStored(name), name);
+
+          const again = yield* importDir(fixtures.simple, name);
+
+          assert.strictEqual(again.outcome, "accepted");
+        }),
     );
 
     it.effect(

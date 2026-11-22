@@ -14,6 +14,7 @@ import { importDir } from "#pantry/test/import-dir.ts";
 import { exitCodeOf } from "#pantry/cli/run.ts";
 import { captureCli } from "#pantry/test/cli.ts";
 import { hasLease } from "#pantry/test/settings.ts";
+import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
 const fixtures = inject("fixtures");
 
@@ -71,10 +72,15 @@ const filesUnder = Effect.fn("test.export.db.filesUnder")(function* filesUnder(f
 const cliMediaStore = localMediaStore.pipe(Layer.provide(NodeServices.layer));
 
 describe.skipIf(!hasLease)("cli/export.db.test.ts, on the lease", () => {
-  layer(Layer.mergeAll(AuthorAppLayer, NodeServices.layer, cliMediaStore), {
-    excludeTestServices: true,
-    timeout: "120 seconds",
-  })("export on the lease", (it) => {
+  layer(
+    Layer.mergeAll(AuthorAppLayer, NodeServices.layer, cliMediaStore).pipe(
+      Layer.provideMerge(fileDatabaseOf("export")),
+    ),
+    {
+      excludeTestServices: true,
+      timeout: "120 seconds",
+    },
+  )("export on the lease", (it) => {
     it.effect("--dry-run writes nothing and lists the files a real export writes", () =>
       Effect.gen(function* dryRunLists() {
         const fs = yield* FileSystem.FileSystem;

@@ -11,7 +11,7 @@
  * whose composition registers no grader, so its essays are never evaluated). It runs only where a
  * database is handed to it (`QTI_PIE_RESULT_MIGRATIONS` and pantry's `QTI_PIE_PG_*`, by its runner,
  * which migrates `grizzle.result.config.ts` into a database of its own on the shared PostgreSQL
- * test cluster), and is skipped elsewhere.
+ * server), and is skipped elsewhere.
  *
  * Every fact is written through a program, as an application writes it: the item session with its
  * seed and the attempt's snapshot with its response, as host rows through the suite's login
@@ -79,11 +79,7 @@ import { boolean, element, int, map, oneOf, option } from "@bjornpagen/testing/g
 import { searched } from "@bjornpagen/testing/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
-import {
-  LocalMember,
-  LocalMemberUnavailable,
-  loginConnection,
-} from "@qti-pie/pantry/db/connection.ts";
+import { loginConnection } from "@qti-pie/pantry/db/connection.ts";
 import { importRowsOf } from "@qti-pie/pantry/import/program.ts";
 import { readPackage } from "@qti-pie/pantry/import/read.ts";
 import {
@@ -943,18 +939,6 @@ class SuiteLogin extends Context.Service<SuiteLogin, Logins>()(
 const onePool = { idleTimeoutMs: Duration.toMillis(Duration.minutes(1)), max: 1, min: 0 } as const;
 
 /**
- * No local cluster: the runner names every setting of the shared test cluster, so pantry's own is
- * never made.
- */
-const noLocalCluster = Layer.succeed(LocalMember, {
-  member: Effect.fail(
-    new LocalMemberUnavailable({
-      reason: "the result suite runs only on the shared test cluster its runner names",
-    }),
-  ),
-});
-
-/**
  * The suite's services: its served login, its database layer on the run's database, and Node's
  * platform.
  */
@@ -975,7 +959,7 @@ const SuiteLayer = Layer.unwrap(
       ),
     );
   }),
-).pipe(Layer.provide(noLocalCluster), Layer.provideMerge(NodeServices.layer));
+).pipe(Layer.provideMerge(NodeServices.layer));
 
 /**
  * The one package, the essay, the templated item, the operators item, the draw item adaptive and

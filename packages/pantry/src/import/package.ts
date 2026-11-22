@@ -12,23 +12,22 @@
  * (`#pantry/qti/logins.ts`) that `grizzle generate` compiled into the login's served file, applied
  * once to those rows. The caller passes its own `Db`'s workload, of any login whose workload serves
  * `insertWrite` (grizzle's `MemberHandle`): `AuthorApp`'s over `Qti` and `MediaAuthorApp`'s over
- * `QtiMedia` alike. This module is a convenience over that one apply: it runs the apply to an
- * answer past transient refusals (grizzle's `settled`), and names a refusal's QTI rules.
+ * `QtiMedia` alike. This module is a convenience over that one apply, made once: it names a
+ * refusal's QTI rules, and every other failure is the call's own typed `CallError`.
  *
  * The write only inserts, and every row is keyed by the package's name, so a package under a new
  * name is inserted whole, the same package again under its name is grizzle's `unchanged`, and
- * another package under a stored name is refused on the keys the two share: nothing stored is
- * ever replaced, and nothing is minted. So a commit with no answer, which fails the import with
+ * another package under a stored name is refused on the keys the two share: nothing stored is ever
+ * replaced, and nothing is minted. So a commit with no answer, which fails the import with
  * grizzle's `commitUnknown`, is settled by importing the package again, which answers whether the
  * database holds it: `unchanged` where it committed, `accepted` where it did not and now has. No
- * retry lives here beyond `settled`: a retry belongs to den's durable steps or the platform's
- * redelivery. Two packages that share a manifest identifier are two
- * packages under two names. The apply is one transaction, so the database holds the whole package
- * or nothing of it: there is no split and no completion marker. grizzle writes each relation's rows
- * in one statement, its nested rows past one Bind message through a carrier, a temporary table of
- * the write's own (README, "Sizes"; grizzle `164aeb06`), so no transport bound splits the write.
+ * retry lives here: a retry belongs to den's durable steps or the platform's redelivery. Two
+ * packages that share a manifest identifier are two packages under two names. The apply is one
+ * transaction, so the database holds the whole package or nothing of it: there is no split and no
+ * completion marker. grizzle writes each relation's rows in one statement, its nested rows past one
+ * Bind message through a carrier, a temporary table of the write's own (README, "Sizes"; grizzle
+ * `164aeb06`), so no transport bound splits the write.
  */
-import { settled } from "@bjornpagen/grizzle";
 import type { CallError, MemberHandle } from "@bjornpagen/grizzle";
 import { Context, Duration, Effect } from "effect";
 import { importRowsOf } from "#pantry/import/program.ts";
@@ -105,13 +104,13 @@ export interface Imported {
  * the one `readPackage` was given: a package under a name no package holds is `accepted`; the same
  * package again under its name is `unchanged`; another package under a stored name is refused on
  * the keys the two share, `ImportRefused` naming them, since a name is one revision for as long as
- * it stands. The apply runs again past a transient refusal (grizzle's `settled`), and on nothing
- * else: a commit with no answer fails the import with `commitUnknown`, and importing the package
- * again answers `unchanged` where that commit landed, since the write only inserts. Its member is
- * grizzle's `MemberHandle` of the program the login serves, so the handle of either author login is
- * one, `AuthorApp`'s over `Qti` and `MediaAuthorApp`'s over `QtiMedia`. Each attempt of the apply
- * runs through {@link WrapApply}, a reference whose default is the live one, so a caller provides
- * nothing.
+ * it stands. The apply is made once: a transient refusal, which changed nothing, fails the import
+ * with grizzle's `transient` `CallError`, and a commit with no answer fails it with
+ * `commitUnknown`; importing the package again is the caller's, and answers `unchanged` where that
+ * commit landed, since the write only inserts. Its member is grizzle's `MemberHandle` of the
+ * program the login serves, so the handle of either author login is one, `AuthorApp`'s over `Qti`
+ * and `MediaAuthorApp`'s over `QtiMedia`. Each attempt of the apply runs through {@link WrapApply},
+ * a reference whose default is the live one, so a caller provides nothing.
  *
  * @param workload - The author `Db`'s workload: its `insertWrite` member.
  * @param pkg - The package, as `readPackage` read it under its name.
@@ -134,8 +133,8 @@ export const importPackage = Effect.fn("import.importPackage")(function* importP
     discard: true,
   });
 
-  const [elapsed, outcome] = yield* settled(
-    wrap(workload.insertWrite.once({ facts: { insert: rows.insert }, params: {} })),
+  const [elapsed, outcome] = yield* wrap(
+    workload.insertWrite.once({ facts: { insert: rows.insert }, params: {} }),
   ).pipe(
     Effect.catch((error): Effect.Effect<never, ImportRefused | CallError> =>
       error.kind === "refused" ? nameRefusal(error) : Effect.fail(error),

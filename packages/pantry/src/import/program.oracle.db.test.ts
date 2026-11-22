@@ -47,6 +47,7 @@ import { hasLease } from "#pantry/test/settings.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
 import { AuthorAppLayer } from "#pantry/db/layer.ts";
 import { memoryMediaStore } from "#pantry/package/media.ts";
+import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 import {
   applyEdited,
   checkNamed,
@@ -354,9 +355,14 @@ const metadataVerdicts: readonly (readonly [FixtureName, readonly string[]])[] =
 ];
 
 describe.skipIf(!hasLease)("import/program.oracle.db.test.ts, on the lease", () => {
-  layer(Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore), {
-    excludeTestServices: true,
-  })("one ChangeSet per package, judged by PostgreSQL", (it) => {
+  layer(
+    Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore).pipe(
+      Layer.provideMerge(fileDatabaseOf("oracle")),
+    ),
+    {
+      excludeTestServices: true,
+    },
+  )("one ChangeSet per package, judged by PostgreSQL", (it) => {
     it.effect(
       "accepts simple, sharedMedia and svg whole, each in one apply, logging the apply time",
       () =>

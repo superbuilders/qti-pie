@@ -12,6 +12,7 @@ import { exportEntries } from "#pantry/export/package.ts";
 import { readEntries } from "#pantry/package/read.ts";
 import { captureCli, packageCopy } from "#pantry/test/cli.ts";
 import { hasLease } from "#pantry/test/settings.ts";
+import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
 const fixtures = inject("fixtures");
 
@@ -73,10 +74,15 @@ const entryLine = Schema.fromJsonString(
 const cliMediaStore = localMediaStore.pipe(Layer.provide(NodeServices.layer));
 
 describe.skipIf(!hasLease)("output.db.test.ts, on the lease", () => {
-  layer(Layer.mergeAll(AuthorAppLayer, NodeServices.layer, cliMediaStore), {
-    excludeTestServices: true,
-    timeout: "120 seconds",
-  })("--output on the lease", (it) => {
+  layer(
+    Layer.mergeAll(AuthorAppLayer, NodeServices.layer, cliMediaStore).pipe(
+      Layer.provideMerge(fileDatabaseOf("output")),
+    ),
+    {
+      excludeTestServices: true,
+      timeout: "120 seconds",
+    },
+  )("--output on the lease", (it) => {
     it.effect(
       "--json import prints one line, the envelope with the package's name, and the same package again is unchanged under it",
       () =>

@@ -73,9 +73,10 @@ From the repository root, after the setup in [qti-pie's README](../../README.md#
 pnpm install --frozen-lockfile
 ```
 
-The database is pantry's own local cluster ([`pg.config.ts`](pg.config.ts)): grizzle's patched PostgreSQL 19rc2 on
-`localhost:5447`, with verify-full TLS only, which `scripts/db.sh` and the command line make and start the first time
-they need it. [`AGENTS.md`](../../AGENTS.md#local-database) describes how to build its server and how to choose another.
+The database is a database of your own on the machine's one shared PostgreSQL 19 (`localhost:5432`, verify-full TLS
+against `$PGSSLROOTCERT`), under an owner role of your own, which `scripts/db.sh` and the command line reach through the
+`QTI_PIE_PG_*` settings, every one required; pantry never starts or makes a server. [`AGENTS.md`](../../AGENTS.md#local-database)
+describes the settings, the owner role and the role prefix.
 
 ## Start
 
@@ -159,7 +160,7 @@ pnpm types
 pnpm --filter @qti-pie/pantry test
 ```
 
-Tests that need the database use the local cluster, under a lease ([`AGENTS.md`](../../AGENTS.md#local-database)). Agents start at [`AGENTS.md`](../../AGENTS.md).
+Tests that need the database run on your own database on the shared server, under a lease ([`AGENTS.md`](../../AGENTS.md#local-database)). Agents start at [`AGENTS.md`](../../AGENTS.md).
 
 The vocabulary's derivations and the XSD differentials read the 23 XSDs that
 [`src/vocab/derive/sources.ts`](src/vocab/derive/sources.ts) pins by URL and SHA-256, all published by 1EdTech under

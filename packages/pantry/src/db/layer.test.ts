@@ -35,6 +35,18 @@ const sourceRoot = path.resolve(import.meta.dirname, "..");
 const unusedCa = "an unused CA: this layer is built and released without connecting\n";
 
 /**
+ * The server the layer is given, every setting a connection requires (`#pantry/db/connection.ts`
+ * refuses a missing one by name) but the CA, whose file the test writes: never reached, since no
+ * session connects. They are the test's own, never the process environment's, so the test runs the
+ * same with a lease set or none.
+ */
+const unusedServer = {
+  QTI_PIE_PG_DATABASE: "layer_unused",
+  QTI_PIE_PG_HOST: "localhost",
+  QTI_PIE_PG_PORT: "1",
+} as const;
+
+/**
  * Find the migration artifacts a module's text imports: each `#migrations/` specifier of an
  * `import … from`, an `export … from`, a bare `import`, an `import(…)` call or an `import(…)` type.
  *
@@ -76,11 +88,7 @@ layer(NodeServices.layer)("db/layer.ts, built from the committed served file", (
       const exit = yield* Effect.provide(Effect.void, AuthorAppLayer).pipe(
         Effect.provide(
           ConfigProvider.layer(
-            ConfigProvider.fromUnknown({
-              HOME: home,
-              QTI_PIE_PG_CA: ca,
-              QTI_PIE_PG_PORT: "1",
-            }),
+            ConfigProvider.fromUnknown({ ...unusedServer, HOME: home, QTI_PIE_PG_CA: ca }),
           ),
         ),
         Effect.exit,

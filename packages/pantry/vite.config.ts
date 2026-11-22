@@ -36,15 +36,6 @@ export default defineConfig({
         test: {
           hookTimeout: 60_000,
           include: databaseFiles,
-          // One worker: every database test reads only its own package's rows, but at SERIALIZABLE
-          // PostgreSQL's own foreign key check reads each referenced key through its index, taking
-          // page-level SIRead locks there, so overlapping imports still fail with false 40001s.
-          // grizzle's SSISCAN-01 took out the other cause, an insert's stored-absent check by a
-          // sequential scan, whose relation-level SIRead lock failed them: on grizzle 26e3c15f, 9
-          // workers met 1,008 40001s in 12 minutes and imports failed after the importer's 30 s of
-          // retries (2026-11-09). Measured on a 14-core M4 Pro: at one worker, after the rest in
-          // parallel, a full QTI_PIE_CORPUS=1 run passed in 1408 s.
-          maxWorkers: 1,
           name: "database",
           sequence: { groupOrder: 2 },
           testTimeout: 60_000,

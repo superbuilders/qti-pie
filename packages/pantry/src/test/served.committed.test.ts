@@ -18,8 +18,7 @@
  * check` refuses it as an ungenerated change in the integration checks (AGENTS.md, Workflow).
  *
  * It compiles in process rather than spawning `grizzle check`: loading `grizzle.config.ts` loads
- * the cluster's spec and connection (`#pg.config.ts`, `#pantry/db/connection.ts`), and this
- * witness needs no cluster.
+ * the server's connection (`#pantry/db/connection.ts`), and this witness needs no server.
  *
  * @see https://github.com/bjornpagen/grizzle/blob/698880ac5644ea918b7ca5c56b0d800da2cf43e9/packages/grizzle/src/adapter/public/compile.ts#L29-L60
  * @see https://github.com/bjornpagen/grizzle/blob/698880ac5644ea918b7ca5c56b0d800da2cf43e9/packages/grizzle/src/cli/check.ts#L274-L320

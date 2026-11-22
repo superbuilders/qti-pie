@@ -54,8 +54,8 @@ export const fileScratchDirectory = (prefix: string): string => {
 };
 
 /**
- * The environment that gives a CLI run a scratch home and names a server that is not there, so no
- * run reads the local cluster's member or brings the cluster up.
+ * The environment that gives a CLI run a scratch home and names a server that is not there, so a
+ * step that needs the database fails with kind `config` and reaches no server.
  */
 type ScratchEnv = Readonly<{
   /**

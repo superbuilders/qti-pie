@@ -2,9 +2,8 @@
  * What scripts/db.sh sends psql and what it reports, with no database: a stub psql in place of
  * `GRIZZLE_PG_BIN`'s, which records the password and the connection string each connection is
  * given and connects nowhere, and stub password commands, held to the meaning src/db/connection.ts
- * gives `QTI_PIE_PG_PASSWORD_COMMAND`. Every setting the script reads from the local cluster where
- * it is unset is set, and `TOOLCHAIN_PG_CLUSTER` names no cluster, so no run brings a cluster up: a
- * run that reads the cluster's member fails, naming the variable.
+ * gives `QTI_PIE_PG_PASSWORD_COMMAND`. Every setting the script requires is set but where a case
+ * leaves one unset or empty, which the script refuses, naming it, before any psql runs.
  */
 import path from "node:path";
 import { NodeServices } from "@effect/platform-node";
@@ -41,25 +40,20 @@ const cleared = {
 } as const;
 
 /**
- * What `TOOLCHAIN_PG_CLUSTER` holds in every run: no port, so the cluster maker refuses it before
- * it reads or makes anything, and a run that reads the local cluster's member fails, naming the
- * variable, instead of bringing a cluster up.
- */
-const unreachableCluster = "no-cluster";
-
-/**
- * The migration identity every case names, in place of the local cluster's owner.
+ * The migration identity every case names, a lane's owner role.
  */
 const migrationRole = "qti_migrator";
 
 /**
- * The settings scripts/db.sh reads from the local cluster's member where each is unset, and a
- * subcommand that reads it: every subcommand reads the port, the CA, the migration identity and,
- * with no password command, its password file, and `create` alone the template.
+ * The settings scripts/db.sh requires, and a subcommand that requires it: every subcommand the
+ * host, the port, the CA, the database, the migration identity and, with no password command, its
+ * password file, and `create` alone the template.
  */
-const memberSettings = [
+const requiredSettings = [
+  { setting: "QTI_PIE_PG_HOST", subcommand: "check-clear" },
   { setting: "QTI_PIE_PG_PORT", subcommand: "check-clear" },
   { setting: "QTI_PIE_PG_CA", subcommand: "check-clear" },
+  { setting: "QTI_PIE_PG_DATABASE", subcommand: "check-clear" },
   { setting: "QTI_PIE_PG_MIGRATION_ROLE", subcommand: "check-clear" },
   { setting: "QTI_PIE_PG_MIGRATION_PASSWORD_FILE", subcommand: "check-clear" },
   { setting: "QTI_PIE_PG_TEMPLATE", subcommand: "create" },
@@ -111,12 +105,13 @@ const scriptScratch = Effect.gen(function* scriptScratch() {
       ...cleared,
       GRIZZLE_PG_BIN: bin,
       QTI_PIE_PG_CA: `${root}/ca.crt`,
+      QTI_PIE_PG_DATABASE: "qti_pie",
+      QTI_PIE_PG_HOST: "localhost",
       QTI_PIE_PG_MIGRATION_PASSWORD_FILE: `${root}/owner.password`,
       QTI_PIE_PG_MIGRATION_ROLE: migrationRole,
       QTI_PIE_PG_PORT: "1",
       QTI_PIE_PG_SECRETS: `${root}/secrets`,
       QTI_PIE_PG_TEMPLATE: "the_template",
-      TOOLCHAIN_PG_CLUSTER: unreachableCluster,
     },
     psqlRuns,
     root,
@@ -165,7 +160,7 @@ const runScript = Effect.fn("test.dbScript.run")(function* runScript(
  * printed, as src/db/connection.ts's `PasswordCommandFailed` refuses it, and one that exits 0 with
  * nothing but whitespace as its `PasswordCommandSilent` does. Every subcommand refuses through the
  * same `as_owner`, so each command is run through `create`, which loads no config, and the first
- * through `check-clear` too, which exits 2 where it cannot read the cluster's catalog.
+ * through `check-clear` too, which exits 2 where it cannot read the server's catalog.
  */
 const refusedCommands = [
   {
@@ -250,11 +245,11 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     );
 
     it.effect(
-      "checks a dropped database clear through the cluster's catalog alone, never connecting to the database it drops",
+      "checks a dropped database clear through the server's catalog alone, never connecting to the database it drops",
       () =>
         // Oracle: drop removes the database, so a check that connects to it can only fail; the
         // stub psql's log names every database a connection was opened to, and its empty answer
-        // is a cluster that holds neither the database nor a role of its installation.
+        // is a server that holds neither the database nor a role of its installation.
         Effect.gen(function* clearAfterDrop() {
           const scratch = yield* scriptScratch;
           const command = yield* scratch.command("password.sh", "echo the-password");
@@ -314,33 +309,33 @@ layer(NodeServices.layer, { excludeTestServices: true })(
     );
 
     it.effect(
-      "reads each setting it leaves unset or empty from the local cluster's member, through the cluster maker, before the subcommand that needs it connects",
+      "refuses each required setting left unset or empty with exit 2, naming it, before any psql runs",
       () =>
-        // Oracle: TOOLCHAIN_PG_CLUSTER names no cluster, so the cluster maker refuses any read of
-        // the member, naming the variable; every other case sets each setting and so reads none.
-        Effect.gen(function* memberDefaults() {
+        // Oracle: the script's own rule, every QTI_PIE_PG_* setting required and none defaulted to
+        // a server it would bring up; the stub psql's log shows that no subcommand connected.
+        Effect.gen(function* requiredRefused() {
           const scratch = yield* scriptScratch;
-
-          // Each setting unset, and one empty, which the script reads as unset, as `:=` does.
           const cases = [
-            ...memberSettings.map(({ setting, subcommand }) => ({
+            ...requiredSettings.map(({ setting, subcommand }) => ({
               setting,
               subcommand,
               text: undefined,
             })),
-            { setting: "QTI_PIE_PG_PORT", subcommand: "check-clear", text: "" },
-          ] as const;
+            ...requiredSettings.map(({ setting, subcommand }) => ({
+              setting,
+              subcommand,
+              text: "",
+            })),
+          ];
 
           for (const { setting, subcommand, text } of cases) {
             const run = yield* runScript(subcommand, { ...scratch.environment, [setting]: text });
 
-            assert.strictEqual(run.code, 1, `${setting}=${String(text)}: ${run.stderr}`);
-            assert.include(run.stderr, "reading TOOLCHAIN_PG_CLUSTER", setting);
+            assert.strictEqual(run.code, 2, `${setting}=${String(text)}: ${run.stderr}`);
+            assert.include(run.stderr, `${setting} is unset`, setting);
           }
 
-          // create asks whether the database exists, one psql run, before it reads the template;
-          // no other subcommand runs psql before its settings are read.
-          assert.lengthOf(yield* scratch.psqlRuns, 1);
+          assert.deepStrictEqual(yield* scratch.psqlRuns, []);
         }),
     );
   },

@@ -73,9 +73,9 @@ export const kindHelp: Readonly<Record<Kind, string>> = {
     "Name the directory of an unzipped QTI package, or its .zip file, that exists.",
   "cli-usage": "Run `qti --help`, or `qti <command> --help`, to see valid usage.",
   config:
-    "Start the local database cluster and migrate it, as the project's AGENTS.md describes, then run the command again.",
+    "Set every QTI_PIE_PG_* setting to your lane's database on the shared server and migrate it, as the project's AGENTS.md describes, then run the command again.",
   database:
-    "Check that the local database cluster is running (`pnpm exec toolchain-pg status` in packages/qti-pie/packages/pantry, and `start` there to start it), then run the command again.",
+    "Check that the shared database server is running (`systemctl --user status postgres`) and that the QTI_PIE_PG_* settings name it, then run the command again.",
   "import-refused":
     "Fix the package as the message says, then import it again. Nothing was written.",
   internal:
@@ -89,11 +89,27 @@ export const kindHelp: Readonly<Record<Kind, string>> = {
 };
 
 /**
+ * The next step after the call errors whose kind is `database` but whose cause is no server that is
+ * down or misnamed, so {@link kindHelp}'s check of the server would send the reader to the wrong
+ * place: a `transient` refusal, which a concurrent transaction's work met and which changed
+ * nothing, and a `commitUnknown`, a COMMIT that got no answer, which may have committed, and which
+ * grizzle's README says to read back before running it again ("Errors and outcomes").
+ *
+ * @see https://github.com/bjornpagen/grizzle/blob/71d2d91b41111cb719715d195d25b5a196040b6f/README.md#L3765-L3766
+ */
+const callErrorHelp: Partial<Readonly<Record<CallErrorKind, string>>> = {
+  commitUnknown:
+    "The commit got no answer, so the outcome is unknown: it may have committed. Read back what you wrote before running it again: look for the package by its name (`qti export --dry-run <dir> <name>`); the same package imported again under its name is unchanged, never a second copy.",
+  transient:
+    "The database refused this attempt, which changed nothing: a concurrent transaction's work met it. Run the command again.",
+};
+
+/**
  * The next step after a stop by `--timeout`, for every stop that leaves nothing written: a longer
- * limit, or a cluster that answers.
+ * limit, or a server that answers.
  */
 const longerLimit =
-  "Give --timeout, or QTI_TIMEOUT, a longer limit, or check that the database cluster answers with `pnpm exec toolchain-pg doctor` in packages/qti-pie/packages/pantry";
+  "Give --timeout, or QTI_TIMEOUT, a longer limit, or check that the shared database server answers (`systemctl --user status postgres`)";
 
 /**
  * The tags of grizzle's public errors (`adapter/public/errors.ts`), each of kind `database`,
@@ -142,9 +158,9 @@ const callErrorKinds = {
 /**
  * The kind of each failure {@link describeFailure} names by its tag alone, without importing the
  * module that defines it, so the program starts without loading grizzle, the layer or the engine:
- * grizzle's public errors are `database` ({@link grizzleKinds}); the layer's three
- * (`db/connection.ts`'s two and `db/served.ts`'s) and Effect's `ConfigError`, which a missing or
- * malformed setting raises, are `config`, the local set-up missing or unreadable; a refused import,
+ * grizzle's public errors are `database` ({@link grizzleKinds}); the layer's two
+ * (`db/connection.ts`'s and `db/served.ts`'s) and Effect's `ConfigError`, which a missing or
+ * malformed setting raises, are `config`, the set-up missing or unreadable; a refused import,
  * an absent package, a media file the media store does not hold, one it could not take, and the
  * file system's failure have a kind each. One of grizzle's errors is another kind by what it
  * carries: a program grizzle refused to compile ({@link isUncompiled}).
@@ -154,7 +170,6 @@ const kindByTag = {
   ClusterConfigError: "config",
   ConfigError: "config",
   ImportRefused: "import-refused",
-  LocalMemberUnavailable: "config",
   MediaMissing: "not-found",
   MediaUnstored: "io",
   PackageNotFound: "not-found",
@@ -354,7 +369,7 @@ const ownHelpOf = (error: OwnError): string =>
         ? `The package is stored. Give --timeout, or QTI_TIMEOUT, a longer limit, then ${writeWords[command].again}: the same package imported again under its name is unchanged.`
         : `Nothing was written. ${longerLimit}, then ${writeWords[command].again}.`,
     WriteUnsettled: ({ command, package: name }) =>
-      `Check that the database cluster answers (\`pnpm exec toolchain-pg doctor\` in packages/qti-pie/packages/pantry), then look for the package by its name (\`qti export --dry-run <dir> ${name}\`) before you ${writeWords[command].again}: the same package imported again under its name is unchanged, never a second copy.`,
+      `Check that the shared database server answers (\`systemctl --user status postgres\`), then look for the package by its name (\`qti export --dry-run <dir> ${name}\`) before you ${writeWords[command].again}: the same package imported again under its name is unchanged, never a second copy.`,
   });
 
 /**
@@ -486,8 +501,9 @@ const kindOf = (read: ReadFailure): Kind => {
 /**
  * What to do next: for a named failure (`namedFailureOf`) the help of its own; for a program
  * grizzle refused to compile (`isUncompiled`), that a defect of qti left the database as it was;
- * for a media failure, the store's ({@link mediaHelp}); for a refusal the database gave, the help
- * of a law's refusal by the kind of its witness; else the help of its kind.
+ * for a media failure, the store's ({@link mediaHelp}); for a transient or commit-unknown call
+ * error, the help of its call kind ({@link callErrorHelp}); for a refusal the database gave, the
+ * help of a law's refusal by the kind of its witness; else the help of its kind.
  *
  * @param read - What the failure is.
  * @param kind - Its kind.
@@ -512,6 +528,13 @@ const helpOf = (read: ReadFailure, kind: Kind): string => {
   );
   if (Option.isSome(media)) {
     return media.value;
+  }
+
+  const call = read.call.pipe(
+    Option.flatMap((callKind) => Option.fromNullishOr(callErrorHelp[callKind])),
+  );
+  if (Option.isSome(call)) {
+    return call.value;
   }
 
   return Option.match(read.refusal, {

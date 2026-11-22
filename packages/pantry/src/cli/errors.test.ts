@@ -11,7 +11,7 @@ import {
 } from "#pantry/cli/errors.ts";
 import type { ExportDefectTag, ImportDefectTag } from "#pantry/cli/errors.ts";
 import { refusalFieldsOf } from "#pantry/cli/refused.ts";
-import { ClusterConfigError, LocalMemberUnavailable } from "#pantry/db/connection.ts";
+import { ClusterConfigError } from "#pantry/db/connection.ts";
 import { ServedLoadError } from "#pantry/db/served.ts";
 import { PackageNotFound } from "#pantry/export/package.ts";
 import { DocumentRowCount } from "#pantry/export/pages.ts";
@@ -36,13 +36,7 @@ const internal = { exitCode: 70, kind: "internal" };
 
 describe("describeFailure, the local set-up", () => {
   it("a ClusterConfigError exits 78 as config", () => {
-    const failure = new ClusterConfigError({ path: "/member/tls/ca.crt", source: "pg.config.ts" });
-
-    assert.deepStrictEqual(identity(failure), config);
-  });
-
-  it("a LocalMemberUnavailable exits 78 as config", () => {
-    const failure = new LocalMemberUnavailable({ reason: "its bin directory does not exist" });
+    const failure = new ClusterConfigError({ path: "/server/tls/ca.crt" });
 
     assert.deepStrictEqual(identity(failure), config);
   });
@@ -150,6 +144,37 @@ describe("describeFailure, what to do next", () => {
     for (const help of Object.values(kindHelp)) {
       assert.isAbove(help.length, 0);
     }
+  });
+
+  it("a transient call error says the attempt changed nothing and to run the command again, never to check the server", () => {
+    // Oracle: grizzle's meaning of `transient` (adapter/errors/failures.ts TransientReason: a
+    // concurrent transaction's work met the attempt, which changed nothing). Bound: the one kind
+    // whose help is its own among the database's; every other keeps its kind's.
+    const { help } = describeFailure({
+      kind: "transient",
+      message: "could not serialize access",
+      reason: "SerializationFailure",
+      retry: "safe",
+    });
+
+    assert.include(help, "changed nothing");
+    assert.include(help, "Run the command again");
+    assert.notInclude(help, "systemctl");
+  });
+
+  it("a commitUnknown call error says to read back what was written before running it again, never to run it again alone", () => {
+    // Oracle: grizzle's README on `commitUnknown`, "Read back before running it again" (Errors and
+    // outcomes): the COMMIT got no answer, so it may have committed. Bound: the one call kind whose
+    // remedy is a read first.
+    const { help } = describeFailure({
+      kind: "commitUnknown",
+      message: "no answer to COMMIT",
+      retry: "never",
+    });
+
+    assert.include(help, "Read back what you wrote before running it again");
+    assert.notInclude(help, "Run the command again");
+    assert.notInclude(help, "systemctl");
   });
 
   it("a RoundtripDiffers names the diff to run", () => {

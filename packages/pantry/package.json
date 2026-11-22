@@ -6,8 +6,7 @@
   "sideEffects": false,
   "imports": {
     "#pantry/*": "./src/*",
-    "#migrations/*": "./migrations/*",
-    "#pg.config.ts": "./pg.config.ts"
+    "#migrations/*": "./migrations/*"
   },
   "exports": {
     "./db/connection.ts": "./src/db/connection.ts",
@@ -33,6 +32,7 @@
     "./qti/schema.ts": "./src/qti/schema.ts",
     "./qti/templates.ts": "./src/qti/templates.ts",
     "./test/admission.ts": "./src/test/admission.ts",
+    "./test/file-database.ts": "./src/test/file-database.ts",
     "./vocab/laws.ts": "./src/vocab/laws.ts"
   },
   "scripts": {
@@ -46,7 +46,6 @@
   },
   "dependencies": {
     "@bjornpagen/grizzle": "workspace:*",
-    "@bjornpagen/grizzle-pg": "workspace:*",
     "@bjornpagen/grizzle-text": "workspace:*",
     "@bjornpagen/testing": "workspace:*",
     "@effect/platform-node": "catalog:",

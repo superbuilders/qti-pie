@@ -30,8 +30,8 @@ TypeScript runs directly on Node. There is no build step.
 
 ## Start
 
-pantry needs grizzle's PostgreSQL build, from which `scripts/db.sh` makes and starts pantry's own local cluster the
-first time it runs, as [`AGENTS.md`](AGENTS.md#local-database) describes:
+pantry needs a database and an owner role of its own on the machine's shared PostgreSQL 19, which `scripts/db.sh` reaches
+through the `QTI_PIE_PG_*` settings, as [`AGENTS.md`](AGENTS.md#local-database) describes:
 
 ```console
 $ cd packages/pantry

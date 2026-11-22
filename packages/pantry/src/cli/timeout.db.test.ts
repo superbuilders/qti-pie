@@ -17,14 +17,15 @@ import path from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
 import {
+  Array as Arr,
   Cause,
-  Config,
   Duration,
   Effect,
   Exit,
   Fiber,
-  FileSystem,
+  Layer,
   Option,
+  Redacted,
   Schedule,
   Schema,
 } from "effect";
@@ -33,9 +34,10 @@ import { Client } from "pg";
 import { describe, inject } from "vitest";
 import { ImportData } from "#pantry/cli/import.ts";
 import { successEnvelope } from "#pantry/cli/output.ts";
-import { LocalMember, localMemberUp } from "#pantry/db/connection.ts";
+import { migrationConnection } from "#pantry/db/connection.ts";
 import { captureCli } from "#pantry/test/cli.ts";
 import { hasLease } from "#pantry/test/settings.ts";
+import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
 const fixtures = inject("fixtures");
 
@@ -50,17 +52,10 @@ const importEnvelope = Schema.fromJsonString(successEnvelope("import", ImportDat
 const heldLimit = "10 minutes";
 
 /**
- * The first key of the advisory locks the hold waits on, a number of this file's own, which no
- * other test takes. The second key says where the waiting backend is: {@link holdPoint}.
+ * The key of the advisory lock the hold waits on, a number of this file's own, which no other test
+ * takes.
  */
 const holdClass = 20_261_114;
-
-/**
- * The second key of the lock the hold waits on, by where the waiting backend is: `1` while it runs
- * COMMIT, `2` in any other statement. The hold reads that from `current_query()`, the statement the
- * client sent, so `pg_locks`, which every role reads whole, says where the import waits.
- */
-const holdPoint = { commit: "1", statement: "2" } as const;
 
 /**
  * The prefix of the package names the hold catches at each point: in the insert's statement, or
@@ -80,16 +75,17 @@ const removeHold = [
 
 /**
  * The SQL that installs the hold: the function, which for a package whose name starts with the
- * trigger's argument waits on the lock {@link holdClass} and {@link holdPoint} name, and its two
- * triggers, one per point of {@link holdPrefix}. A constraint trigger `DEFERRABLE INITIALLY
- * DEFERRED` fires as the transaction commits, so its wait is the COMMIT's; a plain `AFTER INSERT`
- * trigger fires in the insert's statement.
+ * trigger's argument names that argument, its point's prefix, as the session's `application_name`
+ * ({@link heldAt} reads it) and waits on the lock {@link holdClass} names, and its two triggers,
+ * one per point of {@link holdPrefix}. A constraint trigger `DEFERRABLE INITIALLY DEFERRED` fires
+ * as the transaction commits, so its wait is the COMMIT's; a plain `AFTER INSERT` trigger fires in
+ * the insert's statement.
  *
  * @see https://www.postgresql.org/docs/current/sql-createtrigger.html
  */
 const installHold = [
   ...removeHold,
-  `CREATE FUNCTION public.pantry_cli_timeout_hold() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ BEGIN IF starts_with(NEW.name::text, TG_ARGV[0]) THEN PERFORM pg_advisory_xact_lock(${holdClass}, CASE WHEN upper(btrim(current_query(), ' ;')) = 'COMMIT' THEN ${holdPoint.commit} ELSE ${holdPoint.statement} END); END IF; RETURN NULL; END $$`,
+  `CREATE FUNCTION public.pantry_cli_timeout_hold() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ BEGIN IF starts_with(NEW.name::text, TG_ARGV[0]) THEN PERFORM set_config('application_name', TG_ARGV[0], true); PERFORM pg_advisory_xact_lock(${holdClass}); END IF; RETURN NULL; END $$`,
   `CREATE CONSTRAINT TRIGGER pantry_cli_timeout_at_commit AFTER INSERT ON qti.package DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.pantry_cli_timeout_hold('${holdPrefix.commit}')`,
   `CREATE TRIGGER pantry_cli_timeout_at_statement AFTER INSERT ON qti.package FOR EACH ROW EXECUTE FUNCTION public.pantry_cli_timeout_hold('${holdPrefix.statement}')`,
 ] as const;
@@ -108,35 +104,31 @@ const sql = (client: Client, text: string, values: readonly string[] = []) =>
   );
 
 /**
- * The host every member of a local cluster listens on: the cluster maker binds each to localhost
- * alone (its `listen_addresses`), as `toolchain-pg env` prints it.
- */
-const memberHost = "localhost";
-
-/**
- * A session of the lease database as the local cluster's owner, which owns `qti.package`, since
- * scripts/db.sh creates the database owned by it and migrates it as it, and so may put a trigger
- * on it, ended with the scope: on the cluster's member as the cluster maker describes it
- * (`localMemberUp`), its port, its CA, its owner and the owner's password.
+ * A session of the lease database as its migration identity (`migrationConnection`, the lane's
+ * owner role, `QTI_PIE_PG_MIGRATION_ROLE`), which owns `qti.package`, since scripts/db.sh creates
+ * the database owned by it and migrates it as it, and so may put a trigger on it, ended with the
+ * scope: at the host, port and database the settings name, verifying the server against their CA.
  */
 const adminSession = Effect.acquireRelease(
   Effect.gen(function* opensAdminSession() {
-    const fs = yield* FileSystem.FileSystem;
-    const { member } = yield* LocalMember;
-    const { caFile, owner, passwordFile, port } = yield* member;
+    const owner = yield* migrationConnection;
+    const { ca, host, port } = owner.transport;
+    const password = Redacted.isRedacted(owner.password)
+      ? owner.password
+      : yield* Effect.orDie(owner.password);
     const client = new Client({
-      database: yield* Config.String("QTI_PIE_PG_DATABASE"),
-      host: memberHost,
-      password: (yield* fs.readFileString(passwordFile)).trim(),
+      database: owner.database,
+      host,
+      password: Redacted.value(password),
       port,
-      ssl: { ca: [yield* fs.readFileString(caFile)], servername: memberHost },
-      user: owner,
+      ssl: { ca: Arr.ensure(ca), servername: host },
+      user: owner.role,
     });
 
     yield* Effect.promise(() => client.connect());
 
     return client;
-  }).pipe(Effect.provide(localMemberUp)),
+  }),
   (client) => Effect.promise(() => client.end()),
 );
 
@@ -154,10 +146,7 @@ const armHold = (client: Client) =>
         yield* sql(client, statement);
       }
 
-      yield* sql(
-        client,
-        `SELECT pg_advisory_lock(${holdClass}, ${holdPoint.commit}), pg_advisory_lock(${holdClass}, ${holdPoint.statement})`,
-      );
+      yield* sql(client, `SELECT pg_advisory_lock(${holdClass})`);
     }),
     () =>
       Effect.gen(function* disarmsHold() {
@@ -179,13 +168,13 @@ const releaseHold = (client: Client) =>
   Effect.asVoid(sql(client, "SELECT pg_advisory_unlock_all()"));
 
 /**
- * How long the hold's wait lets pass between two reads of `pg_locks` ({@link heldAt}).
+ * How long the hold's wait lets pass between two reads of `pg_stat_activity` ({@link heldAt}).
  *
  * @limitKind provisional
  * @owner timeout.db.test.ts (heldAt, the wait for the import's backend at the hold)
  * @unit milliseconds
- * @scope each pause between two reads of `pg_locks` in one held run's wait
- * @guards with no pause, the wait reads `pg_locks` back to back on the test's session while the
+ * @scope each pause between two reads of `pg_stat_activity` in one held run's wait
+ * @guards with no pause, the wait reads `pg_stat_activity` back to back on the test's session while the
  *   import starts, spending a CPU and the member's time until the backend arrives
  * @measure time from the run's start to the backend's arrival at the hold over many runs on the
  *   lease, and keep the longest pause that adds no more than a tenth of that to the wait
@@ -195,13 +184,17 @@ const releaseHold = (client: Client) =>
 const holdReadPauseMillis = 100;
 
 /**
- * Wait, on the live clock, until a backend of the lease database waits on one of the hold's locks,
- * and say where it waits. A run that ends first fails the wait with how it ended. It reads
- * `pg_locks` again after a pause ({@link holdReadPauseMillis}) until it finds the waiter:
- * PostgreSQL offers no blocking wait for another session to begin waiting, since `pg_locks` is a
- * view and a lock request blocks only until a holder lets go, so no read of the test's session can
- * block until the import arrives. The suite's `testTimeout` bounds the wait; it has no limit of its
- * own.
+ * Wait, on the live clock, until a backend of the file's own database waits on the hold's lock, and
+ * say where it waits: the hold names its point as the backend's `application_name`, which
+ * `pg_stat_activity` shows every role, unlike a backend's wait and statement, which it shows only
+ * to the backend's own role and `pg_read_all_stats`, and `pg_blocking_pids` names the test's
+ * session, the lock's holder, as what the backend waits for. It never reads `pg_locks`: that view
+ * snapshots every predicate lock slot of the server, which on the shared server passes PostgreSQL's
+ * 1 GB allocation ("invalid memory alloc request size"). A run that ends first fails the wait with
+ * how it ended. It reads again after a pause ({@link holdReadPauseMillis}) until it finds the
+ * waiter: PostgreSQL offers no blocking wait for another session to begin waiting, since a lock
+ * request blocks only until a holder lets go, so no read of the test's session can block until the
+ * import arrives. The suite's `testTimeout` bounds the wait; it has no limit of its own.
  *
  * @param client - The test's session.
  * @param run - The run of the command line being held.
@@ -222,11 +215,12 @@ const heldAt = (client: Client, run: Fiber.Fiber<{ readonly stderr: string }, un
 
       const waiting = yield* sql(
         client,
-        `SELECT objid::text AS point FROM pg_locks WHERE locktype = 'advisory' AND NOT granted AND classid = ${holdClass} AND objsubid = 2 AND database = (SELECT oid FROM pg_database WHERE datname = current_database())`,
+        "SELECT application_name AS point FROM pg_stat_activity WHERE datname = current_database() AND application_name IN ($1, $2) AND pg_backend_pid() = ANY (pg_blocking_pids(pid))",
+        [holdPrefix.commit, holdPrefix.statement],
       );
       const point = yield* Effect.fromOption(Option.fromNullishOr(waiting[0]?.["point"]));
 
-      return point === holdPoint.commit ? "commit" : "statement";
+      return point === holdPrefix.commit ? "commit" : "statement";
     }).pipe(Effect.retry(Schedule.spaced(Duration.millis(holdReadPauseMillis)))),
   );
 
@@ -344,7 +338,9 @@ const failureOf = (exit: Exit.Exit<unknown, unknown>): Option.Option<unknown> =>
   Exit.isFailure(exit) ? Option.some(Cause.squash(exit.cause)) : Option.none();
 
 describe.skipIf(!hasLease)("timeout.db.test.ts, on the lease", () => {
-  layer(NodeServices.layer, { timeout: "120 seconds" })("a stop by --timeout", (it) => {
+  layer(NodeServices.layer.pipe(Layer.provideMerge(fileDatabaseOf("timeout"))), {
+    timeout: "120 seconds",
+  })("a stop by --timeout", (it) => {
     it.effect(
       "at COMMIT, once every statement of the import has run, reports the import the database shows committed",
       () =>

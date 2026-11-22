@@ -2,7 +2,7 @@ import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Db, DbLayer, LiveSource, served } from "@bjornpagen/grizzle/runtime";
 import type { PoolBounds } from "@bjornpagen/grizzle/runtime";
 import { Effect, FileSystem, Layer, Schema } from "effect";
-import { localMemberUp, loginConnection, primedLoginConnection } from "#pantry/db/connection.ts";
+import { loginConnection, primedLoginConnection } from "#pantry/db/connection.ts";
 import { AuthorLogin, ServedLoadError, ServedText, servedPath } from "#pantry/db/served.ts";
 import type { AuthorAppLogin } from "#pantry/qti/logins.ts";
 
@@ -44,12 +44,12 @@ const pgPoolIdleTimeoutDefaultMs = 10_000;
  *
  * Grizzle chooses no size and no timeout: `DbLayer.make` takes the caller's `PoolBounds`, and
  * pantry takes node-postgres's own. Pantry's calls on a `Db` run one after another: the import
- * opens one `Db` and applies one ChangeSet, the export reads its documents' pages in order, and each
- * database test file, in a worker process of its own with its own pool, imports one package at a
- * time, so the pool never needs a second session, and no measurement asks for numbers of
- * pantry's own. The session kept open serves a process's next call, such as a test file's next
- * import through the same layer, without a new connection attempt, so a process between calls
- * holds one session of the server.
+ * opens one `Db` and applies one ChangeSet, the export reads its documents' pages in order, and
+ * each database test file, in a worker process of its own with its own pool, imports one package at
+ * a time, so the pool never needs a second session, and no measurement asks for numbers of pantry's
+ * own. The session kept open serves a process's next call, such as a test file's next import
+ * through the same layer, without a new connection attempt, so a process between calls holds one
+ * session of the server.
  *
  * @see https://github.com/bjornpagen/grizzle/blob/eb56d58bb3191b6645f1334dc55f63c7a73c2dc4/packages/grizzle/src/adapter/types/layer.ts#L90-L108
  * @see https://github.com/bjornpagen/grizzle/blob/eb56d58bb3191b6645f1334dc55f63c7a73c2dc4/README.md#connecting
@@ -61,11 +61,11 @@ const authorAppPool: PoolBounds = {
 };
 
 /**
- * The author application's pool on the local cluster: the login's connection
- * (`#pantry/db/connection.ts` `primedLoginConnection`), with the password of the role grizzle
- * installs for the login, its pool, and the committed served workload, read from disk and served as
- * the login's type (grizzle's `served`), with no schema module evaluated: the login's type is an
- * `import type`.
+ * The author application's pool on the server its `QTI_PIE_PG_*` settings name: the login's
+ * connection (`#pantry/db/connection.ts` `primedLoginConnection`), with the password of the role
+ * grizzle installs for the login, its pool, and the committed served workload, read from disk and
+ * served as the login's type (grizzle's `served`), with no schema module evaluated: the login's
+ * type is an `import type`.
  *
  * It provides the login's `DbLayer`, for the author role, and {@link AuthorLogin}, the served login
  * itself, whose `roles.author` every `Db.open` takes: grizzle opens a `Db` only on a role of the
@@ -74,13 +74,8 @@ const authorAppPool: PoolBounds = {
  * served file names, with the password `scripts/db.sh migrate` gave it. It connects nothing until
  * a `Db` watches a read, which pantry never does, so that password is read at no other time.
  *
- * The cluster's port and CA are the settings', and each one they leave unset the local cluster
- * member's, which the layer reads from the cluster maker (`localMemberUp` of
- * `#pantry/db/connection.ts`), bringing the cluster up, only where a setting is unset.
- *
- * Building the layer fails with Effect's `ConfigError` for a missing or malformed setting, with
- * `LocalMemberUnavailable` (`#pantry/db/connection.ts`) where the local cluster it needs cannot be
- * brought up, with a `ClusterConfigError` when the CA is unreadable, with a
+ * Building the layer fails with Effect's `ConfigError` for a missing or malformed setting, with a
+ * `ClusterConfigError` (`#pantry/db/connection.ts`) when the CA is unreadable, with a
  * {@link ServedLoadError} when the served file is, with the command's `PasswordCommandError` where
  * `QTI_PIE_PG_PASSWORD_COMMAND` names one, which the build runs once for the login's role before
  * any connection attempt, and with grizzle's `OpenError` at stage `config` for a file of another
@@ -105,7 +100,7 @@ export const AuthorAppLayer = Layer.unwrap(
       Layer.succeed(AuthorLogin, login),
     );
   }),
-).pipe(Layer.provide(Layer.merge(NodeFileSystem.layer, localMemberUp)));
+).pipe(Layer.provide(NodeFileSystem.layer));
 
 /**
  * Everything an import in this process runs on, one layer that needs nothing: Node's file system,

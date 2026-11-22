@@ -1,4 +1,4 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src", "scripts", "grizzle.config.ts", "pg.config.ts", "vite.config.ts"]
+  "include": ["src", "scripts", "grizzle.config.ts", "vite.config.ts"]
 }

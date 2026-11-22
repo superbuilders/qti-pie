@@ -10,6 +10,7 @@ import type { FixtureName } from "#pantry/test/fixtures.ts";
 import { hasLease } from "#pantry/test/settings.ts";
 import type { Rule } from "#pantry/import/rules.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
+import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 
 /**
  * The packaging fixtures of the retired guards, each with the rules its refusal may name: the
@@ -48,10 +49,15 @@ const refused = [
 ] as const satisfies readonly (readonly [FixtureName, readonly Rule[]])[];
 
 describe.skipIf(!hasLease)("import/refusal.packaging.test.ts, on the lease", () => {
-  layer(Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore), {
-    excludeTestServices: true,
-    timeout: "120 seconds",
-  })("the retired guards' packaging fixtures, refused under the rules their laws keep", (it) => {
+  layer(
+    Layer.mergeAll(AuthorAppLayer, NodeServices.layer, memoryMediaStore).pipe(
+      Layer.provideMerge(fileDatabaseOf("refusals")),
+    ),
+    {
+      excludeTestServices: true,
+      timeout: "120 seconds",
+    },
+  )("the retired guards' packaging fixtures, refused under the rules their laws keep", (it) => {
     for (const [name, rules] of refused) {
       it.effect(`refuses ${name} under rules that meet ${rules.join(", ")}`, () =>
         Effect.gen(function* refusesFixture() {

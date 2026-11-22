@@ -12,9 +12,11 @@ import { comparePackage } from "#pantry/export/compare.ts";
 import { exportPackage } from "#pantry/export/package.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
-import { matchesCommitted, spawnCli } from "#pantry/test/cli.ts";
+import { captureCli, matchesCommitted } from "#pantry/test/cli.ts";
 import { examplesTarball, materializeCorpus } from "#pantry/test/fixtures.ts";
+import { exitCodeOf } from "#pantry/cli/run.ts";
 import { hasLease, settings } from "#pantry/test/settings.ts";
+import { fileDatabaseOf } from "#pantry/test/writing-files.ts";
 import { renderVerdicts, verdictsPath } from "#pantry/test/verdicts.ts";
 import type { VerdictRow } from "#pantry/test/verdicts.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
@@ -192,12 +194,16 @@ const judge = Effect.fn("cli.corpus.judge")(function* judge(entry: {
 
   const { direct, report } = importer;
   const refusal = direct._tag === "Failure" ? direct.failure : undefined;
-  const cwd = path.join(scratchRoot, entry.member);
 
-  const [roundtripTime, cli] = yield* spawnCli(
-    ["--quiet", "--json", "roundtrip", "--yes", path.resolve(entry.dir), nameOf(entry.dir)],
-    { cwd },
-  ).pipe(Effect.timed);
+  const [roundtripTime, cli] = yield* captureCli([
+    "--quiet",
+    "--json",
+    "roundtrip",
+    "--yes",
+    path.resolve(entry.dir),
+    nameOf(entry.dir),
+  ]).pipe(Effect.timed);
+  const code = exitCodeOf(cli.exit);
 
   if (Duration.toMillis(roundtripTime) > tally.slowestRoundtrip.millis) {
     tally.slowestRoundtrip = { millis: Duration.toMillis(roundtripTime), name: entry.name };
@@ -233,10 +239,10 @@ const judge = Effect.fn("cli.corpus.judge")(function* judge(entry: {
     );
 
     if (differing === 0) {
-      assert.strictEqual(cli.code, 0, `${entry.name}: no entry differs, so the CLI exits 0`);
+      assert.strictEqual(code, 0, `${entry.name}: no entry differs, so the CLI exits 0`);
       assert.isTrue(envelope.ok, `${entry.name}: ok`);
     } else {
-      assert.strictEqual(cli.code, 1, `${entry.name}: ${differing} differ, so the CLI exits 1`);
+      assert.strictEqual(code, 1, `${entry.name}: ${differing} differ, so the CLI exits 1`);
       assert.isFalse(envelope.ok, `${entry.name}: not ok`);
       assert.strictEqual(errors.length, 1, `${entry.name}: one ErrorObject line on stderr`);
       assert.strictEqual(errors[0]?.kind, "roundtrip-differs", `${entry.name}: the CLI's kind`);
@@ -248,7 +254,7 @@ const judge = Effect.fn("cli.corpus.judge")(function* judge(entry: {
   } else {
     const rules = refusal instanceof ImportRefused ? refusal.rules : [];
 
-    assert.strictEqual(cli.code, 1, `${entry.name}: refused directly, so the CLI exits 1`);
+    assert.strictEqual(code, 1, `${entry.name}: refused directly, so the CLI exits 1`);
     assert.strictEqual(errors.length, 1, `${entry.name}: one ErrorObject line on stderr`);
     assert.strictEqual(errors[0]?.kind, "import-refused", `${entry.name}: the CLI's kind`);
     assert.deepStrictEqual(
@@ -284,10 +290,15 @@ const judge = Effect.fn("cli.corpus.judge")(function* judge(entry: {
 const cliMediaStore = localMediaStore.pipe(Layer.provide(NodeServices.layer));
 
 describe.skipIf(!hasLease)("cli.corpus.db.test.ts, on the lease", () => {
-  layer(Layer.mergeAll(AuthorAppLayer, NodeServices.layer, cliMediaStore), {
-    excludeTestServices: true,
-    timeout: "120 seconds",
-  })("the CLI against the importer over the corpus", (it) => {
+  layer(
+    Layer.mergeAll(AuthorAppLayer, NodeServices.layer, cliMediaStore).pipe(
+      Layer.provideMerge(fileDatabaseOf("corpus")),
+    ),
+    {
+      excludeTestServices: true,
+      timeout: "120 seconds",
+    },
+  )("the CLI against the importer over the corpus", (it) => {
     // Each package is two cases, so the hang guard bounds one half of its judgment: the importer's
     // run, then the CLI's, which reads what the importer's recorded.
     for (const entry of corpus) {

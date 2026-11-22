@@ -1,8 +1,8 @@
 /**
- * The local cluster's two connections against scripts/db.sh, whose `QTI_PIE_PG_*` block and
+ * The server's two connections against scripts/db.sh, whose `QTI_PIE_PG_*` settings and
  * database-name rule are the specification: each setting's named variants carry the value or the
- * refusal that script gives them, a setting left unset the local cluster's (a fake member in place
- * of the cluster maker's, or pg.config.ts's spec), and every combination of them is exhausted.
+ * refusal that script gives them, a required setting left unset or empty refused, naming it, and
+ * every combination of them is exhausted.
  */
 import net from "node:net";
 import { fileURLToPath } from "node:url";
@@ -30,29 +30,24 @@ import {
   Effect,
   FileSystem,
   Formatter,
-  Layer,
   Option,
   Predicate,
   Redacted,
-  Ref,
   Result,
 } from "effect";
+import type { Layer } from "effect";
 import pg from "pg";
 import {
   ClusterConfigError,
-  LocalMember,
-  LocalMemberUnavailable,
   loginConnection,
   migrationConnection,
-  MigrationCaUnset,
   PasswordCommandFailed,
   PasswordCommandNotRun,
   PasswordCommandSilent,
   PasswordCommandTimedOut,
   primedLoginConnection,
 } from "#pantry/db/connection.ts";
-import type { MemberFacts, PasswordCommandError } from "#pantry/db/connection.ts";
-import cluster from "#pg.config.ts";
+import type { PasswordCommandError } from "#pantry/db/connection.ts";
 
 /**
  * The timeout, in milliseconds, that this file's slower tests state, each itself or through its
@@ -134,10 +129,20 @@ const connectionOfSide = (side: (typeof commandSides)[number]): SideBuild =>
 const migrationPassword = "the migration identity's password";
 
 /**
- * The connect timeout of a connection that runs no password command, in milliseconds: the
- * network's bound alone.
+ * The migration identity a case names, a lane's owner role.
  */
-const networkTimeoutMs = 5000;
+const migrationRole = "qti_migrator";
+
+/**
+ * The required settings a case that varies none of them holds: the server's host and port, the
+ * database whose installation {@link loginRole} is in, and the migration identity.
+ */
+const serverSettings = {
+  QTI_PIE_PG_DATABASE: "qti_pie",
+  QTI_PIE_PG_HOST: "localhost",
+  QTI_PIE_PG_MIGRATION_ROLE: migrationRole,
+  QTI_PIE_PG_PORT: "5435",
+} as const;
 
 /**
  * A password command's bound, in milliseconds, where `QTI_PIE_PG_PASSWORD_COMMAND_TIMEOUT` is unset
@@ -168,6 +173,17 @@ const unset = <V>(value: V): Variant<V> => ({
 });
 
 /**
+ * Construct the variant of a required setting whose variable is unset, which the script refuses.
+ *
+ * @returns The variant.
+ */
+const missing = <V>(): Variant<V> => ({
+  name: "unset",
+  text: Option.none(),
+  value: Option.none(),
+});
+
+/**
  * Construct a variant of a setting the script keeps.
  *
  * @param name - What the variant is, as a failing case prints it.
@@ -195,32 +211,31 @@ const refused = <V>(name: string, text: string): Variant<V> => ({
 });
 
 /**
- * `QTI_PIE_PG_HOST`: unset or empty is `localhost` (the script's `:=`), and any other text is the
- * host as written.
+ * `QTI_PIE_PG_HOST`: unset or empty is refused, and any other text is the host as written.
  */
 const hosts = [
-  unset("localhost"),
-  kept("empty", "", "localhost"),
+  kept("localhost", "localhost", "localhost"),
+  missing<string>(),
+  refused<string>("empty", ""),
   kept("an IP address", "127.0.0.1", "127.0.0.1"),
   kept("another name", "db.test", "db.test"),
 ] as const;
 
 /**
- * `QTI_PIE_PG_PORT`: unset or empty is none, the local cluster's (a login's from its member, the
- * migration identity's pg.config.ts's), an integer from 1 to 65535 is itself, and every other text
- * is refused.
+ * `QTI_PIE_PG_PORT`: an integer from 1 to 65535 is itself, and unset, empty and every other text is
+ * refused.
  */
 const ports = [
-  unset<Option.Option<number>>(Option.none()),
-  kept("empty", "", Option.none<number>()),
-  kept("server B", "5435", Option.some(5435)),
-  kept("the least port", "1", Option.some(1)),
-  kept("the greatest port", "65535", Option.some(65_535)),
-  refused<Option.Option<number>>("not a number", "x"),
-  refused<Option.Option<number>>("zero", "0"),
-  refused<Option.Option<number>>("past the greatest port", "65536"),
-  refused<Option.Option<number>>("a fraction", "54.3"),
-  refused<Option.Option<number>>("negative", "-1"),
+  kept("server B", "5435", 5435),
+  missing<number>(),
+  refused<number>("empty", ""),
+  kept("the least port", "1", 1),
+  kept("the greatest port", "65535", 65_535),
+  refused<number>("not a number", "x"),
+  refused<number>("zero", "0"),
+  refused<number>("past the greatest port", "65536"),
+  refused<number>("a fraction", "54.3"),
+  refused<number>("negative", "-1"),
 ] as const;
 
 /**
@@ -230,14 +245,15 @@ const ports = [
 const longestInstalled = "a".repeat(63 - "__".length - roleNameOf(rootLogin, {}).length);
 
 /**
- * `QTI_PIE_PG_DATABASE`: unset or empty is `qti_pie`, and a name is kept exactly when it is a
+ * `QTI_PIE_PG_DATABASE`: unset or empty is refused, and a name is kept exactly when it is a
  * lowercase letter, then at most 62 lowercase letters, digits or underscores, with no `__` and not
  * starting with `pg_`. Every kept name is a role prefix grizzle accepts, its roles within 63 bytes
  * as far as {@link longestInstalled}, so the scratch folders name each one's role by `roleNameOf`.
  */
 const databases = [
-  unset("qti_pie"),
-  kept("empty", "", "qti_pie"),
+  kept("qti_pie", "qti_pie", "qti_pie"),
+  missing<string>(),
+  refused<string>("empty", ""),
   kept("the swarm's", "qti_pie_swarm", "qti_pie_swarm"),
   kept("one letter", "a", "a"),
   kept("the longest installed", longestInstalled, longestInstalled),
@@ -251,16 +267,10 @@ const databases = [
 ] as const;
 
 /**
- * Where the CA is: `QTI_PIE_PG_CA` unset, for the local cluster member's, or naming a file that is
- * there, or one that is not.
+ * Where the CA is: `QTI_PIE_PG_CA` unset, which is refused, or naming a file that is there, or one
+ * that is not.
  */
 const cas = ["unset", "a file", "a missing file"] as const;
-
-/**
- * The local cluster's member, as the fake in place of the cluster maker's describes it: up, or
- * unavailable, as a cluster that cannot be brought up is.
- */
-const memberStates = ["up", "unavailable"] as const;
 
 /**
  * Where the login's password file is: the default folder under `HOME`, named by the database, or a
@@ -275,19 +285,17 @@ interface Settings {
   readonly ca: (typeof cas)[number];
   readonly database: Variant<string>;
   readonly host: Variant<string>;
-  readonly member: (typeof memberStates)[number];
-  readonly port: Variant<Option.Option<number>>;
+  readonly port: Variant<number>;
   readonly secrets: (typeof secretFolders)[number];
 }
 
 /**
  * The settings that meet in a case: the database name meets the CA and the secrets folder, since
  * a refused name is refused before the CA is read and a login's password file lies under the
- * name's folder; the port meets the CA and the member, since a refused port is refused before the
- * CA is read and a login reads the member for either one left unset; and the host meets nothing,
- * each setting read apart from the others. So each case varies one of them over those it meets,
- * the others unset (the host's CA a file, so both connections build) and the member up, the small
- * box in which every interaction the connections have occurs.
+ * name's folder; the port meets the CA, since a refused port is refused before the CA is read; and
+ * the host meets nothing, each setting read apart from the others. So each case varies one of them
+ * over those it meets, the others at their first, kept variant (the host's CA a file, so both
+ * connections build), the small box in which every interaction the connections have occurs.
  */
 const settingsAxes = ["database", "port", "host"] as const;
 
@@ -301,39 +309,27 @@ const settingsOf: Gen<Settings> = (source) => {
   const host = axis === "host" ? source.draw(element(hosts)) : hosts[0];
   const ca = axis === "host" ? cas[1] : source.draw(element(cas));
   const secrets = axis === "database" ? source.draw(element(secretFolders)) : secretFolders[0];
-  const member = axis === "port" ? source.draw(element(memberStates)) : memberStates[0];
 
-  return { ca, database, host, member, port, secrets };
+  return { ca, database, host, port, secrets };
 };
 
 /**
- * What a case reaches: a connection built, a setting refused, the CA unreadable, the member
- * unavailable to a login that reads it, or the migration identity's CA unset.
+ * What a case reaches: a connection built, a setting refused (malformed, or unset where it is
+ * required), or the CA unreadable.
  */
-type Reached = "built" | "malformed" | "member unavailable" | "no CA" | "no CA setting";
+type Reached = "built" | "malformed" | "no CA";
 
 /**
  * The scratch folders a run reads: `HOME`, with a password file for every database name the script
- * keeps, the file `QTI_PIE_PG_CA` names, the local member's CA, the folder `QTI_PIE_PG_SECRETS`
- * names, with the login's password file in each kept database's installation, and an empty folder.
+ * keeps, the file `QTI_PIE_PG_CA` names, the folder `QTI_PIE_PG_SECRETS` names, with the login's
+ * password file in each kept database's installation, and an empty folder.
  */
 interface Scratch {
   readonly caFile: string;
   readonly empty: string;
   readonly home: string;
-  readonly memberCa: string;
   readonly secrets: string;
 }
-
-/**
- * The CA text of the local member's CA file.
- */
-const memberCa = "the local member's CA";
-
-/**
- * The port the fake local member listens on: neither pg.config.ts's nor any variant's.
- */
-const memberPort = 5999;
 
 /**
  * The CA text in the file `QTI_PIE_PG_CA` names.
@@ -366,13 +362,11 @@ const scratchFolders = Effect.gen(function* scratchFolders() {
     caFile: `${root}/server-ca.pem`,
     empty: `${root}/empty`,
     home: `${root}/home`,
-    memberCa: `${root}/member-ca.crt`,
     secrets: `${root}/secrets`,
   };
 
   yield* fs.makeDirectory(scratch.home, { recursive: true });
   yield* fs.makeDirectory(scratch.empty, { recursive: true });
-  yield* fs.writeFileString(scratch.memberCa, memberCa);
   yield* fs.writeFileString(scratch.caFile, namedCa);
   yield* fs.makeDirectory(scratch.secrets, { recursive: true });
 
@@ -414,12 +408,13 @@ interface Environment {
  *
  * @param settings - The case.
  * @param scratch - The run's folders.
- * @returns The variables, `HOME` and the migration password always among them.
+ * @returns The variables, `HOME`, the migration identity and its password always among them.
  */
 const environmentOf = (settings: Settings, scratch: Scratch): Environment => {
   const environment: Environment = {
     HOME: scratch.home,
     QTI_PIE_PG_MIGRATION_PASSWORD: migrationPassword,
+    QTI_PIE_PG_MIGRATION_ROLE: migrationRole,
   };
   const texts = [
     ["QTI_PIE_PG_DATABASE", settings.database.text],
@@ -449,52 +444,6 @@ const environmentOf = (settings: Settings, scratch: Scratch): Environment => {
 };
 
 /**
- * The local member's facts as the fake describes them: its CA in the run's folders, on
- * {@link memberPort}, owned by pg.config.ts's owner.
- *
- * @param scratch - The run's folders.
- * @returns The facts.
- */
-const memberFacts = (scratch: Scratch): MemberFacts => ({
-  caFile: scratch.memberCa,
-  owner: cluster.owner,
-  passwordFile: `${scratch.home}/owner.password`,
-  port: memberPort,
-});
-
-/**
- * The fake local member in place of the cluster maker's, each description of it counted.
- *
- * @param state - Whether it is up, with {@link memberFacts}, or unavailable.
- * @param scratch - The run's folders.
- * @param described - The count of its descriptions.
- * @returns Its layer.
- */
-const countedMember = (
-  state: (typeof memberStates)[number],
-  scratch: Scratch,
-  described: Ref.Ref<number>,
-) =>
-  Layer.succeed(LocalMember, {
-    member: Ref.update(described, (runs) => runs + 1).pipe(
-      Effect.andThen(
-        state === "up"
-          ? Effect.succeed(memberFacts(scratch))
-          : Effect.fail(new LocalMemberUnavailable({ reason: "the test's member is down" })),
-      ),
-    ),
-  });
-
-/**
- * The fake local member, up, for the cases that read no description's count.
- *
- * @param scratch - The run's folders.
- * @returns Its layer.
- */
-const memberUp = (scratch: Scratch) =>
-  Layer.succeed(LocalMember, { member: Effect.succeed(memberFacts(scratch)) });
-
-/**
  * The password commands a case names, by what each does: print a role's password with whitespace
  * around it, exit 3, print only whitespace, or print one from a path that holds a space and a
  * semicolon, which a shell would split; and two settings that name no executable.
@@ -515,7 +464,7 @@ const commandScripts = [
 ] as const;
 
 /**
- * Each variant of `QTI_PIE_PG_PASSWORD_COMMAND`: unset or empty, which leave the local passwords,
+ * Each variant of `QTI_PIE_PG_PASSWORD_COMMAND`: unset or empty, which leave the password files,
  * one of {@link commandScripts}, a path no file is at, and shell text, which names no executable.
  */
 const commandVariants = [
@@ -530,8 +479,8 @@ const commandVariants = [
 ] as const;
 
 /**
- * What a password command case reaches: a local password, a command's password, or each way a
- * command fails.
+ * What a password command case reaches: a password file's password, a command's password, or each
+ * way a command fails.
  */
 type CommandReached = "command" | "exited" | "local" | "not run" | "silent";
 
@@ -583,15 +532,14 @@ const lingeringCases = [
 ] as const;
 
 /**
- * Read a connection's first attempt: its connect timeout and the password the attempt reads.
+ * Read a connection's first attempt: the password the attempt reads.
  *
  * @param connection - The connection.
- * @param connection.connectTimeoutMs - Its connect timeout.
  * @param connection.password - Its password.
- * @returns The connect timeout and the password's text.
+ * @returns The password's text.
  */
-const firstAttempt = ({ connectTimeoutMs, password }: DbConnection) =>
-  passwordText(password).pipe(Effect.map((text) => ({ connectTimeoutMs, password: text })));
+const firstAttempt = ({ password }: DbConnection) =>
+  passwordText(password).pipe(Effect.map((text) => ({ password: text })));
 
 /**
  * Test whether a value is one of the password command's errors.
@@ -626,7 +574,7 @@ const attemptCause = (failure: unknown): PasswordCommandError | undefined => {
 
 /**
  * Assert that a password command's refusal is its own error, whose message, which the command line
- * prints, names the command, the role and `QTI_PIE_PG_PASSWORD_COMMAND`, never the local cluster.
+ * prints, names the command, the role and `QTI_PIE_PG_PASSWORD_COMMAND`.
  *
  * @param refusal - The command's error.
  * @param command - The command the case set.
@@ -676,8 +624,8 @@ interface Expected {
 }
 
 /**
- * Assert that a connection is the cluster's where a case expects it, over node-postgres, with the
- * network's connect timeout, opening a TCP socket.
+ * Assert that a connection is the server's where a case expects it, over node-postgres, opening a
+ * TCP socket.
  *
  * @param connection - The connection.
  * @param expected - Where it must be.
@@ -691,7 +639,6 @@ const assertAt = (connection: Omit<DbConnection, "password">, expected: Expected
   assert.strictEqual(connection.transport.servername, expected.host);
   assert.strictEqual(connection.transport.port, expected.port);
   assert.strictEqual(connection.transport.ca, expected.ca);
-  assert.strictEqual(connection.connectTimeoutMs, networkTimeoutMs);
 
   const socket = connection.transport.open();
 
@@ -730,18 +677,14 @@ const assertMissingCa = (built: Result.Result<unknown, unknown>, scratch: Scratc
   const failure = Result.isFailure(built) ? built.failure : undefined;
 
   assert.instanceOf(failure, ClusterConfigError);
-  assert.deepStrictEqual(
-    { path: failure.path, source: failure.source },
-    { path: `${scratch.caFile}.missing`, source: "QTI_PIE_PG_CA" },
-  );
+  assert.strictEqual(failure.path, `${scratch.caFile}.missing`);
   assert.include(failure.message, "QTI_PIE_PG_CA");
 };
 
 /**
- * Hold a login's build in a case of the settings box whose settings are well formed: refused with
- * the member's failure where it reads an unavailable member, refused where the CA file is missing,
- * and else built at the setting's port or the member's, against the named CA or the member's, with
- * the password file of the case's secrets folder.
+ * Hold a login's build in a case of the settings box whose settings are well formed: refused where
+ * the CA file is missing, and else built at the setting's port, against the named CA, with the
+ * password file of the case's secrets folder.
  *
  * @param settings - The case.
  * @param scratch - The run's folders.
@@ -755,14 +698,7 @@ const loginReached = Effect.fnUntraced(function* loginReached(
   built: Result.Result<DbConnection, unknown>,
   provider: Layer.Layer<never>,
 ) {
-  const port = Option.flatten(settings.port.value);
   const database = Option.getOrThrow(settings.database.value);
-
-  if ((Option.isNone(port) || settings.ca === "unset") && settings.member === "unavailable") {
-    assert.instanceOf(Result.isFailure(built) ? built.failure : undefined, LocalMemberUnavailable);
-
-    return "member unavailable" as const;
-  }
 
   if (settings.ca === "a missing file") {
     assertMissingCa(built, scratch);
@@ -774,10 +710,10 @@ const loginReached = Effect.fnUntraced(function* loginReached(
 
   if (Result.isSuccess(built)) {
     assertAt(built.success, {
-      ca: settings.ca === "unset" ? memberCa : namedCa,
+      ca: namedCa,
       database,
       host: Option.getOrThrow(settings.host.value),
-      port: Option.getOrElse(port, () => memberPort),
+      port: Option.getOrThrow(settings.port.value),
     });
     assert.notProperty(built.success, "role");
     assert.strictEqual(
@@ -791,9 +727,8 @@ const loginReached = Effect.fnUntraced(function* loginReached(
 
 /**
  * Hold the migration identity's build in a case of the settings box whose settings are well
- * formed: refused with `MigrationCaUnset` where `QTI_PIE_PG_CA` is unset, refused where its file
- * is missing, and else built at the setting's port or pg.config.ts's, as pg.config.ts's owner,
- * against the named CA, with the migration password the case sets.
+ * formed: refused where the CA file is missing, and else built at the setting's port, as
+ * `QTI_PIE_PG_MIGRATION_ROLE`, against the named CA, with the migration password the case sets.
  *
  * @param settings - The case.
  * @param scratch - The run's folders.
@@ -807,12 +742,6 @@ const migrationReached = Effect.fnUntraced(function* migrationReached(
   built: Result.Result<MigrationConnectionConfig, unknown>,
   provider: Layer.Layer<never>,
 ) {
-  if (settings.ca === "unset") {
-    assert.instanceOf(Result.isFailure(built) ? built.failure : undefined, MigrationCaUnset);
-
-    return "no CA setting" as const;
-  }
-
   if (settings.ca === "a missing file") {
     assertMissingCa(built, scratch);
 
@@ -826,9 +755,9 @@ const migrationReached = Effect.fnUntraced(function* migrationReached(
       ca: namedCa,
       database: Option.getOrThrow(settings.database.value),
       host: Option.getOrThrow(settings.host.value),
-      port: Option.getOrElse(Option.flatten(settings.port.value), () => cluster.port),
+      port: Option.getOrThrow(settings.port.value),
     });
-    assert.strictEqual(built.success.role, cluster.owner);
+    assert.strictEqual(built.success.role, migrationRole);
     assert.strictEqual(
       yield* passwordText(built.success.password).pipe(Effect.provide(provider)),
       migrationPassword,
@@ -840,7 +769,7 @@ const migrationReached = Effect.fnUntraced(function* migrationReached(
 
 layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (it) => {
   it.effect(
-    "build both connections exactly as scripts/db.sh resolves the settings, refuse what it refuses before reading a file, take what a login's settings leave unset from the local member, described once and only then, and the migration identity's port from pg.config.ts and its CA from QTI_PIE_PG_CA alone, and name a CA that cannot be read: every variant of each setting over the settings it meets, exhausted",
+    "build both connections exactly as scripts/db.sh resolves the settings, refuse what it refuses before reading a file, a required setting unset or empty among them, naming it, and name a CA that cannot be read: every variant of each setting over the settings it meets, exhausted",
     (ctx) =>
       Effect.gen(function* everySetting() {
         const scratch = yield* scratchFolders;
@@ -849,16 +778,10 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           ctx,
           exhaust(
             {
-              box: "the 12 database variants under 3 CA settings and 2 secrets folders, the 10 port variants under 3 CA settings and the member up or unavailable, and the 4 host variants under a CA file, each other setting unset and the member up",
+              box: "the 13 database variants under 3 CA settings and 2 secrets folders, the 10 port variants under 3 CA settings, and the 5 host variants under a CA file, each other setting at its first, kept variant",
               caseHang: Duration.seconds(10),
               concurrency: 1,
-              coverage: requiredInSpace<Reached>([
-                "built",
-                "malformed",
-                "member unavailable",
-                "no CA",
-                "no CA setting",
-              ]),
+              coverage: requiredInSpace<Reached>(["built", "malformed", "no CA"]),
               generator: settingsOf,
               literal: Formatter.format,
               oracle: { kind: "specification", name: "scripts/db.sh's QTI_PIE_PG_* block" },
@@ -869,35 +792,29 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                 const provider = ConfigProvider.layer(
                   ConfigProvider.fromUnknown(environmentOf(settings, scratch)),
                 );
-                const described = yield* Ref.make(0);
                 const loginBuild = yield* rootConnection.pipe(
                   Effect.result,
-                  Effect.provide([provider, countedMember(settings.member, scratch, described)]),
+                  Effect.provide(provider),
                 );
                 const migrationBuild = yield* migrationConnection.pipe(
                   Effect.result,
                   Effect.provide(provider),
                 );
                 const malformed = [
+                  ...(Option.isNone(settings.host.value) ? ["QTI_PIE_PG_HOST"] : []),
                   ...(Option.isNone(settings.port.value) ? ["QTI_PIE_PG_PORT"] : []),
                   ...(Option.isNone(settings.database.value) ? ["QTI_PIE_PG_DATABASE"] : []),
+                  ...(settings.ca === "unset" ? ["QTI_PIE_PG_CA"] : []),
                 ];
 
                 if (malformed.length > 0) {
                   c.note("malformed");
                   assertMalformed(loginBuild, malformed);
                   assertMalformed(migrationBuild, malformed);
-                  assert.strictEqual(yield* Ref.get(described), 0);
 
                   return;
                 }
 
-                assert.strictEqual(
-                  yield* Ref.get(described),
-                  Option.isNone(Option.flatten(settings.port.value)) || settings.ca === "unset"
-                    ? 1
-                    : 0,
-                );
                 c.note(yield* loginReached(settings, scratch, loginBuild, provider));
                 c.note(yield* migrationReached(settings, scratch, migrationBuild, provider));
               }),
@@ -936,6 +853,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
             ({ file, migration }, c) =>
               Effect.gen(function* oneCase() {
                 const environment: Environment = {
+                  ...serverSettings,
                   HOME: scratch.home,
                   QTI_PIE_PG_CA: scratch.caFile,
                   QTI_PIE_PG_SECRETS: file === "present" ? scratch.secrets : scratch.empty,
@@ -947,9 +865,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                 }
 
                 const provider = ConfigProvider.layer(ConfigProvider.fromUnknown(environment));
-                const loginSide = yield* rootConnection.pipe(
-                  Effect.provide([provider, memberUp(scratch)]),
-                );
+                const loginSide = yield* rootConnection.pipe(Effect.provide(provider));
                 const migrationSide = yield* migrationConnection.pipe(Effect.provide(provider));
                 const loginPassword = yield* passwordText(loginSide.password).pipe(
                   Effect.result,
@@ -991,20 +907,20 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
   );
 
   it.effect(
-    "verify against the file QTI_PIE_PG_CA names, a login against the local member's where it is unset or empty and the migration identity never, which names scripts/db.sh, and migrate as QTI_PIE_PG_MIGRATION_ROLE, pg.config.ts's owner where unset or empty, and name an unreadable CA file by its setting: every CA and role variant, exhausted",
+    "verify both connections against the file QTI_PIE_PG_CA names, refuse an unset or empty QTI_PIE_PG_CA, naming it, and name an unreadable CA file by its setting; migrate as QTI_PIE_PG_MIGRATION_ROLE, refused unset or empty, naming it, which a login never reads: every CA and role variant, exhausted",
     (ctx) =>
-      Effect.gen(function* serverSettings() {
+      Effect.gen(function* caAndRole() {
         const scratch = yield* scratchFolders;
         const caVariants = [
-          unset<Option.Option<string>>(Option.none()),
-          kept("empty", "", Option.none<string>()),
-          kept("a file", scratch.caFile, Option.some(namedCa)),
-          refused<Option.Option<string>>("a missing file", `${scratch.caFile}.missing`),
+          missing<string>(),
+          refused<string>("empty", ""),
+          kept("a file", scratch.caFile, namedCa),
+          kept("a missing file", `${scratch.caFile}.missing`, ""),
         ] as const;
         const roles = [
-          unset(cluster.owner),
-          kept("empty", "", cluster.owner),
-          kept("another role", "qti_migrator", "qti_migrator"),
+          missing<string>(),
+          refused<string>("empty", ""),
+          kept("another role", "qti_owner", "qti_owner"),
         ] as const;
 
         return yield* searched(
@@ -1014,25 +930,28 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
               box: "every combination of 4 CA and 3 migration role variants",
               caseHang: Duration.seconds(10),
               concurrency: 1,
-              coverage: requiredInSpace<"built" | "named" | "unreadable" | "unset">([
+              coverage: requiredInSpace<"built" | "no CA setting" | "no role" | "unreadable">([
                 "built",
-                "named",
+                "no CA setting",
+                "no role",
                 "unreadable",
-                "unset",
               ]),
               generator: (source) => ({
                 ca: source.draw(element(caVariants)),
                 role: source.draw(element(roles)),
               }),
               literal: Formatter.format,
-              oracle: { kind: "specification", name: "scripts/db.sh's QTI_PIE_PG_* block" },
+              oracle: { kind: "specification", name: "scripts/db.sh's QTI_PIE_PG_* settings" },
               suite: "db/connection/server",
             },
             ({ ca, role }, c) =>
               Effect.gen(function* oneCase() {
                 const environment: Environment = {
                   HOME: scratch.home,
+                  QTI_PIE_PG_DATABASE: serverSettings.QTI_PIE_PG_DATABASE,
+                  QTI_PIE_PG_HOST: serverSettings.QTI_PIE_PG_HOST,
                   QTI_PIE_PG_MIGRATION_PASSWORD: migrationPassword,
+                  QTI_PIE_PG_PORT: serverSettings.QTI_PIE_PG_PORT,
                 };
 
                 if (Option.isSome(ca.text)) {
@@ -1046,7 +965,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                 const provider = ConfigProvider.layer(ConfigProvider.fromUnknown(environment));
                 const loginBuild = yield* rootConnection.pipe(
                   Effect.result,
-                  Effect.provide([provider, memberUp(scratch)]),
+                  Effect.provide(provider),
                 );
                 const migrationBuild = yield* migrationConnection.pipe(
                   Effect.result,
@@ -1054,35 +973,40 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                 );
 
                 if (Option.isNone(ca.value)) {
+                  c.note("no CA setting");
+                  assertMalformed(loginBuild, ["QTI_PIE_PG_CA"]);
+                  assertMalformed(migrationBuild, ["QTI_PIE_PG_CA"]);
+
+                  return;
+                }
+
+                if (ca.name === "a missing file") {
                   c.note("unreadable");
                   assertMissingCa(loginBuild, scratch);
-                  assertMissingCa(migrationBuild, scratch);
+
+                  if (Option.isSome(role.value)) {
+                    assertMissingCa(migrationBuild, scratch);
+                  } else {
+                    assertMalformed(migrationBuild, ["QTI_PIE_PG_MIGRATION_ROLE"]);
+                  }
+
+                  return;
+                }
+
+                assert.strictEqual(
+                  Result.isSuccess(loginBuild) ? loginBuild.success.transport.ca : undefined,
+                  namedCa,
+                );
+                assert.notProperty(Result.isSuccess(loginBuild) ? loginBuild.success : {}, "role");
+
+                if (Option.isNone(role.value)) {
+                  c.note("no role");
+                  assertMalformed(migrationBuild, ["QTI_PIE_PG_MIGRATION_ROLE"]);
 
                   return;
                 }
 
                 c.note("built");
-                assert.strictEqual(
-                  Result.isSuccess(loginBuild) ? loginBuild.success.transport.ca : undefined,
-                  Option.getOrElse(ca.value.value, () => memberCa),
-                );
-                assert.notProperty(Result.isSuccess(loginBuild) ? loginBuild.success : {}, "role");
-
-                if (Option.isNone(ca.value.value)) {
-                  c.note("unset");
-
-                  const failure = Result.isFailure(migrationBuild)
-                    ? migrationBuild.failure
-                    : undefined;
-
-                  assert.instanceOf(failure, MigrationCaUnset);
-                  assert.include(failure.message, "scripts/db.sh");
-                  assert.include(failure.message, Option.getOrThrow(role.value));
-
-                  return;
-                }
-
-                c.note("named");
                 assert.strictEqual(
                   Result.isSuccess(migrationBuild)
                     ? migrationBuild.success.transport.ca
@@ -1100,7 +1024,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
   );
 
   it.effect(
-    "runs QTI_PIE_PG_PASSWORD_COMMAND, never a shell, with the role as its one argument, its output trimmed the password, in place of both local passwords, with the network's connect timeout plus its own bound, and refuses a run that exits otherwise than 0, whatever it printed, prints no password or names no executable, with the command's own error, whose message names the command, the role and the setting: the cause of the attempt's CredentialError, or the failure of the runtime's build, which runs it first; every variant, exhausted",
+    "runs QTI_PIE_PG_PASSWORD_COMMAND, never a shell, with the role as its one argument, its output trimmed the password, in place of both local passwords, and refuses a run that exits otherwise than 0, whatever it printed, prints no password or names no executable, with the command's own error, whose message names the command, the role and the setting: the cause of the attempt's CredentialError, or the failure of the runtime's build, which runs it first; every variant, exhausted",
     (ctx) =>
       Effect.gen(function* passwordCommands() {
         const fs = yield* FileSystem.FileSystem;
@@ -1138,12 +1062,13 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
             ({ side, variant }, c) =>
               Effect.gen(function* oneCase() {
                 const environment: Environment = {
+                  ...serverSettings,
                   HOME: scratch.home,
                   QTI_PIE_PG_CA: scratch.caFile,
                   QTI_PIE_PG_MIGRATION_PASSWORD: migrationPassword,
                   QTI_PIE_PG_SECRETS: scratch.secrets,
                 };
-                const role = side === "migration" ? cluster.owner : loginRole;
+                const role = side === "migration" ? migrationRole : loginRole;
                 if (variant === "empty") {
                   environment.QTI_PIE_PG_PASSWORD_COMMAND = "";
                 }
@@ -1165,7 +1090,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                 const read = yield* connectionOfSide(side).pipe(
                   Effect.flatMap(firstAttempt),
                   Effect.result,
-                  Effect.provide([provider, memberUp(scratch)]),
+                  Effect.provide(provider),
                 );
 
                 if (variant === "unset" || variant === "empty") {
@@ -1173,7 +1098,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                   assert.deepStrictEqual(
                     read,
                     Result.succeed({
-                      connectTimeoutMs: networkTimeoutMs,
                       password: side === "migration" ? migrationPassword : secretsPassword,
                     }),
                   );
@@ -1186,7 +1110,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                   assert.deepStrictEqual(
                     read,
                     Result.succeed({
-                      connectTimeoutMs: networkTimeoutMs + defaultCommandTimeoutMs,
                       password:
                         variant === "printing"
                           ? `password of ${role}`
@@ -1237,13 +1160,13 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
 
         const provider = ConfigProvider.layer(
           ConfigProvider.fromUnknown({
+            ...serverSettings,
             HOME: scratch.home,
             QTI_PIE_PG_CA: scratch.caFile,
             QTI_PIE_PG_PASSWORD_COMMAND: command,
             QTI_PIE_PG_SECRETS: scratch.secrets,
           }),
         );
-        const member = memberUp(scratch);
         const runs = fs.readFileString(`${command}.runs`).pipe(
           Effect.orElseSucceed(() => ""),
           Effect.map((text) => text.trim()),
@@ -1251,16 +1174,16 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
         const migration = yield* migrationConnection.pipe(Effect.provide(provider));
 
         assert.strictEqual(yield* runs, "");
-        assert.strictEqual(yield* passwordText(migration.password), `run 1 for ${cluster.owner}`);
-        assert.strictEqual(yield* passwordText(migration.password), `run 2 for ${cluster.owner}`);
+        assert.strictEqual(yield* passwordText(migration.password), `run 1 for ${migrationRole}`);
+        assert.strictEqual(yield* passwordText(migration.password), `run 2 for ${migrationRole}`);
 
-        const perAttempt = yield* rootConnection.pipe(Effect.provide([provider, member]));
+        const perAttempt = yield* rootConnection.pipe(Effect.provide(provider));
 
         assert.strictEqual(yield* runs, "2");
         assert.strictEqual(yield* passwordText(perAttempt.password), `run 3 for ${loginRole}`);
         assert.strictEqual(yield* passwordText(perAttempt.password), `run 4 for ${loginRole}`);
 
-        const primed = yield* primedRootConnection.pipe(Effect.provide([provider, member]));
+        const primed = yield* primedRootConnection.pipe(Effect.provide(provider));
 
         assert.strictEqual(yield* runs, "5");
         assert.strictEqual(yield* passwordText(primed.password), `run 5 for ${loginRole}`);
@@ -1271,7 +1194,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
   );
 
   it.effect(
-    "bound a password command's run by QTI_PIE_PG_PASSWORD_COMMAND_TIMEOUT, 60 seconds where unset or empty, and give both connections the network's 5,000 ms plus that bound, refusing a bound that is not a positive duration or would carry the connect timeout past 2,147,483,647 ms: every variant, exhausted",
+    "bound a password command's run by QTI_PIE_PG_PASSWORD_COMMAND_TIMEOUT, 60 seconds where unset or empty, and build both connections under any bound that is a positive duration within Node's timers, 2,147,483,647 ms, refusing every other: every variant, exhausted",
     (ctx) =>
       Effect.gen(function* commandTimeouts() {
         const fs = yield* FileSystem.FileSystem;
@@ -1287,8 +1210,8 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
           kept("empty", "", defaultCommandTimeoutMs),
           kept("seconds", "90 seconds", 90_000),
           kept("a fraction of a millisecond", "1.5 millis", 2),
-          kept("the greatest", "2147478647 millis", 2_147_478_647),
-          refused<number>("past the greatest", "2147478648 millis"),
+          kept("the greatest", "2147483647 millis", 2_147_483_647),
+          refused<number>("past the greatest", "2147483648 millis"),
           refused<number>("zero", "0 seconds"),
           refused<number>("infinite", "Infinity"),
           refused<number>("not a duration", "soon"),
@@ -1309,13 +1232,14 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
               literal: Formatter.format,
               oracle: {
                 kind: "specification",
-                name: "grizzle's connectTimeoutMs range, 1 to 2,147,483,647",
+                name: "a positive duration within Node's timers, 1 to 2,147,483,647 ms",
               },
               suite: "db/connection/password-command-timeout",
             },
             ({ side, timeout }, c) =>
               Effect.gen(function* oneCase() {
                 const environment: Environment = {
+                  ...serverSettings,
                   HOME: scratch.home,
                   QTI_PIE_PG_CA: scratch.caFile,
                   QTI_PIE_PG_PASSWORD_COMMAND: command,
@@ -1327,10 +1251,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
 
                 const built = yield* connectionOfSide(side).pipe(
                   Effect.result,
-                  Effect.provide([
-                    ConfigProvider.layer(ConfigProvider.fromUnknown(environment)),
-                    memberUp(scratch),
-                  ]),
+                  Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown(environment))),
                 );
 
                 if (Option.isNone(timeout.value)) {
@@ -1348,10 +1269,7 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                 }
 
                 c.note("bounded");
-                assert.strictEqual(
-                  Result.isSuccess(built) ? built.success.connectTimeoutMs : undefined,
-                  networkTimeoutMs + timeout.value.value,
-                );
+                assert.isTrue(Result.isSuccess(built), String(built));
               }),
           ),
         );
@@ -1398,6 +1316,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   const role = loginRole;
                   const provider = ConfigProvider.layer(
                     ConfigProvider.fromUnknown({
+                      ...serverSettings,
                       HOME: scratch.home,
                       QTI_PIE_PG_CA: scratch.caFile,
                       QTI_PIE_PG_PASSWORD_COMMAND: command,
@@ -1409,7 +1328,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   const read = yield* connectionOfSide(side).pipe(
                     Effect.flatMap(firstAttempt),
                     Effect.result,
-                    Effect.provide([provider, memberUp(scratch)]),
+                    Effect.provide(provider),
                   );
                   const elapsed = (yield* Clock.currentTimeMillis) - started;
                   const failure = Result.isFailure(read) ? read.failure : undefined;
