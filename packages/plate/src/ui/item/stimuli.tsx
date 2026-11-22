@@ -47,7 +47,13 @@ import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item
 import { trimXmlSpace } from "#plate/model/values.ts";
 import { redactStimulus } from "#plate/redact/walk.ts";
 import type { RedactedStimulus, RedactOptions } from "#plate/redact/walk.ts";
-import { elementsIn, headingOffsetOf, missingInNodes, nodesOf } from "#plate/ui/item/content.tsx";
+import {
+  elementsIn,
+  headingOffsetOf,
+  missingInNodes,
+  noSlots,
+  nodesOf,
+} from "#plate/ui/item/content.tsx";
 import type { Walk } from "#plate/ui/item/content.tsx";
 import {
   glossaryOf,
@@ -248,6 +254,7 @@ export const stimulusArticle = (
     headingOffset: headingOffsetOf(nodesWritten(shown), setting.headingLevel),
     locale: setting.locale,
     scope: { kind: "plain" },
+    slots: noSlots,
     standing: "flow",
   };
 

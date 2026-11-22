@@ -37,6 +37,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { MathAttribute, MathChild, MathNode } from "#plate/content/mathml.ts";
 import { elementAttributes } from "#plate/content/mathml-attributes.ts";
 import type { RedactedLevel, RedactedNode } from "#plate/model/item.ts";
+import { noSlots } from "#plate/ui/item/content.tsx";
 import type { ContentWalk } from "#plate/ui/item/content.tsx";
 import { drawnAttributes, typeset } from "#plate/ui/item/contents/mathjax.ts";
 import { content } from "#plate/ui/item/contents/mathml.tsx";
@@ -75,6 +76,7 @@ const walk: ContentWalk = {
     headingOffset: 0,
     locale: "en",
     scope: { kind: "plain" },
+    slots: noSlots,
     standing: "flow",
   },
 };

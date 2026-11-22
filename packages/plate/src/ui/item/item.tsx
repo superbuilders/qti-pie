@@ -36,6 +36,7 @@ import {
   firstFeedbackIn,
   headingOffsetOf,
   missingInNodes,
+  noSlots,
   nodesOf,
 } from "#plate/ui/item/content.tsx";
 import type { InteractionAt, VerdictAt, Walk } from "#plate/ui/item/content.tsx";
@@ -355,6 +356,7 @@ export const Item = (props: ItemProps): ReactNode => {
       headingOffset,
       locale: configuration.locale,
       scope: options.own === undefined ? { kind: "plain" } : { kind: "owned", own: options.own },
+      slots: noSlots,
       standing: position === "flow" ? "flow" : "phrasing-only",
     };
 
@@ -404,6 +406,7 @@ export const Item = (props: ItemProps): ReactNode => {
     headingOffset,
     locale: configuration.locale,
     scope: { kind: "plain" },
+    slots: noSlots,
     standing: "flow",
   };
   const verdict = credit.pipe(Option.map((earned) => verdictOf(earned, configuration.locale)));

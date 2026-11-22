@@ -45,6 +45,7 @@ import { HTMLMathItem } from "mathjax-full/js/handlers/html/HTMLMathItem.js";
 import { MathML } from "mathjax-full/js/input/mathml.js";
 import { SVG } from "mathjax-full/js/output/svg.js";
 import type { MathAttribute, MathElement } from "#plate/content/mathml.ts";
+import type { SlotSize } from "#plate/ui/item/contents/slots.ts";
 import { UndrawnFormula } from "#plate/ui/item/errors.ts";
 
 /**
@@ -101,10 +102,31 @@ interface Drawing {
    */
   readonly height: string;
   /**
+   * Each slot the formula holds for an interaction, where MathJax laid it out.
+   */
+  readonly slots: readonly PlacedSlot[];
+  /**
+   * The formula's height and depth together, in `ex`: the height of its `svg`.
+   */
+  readonly total: string;
+  /**
    * The formula's width, MathJax's own, in `ex` (or a percentage, for a table MathJax widens to
    * its container).
    */
   readonly width: string;
+}
+
+/**
+ * A slot of a formula where MathJax laid it out, by the `id` it names: its box as percentages of
+ * the formula's box (its left, its top, its width and its height), so an element over the formula
+ * of the formula's size places an interaction there in the page's own pixels, whatever the font.
+ */
+export interface PlacedSlot {
+  readonly height: string;
+  readonly id: string;
+  readonly width: string;
+  readonly x: string;
+  readonly y: string;
 }
 
 /**
@@ -421,6 +443,13 @@ const attributeText = ({ name, value }: MathAttribute): string =>
   ` ${name}="${escapedText(value).replaceAll('"', "&quot;")}"`;
 
 /**
+ * The attribute the formula handed to MathJax marks a slot's `mspace` with, by the `id` the slot
+ * names: plate's own, which MathJax copies onto the group it draws for the `mspace`, so the slot is
+ * found in its output.
+ */
+export const slotMark = "data-plate-slot";
+
+/**
  * The attributes MathJax is not handed: an `id` and an `xref`, which name ids of the page's that
  * the hidden drawing must not repeat; an `href`, a link the hidden drawing cannot offer; and
  * `class`, which MathJax does not draw ({@link bordered}).
@@ -447,12 +476,25 @@ const bordered = (attributes: readonly MathAttribute[]): boolean =>
  * An `maction` is written as the child its `selection` names (MathML 3 §3.7.1, from 1, the first
  * by default), which is what a page with no script shows: MathJax's SVG output wires a toggle's or
  * a tooltip's action to the DOM it draws in, which the lite DOM has none of; an empty `mrow` where
- * it names none.
+ * it names none. A slot's `mspace` ({@link slotMark}) is as wide, high and deep as its size, an
+ * ordinary atom as AlphaTest's `\cssId` group around its box was, so the operators beside it keep
+ * TeX's spaces.
  *
  * @param element The element.
+ * @param sizes Each slot's size, by the `id` it names.
  * @returns Its MathML.
  */
-const elementText = (element: MathElement<unknown>): string => {
+const elementText = (
+  element: MathElement<unknown>,
+  sizes: ReadonlyMap<string, SlotSize>,
+): string => {
+  const slot = element.attributes.find(({ name }) => name === slotMark)?.value;
+  const size = slot === undefined ? undefined : sizes.get(slot);
+
+  if (element.local === "mspace" && slot !== undefined && size !== undefined) {
+    return `<mrow data-mjx-texclass="ORD"><mspace width="${fixedText(size.width)}em" height="${fixedText(size.height)}em" depth="${fixedText(size.depth)}em" ${slotMark}="${escapedText(slot).replaceAll('"', "&quot;")}"></mspace></mrow>`;
+  }
+
   if (element.local === "maction") {
     const selection = Number(
       element.attributes.find(({ name }) => name === "selection")?.value ?? "1",
@@ -461,7 +503,7 @@ const elementText = (element: MathElement<unknown>): string => {
       (child): child is MathElement<unknown> => child.kind === "element",
     )[selection - 1];
 
-    return selected === undefined ? "<mrow></mrow>" : elementText(selected);
+    return selected === undefined ? "<mrow></mrow>" : elementText(selected, sizes);
   }
 
   const attributes = element.attributes
@@ -475,7 +517,7 @@ const elementText = (element: MathElement<unknown>): string => {
         return `<annotation-xml${child.attributes.map(attributeText).join("")}></annotation-xml>`;
       }
       case "element": {
-        return elementText(child);
+        return elementText(child, sizes);
       }
       case "text": {
         return escapedText(child.text);
@@ -553,11 +595,15 @@ const exOf = (text: string): number => Number(text.replace(/ex$/u, ""));
  * through it, to hold the drawing to it.
  *
  * @param formula The `math` element, as plate writes it.
+ * @param sizes Each slot's size, by the `id` it names; none by default.
  * @returns MathJax's container: an `mjx-container` holding the `svg`.
  */
-export const typeset = (formula: MathElement<unknown>): LiteElement => {
+export const typeset = (
+  formula: MathElement<unknown>,
+  sizes: ReadonlyMap<string, SlotSize> = new Map(),
+): LiteElement => {
   const item = new HTMLMathItem<LiteElement, LiteText, LiteDocument>(
-    elementText(formula),
+    elementText(formula, sizes),
     input,
     false,
   );
@@ -570,15 +616,163 @@ export const typeset = (formula: MathElement<unknown>): LiteElement => {
 };
 
 /**
+ * An affine transform of SVG's, `[a, b, c, d, e, f]`, as `matrix(a b c d e f)` writes it.
+ */
+type Matrix = readonly [number, number, number, number, number, number];
+
+/**
+ * The transform that moves nothing.
+ */
+const identity: Matrix = [1, 0, 0, 1, 0, 0];
+
+/**
+ * Compose two transforms, the inner applied first, as an SVG element's applies inside its parent's.
+ *
+ * @param outer The parent's transform.
+ * @param inner The element's own.
+ * @returns The element's transform in the parent's parent's coordinates.
+ */
+const composed = (outer: Matrix, inner: Matrix): Matrix => {
+  const [a, b, c, d, e, f] = outer;
+  const [p, q, r, t, u, v] = inner;
+
+  return [
+    a * p + c * q,
+    b * p + d * q,
+    a * r + c * t,
+    b * r + d * t,
+    a * u + c * v + e,
+    b * u + d * v + f,
+  ];
+};
+
+/**
+ * Read an SVG `transform` as MathJax's output writes one: `translate(x,y)`, `scale(s)`,
+ * `scale(x,y)` and `matrix(a b c d e f)`, in turn.
+ *
+ * @param text The attribute's value, none where the element has none.
+ * @returns The transform it applies.
+ */
+const transformOf = (text: string | undefined): Matrix => {
+  let matrix = identity;
+
+  for (const match of (text ?? "").matchAll(
+    /(?<name>translate|scale|matrix)\((?<args>[^)]*)\)/gu,
+  )) {
+    const name = match.groups?.["name"] ?? "";
+    const args = (match.groups?.["args"] ?? "")
+      .split(/[\s,]+/u)
+      .filter((arg) => arg !== "")
+      .map(Number);
+
+    if (name === "matrix") {
+      const [a = 1, b = 0, c = 0, d = 1, e = 0, f = 0] = args;
+
+      matrix = composed(matrix, [a, b, c, d, e, f]);
+    } else if (name === "scale") {
+      const [x = 1, y = x] = args;
+
+      matrix = composed(matrix, [x, 0, 0, y, 0, 0]);
+    } else {
+      const [x = 0, y = 0] = args;
+
+      matrix = composed(matrix, [1, 0, 0, 1, x, y]);
+    }
+  }
+
+  return matrix;
+};
+
+/**
+ * Find each slot's group in MathJax's output, at any depth, with the transform from it to the
+ * `svg`'s own coordinates.
+ *
+ * @param element An element of the output.
+ * @param outer The transform from its parent to the `svg`'s coordinates.
+ * @returns Each slot's `id` and its transform, in document order.
+ */
+const slotGroups = (
+  element: LiteElement,
+  outer: Matrix,
+): readonly (readonly [string, Matrix])[] => {
+  const matrix = composed(outer, transformOf(attributeOf(element, "transform")));
+  const slot = attributeOf(element, slotMark);
+
+  return [
+    ...(slot === undefined ? [] : [[slot, matrix] as const]),
+    ...adaptor
+      .childNodes(element)
+      .flatMap((child) => (child instanceof LiteElement ? slotGroups(child, matrix) : [])),
+  ];
+};
+
+/**
+ * Write a fraction of a length as a percentage.
+ *
+ * @param part The part.
+ * @param whole The whole.
+ * @returns The percentage, to a thousandth.
+ */
+const percentText = (part: number, whole: number): string => `${fixedText((part / whole) * 100)}%`;
+
+/**
+ * Place each slot of a formula where MathJax laid it out: its `mspace`'s box, from its left at the
+ * baseline as wide as its size and as high and deep, carried through every transform above it to
+ * the `svg`'s `viewBox`, and written as percentages of that box.
+ *
+ * @param svg MathJax's `svg`.
+ * @param sizes Each slot's size, by the `id` it names.
+ * @returns Each slot's place.
+ */
+const placedSlots = (
+  svg: LiteElement,
+  sizes: ReadonlyMap<string, SlotSize>,
+): readonly PlacedSlot[] => {
+  const [left = 0, top = 0, width = 1, height = 1] = (attributeOf(svg, "viewBox") ?? "")
+    .split(" ")
+    .map(Number);
+
+  return slotGroups(svg, identity).flatMap(([id, [a, b, c, d, e, f]]) => {
+    const size = sizes.get(id);
+
+    if (size === undefined) {
+      return [];
+    }
+
+    const corner = (x: number, y: number): readonly [number, number] => [
+      a * x + c * y + e,
+      b * x + d * y + f,
+    ];
+    const [x1, y1] = corner(0, size.height * 1000);
+    const [x2, y2] = corner(size.width * 1000, -size.depth * 1000);
+
+    return [
+      {
+        height: percentText(Math.abs(y2 - y1), height),
+        id,
+        width: percentText(Math.abs(x2 - x1), width),
+        x: percentText(Math.min(x1, x2) - left, width),
+        y: percentText(Math.min(y1, y2) - top, height),
+      },
+    ];
+  });
+};
+
+/**
  * Draw a formula with MathJax: its `svg` as the drawing holds it, and its metrics, read from the
  * `height` and `vertical-align` MathJax writes on the `svg`, so the server shell places it on the
  * baseline as MathJax would.
  *
- * @param formula The `math` element, as plate writes it.
+ * @param formula The `math` element, as plate writes it, each slot's `mspace` marked
+ *   ({@link slotMark}).
+ * @param sizes Each slot's size, by the `id` it names.
  * @returns The drawing.
  */
-export const draw = (formula: MathElement<unknown>): Drawing => {
-  const container = typeset(formula);
+export const draw = (
+  formula: MathElement<unknown>,
+  sizes: ReadonlyMap<string, SlotSize>,
+): Drawing => {
+  const container = typeset(formula, sizes);
   const svg = adaptor.firstChild(container);
 
   if (!(svg instanceof LiteElement)) {
@@ -593,6 +787,8 @@ export const draw = (formula: MathElement<unknown>): Drawing => {
     display: attributeOf(container, "display") === "true",
     drawing: drawnElement({ element: svg, grandparent: undefined, parent: undefined }),
     height: exText(total - depth),
+    slots: placedSlots(svg, sizes),
+    total: exText(total),
     width: attributeOf(svg, "width") ?? "",
   };
 };

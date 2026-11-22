@@ -116,7 +116,7 @@ export interface TextEntryInteraction extends ModuleInteraction<"text-entry"> {
  */
 export type TextFields = Omit<
   TextEntryInteraction,
-  "cardinality" | "data" | "kind" | "promptCatalog"
+  "cardinality" | "data" | "id" | "kind" | "promptCatalog"
 >;
 
 /**

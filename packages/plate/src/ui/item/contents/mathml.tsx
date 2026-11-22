@@ -33,7 +33,7 @@ import { mathmlNamespace } from "#plate/document/source.ts";
 import { addressUrl, classifyUrl, missingPathOf, urlContextOf } from "#plate/model/url.ts";
 import type { KeptUrl, UrlContext } from "#plate/model/url.ts";
 import type { ContentWalk } from "#plate/ui/item/content.tsx";
-import { draw } from "#plate/ui/item/contents/mathjax.ts";
+import { draw, slotMark } from "#plate/ui/item/contents/mathjax.ts";
 import type { Drawn, DrawnElement } from "#plate/ui/item/contents/mathjax.ts";
 import type { Addressing } from "#plate/ui/item/html.ts";
 import { authoredId, authoredIdrefs } from "#plate/ui/item/ids.ts";
@@ -177,25 +177,52 @@ const propsOf = (
   );
 
 /**
+ * Tell whether a MathML element is a slot the walk draws an interaction in: an `mspace` whose
+ * `xref`, as the author wrote it, names an interaction or a gap the walk's slots hold
+ * (`Walk.slots` in `#plate/ui/item/content.tsx`).
+ *
+ * @param element The element.
+ * @param slots The ids the walk's slots hold.
+ * @returns The id it names, none where it is no such slot.
+ */
+const slotOf = (
+  element: MathElement<RedactedNode>,
+  slots: ReadonlySet<string>,
+): Option.Option<string> =>
+  Option.filter(
+    Option.fromUndefinedOr(element.attributes.find(({ name }) => name === "xref")?.value),
+    (id) => element.local === "mspace" && slots.has(id),
+  );
+
+/**
  * Write a MathML tree as MathJax draws it: each element with the attributes plate writes on it
  * ({@link writtenAttributes}) and its `style`, and each `annotation-xml` with its attributes and no
  * content, which MathJax never draws. MathJax reads a `style` as it reads `mathcolor` and
  * `mathbackground`, drawing its colour, border and background as the drawing's SVG attributes, as
  * AlphaTest's player drew a coloured digit or `\fcolorbox`'s frame; the page itself carries no
- * author style, so the MathML beside the drawing is written without it.
+ * author style, so the MathML beside the drawing is written without it. A slot's `mspace`
+ * ({@link slotOf}) is handed to MathJax with nothing but its mark ({@link slotMark}), which the
+ * drawing sizes and places.
  *
  * @param element The tree: a `math` element's payload, or an element below it.
  * @param addressing The instance, the item's location and the assets.
+ * @param slots The ids of the interactions the walk draws in this formula's slots.
  * @returns The tree, as the drawing reads it.
  */
 const formulaOf = (
   element: MathElement<RedactedNode>,
   addressing: Addressing,
+  slots: ReadonlySet<string>,
 ): MathElement<never> => ({
-  attributes: [
-    ...writtenAttributes(element.local, element.attributes, addressing),
-    ...element.attributes.filter(({ name }) => name === "style"),
-  ],
+  attributes: slotOf(element, slots).pipe(
+    Option.match({
+      onNone: () => [
+        ...writtenAttributes(element.local, element.attributes, addressing),
+        ...element.attributes.filter(({ name }) => name === "style"),
+      ],
+      onSome: (id) => [{ name: slotMark, value: id }],
+    }),
+  ),
   children: element.children.map((child): MathChild<never> => {
     switch (child.kind) {
       case "annotation-xml": {
@@ -206,7 +233,7 @@ const formulaOf = (
         };
       }
       case "element": {
-        return formulaOf(child, addressing);
+        return formulaOf(child, addressing, slots);
       }
       case "text": {
         return child;
@@ -295,6 +322,10 @@ const childrenOf = (
  * - `plate-math-drawing`, MathJax's `svg`, hidden from assistive technology, which the base sheet
  *   lays over the box from its foot, so the formula's baseline is the box's and the line's, as
  *   MathJax's `vertical-align` would place it, with no `style` written;
+ * - `plate-math-slots`, where the formula holds slots, an `svg` of no `viewBox` over the drawing, as
+ *   large as it, holding a `foreignObject` (`plate-math-slot`) at each slot's box, its place as
+ *   percentages of the formula's, and in it the interaction or gap the slot names, as the walk
+ *   renders it, in the page's own pixels: the slot's only appearance on the page (`Walk.slots`);
  * - The `math` element with its attributes, its descendants by their MathML local names, and each
  *   `annotation-xml`'s content as the body's, which the base sheet hides from the eye only, so a
  *   screen reader voices and brailles the MathML the author wrote.
@@ -304,8 +335,11 @@ const childrenOf = (
  * @returns The formula.
  */
 export const content = (node: MathContent, walk: ContentWalk): ReactNode => {
-  const { addressing } = walk.walk;
-  const formula = draw(formulaOf(node.payload, addressing));
+  const { addressing, slots } = walk.walk;
+  const formula = draw(
+    formulaOf(node.payload, addressing, new Set(slots.keys())),
+    new Map([...slots].map(([id, slotted]) => [id, slotted.size])),
+  );
 
   return createElement(
     "span",
@@ -333,6 +367,31 @@ export const content = (node: MathContent, walk: ContentWalk): ReactNode => {
         },
         drawnNodes(formula.drawing.children),
       ),
+      formula.slots.length === 0
+        ? null
+        : createElement(
+            "svg",
+            {
+              "data-slot": "plate-math-slots",
+              height: formula.total,
+              role: "none",
+              width: formula.width,
+            },
+            formula.slots.map((slot) =>
+              createElement(
+                "foreignObject",
+                {
+                  "data-slot": "plate-math-slot",
+                  height: slot.height,
+                  key: slot.id,
+                  width: slot.width,
+                  x: slot.x,
+                  y: slot.y,
+                },
+                slots.get(slot.id)?.render(),
+              ),
+            ),
+          ),
     ),
     createElement(
       "math",

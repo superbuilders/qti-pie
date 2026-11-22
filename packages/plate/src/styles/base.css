@@ -248,6 +248,55 @@
     white-space: nowrap;
   }
 
+  /*
+   * A formula's slots (`plate-math-slots`): an svg over the drawing, as large as it and of no
+   * viewBox, so each slot's foreignObject (`plate-math-slot`), placed by percentages of the
+   * formula's box, holds its interaction in the page's own pixels. The interaction fills its slot,
+   * which MathJax sized and laid the formula out around, at the item's line height (the box's is
+   * nought), and what it shows past the slot, a keypad or a hint, shows over the text around.
+   */
+  [data-slot="plate-math-slots"] {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    overflow: visible;
+  }
+
+  [data-slot="plate-math-slot"] {
+    overflow: visible;
+    line-height: var(--plate-line-height);
+  }
+
+  [data-slot="plate-math-slot"]
+    > :is(
+      [data-slot="plate-text-entry"],
+      [data-slot="plate-inline-choice"],
+      [data-slot="plate-gap"]
+    ) {
+    display: flex;
+    box-sizing: border-box;
+    inline-size: 100%;
+    block-size: 100%;
+    margin: 0;
+  }
+
+  [data-slot="plate-math-slot"]
+    :is(
+      [data-slot="field"],
+      [data-slot="input"],
+      [data-slot="select-trigger"],
+      [data-slot="plate-placement-target"]
+    ) {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    inline-size: 100%;
+    min-block-size: 0;
+    block-size: 100%;
+    padding-block: 0;
+  }
+
   /* == prompt, feedback, rubric == */
 
   /*

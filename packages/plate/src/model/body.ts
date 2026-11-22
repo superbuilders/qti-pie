@@ -598,11 +598,11 @@ const moduleNode = (
 
 /**
  * Set the fields the body walk gives an interaction on the node its module read: the author's
- * `data-*` of its root, each attribute securing kept that plate does not reserve
- * (`isAuthorData`), in document order, and the catalog its prompt references. Securing already
- * removed and marked each reserved name, so none is marked here. The module never sees them, a
- * notice carries none, and a Portable Custom Interaction keeps its own route for its `data-*`: they
- * are its properties, which its module reads, so it takes its prompt's catalog alone.
+ * `data-*` of its root, each attribute securing kept that plate does not reserve (`isAuthorData`),
+ * in document order, its `id`, and the catalog its prompt references. Securing already removed and
+ * marked each reserved name, so none is marked here. The module never sees them, a notice carries
+ * none, and a Portable Custom Interaction keeps its own route for its `data-*`: they are its
+ * properties, which its module reads, so it takes its prompt's catalog alone.
  *
  * @param node The node the module read, or its notice.
  * @param element The interaction root.
@@ -620,8 +620,13 @@ const withWalkFields = (
     return node;
   }
 
+  const id = Option.fromNullishOr(
+    element.attributes.find((attribute) => attribute.namespace === "" && attribute.local === "id")
+      ?.value,
+  );
+
   if (node.kind === "portable-custom") {
-    return { ...node, promptCatalog };
+    return { ...node, id, promptCatalog };
   }
 
   return {
@@ -631,6 +636,7 @@ const withWalkFields = (
         ? [{ name: attribute.local, value: attribute.value }]
         : [],
     ),
+    id,
     promptCatalog,
   };
 };

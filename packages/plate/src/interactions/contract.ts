@@ -187,6 +187,15 @@ export interface ModuleInteraction<K extends ModuleKind> {
    * Portable Custom Interaction's node has no `data`: its `data-*` are its properties.
    */
   readonly data: readonly BodyAttribute[];
+  /**
+   * The author's `id` on the interaction's root, as written, none where it has none. A formula
+   * names it to place the interaction inside itself: an empty `mspace` whose `xref` names the id is
+   * the interaction's slot (MathML 3 §5.4.2's cross-reference, an `xs:IDREF` to an id of the
+   * document), where the server shell draws the interaction rather than at its place in the body.
+   * The body walk sets it after the module's `parse` ({@link Parsed}); a module never reads or
+   * writes it.
+   */
+  readonly id: Option.Option<string>;
   readonly kind: K;
   readonly path: string;
   /**
@@ -210,12 +219,12 @@ export interface ModuleInteraction<K extends ModuleKind> {
 
 /**
  * A module's node as its `parse` gives it: every field but the author's `data-*`
- * ({@link ModuleInteraction.data}) and its prompt's catalog
- * ({@link ModuleInteraction.promptCatalog}), which the body walk sets on it.
+ * ({@link ModuleInteraction.data}), its `id` ({@link ModuleInteraction.id}) and its prompt's
+ * catalog ({@link ModuleInteraction.promptCatalog}), which the body walk sets on it.
  *
  * @template N The node, or a union of nodes, each read as itself.
  */
-export type Parsed<N> = N extends unknown ? Omit<N, "data" | "promptCatalog"> : never;
+export type Parsed<N> = N extends unknown ? Omit<N, "data" | "id" | "promptCatalog"> : never;
 
 /**
  * The response declaration an interaction's `response-identifier` names, as the body walk hands it
