@@ -282,12 +282,12 @@ export const lawTable = {
   "Card default entry": {
     rule: "card-default",
     source:
-      "reading R9-a: https://www.imsglobal.org/spec/qti/v3p0/info#Data_CardEntry (§5.27.2, CardEntry's default: 'Only one of the CardEntry instances can have a default designation'): a card holds at most one entry whose default, an xs:boolean collapsed, is true or 1 (overlay-queries/catalog.ts CardDefault)",
+      "reading R9-a: https://www.imsglobal.org/spec/qti/v3p0/info#Data_CardEntry (§5.27.2, CardEntry's default: 'Only one of the CardEntry instances can have a default designation'): a card holds at most one entry whose default, an xs:boolean collapsed, is true or 1 (overlay-queries/catalog.ts defaults, a key over each entry's parent, Attribute.parent)",
   },
   "Card support": {
     rule: "card-support",
     source:
-      "reading R9-a: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Card (§5.26.1, Card's support: 'Use only one card for any particular named support in a catalog'): a catalog holds one card for each support, compared by its value, the form as written: an ext: name's SupportExtStringDType replace class admits no whitespace to change, and a listed support's xs:string is preserve (XML Schema Part 2 §4.3.6, the union member that holds it) (overlay-queries/catalog.ts CatalogSupport)",
+      "reading R9-a: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Card (§5.26.1, Card's support: 'Use only one card for any particular named support in a catalog'): a catalog holds one card for each support, compared by its value, the form as written: an ext: name's SupportExtStringDType replace class admits no whitespace to change, and a listed support's xs:string is preserve (XML Schema Part 2 §4.3.6, the union member that holds it) (overlay-queries/catalog.ts supports, a key over each card's parent and value, Attribute.parent)",
   },
   "Catalog reference": {
     rule: "idref-target",
@@ -972,7 +972,7 @@ export const lawTable = {
   "Weight key": {
     rule: "weight-key",
     source:
-      "https://www.imsglobal.org/spec/qti/v3p0/info#DerivedCharacteristic_Weight.Attr_identifier (§7.50.1: 'An item can have any number of weights, each one is given an identifier that is used to refer to the weight in outcomes processing') and §7.47.2 ('The weight identifier refers to a weight definition in the corresponding qti-assessment-item-ref'), with reading 74's reasoning: one identifier written twice under one item ref would name two weights, and a weight-identifier that names it could not tell which, so no two weights of one item ref share an identifier, compared collapsed (overlay-queries/tests.ts WeightName)",
+      "https://www.imsglobal.org/spec/qti/v3p0/info#DerivedCharacteristic_Weight.Attr_identifier (§7.50.1: 'An item can have any number of weights, each one is given an identifier that is used to refer to the weight in outcomes processing') and §7.47.2 ('The weight identifier refers to a weight definition in the corresponding qti-assessment-item-ref'), with reading 74's reasoning: one identifier written twice under one item ref would name two weights, and a weight-identifier that names it could not tell which, so no two weights of one item ref share an identifier, compared collapsed (overlay-queries/tests.ts, a key over the weights' identifier attributes by their item ref, Attribute.parent)",
   },
   "Weighted base": {
     rule: "P29",

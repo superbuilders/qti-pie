@@ -8,16 +8,16 @@
  *   it (XML Schema 1.0 Part 2 §4.3.6): an `ext:` name, a `SupportExtStringDType` of class `replace`
  *   whose pattern admits no whitespace, or a listed support, an `xs:string` of class `preserve`.
  *   Either way the value is the form as written, so `" spoken "` is no support the list names,
- *   which AL1 refuses alone, and never the support `spoken`. The law is a key over the query
- *   `CatalogSupport` (`#pantry/qti/overlay-queries/catalog.ts`), each card's `support` attribute's
- *   `value` beside its catalog, its node's parent, which only `Node` holds.
+ *   which AL1 refuses alone, and never the support `spoken`. The law is a key over the cards'
+ *   `support` attributes, each one's `value` beside its catalog, its node's parent, which the
+ *   attribute holds (`Attribute.parent`).
  * - **Card default entry** (rule `card-default`; info §5.27.2: "Only one of the CardEntry instances
  *   can have a default designation"): a card holds at most one entry whose `default` designates it.
  *   An entry's `default` is an `xs:boolean`, whose value space is `true`, `false`, `1` and `0`
  *   under whiteSpace `collapse`, so an entry designates where its value is `true` or `1`. The law
- *   is a key over the query `CardDefault`, each designating `default` beside its card, its node's
- *   parent. An entry that writes no `default`, or one whose value is `false` or `0`, has no row;
- *   the XSD's default of `false` designates nothing.
+ *   is a key over the designating `default` attributes, each beside its card, its node's parent,
+ *   which the attribute holds. An entry that writes no `default`, or one whose value is `false` or
+ *   `0`, is none of them; the XSD's default of `false` designates nothing.
  * - **Catalog reference** (rule `idref-target`; info §5.28.1, §5.15.9; spec reading 117): a
  *   `data-catalog-idref` names a `qti-catalog` of its document, not any ID of it. The attribute is
  *   typed `xs:IDREF`, so "Idref target" (`#pantry/qti/identity.ts`) alone refuses a token that
@@ -58,9 +58,11 @@ import {
   law,
   on,
   relation,
+  select,
   sha256,
 } from "@bjornpagen/grizzle";
-import { attributesOf } from "#pantry/qti/attributes.ts";
+import { booleanTrue } from "#pantry/grammar/domains.ts";
+import { Attribute, attributesOf, namedOn } from "#pantry/qti/attributes.ts";
 import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
@@ -134,6 +136,29 @@ const catalogIdAttributes = attributesOf("id", ["qti-catalog"]);
  *   {@link AssembledCatalog} a binding of the query `AssembledId` owned by a catalog.
  */
 export const catalogLawsByName = {
+  "Card default entry": declared("Card default entry", [
+    key(
+      on(
+        select(Attribute, (a) =>
+          a.and(namedOn(a, "default", ["qti-card-entry"]), a.in(a.value, booleanTrue)),
+        ),
+        "package",
+        "path",
+        "parent",
+      ),
+    ),
+  ]),
+  "Card support": declared("Card support", [
+    key(
+      on(
+        select(Attribute, (a) => namedOn(a, "support", ["qti-card"])),
+        "package",
+        "path",
+        "parent",
+        "valueDigest",
+      ),
+    ),
+  ]),
   "DocumentId key": declared("DocumentId key", [key(on(CatalogId, "package", "path", "idDigest"))]),
   "E1 derived": declared("E1 derived", [
     check("E1_derived", AssembledCatalog, (c) => c.eq(c.idDigest, Crypto.sha256(c.id))),

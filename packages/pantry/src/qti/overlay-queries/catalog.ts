@@ -2,66 +2,20 @@
  * The catalog laws over attributes' values, tokens and IDs (`#pantry/qti/catalog.ts`): a card's
  * `support` and an entry's `default` are each its attribute's `value`, a `data-catalog-idref`'s
  * tokens its `Idref` pieces (C18), and a catalog's `id` its ID's value, which `IdValue` reads where
- * it stands; a card's catalog and an entry's card are each its node's parent, which only `Node`
- * holds; and a reference resolves in its document, or under each instance of it in its assembly,
- * which only `Document` and `Instance` hold.
+ * it stands; a card's catalog and an entry's card are each its node's parent, which its attribute
+ * holds (`Attribute.parent`), so both keys are the stored level's (`#pantry/qti/catalog.ts`); and a
+ * reference resolves in its
+ * document, or under each instance of it in its assembly, which only `Document` and `Instance`
+ * hold.
  */
-import { contained, Crypto, derived, key, on, query, v } from "@bjornpagen/grizzle";
-import { booleanTrue } from "#pantry/grammar/domains.ts";
+import { contained, Crypto, derived, on, query, v } from "@bjornpagen/grizzle";
 import { Idref } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { AssembledCatalog, CatalogId } from "#pantry/qti/catalog.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { attributeValues, IdValue } from "#pantry/qti/names.ts";
-import { Node } from "#pantry/qti/node.ts";
+import { IdValue } from "#pantry/qti/names.ts";
 import { Instance } from "#pantry/qti/tests.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
-
-/**
- * Every card's `support`, by the card's place, its `value` the form as written: no form either
- * member of the support's union holds has whitespace for its class to change.
- */
-const supports = attributeValues("support", ["qti-card"]);
-
-/**
- * Every entry's `default`, by the entry's place, its `value` the form collapsed (`xs:boolean`).
- */
-const defaults = attributeValues("default", ["qti-card-entry"]);
-
-/**
- * Each card's support beside its catalog, by the card's place: its `support`'s value and its node's
- * parent.
- */
-const CatalogSupport = derived(
-  "CatalogSupport",
-  query(QtiBase).rule((r) => {
-    const { kind, package: pkg, path, start, value: support } = v(supports, "support");
-    const { parent: catalog } = v(Node, "node");
-
-    return r
-      .match(supports, { kind, package: pkg, path, start, value: support })
-      .match(Node, { package: pkg, parent: catalog, path, start })
-      .find({ catalog, package: pkg, path, start, support });
-  }),
-);
-
-/**
- * Each card entry that designates itself its card's default beside its card, by the entry's place:
- * an entry whose `default`'s value is `true` or `1` ({@link booleanTrue}), and its node's parent.
- */
-const CardDefault = derived(
-  "CardDefault",
-  query(QtiBase).rule((r) => {
-    const { kind, package: pkg, path, start, value } = v(defaults, "default");
-    const { parent: card } = v(Node, "node");
-
-    return r
-      .match(defaults, { kind, package: pkg, path, start, value })
-      .match(Node, { package: pkg, parent: card, path, start })
-      .where(r.in(value, booleanTrue))
-      .find({ card, package: pkg, path, start });
-  }),
-);
 
 /**
  * Every token of a `data-catalog-idref`, by its element's place: its `Idref` piece's `token`, the
@@ -131,12 +85,6 @@ const PlacedReference = derived(
  * its ID's ({@link IdValue}).
  */
 export const catalogOverlayLawsByName = {
-  "Card default entry": declared("Card default entry", [
-    key(on(CardDefault, "package", "path", "card")),
-  ]),
-  "Card support": declared("Card support", [
-    key(on(CatalogSupport, "package", "path", "catalog", "support")),
-  ]),
   "Catalog reference": declared("Catalog reference", [
     contained(
       on(UnassembledReference, "package", "path", "tokenDigest"),
@@ -158,12 +106,7 @@ export const catalogOverlayLawsByName = {
 /**
  * The queries of this module, each carrying its own name.
  */
-export const catalogOverlayRelations = [
-  CardDefault,
-  CatalogSupport,
-  PlacedReference,
-  UnassembledReference,
-] as const;
+export const catalogOverlayRelations = [PlacedReference, UnassembledReference] as const;
 
 /**
  * The rules of this module, {@link catalogOverlayLawsByName} flattened.

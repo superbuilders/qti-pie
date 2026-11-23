@@ -1276,6 +1276,7 @@ export const manifestAttribute: EvaluatedRow<typeof Qti.relations.Attribute> = {
   lexical: "M",
   name: "identifier",
   package: "p",
+  parent: 0n,
   path: "imsmanifest.xml",
   prefix: "",
   slot: Bits.of(AttributeSlot, ["4"]),

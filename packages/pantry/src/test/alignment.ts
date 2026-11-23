@@ -1678,7 +1678,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     243,
     {
       owner:
-        '"Weight key", the key over `WeightName` (`src/qti/overlay-queries/tests.ts`); the oracle\'s `itemRefLawsOf` (`src/test/oracle-laws/tests.ts`)',
+        "\"Weight key\", the key over the weights' `identifier` attributes by their item ref, each attribute's `parent` (`src/qti/overlay-queries/tests.ts`); the oracle's `itemRefLawsOf` (`src/test/oracle-laws/tests.ts`)",
       status: "G",
     },
   ],

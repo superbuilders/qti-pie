@@ -2264,11 +2264,6 @@ const weightNameRows = query(QtiBase).rule((r) => {
 });
 
 /**
- * {@link weightNameRows} as a relation of `Qti`.
- */
-const WeightName = derived("WeightName", weightNameRows);
-
-/**
  * Each weight's `value`, by its place.
  */
 const weightValues = attributeValues("value", [weightKind]);
@@ -2885,7 +2880,6 @@ export const testOverlayLawsByName = {
     ),
   ]),
   "Variable mapping target": declared("Variable mapping target", [
-    key(on(VariableMapping, "package", "path", "ref", "target")),
     check("Variable_mapping_target", VariableMapping, (m) =>
       m.not(m.in(m.target, itemSessionVariables)),
     ),
@@ -2893,9 +2887,6 @@ export const testOverlayLawsByName = {
       on(ItemMapping, "package", "path", "start"),
       on(FreeMappingTarget, "package", "path", "start"),
     ),
-  ]),
-  "Weight key": declared("Weight key", [
-    key(on(WeightName, "package", "path", "ref", "identifier")),
   ]),
   "Weighted base": declared("Weighted base", [
     check("Weighted_base", WeightedBaseType, (w) => w.eq(w.value, "float")),
@@ -2946,7 +2937,6 @@ export const testOverlayRelations = [
   TestRoot,
   UnplacedInclude,
   VariableMapping,
-  WeightName,
   WeightValue,
   WeightedBaseType,
 ] as const;

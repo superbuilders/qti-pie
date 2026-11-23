@@ -87,7 +87,7 @@ import {
   includeParentKinds,
   natural,
 } from "#pantry/grammar/install.ts";
-import { attributesOf } from "#pantry/qti/attributes.ts";
+import { Attribute, attributesOf, namedOn } from "#pantry/qti/attributes.ts";
 import { Document } from "#pantry/qti/chardata.ts";
 import { namePattern } from "#pantry/qti/declarations.ts";
 import { EntryPath, PackageName, QtiIdentifier } from "#pantry/qti/limits.ts";
@@ -98,10 +98,12 @@ import {
   includeKind,
   itemKind,
   itemRefKind,
+  mappingKind,
   sectionKind,
   sectionRefKind,
   splicingParents,
   stimulusRefKind,
+  weightKind,
 } from "#pantry/vocab/terms/tests.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
@@ -769,6 +771,28 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
  * or not (reading 147).
  */
 export const testLawsByName = {
+  "Variable mapping target": declared("Variable mapping target", [
+    key(
+      on(
+        select(Attribute, (a) => namedOn(a, "target-identifier", [mappingKind])),
+        "package",
+        "path",
+        "parent",
+        "valueDigest",
+      ),
+    ),
+  ]),
+  "Weight key": declared("Weight key", [
+    key(
+      on(
+        select(Attribute, (a) => namedOn(a, "identifier", [weightKind])),
+        "package",
+        "path",
+        "parent",
+        "valueDigest",
+      ),
+    ),
+  ]),
   "E1 derived": declared("E1 derived", [
     siteTargetFamily,
     contextFold,

@@ -14,7 +14,10 @@
  * `#pantry/qti/node.ts`). The governor's attribute model, `AttributeModelOf(governor)`, then gives
  * the name's slot, value domain and use, `AttributeGrammar(model, name)`. `Attribute` and
  * `OpenAttribute` copy `kind` and `governor` from their element along their family's
- * owner axis, so every law below reads its governor inline.
+ * owner axis, so every law below reads its governor inline, and `Attribute` copies its element's
+ * `parent` the same way ("E1 derived"), so a key of one attribute among its element's siblings'
+ * ("Weight key", "Variable mapping target", "Card support", "Card default entry") is the table's
+ * own.
  *
  * - **AL1, admission** (`AL1_admission`, rule `attribute-admission`): the name is one its element's
  *   governor admits, `{name} ⊆ AttributeGrammar.row(model)`, with `{name}` the name's
@@ -256,6 +259,7 @@ export const Attribute = law(
       lexical: Chars,
       name: closedId(AttributeName, { except: openClasses }),
       package: PackageName,
+      parent: accumulated(natural, 0n),
       path: EntryPath,
       prefix: NamespacePrefix,
       slot: bits(AttributeSlot),
@@ -906,6 +910,10 @@ export const attributeLawsByName = {
   ]),
   "E1 derived": declared("E1 derived", [
     idrefFamily,
+    contained(
+      on(Attribute, "package", "path", "start", "parent"),
+      on(Node, "package", "path", "start", "parent"),
+    ),
     check("E1_derived", Attribute, (a) =>
       a.or(
         a.not(admitted(a)),
