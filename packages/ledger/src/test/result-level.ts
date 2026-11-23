@@ -354,7 +354,6 @@ const takeRunIntegersOf = query(ResultLevel).rule((r) => {
   const sittings = r.relation("sittings", sittingHeading);
   const sitting = { takenSessions: storedSessions.bind({ sittings }) };
   const run = Fn.row(templateProcessingOf, {
-    bases: takeArguments.bases.bind(sitting),
     booleans: takeArguments.booleans.bind(sitting),
     compiled: takeArguments.compiled.bind(sitting),
     declaration_attributes: takeArguments.declaration_attributes.bind(sitting),
@@ -363,14 +362,12 @@ const takeRunIntegersOf = query(ResultLevel).rule((r) => {
     directed_pairs: takeArguments.directed_pairs.bind(sitting),
     field_booleans: takeArguments.field_booleans.bind(sitting),
     field_directed_pairs: takeArguments.field_directed_pairs.bind(sitting),
-    field_file_names: takeArguments.field_file_names.bind(sitting),
     field_files: takeArguments.field_files.bind(sitting),
     field_floats: takeArguments.field_floats.bind(sitting),
     field_integers: takeArguments.field_integers.bind(sitting),
     field_pairs: takeArguments.field_pairs.bind(sitting),
     field_points: takeArguments.field_points.bind(sitting),
     field_texts: takeArguments.field_texts.bind(sitting),
-    file_names: takeArguments.file_names.bind(sitting),
     files: takeArguments.files.bind(sitting),
     floats: takeArguments.floats.bind(sitting),
     integers: takeArguments.integers.bind(sitting),

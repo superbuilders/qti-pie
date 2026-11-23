@@ -41,10 +41,13 @@ begin
   if a is null or b is null then raise exception 'no directedPair single of % %', a, b; end if;
   return row(null, 'directedPair', null, null, null, null, null, a, b, null)::single;
 end $$;
--- A file: its SHA-256 content digest, 32 raw bytes, its identity, its content type, and its filename where it has one.
+-- A file: its SHA-256 content digest, 32 raw bytes, its content type and its filename, the three its identity (QTI 3.0.1
+-- §8.14: "any sequence of octets (bytes) qualified by a content-type and an optional filename"). Every file the machine
+-- holds is a stored row's, since no content states a file value and delivery names every upload, so its name is
+-- required here, as its digest and content type are.
 create function p3.s_file(content_type text, digest bytea, filename text) returns p3.single language plpgsql immutable as $$
 begin
-  if digest is null or content_type is null then raise exception 'no file single of % %', digest, content_type; end if;
+  if digest is null or content_type is null or filename is null then raise exception 'no file single of % % %', digest, content_type, filename; end if;
   return row(null, 'file', digest, null, null, null, null, null, content_type, filename)::single;
 end $$;
 create function p3.s_point(x numeric, y numeric) returns p3.single language plpgsql immutable as $$
@@ -140,11 +143,12 @@ create function p3.same(a p3.single, b p3.single) returns boolean language sql i
     when 'identifier' then a.t = b.t
     when 'string' then a.t = b.t
     when 'uri' then a.t = b.t
-    when 'file' then a.d = b.d end
+    when 'file' then a.d = b.d and a.u = b.u and a.w is not distinct from b.w end
 $$;
--- The singles of a value with no field, as rows a multiset operation compares by equality.
+-- The singles of a value with no field, as rows a multiset operation compares by equality: a file by its digest, content
+-- type and name.
 create function p3.bag(v p3.single[]) returns setof p3.bag_row language sql immutable as
-$$ select s.b, s.base, s.d, s.f, s.m, s.n, s.t, case when s.base = 'file' then null else s.u end from unnest(v) s $$;
+$$ select s.b, s.base, s.d, s.f, s.m, s.n, s.t, s.u, s.w from unnest(v) s $$;
 create function p3.has_nan(v p3.single[]) returns boolean language sql immutable as
 $$ select exists (select 1 from unnest(v) s where s.f = 'NaN') $$;
 -- Whether two values match, as plate's match: one cardinality and length; a multiple as a multiset, an ordered or
@@ -501,7 +505,7 @@ $$;
 -- (-0 is 0), and a NaN is never another's equal.
 create function p3.distinct_singles(v p3.single[]) returns setof p3.single language sql immutable as $$
   select unfielded(s => v[d.k])
-  from (select k, row_number() over (partition by (v[k]).base, (v[k]).d, (v[k]).t, case when (v[k]).base = 'file' then null else (v[k]).u end,
+  from (select k, row_number() over (partition by (v[k]).base, (v[k]).d, (v[k]).t, (v[k]).u, (v[k]).w,
           (v[k]).n, (v[k]).m, (v[k]).f, (v[k]).b order by k) as first
         from generate_subscripts(v, 1) k) d
   where d.first = 1 or (v[d.k]).f = 'NaN'

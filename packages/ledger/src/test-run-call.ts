@@ -45,12 +45,11 @@ import { sittingHeading } from "#ledger/sitting-queries.ts";
 import type { DeliveryLevel } from "#ledger/sitting-programs.ts";
 import { memberValuesOf, testTreeOf } from "#ledger/grade.ts";
 import {
-  DocBase,
   DocFloat,
+  DocGiven,
   DocInteger,
   DocText,
   DocumentRun,
-  DocVar,
   sittingSeed,
   TestMemberBound,
   testOutcomeProcessingOf,
@@ -374,6 +373,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
 
     return r.match(sittingAt, { child, package: pkg, path, stage }).find({
       child,
+      defaulted: Type.literal(DocumentRun.fields.defaulted, false),
       label: Type.literal(DocumentRun.fields.label, "test"),
       package: pkg,
       path,
@@ -472,10 +472,11 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .match(membersAt, { item, package: pkg, path: test })
         .match(ItemDuration, { child, micros, package: pkg, path: item, stage })
         .find({
-          base: Type.literal(DocBase.fields.base, "float"),
+          base: Type.literal(DocText.fields.base, "float"),
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.literal(DocVar.fields.identifier, "duration"),
+          count: Type.literal(DocText.fields.count, 1n),
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.literal(DocText.fields.identifier, "duration"),
           package: pkg,
           path: item,
           place: Type.literal(DocText.fields.place, 0n),
@@ -495,10 +496,11 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .match(membersAt, { item, package: pkg, path: test })
         .where(r.not(ItemDuration, { child, package: pkg, path: item, stage }))
         .find({
-          base: Type.literal(DocBase.fields.base, "float"),
+          base: Type.literal(DocText.fields.base, "float"),
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.literal(DocVar.fields.identifier, "duration"),
+          count: Type.literal(DocText.fields.count, 1n),
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.literal(DocText.fields.identifier, "duration"),
           package: pkg,
           path: item,
           place: Type.literal(DocText.fields.place, 0n),
@@ -517,10 +519,11 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .match(sittingAt, { child, package: pkg, path, stage })
         .match(testTimeAt, { child, micros, stage })
         .find({
-          base: Type.literal(DocBase.fields.base, "float"),
+          base: Type.literal(DocText.fields.base, "float"),
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.literal(DocVar.fields.identifier, "duration"),
+          count: Type.literal(DocText.fields.count, 1n),
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.literal(DocText.fields.identifier, "duration"),
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -545,10 +548,11 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       .match(membersAt, { item, package: pkg, path: test })
       .where(r.not(presentedAt, { child, package: pkg, path: item, stage }))
       .find({
-        base: Type.literal(DocBase.fields.base, "identifier"),
+        base: Type.literal(DocText.fields.base, "identifier"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
+        count: Type.literal(DocText.fields.count, 1n),
+        holds: Type.literal(DocText.fields.holds, "value"),
+        identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
         package: pkg,
         path: item,
         place: Type.literal(DocText.fields.place, 0n),
@@ -585,9 +589,10 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         path,
       })
       .find({
-        base: Type.literal(DocBase.fields.base, "float"),
+        base: Type.literal(DocText.fields.base, "float"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
+        count: Type.literal(DocText.fields.count, 1n),
+        holds: Type.literal(DocText.fields.holds, "value"),
         identifier,
         package: pkg,
         path,
@@ -621,7 +626,8 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       })
       .find({
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
+        count: Type.literal(DocText.fields.count, 1n),
+        holds: Type.literal(DocText.fields.holds, "value"),
         identifier,
         package: pkg,
         path,
@@ -655,7 +661,8 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       })
       .find({
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
+        count: Type.literal(DocText.fields.count, 1n),
+        holds: Type.literal(DocText.fields.holds, "value"),
         identifier,
         package: pkg,
         path,
@@ -691,8 +698,9 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .match(presentedAt, { child, package: pkg, path: item, stage })
         .find({
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.literal(DocVar.fields.identifier, "numAttempts"),
+          count: Type.literal(DocText.fields.count, 1n),
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.literal(DocText.fields.identifier, "numAttempts"),
           package: pkg,
           path: item,
           place: Type.literal(DocText.fields.place, 0n),
@@ -714,132 +722,15 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .where(r.not(presentedAt, { child, package: pkg, path: item, stage }))
         .find({
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.literal(DocVar.fields.identifier, "numAttempts"),
+          count: Type.literal(DocText.fields.count, 1n),
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.literal(DocText.fields.identifier, "numAttempts"),
           package: pkg,
           path: item,
           place: Type.literal(DocText.fields.place, 0n),
           stage,
           value: Type.literal(DocInteger.fields.value, 0n),
         });
-    });
-
-  /**
-   * Each variable's base type: each member's snapshot's, and each built-in's and bound
-   * context's.
-   */
-  const bases = query(delivery)
-    .rule((r) => {
-      const sittings = r.relation("sittings", sittingHeading);
-      const snapshotsBasesAt = snapshots.bases.bind({ sittings });
-      const {
-        child,
-        package: pkg,
-        path,
-        identifier,
-        base,
-        stage,
-      } = v(snapshotsBasesAt, "snapshotBase");
-
-      return r
-        .match(snapshotsBasesAt, { base, child, identifier, package: pkg, path, stage })
-        .find({ base, child, identifier, package: pkg, path, stage });
-    })
-    .rule((r) => {
-      const sittings = r.relation("sittings", sittingHeading);
-      const attemptsStartedAt = attemptsStarted.bind({ sittings });
-      const { child, package: pkg, path, identifier, stage } = v(attemptsStartedAt, "startedBase");
-
-      return r.match(attemptsStartedAt, { child, identifier, package: pkg, path, stage }).find({
-        base: Type.literal(DocBase.fields.base, "integer"),
-        child,
-        identifier,
-        package: pkg,
-        path,
-        stage,
-      });
-    })
-    .rule((r) => {
-      const sittings = r.relation("sittings", sittingHeading);
-      const durationsAt = durations.bind({ sittings });
-      const { child, package: pkg, path, identifier, stage } = v(durationsAt, "durationBase");
-
-      return r.match(durationsAt, { child, identifier, package: pkg, path, stage }).find({
-        base: Type.literal(DocBase.fields.base, "float"),
-        child,
-        identifier,
-        package: pkg,
-        path,
-        stage,
-      });
-    })
-    .rule((r) => {
-      const sittings = r.relation("sittings", sittingHeading);
-      const unpresentedStatusAt = unpresentedStatus.bind({ sittings });
-      const { child, package: pkg, path, identifier, stage } = v(unpresentedStatusAt, "statusBase");
-
-      return r.match(unpresentedStatusAt, { child, identifier, package: pkg, path, stage }).find({
-        base: Type.literal(DocBase.fields.base, "identifier"),
-        child,
-        identifier,
-        package: pkg,
-        path,
-        stage,
-      });
-    })
-    .rule((r) => {
-      const sittings = r.relation("sittings", sittingHeading);
-      const boundFloatsAt = boundFloats.bind({ sittings });
-      const { child, package: pkg, path, identifier, stage } = v(boundFloatsAt, "contextFloatBase");
-
-      return r.match(boundFloatsAt, { child, identifier, package: pkg, path, stage }).find({
-        base: Type.literal(DocBase.fields.base, "float"),
-        child,
-        identifier,
-        package: pkg,
-        path,
-        stage,
-      });
-    })
-    .rule((r) => {
-      const sittings = r.relation("sittings", sittingHeading);
-      const boundIntegersAt = boundIntegers.bind({ sittings });
-      const {
-        child,
-        package: pkg,
-        path,
-        identifier,
-        stage,
-      } = v(boundIntegersAt, "contextIntegerBase");
-
-      return r.match(boundIntegersAt, { child, identifier, package: pkg, path, stage }).find({
-        base: Type.literal(DocBase.fields.base, "integer"),
-        child,
-        identifier,
-        package: pkg,
-        path,
-        stage,
-      });
-    })
-    .rule((r) => {
-      const sittings = r.relation("sittings", sittingHeading);
-      const boundBooleansAt = boundBooleans.bind({ sittings });
-      const {
-        child,
-        package: pkg,
-        path,
-        identifier,
-        stage,
-      } = v(boundBooleansAt, "contextBooleanBase");
-
-      return r.match(boundBooleansAt, { child, identifier, package: pkg, path, stage }).find({
-        base: Type.literal(DocBase.fields.base, "boolean"),
-        child,
-        identifier,
-        package: pkg,
-        path,
-        stage,
-      });
     });
 
   /**
@@ -851,6 +742,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       const snapshotsBooleansAt = snapshots.booleans.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -863,6 +755,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       return r
         .match(snapshotsBooleansAt, {
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -871,13 +764,14 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const sittings = r.relation("sittings", sittingHeading);
       const boundBooleansAt = boundBooleans.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -890,6 +784,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       return r
         .match(boundBooleansAt, {
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -898,7 +793,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
@@ -911,6 +806,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       const snapshotsFloatsAt = snapshots.floats.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -925,6 +821,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .match(snapshotsFloatsAt, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -933,13 +830,14 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const sittings = r.relation("sittings", sittingHeading);
       const durationsAt = durations.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -954,6 +852,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .match(durationsAt, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -962,13 +861,14 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const sittings = r.relation("sittings", sittingHeading);
       const boundFloatsAt = boundFloats.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -983,6 +883,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .match(boundFloatsAt, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -991,7 +892,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
@@ -1004,6 +905,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       const snapshotsIntegersAt = snapshots.integers.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -1016,6 +918,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       return r
         .match(snapshotsIntegersAt, {
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -1024,13 +927,14 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const sittings = r.relation("sittings", sittingHeading);
       const attemptsStartedAt = attemptsStarted.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -1043,6 +947,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       return r
         .match(attemptsStartedAt, {
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -1051,13 +956,14 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const sittings = r.relation("sittings", sittingHeading);
       const boundIntegersAt = boundIntegers.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -1070,6 +976,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       return r
         .match(boundIntegersAt, {
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -1078,7 +985,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
@@ -1090,6 +997,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       const snapshotsTextsAt = snapshots.texts.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -1104,6 +1012,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .match(snapshotsTextsAt, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -1112,13 +1021,14 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const sittings = r.relation("sittings", sittingHeading);
       const unpresentedStatusAt = unpresentedStatus.bind({ sittings });
       const {
         child,
+        count,
         package: pkg,
         path,
         holds,
@@ -1133,6 +1043,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         .match(unpresentedStatusAt, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -1141,13 +1052,14 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
           stage,
           value,
         })
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
-   * Each variable's declaration: each member's snapshot's, and the built-ins': each member's
-   * numAttempts, duration and, unpresented, completionStatus; the test's duration; and each bound
-   * context.
+   * Each variable given a header by the sitting's own record: each member's snapshot's, and the
+   * built-ins': each member's duration and, unpresented, completionStatus; the test's duration; and
+   * each bound context. The machine gives every declared response and numAttempts a header itself,
+   * and reads each variable's kind, cardinality and base type from the declarations (`values_of`).
    */
   const vars = query(delivery)
     .rule((r) => {
@@ -1158,31 +1070,13 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
         package: pkg,
         path,
         holds,
-        kind,
         identifier,
-        card,
         stage,
       } = v(snapshotsVarsAt, "snapshotVar");
 
       return r
-        .match(snapshotsVarsAt, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .find({ card, child, holds, identifier, kind, package: pkg, path, stage });
-    })
-    .rule((r) => {
-      const sittings = r.relation("sittings", sittingHeading);
-      const attemptsStartedAt = attemptsStarted.bind({ sittings });
-      const { child, package: pkg, path, identifier, stage } = v(attemptsStartedAt, "startedVar");
-
-      return r.match(attemptsStartedAt, { child, identifier, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
-        child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier,
-        kind: Type.literal(DocVar.fields.kind, "response"),
-        package: pkg,
-        path,
-        stage,
-      });
+        .match(snapshotsVarsAt, { child, holds, identifier, package: pkg, path, stage })
+        .find({ child, holds, identifier, package: pkg, path, stage });
     })
     .rule((r) => {
       const sittings = r.relation("sittings", sittingHeading);
@@ -1190,11 +1084,9 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       const { child, package: pkg, path, identifier, stage } = v(durationsAt, "durationVar");
 
       return r.match(durationsAt, { child, identifier, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
         identifier,
-        kind: Type.literal(DocVar.fields.kind, "response"),
         package: pkg,
         path,
         stage,
@@ -1206,11 +1098,9 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       const { child, package: pkg, path, identifier, stage } = v(unpresentedStatusAt, "statusVar");
 
       return r.match(unpresentedStatusAt, { child, identifier, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
         identifier,
-        kind: Type.literal(DocVar.fields.kind, "outcome"),
         package: pkg,
         path,
         stage,
@@ -1222,11 +1112,9 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       const { child, package: pkg, path, identifier, stage } = v(boundFloatsAt, "contextFloatVar");
 
       return r.match(boundFloatsAt, { child, identifier, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
         identifier,
-        kind: Type.literal(DocVar.fields.kind, "context"),
         package: pkg,
         path,
         stage,
@@ -1244,11 +1132,9 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       } = v(boundIntegersAt, "contextIntegerVar");
 
       return r.match(boundIntegersAt, { child, identifier, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
         identifier,
-        kind: Type.literal(DocVar.fields.kind, "context"),
         package: pkg,
         path,
         stage,
@@ -1266,11 +1152,9 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       } = v(boundBooleansAt, "contextBooleanVar");
 
       return r.match(boundBooleansAt, { child, identifier, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
         identifier,
-        kind: Type.literal(DocVar.fields.kind, "context"),
         package: pkg,
         path,
         stage,
@@ -1281,7 +1165,6 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
     const sittings = r.relation("sittings", sittingHeading);
 
     return Fn.row(testOutcomeProcessingOf, {
-      bases: bases.bind({ sittings }),
       booleans: booleans.bind({ sittings }),
       compiled: tree.compiled.bind({ sittings }),
       declaration_attributes: tree.declaration_attributes.bind({ sittings }),
@@ -1290,14 +1173,12 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
       directed_pairs: snapshots.directed_pairs.bind({ sittings }),
       field_booleans: snapshots.field_booleans.bind({ sittings }),
       field_directed_pairs: snapshots.field_directed_pairs.bind({ sittings }),
-      field_file_names: snapshots.field_file_names.bind({ sittings }),
       field_files: snapshots.field_files.bind({ sittings }),
       field_floats: snapshots.field_floats.bind({ sittings }),
       field_integers: snapshots.field_integers.bind({ sittings }),
       field_pairs: snapshots.field_pairs.bind({ sittings }),
       field_points: snapshots.field_points.bind({ sittings }),
       field_texts: snapshots.field_texts.bind({ sittings }),
-      file_names: snapshots.file_names.bind({ sittings }),
       files: snapshots.files.bind({ sittings }),
       floats: floats.bind({ sittings }),
       integers: integers.bind({ sittings }),

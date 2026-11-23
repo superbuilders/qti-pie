@@ -3,7 +3,6 @@ import {
   arrows,
   count,
   indexOf,
-  lastIndexBefore,
   must,
   readerOf,
   replaceAll,
@@ -16,9 +15,9 @@ import {
  * are submitted with their default value or are NULL") is graded from its defaults and stored as
  * it was submitted. It rewrites what the stage before it wrote:
  *
- * - GradeArgumentsOf's varsOf gives such an attempt no response variable, so the machine's start_of
- *   starts each response at its default in force, the attempt's numAttempts being > 0 (information
- *   model Table 5.115);
+ * - GradeArgumentsOf's runsOf marks such an attempt's run `defaulted`, so the machine gives it no
+ *   response variable and its start_of starts each response at its default in force, the attempt's
+ *   numAttempts being > 0 (information model Table 5.115);
  * - GradeAttemptOf writes, beside every graded attempt's outcomes, such an attempt's responses as its
  *   run began them: each sidecar rule over the run's outcomes matches the run's variables of the
  *   kinds the attempt writes (`writtenOf`, by the run key), never a built-in (numAttempts,
@@ -40,57 +39,42 @@ const exportOf = (text: string, name: string): readonly [number, number] => {
 };
 
 /**
- * GradeArgumentsOf's varsOf with its two response rules (a declared response's, of
- * ItemVariable and ItemRecordVariable) reading only an attempt with no DefaultSubmission.
+ * GradeArgumentsOf's runsOf as two rules, by whether the attempt submitted every response at its
+ * default (DefaultSubmission): such a run is `defaulted`, so the machine gives no declared response
+ * a header and its start_of starts each at its default in force; every other run is not.
  *
  * @param builder GradeArgumentsOf's text.
  * @returns The builder rewritten.
  */
-const withoutDefaultedResponses = (builder: string): string => {
-  const head = "  const varsOf = ";
-  const varsFrom = indexOf(builder, head);
-  const varsTo = varsFrom + readerOf(builder, head).length;
-  let vars = builder.slice(varsFrom, varsTo);
-  for (const relation of ["ItemVariable", "ItemRecordVariable"]) {
-    const response = indexOf(vars, `v(fields.${relation}, "response")`);
-    const from = lastIndexBefore(vars, ".rule((r) => {", response);
-    must(from >= 0, `varsOf's ${relation} rule`);
+const withDefaultedRuns = (builder: string): string => {
+  const head = "  const runsOf = ";
+  const runsFrom = indexOf(builder, head);
+  const runs = readerOf(builder, head);
+  const [rule] = arrows(runs);
+  must(rule !== undefined && arrows(runs).length === 1, "runsOf's one rule");
 
-    const to = indexOf(vars, ".find({", response);
-    const rule = vars.slice(from, to);
+  const flag = "defaulted: Type.literal(DocumentRun.fields.defaulted, false),";
+  const match = ".match(attempt, { at, child, n, package: pkg, path, stage })";
+  must(count(rule, flag) === 1 && count(rule, match) === 1, "runsOf's flag and attempt");
 
-    const attempt = 'const { child, package: pkg, path, stage } = v(attempt, "attempt");';
-    const match = ".match(attempt, { child, package: pkg, path, stage })";
-    must(
-      count(rule, attempt) === 1 && count(rule, match) === 1,
-      `varsOf's ${relation} rule's attempt`,
-    );
-
-    const matched = replaceFirst(
-      replaceFirst(
-        rule,
-        attempt,
-        'const { at, child, n, package: pkg, path, stage } = v(attempt, "attempt");',
-      ),
-      match,
-      ".match(attempt, { at, child, n, package: pkg, path, stage })",
-    ).trimEnd();
-    const rewritten = `${matched}\n          .where(r.not(fields.DefaultSubmission, { at, child, n, package: pkg, path }))\n          `;
-    vars = vars.slice(0, from) + rewritten + vars.slice(to);
-  }
-  const doc = `   * The variables the attempt's run is given: each declared response, numAttempts, and each value
-   * the session's template processing set, each with its kind and cardinality.
-   */`;
-  must(count(builder, doc) === 1, "varsOf's doc");
+  const defaulted = replaceFirst(
+    replaceFirst(rule, flag, "defaulted: Type.literal(DocumentRun.fields.defaulted, true),"),
+    match,
+    `${match}\n      .match(fields.DefaultSubmission, { at, child, n, package: pkg, path })`,
+  );
+  const submitted = replaceFirst(
+    rule,
+    match,
+    `${match}\n      .where(r.not(fields.DefaultSubmission, { at, child, n, package: pkg, path }))`,
+  );
+  const ruleFrom = indexOf(builder, rule, runsFrom);
+  const doc = ".\n   */\n  const runsOf = ";
+  must(count(builder, doc) === 1, "runsOf's doc");
 
   return replaceFirst(
-    builder.slice(0, varsFrom) + vars + builder.slice(varsTo),
+    `${builder.slice(0, ruleFrom)}${submitted})\n    .rule(${defaulted}${builder.slice(ruleFrom + rule.length)}`,
     doc,
-    `   * The variables the attempt's run is given: each declared response, numAttempts, and each value
-   * the session's template processing set, each with its kind and cardinality. An attempt that
-   * submitted every response at its default (DefaultSubmission, Table 7.19.6) is given no response,
-   * so the run starts each at its default in force.
-   */`,
+    ". A run is `defaulted` where its attempt submitted every response at its default\n   * (DefaultSubmission, Table 7.19.6), so the run starts each at its default in force.\n   */\n  const runsOf = ",
   );
 };
 
@@ -168,13 +152,17 @@ const writingDefaults = (builder: string, fragment: Fragments): string => {
 /**
  * The defaults stage over the stage before's grade.ts.
  *
- * @param text The stage before's grade.ts.
+ * @param source The stage before's grade.ts.
  * @param fragment The generator's fragments.
  * @returns Grade.ts with DefaultSubmission graded from its defaults and written as submitted.
  */
-export const defaultsStage = (text: string, fragment: Fragments): string => {
+export const defaultsStage = (source: string, fragment: Fragments): string => {
+  const grading = "  DocText,\n  DocumentAttribute,\n";
+  must(count(source, grading) === 1, "the grading module's import");
+
+  const text = replaceFirst(source, grading, "  DocText,\n  DocVar,\n  DocumentAttribute,\n");
   const [argsFrom, argsTo] = exportOf(text, "gradeArgumentsOf");
-  const args = withoutDefaultedResponses(text.slice(argsFrom, argsTo));
+  const args = withDefaultedRuns(text.slice(argsFrom, argsTo));
   const graded = text.slice(0, argsFrom) + args + text.slice(argsTo);
   const [gradeFrom, gradeTo] = exportOf(graded, "gradeAttemptOf");
 

@@ -9,7 +9,6 @@
 		declaration_texts: declarationTextsOf(gradedSitting),
 		runs: runsOf(gradedSitting),
 		vars: varsOf(gradedSitting),
-		bases: basesOf(gradedSitting),
 		texts: textsOf(gradedSitting),
 		integers: integersOf(gradedSitting),
 		floats: floatsOf(gradedSitting),
@@ -18,7 +17,6 @@
 		directed_pairs: directedPairsOf(gradedSitting),
 		points: pointsOf(gradedSitting),
 		files: filesOf(gradedSitting),
-		file_names: fileNamesOf(gradedSitting),
 		field_texts: fieldTextsOf(gradedSitting),
 		field_integers: fieldIntegersOf(gradedSitting),
 		field_floats: fieldFloatsOf(gradedSitting),
@@ -27,6 +25,5 @@
 		field_directed_pairs: fieldDirectedPairsOf(gradedSitting),
 		field_points: fieldPointsOf(gradedSitting),
 		field_files: fieldFilesOf(gradedSitting),
-		field_file_names: fieldFileNamesOf(gradedSitting),
 	} as const
 }

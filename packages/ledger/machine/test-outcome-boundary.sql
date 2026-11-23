@@ -19,8 +19,7 @@ create type p3.in_member_boolean as (holds text collate pg_catalog.pg_c_utf8, id
 create type p3.in_member_pair as (greatest text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, least text collate pg_catalog.pg_c_utf8, place integer, ref text collate pg_catalog.pg_c_utf8);
 create type p3.in_member_directed_pair as (holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, place integer, ref text collate pg_catalog.pg_c_utf8, source text collate pg_catalog.pg_c_utf8, target text collate pg_catalog.pg_c_utf8);
 create type p3.in_member_point as (holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, place integer, ref text collate pg_catalog.pg_c_utf8, x numeric(825, 0), y numeric(825, 0));
-create type p3.in_member_file as (content_type text collate pg_catalog.pg_c_utf8, digest bytea, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, place integer, ref text collate pg_catalog.pg_c_utf8);
-create type p3.in_member_file_name as (holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, name text collate pg_catalog.pg_c_utf8, place integer, ref text collate pg_catalog.pg_c_utf8);
+create type p3.in_member_file as (content_type text collate pg_catalog.pg_c_utf8, digest bytea, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, name text collate pg_catalog.pg_c_utf8, place integer, ref text collate pg_catalog.pg_c_utf8);
 create type p3.in_member_field_text as (base text collate pg_catalog.pg_c_utf8, field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8, value text collate pg_catalog.pg_c_utf8);
 create type p3.in_member_field_integer as (field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8, value numeric(825, 0));
 create type p3.in_member_field_float as (base text collate pg_catalog.pg_c_utf8, field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8, value float8);
@@ -28,13 +27,12 @@ create type p3.in_member_field_boolean as (field text collate pg_catalog.pg_c_ut
 create type p3.in_member_field_pair as (field text collate pg_catalog.pg_c_utf8, greatest text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, least text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8);
 create type p3.in_member_field_directed_pair as (field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8, source text collate pg_catalog.pg_c_utf8, target text collate pg_catalog.pg_c_utf8);
 create type p3.in_member_field_point as (field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8, x numeric(825, 0), y numeric(825, 0));
-create type p3.in_member_field_file as (content_type text collate pg_catalog.pg_c_utf8, digest bytea, field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8);
-create type p3.in_member_field_file_name as (field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, name text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8);
+create type p3.in_member_field_file as (content_type text collate pg_catalog.pg_c_utf8, digest bytea, field text collate pg_catalog.pg_c_utf8, holds text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8, name text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8);
 -- The flat members' values, by base type: one row of each heading's array, the shape boundary.sql's p3.outcomes is.
 create type p3.in_members as (bases p3.in_member_base[], booleans p3.in_member_boolean[], directed_pairs p3.in_member_directed_pair[],
-  field_booleans p3.in_member_field_boolean[], field_directed_pairs p3.in_member_field_directed_pair[], field_file_names p3.in_member_field_file_name[], field_files p3.in_member_field_file[],
+  field_booleans p3.in_member_field_boolean[], field_directed_pairs p3.in_member_field_directed_pair[], field_files p3.in_member_field_file[],
   field_floats p3.in_member_field_float[], field_integers p3.in_member_field_integer[], field_pairs p3.in_member_field_pair[],
-  field_points p3.in_member_field_point[], field_texts p3.in_member_field_text[], file_names p3.in_member_file_name[],
+  field_points p3.in_member_field_point[], field_texts p3.in_member_field_text[],
   files p3.in_member_file[], floats p3.in_member_float[], integers p3.in_member_integer[],
   pairs p3.in_member_pair[], points p3.in_member_point[],
   texts p3.in_member_text[], vars p3.in_member_var[]);
@@ -58,8 +56,7 @@ create function p3.member_vars_of(h text, m p3.in_members) returns setof p3.memb
     union all
     select v.ref, v.identifier, v.place, s_point(x => v.x, y => v.y) as x from unnest(m.points) v where v.holds = h
     union all
-    select v.ref, v.identifier, v.place, s_file(digest => v.digest, content_type => v.content_type, filename => (select f.name from unnest(m.file_names) f
-      where f.ref = v.ref and f.holds = h and f.identifier = v.identifier and f.place = v.place)) from unnest(m.files) v where v.holds = h
+    select v.ref, v.identifier, v.place, s_file(digest => v.digest, content_type => v.content_type, filename => v.name) from unnest(m.files) v where v.holds = h
   ), fielded as (
     select v.ref, v.identifier, v.field, s_text(base => v.base, t => v.value) as x from unnest(m.field_texts) v where v.holds = h
     union all
@@ -75,8 +72,7 @@ create function p3.member_vars_of(h text, m p3.in_members) returns setof p3.memb
     union all
     select v.ref, v.identifier, v.field, s_point(x => v.x, y => v.y) as x from unnest(m.field_points) v where v.holds = h
     union all
-    select v.ref, v.identifier, v.field, s_file(digest => v.digest, content_type => v.content_type, filename => (select f.name from unnest(m.field_file_names) f
-      where f.ref = v.ref and f.holds = h and f.identifier = v.identifier and f.field = v.field)) from unnest(m.field_files) v where v.holds = h
+    select v.ref, v.identifier, v.field, s_file(digest => v.digest, content_type => v.content_type, filename => v.name) from unnest(m.field_files) v where v.holds = h
   )
   select (select b.base from unnest(m.bases) b where b.ref = d.ref and b.identifier = d.identifier), d.card, d.identifier, d.kind,
     d.ref, case when d.card = 'record'

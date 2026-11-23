@@ -25,12 +25,14 @@
  *   (`DeclarationNodeKind`), with their attributes and each `qti-value`'s string value;
  * - The run: the seed the session draws under (`SessionSeed`, its take's `processingSeed`) and the
  *   label of the attempt's ordinal (`responseLabel`);
- * - The values: each declared response (a NULL one no single row) and `numAttempts`, the attempt's
- *   ordinal from 1, held `value`; the session's template values held `value`, and the correct
- *   responses and defaults its template processing set held `correct` and `default`; and, for an
- *   adaptive item's session with an attempt processed before this one, each declared outcome held
- *   `value` with its values after that attempt (a NULL one no row). A multiple's bag crosses as its
- *   copies, each at its own place.
+ * - The values, each by the session's own sidecar rows: each response's value and `numAttempts`, the
+ *   attempt's ordinal from 1, held `value`; the session's template values held `value`, and the
+ *   correct responses and defaults its template processing set held `correct` and `default`; and,
+ *   for an adaptive item's session with an attempt processed before this one, each declared outcome
+ *   held `value` with its values after that attempt. A multiple's bag crosses as its value with its
+ *   count, which the machine expands; a header (`vars`) crosses only where it carries a fact (a
+ *   value set, a retained outcome, completionStatus), the machine giving every declared response
+ *   one itself unless the run is `defaulted` (`values_of`).
  *
  * QTI 3.0.1 §2.2.2.2 and Table 5.115: response processing "takes place each time the candidate
  * submits the responses"; the outcomes start at their defaults for a non-adaptive item (the
@@ -66,17 +68,17 @@ import {
   admissionOf,
   AdmissionRun,
   CompiledPattern,
-  copies,
-  DocBase,
   DocEvaluation,
+  DocGiven,
   DocHuman,
   DocHumanFeedback,
   DocReplyFloat,
   DocReplyText,
   DocText,
-  DocumentAttribute,
-  DocumentText,
   DocVar,
+  DocumentAttribute,
+  DocumentRun,
+  DocumentText,
   patternProgramOf,
   ProgramNode,
   responseLabel,
@@ -1043,120 +1045,78 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
 
   /**
    * The run of the attempt: its key (child, package, path, stage), the seed its session draws under
-   * (SessionSeed, its take's), and the label of its ordinal.
+   * (SessionSeed, its take's), the label of its ordinal, and whether it submitted every response at
+   * its default (`defaulted`, which the machine reads to give no declared response a header). A run
+   * is `defaulted` where its attempt submitted every response at its default (DefaultSubmission,
+   * Table 7.19.6), so the run starts each at its default in force.
    */
-  const runsOf = query(delivery).rule((r) => {
-    const boundGradable = boundGradableIn(r);
-    const boundOrdinals = boundOrdinalsIn(r);
-    const attempt = boundGradable;
-    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-    const ordinal = boundOrdinals;
-    const { attempts } = v(ordinal, "ordinal");
-    const { seed } = v(fields.SessionSeed, "seed");
+  const runsOf = query(delivery)
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const boundOrdinals = boundOrdinalsIn(r);
+      const attempt = boundGradable;
+      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+      const ordinal = boundOrdinals;
+      const { attempts } = v(ordinal, "ordinal");
+      const { seed } = v(fields.SessionSeed, "seed");
 
-    return r
-      .match(attempt, { at, child, n, package: pkg, path, stage })
-      .match(ordinal, { attempts, child, package: pkg, path, stage })
-      .match(fields.SessionSeed, { child, package: pkg, path, seed, stage })
-      .find({
-        child,
-        label: Fn.call(responseLabel, { attempts }),
-        package: pkg,
-        path,
-        seed: Fn.call(seedStreamKey, { seed }),
-        stage,
-      });
-  });
+      return r
+        .match(attempt, { at, child, n, package: pkg, path, stage })
+        .where(r.not(fields.DefaultSubmission, { at, child, n, package: pkg, path }))
+        .match(ordinal, { attempts, child, package: pkg, path, stage })
+        .match(fields.SessionSeed, { child, package: pkg, path, seed, stage })
+        .find({
+          child,
+          defaulted: Type.literal(DocumentRun.fields.defaulted, false),
+          label: Fn.call(responseLabel, { attempts }),
+          package: pkg,
+          path,
+          seed: Fn.call(seedStreamKey, { seed }),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const boundOrdinals = boundOrdinalsIn(r);
+      const attempt = boundGradable;
+      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+      const ordinal = boundOrdinals;
+      const { attempts } = v(ordinal, "ordinal");
+      const { seed } = v(fields.SessionSeed, "seed");
+
+      return r
+        .match(attempt, { at, child, n, package: pkg, path, stage })
+        .match(fields.DefaultSubmission, { at, child, n, package: pkg, path })
+        .match(ordinal, { attempts, child, package: pkg, path, stage })
+        .match(fields.SessionSeed, { child, package: pkg, path, seed, stage })
+        .find({
+          child,
+          defaulted: Type.literal(DocumentRun.fields.defaulted, true),
+          label: Fn.call(responseLabel, { attempts }),
+          package: pkg,
+          path,
+          seed: Fn.call(seedStreamKey, { seed }),
+          stage,
+        });
+    });
 
   /**
-   * The variables the attempt's run is given: each declared response, numAttempts, and each value
-   * the session's template processing set, each with its kind and cardinality. An attempt that
-   * submitted every response at its default (DefaultSubmission, Table 7.19.6) is given no response,
-   * so the run starts each at its default in force.
+   * The variables the attempt's run is given by its session's own record, each a header that may
+   * hold no value: the previous attempt's completionStatus, and each value the session's template
+   * processing set, held as the rule that set it says. The machine gives every declared response
+   * and numAttempts a header itself, and reads each variable's kind, cardinality and base type from
+   * the run's declarations (`values_of`).
    */
   const varsOf = query(delivery)
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { at, child, n, package: pkg, path, stage } = v(attempt, "attempt");
-      const { identifier, cardinality } = v(fields.ItemVariable, "response");
-      const { token: card } = v(fields.CardinalityToken, "card");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          cardinality,
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .where(r.not(fields.DefaultSubmission, { at, child, n, package: pkg, path }))
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { at, child, n, package: pkg, path, stage } = v(attempt, "attempt");
-      const { identifier } = v(fields.ItemRecordVariable, "response");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .where(r.not(fields.DefaultSubmission, { at, child, n, package: pkg, path }))
-        .find({
-          card: Type.literal(DocVar.fields.card, "record"),
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, stage } = v(attempt, "attempt");
-
-      return r.match(attempt, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
-        child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "numAttempts"),
-        kind: Type.literal(DocVar.fields.kind, "response"),
-        package: pkg,
-        path,
-        stage,
-      });
-    })
     .rule((r) => {
       const boundPrevious = boundPreviousIn(r);
       const previous = boundPrevious;
       const { child, package: pkg, path, stage } = v(previous, "previous");
 
       return r.match(previous, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
-        kind: Type.literal(DocVar.fields.kind, "outcome"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
+        identifier: Type.literal(DocGiven.fields.identifier, "completionStatus"),
         package: pkg,
         path,
         stage,
@@ -1166,25 +1126,20 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundRetained = boundRetainedIn(r);
       const retained = boundRetained;
       const { child, package: pkg, path, stage } = v(retained, "retained");
-      const { identifier, cardinality } = v(fields.ItemVariable, "outcome");
-      const { token: card } = v(fields.CardinalityToken, "card");
+      const { identifier } = v(fields.ItemVariable, "outcome");
 
       return r
         .match(retained, { child, package: pkg, path, stage })
         .match(fields.ItemVariable, {
-          cardinality,
           declarationKind: "qti-outcome-declaration",
           identifier,
           package: pkg,
           path,
         })
-        .match(fields.CardinalityToken, { cardinality, token: card })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -1205,11 +1160,9 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           path,
         })
         .find({
-          card: Type.literal(DocVar.fields.card, "record"),
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -1218,16 +1171,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValue, {
           child,
           kind: "template",
@@ -1236,21 +1184,10 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -1259,16 +1196,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValue, {
           child,
           kind: "correct",
@@ -1277,21 +1209,10 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "correct"),
+          holds: Type.literal(DocGiven.fields.holds, "correct"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -1300,16 +1221,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValue, {
           child,
           kind: "default",
@@ -1318,43 +1234,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "default"),
+          holds: Type.literal(DocGiven.fields.holds, "default"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
         });
     });
-
-  /**
-   * Each declared typed variable's base type, built-ins included.
-   */
-  const basesOf = query(delivery).rule((r) => {
-    const boundGradable = boundGradableIn(r);
-    const attempt = boundGradable;
-    const { child, package: pkg, path, stage } = v(attempt, "attempt");
-    const { identifier, baseType } = v(fields.ItemSessionVariable, "declared");
-    const { token: base } = v(fields.BaseTypeToken, "base");
-
-    return r
-      .match(attempt, { child, package: pkg, path, stage })
-      .match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
-      .match(fields.BaseTypeToken, { baseType, token: base })
-      .find({ base, child, identifier, package: pkg, path, stage });
-  });
 
   /**
    * Each application of the graded attempt that has its evaluation (OperatorEvaluation), replied or
@@ -1588,6 +1476,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -1602,8 +1491,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -1617,15 +1504,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -1651,6 +1538,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -1663,13 +1551,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleIdentifier, {
           child,
           kind: "template",
@@ -1682,6 +1568,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -1694,13 +1581,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleIdentifier, {
           child,
           kind: "correct",
@@ -1713,6 +1598,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -1725,13 +1611,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleIdentifier, {
           child,
           kind: "default",
@@ -1744,6 +1628,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -1756,15 +1641,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleIdentifier, {
           child,
           count,
@@ -1775,15 +1656,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -1791,15 +1672,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleIdentifier, {
           child,
           count,
@@ -1810,15 +1687,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -1826,15 +1703,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleIdentifier, {
           child,
           count,
@@ -1845,15 +1718,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -1861,13 +1734,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedIdentifier, {
           child,
           kind: "template",
@@ -1881,6 +1752,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -1893,13 +1765,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedIdentifier, {
           child,
           kind: "correct",
@@ -1913,6 +1783,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -1925,13 +1796,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedIdentifier, {
           child,
           kind: "default",
@@ -1945,6 +1814,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -1966,6 +1836,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -1980,8 +1851,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -1995,15 +1864,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -2029,6 +1898,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2041,13 +1911,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleString, {
           child,
           kind: "template",
@@ -2060,6 +1928,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2072,13 +1941,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleString, {
           child,
           kind: "correct",
@@ -2091,6 +1958,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -2103,13 +1971,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleString, {
           child,
           kind: "default",
@@ -2122,6 +1988,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -2134,15 +2001,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleString, {
           child,
           count,
@@ -2153,15 +2016,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -2169,15 +2032,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleString, {
           child,
           count,
@@ -2188,15 +2047,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -2204,15 +2063,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleString, {
           child,
           count,
@@ -2223,15 +2078,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -2239,13 +2094,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedString, {
           child,
           kind: "template",
@@ -2259,6 +2112,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2271,13 +2125,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedString, {
           child,
           kind: "correct",
@@ -2291,6 +2143,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -2303,13 +2156,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedString, {
           child,
           kind: "default",
@@ -2323,6 +2174,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -2344,6 +2196,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2358,8 +2211,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -2373,15 +2224,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -2407,6 +2258,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2419,13 +2271,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleUri, {
           child,
           kind: "template",
@@ -2438,6 +2288,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2450,13 +2301,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleUri, {
           child,
           kind: "correct",
@@ -2469,6 +2318,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -2481,13 +2331,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleUri, {
           child,
           kind: "default",
@@ -2500,6 +2348,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -2512,15 +2361,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleUri, {
           child,
           count,
@@ -2531,15 +2376,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -2547,15 +2392,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleUri, {
           child,
           count,
@@ -2566,15 +2407,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -2582,15 +2423,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleUri, {
           child,
           count,
@@ -2601,15 +2438,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -2617,13 +2454,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedUri, {
           child,
           kind: "template",
@@ -2637,6 +2472,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2649,13 +2485,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedUri, {
           child,
           kind: "correct",
@@ -2669,6 +2503,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -2681,13 +2516,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedUri, {
           child,
           kind: "default",
@@ -2701,6 +2534,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -2728,6 +2562,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -2755,6 +2590,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -2782,6 +2618,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -2809,6 +2646,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -2844,6 +2682,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2858,8 +2697,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, value, count } = v(fields.SnapshotMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -2879,15 +2716,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -2919,6 +2756,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2946,6 +2784,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -2960,8 +2799,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, value, count } = v(fields.SnapshotMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -2981,15 +2818,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3021,6 +2858,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3048,6 +2886,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3062,8 +2901,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, value, count } = v(fields.SnapshotMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -3083,15 +2920,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3123,6 +2960,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3157,6 +2995,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3171,8 +3010,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -3186,14 +3023,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3218,6 +3055,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3230,13 +3068,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleInteger, {
           child,
           kind: "template",
@@ -3248,6 +3084,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3260,13 +3097,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleInteger, {
           child,
           kind: "correct",
@@ -3278,6 +3113,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -3290,13 +3126,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleInteger, {
           child,
           kind: "default",
@@ -3308,6 +3142,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -3320,15 +3155,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleInteger, {
           child,
           count,
@@ -3339,14 +3170,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3354,15 +3185,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleInteger, {
           child,
           count,
@@ -3373,14 +3200,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3388,15 +3215,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleInteger, {
           child,
           count,
@@ -3407,14 +3230,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3422,13 +3245,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedInteger, {
           child,
           kind: "template",
@@ -3441,6 +3262,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3453,13 +3275,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedInteger, {
           child,
           kind: "correct",
@@ -3472,6 +3292,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -3484,13 +3305,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedInteger, {
           child,
           kind: "default",
@@ -3503,6 +3322,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -3519,6 +3339,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
 
       return r.match(ordinal, { attempts, child, package: pkg, path, stage }).find({
         child,
+        count: Type.literal(DocText.fields.count, 1n),
         holds: Type.literal(DocText.fields.holds, "value"),
         identifier: Type.literal(DocText.fields.identifier, "numAttempts"),
         package: pkg,
@@ -3553,6 +3374,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3567,8 +3389,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, value, count } = v(fields.SnapshotMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -3588,14 +3408,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3626,6 +3446,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3653,6 +3474,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3667,8 +3489,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -3682,15 +3502,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3716,6 +3536,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3728,13 +3549,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFloat, {
           child,
           kind: "template",
@@ -3747,6 +3566,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3759,13 +3579,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFloat, {
           child,
           kind: "correct",
@@ -3778,6 +3596,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -3790,13 +3609,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFloat, {
           child,
           kind: "default",
@@ -3809,6 +3626,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -3821,15 +3639,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFloat, {
           child,
           count,
@@ -3840,15 +3654,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3856,15 +3670,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFloat, {
           child,
           count,
@@ -3875,15 +3685,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3891,15 +3701,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFloat, {
           child,
           count,
@@ -3910,15 +3716,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -3926,13 +3732,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFloat, {
           child,
           kind: "template",
@@ -3946,6 +3750,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -3958,13 +3763,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFloat, {
           child,
           kind: "correct",
@@ -3978,6 +3781,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -3990,13 +3794,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFloat, {
           child,
           kind: "default",
@@ -4010,6 +3812,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -4039,6 +3842,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4053,8 +3857,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -4068,15 +3870,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4102,6 +3904,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4114,13 +3917,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDuration, {
           child,
           kind: "template",
@@ -4133,6 +3934,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4145,13 +3947,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDuration, {
           child,
           kind: "correct",
@@ -4164,6 +3964,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -4176,13 +3977,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDuration, {
           child,
           kind: "default",
@@ -4195,6 +3994,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -4207,15 +4007,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDuration, {
           child,
           count,
@@ -4226,15 +4022,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4242,15 +4038,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDuration, {
           child,
           count,
@@ -4261,15 +4053,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4277,15 +4069,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDuration, {
           child,
           count,
@@ -4296,15 +4084,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4312,13 +4100,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDuration, {
           child,
           kind: "template",
@@ -4332,6 +4118,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4344,13 +4131,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDuration, {
           child,
           kind: "correct",
@@ -4364,6 +4149,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -4376,13 +4162,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDuration, {
           child,
           kind: "default",
@@ -4396,6 +4180,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -4423,6 +4208,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4437,8 +4223,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, value, count } = v(fields.SnapshotMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -4458,15 +4242,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4498,6 +4282,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4533,6 +4318,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4547,8 +4333,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, value, count } = v(fields.SnapshotMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -4568,15 +4352,15 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4608,6 +4392,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4642,6 +4427,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4656,8 +4442,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -4671,14 +4455,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4703,6 +4487,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4715,13 +4500,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleBoolean, {
           child,
           kind: "template",
@@ -4733,6 +4516,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4745,13 +4529,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleBoolean, {
           child,
           kind: "correct",
@@ -4763,6 +4545,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -4775,13 +4558,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleBoolean, {
           child,
           kind: "default",
@@ -4793,6 +4574,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -4805,15 +4587,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleBoolean, {
           child,
           count,
@@ -4824,14 +4602,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4839,15 +4617,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleBoolean, {
           child,
           count,
@@ -4858,14 +4632,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4873,15 +4647,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleBoolean, {
           child,
           count,
@@ -4892,14 +4662,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -4907,13 +4677,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedBoolean, {
           child,
           kind: "template",
@@ -4926,6 +4694,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -4938,13 +4707,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedBoolean, {
           child,
           kind: "correct",
@@ -4957,6 +4724,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -4969,13 +4737,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedBoolean, {
           child,
           kind: "default",
@@ -4988,6 +4754,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -5022,6 +4789,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -5036,8 +4804,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, value, count } = v(fields.SnapshotMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -5057,14 +4823,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -5095,6 +4861,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -5130,6 +4897,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -5145,8 +4913,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.SnapshotMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -5161,16 +4927,16 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           path,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -5195,6 +4961,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -5208,13 +4975,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePair, {
           child,
           greatest,
@@ -5227,6 +4992,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -5240,13 +5006,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePair, {
           child,
           greatest,
@@ -5259,6 +5023,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -5272,13 +5037,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePair, {
           child,
           greatest,
@@ -5291,6 +5054,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -5304,15 +5068,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePair, {
           child,
           count,
@@ -5324,31 +5084,27 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePair, {
           child,
           count,
@@ -5360,31 +5116,27 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePair, {
           child,
           count,
@@ -5396,29 +5148,27 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, place } = v(fields.ItemSessionValueOrderedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPair, {
           child,
           greatest,
@@ -5432,6 +5182,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -5445,13 +5196,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, place } = v(fields.ItemSessionValueOrderedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPair, {
           child,
           greatest,
@@ -5465,6 +5214,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -5478,13 +5228,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, place } = v(fields.ItemSessionValueOrderedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPair, {
           child,
           greatest,
@@ -5498,6 +5246,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -5534,6 +5283,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -5549,8 +5299,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, least, greatest, count } = v(fields.SnapshotMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -5571,16 +5319,16 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           path,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -5611,6 +5359,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -5647,6 +5396,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -5662,8 +5412,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, source, target, count } = v(fields.SnapshotMultipleDirectedPair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -5678,14 +5426,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -5712,6 +5460,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -5725,13 +5474,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target } = v(fields.ItemSessionValueSingleDirectedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDirectedPair, {
           child,
           kind: "template",
@@ -5744,6 +5491,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -5757,13 +5505,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target } = v(fields.ItemSessionValueSingleDirectedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDirectedPair, {
           child,
           kind: "correct",
@@ -5776,6 +5522,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -5789,13 +5536,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target } = v(fields.ItemSessionValueSingleDirectedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDirectedPair, {
           child,
           kind: "default",
@@ -5808,6 +5553,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -5821,18 +5567,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, count } = v(
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDirectedPair, {
           child,
           count,
@@ -5844,14 +5586,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -5860,18 +5602,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, count } = v(
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDirectedPair, {
           child,
           count,
@@ -5883,14 +5621,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -5899,18 +5637,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, count } = v(
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDirectedPair, {
           child,
           count,
@@ -5922,14 +5656,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -5938,16 +5672,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, place } = v(
         fields.ItemSessionValueOrderedDirectedPair,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDirectedPair, {
           child,
           kind: "template",
@@ -5961,6 +5693,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -5974,16 +5707,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, place } = v(
         fields.ItemSessionValueOrderedDirectedPair,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDirectedPair, {
           child,
           kind: "correct",
@@ -5997,6 +5728,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -6010,16 +5742,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, place } = v(
         fields.ItemSessionValueOrderedDirectedPair,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDirectedPair, {
           child,
           kind: "default",
@@ -6033,6 +5763,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -6069,6 +5800,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -6084,8 +5816,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, source, target, count } = v(fields.SnapshotMultipleDirectedPair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -6106,14 +5836,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -6146,6 +5876,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -6173,6 +5904,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .match(fields.SnapshotSinglePoint, { at, child, n, package: pkg, path, variable, x, y })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -6188,8 +5920,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.SnapshotMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -6204,14 +5934,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -6238,6 +5968,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -6251,13 +5982,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePoint, {
           child,
           kind: "template",
@@ -6270,6 +5999,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -6283,13 +6013,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePoint, {
           child,
           kind: "correct",
@@ -6302,6 +6030,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -6315,13 +6044,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePoint, {
           child,
           kind: "default",
@@ -6334,6 +6061,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -6347,15 +6075,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePoint, {
           child,
           count,
@@ -6367,14 +6091,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -6383,15 +6107,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePoint, {
           child,
           count,
@@ -6403,14 +6123,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -6419,15 +6139,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePoint, {
           child,
           count,
@@ -6439,14 +6155,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -6455,13 +6171,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPoint, {
           child,
           kind: "template",
@@ -6475,6 +6189,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -6488,13 +6203,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPoint, {
           child,
           kind: "correct",
@@ -6508,6 +6221,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -6521,13 +6235,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPoint, {
           child,
           kind: "default",
@@ -6541,6 +6253,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -6568,6 +6281,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .match(fields.SnapshotSinglePoint, { at, child, n, package: pkg, path, variable, x, y })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -6583,8 +6297,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
       const { variable, x, y, count } = v(fields.SnapshotMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -6605,14 +6317,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -6645,6 +6357,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -6665,7 +6378,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.SnapshotSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.SnapshotSingleFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -6683,9 +6396,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -6696,9 +6411,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
+      const { variable, digest, type, name, count } = v(fields.SnapshotMultipleFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -6714,16 +6427,17 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -6731,7 +6445,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
+      const { variable, digest, type, name, place } = v(fields.SnapshotOrderedFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -6750,9 +6464,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -6762,13 +6478,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFile, {
           child,
           digest,
@@ -6783,9 +6497,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -6795,13 +6511,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFile, {
           child,
           digest,
@@ -6816,9 +6530,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -6828,13 +6544,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFile, {
           child,
           digest,
@@ -6849,9 +6563,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -6861,18 +6577,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFile, {
           child,
           count,
@@ -6885,34 +6597,31 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFile, {
           child,
           count,
@@ -6925,34 +6634,31 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFile, {
           child,
           count,
@@ -6965,32 +6671,31 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFile, {
           child,
           digest,
@@ -7006,9 +6711,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -7018,16 +6725,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFile, {
           child,
           digest,
@@ -7043,9 +6748,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -7055,16 +6762,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFile, {
           child,
           digest,
@@ -7080,9 +6785,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -7093,7 +6800,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundRetained = boundRetainedIn(r);
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
-      const { variable, digest, name, type } = v(fields.SnapshotSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.SnapshotSingleFile, "value");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -7117,9 +6824,11 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -7130,9 +6839,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundRetained = boundRetainedIn(r);
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
+      const { variable, digest, type, name, count } = v(fields.SnapshotMultipleFile, "value");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -7151,509 +6858,14 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           name,
           package: pkg,
           path,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundRetained = boundRetainedIn(r);
-      const retained = boundRetained;
-      const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
-
-      return r
-        .match(retained, { child, n, package: pkg, path, previous: at, stage })
-        .match(fields.ItemVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.SnapshotOrderedFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          place,
           type,
           variable,
         })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    });
-
-  /**
-   * The attempt's values that cross as `doc_file_names` rows: its snapshot's, its session's
-   * template values and an adaptive item's outcomes after its previous attempt.
-   */
-  const fileNamesOf = query(delivery)
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.SnapshotSingleFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotSingleFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotMultipleFile, {
-          at,
-          child,
-          count,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotOrderedFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          place,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundRetained = boundRetainedIn(r);
-      const retained = boundRetained;
-      const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
-      const { variable, digest, name, type } = v(fields.SnapshotSingleFile, "value");
-
-      return r
-        .match(retained, { child, n, package: pkg, path, previous: at, stage })
-        .match(fields.ItemVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.SnapshotSingleFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .find({
-          child,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
@@ -7667,47 +6879,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundRetained = boundRetainedIn(r);
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(retained, { child, n, package: pkg, path, previous: at, stage })
-        .match(fields.ItemVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.SnapshotMultipleFile, {
-          at,
-          child,
-          count,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundRetained = boundRetainedIn(r);
-      const retained = boundRetained;
-      const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
+      const { variable, digest, type, name, place } = v(fields.SnapshotOrderedFile, "value");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -7731,6 +6903,9 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
@@ -8474,7 +7649,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
+      const { variable, field, digest, type, name } = v(fields.SnapshotRecordFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -8498,6 +7673,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           field,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           stage,
@@ -8507,7 +7683,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundRetained = boundRetainedIn(r);
       const retained = boundRetained;
       const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
-      const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
+      const { variable, field, digest, type, name } = v(fields.SnapshotRecordFile, "value");
 
       return r
         .match(retained, { child, n, package: pkg, path, previous: at, stage })
@@ -8534,81 +7710,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
           child,
           content_type: type,
           digest,
-          field,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          stage,
-        });
-    });
-
-  /**
-   * The attempt's values that cross as `doc_field_file_names` rows: its snapshot's, its session's
-   * template values and an adaptive item's outcomes after its previous attempt.
-   */
-  const fieldFileNamesOf = query(delivery)
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotRecord, { at, child, field, n, package: pkg, path, variable })
-        .match(fields.SnapshotRecordFile, {
-          at,
-          child,
-          digest,
-          field,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          field,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundRetained = boundRetainedIn(r);
-      const retained = boundRetained;
-      const { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained");
-      const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
-
-      return r
-        .match(retained, { child, n, package: pkg, path, previous: at, stage })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.SnapshotRecord, { at, child, field, n, package: pkg, path, variable })
-        .match(fields.SnapshotRecordFile, {
-          at,
-          child,
-          digest,
-          field,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .find({
-          child,
           field,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -8620,7 +7721,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     });
 
   return {
-    bases: basesOf,
     booleans: booleansOf,
     compiled: compiledPatternsOf,
     declaration_attributes: declarationAttributesOf,
@@ -8630,14 +7730,12 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     evaluations: evaluationsOf,
     field_booleans: fieldBooleansOf,
     field_directed_pairs: fieldDirectedPairsOf,
-    field_file_names: fieldFileNamesOf,
     field_files: fieldFilesOf,
     field_floats: fieldFloatsOf,
     field_integers: fieldIntegersOf,
     field_pairs: fieldPairsOf,
     field_points: fieldPointsOf,
     field_texts: fieldTextsOf,
-    file_names: fileNamesOf,
     files: filesOf,
     floats: floatsOf,
     gradable: gradableOf,
@@ -8869,81 +7967,28 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * The variables: each declared response, always; each declared outcome and completionStatus,
-   * once the latest attempt's response processing ran; and each value the session's template
-   * processing set.
+   * The variables given by the session's own record, each a header that may hold no value: each
+   * declared outcome and completionStatus, once the latest attempt's response processing ran; and
+   * each value the session's template processing set. The machine gives every declared response a
+   * header itself (`values_of`).
    */
   const vars = query(delivery)
     .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { identifier, cardinality } = v(fields.ItemVariable, "response");
-      const { token: card } = v(fields.CardinalityToken, "card");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          cardinality,
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { identifier } = v(fields.ItemRecordVariable, "response");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .find({
-          card: Type.literal(DocVar.fields.card, "record"),
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
       const { child, package: pkg, path, stage } = v(processed, "processed");
-      const { identifier, cardinality } = v(fields.ItemVariable, "outcome");
-      const { token: card } = v(fields.CardinalityToken, "card");
+      const { identifier } = v(fields.ItemVariable, "outcome");
 
       return r
         .match(processed, { child, package: pkg, path, stage })
         .match(fields.ItemVariable, {
-          cardinality,
           declarationKind: "qti-outcome-declaration",
           identifier,
           package: pkg,
           path,
         })
-        .match(fields.CardinalityToken, { cardinality, token: card })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -8962,11 +8007,9 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           path,
         })
         .find({
-          card: Type.literal(DocVar.fields.card, "record"),
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -8976,11 +8019,9 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const { child, package: pkg, path, stage } = v(processed, "processed");
 
       return r.match(processed, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
-        kind: Type.literal(DocVar.fields.kind, "outcome"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
+        identifier: Type.literal(DocGiven.fields.identifier, "completionStatus"),
         package: pkg,
         path,
         stage,
@@ -8989,9 +8030,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -9003,21 +8041,10 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -9026,9 +8053,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -9040,21 +8064,10 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "correct"),
+          holds: Type.literal(DocGiven.fields.holds, "correct"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -9063,9 +8076,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -9077,41 +8087,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "default"),
+          holds: Type.literal(DocGiven.fields.holds, "default"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
         });
     });
-
-  /**
-   * Each declared typed variable's base type, built-ins included.
-   */
-  const bases = query(delivery).rule((r) => {
-    const { child, package: pkg, path, stage } = v(answered, "answered");
-    const { identifier, baseType } = v(fields.ItemSessionVariable, "declared");
-    const { token: base } = v(fields.BaseTypeToken, "base");
-
-    return r
-      .match(answered, { child, package: pkg, path, stage })
-      .match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
-      .match(fields.BaseTypeToken, { baseType, token: base })
-      .find({ base, child, identifier, package: pkg, path, stage });
-  });
 
   /**
    * The values that cross as `doc_texts` rows: the posted responses, the latest attempt's
@@ -9132,6 +8116,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9149,21 +8134,19 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleIdentifier.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -9183,6 +8166,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9206,6 +8190,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9223,21 +8208,19 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleString.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -9257,6 +8240,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9280,6 +8264,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9297,21 +8282,19 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleUri.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -9331,6 +8314,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9366,6 +8350,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9379,8 +8364,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -9400,15 +8383,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -9439,6 +8422,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9466,6 +8450,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9479,8 +8464,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -9500,15 +8483,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -9539,6 +8522,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9566,6 +8550,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9579,8 +8564,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -9600,15 +8583,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -9639,6 +8622,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9665,6 +8649,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -9691,6 +8676,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -9717,6 +8703,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -9743,6 +8730,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -9770,6 +8758,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9797,6 +8786,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -9824,6 +8814,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -9836,8 +8827,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -9851,15 +8840,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -9867,8 +8856,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -9882,15 +8869,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -9898,8 +8885,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -9913,15 +8898,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -9945,6 +8930,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -9973,6 +8959,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -10001,6 +8988,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -10028,6 +9016,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10055,6 +9044,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -10082,6 +9072,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -10094,8 +9085,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -10109,15 +9098,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10125,8 +9114,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -10140,15 +9127,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10156,8 +9143,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -10171,15 +9156,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10203,6 +9188,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10231,6 +9217,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -10259,6 +9246,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -10286,6 +9274,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10313,6 +9302,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -10340,6 +9330,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -10352,8 +9343,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -10367,15 +9356,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10383,8 +9372,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -10398,15 +9385,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10414,8 +9401,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -10429,15 +9414,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10461,6 +9446,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10489,6 +9475,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -10517,6 +9504,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -10545,6 +9533,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { value, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10562,20 +9551,18 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleInteger.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10594,6 +9581,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { place, value, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10628,6 +9616,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10641,8 +9630,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -10662,14 +9649,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10699,6 +9686,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10725,6 +9713,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10751,6 +9740,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -10777,6 +9767,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -10789,8 +9780,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -10804,14 +9793,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10819,8 +9808,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -10834,14 +9821,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10849,8 +9836,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -10864,14 +9849,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -10894,6 +9879,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10921,6 +9907,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -10948,6 +9935,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -10977,6 +9965,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -10995,21 +9984,19 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleFloat.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11029,6 +10016,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11052,6 +10040,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11070,21 +10059,19 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleDuration.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11104,6 +10091,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11131,6 +10119,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11144,8 +10133,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -11165,15 +10152,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11204,6 +10191,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11239,6 +10227,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11252,8 +10241,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -11273,15 +10260,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11312,6 +10299,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11339,6 +10327,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11366,6 +10355,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -11393,6 +10383,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -11405,8 +10396,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -11420,15 +10409,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11436,8 +10425,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -11451,15 +10438,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11467,8 +10454,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -11482,15 +10467,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11514,6 +10499,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11542,6 +10528,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -11570,6 +10557,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -11597,6 +10585,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11624,6 +10613,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -11651,6 +10641,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -11663,8 +10654,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -11678,15 +10667,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11694,8 +10683,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -11709,15 +10696,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11725,8 +10712,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -11740,15 +10725,15 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11772,6 +10757,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11800,6 +10786,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -11828,6 +10815,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -11856,6 +10844,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { value, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11873,20 +10862,18 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleBoolean.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -11905,6 +10892,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { place, value, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11939,6 +10927,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -11952,8 +10941,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -11973,14 +10960,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -12010,6 +10997,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -12036,6 +11024,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -12062,6 +11051,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -12088,6 +11078,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -12100,8 +11091,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -12115,14 +11104,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -12130,8 +11119,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -12145,14 +11132,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -12160,8 +11147,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -12175,14 +11160,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -12205,6 +11190,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -12232,6 +11218,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -12259,6 +11246,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -12288,6 +11276,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { greatest, least, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -12307,22 +11296,20 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultiplePair.fields.variable,
       });
       const { variable, least, greatest, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, greatest, least, variable })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -12341,6 +11328,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { greatest, least, place, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -12377,6 +11365,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -12391,8 +11380,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.SnapshotMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -12413,16 +11400,16 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -12452,6 +11439,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -12480,6 +11468,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -12508,6 +11497,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -12536,6 +11526,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -12549,8 +11540,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -12565,24 +11554,22 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -12597,24 +11584,22 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -12629,16 +11614,16 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -12661,6 +11646,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -12690,6 +11676,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -12719,6 +11706,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -12749,6 +11737,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { source, target, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -12768,20 +11757,18 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleDirectedPair.fields.variable,
       });
       const { variable, source, target, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, source, target, variable })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -12802,6 +11789,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { place, source, target, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -12838,6 +11826,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -12852,8 +11841,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, source, target, count } = v(fields.SnapshotMultipleDirectedPair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -12874,14 +11861,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -12913,6 +11900,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -12941,6 +11929,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -12969,6 +11958,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -12997,6 +11987,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -13013,8 +12004,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13029,14 +12018,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -13048,8 +12037,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13064,14 +12051,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -13083,8 +12070,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13099,14 +12084,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -13134,6 +12119,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -13166,6 +12152,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -13198,6 +12185,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -13228,6 +12216,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { variable, x, y })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -13247,20 +12236,18 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         y: fields.SnapshotMultiplePoint.fields.y,
       });
       const { variable, x, y, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, variable, x, y })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -13281,6 +12268,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { place, variable, x, y })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -13308,6 +12296,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -13322,8 +12311,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.SnapshotMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -13344,14 +12331,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -13383,6 +12370,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -13411,6 +12399,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -13439,6 +12428,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -13467,6 +12457,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -13480,8 +12471,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13496,14 +12485,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -13512,8 +12501,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13528,14 +12515,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -13544,8 +12531,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13560,14 +12545,14 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -13592,6 +12577,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -13621,6 +12607,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -13650,6 +12637,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -13674,7 +12662,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         type: fields.SnapshotSingleFile.fields.type,
         variable: fields.SnapshotSingleFile.fields.variable,
       });
-      const { variable, digest, name, type } = v(given, "value");
+      const { variable, digest, type, name } = v(given, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13682,9 +12670,11 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -13700,23 +12690,22 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         type: fields.SnapshotMultipleFile.fields.type,
         variable: fields.SnapshotMultipleFile.fields.variable,
       });
-      const { variable, digest, name, type, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
+      const { variable, digest, type, name, count } = v(given, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, digest, name, type, variable })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -13729,7 +12718,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         type: fields.SnapshotOrderedFile.fields.type,
         variable: fields.SnapshotOrderedFile.fields.variable,
       });
-      const { variable, digest, name, type, place } = v(given, "value");
+      const { variable, digest, type, name, place } = v(given, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13737,9 +12726,11 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -13750,7 +12741,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const inForce = valuesInForce.File.bind({ sessions: latestSession });
-      const { variable, digest, name, type } = v(inForce, "value");
+      const { variable, digest, type, name } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -13774,9 +12765,11 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -13786,9 +12779,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
+      const { variable, digest, type, name, count } = v(fields.SnapshotMultipleFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -13810,23 +12801,24 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
+      const { variable, digest, type, name, place } = v(fields.SnapshotOrderedFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -13851,9 +12843,11 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -13862,7 +12856,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13880,9 +12874,11 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -13891,7 +12887,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13909,9 +12905,11 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -13920,7 +12918,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -13938,491 +12936,8 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    });
-
-  /**
-   * The values that cross as `doc_file_names` rows: the posted responses, the latest attempt's
-   * outcomes in force and the session's template values.
-   */
-  const fileNames = query(delivery)
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const given = r.relation("singleFile", {
-        digest: fields.SnapshotSingleFile.fields.digest,
-        name: fields.SnapshotSingleFile.fields.name,
-        type: fields.SnapshotSingleFile.fields.type,
-        variable: fields.SnapshotSingleFile.fields.variable,
-      });
-      const { variable, digest, name, type } = v(given, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(given, { digest, name, type, variable })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const given = r.relation("multipleFile", {
-        count: fields.SnapshotMultipleFile.fields.count,
-        digest: fields.SnapshotMultipleFile.fields.digest,
-        name: fields.SnapshotMultipleFile.fields.name,
-        type: fields.SnapshotMultipleFile.fields.type,
-        variable: fields.SnapshotMultipleFile.fields.variable,
-      });
-      const { variable, digest, name, type, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(given, { count, digest, name, type, variable })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const given = r.relation("orderedFile", {
-        digest: fields.SnapshotOrderedFile.fields.digest,
-        name: fields.SnapshotOrderedFile.fields.name,
-        place: fields.SnapshotOrderedFile.fields.place,
-        type: fields.SnapshotOrderedFile.fields.type,
-        variable: fields.SnapshotOrderedFile.fields.variable,
-      });
-      const { variable, digest, name, type, place } = v(given, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(given, { digest, name, place, type, variable })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const inForce = valuesInForce.File.bind({ sessions: latestSession });
-      const { variable, digest, name, type } = v(inForce, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(inForce, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(fields.ItemSessionVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotMultipleFile, {
-          at,
-          child,
-          count,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(fields.ItemSessionVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotOrderedFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          place,
-          type,
-          variable,
-        })
-        .match(fields.ItemSessionVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
@@ -14434,12 +12949,10 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -14455,26 +12968,26 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -14490,26 +13003,26 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -14525,21 +13038,23 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
@@ -14560,6 +13075,9 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
@@ -14571,7 +13089,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
@@ -14592,6 +13110,9 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           name,
@@ -14603,7 +13124,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
@@ -14624,6 +13145,9 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
@@ -15292,7 +13816,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
         type: fields.SnapshotRecordFile.fields.type,
         variable: fields.SnapshotRecordFile.fields.variable,
       });
-      const { variable, field, digest, name, type } = v(given, "value");
+      const { variable, field, digest, type, name } = v(given, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -15304,6 +13828,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           field,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           stage,
@@ -15312,7 +13837,7 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
+      const { variable, field, digest, type, name } = v(fields.SnapshotRecordFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -15339,73 +13864,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
           child,
           content_type: type,
           digest,
-          field,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          stage,
-        });
-    });
-
-  /**
-   * The values that cross as `doc_field_file_names` rows: the posted responses, the latest
-   * attempt's outcomes in force and the session's template values.
-   */
-  const fieldFileNames = query(delivery)
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const given = r.relation("recordFile", {
-        digest: fields.SnapshotRecordFile.fields.digest,
-        field: fields.SnapshotRecord.fields.field,
-        name: fields.SnapshotRecordFile.fields.name,
-        type: fields.SnapshotRecordFile.fields.type,
-        variable: fields.SnapshotRecordFile.fields.variable,
-      });
-      const { variable, field, digest, name, type } = v(given, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(given, { digest, field, name, type, variable })
-        .find({
-          child,
-          field,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotRecord, { at, child, field, n, package: pkg, path, variable })
-        .match(fields.SnapshotRecordFile, {
-          at,
-          child,
-          digest,
-          field,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .find({
-          child,
           field,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -15418,7 +13876,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
 
   return {
     answered: answeredOf,
-    bases,
     body,
     body_attributes: bodyAttributes,
     booleans,
@@ -15428,14 +13885,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     directed_pairs: directedPairs,
     field_booleans: fieldBooleans,
     field_directed_pairs: fieldDirectedPairs,
-    field_file_names: fieldFileNames,
     field_files: fieldFiles,
     field_floats: fieldFloats,
     field_integers: fieldIntegers,
     field_pairs: fieldPairs,
     field_points: fieldPoints,
     field_texts: fieldTexts,
-    file_names: fileNames,
     files,
     floats,
     integers,
@@ -15718,7 +14173,6 @@ export const answerAdmissionOf = (delivery: DeliveryLevel) => {
     const posted = postedIn(r);
 
     return Fn.row(admissionOf, {
-      bases: args.bases.bind(key),
       body: args.body.bind(key),
       body_attributes: args.body_attributes.bind(key),
       booleans: args.booleans.bind({
@@ -15741,7 +14195,6 @@ export const answerAdmissionOf = (delivery: DeliveryLevel) => {
         ...key,
         recordDirectedPair: posted.recordDirectedPair,
       }),
-      field_file_names: args.field_file_names.bind({ ...key, recordFile: posted.recordFile }),
       field_files: args.field_files.bind({ ...key, recordFile: posted.recordFile }),
       field_floats: args.field_floats.bind({
         ...key,
@@ -15756,12 +14209,6 @@ export const answerAdmissionOf = (delivery: DeliveryLevel) => {
         recordIdentifier: posted.recordIdentifier,
         recordString: posted.recordString,
         recordUri: posted.recordUri,
-      }),
-      file_names: args.file_names.bind({
-        ...key,
-        multipleFile: posted.multipleFile,
-        orderedFile: posted.orderedFile,
-        singleFile: posted.singleFile,
       }),
       files: args.files.bind({
         ...key,
@@ -16098,84 +14545,29 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * The variables: each declared response, always; each declared outcome and completionStatus,
-   * once the latest attempt's response processing ran; and each value the session's template
-   * processing set.
+   * The variables given by the session's own record, each a header that may hold no value: each
+   * declared outcome and completionStatus, once the latest attempt's response processing ran; and
+   * each value the session's template processing set. The machine gives every declared response a
+   * header itself (`values_of`).
    */
   const vars = query(delivery)
     .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { identifier, cardinality } = v(fields.ItemVariable, "response");
-      const { token: card } = v(fields.CardinalityToken, "card");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          cardinality,
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { identifier } = v(fields.ItemRecordVariable, "response");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .find({
-          card: Type.literal(DocVar.fields.card, "record"),
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
       const processed = processedIn(r);
       const { child, package: pkg, path, stage } = v(processed, "processed");
-      const { identifier, cardinality } = v(fields.ItemVariable, "outcome");
-      const { token: card } = v(fields.CardinalityToken, "card");
+      const { identifier } = v(fields.ItemVariable, "outcome");
 
       return r
         .match(processed, { child, package: pkg, path, stage })
         .match(fields.ItemVariable, {
-          cardinality,
           declarationKind: "qti-outcome-declaration",
           identifier,
           package: pkg,
           path,
         })
-        .match(fields.CardinalityToken, { cardinality, token: card })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -16195,11 +14587,9 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           path,
         })
         .find({
-          card: Type.literal(DocVar.fields.card, "record"),
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -16210,11 +14600,9 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const { child, package: pkg, path, stage } = v(processed, "processed");
 
       return r.match(processed, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
-        kind: Type.literal(DocVar.fields.kind, "outcome"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
+        identifier: Type.literal(DocGiven.fields.identifier, "completionStatus"),
         package: pkg,
         path,
         stage,
@@ -16224,9 +14612,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -16238,21 +14623,10 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -16262,9 +14636,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -16276,21 +14647,10 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "correct"),
+          holds: Type.literal(DocGiven.fields.holds, "correct"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -16300,9 +14660,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -16314,42 +14671,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "default"),
+          holds: Type.literal(DocGiven.fields.holds, "default"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
         });
     });
-
-  /**
-   * Each declared typed variable's base type, built-ins included.
-   */
-  const bases = query(delivery).rule((r) => {
-    const answered = answeredIn(r);
-    const { child, package: pkg, path, stage } = v(answered, "answered");
-    const { identifier, baseType } = v(fields.ItemSessionVariable, "declared");
-    const { token: base } = v(fields.BaseTypeToken, "base");
-
-    return r
-      .match(answered, { child, package: pkg, path, stage })
-      .match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
-      .match(fields.BaseTypeToken, { baseType, token: base })
-      .find({ base, child, identifier, package: pkg, path, stage });
-  });
 
   /**
    * The values that cross as `doc_texts` rows: the posted responses, the latest attempt's
@@ -16371,6 +14701,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16389,21 +14720,19 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleIdentifier.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -16424,6 +14753,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16448,6 +14778,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16466,21 +14797,19 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleString.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -16501,6 +14830,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16525,6 +14855,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16543,21 +14874,19 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleUri.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -16578,6 +14907,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16615,6 +14945,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16629,8 +14960,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -16650,15 +14979,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -16690,6 +15019,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16719,6 +15049,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16733,8 +15064,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -16754,15 +15083,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -16794,6 +15123,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16823,6 +15153,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16837,8 +15168,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -16858,15 +15187,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -16898,6 +15227,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -16925,6 +15255,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -16952,6 +15283,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -16979,6 +15311,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -17006,6 +15339,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -17034,6 +15368,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -17062,6 +15397,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -17090,6 +15426,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -17103,8 +15440,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -17118,15 +15453,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17135,8 +15470,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -17150,15 +15483,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17167,8 +15500,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -17182,15 +15513,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17215,6 +15546,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -17244,6 +15576,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -17273,6 +15606,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -17301,6 +15635,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -17329,6 +15664,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -17357,6 +15693,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -17370,8 +15707,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -17385,15 +15720,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17402,8 +15737,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -17417,15 +15750,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17434,8 +15767,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -17449,15 +15780,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17482,6 +15813,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -17511,6 +15843,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -17540,6 +15873,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -17568,6 +15902,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -17596,6 +15931,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -17624,6 +15960,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -17637,8 +15974,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -17652,15 +15987,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17669,8 +16004,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -17684,15 +16017,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17701,8 +16034,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -17716,15 +16047,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17749,6 +16080,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -17778,6 +16110,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -17807,6 +16140,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -17836,6 +16170,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { value, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -17854,20 +16189,18 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleInteger.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17887,6 +16220,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { place, value, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -17923,6 +16257,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -17937,8 +16272,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -17958,14 +16291,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -17996,6 +16329,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18023,6 +16357,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18050,6 +16385,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -18077,6 +16413,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -18090,8 +16427,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -18105,14 +16440,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18121,8 +16456,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -18136,14 +16469,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18152,8 +16485,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -18167,14 +16498,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18198,6 +16529,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18226,6 +16558,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -18254,6 +16587,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -18284,6 +16618,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18303,21 +16638,19 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleFloat.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18338,6 +16671,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18362,6 +16696,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18381,21 +16716,19 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleDuration.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18416,6 +16749,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18445,6 +16779,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18459,8 +16794,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -18480,15 +16813,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18520,6 +16853,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18557,6 +16891,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18571,8 +16906,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -18592,15 +16925,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18632,6 +16965,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18660,6 +16994,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18688,6 +17023,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -18716,6 +17052,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -18729,8 +17066,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -18744,15 +17079,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18761,8 +17096,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -18776,15 +17109,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18793,8 +17126,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -18808,15 +17139,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -18841,6 +17172,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18870,6 +17202,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -18899,6 +17232,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -18927,6 +17261,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -18955,6 +17290,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -18983,6 +17319,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -18996,8 +17333,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -19011,15 +17346,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -19028,8 +17363,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -19043,15 +17376,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -19060,8 +17393,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -19075,15 +17406,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -19108,6 +17439,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -19137,6 +17469,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -19166,6 +17499,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -19195,6 +17529,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { value, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -19213,20 +17548,18 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleBoolean.fields.variable,
       });
       const { variable, value, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, value, variable })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -19246,6 +17579,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { place, value, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -19282,6 +17616,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -19296,8 +17631,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -19317,14 +17650,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -19355,6 +17688,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -19382,6 +17716,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -19409,6 +17744,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -19436,6 +17772,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -19449,8 +17786,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -19464,14 +17799,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -19480,8 +17815,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -19495,14 +17828,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -19511,8 +17844,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -19526,14 +17857,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -19557,6 +17888,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -19585,6 +17917,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -19613,6 +17946,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -19643,6 +17977,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { greatest, least, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -19663,22 +17998,20 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultiplePair.fields.variable,
       });
       const { variable, least, greatest, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, greatest, least, variable })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -19698,6 +18031,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { greatest, least, place, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -19736,6 +18070,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -19751,8 +18086,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.SnapshotMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -19773,16 +18106,16 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -19813,6 +18146,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -19842,6 +18176,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -19871,6 +18206,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -19900,6 +18236,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -19914,8 +18251,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -19930,16 +18265,16 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -19947,8 +18282,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -19963,16 +18296,16 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -19980,8 +18313,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -19996,16 +18327,16 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -20029,6 +18360,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -20059,6 +18391,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -20089,6 +18422,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -20120,6 +18454,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { source, target, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20140,20 +18475,18 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         variable: fields.SnapshotMultipleDirectedPair.fields.variable,
       });
       const { variable, source, target, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, source, target, variable })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -20175,6 +18508,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { place, source, target, variable })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20213,6 +18547,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20228,8 +18563,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, source, target, count } = v(fields.SnapshotMultipleDirectedPair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -20250,14 +18583,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -20290,6 +18623,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20319,6 +18653,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20348,6 +18683,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -20377,6 +18713,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -20394,8 +18731,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -20410,14 +18745,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -20430,8 +18765,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -20446,14 +18779,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -20466,8 +18799,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -20482,14 +18813,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -20518,6 +18849,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20551,6 +18883,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -20584,6 +18917,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -20615,6 +18949,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { variable, x, y })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20635,20 +18970,18 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         y: fields.SnapshotMultiplePoint.fields.y,
       });
       const { variable, x, y, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, variable, x, y })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -20670,6 +19003,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .match(given, { place, variable, x, y })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20699,6 +19033,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20714,8 +19049,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.SnapshotMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -20736,14 +19069,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -20776,6 +19109,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20805,6 +19139,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -20834,6 +19169,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -20863,6 +19199,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -20877,8 +19214,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -20893,14 +19228,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -20910,8 +19245,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -20926,14 +19259,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -20943,8 +19276,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -20959,14 +19290,14 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -20992,6 +19323,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -21022,6 +19354,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -21052,6 +19385,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -21077,7 +19411,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         type: fields.SnapshotSingleFile.fields.type,
         variable: fields.SnapshotSingleFile.fields.variable,
       });
-      const { variable, digest, name, type } = v(given, "value");
+      const { variable, digest, type, name } = v(given, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -21085,9 +19419,11 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -21104,23 +19440,22 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         type: fields.SnapshotMultipleFile.fields.type,
         variable: fields.SnapshotMultipleFile.fields.variable,
       });
-      const { variable, digest, name, type, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
+      const { variable, digest, type, name, count } = v(given, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
         .match(given, { count, digest, name, type, variable })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -21134,7 +19469,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         type: fields.SnapshotOrderedFile.fields.type,
         variable: fields.SnapshotOrderedFile.fields.variable,
       });
-      const { variable, digest, name, type, place } = v(given, "value");
+      const { variable, digest, type, name, place } = v(given, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -21142,9 +19477,11 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -21157,7 +19494,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const inForce = valuesInForce.File.bind({ sessions: latestSession });
-      const { variable, digest, name, type } = v(inForce, "value");
+      const { variable, digest, type, name } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -21181,9 +19518,11 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -21194,9 +19533,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const boundLatest = boundLatestIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
+      const { variable, digest, type, name, count } = v(fields.SnapshotMultipleFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -21218,16 +19555,17 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           package: pkg,
           path,
         })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -21235,7 +19573,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const boundLatest = boundLatestIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
+      const { variable, digest, type, name, place } = v(fields.SnapshotOrderedFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -21260,9 +19598,11 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -21272,7 +19612,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -21290,9 +19630,11 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -21302,7 +19644,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -21320,9 +19662,11 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -21332,7 +19676,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -21350,507 +19694,8 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    });
-
-  /**
-   * The values that cross as `doc_file_names` rows: the posted responses, the latest attempt's
-   * outcomes in force and the session's template values.
-   */
-  const fileNames = query(delivery)
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const given = r.relation("singleFile", {
-        digest: fields.SnapshotSingleFile.fields.digest,
-        name: fields.SnapshotSingleFile.fields.name,
-        type: fields.SnapshotSingleFile.fields.type,
-        variable: fields.SnapshotSingleFile.fields.variable,
-      });
-      const { variable, digest, name, type } = v(given, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(given, { digest, name, type, variable })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const given = r.relation("multipleFile", {
-        count: fields.SnapshotMultipleFile.fields.count,
-        digest: fields.SnapshotMultipleFile.fields.digest,
-        name: fields.SnapshotMultipleFile.fields.name,
-        type: fields.SnapshotMultipleFile.fields.type,
-        variable: fields.SnapshotMultipleFile.fields.variable,
-      });
-      const { variable, digest, name, type, count } = v(given, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(given, { count, digest, name, type, variable })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const given = r.relation("orderedFile", {
-        digest: fields.SnapshotOrderedFile.fields.digest,
-        name: fields.SnapshotOrderedFile.fields.name,
-        place: fields.SnapshotOrderedFile.fields.place,
-        type: fields.SnapshotOrderedFile.fields.type,
-        variable: fields.SnapshotOrderedFile.fields.variable,
-      });
-      const { variable, digest, name, type, place } = v(given, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(given, { digest, name, place, type, variable })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const latestSession = latestSessionIn(r);
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const inForce = valuesInForce.File.bind({ sessions: latestSession });
-      const { variable, digest, name, type } = v(inForce, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(inForce, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(fields.ItemSessionVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotMultipleFile, {
-          at,
-          child,
-          count,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(fields.ItemSessionVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotOrderedFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          place,
-          type,
-          variable,
-        })
-        .match(fields.ItemSessionVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
@@ -21863,12 +19708,10 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -21884,27 +19727,27 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -21920,27 +19763,27 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, count } = v(
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -21956,22 +19799,24 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
@@ -21992,6 +19837,9 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
@@ -22004,7 +19852,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
@@ -22025,6 +19873,9 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           name,
@@ -22037,7 +19888,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const answered = answeredIn(r);
       const { child, package: pkg, path, stage } = v(answered, "answered");
-      const { variable, digest, name, type, place } = v(
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
@@ -22058,6 +19909,9 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
@@ -22747,7 +20601,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
         type: fields.SnapshotRecordFile.fields.type,
         variable: fields.SnapshotRecordFile.fields.variable,
       });
-      const { variable, field, digest, name, type } = v(given, "value");
+      const { variable, field, digest, type, name } = v(given, "value");
 
       return r
         .match(answered, { child, package: pkg, path, stage })
@@ -22759,6 +20613,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           field,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           stage,
@@ -22768,7 +20623,7 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       const boundLatest = boundLatestIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
+      const { variable, field, digest, type, name } = v(fields.SnapshotRecordFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -22795,75 +20650,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
           child,
           content_type: type,
           digest,
-          field,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          stage,
-        });
-    });
-
-  /**
-   * The values that cross as `doc_field_file_names` rows: the posted responses, the latest
-   * attempt's outcomes in force and the session's template values.
-   */
-  const fieldFileNames = query(delivery)
-    .rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-      const given = r.relation("recordFile", {
-        digest: fields.SnapshotRecordFile.fields.digest,
-        field: fields.SnapshotRecord.fields.field,
-        name: fields.SnapshotRecordFile.fields.name,
-        type: fields.SnapshotRecordFile.fields.type,
-        variable: fields.SnapshotRecordFile.fields.variable,
-      });
-      const { variable, field, digest, name, type } = v(given, "value");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .match(given, { digest, field, name, type, variable })
-        .find({
-          child,
-          field,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotRecord, { at, child, field, n, package: pkg, path, variable })
-        .match(fields.SnapshotRecordFile, {
-          at,
-          child,
-          digest,
-          field,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-outcome-declaration",
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .find({
-          child,
           field,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -22876,7 +20662,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
 
   return {
     answered: answeredOf,
-    bases,
     body,
     body_attributes: bodyAttributes,
     booleans,
@@ -22886,14 +20671,12 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     directed_pairs: directedPairs,
     field_booleans: fieldBooleans,
     field_directed_pairs: fieldDirectedPairs,
-    field_file_names: fieldFileNames,
     field_files: fieldFiles,
     field_floats: fieldFloats,
     field_integers: fieldIntegers,
     field_pairs: fieldPairs,
     field_points: fieldPoints,
     field_texts: fieldTexts,
-    file_names: fileNames,
     files,
     floats,
     integers,
@@ -23174,7 +20957,6 @@ export const memberAnswerAdmissionOf = (delivery: DeliveryLevel) => {
     const posted = postedIn(r);
 
     return Fn.row(admissionOf, {
-      bases: args.bases.bind(key),
       body: args.body.bind(key),
       body_attributes: args.body_attributes.bind(key),
       booleans: args.booleans.bind({
@@ -23197,7 +20979,6 @@ export const memberAnswerAdmissionOf = (delivery: DeliveryLevel) => {
         ...key,
         recordDirectedPair: posted.recordDirectedPair,
       }),
-      field_file_names: args.field_file_names.bind({ ...key, recordFile: posted.recordFile }),
       field_files: args.field_files.bind({ ...key, recordFile: posted.recordFile }),
       field_floats: args.field_floats.bind({
         ...key,
@@ -23212,12 +20993,6 @@ export const memberAnswerAdmissionOf = (delivery: DeliveryLevel) => {
         recordIdentifier: posted.recordIdentifier,
         recordString: posted.recordString,
         recordUri: posted.recordUri,
-      }),
-      file_names: args.file_names.bind({
-        ...key,
-        multipleFile: posted.multipleFile,
-        orderedFile: posted.orderedFile,
-        singleFile: posted.singleFile,
       }),
       files: args.files.bind({
         ...key,
@@ -23654,7 +21429,8 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
 
   /**
    * The run of the attempt: its key (child, package, path, stage), the seed its session draws under
-   * (SessionSeed, its take's), and the label of its ordinal.
+   * (SessionSeed, its take's), the label of its ordinal, and whether it submitted every response at
+   * its default (`defaulted`, which the machine reads to give no declared response a header).
    */
   const runsOf = query(delivery).rule((r) => {
     const boundGradable = boundGradableIn(r);
@@ -23671,6 +21447,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       .match(fields.SessionSeed, { child, package: pkg, path, seed, stage })
       .find({
         child,
+        defaulted: Type.literal(DocumentRun.fields.defaulted, false),
         label: Fn.call(responseLabel, { attempts }),
         package: pkg,
         path,
@@ -23680,90 +21457,22 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * The variables the attempt's run is given: each declared response, numAttempts, and each value
-   * the session's template processing set, each with its kind and cardinality.
+   * The variables the attempt's run is given by its session's own record, each a header that may
+   * hold no value: the previous attempt's completionStatus, and each value the session's template
+   * processing set, held as the rule that set it says. The machine gives every declared response
+   * and numAttempts a header itself, and reads each variable's kind, cardinality and base type from
+   * the run's declarations (`values_of`).
    */
   const varsOf = query(delivery)
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, stage } = v(attempt, "attempt");
-      const { identifier, cardinality } = v(fields.ItemVariable, "response");
-      const { token: card } = v(fields.CardinalityToken, "card");
-
-      return r
-        .match(attempt, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          cardinality,
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, stage } = v(attempt, "attempt");
-      const { identifier } = v(fields.ItemRecordVariable, "response");
-
-      return r
-        .match(attempt, { child, package: pkg, path, stage })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .find({
-          card: Type.literal(DocVar.fields.card, "record"),
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, stage } = v(attempt, "attempt");
-
-      return r.match(attempt, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
-        child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "numAttempts"),
-        kind: Type.literal(DocVar.fields.kind, "response"),
-        package: pkg,
-        path,
-        stage,
-      });
-    })
     .rule((r) => {
       const boundPrevious = boundPreviousIn(r);
       const previous = boundPrevious;
       const { child, package: pkg, path, stage } = v(previous, "previous");
 
       return r.match(previous, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
-        kind: Type.literal(DocVar.fields.kind, "outcome"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
+        identifier: Type.literal(DocGiven.fields.identifier, "completionStatus"),
         package: pkg,
         path,
         stage,
@@ -23772,16 +21481,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValue, {
           child,
           kind: "template",
@@ -23790,21 +21494,10 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -23813,16 +21506,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValue, {
           child,
           kind: "correct",
@@ -23831,21 +21519,10 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "correct"),
+          holds: Type.literal(DocGiven.fields.holds, "correct"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -23854,16 +21531,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValue, {
           child,
           kind: "default",
@@ -23872,43 +21544,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "default"),
+          holds: Type.literal(DocGiven.fields.holds, "default"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
         });
     });
-
-  /**
-   * Each declared typed variable's base type, built-ins included.
-   */
-  const basesOf = query(delivery).rule((r) => {
-    const boundGradable = boundGradableIn(r);
-    const attempt = boundGradable;
-    const { child, package: pkg, path, stage } = v(attempt, "attempt");
-    const { identifier, baseType } = v(fields.ItemSessionVariable, "declared");
-    const { token: base } = v(fields.BaseTypeToken, "base");
-
-    return r
-      .match(attempt, { child, package: pkg, path, stage })
-      .match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
-      .match(fields.BaseTypeToken, { baseType, token: base })
-      .find({ base, child, identifier, package: pkg, path, stage });
-  });
 
   /**
    * The attempt's values that cross as `doc_texts` rows: its snapshot's and its session's template
@@ -23935,6 +21579,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -23949,8 +21594,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -23964,15 +21607,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -23998,6 +21641,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24010,13 +21654,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleIdentifier, {
           child,
           kind: "template",
@@ -24029,6 +21671,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24041,13 +21684,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleIdentifier, {
           child,
           kind: "correct",
@@ -24060,6 +21701,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -24072,13 +21714,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleIdentifier, {
           child,
           kind: "default",
@@ -24091,6 +21731,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -24103,15 +21744,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleIdentifier, {
           child,
           count,
@@ -24122,15 +21759,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24138,15 +21775,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleIdentifier, {
           child,
           count,
@@ -24157,15 +21790,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24173,15 +21806,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleIdentifier, {
           child,
           count,
@@ -24192,15 +21821,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24208,13 +21837,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedIdentifier, {
           child,
           kind: "template",
@@ -24228,6 +21855,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24240,13 +21868,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedIdentifier, {
           child,
           kind: "correct",
@@ -24260,6 +21886,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -24272,13 +21899,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedIdentifier, {
           child,
           kind: "default",
@@ -24292,6 +21917,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -24313,6 +21939,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24327,8 +21954,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -24342,15 +21967,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24376,6 +22001,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24388,13 +22014,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleString, {
           child,
           kind: "template",
@@ -24407,6 +22031,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24419,13 +22044,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleString, {
           child,
           kind: "correct",
@@ -24438,6 +22061,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -24450,13 +22074,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleString, {
           child,
           kind: "default",
@@ -24469,6 +22091,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -24481,15 +22104,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleString, {
           child,
           count,
@@ -24500,15 +22119,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24516,15 +22135,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleString, {
           child,
           count,
@@ -24535,15 +22150,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24551,15 +22166,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleString, {
           child,
           count,
@@ -24570,15 +22181,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24586,13 +22197,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedString, {
           child,
           kind: "template",
@@ -24606,6 +22215,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24618,13 +22228,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedString, {
           child,
           kind: "correct",
@@ -24638,6 +22246,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -24650,13 +22259,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedString, {
           child,
           kind: "default",
@@ -24670,6 +22277,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -24691,6 +22299,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24705,8 +22314,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -24720,15 +22327,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24754,6 +22361,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24766,13 +22374,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleUri, {
           child,
           kind: "template",
@@ -24785,6 +22391,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24797,13 +22404,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleUri, {
           child,
           kind: "correct",
@@ -24816,6 +22421,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -24828,13 +22434,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleUri, {
           child,
           kind: "default",
@@ -24847,6 +22451,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -24859,15 +22464,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleUri, {
           child,
           count,
@@ -24878,15 +22479,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24894,15 +22495,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleUri, {
           child,
           count,
@@ -24913,15 +22510,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24929,15 +22526,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleUri, {
           child,
           count,
@@ -24948,15 +22541,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -24964,13 +22557,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedUri, {
           child,
           kind: "template",
@@ -24984,6 +22575,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -24996,13 +22588,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedUri, {
           child,
           kind: "correct",
@@ -25016,6 +22606,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -25028,13 +22619,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedUri, {
           child,
           kind: "default",
@@ -25048,6 +22637,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -25075,6 +22665,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -25102,6 +22693,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -25129,6 +22721,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -25156,6 +22749,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -25190,6 +22784,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -25204,8 +22799,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -25219,14 +22812,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -25251,6 +22844,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -25263,13 +22857,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleInteger, {
           child,
           kind: "template",
@@ -25281,6 +22873,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -25293,13 +22886,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleInteger, {
           child,
           kind: "correct",
@@ -25311,6 +22902,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -25323,13 +22915,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleInteger, {
           child,
           kind: "default",
@@ -25341,6 +22931,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -25353,15 +22944,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleInteger, {
           child,
           count,
@@ -25372,14 +22959,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -25387,15 +22974,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleInteger, {
           child,
           count,
@@ -25406,14 +22989,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -25421,15 +23004,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleInteger, {
           child,
           count,
@@ -25440,14 +23019,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -25455,13 +23034,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedInteger, {
           child,
           kind: "template",
@@ -25474,6 +23051,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -25486,13 +23064,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedInteger, {
           child,
           kind: "correct",
@@ -25505,6 +23081,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -25517,13 +23094,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedInteger, {
           child,
           kind: "default",
@@ -25536,6 +23111,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -25552,6 +23128,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
 
       return r.match(ordinal, { attempts, child, package: pkg, path, stage }).find({
         child,
+        count: Type.literal(DocText.fields.count, 1n),
         holds: Type.literal(DocText.fields.holds, "value"),
         identifier: Type.literal(DocText.fields.identifier, "numAttempts"),
         package: pkg,
@@ -25579,6 +23156,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -25593,8 +23171,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -25608,15 +23184,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -25642,6 +23218,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -25654,13 +23231,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFloat, {
           child,
           kind: "template",
@@ -25673,6 +23248,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -25685,13 +23261,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFloat, {
           child,
           kind: "correct",
@@ -25704,6 +23278,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -25716,13 +23291,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFloat, {
           child,
           kind: "default",
@@ -25735,6 +23308,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -25747,15 +23321,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFloat, {
           child,
           count,
@@ -25766,15 +23336,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -25782,15 +23352,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFloat, {
           child,
           count,
@@ -25801,15 +23367,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -25817,15 +23383,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFloat, {
           child,
           count,
@@ -25836,15 +23398,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -25852,13 +23414,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFloat, {
           child,
           kind: "template",
@@ -25872,6 +23432,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -25884,13 +23445,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFloat, {
           child,
           kind: "correct",
@@ -25904,6 +23463,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -25916,13 +23476,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFloat, {
           child,
           kind: "default",
@@ -25936,6 +23494,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -25965,6 +23524,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -25979,8 +23539,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -25994,15 +23552,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -26028,6 +23586,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -26040,13 +23599,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDuration, {
           child,
           kind: "template",
@@ -26059,6 +23616,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -26071,13 +23629,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDuration, {
           child,
           kind: "correct",
@@ -26090,6 +23646,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -26102,13 +23659,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDuration, {
           child,
           kind: "default",
@@ -26121,6 +23676,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -26133,15 +23689,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDuration, {
           child,
           count,
@@ -26152,15 +23704,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -26168,15 +23720,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDuration, {
           child,
           count,
@@ -26187,15 +23735,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -26203,15 +23751,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDuration, {
           child,
           count,
@@ -26222,15 +23766,15 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -26238,13 +23782,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDuration, {
           child,
           kind: "template",
@@ -26258,6 +23800,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -26270,13 +23813,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDuration, {
           child,
           kind: "correct",
@@ -26290,6 +23831,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -26302,13 +23844,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDuration, {
           child,
           kind: "default",
@@ -26322,6 +23862,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -26356,6 +23897,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -26370,8 +23912,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -26385,14 +23925,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -26417,6 +23957,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -26429,13 +23970,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleBoolean, {
           child,
           kind: "template",
@@ -26447,6 +23986,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -26459,13 +23999,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleBoolean, {
           child,
           kind: "correct",
@@ -26477,6 +24015,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -26489,13 +24028,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleBoolean, {
           child,
           kind: "default",
@@ -26507,6 +24044,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -26519,15 +24057,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleBoolean, {
           child,
           count,
@@ -26538,14 +24072,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -26553,15 +24087,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleBoolean, {
           child,
           count,
@@ -26572,14 +24102,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -26587,15 +24117,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleBoolean, {
           child,
           count,
@@ -26606,14 +24132,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -26621,13 +24147,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedBoolean, {
           child,
           kind: "template",
@@ -26640,6 +24164,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -26652,13 +24177,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedBoolean, {
           child,
           kind: "correct",
@@ -26671,6 +24194,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -26683,13 +24207,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedBoolean, {
           child,
           kind: "default",
@@ -26702,6 +24224,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -26737,6 +24260,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -26752,8 +24276,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.SnapshotMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -26768,16 +24290,16 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           path,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -26802,6 +24324,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -26815,13 +24338,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePair, {
           child,
           greatest,
@@ -26834,6 +24355,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -26847,13 +24369,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePair, {
           child,
           greatest,
@@ -26866,6 +24386,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -26879,13 +24400,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePair, {
           child,
           greatest,
@@ -26898,6 +24417,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -26911,15 +24431,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePair, {
           child,
           count,
@@ -26931,31 +24447,27 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePair, {
           child,
           count,
@@ -26967,31 +24479,27 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePair, {
           child,
           count,
@@ -27003,29 +24511,27 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, place } = v(fields.ItemSessionValueOrderedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPair, {
           child,
           greatest,
@@ -27039,6 +24545,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -27052,13 +24559,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, place } = v(fields.ItemSessionValueOrderedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPair, {
           child,
           greatest,
@@ -27072,6 +24577,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -27085,13 +24591,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, place } = v(fields.ItemSessionValueOrderedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPair, {
           child,
           greatest,
@@ -27105,6 +24609,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -27141,6 +24646,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -27156,8 +24662,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, source, target, count } = v(fields.SnapshotMultipleDirectedPair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -27172,14 +24676,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -27206,6 +24710,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -27219,13 +24724,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target } = v(fields.ItemSessionValueSingleDirectedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDirectedPair, {
           child,
           kind: "template",
@@ -27238,6 +24741,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -27251,13 +24755,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target } = v(fields.ItemSessionValueSingleDirectedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDirectedPair, {
           child,
           kind: "correct",
@@ -27270,6 +24772,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -27283,13 +24786,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target } = v(fields.ItemSessionValueSingleDirectedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDirectedPair, {
           child,
           kind: "default",
@@ -27302,6 +24803,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -27315,18 +24817,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, count } = v(
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDirectedPair, {
           child,
           count,
@@ -27338,14 +24836,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -27354,18 +24852,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, count } = v(
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDirectedPair, {
           child,
           count,
@@ -27377,14 +24871,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -27393,18 +24887,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, count } = v(
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDirectedPair, {
           child,
           count,
@@ -27416,14 +24906,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -27432,16 +24922,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, place } = v(
         fields.ItemSessionValueOrderedDirectedPair,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDirectedPair, {
           child,
           kind: "template",
@@ -27455,6 +24943,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -27468,16 +24957,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, place } = v(
         fields.ItemSessionValueOrderedDirectedPair,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDirectedPair, {
           child,
           kind: "correct",
@@ -27491,6 +24978,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -27504,16 +24992,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, place } = v(
         fields.ItemSessionValueOrderedDirectedPair,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDirectedPair, {
           child,
           kind: "default",
@@ -27527,6 +25013,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -27554,6 +25041,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .match(fields.SnapshotSinglePoint, { at, child, n, package: pkg, path, variable, x, y })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -27569,8 +25057,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.SnapshotMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -27585,14 +25071,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -27619,6 +25105,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -27632,13 +25119,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePoint, {
           child,
           kind: "template",
@@ -27651,6 +25136,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -27664,13 +25150,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePoint, {
           child,
           kind: "correct",
@@ -27683,6 +25167,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -27696,13 +25181,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePoint, {
           child,
           kind: "default",
@@ -27715,6 +25198,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -27728,15 +25212,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePoint, {
           child,
           count,
@@ -27748,14 +25228,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -27764,15 +25244,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePoint, {
           child,
           count,
@@ -27784,14 +25260,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -27800,15 +25276,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePoint, {
           child,
           count,
@@ -27820,14 +25292,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -27836,13 +25308,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPoint, {
           child,
           kind: "template",
@@ -27856,6 +25326,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -27869,13 +25340,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPoint, {
           child,
           kind: "correct",
@@ -27889,6 +25358,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -27902,13 +25372,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPoint, {
           child,
           kind: "default",
@@ -27922,6 +25390,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -27942,7 +25411,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.SnapshotSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.SnapshotSingleFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -27960,9 +25429,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -27973,9 +25444,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
+      const { variable, digest, type, name, count } = v(fields.SnapshotMultipleFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -27991,16 +25460,17 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -28008,7 +25478,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
+      const { variable, digest, type, name, place } = v(fields.SnapshotOrderedFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -28027,9 +25497,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -28039,13 +25511,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFile, {
           child,
           digest,
@@ -28060,9 +25530,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -28072,13 +25544,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFile, {
           child,
           digest,
@@ -28093,9 +25563,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -28105,13 +25577,11 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFile, {
           child,
           digest,
@@ -28126,434 +25596,8 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    });
-
-  /**
-   * The attempt's values that cross as `doc_file_names` rows: its snapshot's and its session's
-   * template values.
-   */
-  const fileNamesOf = query(delivery)
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.SnapshotSingleFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotSingleFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotMultipleFile, {
-          at,
-          child,
-          count,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotOrderedFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          place,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
@@ -28566,18 +25610,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFile, {
           child,
           count,
@@ -28590,33 +25630,31 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFile, {
           child,
           count,
@@ -28629,33 +25667,31 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFile, {
           child,
           count,
@@ -28668,31 +25704,31 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFile, {
           child,
           digest,
@@ -28707,6 +25743,9 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
@@ -28719,16 +25758,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFile, {
           child,
           digest,
@@ -28743,6 +25780,9 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           name,
@@ -28755,16 +25795,14 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFile, {
           child,
           digest,
@@ -28779,6 +25817,9 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
@@ -29145,7 +26186,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     const boundGradable = boundGradableIn(r);
     const attempt = boundGradable;
     const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-    const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
+    const { variable, field, digest, type, name } = v(fields.SnapshotRecordFile, "value");
 
     return r
       .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -29169,42 +26210,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         field,
         holds: Type.literal(DocText.fields.holds, "value"),
         identifier: variable,
-        package: pkg,
-        path,
-        stage,
-      });
-  });
-
-  /**
-   * The attempt's values that cross as `doc_field_file_names` rows: its snapshot's and its
-   * session's template values.
-   */
-  const fieldFileNamesOf = query(delivery).rule((r) => {
-    const boundGradable = boundGradableIn(r);
-    const attempt = boundGradable;
-    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-    const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
-
-    return r
-      .match(attempt, { at, child, n, package: pkg, path, stage })
-      .match(fields.SnapshotRecord, { at, child, field, n, package: pkg, path, variable })
-      .match(fields.SnapshotRecordFile, {
-        at,
-        child,
-        digest,
-        field,
-        n,
-        name,
-        package: pkg,
-        path,
-        type,
-        variable,
-      })
-      .find({
-        child,
-        field,
-        holds: Type.literal(DocText.fields.holds, "value"),
-        identifier: variable,
         name,
         package: pkg,
         path,
@@ -29213,7 +26218,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   return {
-    bases: basesOf,
     booleans: booleansOf,
     compiled: compiledPatternsOf,
     declaration_attributes: declarationAttributesOf,
@@ -29222,14 +26226,12 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     directed_pairs: directedPairsOf,
     field_booleans: fieldBooleansOf,
     field_directed_pairs: fieldDirectedPairsOf,
-    field_file_names: fieldFileNamesOf,
     field_files: fieldFilesOf,
     field_floats: fieldFloatsOf,
     field_integers: fieldIntegersOf,
     field_pairs: fieldPairsOf,
     field_points: fieldPointsOf,
     field_texts: fieldTextsOf,
-    file_names: fileNamesOf,
     files: filesOf,
     floats: floatsOf,
     gradable: gradableOf,
@@ -29373,7 +26375,6 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
    */
   const runIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(responseProcessingOf, {
-      bases: args.bases.bind(bySession(r)),
       booleans: args.booleans.bind(bySession(r)),
       compiled: args.compiled.bind(bySession(r)),
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
@@ -29383,14 +26384,12 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       evaluations: args.evaluations.bind(bySession(r)),
       field_booleans: args.field_booleans.bind(bySession(r)),
       field_directed_pairs: args.field_directed_pairs.bind(bySession(r)),
-      field_file_names: args.field_file_names.bind(bySession(r)),
       field_files: args.field_files.bind(bySession(r)),
       field_floats: args.field_floats.bind(bySession(r)),
       field_integers: args.field_integers.bind(bySession(r)),
       field_pairs: args.field_pairs.bind(bySession(r)),
       field_points: args.field_points.bind(bySession(r)),
       field_texts: args.field_texts.bind(bySession(r)),
-      file_names: args.file_names.bind(bySession(r)),
       files: args.files.bind(bySession(r)),
       floats: args.floats.bind(bySession(r)),
       human_feedbacks: args.human_feedbacks.bind(bySession(r)),
@@ -29874,8 +26873,7 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
         const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
         const { identifier } = v(out.vars, "outcome");
         const { kind } = v(written, "written");
-        const { digest, content_type } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name } = v(out.files, "value");
 
         return r
           .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -29894,15 +26892,6 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "value",
-            identifier,
-            package: pkg,
-            path,
-            place: 0n,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "value",
             identifier,
             name,
@@ -30544,8 +27533,7 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
             const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
             const { identifier } = v(out.vars, "outcome");
             const { kind } = v(written, "written");
-            const { digest, content_type, place } = v(out.files, "value");
-            const { name } = v(out.file_names, "name");
+            const { digest, content_type, name, place } = v(out.files, "value");
 
             return q
               .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -30564,15 +27552,6 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
                 child,
                 content_type,
                 digest,
-                holds: "value",
-                identifier,
-                package: pkg,
-                path,
-                place,
-                stage,
-              })
-              .match(out.file_names, {
-                child,
                 holds: "value",
                 identifier,
                 name,
@@ -31120,8 +28099,7 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
         const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
         const { identifier } = v(out.vars, "outcome");
         const { kind } = v(written, "written");
-        const { digest, content_type, place } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name, place } = v(out.files, "value");
 
         return r
           .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -31140,15 +28118,6 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "value",
-            identifier,
-            package: pkg,
-            path,
-            place,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "value",
             identifier,
             name,
@@ -32153,8 +29122,7 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
         const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
         const { identifier } = v(out.vars, "outcome");
         const { kind } = v(written, "written");
-        const { digest, content_type, field } = v(out.field_files, "value");
-        const { name } = v(out.field_file_names, "name");
+        const { digest, content_type, name, field } = v(out.field_files, "value");
 
         return r
           .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -32173,15 +29141,6 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            field,
-            holds: "value",
-            identifier,
-            package: pkg,
-            path,
-            stage,
-          })
-          .match(out.field_file_names, {
-            child,
             field,
             holds: "value",
             identifier,
@@ -32548,10 +29507,9 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
  * over the call's `child` and `stage` alone, every row keyed by the member's item session, its run
  * key (child, package, path, stage), and held `value`: every value the attempt's snapshot holds, a
  * single's as it is in force over the sitting's sessions alone (`valuesInForce`, an asserted
- * outcome's latest assertion), a multiple's bag as its
- * copies at places from 0, an ordered value at its place and a record's at its field; a variable
- * row for every declared response, NULL ones among them; and, only once its response processing
- * ran (`ProcessedAttempt`), one for every declared outcome and its completion status, so an
+ * outcome's latest assertion), a multiple's bag as its value with its count, an ordered value at
+ * its place and a record's at its field; and, only once its response processing ran
+ * (`ProcessedAttempt`), a header for every declared outcome and its completion status, so an
  * unprocessed attempt leaves its outcomes at the entry's defaults. A member with no attempt gives
  * nothing, and no built-in but completionStatus is read here: the run states numAttempts and
  * duration itself.
@@ -32640,83 +29598,29 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const processedIn = (r: Rule<DeliveryLevel>) => processedOf.bind(sittingsIn(r));
 
   /**
-   * The variables: each declared response, always; each declared outcome and completionStatus, once
-   * the attempt is processed.
+   * The variables given by the members' own record, each a header that may hold no value: each
+   * declared outcome and completionStatus, once the attempt is processed. The machine gives every
+   * declared response a header itself, and reads each variable's kind, cardinality and base type
+   * from the members' declarations (`values_of`).
    */
   const vars = query(delivery)
     .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const { child, package: pkg, path, stage } = v(boundLatest, "attempt");
-      const { identifier, cardinality } = v(fields.ItemVariable, "response");
-      const { token: card } = v(fields.CardinalityToken, "card");
-
-      return r
-        .match(boundLatest, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          cardinality,
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const { child, package: pkg, path, stage } = v(boundLatest, "attempt");
-      const { identifier } = v(fields.ItemRecordVariable, "response");
-
-      return r
-        .match(boundLatest, { child, package: pkg, path, stage })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .find({
-          card: Type.literal(DocVar.fields.card, "record"),
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
       const processed = processedIn(r);
       const { child, package: pkg, path, stage } = v(processed, "processed");
-      const { identifier, cardinality } = v(fields.ItemVariable, "outcome");
-      const { token: card } = v(fields.CardinalityToken, "card");
+      const { identifier } = v(fields.ItemVariable, "outcome");
 
       return r
         .match(processed, { child, package: pkg, path, stage })
         .match(fields.ItemVariable, {
-          cardinality,
           declarationKind: "qti-outcome-declaration",
           identifier,
           package: pkg,
           path,
         })
-        .match(fields.CardinalityToken, { cardinality, token: card })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -32736,11 +29640,9 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           path,
         })
         .find({
-          card: Type.literal(DocVar.fields.card, "record"),
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -32751,65 +29653,9 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const { child, package: pkg, path, stage } = v(processed, "processed");
 
       return r.match(processed, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
-        kind: Type.literal(DocVar.fields.kind, "outcome"),
-        package: pkg,
-        path,
-        stage,
-      });
-    });
-
-  /**
-   * The base type of each variable above that has one: a record has none.
-   */
-  const bases = query(delivery)
-    .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const { child, package: pkg, path, stage } = v(boundLatest, "attempt");
-      const { identifier, baseType } = v(fields.ItemVariable, "response");
-      const { token: base } = v(fields.BaseTypeToken, "base");
-
-      return r
-        .match(boundLatest, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          baseType,
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.BaseTypeToken, { baseType, token: base })
-        .find({ base, child, identifier, package: pkg, path, stage });
-    })
-    .rule((r) => {
-      const processed = processedIn(r);
-      const { child, package: pkg, path, stage } = v(processed, "processed");
-      const { identifier, baseType } = v(fields.ItemVariable, "outcome");
-      const { token: base } = v(fields.BaseTypeToken, "base");
-
-      return r
-        .match(processed, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          baseType,
-          declarationKind: "qti-outcome-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.BaseTypeToken, { baseType, token: base })
-        .find({ base, child, identifier, package: pkg, path, stage });
-    })
-    .rule((r) => {
-      const processed = processedIn(r);
-      const { child, package: pkg, path, stage } = v(processed, "processed");
-
-      return r.match(processed, { child, package: pkg, path, stage }).find({
-        base: Type.literal(DocBase.fields.base, "identifier"),
-        child,
-        identifier: Type.literal(DocBase.fields.identifier, "completionStatus"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
+        identifier: Type.literal(DocGiven.fields.identifier, "completionStatus"),
         package: pkg,
         path,
         stage,
@@ -32842,6 +29688,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -32856,8 +29703,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -32871,15 +29716,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -32905,6 +29750,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -32928,6 +29774,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -32942,8 +29789,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -32957,15 +29802,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -32991,6 +29836,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33014,6 +29860,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33028,8 +29875,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33043,15 +29888,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -33077,6 +29922,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33104,6 +29950,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -33131,6 +29978,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -33158,6 +30006,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -33185,6 +30034,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -33220,6 +30070,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33234,8 +30085,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33249,14 +30098,14 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -33281,6 +30130,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33309,6 +30159,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33323,8 +30174,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33338,15 +30187,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -33372,6 +30221,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33403,6 +30253,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33417,8 +30268,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33432,15 +30281,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -33466,6 +30315,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33501,6 +30351,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33515,8 +30366,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33530,14 +30379,14 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -33562,6 +30411,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33598,6 +30448,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -33613,8 +30464,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.SnapshotMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33629,16 +30478,16 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           path,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -33663,6 +30512,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -33700,6 +30550,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33715,8 +30566,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, source, target, count } = v(fields.SnapshotMultipleDirectedPair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33731,14 +30580,14 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -33765,6 +30614,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33793,6 +30643,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .match(inForce, { at, child, n, package: pkg, path, variable, x, y })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33808,8 +30659,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.SnapshotMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33824,14 +30673,14 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -33858,6 +30707,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -33879,7 +30729,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const inForce = valuesInForce.File.bind({ sessions: latestSession });
-      const { variable, digest, name, type } = v(inForce, "value");
+      const { variable, digest, type, name } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33897,9 +30747,11 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -33910,9 +30762,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const boundLatest = boundLatestIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
+      const { variable, digest, type, name, count } = v(fields.SnapshotMultipleFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33928,16 +30778,17 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -33945,7 +30796,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const boundLatest = boundLatestIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
+      const { variable, digest, type, name, place } = v(fields.SnapshotOrderedFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -33964,108 +30815,8 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    });
-
-  /**
-   * The attempt's values that cross as `doc_file_names` rows.
-   */
-  const fileNames = query(delivery)
-    .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const latestSession = latestSessionIn(r);
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const inForce = valuesInForce.File.bind({ sessions: latestSession });
-      const { variable, digest, name, type } = v(inForce, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(inForce, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotMultipleFile, {
-          at,
-          child,
-          count,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundLatest = boundLatestIn(r);
-      const attempt = boundLatest;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotOrderedFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          place,
-          type,
-          variable,
-        })
-        .find({
-          child,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
@@ -34424,7 +31175,7 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
     const boundLatest = boundLatestIn(r);
     const attempt = boundLatest;
     const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-    const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
+    const { variable, field, digest, type, name } = v(fields.SnapshotRecordFile, "value");
 
     return r
       .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -34448,41 +31199,6 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
         field,
         holds: Type.literal(DocText.fields.holds, "value"),
         identifier: variable,
-        package: pkg,
-        path,
-        stage,
-      });
-  });
-
-  /**
-   * The attempt's values that cross as `doc_field_file_names` rows.
-   */
-  const fieldFileNames = query(delivery).rule((r) => {
-    const boundLatest = boundLatestIn(r);
-    const attempt = boundLatest;
-    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-    const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
-
-    return r
-      .match(attempt, { at, child, n, package: pkg, path, stage })
-      .match(fields.SnapshotRecord, { at, child, field, n, package: pkg, path, variable })
-      .match(fields.SnapshotRecordFile, {
-        at,
-        child,
-        digest,
-        field,
-        n,
-        name,
-        package: pkg,
-        path,
-        type,
-        variable,
-      })
-      .find({
-        child,
-        field,
-        holds: Type.literal(DocText.fields.holds, "value"),
-        identifier: variable,
         name,
         package: pkg,
         path,
@@ -34491,19 +31207,16 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   });
 
   return {
-    bases,
     booleans,
     directed_pairs: directedPairs,
     field_booleans: fieldBooleans,
     field_directed_pairs: fieldDirectedPairs,
-    field_file_names: fieldFileNames,
     field_files: fieldFiles,
     field_floats: fieldFloats,
     field_integers: fieldIntegers,
     field_pairs: fieldPairs,
     field_points: fieldPoints,
     field_texts: fieldTexts,
-    file_names: fileNames,
     files,
     floats,
     integers,
@@ -34822,6 +31535,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       .match(fields.ObjectIdentifier, { package: pkg, path, value: identifier })
       .find({
         child,
+        defaulted: Type.literal(DocumentRun.fields.defaulted, false),
         label: Fn.call(templateLabel, { identifier }),
         package: pkg,
         path,
@@ -34831,90 +31545,22 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * The variables the attempt's run is given: each declared response, numAttempts, and each value
-   * the session's template processing set, each with its kind and cardinality.
+   * The variables the attempt's run is given by its session's own record, each a header that may
+   * hold no value: the previous attempt's completionStatus, and each value the session's template
+   * processing set, held as the rule that set it says. The machine gives every declared response
+   * and numAttempts a header itself, and reads each variable's kind, cardinality and base type from
+   * the run's declarations (`values_of`).
    */
   const varsOf = query(delivery)
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, stage } = v(attempt, "attempt");
-      const { identifier, cardinality } = v(fields.ItemVariable, "response");
-      const { token: card } = v(fields.CardinalityToken, "card");
-
-      return r
-        .match(attempt, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          cardinality,
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, stage } = v(attempt, "attempt");
-      const { identifier } = v(fields.ItemRecordVariable, "response");
-
-      return r
-        .match(attempt, { child, package: pkg, path, stage })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .find({
-          card: Type.literal(DocVar.fields.card, "record"),
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, stage } = v(attempt, "attempt");
-
-      return r.match(attempt, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
-        child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "numAttempts"),
-        kind: Type.literal(DocVar.fields.kind, "response"),
-        package: pkg,
-        path,
-        stage,
-      });
-    })
     .rule((r) => {
       const boundPrevious = boundPreviousIn(r);
       const previous = boundPrevious;
       const { child, package: pkg, path, stage } = v(previous, "previous");
 
       return r.match(previous, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
-        kind: Type.literal(DocVar.fields.kind, "outcome"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
+        identifier: Type.literal(DocGiven.fields.identifier, "completionStatus"),
         package: pkg,
         path,
         stage,
@@ -34923,16 +31569,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValue, {
           child,
           kind: "template",
@@ -34941,21 +31582,10 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -34964,16 +31594,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValue, {
           child,
           kind: "correct",
@@ -34982,21 +31607,10 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "correct"),
+          holds: Type.literal(DocGiven.fields.holds, "correct"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
@@ -35005,16 +31619,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable } = v(fields.ItemSessionValue, "set");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared");
-      const { token: card } = v(fields.CardinalityToken, "card");
-      const { token: kind } = v(fields.VariableKindToken, "kind");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValue, {
           child,
           kind: "default",
@@ -35023,43 +31632,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "default"),
+          holds: Type.literal(DocGiven.fields.holds, "default"),
           identifier: variable,
-          kind,
           package: pkg,
           path,
           stage,
         });
     });
-
-  /**
-   * Each declared typed variable's base type, built-ins included.
-   */
-  const basesOf = query(delivery).rule((r) => {
-    const boundGradable = boundGradableIn(r);
-    const attempt = boundGradable;
-    const { child, package: pkg, path, stage } = v(attempt, "attempt");
-    const { identifier, baseType } = v(fields.ItemSessionVariable, "declared");
-    const { token: base } = v(fields.BaseTypeToken, "base");
-
-    return r
-      .match(attempt, { child, package: pkg, path, stage })
-      .match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
-      .match(fields.BaseTypeToken, { baseType, token: base })
-      .find({ base, child, identifier, package: pkg, path, stage });
-  });
 
   /**
    * Each application of the graded attempt that has its evaluation (OperatorEvaluation), replied or
@@ -35292,6 +31873,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -35306,8 +31888,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -35321,15 +31901,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -35355,6 +31935,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -35367,13 +31948,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleIdentifier, {
           child,
           kind: "template",
@@ -35386,6 +31965,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -35398,13 +31978,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleIdentifier, {
           child,
           kind: "correct",
@@ -35417,6 +31995,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -35429,13 +32008,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleIdentifier, {
           child,
           kind: "default",
@@ -35448,6 +32025,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -35460,15 +32038,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleIdentifier, {
           child,
           count,
@@ -35479,15 +32053,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -35495,15 +32069,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleIdentifier, {
           child,
           count,
@@ -35514,15 +32084,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -35530,15 +32100,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleIdentifier, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleIdentifier, {
           child,
           count,
@@ -35549,15 +32115,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -35565,13 +32131,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedIdentifier, {
           child,
           kind: "template",
@@ -35585,6 +32149,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -35597,13 +32162,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedIdentifier, {
           child,
           kind: "correct",
@@ -35617,6 +32180,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -35629,13 +32193,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedIdentifier, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedIdentifier, {
           child,
           kind: "default",
@@ -35649,6 +32211,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -35670,6 +32233,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -35684,8 +32248,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -35699,15 +32261,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -35733,6 +32295,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -35745,13 +32308,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleString, {
           child,
           kind: "template",
@@ -35764,6 +32325,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -35776,13 +32338,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleString, {
           child,
           kind: "correct",
@@ -35795,6 +32355,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -35807,13 +32368,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleString, {
           child,
           kind: "default",
@@ -35826,6 +32385,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -35838,15 +32398,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleString, {
           child,
           count,
@@ -35857,15 +32413,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -35873,15 +32429,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleString, {
           child,
           count,
@@ -35892,15 +32444,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -35908,15 +32460,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleString, {
           child,
           count,
@@ -35927,15 +32475,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -35943,13 +32491,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedString, {
           child,
           kind: "template",
@@ -35963,6 +32509,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -35975,13 +32522,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedString, {
           child,
           kind: "correct",
@@ -35995,6 +32540,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -36007,13 +32553,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedString, {
           child,
           kind: "default",
@@ -36027,6 +32571,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -36048,6 +32593,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -36062,8 +32608,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -36077,15 +32621,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -36111,6 +32655,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -36123,13 +32668,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleUri, {
           child,
           kind: "template",
@@ -36142,6 +32685,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -36154,13 +32698,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleUri, {
           child,
           kind: "correct",
@@ -36173,6 +32715,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -36185,13 +32728,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleUri, {
           child,
           kind: "default",
@@ -36204,6 +32745,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -36216,15 +32758,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleUri, {
           child,
           count,
@@ -36235,15 +32773,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -36251,15 +32789,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleUri, {
           child,
           count,
@@ -36270,15 +32804,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -36286,15 +32820,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleUri, {
           child,
           count,
@@ -36305,15 +32835,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -36321,13 +32851,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedUri, {
           child,
           kind: "template",
@@ -36341,6 +32869,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -36353,13 +32882,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedUri, {
           child,
           kind: "correct",
@@ -36373,6 +32900,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -36385,13 +32913,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedUri, {
           child,
           kind: "default",
@@ -36405,6 +32931,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -36432,6 +32959,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -36459,6 +32987,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -36486,6 +33015,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -36513,6 +33043,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "identifier"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
           package: pkg,
@@ -36546,6 +33077,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -36560,8 +33092,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -36575,14 +33105,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -36607,6 +33137,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -36619,13 +33150,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleInteger, {
           child,
           kind: "template",
@@ -36637,6 +33166,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -36649,13 +33179,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleInteger, {
           child,
           kind: "correct",
@@ -36667,6 +33195,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -36679,13 +33208,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleInteger, {
           child,
           kind: "default",
@@ -36697,6 +33224,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -36709,15 +33237,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleInteger, {
           child,
           count,
@@ -36728,14 +33252,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -36743,15 +33267,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleInteger, {
           child,
           count,
@@ -36762,14 +33282,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -36777,15 +33297,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleInteger, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleInteger, {
           child,
           count,
@@ -36796,14 +33312,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -36811,13 +33327,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedInteger, {
           child,
           kind: "template",
@@ -36830,6 +33344,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -36842,13 +33357,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedInteger, {
           child,
           kind: "correct",
@@ -36861,6 +33374,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -36873,13 +33387,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedInteger, {
           child,
           kind: "default",
@@ -36892,6 +33404,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -36908,6 +33421,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
 
       return r.match(ordinal, { attempts, child, package: pkg, path, stage }).find({
         child,
+        count: Type.literal(DocText.fields.count, 1n),
         holds: Type.literal(DocText.fields.holds, "value"),
         identifier: Type.literal(DocText.fields.identifier, "numAttempts"),
         package: pkg,
@@ -36934,6 +33448,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -36948,8 +33463,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -36963,15 +33476,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -36997,6 +33510,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37009,13 +33523,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFloat, {
           child,
           kind: "template",
@@ -37028,6 +33540,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37040,13 +33553,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFloat, {
           child,
           kind: "correct",
@@ -37059,6 +33570,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -37071,13 +33583,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFloat, {
           child,
           kind: "default",
@@ -37090,6 +33600,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -37102,15 +33613,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFloat, {
           child,
           count,
@@ -37121,15 +33628,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37137,15 +33644,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFloat, {
           child,
           count,
@@ -37156,15 +33659,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37172,15 +33675,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFloat, {
           child,
           count,
@@ -37191,15 +33690,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37207,13 +33706,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFloat, {
           child,
           kind: "template",
@@ -37227,6 +33724,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37239,13 +33737,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFloat, {
           child,
           kind: "correct",
@@ -37259,6 +33755,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -37271,13 +33768,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFloat, {
           child,
           kind: "default",
@@ -37291,6 +33786,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -37320,6 +33816,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37334,8 +33831,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -37349,15 +33844,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37383,6 +33878,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37395,13 +33891,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDuration, {
           child,
           kind: "template",
@@ -37414,6 +33908,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37426,13 +33921,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDuration, {
           child,
           kind: "correct",
@@ -37445,6 +33938,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -37457,13 +33951,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDuration, {
           child,
           kind: "default",
@@ -37476,6 +33968,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -37488,15 +33981,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDuration, {
           child,
           count,
@@ -37507,15 +33996,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37523,15 +34012,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDuration, {
           child,
           count,
@@ -37542,15 +34027,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37558,15 +34043,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleDuration, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDuration, {
           child,
           count,
@@ -37577,15 +34058,15 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37593,13 +34074,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDuration, {
           child,
           kind: "template",
@@ -37613,6 +34092,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37625,13 +34105,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDuration, {
           child,
           kind: "correct",
@@ -37645,6 +34123,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -37657,13 +34136,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedDuration, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDuration, {
           child,
           kind: "default",
@@ -37677,6 +34154,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           base: Type.literal(DocText.fields.base, "duration"),
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -37710,6 +34188,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37724,8 +34203,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.SnapshotMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -37739,14 +34216,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37771,6 +34248,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37783,13 +34261,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleBoolean, {
           child,
           kind: "template",
@@ -37801,6 +34277,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -37813,13 +34290,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleBoolean, {
           child,
           kind: "correct",
@@ -37831,6 +34306,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -37843,13 +34319,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleBoolean, {
           child,
           kind: "default",
@@ -37861,6 +34335,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -37873,15 +34348,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleBoolean, {
           child,
           count,
@@ -37892,14 +34363,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37907,15 +34378,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleBoolean, {
           child,
           count,
@@ -37926,14 +34393,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37941,15 +34408,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, count } = v(fields.ItemSessionValueMultipleBoolean, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleBoolean, {
           child,
           count,
@@ -37960,14 +34423,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           value,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           value,
         });
@@ -37975,13 +34438,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedBoolean, {
           child,
           kind: "template",
@@ -37994,6 +34455,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -38006,13 +34468,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedBoolean, {
           child,
           kind: "correct",
@@ -38025,6 +34485,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -38037,13 +34498,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedBoolean, {
           child,
           kind: "default",
@@ -38056,6 +34515,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -38090,6 +34550,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -38105,8 +34566,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.SnapshotMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -38121,16 +34580,16 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           path,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -38155,6 +34614,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -38168,13 +34628,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePair, {
           child,
           greatest,
@@ -38187,6 +34645,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -38200,13 +34659,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePair, {
           child,
           greatest,
@@ -38219,6 +34676,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -38232,13 +34690,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePair, {
           child,
           greatest,
@@ -38251,6 +34707,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -38264,15 +34721,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePair, {
           child,
           count,
@@ -38284,31 +34737,27 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePair, {
           child,
           count,
@@ -38320,31 +34769,27 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, count } = v(fields.ItemSessionValueMultiplePair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePair, {
           child,
           count,
@@ -38356,29 +34801,27 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           stage,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           least,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, place } = v(fields.ItemSessionValueOrderedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPair, {
           child,
           greatest,
@@ -38392,6 +34835,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
@@ -38405,13 +34849,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, place } = v(fields.ItemSessionValueOrderedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPair, {
           child,
           greatest,
@@ -38425,6 +34867,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
@@ -38438,13 +34881,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, least, greatest, place } = v(fields.ItemSessionValueOrderedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPair, {
           child,
           greatest,
@@ -38458,6 +34899,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           greatest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
@@ -38494,6 +34936,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -38509,8 +34952,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, source, target, count } = v(fields.SnapshotMultipleDirectedPair, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -38525,14 +34966,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -38559,6 +35000,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -38572,13 +35014,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target } = v(fields.ItemSessionValueSingleDirectedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDirectedPair, {
           child,
           kind: "template",
@@ -38591,6 +35031,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -38604,13 +35045,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target } = v(fields.ItemSessionValueSingleDirectedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDirectedPair, {
           child,
           kind: "correct",
@@ -38623,6 +35062,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -38636,13 +35076,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target } = v(fields.ItemSessionValueSingleDirectedPair, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleDirectedPair, {
           child,
           kind: "default",
@@ -38655,6 +35093,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -38668,18 +35107,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, count } = v(
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDirectedPair, {
           child,
           count,
@@ -38691,14 +35126,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -38707,18 +35142,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, count } = v(
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDirectedPair, {
           child,
           count,
@@ -38730,14 +35161,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -38746,18 +35177,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, count } = v(
         fields.ItemSessionValueMultipleDirectedPair,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleDirectedPair, {
           child,
           count,
@@ -38769,14 +35196,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           target,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           source,
           stage,
           target,
@@ -38785,16 +35212,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, place } = v(
         fields.ItemSessionValueOrderedDirectedPair,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDirectedPair, {
           child,
           kind: "template",
@@ -38808,6 +35233,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -38821,16 +35247,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, place } = v(
         fields.ItemSessionValueOrderedDirectedPair,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDirectedPair, {
           child,
           kind: "correct",
@@ -38844,6 +35268,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -38857,16 +35282,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, source, target, place } = v(
         fields.ItemSessionValueOrderedDirectedPair,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedDirectedPair, {
           child,
           kind: "default",
@@ -38880,6 +35303,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -38906,6 +35330,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .match(fields.SnapshotSinglePoint, { at, child, n, package: pkg, path, variable, x, y })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -38921,8 +35346,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.SnapshotMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -38937,14 +35360,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -38971,6 +35394,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -38984,13 +35408,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePoint, {
           child,
           kind: "template",
@@ -39003,6 +35425,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -39016,13 +35439,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePoint, {
           child,
           kind: "correct",
@@ -39035,6 +35456,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -39048,13 +35470,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSinglePoint, {
           child,
           kind: "default",
@@ -39067,6 +35487,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -39080,15 +35501,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePoint, {
           child,
           count,
@@ -39100,14 +35517,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -39116,15 +35533,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePoint, {
           child,
           count,
@@ -39136,14 +35549,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -39152,15 +35565,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultiplePoint, {
           child,
           count,
@@ -39172,14 +35581,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           x,
           y,
         })
-        .match(copy, { place })
         .find({
           child,
+          count: Type.cast(count, DocText.fields.count),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
           x,
           y,
@@ -39188,13 +35597,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPoint, {
           child,
           kind: "template",
@@ -39208,6 +35615,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           package: pkg,
@@ -39221,13 +35629,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPoint, {
           child,
           kind: "correct",
@@ -39241,6 +35647,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           package: pkg,
@@ -39254,13 +35661,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
       const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedPoint, {
           child,
           kind: "default",
@@ -39274,6 +35679,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          count: Type.literal(DocText.fields.count, 1n),
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           package: pkg,
@@ -39293,7 +35699,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.SnapshotSingleFile, "value");
+      const { variable, digest, type, name } = v(fields.SnapshotSingleFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -39311,9 +35717,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -39324,9 +35732,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
+      const { variable, digest, type, name, count } = v(fields.SnapshotMultipleFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -39342,16 +35748,17 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
           content_type: type,
+          count: Type.cast(count, DocText.fields.count),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
@@ -39359,7 +35766,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
+      const { variable, digest, type, name, place } = v(fields.SnapshotOrderedFile, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -39378,9 +35785,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place,
@@ -39390,13 +35799,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFile, {
           child,
           digest,
@@ -39411,9 +35818,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -39423,13 +35832,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFile, {
           child,
           digest,
@@ -39444,9 +35851,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
+          name,
           package: pkg,
           path,
           place: Type.literal(DocText.fields.place, 0n),
@@ -39456,13 +35865,11 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name } = v(fields.ItemSessionValueSingleFile, "value");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueSingleFile, {
           child,
           digest,
@@ -39477,434 +35884,8 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
           digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "value",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "value",
-      );
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: variable,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    });
-
-  /**
-   * The values the run is given that cross as `doc_file_names` rows: the session's, none at its
-   * take.
-   */
-  const fileNamesOf = query(delivery)
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.SnapshotSingleFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotSingleFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, count } = v(fields.SnapshotMultipleFile, "value");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotMultipleFile, {
-          at,
-          child,
-          count,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type, place } = v(fields.SnapshotOrderedFile, "value");
-
-      return r
-        .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.SnapshotOrderedFile, {
-          at,
-          child,
-          digest,
-          n,
-          name,
-          package: pkg,
-          path,
-          place,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: variable,
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type } = v(fields.ItemSessionValueSingleFile, "value");
-
-      return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
@@ -39917,18 +35898,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFile, {
           child,
           count,
@@ -39941,33 +35918,31 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFile, {
           child,
           count,
@@ -39980,33 +35955,31 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, count } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, count } = v(
         fields.ItemSessionValueMultipleFile,
         "value",
       );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "copy");
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueMultipleFile, {
           child,
           count,
@@ -40019,31 +35992,31 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
           type,
           variable,
         })
-        .match(copy, { place })
         .find({
           child,
+          content_type: type,
+          count: Type.cast(count, DocText.fields.count),
+          digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
           package: pkg,
           path,
-          place,
+          place: Type.literal(DocText.fields.place, 0n),
           stage,
         });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFile, {
           child,
           digest,
@@ -40058,6 +36031,9 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "value"),
           identifier: variable,
           name,
@@ -40070,16 +36046,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFile, {
           child,
           digest,
@@ -40094,6 +36068,9 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "correct"),
           identifier: variable,
           name,
@@ -40106,16 +36083,14 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const attempt = boundGradable;
-      const { child, package: pkg, path, n } = v(attempt, "attempt");
-      const { stage } = v(fields.ItemSession, "session");
-      const { variable, digest, name, type, place } = v(
+      const { child, package: pkg, path, stage } = v(attempt, "attempt");
+      const { variable, digest, type, name, place } = v(
         fields.ItemSessionValueOrderedFile,
         "value",
       );
 
       return r
-        .match(attempt, { child, n, package: pkg, path })
-        .match(fields.ItemSession, { child, n, package: pkg, path, stage })
+        .match(attempt, { child, package: pkg, path, stage })
         .match(fields.ItemSessionValueOrderedFile, {
           child,
           digest,
@@ -40130,6 +36105,9 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         })
         .find({
           child,
+          content_type: type,
+          count: Type.literal(DocText.fields.count, 1n),
+          digest,
           holds: Type.literal(DocText.fields.holds, "default"),
           identifier: variable,
           name,
@@ -40496,7 +36474,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     const boundGradable = boundGradableIn(r);
     const attempt = boundGradable;
     const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-    const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
+    const { variable, field, digest, type, name } = v(fields.SnapshotRecordFile, "value");
 
     return r
       .match(attempt, { at, child, n, package: pkg, path, stage })
@@ -40520,42 +36498,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
         field,
         holds: Type.literal(DocText.fields.holds, "value"),
         identifier: variable,
-        package: pkg,
-        path,
-        stage,
-      });
-  });
-
-  /**
-   * The values the run is given that cross as `doc_field_file_names` rows: the session's, none at
-   * its take.
-   */
-  const fieldFileNamesOf = query(delivery).rule((r) => {
-    const boundGradable = boundGradableIn(r);
-    const attempt = boundGradable;
-    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-    const { variable, field, digest, name, type } = v(fields.SnapshotRecordFile, "value");
-
-    return r
-      .match(attempt, { at, child, n, package: pkg, path, stage })
-      .match(fields.SnapshotRecord, { at, child, field, n, package: pkg, path, variable })
-      .match(fields.SnapshotRecordFile, {
-        at,
-        child,
-        digest,
-        field,
-        n,
-        name,
-        package: pkg,
-        path,
-        type,
-        variable,
-      })
-      .find({
-        child,
-        field,
-        holds: Type.literal(DocText.fields.holds, "value"),
-        identifier: variable,
         name,
         package: pkg,
         path,
@@ -40564,7 +36506,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   return {
-    bases: basesOf,
     booleans: booleansOf,
     compiled: compiledPatternsOf,
     declaration_attributes: declarationAttributesOf,
@@ -40574,14 +36515,12 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     evaluations: evaluationsOf,
     field_booleans: fieldBooleansOf,
     field_directed_pairs: fieldDirectedPairsOf,
-    field_file_names: fieldFileNamesOf,
     field_files: fieldFilesOf,
     field_floats: fieldFloatsOf,
     field_integers: fieldIntegersOf,
     field_pairs: fieldPairsOf,
     field_points: fieldPointsOf,
     field_texts: fieldTextsOf,
-    file_names: fileNamesOf,
     files: filesOf,
     floats: floatsOf,
     human_feedbacks: humanFeedbacksOf,
@@ -40653,7 +36592,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
    */
   const runIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(templateProcessingOf, {
-      bases: args.bases.bind(bySession(r)),
       booleans: args.booleans.bind(bySession(r)),
       compiled: args.compiled.bind(bySession(r)),
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
@@ -40662,14 +36600,12 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       directed_pairs: args.directed_pairs.bind(bySession(r)),
       field_booleans: args.field_booleans.bind(bySession(r)),
       field_directed_pairs: args.field_directed_pairs.bind(bySession(r)),
-      field_file_names: args.field_file_names.bind(bySession(r)),
       field_files: args.field_files.bind(bySession(r)),
       field_floats: args.field_floats.bind(bySession(r)),
       field_integers: args.field_integers.bind(bySession(r)),
       field_pairs: args.field_pairs.bind(bySession(r)),
       field_points: args.field_points.bind(bySession(r)),
       field_texts: args.field_texts.bind(bySession(r)),
-      file_names: args.file_names.bind(bySession(r)),
       files: args.files.bind(bySession(r)),
       floats: args.floats.bind(bySession(r)),
       integers: args.integers.bind(bySession(r)),
@@ -41250,8 +37186,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         const taken = boundTaken;
         const { child, package: pkg, path, stage } = v(taken, "taken");
         const { identifier } = v(out.vars, "set");
-        const { digest, content_type } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name } = v(out.files, "value");
 
         return r
           .match(taken, { child, package: pkg, path, stage })
@@ -41269,15 +37204,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "value",
-            identifier,
-            package: pkg,
-            path,
-            place: 0n,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "value",
             identifier,
             name,
@@ -41764,8 +37690,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         const taken = boundTaken;
         const { child, package: pkg, path, stage } = v(taken, "taken");
         const { identifier } = v(out.vars, "set");
-        const { digest, content_type } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name } = v(out.files, "value");
 
         return r
           .match(taken, { child, package: pkg, path, stage })
@@ -41783,15 +37708,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "correct",
-            identifier,
-            package: pkg,
-            path,
-            place: 0n,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "correct",
             identifier,
             name,
@@ -42288,8 +38204,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         const taken = boundTaken;
         const { child, package: pkg, path, stage } = v(taken, "taken");
         const { identifier, kind } = v(out.vars, "set");
-        const { digest, content_type } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name } = v(out.files, "value");
 
         return r
           .match(taken, { child, package: pkg, path, stage })
@@ -42307,15 +38222,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "default",
-            identifier,
-            package: pkg,
-            path,
-            place: 0n,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "default",
             identifier,
             name,
@@ -42909,8 +38815,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             const taken = boundTaken;
             const { child, package: pkg, path, stage } = v(taken, "taken");
             const { identifier } = v(out.vars, "set");
-            const { digest, content_type, place } = v(out.files, "value");
-            const { name } = v(out.file_names, "name");
+            const { digest, content_type, name, place } = v(out.files, "value");
 
             return q
               .match(taken, { child, package: pkg, path, stage })
@@ -42928,15 +38833,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
                 child,
                 content_type,
                 digest,
-                holds: "value",
-                identifier,
-                package: pkg,
-                path,
-                place,
-                stage,
-              })
-              .match(out.file_names, {
-                child,
                 holds: "value",
                 identifier,
                 name,
@@ -43567,8 +39463,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             const taken = boundTaken;
             const { child, package: pkg, path, stage } = v(taken, "taken");
             const { identifier } = v(out.vars, "set");
-            const { digest, content_type, place } = v(out.files, "value");
-            const { name } = v(out.file_names, "name");
+            const { digest, content_type, name, place } = v(out.files, "value");
 
             return q
               .match(taken, { child, package: pkg, path, stage })
@@ -43586,15 +39481,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
                 child,
                 content_type,
                 digest,
-                holds: "correct",
-                identifier,
-                package: pkg,
-                path,
-                place,
-                stage,
-              })
-              .match(out.file_names, {
-                child,
                 holds: "correct",
                 identifier,
                 name,
@@ -44235,8 +40121,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             const taken = boundTaken;
             const { child, package: pkg, path, stage } = v(taken, "taken");
             const { identifier, kind } = v(out.vars, "set");
-            const { digest, content_type, place } = v(out.files, "value");
-            const { name } = v(out.file_names, "name");
+            const { digest, content_type, name, place } = v(out.files, "value");
 
             return q
               .match(taken, { child, package: pkg, path, stage })
@@ -44254,15 +40139,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
                 child,
                 content_type,
                 digest,
-                holds: "default",
-                identifier,
-                package: pkg,
-                path,
-                place,
-                stage,
-              })
-              .match(out.file_names, {
-                child,
                 holds: "default",
                 identifier,
                 name,
@@ -44798,8 +40674,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         const taken = boundTaken;
         const { child, package: pkg, path, stage } = v(taken, "taken");
         const { identifier } = v(out.vars, "set");
-        const { digest, content_type, place } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name, place } = v(out.files, "value");
 
         return r
           .match(taken, { child, package: pkg, path, stage })
@@ -44817,15 +40692,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "value",
-            identifier,
-            package: pkg,
-            path,
-            place,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "value",
             identifier,
             name,
@@ -45323,8 +41189,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         const taken = boundTaken;
         const { child, package: pkg, path, stage } = v(taken, "taken");
         const { identifier } = v(out.vars, "set");
-        const { digest, content_type, place } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name, place } = v(out.files, "value");
 
         return r
           .match(taken, { child, package: pkg, path, stage })
@@ -45342,15 +41207,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "correct",
-            identifier,
-            package: pkg,
-            path,
-            place,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "correct",
             identifier,
             name,
@@ -45858,8 +41714,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         const taken = boundTaken;
         const { child, package: pkg, path, stage } = v(taken, "taken");
         const { identifier, kind } = v(out.vars, "set");
-        const { digest, content_type, place } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name, place } = v(out.files, "value");
 
         return r
           .match(taken, { child, package: pkg, path, stage })
@@ -45877,15 +41732,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "default",
-            identifier,
-            package: pkg,
-            path,
-            place,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "default",
             identifier,
             name,
@@ -45978,25 +41824,8 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
   );
 
   /**
-   * Each declared variable's base type, built-ins included, by the taken session.
-   */
-  const startBasesOf = query(delivery).rule((r) => {
-    const boundTaken = boundTakenIn(r);
-    const taken = boundTaken;
-    const { child, package: pkg, path, stage } = v(taken, "taken");
-    const { identifier, baseType } = v(fields.ItemSessionVariable, "startTypedVariable");
-    const { token: base } = v(fields.BaseTypeToken, "startBase");
-
-    return r
-      .match(taken, { child, package: pkg, path, stage })
-      .match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
-      .match(fields.BaseTypeToken, { baseType, token: base })
-      .find({ base, child, identifier, package: pkg, path, stage });
-  });
-
-  /**
-   * Each value the template run set, held as the rule that set it says, with its kind and
-   * cardinality.
+   * Each value the template run set, a header held as the rule that set it says: the machine reads
+   * its kind and cardinality from the run's declarations (`values_of`).
    */
   const startVarsOf = query(delivery)
     .rule((r) => {
@@ -46015,7 +41844,14 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
-        .find({ card, child, holds, identifier, kind, package: pkg, path, stage });
+        .find({
+          child,
+          holds,
+          identifier: Type.cast(identifier, DocGiven.fields.identifier),
+          package: pkg,
+          path,
+          stage,
+        });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46033,7 +41869,14 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
-        .find({ card, child, holds, identifier, kind, package: pkg, path, stage });
+        .find({
+          child,
+          holds,
+          identifier: Type.cast(identifier, DocGiven.fields.identifier),
+          package: pkg,
+          path,
+          stage,
+        });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46051,7 +41894,14 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
-        .find({ card, child, holds, identifier, kind, package: pkg, path, stage });
+        .find({
+          child,
+          holds,
+          identifier: Type.cast(identifier, DocGiven.fields.identifier),
+          package: pkg,
+          path,
+          stage,
+        });
     });
 
   /**
@@ -46070,13 +41920,14 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { base, place, value } = v(run.texts, "startSetValue");
+      const { base, count, place, value } = v(run.texts, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.texts, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -46086,7 +41937,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           value,
         })
         .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46100,13 +41951,14 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { base, place, value } = v(run.texts, "startSetValue");
+      const { base, count, place, value } = v(run.texts, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.texts, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -46116,7 +41968,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           value,
         })
         .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46130,13 +41982,14 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { base, place, value } = v(run.texts, "startSetValue");
+      const { base, count, place, value } = v(run.texts, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.texts, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -46146,7 +41999,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           value,
         })
         .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
@@ -46165,13 +42018,23 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, value } = v(run.integers, "startSetValue");
+      const { count, place, value } = v(run.integers, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.integers, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .match(run.integers, {
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        })
         .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46185,13 +42048,23 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, value } = v(run.integers, "startSetValue");
+      const { count, place, value } = v(run.integers, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.integers, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .match(run.integers, {
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        })
         .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46205,13 +42078,23 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, value } = v(run.integers, "startSetValue");
+      const { count, place, value } = v(run.integers, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.integers, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .match(run.integers, {
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        })
         .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
@@ -46230,13 +42113,14 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { base, place, value } = v(run.floats, "startSetValue");
+      const { base, count, place, value } = v(run.floats, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.floats, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -46246,7 +42130,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           value,
         })
         .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46260,13 +42144,14 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { base, place, value } = v(run.floats, "startSetValue");
+      const { base, count, place, value } = v(run.floats, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.floats, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -46276,7 +42161,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           value,
         })
         .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46290,13 +42175,14 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { base, place, value } = v(run.floats, "startSetValue");
+      const { base, count, place, value } = v(run.floats, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.floats, {
           base,
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -46306,7 +42192,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           value,
         })
         .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
-        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ base, child, count, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
@@ -46325,13 +42211,23 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, value } = v(run.booleans, "startSetValue");
+      const { count, place, value } = v(run.booleans, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.booleans, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .match(run.booleans, {
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        })
         .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46345,13 +42241,23 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, value } = v(run.booleans, "startSetValue");
+      const { count, place, value } = v(run.booleans, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.booleans, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .match(run.booleans, {
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        })
         .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46365,13 +42271,23 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, value } = v(run.booleans, "startSetValue");
+      const { count, place, value } = v(run.booleans, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.booleans, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .match(run.booleans, {
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        })
         .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
-        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
@@ -46390,12 +42306,13 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, least, greatest } = v(run.pairs, "startSetValue");
+      const { count, place, least, greatest } = v(run.pairs, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.pairs, {
           child,
+          count,
           greatest,
           holds,
           identifier,
@@ -46406,7 +42323,18 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           stage,
         })
         .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
-        .find({ child, greatest, holds, identifier, least, package: pkg, path, place, stage });
+        .find({
+          child,
+          count,
+          greatest,
+          holds,
+          identifier,
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46420,12 +42348,13 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, least, greatest } = v(run.pairs, "startSetValue");
+      const { count, place, least, greatest } = v(run.pairs, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.pairs, {
           child,
+          count,
           greatest,
           holds,
           identifier,
@@ -46436,7 +42365,18 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           stage,
         })
         .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
-        .find({ child, greatest, holds, identifier, least, package: pkg, path, place, stage });
+        .find({
+          child,
+          count,
+          greatest,
+          holds,
+          identifier,
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46450,12 +42390,13 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, least, greatest } = v(run.pairs, "startSetValue");
+      const { count, place, least, greatest } = v(run.pairs, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.pairs, {
           child,
+          count,
           greatest,
           holds,
           identifier,
@@ -46466,7 +42407,18 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           stage,
         })
         .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
-        .find({ child, greatest, holds, identifier, least, package: pkg, path, place, stage });
+        .find({
+          child,
+          count,
+          greatest,
+          holds,
+          identifier,
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
     });
 
   /**
@@ -46485,12 +42437,13 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, source, target } = v(run.directed_pairs, "startSetValue");
+      const { count, place, source, target } = v(run.directed_pairs, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.directed_pairs, {
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -46501,7 +42454,18 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           target,
         })
         .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
-        .find({ child, holds, identifier, package: pkg, path, place, source, stage, target });
+        .find({
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+        });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46515,12 +42479,13 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, source, target } = v(run.directed_pairs, "startSetValue");
+      const { count, place, source, target } = v(run.directed_pairs, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.directed_pairs, {
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -46531,7 +42496,18 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           target,
         })
         .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
-        .find({ child, holds, identifier, package: pkg, path, place, source, stage, target });
+        .find({
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+        });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46545,12 +42521,13 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, source, target } = v(run.directed_pairs, "startSetValue");
+      const { count, place, source, target } = v(run.directed_pairs, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.directed_pairs, {
           child,
+          count,
           holds,
           identifier,
           package: pkg,
@@ -46561,7 +42538,18 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
           target,
         })
         .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
-        .find({ child, holds, identifier, package: pkg, path, place, source, stage, target });
+        .find({
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+        });
     });
 
   /**
@@ -46580,13 +42568,24 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, x, y } = v(run.points, "startSetValue");
+      const { count, place, x, y } = v(run.points, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.points, { child, holds, identifier, package: pkg, path, place, stage, x, y })
+        .match(run.points, {
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          stage,
+          x,
+          y,
+        })
         .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
-        .find({ child, holds, identifier, package: pkg, path, place, stage, x, y });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, x, y });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46600,13 +42599,24 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, x, y } = v(run.points, "startSetValue");
+      const { count, place, x, y } = v(run.points, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.points, { child, holds, identifier, package: pkg, path, place, stage, x, y })
+        .match(run.points, {
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          stage,
+          x,
+          y,
+        })
         .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
-        .find({ child, holds, identifier, package: pkg, path, place, stage, x, y });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, x, y });
     })
     .rule((r) => {
       const run = runIn(r);
@@ -46620,13 +42630,24 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, x, y } = v(run.points, "startSetValue");
+      const { count, place, x, y } = v(run.points, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.points, { child, holds, identifier, package: pkg, path, place, stage, x, y })
+        .match(run.points, {
+          child,
+          count,
+          holds,
+          identifier,
+          package: pkg,
+          path,
+          place,
+          stage,
+          x,
+          y,
+        })
         .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
-        .find({ child, holds, identifier, package: pkg, path, place, stage, x, y });
+        .find({ child, count, holds, identifier, package: pkg, path, place, stage, x, y });
     });
 
   /**
@@ -46645,16 +42666,18 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, digest, content_type: type } = v(run.files, "startSetValue");
+      const { count, place, digest, content_type: type, name } = v(run.files, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.files, {
           child,
           content_type: type,
+          count,
           digest,
           holds,
           identifier,
+          name,
           package: pkg,
           path,
           place,
@@ -46664,9 +42687,11 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count,
           digest,
           holds,
           identifier,
+          name,
           package: pkg,
           path,
           place,
@@ -46685,16 +42710,18 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, digest, content_type: type } = v(run.files, "startSetValue");
+      const { count, place, digest, content_type: type, name } = v(run.files, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.files, {
           child,
           content_type: type,
+          count,
           digest,
           holds,
           identifier,
+          name,
           package: pkg,
           path,
           place,
@@ -46704,9 +42731,11 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count,
           digest,
           holds,
           identifier,
+          name,
           package: pkg,
           path,
           place,
@@ -46725,16 +42754,18 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         path,
         stage,
       } = v(run.vars, "startSet");
-      const { place, digest, content_type: type } = v(run.files, "startSetValue");
+      const { count, place, digest, content_type: type, name } = v(run.files, "startSetValue");
 
       return r
         .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
         .match(run.files, {
           child,
           content_type: type,
+          count,
           digest,
           holds,
           identifier,
+          name,
           package: pkg,
           path,
           place,
@@ -46744,79 +42775,16 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         .find({
           child,
           content_type: type,
+          count,
           digest,
           holds,
           identifier,
+          name,
           package: pkg,
           path,
           place,
           stage,
         });
-    });
-
-  /**
-   * The template run's values that cross as `doc_file_names`, of what it set.
-   */
-  const startFileNamesOf = query(delivery)
-    .rule((r) => {
-      const run = runIn(r);
-      const {
-        card,
-        child,
-        holds,
-        identifier,
-        kind,
-        package: pkg,
-        path,
-        stage,
-      } = v(run.vars, "startSet");
-      const { place, name } = v(run.file_names, "startSetValue");
-
-      return r
-        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.file_names, { child, holds, identifier, name, package: pkg, path, place, stage })
-        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
-        .find({ child, holds, identifier, name, package: pkg, path, place, stage });
-    })
-    .rule((r) => {
-      const run = runIn(r);
-      const {
-        card,
-        child,
-        holds,
-        identifier,
-        kind,
-        package: pkg,
-        path,
-        stage,
-      } = v(run.vars, "startSet");
-      const { place, name } = v(run.file_names, "startSetValue");
-
-      return r
-        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.file_names, { child, holds, identifier, name, package: pkg, path, place, stage })
-        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
-        .find({ child, holds, identifier, name, package: pkg, path, place, stage });
-    })
-    .rule((r) => {
-      const run = runIn(r);
-      const {
-        card,
-        child,
-        holds,
-        identifier,
-        kind,
-        package: pkg,
-        path,
-        stage,
-      } = v(run.vars, "startSet");
-      const { place, name } = v(run.file_names, "startSetValue");
-
-      return r
-        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
-        .match(run.file_names, { child, holds, identifier, name, package: pkg, path, place, stage })
-        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
-        .find({ child, holds, identifier, name, package: pkg, path, place, stage });
     });
 
   /**
@@ -46829,7 +42797,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
    */
   const startRunIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(responseProcessingOf, {
-      bases: startBasesOf.bind(bySession(r)),
       booleans: startBooleansOf.bind(bySession(r)),
       compiled: noCompiled,
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
@@ -46839,14 +42806,12 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       evaluations: noEvaluations,
       field_booleans: args.field_booleans.bind(bySession(r)),
       field_directed_pairs: args.field_directed_pairs.bind(bySession(r)),
-      field_file_names: args.field_file_names.bind(bySession(r)),
       field_files: args.field_files.bind(bySession(r)),
       field_floats: args.field_floats.bind(bySession(r)),
       field_integers: args.field_integers.bind(bySession(r)),
       field_pairs: args.field_pairs.bind(bySession(r)),
       field_points: args.field_points.bind(bySession(r)),
       field_texts: args.field_texts.bind(bySession(r)),
-      file_names: startFileNamesOf.bind(bySession(r)),
       files: startFilesOf.bind(bySession(r)),
       floats: startFloatsOf.bind(bySession(r)),
       human_feedbacks: noHumanFeedbacks,
@@ -47280,8 +43245,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         const taken = boundTaken;
         const { child, package: pkg, path, stage } = v(taken, "taken");
         const { identifier, kind } = v(out.vars, "start");
-        const { digest, content_type } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name } = v(out.files, "value");
 
         return r
           .match(taken, { child, package: pkg, path, stage })
@@ -47299,15 +43263,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "value",
-            identifier,
-            package: pkg,
-            path,
-            place: 0n,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "value",
             identifier,
             name,
@@ -47893,8 +43848,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             const taken = boundTaken;
             const { child, package: pkg, path, stage } = v(taken, "taken");
             const { identifier, kind } = v(out.vars, "start");
-            const { digest, content_type, place } = v(out.files, "value");
-            const { name } = v(out.file_names, "name");
+            const { digest, content_type, name, place } = v(out.files, "value");
 
             return q
               .match(taken, { child, package: pkg, path, stage })
@@ -47912,15 +43866,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
                 child,
                 content_type,
                 digest,
-                holds: "value",
-                identifier,
-                package: pkg,
-                path,
-                place,
-                stage,
-              })
-              .match(out.file_names, {
-                child,
                 holds: "value",
                 identifier,
                 name,
@@ -48372,8 +44317,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         const taken = boundTaken;
         const { child, package: pkg, path, stage } = v(taken, "taken");
         const { identifier, kind } = v(out.vars, "start");
-        const { digest, content_type, place } = v(out.files, "value");
-        const { name } = v(out.file_names, "name");
+        const { digest, content_type, name, place } = v(out.files, "value");
 
         return r
           .match(taken, { child, package: pkg, path, stage })
@@ -48391,15 +44335,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            holds: "value",
-            identifier,
-            package: pkg,
-            path,
-            place,
-            stage,
-          })
-          .match(out.file_names, {
-            child,
             holds: "value",
             identifier,
             name,
@@ -49263,8 +45198,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         const taken = boundTaken;
         const { child, package: pkg, path, stage } = v(taken, "taken");
         const { identifier, kind } = v(out.vars, "start");
-        const { digest, content_type, field } = v(out.field_files, "value");
-        const { name } = v(out.field_file_names, "name");
+        const { digest, content_type, name, field } = v(out.field_files, "value");
 
         return r
           .match(taken, { child, package: pkg, path, stage })
@@ -49282,15 +45216,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
             child,
             content_type,
             digest,
-            field,
-            holds: "value",
-            identifier,
-            package: pkg,
-            path,
-            stage,
-          })
-          .match(out.field_file_names, {
-            child,
             field,
             holds: "value",
             identifier,

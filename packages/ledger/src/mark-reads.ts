@@ -95,13 +95,11 @@ export const markReadsOf = (delivery: DeliveryLevel) => {
 
     return Fn.row(attemptMarksOf, {
       area_bound: areaBound.bind({ sittings }),
-      bases: args.bases.bind({ sittings }),
       booleans: args.booleans.bind({ sittings }),
       declaration_attributes: args.declaration_attributes.bind({ sittings }),
       declaration_texts: args.declaration_texts.bind({ sittings }),
       declarations: args.declarations.bind({ sittings }),
       directed_pairs: args.directed_pairs.bind({ sittings }),
-      file_names: args.file_names.bind({ sittings }),
       files: args.files.bind({ sittings }),
       floats: args.floats.bind({ sittings }),
       integers: args.integers.bind({ sittings }),

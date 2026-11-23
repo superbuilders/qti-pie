@@ -1,27 +1,22 @@
 		.rule((r) => {
 			const retained = retainedOf(session).bind(bySession(session))
 			const { child, package: pkg, path, stage } = v(retained, "retained")
-			const { identifier, cardinality } = v(fields.ItemVariable, "outcome")
-			const { token: card } = v(fields.CardinalityToken, "card")
+			const { identifier } = v(fields.ItemVariable, "outcome")
 			return r
 				.match(retained, { child, package: pkg, path, stage })
 				.match(fields.ItemVariable, {
 					package: pkg,
 					path,
 					identifier,
-					cardinality,
 					declarationKind: "qti-outcome-declaration"
 				})
-				.match(fields.CardinalityToken, { cardinality, token: card })
 				.find({
 					child,
 					package: pkg,
 					path,
 					stage,
-					holds: Type.literal(DocVar.fields.holds, "value"),
-					kind: Type.literal(DocVar.fields.kind, "outcome"),
-					identifier,
-					card
+					holds: Type.literal(DocGiven.fields.holds, "value"),
+					identifier
 				})
 		})
 		.rule((r) => {
@@ -41,9 +36,7 @@
 					package: pkg,
 					path,
 					stage,
-					holds: Type.literal(DocVar.fields.holds, "value"),
-					kind: Type.literal(DocVar.fields.kind, "outcome"),
-					identifier,
-					card: Type.literal(DocVar.fields.card, "record")
+					holds: Type.literal(DocGiven.fields.holds, "value"),
+					identifier
 				})
 		})

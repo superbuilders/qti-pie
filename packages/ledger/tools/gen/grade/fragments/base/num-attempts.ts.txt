@@ -8,6 +8,7 @@
 				stage,
 				holds: Type.literal(DocText.fields.holds, "value"),
 				identifier: Type.literal(DocText.fields.identifier, "numAttempts"),
+				count: Type.literal(DocText.fields.count, 1n),
 				place: Type.literal(DocText.fields.place, 0n),
 				value: Type.cast(attempts, QtiInteger)
 			})

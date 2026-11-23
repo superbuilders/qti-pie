@@ -391,18 +391,21 @@ const START_EMPTIES = [
 ] as const;
 
 /**
- * The value headings the start run is given, each with the base types that cross as it: a file's
- * name crosses apart, as `file_names`.
+ * The value headings the start run is given, each with the base types that cross as it.
  */
 const START_HEADINGS: readonly (readonly [string, readonly BaseTypeName[]])[] = [
-  ...["texts", "integers", "floats", "booleans", "pairs", "directed_pairs", "points", "files"].map(
-    (head): readonly [string, readonly BaseTypeName[]] => [
-      head,
-      TYPES.filter((t) => HEAD[t].head === head),
-    ],
-  ),
-  ["file_names", ["File"]],
-];
+  "texts",
+  "integers",
+  "floats",
+  "booleans",
+  "pairs",
+  "directed_pairs",
+  "points",
+  "files",
+].map((head): readonly [string, readonly BaseTypeName[]] => [
+  head,
+  TYPES.filter((t) => HEAD[t].head === head),
+]);
 
 /**
  * The filter on the run's DocVar rows to those of one kind of set value, as the take's set inserts
@@ -421,17 +424,13 @@ const setWhere = ([, holds, kinds]: SetKind): string => {
 /**
  * The columns of a value heading the start run is given, past its key, and whether it holds a
  * base type, each as a rule reads it: its value's, by the base stage's crossing table (`HEAD`), of
- * which every base type that crosses as the heading has one; a file's name crosses apart.
+ * which every base type that crosses as the heading has one.
  *
  * @param head The heading.
  * @param types The base types that cross as it.
  * @returns Its value's columns, each read as `doc: column`, and whether it holds a base type.
  */
 const startColumns = (head: string, types: readonly BaseTypeName[]) => {
-  if (head === "file_names") {
-    return { base: false, values: "name" };
-  }
-
   const [t] = types;
   must(t !== undefined, `a base type that crosses as ${head}`);
 
@@ -444,30 +443,19 @@ const startColumns = (head: string, types: readonly BaseTypeName[]) => {
 };
 
 /**
- * The start run's own readers, over what the template run set, as the take stores it: each
- * declared variable's base type, built-ins included; each value the run set, its header held as
- * the rule that set it says, with its kind and cardinality, of the kinds and cardinalities the
- * take's set inserts write (SETS, no record); and the values themselves, by heading. Every read of
- * the take's stratum sees the state before it, so the start reads the run, never the values the
- * stratum writes; the take's own readers read an attempt's values, of which a session has none at
- * its take.
+ * The start run's own readers, over what the template run set, as the take stores it: each value
+ * the run set, a header held as the rule that set it says, of the kinds and cardinalities the
+ * take's set inserts write (SETS, no record), and the values themselves, by heading, each row as
+ * the run gives it, one copy at its own place (`count` 1), which `values_of` reads as it reads a
+ * stored one. Every read of the take's stratum sees the state before it, so the start reads the
+ * run, never the values the stratum writes; the take's own readers read an attempt's values, of
+ * which a session has none at its take.
  *
  * @returns The readers' text and the start run's binds of them.
  */
 const startReaders = () => {
-  const bases = `\t/** Each declared variable's base type, built-ins included, by the taken session. */
-\tconst startBasesOf = query(delivery).rule((r) => {
-\t\tconst taken = boundTaken
-\t\tconst { child, package: pkg, path, stage } = v(taken, "taken")
-\t\tconst { identifier, baseType } = v(fields.ItemSessionVariable, "startTypedVariable")
-\t\tconst { token: base } = v(fields.BaseTypeToken, "startBase")
-\t\treturn r
-\t\t\t.match(taken, { child, package: pkg, path, stage })
-\t\t\t.match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
-\t\t\t.match(fields.BaseTypeToken, { baseType, token: base })
-\t\t\t.find({ base, child, identifier, package: pkg, path, stage })
-\t})`;
-  const vars = `\t/** Each value the template run set, held as the rule that set it says, with its kind and cardinality. */
+  const vars = `\t/** Each value the template run set, a header held as the rule that set it says: the machine reads its kind
+\t * and cardinality from the run's declarations (\`values_of\`). */
 \tconst startVarsOf = query(delivery)
 ${SETS.map(
   (set) => `\t\t.rule((r) => {
@@ -475,17 +463,17 @@ ${SETS.map(
 \t\t\treturn r
 \t\t\t\t.match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
 \t\t\t\t.where(${setWhere(set)})
-\t\t\t\t.find({ card, child, holds, identifier, kind, package: pkg, path, stage })
+\t\t\t\t.find({ child, holds, identifier: Type.cast(identifier, DocGiven.fields.identifier), package: pkg, path, stage })
 \t\t})`,
 ).join("\n")}`;
   const sources = START_HEADINGS.map(([head, types]) => {
     const name = `start${camel(head).charAt(0).toUpperCase()}${camel(head).slice(1)}Of`;
     const { base, values } = startColumns(head, types);
-    const row = `${base ? "base, " : ""}child, holds, identifier, package: pkg, path, place, stage, ${values}`;
+    const row = `${base ? "base, " : ""}child, count, holds, identifier, package: pkg, path, place, stage, ${values}`;
     const rules = SETS.map(
       (set) => `\t\t.rule((r) => {
 \t\t\tconst { card, child, holds, identifier, kind, package: pkg, path, stage } = v(run.vars, "startSet")
-\t\t\tconst { ${base ? "base, " : ""}place, ${values} } = v(run.${head}, "startSetValue")
+\t\t\tconst { ${base ? "base, " : ""}count, place, ${values} } = v(run.${head}, "startSetValue")
 \t\t\treturn r
 \t\t\t\t.match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
 \t\t\t\t.match(run.${head}, { ${row} })
@@ -504,11 +492,10 @@ ${rules.join("\n")}`,
 
   return {
     binds: [
-      "\t\tbases: startBasesOf.bind(bySession(gradedSitting))",
       "\t\tvars: startVarsOf.bind(bySession(gradedSitting))",
       ...sources.map(({ bind }) => bind),
     ],
-    text: [bases, vars, ...sources.map(({ text }) => text)].join("\n\n"),
+    text: [vars, ...sources.map(({ text }) => text)].join("\n\n"),
   };
 };
 
@@ -698,7 +685,6 @@ const RUN_ARGUMENTS = [
   "declaration_texts",
   "runs",
   "vars",
-  "bases",
   "texts",
   "integers",
   "floats",
@@ -707,7 +693,6 @@ const RUN_ARGUMENTS = [
   "directed_pairs",
   "points",
   "files",
-  "file_names",
   "field_texts",
   "field_integers",
   "field_floats",
@@ -716,7 +701,6 @@ const RUN_ARGUMENTS = [
   "field_directed_pairs",
   "field_points",
   "field_files",
-  "field_file_names",
 ] as const;
 
 /**

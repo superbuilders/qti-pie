@@ -313,36 +313,72 @@ create function p3.overridden(declared p3.var[], given p3.var[]) returns setof p
   union all select g.* from unnest(given) g where not exists (select 1 from unnest(declared) d where d.identifier = g.identifier)
 $$;
 
+create type p3.var_type as (base text collate pg_catalog.pg_c_utf8, card text collate pg_catalog.pg_c_utf8,
+  identifier text collate pg_catalog.pg_c_utf8, kind text collate pg_catalog.pg_c_utf8);
+-- Each variable a document's run may hold, by its declaration (its base type, none for a record's, its cardinality and
+-- the kind of declaration it is of), and the built-ins, by QTI's (builtin_responses, builtin_outcomes, qti_context).
+create function p3.var_types(attributes p3.document_attribute[], declarations p3.declaration_node[]) returns setof p3.var_type
+language sql immutable as $$
+  with a as (
+    select y.start, max(y.value) filter (where y.name = 'identifier') as identifier, max(y.value) filter (where y.name = 'base-type') as base_type,
+      max(y.value) filter (where y.name = 'cardinality') as cardinality
+    from unnest(attributes) y group by y.start
+  )
+  select trim_xml(t => a.base_type), trim_xml(t => a.cardinality), trim_xml(t => a.identifier), case d.kind when 'qti-response-declaration' then 'response'
+      when 'qti-outcome-declaration' then 'outcome' when 'qti-template-declaration' then 'template' when 'qti-context-declaration' then 'context' end
+  from unnest(declarations) d join a on a.start = d.start
+  where d.kind in ('qti-response-declaration', 'qti-outcome-declaration', 'qti-template-declaration', 'qti-context-declaration')
+  union all select b.base, b.card, b.identifier, 'response' from builtin_responses() b
+  union all select b.base, b.card, b.identifier, 'outcome' from builtin_outcomes() b
+  union all select q.base, q.card, q.identifier, 'context' from (select (qti_context()).*) q
+$$;
 -- One session's values, as boundary.sql's in_values: the rows of its key, (child, package, path, stage): a run's, or a
--- test member's item session in the run's sitting.
-create function p3.values_of(bases p3.doc_base[], booleans p3.doc_boolean[], child text, directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[],
-  field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[], field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[],
-  field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[], field_texts p3.doc_field_text[], file_names p3.doc_file_name[],
+-- test member's item session in the run's sitting. Each value row is its count's copies, at places from its own; each
+-- variable given is a doc_given row, every declared response (held `value`, NULL where no row holds a value of it) but
+-- in a run submitted at its defaults, or numAttempts where an integer row holds it; each typed by its document's
+-- declaration (var_types).
+create function p3.values_of(booleans p3.doc_boolean[], child text, declaration_attributes p3.document_attribute[],
+  declarations p3.declaration_node[], defaulted boolean, directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[],
+  field_files p3.doc_field_file[], field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[],
+  field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[], field_texts p3.doc_field_text[],
   files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[],
   package text, pairs p3.doc_pair[], path text,
-  points p3.doc_point[], stage bigint, texts p3.doc_text[], vars p3.doc_var[])
+  points p3.doc_point[], stage bigint, texts p3.doc_text[], vars p3.doc_given[])
 returns p3.in_values language sql immutable as $$
+  with t as (select x.* from var_types(attributes => declaration_attributes, declarations => declarations) x),
+  given as (
+    select x.holds, x.identifier from unnest(vars) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)
+    union select 'value', t.identifier from t where not defaulted and t.kind = 'response' and t.identifier not in (select b.identifier from builtin_responses() b)
+    union select 'value', 'numAttempts' where exists (select 1 from unnest(integers) x
+      where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage) and x.holds = 'value' and x.identifier = 'numAttempts')
+  )
   select row(
-    array(select row(x.base, x.identifier)::in_base from unnest(bases) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.place, x.value)::in_boolean from unnest(booleans) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.place, x.source, x.target)::in_directed_pair from unnest(directed_pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(t.base, t.identifier)::in_base from t where t.base is not null),
+    array(select row(x.holds, x.identifier, x.at + c, x.value)::in_boolean from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.value rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(booleans) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.holds, x.identifier, x.at + c, x.source, x.target)::in_directed_pair from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.source, y.target rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(directed_pairs) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
     array(select row(x.field, x.holds, x.identifier, x.value)::in_field_boolean from unnest(field_booleans) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.field, x.holds, x.identifier, x.source, x.target)::in_field_directed_pair from unnest(field_directed_pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.field, x.holds, x.identifier, x.name)::in_field_file_name from unnest(field_file_names) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.content_type, x.digest, x.field, x.holds, x.identifier)::in_field_file from unnest(field_files) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.content_type, x.digest, x.field, x.holds, x.identifier, x.name)::in_field_file from unnest(field_files) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.base, x.field, x.holds, x.identifier, x.value)::in_field_float from unnest(field_floats) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.field, x.holds, x.identifier, x.value)::in_field_integer from unnest(field_integers) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.field, x.greatest, x.holds, x.identifier, x.least)::in_field_pair from unnest(field_pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.field, x.holds, x.identifier, x.x, x.y)::in_field_point from unnest(field_points) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.base, x.field, x.holds, x.identifier, x.value)::in_field_text from unnest(field_texts) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.name, x.place)::in_file_name from unnest(file_names) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.content_type, x.digest, x.holds, x.identifier, x.place)::in_file from unnest(files) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.base, x.holds, x.identifier, x.place, x.value)::in_float from unnest(floats) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.place, x.value)::in_integer from unnest(integers) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.greatest, x.holds, x.identifier, x.least, x.place)::in_pair from unnest(pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.place, x.x, x.y)::in_point from unnest(points) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.base, x.holds, x.identifier, x.place, x.value)::in_text from unnest(texts) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.card, x.holds, x.identifier)::in_var from unnest(vars) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage))
+    array(select row(x.content_type, x.digest, x.holds, x.identifier, x.name, x.at + c)::in_file from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.digest, y.content_type, y.name rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(files) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.base, x.holds, x.identifier, x.at + c, x.value)::in_float from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.base, y.value rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(floats) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.holds, x.identifier, x.at + c, x.value)::in_integer from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.value rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(integers) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.greatest, x.holds, x.identifier, x.least, x.at + c)::in_pair from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.least, y.greatest rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(pairs) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.holds, x.identifier, x.at + c, x.x, x.y)::in_point from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.x, y.y rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(points) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.base, x.holds, x.identifier, x.at + c, x.value)::in_text from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.base, y.value rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(texts) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(t.card, g.holds, g.identifier)::in_var from given g left join t on t.identifier = g.identifier)
   )::in_values
 $$;
 
@@ -369,7 +405,7 @@ $$;
 -- `declared_correct` and `declared_defaults`, a variable the run began without beginning NULL), so a rule that sets a
 -- value to itself sets nothing, one that sets NULL over a value gives the variable with no single, and the contexts,
 -- QTI_CONTEXT and the built-ins appear only where a rule set them; each variable with its kind; and how it ended. Each
--- value's singles at their places from 0, a record's at its fields, as outcomes_of gives them.
+-- value's singles at their places from 0, each a copy (count 1), a record's at its fields, as outcomes_of gives them.
 create function p3.doc_values_of(delta boolean, kinds p3.var_kind[], run p3.document_run, st p3.run_state)
 returns p3.doc_values language sql immutable as $$
   with v as (
@@ -388,44 +424,42 @@ returns p3.doc_values language sql immutable as $$
   select row(
     array(select d.b from (select distinct row(v.base, (run).child, v.identifier, (run).package, (run).path, (run).stage)::doc_base as b from v where v.card <> 'record') d
       order by (d.b).identifier),
-    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).b)::doc_boolean from s where card <> 'record' and (x).base = 'boolean'),
+    array(select row((run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).b)::doc_boolean from s where card <> 'record' and (x).base = 'boolean'),
     '{}'::doc_demand_maximum[], '{}'::doc_demand[],
-    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (x).t, (run).stage, (x).u)::doc_directed_pair from s where card <> 'record' and (x).base = 'directedPair'),
+    array(select row((run).child, 1, holds, identifier, (run).package, (run).path, place, (x).t, (run).stage, (x).u)::doc_directed_pair from s where card <> 'record' and (x).base = 'directedPair'),
     array[row((run).child, st.drawn, st.flow, (run).package, (run).path, (run).stage)::doc_end],
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).b)::doc_field_boolean from s where card = 'record' and (x).base = 'boolean'),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (x).t, (run).stage, (x).u)::doc_field_directed_pair from s where card = 'record' and (x).base = 'directedPair'),
-    array(select row((run).child, (x).field, holds, identifier, (x).w, (run).package, (run).path, (run).stage)::doc_field_file_name from s where card = 'record' and (x).base = 'file' and (x).w is not null),
-    array(select row((run).child, (x).u, (x).d, (x).field, holds, identifier, (run).package, (run).path, (run).stage)::doc_field_file from s where card = 'record' and (x).base = 'file'),
+    array(select row((run).child, (x).u, (x).d, (x).field, holds, identifier, (x).w, (run).package, (run).path, (run).stage)::doc_field_file from s where card = 'record' and (x).base = 'file'),
     array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).f)::doc_field_float from s where card = 'record' and (x).base in ('float', 'duration')),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n)::doc_field_integer from s where card = 'record' and (x).base = 'integer'),
     array(select row((run).child, (x).field, (x).u, holds, identifier, (x).t, (run).package, (run).path, (run).stage)::doc_field_pair from s where card = 'record' and (x).base = 'pair'),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n, (x).m)::doc_field_point from s where card = 'record' and (x).base = 'point'),
     array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).t)::doc_field_text from s where card = 'record' and (x).base in ('identifier', 'string', 'uri')),
-    array(select row((run).child, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::doc_file_name from s where card <> 'record' and (x).base = 'file' and (x).w is not null),
-    array(select row((run).child, (x).u, (x).d, holds, identifier, (run).package, (run).path, place, (run).stage)::doc_file from s where card <> 'record' and (x).base = 'file'),
-    array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::doc_float from s where card <> 'record' and (x).base in ('float', 'duration')),
+    array(select row((run).child, (x).u, 1, (x).d, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::doc_file from s where card <> 'record' and (x).base = 'file'),
+    array(select row((x).base, (run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::doc_float from s where card <> 'record' and (x).base in ('float', 'duration')),
     '{}'::doc_human_demand_maximum[], '{}'::doc_human_demand[],
-    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::doc_integer from s where card <> 'record' and (x).base = 'integer'),
-    array(select row((run).child, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::doc_pair from s where card <> 'record' and (x).base = 'pair'),
-    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n, (x).m)::doc_point from s where card <> 'record' and (x).base = 'point'),
-    array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).t)::doc_text from s where card <> 'record' and (x).base in ('identifier', 'string', 'uri')),
+    array(select row((run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::doc_integer from s where card <> 'record' and (x).base = 'integer'),
+    array(select row((run).child, 1, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::doc_pair from s where card <> 'record' and (x).base = 'pair'),
+    array(select row((run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n, (x).m)::doc_point from s where card <> 'record' and (x).base = 'point'),
+    array(select row((x).base, (run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).t)::doc_text from s where card <> 'record' and (x).base in ('identifier', 'string', 'uri')),
     array(select row(v.card, (run).child, v.holds, v.identifier, (select k.kind from unnest(kinds) k where k.identifier = v.identifier), (run).package, (run).path, (run).stage)::doc_var from v)
   )::doc_values
 $$;
 -- Two results as one: each field's rows, the first's then the second's.
 create function p3.doc_values_joined(a p3.doc_values, b p3.doc_values) returns p3.doc_values language sql immutable as $$
   select row(a.bases || b.bases, a.booleans || b.booleans, a.demand_maxima || b.demand_maxima, a.demands || b.demands, a.directed_pairs || b.directed_pairs, a.ends || b.ends, a.field_booleans || b.field_booleans,
-    a.field_directed_pairs || b.field_directed_pairs, a.field_file_names || b.field_file_names, a.field_files || b.field_files, a.field_floats || b.field_floats, a.field_integers || b.field_integers,
+    a.field_directed_pairs || b.field_directed_pairs, a.field_files || b.field_files, a.field_floats || b.field_floats, a.field_integers || b.field_integers,
     a.field_pairs || b.field_pairs, a.field_points || b.field_points, a.field_texts || b.field_texts,
-    a.file_names || b.file_names, a.files || b.files, a.floats || b.floats, a.human_demand_maxima || b.human_demand_maxima, a.human_demands || b.human_demands,
+    a.files || b.files, a.floats || b.floats, a.human_demand_maxima || b.human_demand_maxima, a.human_demands || b.human_demands,
     a.integers || b.integers, a.pairs || b.pairs, a.points || b.points,
     a.texts || b.texts, a.vars || b.vars)::doc_values
 $$;
 -- No document's values.
 create function p3.no_doc_values() returns p3.doc_values language sql immutable as $$
   select row('{}'::doc_base[], '{}'::doc_boolean[], '{}'::doc_demand_maximum[], '{}'::doc_demand[], '{}'::doc_directed_pair[], '{}'::doc_end[], '{}'::doc_field_boolean[], '{}'::doc_field_directed_pair[],
-    '{}'::doc_field_file_name[], '{}'::doc_field_file[], '{}'::doc_field_float[], '{}'::doc_field_integer[], '{}'::doc_field_pair[],
-    '{}'::doc_field_point[], '{}'::doc_field_text[], '{}'::doc_file_name[], '{}'::doc_file[],
+    '{}'::doc_field_file[], '{}'::doc_field_float[], '{}'::doc_field_integer[], '{}'::doc_field_pair[],
+    '{}'::doc_field_point[], '{}'::doc_field_text[], '{}'::doc_file[],
     '{}'::doc_float[], '{}'::doc_human_demand_maximum[], '{}'::doc_human_demand[], '{}'::doc_integer[], '{}'::doc_pair[], '{}'::doc_point[],
     '{}'::doc_text[], '{}'::doc_var[])::doc_values
 $$;
@@ -595,16 +629,16 @@ end $$;
 -- evaluations (the applications evaluated, and their replies) and persons' values, by its key, in one call; the
 -- registry's rows the same for every run. A run that demanded a recorded application gives its demands alone, and one
 -- that asks a person its human demands alone (response_values_of).
-create function p3.response_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
+create function p3.response_processing_of(booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
   declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
-  directed_pairs p3.doc_directed_pair[], evaluations p3.doc_evaluation[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
+  directed_pairs p3.doc_directed_pair[], evaluations p3.doc_evaluation[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_files p3.doc_field_file[],
   field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
-  field_texts p3.doc_field_text[], file_names p3.doc_file_name[], files p3.doc_file[], floats p3.doc_float[],
+  field_texts p3.doc_field_text[], files p3.doc_file[], floats p3.doc_float[],
   human_feedbacks p3.doc_human_feedback[], humans p3.doc_human[], integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[],
   program_attributes p3.document_attribute[], program_texts p3.document_text[], programs p3.program_node[],
   reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[], runs p3.document_run[],
   table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[],
-  texts p3.doc_text[], vars p3.doc_var[])
+  texts p3.doc_text[], vars p3.doc_given[])
 returns p3.doc_values language plpgsql immutable as $$
 declare r document_run; pn program_node[]; dn declaration_node[]; da document_attribute[]; dt document_text[];
   result doc_values := no_doc_values(); st run_state;
@@ -625,9 +659,9 @@ begin
         humans => array(select x from humans_of(run => r, humans => humans, human_feedbacks => human_feedbacks) x),
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
       declarations => dn, attributes => da, texts => dt,
-      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
-        file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
-        field_files => field_files, field_file_names => field_file_names),
+      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, declarations => dn, declaration_attributes => da, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
+        field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
+        field_files => field_files),
       seed => r.seed, label => r.label);
     result := doc_values_joined(a => result, b => response_values_of(run => r, st => st, nodes => pn, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k)));
   end loop;
@@ -637,16 +671,16 @@ end $$;
 -- The flat entry of template processing at the take: as response_processing_of, what each run set given back, its
 -- template values, correct responses and defaults (held `value`, `correct` and `default`) that differ from those it
 -- began with (doc_values_of's `delta`): the session's facts, never the declared values, which are the item's content.
-create function p3.template_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
+create function p3.template_processing_of(booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
   declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
-  directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
+  directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_files p3.doc_field_file[],
   field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
-  field_texts p3.doc_field_text[], file_names p3.doc_file_name[], files p3.doc_file[], floats p3.doc_float[],
+  field_texts p3.doc_field_text[], files p3.doc_file[], floats p3.doc_float[],
   integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[],
   program_attributes p3.document_attribute[], program_texts p3.document_text[], programs p3.program_node[],
   reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[], runs p3.document_run[],
   table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[],
-  texts p3.doc_text[], vars p3.doc_var[])
+  texts p3.doc_text[], vars p3.doc_given[])
 returns p3.doc_values language plpgsql immutable as $$
 declare r document_run; pn program_node[]; dn declaration_node[]; da document_attribute[]; dt document_text[];
   result doc_values := no_doc_values(); st run_state;
@@ -665,9 +699,9 @@ begin
         table_entries => table_entries, table_values => table_values, evaluated => '{}', humans => '{}',
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
       declarations => dn, attributes => da, texts => dt,
-      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
-        file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
-        field_files => field_files, field_file_names => field_file_names),
+      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, declarations => dn, declaration_attributes => da, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
+        field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
+        field_files => field_files),
       seed => r.seed, label => r.label);
     result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k), delta => true));
   end loop;

@@ -150,11 +150,11 @@ const inSession = (source: string): string => {
   const rule = replaceMatch(
     replaceMatch(
       source,
-      /const attempt = boundGradable;\s*const \{ child, package: pkg, path, n \} = v\(attempt, "attempt"\);\s*const \{ stage \} = v\(fields\.ItemSession, "session"\);/u,
+      /const attempt = boundGradable;\s*const \{ child, package: pkg, path, stage \} = v\(attempt, "attempt"\);/u,
       () => 'const { child, package: pkg, path, stage } = v(answered, "answered");',
       "session key",
     ),
-    /\.match\(attempt, \{ child, n, package: pkg, path \}\)\s*\.match\(fields\.ItemSession, \{ child, n, package: pkg, path, stage \}\)/u,
+    /\.match\(attempt, \{ child, package: pkg, path, stage \}\)/u,
     () => ".match(answered, { child, package: pkg, path, stage })",
     "session match",
   );
@@ -222,7 +222,6 @@ const READERS = [
   ["directed_pairs", "directedPairsOf", "directedPairs"],
   ["points", "pointsOf", "points"],
   ["files", "filesOf", "files"],
-  ["file_names", "fileNamesOf", "fileNames"],
   ["field_texts", "fieldTextsOf", "fieldTexts"],
   ["field_integers", "fieldIntegersOf", "fieldIntegers"],
   ["field_floats", "fieldFloatsOf", "fieldFloats"],
@@ -231,7 +230,6 @@ const READERS = [
   ["field_directed_pairs", "fieldDirectedPairsOf", "fieldDirectedPairs"],
   ["field_points", "fieldPointsOf", "fieldPoints"],
   ["field_files", "fieldFilesOf", "fieldFiles"],
-  ["field_file_names", "fieldFileNamesOf", "fieldFileNames"],
 ] as const;
 
 /**
@@ -274,18 +272,16 @@ const readersText = (ga: string, mv: string) => {
       `  const ${camel(arg)} = ${queryOf(gaRules(ga, name).map((rule) => onAnswered(rule, "graded")))};\n`,
   );
   const memberVars = mvRules(mv, "vars");
-  must(memberVars.length === 5, "memberValuesOf's five variable rules");
+  must(memberVars.length === 3, "memberValuesOf's three variable rules");
 
   const varRules = [
-    ...memberVars.slice(0, 2).map((rule) => onAnswered(rule, "boundLatest")),
-    ...memberVars.slice(2),
+    ...memberVars,
     ...gaRules(ga, "varsOf")
       .filter((rule) => rule.includes("fields.ItemSessionValue,"))
       .map(inSession),
   ];
-  must(varRules.length === 8, "eight variable rules");
+  must(varRules.length === 6, "six variable rules");
 
-  const bases = gaRules(ga, "basesOf").map((rule) => onAnswered(rule, "attempt"));
   const uses = new Map<string, string[]>();
   const values = READERS.map(([arg, gname, mname]) => {
     const own = gaRules(ga, gname);
@@ -315,16 +311,12 @@ const readersText = (ga: string, mv: string) => {
    */
 ${declarations.join("\n")}`,
     `  /**
-   * The variables: each declared response, always; each declared outcome and completionStatus,
-   * once the latest attempt's response processing ran; and each value the session's template
-   * processing set.
+   * The variables given by the session's own record, each a header that may hold no value: each
+   * declared outcome and completionStatus, once the latest attempt's response processing ran; and
+   * each value the session's template processing set. The machine gives every declared response a
+   * header itself (\`values_of\`).
    */
   const vars = ${queryOf(varRules)};
-`,
-    `  /**
-   * Each declared typed variable's base type, built-ins included.
-   */
-  const bases = ${queryOf(bases)};
 `,
     ...values,
   ];
@@ -336,7 +328,6 @@ ${declarations.join("\n")}`,
  * The template's arguments, by name, in the order they are returned and bound.
  */
 const ARGS = [
-  "bases",
   "body",
   "body_attributes",
   "booleans",
@@ -346,14 +337,12 @@ const ARGS = [
   "directed_pairs",
   "field_booleans",
   "field_directed_pairs",
-  "field_file_names",
   "field_files",
   "field_floats",
   "field_integers",
   "field_pairs",
   "field_points",
   "field_texts",
-  "file_names",
   "files",
   "floats",
   "integers",
@@ -629,7 +618,7 @@ export const admissionStage = (stage: string, fragment: Fragments): string => {
     ? withRule
     : replaceFirst(
         withRule,
-        "import {\n  copies,\n",
-        "import {\n  admissionOf,\n  AdmissionRun,\n  copies,\n",
+        "import {\n  DocGiven,\n",
+        "import {\n  admissionOf,\n  AdmissionRun,\n  DocGiven,\n",
       );
 };

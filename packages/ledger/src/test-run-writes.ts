@@ -356,8 +356,7 @@ export const testRunWritesOf = (delivery: DeliveryLevel) => {
     const run = runAt(r);
     const { child, stage } = v(sittingAt, "multipleFileBagSitting");
     const { identifier } = v(run.vars, "multipleFileVar");
-    const { place, digest, content_type: contentType } = v(run.files, "multipleFileValue");
-    const { name } = v(run.file_names, "multipleFileName");
+    const { place, digest, content_type: contentType, name } = v(run.files, "multipleFileValue");
 
     return r
       .match(sittingAt, { child, stage })
@@ -369,8 +368,15 @@ export const testRunWritesOf = (delivery: DeliveryLevel) => {
         kind: "outcome",
         stage,
       })
-      .match(run.files, { child, content_type: contentType, digest, identifier, place, stage })
-      .match(run.file_names, { child, identifier, name, place, stage })
+      .match(run.files, {
+        child,
+        content_type: contentType,
+        digest,
+        identifier,
+        name,
+        place,
+        stage,
+      })
       .find({ child, contentType, digest, identifier, name, place, stage });
   });
   const singles = ChangeSet.empty(delivery)
@@ -632,8 +638,7 @@ export const testRunWritesOf = (delivery: DeliveryLevel) => {
         const run = runAt(r);
         const { child, stage } = v(sittingAt, "singleFileSitting");
         const { identifier } = v(run.vars, "singleFileVar");
-        const { place, digest, content_type: contentType } = v(run.files, "singleFileValue");
-        const { name } = v(run.file_names, "singleFileName");
+        const { place, digest, content_type: contentType, name } = v(run.files, "singleFileValue");
 
         return r
           .match(sittingAt, { child, stage })
@@ -645,8 +650,15 @@ export const testRunWritesOf = (delivery: DeliveryLevel) => {
             kind: "outcome",
             stage,
           })
-          .match(run.files, { child, content_type: contentType, digest, identifier, place, stage })
-          .match(run.file_names, { child, identifier, name, place, stage })
+          .match(run.files, {
+            child,
+            content_type: contentType,
+            digest,
+            identifier,
+            name,
+            place,
+            stage,
+          })
           .where(r.eq(place, 0n))
           .find({ child, digest, name, stage, type: contentType, variable: identifier });
       }),
@@ -1098,8 +1110,7 @@ export const testRunWritesOf = (delivery: DeliveryLevel) => {
         const run = runAt(r);
         const { child, stage } = v(sittingAt, "orderedFileSitting");
         const { identifier } = v(run.vars, "orderedFileVar");
-        const { place, digest, content_type: contentType } = v(run.files, "orderedFileValue");
-        const { name } = v(run.file_names, "orderedFileName");
+        const { place, digest, content_type: contentType, name } = v(run.files, "orderedFileValue");
 
         return r
           .match(sittingAt, { child, stage })
@@ -1111,8 +1122,15 @@ export const testRunWritesOf = (delivery: DeliveryLevel) => {
             kind: "outcome",
             stage,
           })
-          .match(run.files, { child, content_type: contentType, digest, identifier, place, stage })
-          .match(run.file_names, { child, identifier, name, place, stage })
+          .match(run.files, {
+            child,
+            content_type: contentType,
+            digest,
+            identifier,
+            name,
+            place,
+            stage,
+          })
           .find({ child, digest, name, place, stage, type: contentType, variable: identifier });
       }),
     );
@@ -1680,8 +1698,12 @@ export const testRunWritesOf = (delivery: DeliveryLevel) => {
         const run = runAt(r);
         const { child, stage } = v(sittingAt, "recordFileSitting");
         const { identifier } = v(run.vars, "recordFileVar");
-        const { field, digest, content_type: contentType } = v(run.field_files, "recordFileValue");
-        const { name } = v(run.field_file_names, "recordFileName");
+        const {
+          field,
+          digest,
+          content_type: contentType,
+          name,
+        } = v(run.field_files, "recordFileValue");
 
         return r
           .match(sittingAt, { child, stage })
@@ -1699,9 +1721,9 @@ export const testRunWritesOf = (delivery: DeliveryLevel) => {
             digest,
             field,
             identifier,
+            name,
             stage,
           })
-          .match(run.field_file_names, { child, field, identifier, name, stage })
           .find({
             child,
             digest,

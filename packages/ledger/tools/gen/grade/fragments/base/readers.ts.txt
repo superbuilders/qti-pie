@@ -224,7 +224,8 @@ const ordinalsOf = (session: GradedSession) =>
 	})
 
 /** The run of the attempt: its key (child, package, path, stage), the seed its session draws under (SessionSeed, its
- * take's), and the label of its ordinal. */
+ * take's), the label of its ordinal, and whether it submitted every response at its default (`defaulted`, which the
+ * machine reads to give no declared response a header). */
 const runsOf = (session: GradedSession) =>
 	query(Installed).rule((r) => {
 		const attempt = gradableOf(session).bind(bySession(session))
@@ -236,78 +237,15 @@ const runsOf = (session: GradedSession) =>
 			.match(attempt, { child, package: pkg, path, n, stage, at })
 			.match(ordinal, { child, package: pkg, path, stage, attempts })
 			.match(fields.SessionSeed, { child, stage, package: pkg, path, seed })
-			.find({ child, package: pkg, path, stage, seed: Fn.call(seedStreamKey, { seed }), label: Fn.call(responseLabel, { attempts }) })
+			.find({ child, package: pkg, path, stage, seed: Fn.call(seedStreamKey, { seed }), label: Fn.call(responseLabel, { attempts }), defaulted: Type.literal(DocumentRun.fields.defaulted, false) })
 	})
 
-/** The variables the attempt's run is given: each declared response, numAttempts, and each value the session's
- * template processing set, each with its kind and cardinality. */
+/** The variables the attempt's run is given by its session's own record, each a header that may hold no value: the
+ * previous attempt's completionStatus, and each value the session's template processing set, held as the rule that set
+ * it says. The machine gives every declared response and numAttempts a header itself, and reads each variable's kind,
+ * cardinality and base type from the run's declarations (`values_of`). */
 const varsOf = (session: GradedSession) =>
 	query(Installed)
-		.rule((r) => {
-			const attempt = gradableOf(session).bind(bySession(session))
-			const { child, package: pkg, path, stage } = v(attempt, "attempt")
-			const { identifier, cardinality } = v(fields.ItemVariable, "response")
-			const { token: card } = v(fields.CardinalityToken, "card")
-			return r
-				.match(attempt, { child, package: pkg, path, stage })
-				.match(fields.ItemVariable, {
-					package: pkg,
-					path,
-					identifier,
-					cardinality,
-					declarationKind: "qti-response-declaration"
-				})
-				.match(fields.CardinalityToken, { cardinality, token: card })
-				.find({
-					child,
-					package: pkg,
-					path,
-					stage,
-					holds: Type.literal(DocVar.fields.holds, "value"),
-					kind: Type.literal(DocVar.fields.kind, "response"),
-					identifier,
-					card
-				})
-		})
-		.rule((r) => {
-			const attempt = gradableOf(session).bind(bySession(session))
-			const { child, package: pkg, path, stage } = v(attempt, "attempt")
-			const { identifier } = v(fields.ItemRecordVariable, "response")
-			return r
-				.match(attempt, { child, package: pkg, path, stage })
-				.match(fields.ItemRecordVariable, {
-					package: pkg,
-					path,
-					identifier,
-					declarationKind: "qti-response-declaration"
-				})
-				.find({
-					child,
-					package: pkg,
-					path,
-					stage,
-					holds: Type.literal(DocVar.fields.holds, "value"),
-					kind: Type.literal(DocVar.fields.kind, "response"),
-					identifier,
-					card: Type.literal(DocVar.fields.card, "record")
-				})
-		})
-		.rule((r) => {
-			const attempt = gradableOf(session).bind(bySession(session))
-			const { child, package: pkg, path, stage } = v(attempt, "attempt")
-			return r
-				.match(attempt, { child, package: pkg, path, stage })
-				.find({
-					child,
-					package: pkg,
-					path,
-					stage,
-					holds: Type.literal(DocVar.fields.holds, "value"),
-					kind: Type.literal(DocVar.fields.kind, "response"),
-					identifier: Type.literal(DocVar.fields.identifier, "numAttempts"),
-					card: Type.literal(DocVar.fields.card, "single")
-				})
-		})
 		.rule((r) => {
 			const previous = previousOf(session).bind(bySession(session))
 			const { child, package: pkg, path, stage } = v(previous, "previous")
@@ -318,101 +256,56 @@ const varsOf = (session: GradedSession) =>
 					package: pkg,
 					path,
 					stage,
-					holds: Type.literal(DocVar.fields.holds, "value"),
-					kind: Type.literal(DocVar.fields.kind, "outcome"),
-					identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
-					card: Type.literal(DocVar.fields.card, "single")
+					holds: Type.literal(DocGiven.fields.holds, "value"),
+					identifier: Type.literal(DocGiven.fields.identifier, "completionStatus")
 				})
 		})
 		.rule((r) => {
 			const attempt = gradableOf(session).bind(bySession(session))
-			const { child, package: pkg, path, n } = v(attempt, "attempt")
-			const { stage } = v(fields.ItemSession, "session")
+			const { child, package: pkg, path, stage } = v(attempt, "attempt")
 			const { variable } = v(fields.ItemSessionValue, "set")
-			const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared")
-			const { token: card } = v(fields.CardinalityToken, "card")
-			const { token: kind } = v(fields.VariableKindToken, "kind")
 			return r
-				.match(attempt, { child, package: pkg, path, n })
-				.match(fields.ItemSession, { child, package: pkg, path, n, stage })
+				.match(attempt, { child, package: pkg, path, stage })
 				.match(fields.ItemSessionValue, { child, stage, package: pkg, path, kind: "template", variable })
-				.match(fields.ItemSessionVariable, { package: pkg, path, identifier: variable, cardinality, declarationKind })
-				.match(fields.CardinalityToken, { cardinality, token: card })
-				.match(fields.VariableKindToken, { declarationKind, token: kind })
 				.find({
 					child,
 					package: pkg,
 					path,
 					stage,
-					holds: Type.literal(DocVar.fields.holds, "value"),
-					kind,
-					identifier: variable,
-					card
+					holds: Type.literal(DocGiven.fields.holds, "value"),
+					identifier: variable
 				})
 		})
 		.rule((r) => {
 			const attempt = gradableOf(session).bind(bySession(session))
-			const { child, package: pkg, path, n } = v(attempt, "attempt")
-			const { stage } = v(fields.ItemSession, "session")
+			const { child, package: pkg, path, stage } = v(attempt, "attempt")
 			const { variable } = v(fields.ItemSessionValue, "set")
-			const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared")
-			const { token: card } = v(fields.CardinalityToken, "card")
-			const { token: kind } = v(fields.VariableKindToken, "kind")
 			return r
-				.match(attempt, { child, package: pkg, path, n })
-				.match(fields.ItemSession, { child, package: pkg, path, n, stage })
+				.match(attempt, { child, package: pkg, path, stage })
 				.match(fields.ItemSessionValue, { child, stage, package: pkg, path, kind: "correct", variable })
-				.match(fields.ItemSessionVariable, { package: pkg, path, identifier: variable, cardinality, declarationKind })
-				.match(fields.CardinalityToken, { cardinality, token: card })
-				.match(fields.VariableKindToken, { declarationKind, token: kind })
 				.find({
 					child,
 					package: pkg,
 					path,
 					stage,
-					holds: Type.literal(DocVar.fields.holds, "correct"),
-					kind,
-					identifier: variable,
-					card
+					holds: Type.literal(DocGiven.fields.holds, "correct"),
+					identifier: variable
 				})
 		})
 		.rule((r) => {
 			const attempt = gradableOf(session).bind(bySession(session))
-			const { child, package: pkg, path, n } = v(attempt, "attempt")
-			const { stage } = v(fields.ItemSession, "session")
+			const { child, package: pkg, path, stage } = v(attempt, "attempt")
 			const { variable } = v(fields.ItemSessionValue, "set")
-			const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "declared")
-			const { token: card } = v(fields.CardinalityToken, "card")
-			const { token: kind } = v(fields.VariableKindToken, "kind")
 			return r
-				.match(attempt, { child, package: pkg, path, n })
-				.match(fields.ItemSession, { child, package: pkg, path, n, stage })
+				.match(attempt, { child, package: pkg, path, stage })
 				.match(fields.ItemSessionValue, { child, stage, package: pkg, path, kind: "default", variable })
-				.match(fields.ItemSessionVariable, { package: pkg, path, identifier: variable, cardinality, declarationKind })
-				.match(fields.CardinalityToken, { cardinality, token: card })
-				.match(fields.VariableKindToken, { declarationKind, token: kind })
 				.find({
 					child,
 					package: pkg,
 					path,
 					stage,
-					holds: Type.literal(DocVar.fields.holds, "default"),
-					kind,
-					identifier: variable,
-					card
+					holds: Type.literal(DocGiven.fields.holds, "default"),
+					identifier: variable
 				})
 		})
 
-/** Each declared typed variable's base type, built-ins included. */
-const basesOf = (session: GradedSession) =>
-	query(Installed).rule((r) => {
-		const attempt = gradableOf(session).bind(bySession(session))
-		const { child, package: pkg, path, stage } = v(attempt, "attempt")
-		const { identifier, baseType } = v(fields.ItemSessionVariable, "declared")
-		const { token: base } = v(fields.BaseTypeToken, "base")
-		return r
-			.match(attempt, { child, package: pkg, path, stage })
-			.match(fields.ItemSessionVariable, { package: pkg, path, identifier, baseType })
-			.match(fields.BaseTypeToken, { baseType, token: base })
-			.find({ child, package: pkg, path, stage, identifier, base })
-	})

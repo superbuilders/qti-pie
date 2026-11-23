@@ -9,6 +9,6 @@ const runsOf = (session: GradedSession) =>
 		return r
 			.match(taken, { child, package: pkg, path, seed, stage })
 			.match(fields.ObjectIdentifier, { package: pkg, path, value: identifier })
-			.find({ child, package: pkg, path, stage, seed: Fn.call(seedStreamKey, { seed }), label: Fn.call(templateLabel, { identifier }) })
+			.find({ child, package: pkg, path, stage, seed: Fn.call(seedStreamKey, { seed }), label: Fn.call(templateLabel, { identifier }), defaulted: Type.literal(DocumentRun.fields.defaulted, false) })
 	})
 

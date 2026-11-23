@@ -25,12 +25,14 @@
  *   (`DeclarationNodeKind`), with their attributes and each `qti-value`'s string value;
  * - The run: the seed the session draws under (`SessionSeed`, its take's `processingSeed`) and the
  *   label of the attempt's ordinal (`responseLabel`);
- * - The values: each declared response (a NULL one no single row) and `numAttempts`, the attempt's
- *   ordinal from 1, held `value`; the session's template values held `value`, and the correct
- *   responses and defaults its template processing set held `correct` and `default`; and, for an
- *   adaptive item's session with an attempt processed before this one, each declared outcome held
- *   `value` with its values after that attempt (a NULL one no row). A multiple's bag crosses as its
- *   copies, each at its own place.
+ * - The values, each by the session's own sidecar rows: each response's value and `numAttempts`, the
+ *   attempt's ordinal from 1, held `value`; the session's template values held `value`, and the
+ *   correct responses and defaults its template processing set held `correct` and `default`; and,
+ *   for an adaptive item's session with an attempt processed before this one, each declared
+ *   outcome held `value` with its values after that attempt. A multiple's bag crosses as its value
+ *   with its count, which the machine expands; a header (`vars`) crosses only where it carries a
+ *   fact (a value set, a retained outcome, completionStatus), the machine giving every declared
+ *   response one itself unless the run is `defaulted` (`values_of`).
  *
  * QTI 3.0.1 §2.2.2.2 and Table 5.115: response processing "takes place each time the candidate
  * submits the responses"; the outcomes start at their defaults for a non-adaptive item (the
@@ -62,12 +64,11 @@ import { ChangeSet, Fn, Num, param, pg, query, Type, v } from "@bjornpagen/grizz
 import { BaseType } from "@qti-pie/pantry/grammar/install.ts";
 import type { deliveryOf } from "#ledger/delivery.ts";
 import {
-  copies,
-  DocBase,
+  DocGiven,
   DocReplyFloat,
   DocReplyText,
   DocText,
-  DocVar,
+  DocumentRun,
   patternProgramOf,
   responseLabel,
   responseProcessingOf,

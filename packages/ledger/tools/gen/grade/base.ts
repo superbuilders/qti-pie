@@ -88,6 +88,7 @@ export const HEAD: Readonly<Record<BaseTypeName, Crossing>> = {
     cols: [
       ["digest", "digest"],
       ["content_type", "type"],
+      ["name", "name"],
     ],
     hasBase: false,
     head: "files",
@@ -156,7 +157,6 @@ export const DOC_HEADS = [
   "directed_pairs",
   "points",
   "files",
-  "file_names",
   "field_texts",
   "field_integers",
   "field_floats",
@@ -165,7 +165,6 @@ export const DOC_HEADS = [
   "field_directed_pairs",
   "field_points",
   "field_files",
-  "field_file_names",
 ] as const;
 
 /**
@@ -183,36 +182,28 @@ const HOLDS = [
 export const CARDINALITIES = ["Single", "Multiple", "Ordered"] as const;
 
 /**
- * A multiple's copies, each at its place, as a reader binds them.
- */
-const COPY =
-  '\t\t\tconst copy = Fn.rows(copies, { count })\n\t\t\tconst { place } = v(copy, "copy")\n';
-
-/**
- * A reader's match of a multiple's copy.
- */
-const COPY_MATCH = "\n\t\t\t\t.match(copy, { place })";
-
-/**
- * What a reader of each cardinality reads beside the value: its extra column, its copies, and the
- * place its find gives.
+ * What a reader of each cardinality reads beside the value and gives the machine, which expands a
+ * multiple's copies itself (`values_of`, a row's `count`): its extra column, the place its find
+ * gives, and its count, a multiple's stored count at place 0, every other value's 1.
  */
 const CARDINALITY_READ: Readonly<
   Record<
     (typeof CARDINALITIES)[number],
-    {
-      readonly copy: string;
-      readonly copyMatch: string;
-      readonly extra: string;
-      readonly place: string;
-    }
+    { readonly count: string; readonly extra: string; readonly place: string }
   >
 > = {
-  Multiple: { copy: COPY, copyMatch: COPY_MATCH, extra: ", count", place: "place" },
-  Ordered: { copy: "", copyMatch: "", extra: ", place", place: "place" },
+  Multiple: {
+    count: "count: Type.cast(count, DocText.fields.count)",
+    extra: ", count",
+    place: "place: Type.literal(DocText.fields.place, 0n)",
+  },
+  Ordered: {
+    count: "count: Type.literal(DocText.fields.count, 1n)",
+    extra: ", place",
+    place: "place",
+  },
   Single: {
-    copy: "",
-    copyMatch: "",
+    count: "count: Type.literal(DocText.fields.count, 1n)",
     extra: "",
     place: "place: Type.literal(DocText.fields.place, 0n)",
   },
@@ -224,8 +215,7 @@ const CARDINALITY_READ: Readonly<
  * @param t The base type.
  * @returns Its columns.
  */
-const ledgerCols = (t: BaseTypeName): readonly string[] =>
-  t === "File" ? ["digest", "name", "type"] : HEAD[t].cols.map(([, ledger]) => ledger);
+const ledgerCols = (t: BaseTypeName): readonly string[] => HEAD[t].cols.map(([, ledger]) => ledger);
 
 /**
  * A base type's doc columns, each from its ledger column's variable.
@@ -237,16 +227,6 @@ const docPairs = (t: BaseTypeName): string =>
   HEAD[t].cols.map(([doc, ledger]) => (doc === ledger ? doc : `${doc}: ${ledger}`)).join(", ");
 
 /**
- * The find of a doc row from ledger column variables.
- *
- * @param t The base type.
- * @param head The doc heading.
- * @returns The find's columns.
- */
-const docCols = (t: BaseTypeName, head: string): string =>
-  head === "file_names" ? "name" : docPairs(t);
-
-/**
  * Whether a base type's single, multiple and ordered values cross as doc heading `head`.
  *
  * @param head The doc heading.
@@ -254,7 +234,7 @@ const docCols = (t: BaseTypeName, head: string): string =>
  * @returns Whether they do.
  */
 const crossesAs = (head: string, t: BaseTypeName): boolean =>
-  head === "file_names" ? t === "File" : !FIELD_HEADS.has(head) && HEAD[t].head === head;
+  !FIELD_HEADS.has(head) && HEAD[t].head === head;
 
 /**
  * Whether a base type's record fields cross as doc heading `head`.
@@ -264,7 +244,7 @@ const crossesAs = (head: string, t: BaseTypeName): boolean =>
  * @returns Whether they do.
  */
 const fieldsCrossAs = (head: string, t: BaseTypeName): boolean =>
-  head === "field_file_names" ? t === "File" : FIELD_HEAD.get(HEAD[t].head) === head;
+  FIELD_HEAD.get(HEAD[t].head) === head;
 
 /**
  * A doc row's base, where its heading names one.
@@ -277,16 +257,6 @@ const docBase = (t: BaseTypeName, named: boolean): string =>
   named ? `, base: Type.literal(DocText.fields.base, "${TOKEN[t]}")` : "";
 
 /**
- * The record fields' find columns.
- *
- * @param t The base type.
- * @param head The doc heading.
- * @returns The find's columns.
- */
-const fieldCols = (t: BaseTypeName, head: string): string =>
-  head === "field_file_names" ? "name" : docPairs(t);
-
-/**
  * The rules filling doc heading `head` from the attempt's snapshot sidecars and the session's
  * template values.
  *
@@ -297,37 +267,35 @@ export const valueRules = (head: string): string[] => {
   const rules: string[] = [];
   for (const t of TYPES.filter((type) => crossesAs(head, type))) {
     const lvars = ledgerCols(t).join(", ");
-    const base = docBase(t, HEAD[t].hasBase && head !== "file_names");
-    const vals = docCols(t, head);
-    // snapshot: single, multiple (copies), ordered
+    const base = docBase(t, HEAD[t].hasBase);
+    const vals = docPairs(t);
+    // snapshot: single, multiple (with its count), ordered
     for (const cardinality of CARDINALITIES) {
       const rel = `fields.Snapshot${cardinality}${t}`;
-      const { copy, copyMatch, extra, place } = CARDINALITY_READ[cardinality];
+      const { count: counted, extra, place } = CARDINALITY_READ[cardinality];
       rules.push(`\t\t.rule((r) => {
 \t\t\tconst attempt = gradableOf(session).bind(bySession(session))
 \t\t\tconst { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
 \t\t\tconst { variable, ${lvars}${extra} } = v(${rel}, "value")
-${copy}\t\t\treturn r
+\t\t\treturn r
 \t\t\t\t.match(attempt, { child, package: pkg, path, n, stage, at })
-\t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, ${lvars}${extra} })${copyMatch}
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, ${place}${base}, ${vals} })
+\t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, ${lvars}${extra} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, ${place}, ${counted}${base}, ${vals} })
 \t\t})`);
     }
     // the session's template values, correct responses and defaults
     for (const cardinality of CARDINALITIES) {
       const rel = `fields.ItemSessionValue${cardinality}${t}`;
-      const { copy, copyMatch, extra, place } = CARDINALITY_READ[cardinality];
+      const { count: counted, extra, place } = CARDINALITY_READ[cardinality];
       for (const [kind, holds] of HOLDS) {
         rules.push(`\t\t.rule((r) => {
 \t\t\tconst attempt = gradableOf(session).bind(bySession(session))
-\t\t\tconst { child, package: pkg, path, n } = v(attempt, "attempt")
-\t\t\tconst { stage } = v(fields.ItemSession, "session")
+\t\t\tconst { child, package: pkg, path, stage } = v(attempt, "attempt")
 \t\t\tconst { variable, ${lvars}${extra} } = v(${rel}, "value")
-${copy}\t\t\treturn r
-\t\t\t\t.match(attempt, { child, package: pkg, path, n })
-\t\t\t\t.match(fields.ItemSession, { child, package: pkg, path, n, stage })
-\t\t\t\t.match(${rel}, { child, stage, package: pkg, path, kind: "${kind}", variable, ${lvars}${extra} })${copyMatch}
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "${holds}"), identifier: variable, ${place}${base}, ${vals} })
+\t\t\treturn r
+\t\t\t\t.match(attempt, { child, package: pkg, path, stage })
+\t\t\t\t.match(${rel}, { child, stage, package: pkg, path, kind: "${kind}", variable, ${lvars}${extra} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "${holds}"), identifier: variable, ${place}, ${counted}${base}, ${vals} })
 \t\t})`);
       }
     }
@@ -335,7 +303,7 @@ ${copy}\t\t\treturn r
   // records: the snapshot's record fields
   for (const t of TYPES.filter((type) => fieldsCrossAs(head, type))) {
     const lvars = ledgerCols(t).join(", ");
-    const base = docBase(t, HEAD[t].hasBase && head !== "field_file_names");
+    const base = docBase(t, HEAD[t].hasBase);
     const rel = `fields.SnapshotRecord${t}`;
     rules.push(`\t\t.rule((r) => {
 \t\t\tconst attempt = gradableOf(session).bind(bySession(session))
@@ -345,7 +313,7 @@ ${copy}\t\t\treturn r
 \t\t\t\t.match(attempt, { child, package: pkg, path, n, stage, at })
 \t\t\t\t.match(fields.SnapshotRecord, { child, package: pkg, path, n, at, variable, field })
 \t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, field, ${lvars} })
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, field${base}, ${fieldCols(t, head)} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, field${base}, ${docPairs(t)} })
 \t\t})`);
   }
 
@@ -365,26 +333,26 @@ const retainedRules = (head: string): string[] => {
   const rules: string[] = [];
   for (const t of TYPES.filter((type) => crossesAs(head, type))) {
     const lvars = ledgerCols(t).join(", ");
-    const base = docBase(t, HEAD[t].hasBase && head !== "file_names");
-    const vals = docCols(t, head);
+    const base = docBase(t, HEAD[t].hasBase);
+    const vals = docPairs(t);
     for (const cardinality of CARDINALITIES) {
       const rel = `fields.Snapshot${cardinality}${t}`;
-      const { copy, copyMatch, extra, place } = CARDINALITY_READ[cardinality];
+      const { count: counted, extra, place } = CARDINALITY_READ[cardinality];
       rules.push(`\t\t.rule((r) => {
 \t\t\tconst retained = retainedOf(session).bind(bySession(session))
 \t\t\tconst { child, package: pkg, path, n, stage, previous: at } = v(retained, "retained")
 \t\t\tconst { variable, ${lvars}${extra} } = v(${rel}, "value")
-${copy}\t\t\treturn r
+\t\t\treturn r
 \t\t\t\t.match(retained, { child, package: pkg, path, n, stage, previous: at })
 \t\t\t\t.match(fields.ItemVariable, { package: pkg, path, identifier: variable, declarationKind: "qti-outcome-declaration" })
-\t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, ${lvars}${extra} })${copyMatch}
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, ${place}${base}, ${vals} })
+\t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, ${lvars}${extra} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, ${place}, ${counted}${base}, ${vals} })
 \t\t})`);
     }
   }
   for (const t of TYPES.filter((type) => fieldsCrossAs(head, type))) {
     const lvars = ledgerCols(t).join(", ");
-    const base = docBase(t, HEAD[t].hasBase && head !== "field_file_names");
+    const base = docBase(t, HEAD[t].hasBase);
     const rel = `fields.SnapshotRecord${t}`;
     rules.push(`\t\t.rule((r) => {
 \t\t\tconst retained = retainedOf(session).bind(bySession(session))
@@ -395,7 +363,7 @@ ${copy}\t\t\treturn r
 \t\t\t\t.match(fields.ItemRecordVariable, { package: pkg, path, identifier: variable, declarationKind: "qti-outcome-declaration" })
 \t\t\t\t.match(fields.SnapshotRecord, { child, package: pkg, path, n, at, variable, field })
 \t\t\t\t.match(${rel}, { child, package: pkg, path, n, at, variable, field, ${lvars} })
-\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, field${base}, ${fieldCols(t, head)} })
+\t\t\t\t.find({ child, package: pkg, path, stage, holds: Type.literal(DocText.fields.holds, "value"), identifier: variable, field${base}, ${docPairs(t)} })
 \t\t})`);
   }
 
@@ -405,8 +373,7 @@ ${copy}\t\t\treturn r
 /**
  * The end of varsOf's completionStatus rule, after which its retained outcomes' rules stand.
  */
-const STATUS_VAR_END = `\t\t\t\t\tidentifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
-\t\t\t\t\tcard: Type.literal(DocVar.fields.card, "single")
+const STATUS_VAR_END = `\t\t\t\t\tidentifier: Type.literal(DocGiven.fields.identifier, "completionStatus")
 \t\t\t\t})
 \t\t})
 `;
@@ -497,6 +464,7 @@ export const STATUS = ["completed", "incomplete", "not_attempted", "unknown"]
 \t\t\t\t\tstage,
 \t\t\t\t\tholds: Type.literal(DocText.fields.holds, "value"),
 \t\t\t\t\tidentifier: Type.literal(DocText.fields.identifier, "completionStatus"),
+\t\t\t\t\tcount: Type.literal(DocText.fields.count, 1n),
 \t\t\t\t\tplace: Type.literal(DocText.fields.place, 0n),
 \t\t\t\t\tbase: Type.literal(DocText.fields.base, "identifier"),
 \t\t\t\t\tvalue: Type.literal(DocText.fields.value, "${status}")
@@ -538,13 +506,6 @@ export const outcomeMember = (
     t === "String"
       ? "value"
       : cols.map(([doc, ledger]) => (ledger === doc ? doc : `${ledger}: ${doc}`)).join(", ");
-  const nh = cardinality === "Record" ? "field_file_names" : "file_names";
-  const nameSrc = t === "File" ? `\n\t\t\tconst { name } = v(out.${nh}, "name")` : "";
-  const nameMatch =
-    t === "File"
-      ? `\n\t\t\t\t.match(out.${nh}, { child, package: pkg, path, stage, holds: "value", identifier, ${pos}, name })`
-      : "";
-  const lfind = t === "File" ? `${columns}, name` : columns;
   const key =
     cardinality === "Multiple"
       ? (MULTI_KEY.get(t) ?? []).map(([column, fn, src]) => `, ${column}: ${fn}(${src})`).join("")
@@ -554,7 +515,6 @@ export const outcomeMember = (
   if (cardinality === "Multiple") {
     // A bag's count is a fold, which reads each fact once by a key: the copies are a query of
     // distinct rows, each copy at its place, and the fold counts them by value.
-    const cvars = dvars.join(", ") + (t === "File" ? ", name" : "");
 
     return `\t.insert(
 \t\t${rel},
@@ -565,19 +525,19 @@ export const outcomeMember = (
 \t\t\t\t\tconst attempt = gradableOf(session).bind(bySession(session))
 \t\t\t\t\tconst { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
 \t\t\t\t\tconst { identifier } = v(out.vars, "outcome")
-\t\t\t\t\tconst { ${vmatch}, place } = v(out.${head}, "value")${replaceAll(nameSrc, "\n\t\t\t", "\n\t\t\t\t\t")}
+\t\t\t\t\tconst { ${vmatch}, place } = v(out.${head}, "value")
 \t\t\t\t\treturn q
 \t\t\t\t\t\t.match(attempt, { child, package: pkg, path, n, stage, at })
 \t\t\t\t\t\t.match(out.vars, { child, package: pkg, path, stage, holds: "value", kind: "outcome", identifier, card: "${card}" })
-\t\t\t\t\t\t.match(out.${head}, { child, package: pkg, path, stage, holds: "value", identifier, place${base}, ${vmatch} })${replaceAll(nameMatch, "\n\t\t\t\t", "\n\t\t\t\t\t\t")}
+\t\t\t\t\t\t.match(out.${head}, { child, package: pkg, path, stage, holds: "value", identifier, place${base}, ${vmatch} })
 \t\t\t\t\t\t.where(q.ne(identifier, "completionStatus"))
-\t\t\t\t\t\t.find({ child, package: pkg, path, n, at, identifier, place, ${cvars} })
+\t\t\t\t\t\t.find({ child, package: pkg, path, n, at, identifier, place, ${vmatch} })
 \t\t\t\t})
 \t\t\t\t.bind(bySession(session))
-\t\t\tconst { child, package: pkg, path, n, at, identifier, place, ${cvars} } = v(bag, "copy")
+\t\t\tconst { child, package: pkg, path, n, at, identifier, place, ${vmatch} } = v(bag, "copy")
 \t\t\treturn r
-\t\t\t\t.match(bag, { child, package: pkg, path, n, at, identifier, place, ${cvars} })
-\t\t\t\t.find({ child, package: pkg, path, n, at, variable: identifier${key}, ${lfind}${group} })
+\t\t\t\t.match(bag, { child, package: pkg, path, n, at, identifier, place, ${vmatch} })
+\t\t\t\t.find({ child, package: pkg, path, n, at, variable: identifier${key}, ${columns}${group} })
 \t\t})
 \t)`;
   }
@@ -589,13 +549,13 @@ export const outcomeMember = (
 \t\t\tconst attempt = gradableOf(session).bind(bySession(session))
 \t\t\tconst { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
 \t\t\tconst { identifier } = v(out.vars, "outcome")
-\t\t\tconst { ${vmatch}${posv} } = v(out.${head}, "value")${nameSrc}
+\t\t\tconst { ${vmatch}${posv} } = v(out.${head}, "value")
 \t\t\treturn r
 \t\t\t\t.match(attempt, { child, package: pkg, path, n, stage, at })
 \t\t\t\t.match(out.vars, { child, package: pkg, path, stage, holds: "value", kind: "outcome", identifier, card: "${card}" })
-\t\t\t\t.match(out.${head}, { child, package: pkg, path, stage, holds: "value", identifier, ${pos}${base}, ${vmatch} })${nameMatch}
+\t\t\t\t.match(out.${head}, { child, package: pkg, path, stage, holds: "value", identifier, ${pos}${base}, ${vmatch} })
 \t\t\t\t.where(r.ne(identifier, "completionStatus"))
-\t\t\t\t.find({ child, package: pkg, path, n, at, variable: identifier${key}, ${lfind}${group} })
+\t\t\t\t.find({ child, package: pkg, path, n, at, variable: identifier${key}, ${columns}${group} })
 \t\t})
 \t)`;
 };

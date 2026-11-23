@@ -35,7 +35,6 @@ const READERS = [
   ["directed_pairs", "directedPairsOf", "doc_directed_pairs"],
   ["points", "pointsOf", "doc_points"],
   ["files", "filesOf", "doc_files"],
-  ["file_names", "fileNamesOf", "doc_file_names"],
   ["field_texts", "fieldTextsOf", "doc_field_texts"],
   ["field_integers", "fieldIntegersOf", "doc_field_integers"],
   ["field_floats", "fieldFloatsOf", "doc_field_floats"],
@@ -44,7 +43,6 @@ const READERS = [
   ["field_directed_pairs", "fieldDirectedPairsOf", "doc_field_directed_pairs"],
   ["field_points", "fieldPointsOf", "doc_field_points"],
   ["field_files", "fieldFilesOf", "doc_field_files"],
-  ["field_file_names", "fieldFileNamesOf", "doc_field_file_names"],
 ] as const;
 
 /**
@@ -153,6 +151,7 @@ const statusText = (status: string): string => `(r) => {
             identifier: Type.literal(DocText.fields.identifier, "completionStatus"),
             package: pkg,
             path,
+            count: Type.literal(DocText.fields.count, 1n),
             place: Type.literal(DocText.fields.place, 0n),
             stage,
             value: Type.literal(DocText.fields.value, "${status}"),
@@ -163,8 +162,8 @@ const statusText = (status: string): string => `(r) => {
  * The grading module's import as the base stage leaves it, and as the members stage needs it.
  */
 const GRADING_IMPORT = [
-  'import {\n  copies,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocVar,\n  patternProgramOf,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
-  'import {\n  copies,\n  DocBase,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocVar,\n  patternProgramOf,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
+  'import {\n  DocGiven,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocumentRun,\n  patternProgramOf,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
+  'import {\n  DocGiven,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocumentRun,\n  patternProgramOf,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
 ] as const;
 
 /**
@@ -196,7 +195,6 @@ export const membersStage = (src: string, fragment: Fragments, views: string): s
   const ${name.slice(0, -"Of".length)} = query(delivery)${rules.map((rule) => `\n    .rule(${rule})`).join("")};\n`;
   });
   const entries = [
-    ["bases", "bases"],
     ["vars", "vars"],
     ...READERS.map(([key, name]) => [key, name.slice(0, -"Of".length)] as const),
   ].toSorted(([a], [b]) => byCodeUnits(a, b));

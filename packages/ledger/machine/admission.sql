@@ -1023,29 +1023,32 @@ $$;
 -- declarations, its values the machine's flat entry takes by its key (the posted responses, and the values in force:
 -- the outcomes after the last attempt and the session's template values, each declared default where none is given)
 -- and its session's validate-responses.
-create function p3.admission_of(bases p3.doc_base[], body p3.body_node[],
+create function p3.admission_of(body p3.body_node[],
   body_attributes p3.body_attribute[], booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[],
   declaration_texts p3.document_text[], declarations p3.declaration_node[], directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[],
-  field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[], field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[],
-  field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[], field_texts p3.doc_field_text[], file_names p3.doc_file_name[],
+  field_files p3.doc_field_file[], field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[],
+  field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[], field_texts p3.doc_field_text[],
   files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[],
   pairs p3.doc_pair[], points p3.doc_point[], runs p3.admission_run[], texts p3.doc_text[],
-  vars p3.doc_var[])
+  vars p3.doc_given[])
 returns p3.admission language sql immutable as $$
   with one as (
     select admission_one(run => r,
       body => array(select b from unnest(body) b where b.package = r.package and b.path = r.path),
       attributes => array(select a from unnest(body_attributes) a where a.package = r.package and a.path = r.path),
-      responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select x.identifier from unnest(vars) x
-        where (x.child, x.package, x.path, x.stage) = (r.child, r.package, r.path, r.stage) and x.holds = 'value' and x.kind = 'response') order by v.identifier),
+      responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select k.identifier from var_kinds(
+        declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
+        attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path)) k where k.kind = 'response') order by v.identifier),
       held => array(select v from start_of(
         declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
         attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path),
         texts => array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path),
         given => g.given) v order by v.identifier)) as x
-    from unnest(runs) r cross join lateral (select values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs,
-      directed_pairs => directed_pairs, points => points, files => files, file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs,
-      field_directed_pairs => field_directed_pairs, field_points => field_points, field_files => field_files, field_file_names => field_file_names) as given) g
+    from unnest(runs) r cross join lateral (select values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, defaulted => false,
+      declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
+      declaration_attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path), texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs,
+      directed_pairs => directed_pairs, points => points, files => files, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs,
+      field_directed_pairs => field_directed_pairs, field_points => field_points, field_files => field_files) as given) g
   )
   select row(
     array(select r from one, unnest((one.x).counts) r),

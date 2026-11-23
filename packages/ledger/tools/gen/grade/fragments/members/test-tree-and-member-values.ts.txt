@@ -185,10 +185,9 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
  * over the call's `child` and `stage` alone, every row keyed by the member's item session, its run
  * key (child, package, path, stage), and held `value`: every value the attempt's snapshot holds, a
  * single's as it is in force over the sitting's sessions alone (`valuesInForce`, an asserted
- * outcome's latest assertion), a multiple's bag as its
- * copies at places from 0, an ordered value at its place and a record's at its field; a variable
- * row for every declared response, NULL ones among them; and, only once its response processing
- * ran (`ProcessedAttempt`), one for every declared outcome and its completion status, so an
+ * outcome's latest assertion), a multiple's bag as its value with its count, an ordered value at
+ * its place and a record's at its field; and, only once its response processing ran
+ * (`ProcessedAttempt`), a header for every declared outcome and its completion status, so an
  * unprocessed attempt leaves its outcomes at the entry's defaults. A member with no attempt gives
  * nothing, and no built-in but completionStatus is read here: the run states numAttempts and
  * duration itself.
@@ -254,80 +253,28 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const processed = processedOf.bind(sitting);
 
   /**
-   * The variables: each declared response, always; each declared outcome and completionStatus, once
-   * the attempt is processed.
+   * The variables given by the members' own record, each a header that may hold no value: each
+   * declared outcome and completionStatus, once the attempt is processed. The machine gives every
+   * declared response a header itself, and reads each variable's kind, cardinality and base type
+   * from the members' declarations (`values_of`).
    */
   const vars = query(delivery)
     .rule((r) => {
-      const { child, package: pkg, path, stage } = v(boundLatest, "attempt");
-      const { identifier, cardinality } = v(fields.ItemVariable, "response");
-      const { token: card } = v(fields.CardinalityToken, "card");
-
-      return r
-        .match(boundLatest, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          cardinality,
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(boundLatest, "attempt");
-      const { identifier } = v(fields.ItemRecordVariable, "response");
-
-      return r
-        .match(boundLatest, { child, package: pkg, path, stage })
-        .match(fields.ItemRecordVariable, {
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .find({
-          card: Type.literal(DocVar.fields.card, "record"),
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier,
-          kind: Type.literal(DocVar.fields.kind, "response"),
-          package: pkg,
-          path,
-          stage,
-        });
-    })
-    .rule((r) => {
       const { child, package: pkg, path, stage } = v(processed, "processed");
-      const { identifier, cardinality } = v(fields.ItemVariable, "outcome");
-      const { token: card } = v(fields.CardinalityToken, "card");
+      const { identifier } = v(fields.ItemVariable, "outcome");
 
       return r
         .match(processed, { child, package: pkg, path, stage })
         .match(fields.ItemVariable, {
-          cardinality,
           declarationKind: "qti-outcome-declaration",
           identifier,
           package: pkg,
           path,
         })
-        .match(fields.CardinalityToken, { cardinality, token: card })
         .find({
-          card,
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -346,11 +293,9 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
           path,
         })
         .find({
-          card: Type.literal(DocVar.fields.card, "record"),
           child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
+          holds: Type.literal(DocGiven.fields.holds, "value"),
           identifier,
-          kind: Type.literal(DocVar.fields.kind, "outcome"),
           package: pkg,
           path,
           stage,
@@ -360,62 +305,9 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       const { child, package: pkg, path, stage } = v(processed, "processed");
 
       return r.match(processed, { child, package: pkg, path, stage }).find({
-        card: Type.literal(DocVar.fields.card, "single"),
         child,
-        holds: Type.literal(DocVar.fields.holds, "value"),
-        identifier: Type.literal(DocVar.fields.identifier, "completionStatus"),
-        kind: Type.literal(DocVar.fields.kind, "outcome"),
-        package: pkg,
-        path,
-        stage,
-      });
-    });
-
-  /**
-   * The base type of each variable above that has one: a record has none.
-   */
-  const bases = query(delivery)
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(boundLatest, "attempt");
-      const { identifier, baseType } = v(fields.ItemVariable, "response");
-      const { token: base } = v(fields.BaseTypeToken, "base");
-
-      return r
-        .match(boundLatest, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          baseType,
-          declarationKind: "qti-response-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.BaseTypeToken, { baseType, token: base })
-        .find({ base, child, identifier, package: pkg, path, stage });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(processed, "processed");
-      const { identifier, baseType } = v(fields.ItemVariable, "outcome");
-      const { token: base } = v(fields.BaseTypeToken, "base");
-
-      return r
-        .match(processed, { child, package: pkg, path, stage })
-        .match(fields.ItemVariable, {
-          baseType,
-          declarationKind: "qti-outcome-declaration",
-          identifier,
-          package: pkg,
-          path,
-        })
-        .match(fields.BaseTypeToken, { baseType, token: base })
-        .find({ base, child, identifier, package: pkg, path, stage });
-    })
-    .rule((r) => {
-      const { child, package: pkg, path, stage } = v(processed, "processed");
-
-      return r.match(processed, { child, package: pkg, path, stage }).find({
-        base: Type.literal(DocBase.fields.base, "identifier"),
-        child,
-        identifier: Type.literal(DocBase.fields.identifier, "completionStatus"),
+        holds: Type.literal(DocGiven.fields.holds, "value"),
+        identifier: Type.literal(DocGiven.fields.identifier, "completionStatus"),
         package: pkg,
         path,
         stage,
