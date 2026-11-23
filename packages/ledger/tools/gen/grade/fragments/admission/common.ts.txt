@@ -22,6 +22,20 @@
       .find({ at, child, n, package: pkg, path, stage });
   });
   const boundLatest = latestOf.bind(answeredKey);
+
+  /**
+   * The answered session, by its key: the one item session the values in force are read over
+   * (`valuesInForce`, each bound to it alone).
+   */
+  const latestSessionOf = query(delivery).rule((r) => {
+    const { child, package: pkg, path, n } = v(boundLatest, "latestSession");
+
+    return r
+      .match(boundLatest, { child, n, package: pkg, path })
+      .find({ child, n, package: pkg, path });
+  });
+  const latestSession = latestSessionOf.bind(answeredKey);
+  const valuesInForce = valuesInForceOf(delivery);
   const processedOf = query(delivery).rule((r) => {
     const { child, package: pkg, path, n, stage, at } = v(boundLatest, "attempt");
 

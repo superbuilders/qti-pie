@@ -60,16 +60,19 @@ const mvRules = (mv: string, name: string): string[] =>
   arrows(readerOf(mv, `  const ${name} = query(delivery)`));
 
 /**
- * The `.match(fields.<rel>, { … })` of a rule: the match, and its keys, in order.
+ * The `.match(<source>, { … })` of a rule: the match, and its keys, in order.
  *
  * @param rule The rule's text.
- * @param rel The relation matched.
+ * @param source The source matched, as the rule names it: a relation of `fields`, or a local.
  * @returns The match and its keys.
  */
-const matchObject = (rule: string, rel: string) => {
+const matchObject = (rule: string, source: string) => {
   const match = matchOf(
     rule,
-    new RegExp(String.raw`\.match\(fields\.${rel}, \{(?<keys>.*?)\}\)`, "su"),
+    new RegExp(
+      String.raw`\.match\(${source.replaceAll(".", String.raw`\.`)}, \{(?<keys>.*?)\}\)`,
+      "su",
+    ),
   );
   const keys = groupOf(match, "keys")
     .trim()
@@ -96,7 +99,7 @@ const posted = (source: string): readonly [string, string] => {
   const cardinality = groupOf(found, "cardinality");
   const base = groupOf(found, "base");
   const name = cardinality.toLowerCase() + base;
-  const { keys, match } = matchObject(source, rel);
+  const { keys, match } = matchObject(source, `fields.${rel}`);
   const fields = keys.filter((key) => !KEYS.has(key.split(":")[0] ?? ""));
   // A float's or a duration's multiple names each distinct value by its bits beside it (the
   // snapshot write's heading, values.ts); the run reads the value alone.
@@ -171,15 +174,17 @@ const inForce = (rule: string): string => {
     return rule;
   }
 
-  const rel = groupOf(
+  const source = groupOf(
     matchOf(
       rule,
-      /v\(fields\.(?<rel>(?:OutcomeInForceSingle|SnapshotMultiple|SnapshotOrdered|SnapshotRecord)\w+), "value"\)/u,
+      /v\((?<source>inForce|fields\.(?:SnapshotMultiple|SnapshotOrdered|SnapshotRecord)\w+), "value"\)/u,
     ),
-    "rel",
+    "source",
   );
-  const declared = rel.startsWith("SnapshotRecord") ? "ItemRecordVariable" : "ItemSessionVariable";
-  const end = endOf(matchObject(rule, rel).match);
+  const declared = source.startsWith("fields.SnapshotRecord")
+    ? "ItemRecordVariable"
+    : "ItemSessionVariable";
+  const end = endOf(matchObject(rule, source).match);
 
   return `${rule.slice(0, end)}.match(fields.${declared}, { declarationKind: "qti-outcome-declaration", identifier: variable, package: pkg, path })${rule.slice(end)}`;
 };

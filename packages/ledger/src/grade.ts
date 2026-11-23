@@ -91,6 +91,578 @@ import { sittingHeading } from "#ledger/sitting-queries.ts";
 type DeliveryLevel = ReturnType<typeof deliveryOf>;
 
 /**
+ * The values in force of the item sessions `sessions` names, each over that relation parameter
+ * alone: `#ledger/assertion-views.ts`'s `valuesInForceOf`, its text as the members stage reads it,
+ * written over the Delivery level, since a grizzle query is written over one level and grade.ts's
+ * builders hold the Delivery level alone.
+ */
+const valuesInForceOf = (delivery: DeliveryLevel) => {
+  const {
+    Attempt,
+    ItemSession,
+    OutcomeAssertion,
+    SnapshotSingleIdentifier,
+    SnapshotSingleBoolean,
+    SnapshotSingleInteger,
+    SnapshotSingleFloat,
+    SnapshotSingleString,
+    SnapshotSinglePoint,
+    SnapshotSinglePair,
+    SnapshotSingleDirectedPair,
+    SnapshotSingleDuration,
+    SnapshotSingleUri,
+    SnapshotSingleFile,
+    AssertedSingleIdentifier,
+    AssertedSingleBoolean,
+    AssertedSingleInteger,
+    AssertedSingleFloat,
+    AssertedSingleString,
+    AssertedSinglePoint,
+    AssertedSinglePair,
+    AssertedSingleDirectedPair,
+    AssertedSingleDuration,
+    AssertedSingleUri,
+    AssertedSingleFile,
+  } = delivery.relations;
+
+  /**
+   * The item sessions a reader names, by their key.
+   */
+  const sessionHeading = {
+    child: ItemSession.fields.child,
+    n: ItemSession.fields.n,
+    package: ItemSession.fields.package,
+    path: ItemSession.fields.path,
+  } as const;
+
+  const inForceAssertions = query(delivery).rule((r) => {
+    const sessions = r.relation("sessions", sessionHeading);
+    const { child, n, package: pkg, path } = v(sessions, "assertedSession");
+    const { asserted, at, variable } = v(OutcomeAssertion, "assertion");
+
+    return r
+      .match(sessions, { child, n, package: pkg, path })
+      .match(OutcomeAssertion, { asserted, at, child, n, package: pkg, path, variable })
+      .find({ asserted: r.max(asserted), at, child, n, package: pkg, path, variable });
+  });
+
+  const identifierInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleIdentifier, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleIdentifier, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleIdentifier, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleIdentifier, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const booleanInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleBoolean, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleBoolean, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleBoolean, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleBoolean, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const integerInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleInteger, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleInteger, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleInteger, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleInteger, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const floatInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleFloat, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleFloat, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleFloat, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleFloat, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const stringInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleString, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleString, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleString, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleString, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const pointInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        x,
+        y,
+      } = v(SnapshotSinglePoint, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSinglePoint, { at, child, n, package: pkg, path, variable, x, y })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, variable, x, y });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { x, y } = v(AssertedSinglePoint, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSinglePoint, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          variable,
+          x,
+          y,
+        })
+        .find({ at, child, n, package: pkg, path, variable, x, y });
+    });
+
+  const pairInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        least,
+        greatest,
+      } = v(SnapshotSinglePair, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSinglePair, {
+          at,
+          child,
+          greatest,
+          least,
+          n,
+          package: pkg,
+          path,
+          variable,
+        })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, greatest, least, n, package: pkg, path, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { least, greatest } = v(AssertedSinglePair, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSinglePair, {
+          asserted,
+          at,
+          child,
+          greatest,
+          least,
+          n,
+          package: pkg,
+          path,
+          variable,
+        })
+        .find({ at, child, greatest, least, n, package: pkg, path, variable });
+    });
+
+  const directedPairInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        source,
+        target,
+      } = v(SnapshotSingleDirectedPair, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleDirectedPair, {
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          source,
+          target,
+          variable,
+        })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, source, target, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { source, target } = v(AssertedSingleDirectedPair, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleDirectedPair, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          source,
+          target,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, source, target, variable });
+    });
+
+  const durationInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleDuration, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleDuration, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleDuration, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleDuration, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const uriInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleUri, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleUri, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleUri, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleUri, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const fileInForce = query(delivery)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        digest,
+        name,
+        type,
+      } = v(SnapshotSingleFile, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleFile, {
+          at,
+          child,
+          digest,
+          n,
+          name,
+          package: pkg,
+          path,
+          type,
+          variable,
+        })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, digest, n, name, package: pkg, path, type, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { digest, name, type } = v(AssertedSingleFile, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleFile, {
+          asserted,
+          at,
+          child,
+          digest,
+          n,
+          name,
+          package: pkg,
+          path,
+          type,
+          variable,
+        })
+        .find({ at, child, digest, n, name, package: pkg, path, type, variable });
+    });
+
+  return {
+    Assertion: inForceAssertions,
+    Boolean: booleanInForce,
+    DirectedPair: directedPairInForce,
+    Duration: durationInForce,
+    File: fileInForce,
+    Float: floatInForce,
+    Identifier: identifierInForce,
+    Integer: integerInForce,
+    Pair: pairInForce,
+    Point: pointInForce,
+    String: stringInForce,
+    Uri: uriInForce,
+  } as const;
+};
+
+/**
  * The arguments of the machine's run over a sitting's attempts, each a query over the call's
  * `child` and `stage`: the program, the declarations, the run and the values of every item session
  * of the stage whose earliest attempt its response processing has not run for (`gradable`), as
@@ -8022,6 +8594,20 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       .find({ at, child, n, package: pkg, path, stage });
   });
   const boundLatest = latestOf.bind(answeredKey);
+
+  /**
+   * The answered session, by its key: the one item session the values in force are read over
+   * (`valuesInForce`, each bound to it alone).
+   */
+  const latestSessionOf = query(delivery).rule((r) => {
+    const { child, package: pkg, path, n } = v(boundLatest, "latestSession");
+
+    return r
+      .match(boundLatest, { child, n, package: pkg, path })
+      .find({ child, n, package: pkg, path });
+  });
+  const latestSession = latestSessionOf.bind(answeredKey);
+  const valuesInForce = valuesInForceOf(delivery);
   const processedOf = query(delivery).rule((r) => {
     const { child, package: pkg, path, n, stage, at } = v(boundLatest, "attempt");
 
@@ -8618,11 +9204,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleIdentifier, "value");
+      const inForce = valuesInForce.Identifier.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleIdentifier, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -8725,19 +9312,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleString, "value");
+      const inForce = valuesInForce.String.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleString, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, value, variable })
         .match(fields.ItemSessionVariable, {
           declarationKind: "qti-outcome-declaration",
           identifier: variable,
@@ -8832,19 +9412,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleUri, "value");
+      const inForce = valuesInForce.Uri.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleUri, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, value, variable })
         .match(fields.ItemSessionVariable, {
           declarationKind: "qti-outcome-declaration",
           identifier: variable,
@@ -9894,11 +10467,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleInteger, "value");
+      const inForce = valuesInForce.Integer.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleInteger, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -10403,19 +10977,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleFloat, "value");
+      const inForce = valuesInForce.Float.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleFloat, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, value, variable })
         .match(fields.ItemSessionVariable, {
           declarationKind: "qti-outcome-declaration",
           identifier: variable,
@@ -10510,11 +11077,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleDuration, "value");
+      const inForce = valuesInForce.Duration.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleDuration, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -11210,11 +11778,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleBoolean, "value");
+      const inForce = valuesInForce.Boolean.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleBoolean, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -11646,11 +12215,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, least, greatest } = v(fields.OutcomeInForceSinglePair, "value");
+      const inForce = valuesInForce.Pair.bind({ sessions: latestSession });
+      const { variable, least, greatest } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSinglePair, {
+        .match(inForce, {
           at,
           child,
           greatest,
@@ -12106,11 +12676,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, source, target } = v(fields.OutcomeInForceSingleDirectedPair, "value");
+      const inForce = valuesInForce.DirectedPair.bind({ sessions: latestSession });
+      const { variable, source, target } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleDirectedPair, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -12584,20 +13155,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, x, y } = v(fields.OutcomeInForceSinglePoint, "value");
+      const inForce = valuesInForce.Point.bind({ sessions: latestSession });
+      const { variable, x, y } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSinglePoint, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          variable,
-          x,
-          y,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, variable, x, y })
         .match(fields.ItemSessionVariable, {
           declarationKind: "qti-outcome-declaration",
           identifier: variable,
@@ -13047,11 +13610,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.OutcomeInForceSingleFile, "value");
+      const inForce = valuesInForce.File.bind({ sessions: latestSession });
+      const { variable, digest, name, type } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleFile, {
+        .match(inForce, {
           at,
           child,
           digest,
@@ -13537,11 +14101,12 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
     .rule((r) => {
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.OutcomeInForceSingleFile, "value");
+      const inForce = valuesInForce.File.bind({ sessions: latestSession });
+      const { variable, digest, name, type } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleFile, {
+        .match(inForce, {
           at,
           child,
           digest,
@@ -15223,6 +15788,21 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       .find({ at, child, n, package: pkg, path, stage });
   });
   const boundLatestIn = (r: Rule<DeliveryLevel>) => latestOf.bind(memberKeyIn(r));
+
+  /**
+   * The answered session, by its key: the one item session the values in force are read over
+   * (`valuesInForce`, each bound to it alone).
+   */
+  const latestSessionOf = query(delivery).rule((r) => {
+    const boundLatest = boundLatestIn(r);
+    const { child, package: pkg, path, n } = v(boundLatest, "latestSession");
+
+    return r
+      .match(boundLatest, { child, n, package: pkg, path })
+      .find({ child, n, package: pkg, path });
+  });
+  const latestSessionIn = (r: Rule<DeliveryLevel>) => latestSessionOf.bind(memberKeyIn(r));
+  const valuesInForce = valuesInForceOf(delivery);
   const processedOf = query(delivery).rule((r) => {
     const boundLatest = boundLatestIn(r);
     const { child, package: pkg, path, n, stage, at } = v(boundLatest, "attempt");
@@ -15870,13 +16450,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleIdentifier, "value");
+      const inForce = valuesInForce.Identifier.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleIdentifier, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -15980,21 +16562,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleString, "value");
+      const inForce = valuesInForce.String.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleString, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, value, variable })
         .match(fields.ItemSessionVariable, {
           declarationKind: "qti-outcome-declaration",
           identifier: variable,
@@ -16090,21 +16666,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleUri, "value");
+      const inForce = valuesInForce.Uri.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleUri, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, value, variable })
         .match(fields.ItemSessionVariable, {
           declarationKind: "qti-outcome-declaration",
           identifier: variable,
@@ -17189,13 +17759,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleInteger, "value");
+      const inForce = valuesInForce.Integer.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleInteger, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -17716,21 +18288,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleFloat, "value");
+      const inForce = valuesInForce.Float.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleFloat, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, value, variable })
         .match(fields.ItemSessionVariable, {
           declarationKind: "qti-outcome-declaration",
           identifier: variable,
@@ -17826,13 +18392,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleDuration, "value");
+      const inForce = valuesInForce.Duration.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleDuration, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -18550,13 +19118,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleBoolean, "value");
+      const inForce = valuesInForce.Boolean.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleBoolean, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -19001,13 +19571,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, least, greatest } = v(fields.OutcomeInForceSinglePair, "value");
+      const inForce = valuesInForce.Pair.bind({ sessions: latestSession });
+      const { variable, least, greatest } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSinglePair, {
+        .match(inForce, {
           at,
           child,
           greatest,
@@ -19476,13 +20048,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, source, target } = v(fields.OutcomeInForceSingleDirectedPair, "value");
+      const inForce = valuesInForce.DirectedPair.bind({ sessions: latestSession });
+      const { variable, source, target } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleDirectedPair, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -19969,22 +20543,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, x, y } = v(fields.OutcomeInForceSinglePoint, "value");
+      const inForce = valuesInForce.Point.bind({ sessions: latestSession });
+      const { variable, x, y } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSinglePoint, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          variable,
-          x,
-          y,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, variable, x, y })
         .match(fields.ItemSessionVariable, {
           declarationKind: "qti-outcome-declaration",
           identifier: variable,
@@ -20447,13 +21014,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.OutcomeInForceSingleFile, "value");
+      const inForce = valuesInForce.File.bind({ sessions: latestSession });
+      const { variable, digest, name, type } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleFile, {
+        .match(inForce, {
           at,
           child,
           digest,
@@ -20952,13 +21521,15 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.OutcomeInForceSingleFile, "value");
+      const inForce = valuesInForce.File.bind({ sessions: latestSession });
+      const { variable, digest, name, type } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleFile, {
+        .match(inForce, {
           at,
           child,
           digest,
@@ -31699,13 +32270,14 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
  * (P4-TEST's run, `#ledger/test-run-call.ts`, the entry's twenty `doc_*` arguments), each a query
  * over the call's `child` and `stage` alone, every row keyed by the member's item session, its run
  * key (child, package, path, stage), and held `value`: every value the attempt's snapshot holds, a
- * single's as it is in force (`OutcomeInForceSingle<T>`, an asserted outcome's latest assertion), a
- * multiple's bag as its copies at places from 0, an ordered value at its place and a record's at
- * its field; a variable row for every declared response, NULL ones among them; and, only once its
- * response processing ran (`ProcessedAttempt`), one for every declared outcome and its completion
- * status, so an unprocessed attempt leaves its outcomes at the entry's defaults. A member with no
- * attempt gives nothing, and no built-in but completionStatus is read here: the run states
- * numAttempts and duration itself.
+ * single's as it is in force over the sitting's sessions alone (`valuesInForce`, an asserted
+ * outcome's latest assertion), a multiple's bag as its
+ * copies at places from 0, an ordered value at its place and a record's at its field; a variable
+ * row for every declared response, NULL ones among them; and, only once its response processing
+ * ran (`ProcessedAttempt`), one for every declared outcome and its completion status, so an
+ * unprocessed attempt leaves its outcomes at the entry's defaults. A member with no attempt gives
+ * nothing, and no built-in but completionStatus is read here: the run states numAttempts and
+ * duration itself.
  */
 export const memberValuesOf = (delivery: DeliveryLevel) => {
   const fields = delivery.relations;
@@ -31760,6 +32332,21 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       .find({ at, child, n, package: pkg, path, stage });
   });
   const boundLatestIn = (r: Rule<DeliveryLevel>) => latestOf.bind(sittingsIn(r));
+
+  /**
+   * Each item session of the sitting with an attempt, by its key: the item sessions the values in
+   * force are read over (`valuesInForce`, each bound to them alone).
+   */
+  const latestSessionOf = query(delivery).rule((r) => {
+    const boundLatest = boundLatestIn(r);
+    const { child, package: pkg, path, n } = v(boundLatest, "latestSession");
+
+    return r
+      .match(boundLatest, { child, n, package: pkg, path })
+      .find({ child, n, package: pkg, path });
+  });
+  const latestSessionIn = (r: Rule<DeliveryLevel>) => latestSessionOf.bind(sittingsIn(r));
+  const valuesInForce = valuesInForceOf(delivery);
 
   /**
    * Each latest attempt whose response processing ran.
@@ -31958,13 +32545,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const texts = query(delivery)
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleIdentifier, "value");
+      const inForce = valuesInForce.Identifier.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleIdentifier, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -32050,21 +32639,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleString, "value");
+      const inForce = valuesInForce.String.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleString, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, value, variable })
         .find({
           base: Type.literal(DocText.fields.base, "string"),
           child,
@@ -32142,21 +32725,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleUri, "value");
+      const inForce = valuesInForce.Uri.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleUri, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, value, variable })
         .find({
           base: Type.literal(DocText.fields.base, "uri"),
           child,
@@ -32347,13 +32924,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const integers = query(delivery)
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleInteger, "value");
+      const inForce = valuesInForce.Integer.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleInteger, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -32441,21 +33020,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const floats = query(delivery)
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleFloat, "value");
+      const inForce = valuesInForce.Float.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleFloat, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, value, variable })
         .find({
           base: Type.literal(DocText.fields.base, "float"),
           child,
@@ -32533,13 +33106,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
     })
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleDuration, "value");
+      const inForce = valuesInForce.Duration.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleDuration, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -32630,13 +33205,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const booleans = query(delivery)
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, value } = v(fields.OutcomeInForceSingleBoolean, "value");
+      const inForce = valuesInForce.Boolean.bind({ sessions: latestSession });
+      const { variable, value } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleBoolean, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -32724,13 +33301,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const pairs = query(delivery)
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, least, greatest } = v(fields.OutcomeInForceSinglePair, "value");
+      const inForce = valuesInForce.Pair.bind({ sessions: latestSession });
+      const { variable, least, greatest } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSinglePair, {
+        .match(inForce, {
           at,
           child,
           greatest,
@@ -32824,13 +33403,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const directedPairs = query(delivery)
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, source, target } = v(fields.OutcomeInForceSingleDirectedPair, "value");
+      const inForce = valuesInForce.DirectedPair.bind({ sessions: latestSession });
+      const { variable, source, target } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleDirectedPair, {
+        .match(inForce, {
           at,
           child,
           n,
@@ -32924,22 +33505,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const points = query(delivery)
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, x, y } = v(fields.OutcomeInForceSinglePoint, "value");
+      const inForce = valuesInForce.Point.bind({ sessions: latestSession });
+      const { variable, x, y } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSinglePoint, {
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          variable,
-          x,
-          y,
-        })
+        .match(inForce, { at, child, n, package: pkg, path, variable, x, y })
         .find({
           child,
           holds: Type.literal(DocText.fields.holds, "value"),
@@ -33024,13 +33598,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const files = query(delivery)
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.OutcomeInForceSingleFile, "value");
+      const inForce = valuesInForce.File.bind({ sessions: latestSession });
+      const { variable, digest, name, type } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleFile, {
+        .match(inForce, {
           at,
           child,
           digest,
@@ -33127,13 +33703,15 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
   const fileNames = query(delivery)
     .rule((r) => {
       const boundLatest = boundLatestIn(r);
+      const latestSession = latestSessionIn(r);
       const attempt = boundLatest;
       const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
-      const { variable, digest, name, type } = v(fields.OutcomeInForceSingleFile, "value");
+      const inForce = valuesInForce.File.bind({ sessions: latestSession });
+      const { variable, digest, name, type } = v(inForce, "value");
 
       return r
         .match(attempt, { at, child, n, package: pkg, path, stage })
-        .match(fields.OutcomeInForceSingleFile, {
+        .match(inForce, {
           at,
           child,
           digest,

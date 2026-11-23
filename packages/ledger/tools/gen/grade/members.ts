@@ -4,9 +4,11 @@ import {
   byCodeUnits,
   count,
   indexOf,
+  lastIndexBefore,
   must,
   readerOf,
   replaceAll,
+  replaceFirst,
 } from "#tools/gen/grade/text.ts";
 
 /**
@@ -14,8 +16,11 @@ import {
  * `memberValuesOf` (P4-TEST's spec), appended to the base stage. The member values' doc readers
  * are attemptArgumentsOf's own snapshot readers, read out of the base stage's text and kept rule
  * by rule: a rule over a session's template values (ItemSessionValue*) or the previous attempt's
- * status is dropped, and a single's sidecar is read through its value in force
- * (OutcomeInForceSingle<T>, the same heading).
+ * status is dropped, and a single's sidecar is read through its value in force over the latest
+ * attempt's session alone (`valuesInForceOf`, the same heading). That definition is
+ * `#ledger/assertion-views.ts`'s `valuesInForceOf`, whose text this stage writes into grade.ts over
+ * the Delivery level: a grizzle query is written over one level, and grade.ts's builders hold the
+ * Delivery level alone.
  */
 
 /**
@@ -53,16 +58,80 @@ const kept = (rule: string): boolean =>
   ["ItemSessionValue", "boundPrevious", "boundOrdinals"].every((name) => !rule.includes(name));
 
 /**
- * The rule with a single's snapshot sidecar read as its value in force.
+ * The rule with a single's snapshot sidecar read as its value in force, over the latest attempt's
+ * item session alone (`latestSession`): the in-force query of its base type bound to it, matched in
+ * the sidecar's place.
  *
  * @param rule The rule's text.
  * @returns The rule over the values in force.
  */
-const inForce = (rule: string): string =>
-  rule.replaceAll(
-    /fields\.SnapshotSingle(?<type>[A-Z]\w*)/gu,
-    (_match, type: string) => `fields.OutcomeInForceSingle${type}`,
+const inForce = (rule: string): string => {
+  const types = [...rule.matchAll(/fields\.SnapshotSingle(?<type>[A-Z]\w*)/gu)].map(
+    (match) => match.groups?.["type"] ?? "",
   );
+  if (types.length === 0) {
+    return rule;
+  }
+
+  const [type = ""] = types;
+  must(
+    types.length === 2 && types.every((each) => each === type),
+    `a single's rule reads its sidecar once: ${rule}`,
+  );
+
+  const read = `v(fields.SnapshotSingle${type}, "value")`;
+  must(count(rule, read) === 1, `the single's read: ${rule}`);
+
+  const statement = lastIndexBefore(rule, "const {", indexOf(rule, read));
+  must(statement !== -1, `the single's destructuring: ${rule}`);
+
+  const bound = `const inForce = valuesInForce.${type}.bind({ sessions: latestSession });\n`;
+
+  return replaceFirst(
+    replaceFirst(
+      `${rule.slice(0, statement)}${bound}${rule.slice(statement)}`,
+      read,
+      'v(inForce, "value")',
+    ),
+    `.match(fields.SnapshotSingle${type}, {`,
+    ".match(inForce, {",
+  );
+};
+
+/**
+ * Grade.ts's copy of `#ledger/assertion-views.ts`'s `valuesInForceOf`, over the Delivery level: its
+ * text whole, written over `delivery`, the level grade.ts's builders hold.
+ *
+ * @param views The text of `#ledger/assertion-views.ts`.
+ * @returns The copy's text.
+ */
+const valuesInForceText = (views: string): string => {
+  const head = "export const valuesInForceOf = (ledger: LedgerLevel) => {\n";
+  const start = indexOf(views, head);
+  const end = indexOf(views, "\n};\n", start) + "\n};\n".length;
+  const body = views.slice(start + head.length, end);
+  must(count(body, "} = ledger.relations;") === 1, "valuesInForceOf's one read of its level");
+
+  const written = replaceAll(
+    replaceFirst(body, "} = ledger.relations;", "} = delivery.relations;"),
+    "query(ledger)",
+    "query(delivery)",
+  );
+  must(
+    !/\bledger\b/u.test(written.replaceAll(/\/\*\*[\s\S]*?\*\//gu, "")),
+    "no other read of the level",
+  );
+
+  return `/**
+ * The values in force of the item sessions \`sessions\` names, each over that relation parameter
+ * alone: \`#ledger/assertion-views.ts\`'s \`valuesInForceOf\`, its text as the members stage reads it,
+ * written over the Delivery level, since a grizzle query is written over one level and grade.ts's
+ * builders hold the Delivery level alone.
+ */
+const valuesInForceOf = (delivery: DeliveryLevel) => {
+${written}
+`;
+};
 
 /**
  * The rule giving a processed latest attempt's completion status of one value.
@@ -103,9 +172,10 @@ const GRADING_IMPORT = [
  *
  * @param src The base stage's text, formatted.
  * @param fragment The generator's fragments.
+ * @param views The text of `#ledger/assertion-views.ts`, whose `valuesInForceOf` the stage copies.
  * @returns The stage's text.
  */
-export const membersStage = (src: string, fragment: Fragments): string => {
+export const membersStage = (src: string, fragment: Fragments, views: string): string => {
   const start = indexOf(src, "export const attemptArgumentsOf = ");
   const block = src.slice(start, indexOf(src, "\nexport const gradeAttemptOf = ", start));
   const readers = READERS.map(([key, name, doc]) => {
@@ -131,7 +201,12 @@ export const membersStage = (src: string, fragment: Fragments): string => {
     ...READERS.map(([key, name]) => [key, name.slice(0, -"Of".length)] as const),
   ].toSorted(([a], [b]) => byCodeUnits(a, b));
   const ret = entries.map(([key, local]) => (key === local ? key : `${key}: ${local}`)).join(", ");
-  const out = `${src.replace(/\n+$/u, "")}\n${fragment("members/test-tree-and-member-values")}${readers.join("")}\n  return { ${ret} } as const;\n};\n`;
+  const builders = indexOf(src, "export const gradeArgumentsOf = ");
+  const doc = lastIndexBefore(src, "/**", builders);
+  must(doc !== -1, "gradeArgumentsOf's doc comment");
+
+  const withViews = `${src.slice(0, doc)}${valuesInForceText(views)}\n${src.slice(doc)}`;
+  const out = `${withViews.replace(/\n+$/u, "")}\n${fragment("members/test-tree-and-member-values")}${readers.join("")}\n  return { ${ret} } as const;\n};\n`;
   const [single, multiple] = GRADING_IMPORT;
   must(count(out, single) === 1, "the grading module's one import");
 

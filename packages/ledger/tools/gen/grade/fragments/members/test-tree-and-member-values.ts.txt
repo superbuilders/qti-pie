@@ -163,8 +163,9 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
  * Each member's state after its latest attempt, processed or not, as the flat test entry reads it
  * (P4-TEST's run, `#ledger/test-run-call.ts`, the entry's twenty `doc_*` arguments), each a query
  * over the call's `child` and `stage` alone, every row keyed by the member's item session, its run
- * key (child, package, path, stage), and held `value`: every value the attempt's snapshot holds, a single's as it is in force
- * (`OutcomeInForceSingle<T>`, an asserted outcome's latest assertion), a multiple's bag as its
+ * key (child, package, path, stage), and held `value`: every value the attempt's snapshot holds, a
+ * single's as it is in force over the sitting's sessions alone (`valuesInForce`, an asserted
+ * outcome's latest assertion), a multiple's bag as its
  * copies at places from 0, an ordered value at its place and a record's at its field; a variable
  * row for every declared response, NULL ones among them; and, only once its response processing
  * ran (`ProcessedAttempt`), one for every declared outcome and its completion status, so an
@@ -204,6 +205,20 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
       .find({ at, child, n, package: pkg, path, stage });
   });
   const boundLatest = latestOf.bind(sitting);
+
+  /**
+   * Each item session of the sitting with an attempt, by its key: the item sessions the values in
+   * force are read over (`valuesInForce`, each bound to them alone).
+   */
+  const latestSessionOf = query(delivery).rule((r) => {
+    const { child, package: pkg, path, n } = v(boundLatest, "latestSession");
+
+    return r
+      .match(boundLatest, { child, n, package: pkg, path })
+      .find({ child, n, package: pkg, path });
+  });
+  const latestSession = latestSessionOf.bind(sitting);
+  const valuesInForce = valuesInForceOf(delivery);
 
   /**
    * Each latest attempt whose response processing ran.

@@ -222,15 +222,32 @@ export const awaitingHumanEvaluationsOf = (ledger: LedgerLevel) => {
 const exactDoubleIntegers = 2n ** 53n;
 
 /**
- * The Delivery level's relations and laws of outcomes' assertions over the ledger `ledger`, for the
- * level to spread.
+ * The values in force of the item sessions `sessions` names, each a query over that relation
+ * parameter (the item session's key, `child`, `package`, `path` and `n`; an instant is the
+ * database's clock's alone, so no parameter holds an attempt's `at`), every rule of each matching
+ * the bound sessions first, so a reader that names one session reads that session's rows alone:
  *
- * @param ledger - The ledger level.
- * @returns The derived relations and the laws.
+ * - **Assertion**: each asserted outcome of a session's attempt with its latest assertion's instant,
+ *   the one in force (the owner's ruling, 2026-11-19: "the latest wins"). An assertion's clock is
+ *   the outcome's of the attempt, so the latest is the last committed.
+ * - **`<BaseType>`**: each single variable's value after a session's attempt, as Results Reporting
+ *   reports it: the value response processing left (`SnapshotSingle<BaseType>`), unless an
+ *   assertion scored the variable, and then its latest assertion's value.
+ *
+ * Unrestricted, each is bound to every item session: {@link assertionViewsOf}'s `InForceAssertion`
+ * and `OutcomeInForceSingle<BaseType>`, which the relations of the Delivery level and every other
+ * reader read. The grade's readers (`#ledger/grade.ts`, over the Delivery level) read the same
+ * definition bound to the sessions they read, the generator's copy of this function's text over
+ * the Delivery level (`tools/gen/grade/members.ts`): a grizzle query is written over one level, and
+ * the grade's builders hold the Delivery level alone.
+ *
+ * @param ledger - The level the queries are written over.
+ * @returns Each value in force, by its base type, and the assertions in force.
  */
-export const assertionViewsOf = (ledger: LedgerLevel) => {
+export const valuesInForceOf = (ledger: LedgerLevel) => {
   const {
     Attempt,
+    ItemSession,
     OutcomeAssertion,
     SnapshotSingleIdentifier,
     SnapshotSingleBoolean,
@@ -256,31 +273,581 @@ export const assertionViewsOf = (ledger: LedgerLevel) => {
     AssertedSingleFile,
   } = ledger.relations;
 
-  const externallyScored = externallyScoredOf(ledger);
-
   /**
-   * Each asserted outcome of an attempt with its latest assertion's instant, as
-   * {@link externallyScored} is read.
+   * The item sessions a reader names, by their key.
    */
+  const sessionHeading = {
+    child: ItemSession.fields.child,
+    n: ItemSession.fields.n,
+    package: ItemSession.fields.package,
+    path: ItemSession.fields.path,
+  } as const;
+
   const inForceAssertions = query(ledger).rule((r) => {
-    const {
-      child,
-      package: pkg,
-      path,
-      n,
-      at,
-      variable,
-      asserted,
-    } = v(OutcomeAssertion, "assertion");
+    const sessions = r.relation("sessions", sessionHeading);
+    const { child, n, package: pkg, path } = v(sessions, "assertedSession");
+    const { asserted, at, variable } = v(OutcomeAssertion, "assertion");
 
     return r
+      .match(sessions, { child, n, package: pkg, path })
       .match(OutcomeAssertion, { asserted, at, child, n, package: pkg, path, variable })
       .find({ asserted: r.max(asserted), at, child, n, package: pkg, path, variable });
   });
 
+  const identifierInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleIdentifier, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleIdentifier, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleIdentifier, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleIdentifier, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const booleanInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleBoolean, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleBoolean, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleBoolean, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleBoolean, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const integerInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleInteger, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleInteger, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleInteger, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleInteger, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const floatInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleFloat, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleFloat, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleFloat, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleFloat, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const stringInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleString, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleString, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleString, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleString, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const pointInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        x,
+        y,
+      } = v(SnapshotSinglePoint, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSinglePoint, { at, child, n, package: pkg, path, variable, x, y })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, variable, x, y });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { x, y } = v(AssertedSinglePoint, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSinglePoint, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          variable,
+          x,
+          y,
+        })
+        .find({ at, child, n, package: pkg, path, variable, x, y });
+    });
+
+  const pairInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        least,
+        greatest,
+      } = v(SnapshotSinglePair, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSinglePair, {
+          at,
+          child,
+          greatest,
+          least,
+          n,
+          package: pkg,
+          path,
+          variable,
+        })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, greatest, least, n, package: pkg, path, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { least, greatest } = v(AssertedSinglePair, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSinglePair, {
+          asserted,
+          at,
+          child,
+          greatest,
+          least,
+          n,
+          package: pkg,
+          path,
+          variable,
+        })
+        .find({ at, child, greatest, least, n, package: pkg, path, variable });
+    });
+
+  const directedPairInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        source,
+        target,
+      } = v(SnapshotSingleDirectedPair, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleDirectedPair, {
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          source,
+          target,
+          variable,
+        })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, source, target, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { source, target } = v(AssertedSingleDirectedPair, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleDirectedPair, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          source,
+          target,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, source, target, variable });
+    });
+
+  const durationInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleDuration, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleDuration, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleDuration, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleDuration, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const uriInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        value,
+      } = v(SnapshotSingleUri, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleUri, { at, child, n, package: pkg, path, value, variable })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, n, package: pkg, path, value, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { value } = v(AssertedSingleUri, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleUri, {
+          asserted,
+          at,
+          child,
+          n,
+          package: pkg,
+          path,
+          value,
+          variable,
+        })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    });
+
+  const fileInForce = query(ledger)
+    .rule((r) => {
+      const sessions = r.relation("sessions", sessionHeading);
+      const {
+        child,
+        package: pkg,
+        path,
+        n,
+        at,
+        variable,
+        digest,
+        name,
+        type,
+      } = v(SnapshotSingleFile, "processed");
+
+      return r
+        .match(sessions, { child, n, package: pkg, path })
+        .match(SnapshotSingleFile, {
+          at,
+          child,
+          digest,
+          n,
+          name,
+          package: pkg,
+          path,
+          type,
+          variable,
+        })
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .find({ at, child, digest, n, name, package: pkg, path, type, variable });
+    })
+    .rule((r) => {
+      const inForce = inForceAssertions.bind({
+        sessions: r.relation("sessions", sessionHeading),
+      });
+      const { child, package: pkg, path, n, at, variable, asserted } = v(inForce, "inForce");
+      const { digest, name, type } = v(AssertedSingleFile, "asserted");
+
+      return r
+        .match(inForce, { asserted, at, child, n, package: pkg, path, variable })
+        .match(AssertedSingleFile, {
+          asserted,
+          at,
+          child,
+          digest,
+          n,
+          name,
+          package: pkg,
+          path,
+          type,
+          variable,
+        })
+        .find({ at, child, digest, n, name, package: pkg, path, type, variable });
+    });
+
+  return {
+    Assertion: inForceAssertions,
+    Boolean: booleanInForce,
+    DirectedPair: directedPairInForce,
+    Duration: durationInForce,
+    File: fileInForce,
+    Float: floatInForce,
+    Identifier: identifierInForce,
+    Integer: integerInForce,
+    Pair: pairInForce,
+    Point: pointInForce,
+    String: stringInForce,
+    Uri: uriInForce,
+  } as const;
+};
+
+/**
+ * The Delivery level's relations and laws of outcomes' assertions over the ledger `ledger`, for the
+ * level to spread.
+ *
+ * @param ledger - The ledger level.
+ * @returns The derived relations and the laws.
+ */
+export const assertionViewsOf = (ledger: LedgerLevel) => {
+  const { Attempt, ItemSession, OutcomeAssertion } = ledger.relations;
+
+  const externallyScored = externallyScoredOf(ledger);
+
   const ExternallyScored = derived("ExternallyScored", externallyScored);
 
-  const InForceAssertion = derived("InForceAssertion", inForceAssertions);
+  /**
+   * The values in force ({@link valuesInForceOf}) over every item session, which the relations of
+   * this level and the readers of the derived relations below read.
+   */
+  const inForce = valuesInForceOf(ledger);
+  const everySession = query(ledger).rule((r) => {
+    const { child, n, package: pkg, path } = v(ItemSession, "everySession");
+
+    return r
+      .match(ItemSession, { child, n, package: pkg, path })
+      .find({ child, n, package: pkg, path });
+  });
+
+  const InForceAssertion = derived(
+    "InForceAssertion",
+    query(ledger).rule((r) => {
+      const every = inForce.Assertion.bind({ sessions: everySession });
+      const { asserted, at, child, n, package: pkg, path, variable } = v(every, "inForce");
+
+      return r
+        .match(every, { asserted, at, child, n, package: pkg, path, variable })
+        .find({ asserted, at, child, n, package: pkg, path, variable });
+    }),
+  );
 
   /**
    * Each external-scored outcome of an attempt that no assertion has scored yet, as
@@ -302,199 +869,136 @@ export const assertionViewsOf = (ledger: LedgerLevel) => {
 
   const OutcomeInForceSingleIdentifier = derived(
     "OutcomeInForceSingleIdentifier",
-    query(ledger)
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          value,
-        } = v(SnapshotSingleIdentifier, "processed");
+    query(ledger).rule((r) => {
+      const every = inForce.Identifier.bind({ sessions: everySession });
+      const { at, child, n, package: pkg, path, value, variable } = v(every, "inForce");
 
-        return r
-          .match(SnapshotSingleIdentifier, { at, child, n, package: pkg, path, value, variable })
-          .match(Attempt, { at, child, n, package: pkg, path })
-          .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-          .find({ at, child, n, package: pkg, path, value, variable });
-      })
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          asserted,
-        } = v(inForceAssertions, "inForce");
-        const { value } = v(AssertedSingleIdentifier, "asserted");
-
-        return r
-          .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-          .match(AssertedSingleIdentifier, {
-            asserted,
-            at,
-            child,
-            n,
-            package: pkg,
-            path,
-            value,
-            variable,
-          })
-          .find({ at, child, n, package: pkg, path, value, variable });
-      }),
+      return r
+        .match(every, { at, child, n, package: pkg, path, value, variable })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    }),
   );
   const OutcomeInForceSingleBoolean = derived(
     "OutcomeInForceSingleBoolean",
-    query(ledger)
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          value,
-        } = v(SnapshotSingleBoolean, "processed");
+    query(ledger).rule((r) => {
+      const every = inForce.Boolean.bind({ sessions: everySession });
+      const { at, child, n, package: pkg, path, value, variable } = v(every, "inForce");
 
-        return r
-          .match(SnapshotSingleBoolean, { at, child, n, package: pkg, path, value, variable })
-          .match(Attempt, { at, child, n, package: pkg, path })
-          .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-          .find({ at, child, n, package: pkg, path, value, variable });
-      })
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          asserted,
-        } = v(inForceAssertions, "inForce");
-        const { value } = v(AssertedSingleBoolean, "asserted");
-
-        return r
-          .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-          .match(AssertedSingleBoolean, {
-            asserted,
-            at,
-            child,
-            n,
-            package: pkg,
-            path,
-            value,
-            variable,
-          })
-          .find({ at, child, n, package: pkg, path, value, variable });
-      }),
+      return r
+        .match(every, { at, child, n, package: pkg, path, value, variable })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    }),
   );
-  /**
-   * An attempt's single integer in force, as a plain query: a relation of this level reads it,
-   * never the derived relation beside it (`outcomeInForceNumber`).
-   */
-  const outcomeInForceSingleInteger = query(ledger)
-    .rule((r) => {
-      const {
-        child,
-        package: pkg,
-        path,
-        n,
-        at,
-        variable,
-        value,
-      } = v(SnapshotSingleInteger, "processed");
-
-      return r
-        .match(SnapshotSingleInteger, { at, child, n, package: pkg, path, value, variable })
-        .match(Attempt, { at, child, n, package: pkg, path })
-        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-        .find({ at, child, n, package: pkg, path, value, variable });
-    })
-    .rule((r) => {
-      const {
-        child,
-        package: pkg,
-        path,
-        n,
-        at,
-        variable,
-        asserted,
-      } = v(inForceAssertions, "inForce");
-      const { value } = v(AssertedSingleInteger, "asserted");
-
-      return r
-        .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-        .match(AssertedSingleInteger, {
-          asserted,
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
-        .find({ at, child, n, package: pkg, path, value, variable });
-    });
   const OutcomeInForceSingleInteger = derived(
     "OutcomeInForceSingleInteger",
-    outcomeInForceSingleInteger,
+    query(ledger).rule((r) => {
+      const every = inForce.Integer.bind({ sessions: everySession });
+      const { at, child, n, package: pkg, path, value, variable } = v(every, "inForce");
+
+      return r
+        .match(every, { at, child, n, package: pkg, path, value, variable })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    }),
   );
-  /**
-   * An attempt's single float in force, as a plain query: a relation of this level reads it, never
-   * the derived relation beside it (`outcomeInForceNumber`).
-   */
-  const outcomeInForceSingleFloat = query(ledger)
-    .rule((r) => {
-      const {
-        child,
-        package: pkg,
-        path,
-        n,
-        at,
-        variable,
-        value,
-      } = v(SnapshotSingleFloat, "processed");
+  const OutcomeInForceSingleFloat = derived(
+    "OutcomeInForceSingleFloat",
+    query(ledger).rule((r) => {
+      const every = inForce.Float.bind({ sessions: everySession });
+      const { at, child, n, package: pkg, path, value, variable } = v(every, "inForce");
 
       return r
-        .match(SnapshotSingleFloat, { at, child, n, package: pkg, path, value, variable })
-        .match(Attempt, { at, child, n, package: pkg, path })
-        .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
+        .match(every, { at, child, n, package: pkg, path, value, variable })
         .find({ at, child, n, package: pkg, path, value, variable });
-    })
-    .rule((r) => {
-      const {
-        child,
-        package: pkg,
-        path,
-        n,
-        at,
-        variable,
-        asserted,
-      } = v(inForceAssertions, "inForce");
-      const { value } = v(AssertedSingleFloat, "asserted");
+    }),
+  );
+  const OutcomeInForceSingleString = derived(
+    "OutcomeInForceSingleString",
+    query(ledger).rule((r) => {
+      const every = inForce.String.bind({ sessions: everySession });
+      const { at, child, n, package: pkg, path, value, variable } = v(every, "inForce");
 
       return r
-        .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-        .match(AssertedSingleFloat, {
-          asserted,
-          at,
-          child,
-          n,
-          package: pkg,
-          path,
-          value,
-          variable,
-        })
+        .match(every, { at, child, n, package: pkg, path, value, variable })
         .find({ at, child, n, package: pkg, path, value, variable });
-    });
-  const OutcomeInForceSingleFloat = derived("OutcomeInForceSingleFloat", outcomeInForceSingleFloat);
+    }),
+  );
+  const OutcomeInForceSinglePoint = derived(
+    "OutcomeInForceSinglePoint",
+    query(ledger).rule((r) => {
+      const every = inForce.Point.bind({ sessions: everySession });
+      const { at, child, n, package: pkg, path, variable, x, y } = v(every, "inForce");
+
+      return r
+        .match(every, { at, child, n, package: pkg, path, variable, x, y })
+        .find({ at, child, n, package: pkg, path, variable, x, y });
+    }),
+  );
+  const OutcomeInForceSinglePair = derived(
+    "OutcomeInForceSinglePair",
+    query(ledger).rule((r) => {
+      const every = inForce.Pair.bind({ sessions: everySession });
+      const { at, child, greatest, least, n, package: pkg, path, variable } = v(every, "inForce");
+
+      return r
+        .match(every, { at, child, greatest, least, n, package: pkg, path, variable })
+        .find({ at, child, greatest, least, n, package: pkg, path, variable });
+    }),
+  );
+  const OutcomeInForceSingleDirectedPair = derived(
+    "OutcomeInForceSingleDirectedPair",
+    query(ledger).rule((r) => {
+      const every = inForce.DirectedPair.bind({ sessions: everySession });
+      const { at, child, n, package: pkg, path, source, target, variable } = v(every, "inForce");
+
+      return r
+        .match(every, { at, child, n, package: pkg, path, source, target, variable })
+        .find({ at, child, n, package: pkg, path, source, target, variable });
+    }),
+  );
+  const OutcomeInForceSingleDuration = derived(
+    "OutcomeInForceSingleDuration",
+    query(ledger).rule((r) => {
+      const every = inForce.Duration.bind({ sessions: everySession });
+      const { at, child, n, package: pkg, path, value, variable } = v(every, "inForce");
+
+      return r
+        .match(every, { at, child, n, package: pkg, path, value, variable })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    }),
+  );
+  const OutcomeInForceSingleUri = derived(
+    "OutcomeInForceSingleUri",
+    query(ledger).rule((r) => {
+      const every = inForce.Uri.bind({ sessions: everySession });
+      const { at, child, n, package: pkg, path, value, variable } = v(every, "inForce");
+
+      return r
+        .match(every, { at, child, n, package: pkg, path, value, variable })
+        .find({ at, child, n, package: pkg, path, value, variable });
+    }),
+  );
+  const OutcomeInForceSingleFile = derived(
+    "OutcomeInForceSingleFile",
+    query(ledger).rule((r) => {
+      const every = inForce.File.bind({ sessions: everySession });
+      const {
+        at,
+        child,
+        digest,
+        n,
+        name,
+        package: pkg,
+        path,
+        type,
+        variable,
+      } = v(every, "inForce");
+
+      return r
+        .match(every, { at, child, digest, n, name, package: pkg, path, type, variable })
+        .find({ at, child, digest, n, name, package: pkg, path, type, variable });
+    }),
+  );
+
   /**
    * An attempt's numeric outcome in force, as a plain query: each single float in force as itself,
    * and each single integer in force as its double where that double is the integer exactly, so no
@@ -507,33 +1011,19 @@ export const assertionViewsOf = (ledger: LedgerLevel) => {
    */
   const outcomeInForceNumber = query(ledger)
     .rule((r) => {
-      const {
-        child,
-        package: pkg,
-        path,
-        n,
-        at,
-        variable,
-        value,
-      } = v(outcomeInForceSingleFloat, "float");
+      const floatInForce = inForce.Float.bind({ sessions: everySession });
+      const { child, package: pkg, path, n, at, variable, value } = v(floatInForce, "float");
 
       return r
-        .match(outcomeInForceSingleFloat, { at, child, n, package: pkg, path, value, variable })
+        .match(floatInForce, { at, child, n, package: pkg, path, value, variable })
         .find({ at, child, n, package: pkg, path, value, variable });
     })
     .rule((r) => {
-      const {
-        child,
-        package: pkg,
-        path,
-        n,
-        at,
-        variable,
-        value,
-      } = v(outcomeInForceSingleInteger, "integer");
+      const integerInForce = inForce.Integer.bind({ sessions: everySession });
+      const { child, package: pkg, path, n, at, variable, value } = v(integerInForce, "integer");
 
       return r
-        .match(outcomeInForceSingleInteger, { at, child, n, package: pkg, path, value, variable })
+        .match(integerInForce, { at, child, n, package: pkg, path, value, variable })
         .where(Num.within(value, -exactDoubleIntegers, exactDoubleIntegers))
         .find({
           at,
@@ -549,373 +1039,6 @@ export const assertionViewsOf = (ledger: LedgerLevel) => {
           variable,
         });
     });
-  const OutcomeInForceSingleString = derived(
-    "OutcomeInForceSingleString",
-    query(ledger)
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          value,
-        } = v(SnapshotSingleString, "processed");
-
-        return r
-          .match(SnapshotSingleString, { at, child, n, package: pkg, path, value, variable })
-          .match(Attempt, { at, child, n, package: pkg, path })
-          .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-          .find({ at, child, n, package: pkg, path, value, variable });
-      })
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          asserted,
-        } = v(inForceAssertions, "inForce");
-        const { value } = v(AssertedSingleString, "asserted");
-
-        return r
-          .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-          .match(AssertedSingleString, {
-            asserted,
-            at,
-            child,
-            n,
-            package: pkg,
-            path,
-            value,
-            variable,
-          })
-          .find({ at, child, n, package: pkg, path, value, variable });
-      }),
-  );
-  const OutcomeInForceSinglePoint = derived(
-    "OutcomeInForceSinglePoint",
-    query(ledger)
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          x,
-          y,
-        } = v(SnapshotSinglePoint, "processed");
-
-        return r
-          .match(SnapshotSinglePoint, { at, child, n, package: pkg, path, variable, x, y })
-          .match(Attempt, { at, child, n, package: pkg, path })
-          .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-          .find({ at, child, n, package: pkg, path, variable, x, y });
-      })
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          asserted,
-        } = v(inForceAssertions, "inForce");
-        const { x, y } = v(AssertedSinglePoint, "asserted");
-
-        return r
-          .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-          .match(AssertedSinglePoint, {
-            asserted,
-            at,
-            child,
-            n,
-            package: pkg,
-            path,
-            variable,
-            x,
-            y,
-          })
-          .find({ at, child, n, package: pkg, path, variable, x, y });
-      }),
-  );
-  const OutcomeInForceSinglePair = derived(
-    "OutcomeInForceSinglePair",
-    query(ledger)
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          least,
-          greatest,
-        } = v(SnapshotSinglePair, "processed");
-
-        return r
-          .match(SnapshotSinglePair, {
-            at,
-            child,
-            greatest,
-            least,
-            n,
-            package: pkg,
-            path,
-            variable,
-          })
-          .match(Attempt, { at, child, n, package: pkg, path })
-          .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-          .find({ at, child, greatest, least, n, package: pkg, path, variable });
-      })
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          asserted,
-        } = v(inForceAssertions, "inForce");
-        const { least, greatest } = v(AssertedSinglePair, "asserted");
-
-        return r
-          .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-          .match(AssertedSinglePair, {
-            asserted,
-            at,
-            child,
-            greatest,
-            least,
-            n,
-            package: pkg,
-            path,
-            variable,
-          })
-          .find({ at, child, greatest, least, n, package: pkg, path, variable });
-      }),
-  );
-  const OutcomeInForceSingleDirectedPair = derived(
-    "OutcomeInForceSingleDirectedPair",
-    query(ledger)
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          source,
-          target,
-        } = v(SnapshotSingleDirectedPair, "processed");
-
-        return r
-          .match(SnapshotSingleDirectedPair, {
-            at,
-            child,
-            n,
-            package: pkg,
-            path,
-            source,
-            target,
-            variable,
-          })
-          .match(Attempt, { at, child, n, package: pkg, path })
-          .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-          .find({ at, child, n, package: pkg, path, source, target, variable });
-      })
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          asserted,
-        } = v(inForceAssertions, "inForce");
-        const { source, target } = v(AssertedSingleDirectedPair, "asserted");
-
-        return r
-          .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-          .match(AssertedSingleDirectedPair, {
-            asserted,
-            at,
-            child,
-            n,
-            package: pkg,
-            path,
-            source,
-            target,
-            variable,
-          })
-          .find({ at, child, n, package: pkg, path, source, target, variable });
-      }),
-  );
-  const OutcomeInForceSingleDuration = derived(
-    "OutcomeInForceSingleDuration",
-    query(ledger)
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          value,
-        } = v(SnapshotSingleDuration, "processed");
-
-        return r
-          .match(SnapshotSingleDuration, { at, child, n, package: pkg, path, value, variable })
-          .match(Attempt, { at, child, n, package: pkg, path })
-          .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-          .find({ at, child, n, package: pkg, path, value, variable });
-      })
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          asserted,
-        } = v(inForceAssertions, "inForce");
-        const { value } = v(AssertedSingleDuration, "asserted");
-
-        return r
-          .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-          .match(AssertedSingleDuration, {
-            asserted,
-            at,
-            child,
-            n,
-            package: pkg,
-            path,
-            value,
-            variable,
-          })
-          .find({ at, child, n, package: pkg, path, value, variable });
-      }),
-  );
-  const OutcomeInForceSingleUri = derived(
-    "OutcomeInForceSingleUri",
-    query(ledger)
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          value,
-        } = v(SnapshotSingleUri, "processed");
-
-        return r
-          .match(SnapshotSingleUri, { at, child, n, package: pkg, path, value, variable })
-          .match(Attempt, { at, child, n, package: pkg, path })
-          .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-          .find({ at, child, n, package: pkg, path, value, variable });
-      })
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          asserted,
-        } = v(inForceAssertions, "inForce");
-        const { value } = v(AssertedSingleUri, "asserted");
-
-        return r
-          .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-          .match(AssertedSingleUri, {
-            asserted,
-            at,
-            child,
-            n,
-            package: pkg,
-            path,
-            value,
-            variable,
-          })
-          .find({ at, child, n, package: pkg, path, value, variable });
-      }),
-  );
-  const OutcomeInForceSingleFile = derived(
-    "OutcomeInForceSingleFile",
-    query(ledger)
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          digest,
-          name,
-          type,
-        } = v(SnapshotSingleFile, "processed");
-
-        return r
-          .match(SnapshotSingleFile, {
-            at,
-            child,
-            digest,
-            n,
-            name,
-            package: pkg,
-            path,
-            type,
-            variable,
-          })
-          .match(Attempt, { at, child, n, package: pkg, path })
-          .where(r.not(OutcomeAssertion, { at, child, n, package: pkg, path, variable }))
-          .find({ at, child, digest, n, name, package: pkg, path, type, variable });
-      })
-      .rule((r) => {
-        const {
-          child,
-          package: pkg,
-          path,
-          n,
-          at,
-          variable,
-          asserted,
-        } = v(inForceAssertions, "inForce");
-        const { digest, name, type } = v(AssertedSingleFile, "asserted");
-
-        return r
-          .match(inForceAssertions, { asserted, at, child, n, package: pkg, path, variable })
-          .match(AssertedSingleFile, {
-            asserted,
-            at,
-            child,
-            digest,
-            n,
-            name,
-            package: pkg,
-            path,
-            type,
-            variable,
-          })
-          .find({ at, child, digest, n, name, package: pkg, path, type, variable });
-      }),
-  );
 
   const AwaitingHumanEvaluation = derived(
     "AwaitingHumanEvaluation",

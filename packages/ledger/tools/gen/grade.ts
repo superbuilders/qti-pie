@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import type { Generator } from "#tools/gen/generator.ts";
 import { admissionStage } from "#tools/gen/grade/admission.ts";
 import { baseStage } from "#tools/gen/grade/base.ts";
@@ -10,7 +12,8 @@ import { takeStage } from "#tools/gen/grade/take.ts";
 /**
  * The ledger's grade.ts, whole, from its generator alone: the base stage (the grading statement's
  * readers and writes, gradeArgumentsOf, attemptArgumentsOf, gradeAttemptTables, gradeAttemptOf),
- * then the members stage (testTreeOf and memberValuesOf, from attemptArgumentsOf's rules), the
+ * then the members stage (testTreeOf and memberValuesOf, from attemptArgumentsOf's rules, and the
+ * values in force, `#ledger/assertion-views.ts`'s `valuesInForceOf` over the Delivery level), the
  * admission stage (admissionArgumentsOf and memberAdmissionArgumentsOf, one template, from
  * gradeArgumentsOf's and memberValuesOf's rules, and their call builders), the take stage
  * (takeArgumentsOf and takeValuesOf), the sittings stage (the subject sittings as the `sittings`
@@ -23,13 +26,17 @@ export const generator: Generator = {
     const fragment = await readFragments();
     const settled = async (text: string) => await format(await lintFix(await format(text)));
     const base = await settled(baseStage(fragment));
-    const members = await settled(membersStage(base, fragment));
+    const views = await readFile(
+      path.join(import.meta.dirname, "..", "..", "src", "assertion-views.ts"),
+      "utf-8",
+    );
+    const members = await settled(membersStage(base, fragment, views));
     const admission = await settled(admissionStage(members, fragment));
     const take = await settled(takeStage(admission, fragment));
     const sittings = await settled(sittingsStage(take, fragment));
 
     return await settled(defaultsStage(sittings, fragment));
   },
-  reads: ["tools/gen/grade/fragments/"],
+  reads: ["src/assertion-views.ts", "tools/gen/grade/fragments/"],
   target: "src/grade.ts",
 };
