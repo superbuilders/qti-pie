@@ -19,7 +19,7 @@ import type {
   TemplateDeclaration,
   TemplateVisibility,
 } from "#plate/model/item.ts";
-import type { RedactRecord } from "#plate/model/record.ts";
+import type { RedactRecord, Showing } from "#plate/model/record.ts";
 import { own } from "#plate/model/values.ts";
 import type { Value } from "#plate/model/values.ts";
 
@@ -161,31 +161,44 @@ const shows = (
 };
 
 /**
- * Decide what the page sees of a feedback block, inline or modal feedback: whether the outcome
- * values show it, or none when they cannot say, because there are no values or they hold no value
- * of its outcome, so it is withheld. `show` hides it "by default and shown only if the associated
- * outcome variable matches, or contains, the value of the identifier", and `hide` shows it "by
- * default and hidden if" the variable does (the information model's FeedbackBlock, section 5.49.3,
- * FeedbackInline, 5.52.3, and ModalFeedback, 5.93.2), by {@link shows}.
+ * Decide what the page sees of a feedback block, inline or modal feedback. Where the page shows no
+ * feedback (`showFeedback` `false`, the item session control's `show-feedback`, information model
+ * 7.19.2: "If it is 'false' then feedback is not shown. This includes both Modal Feedback and
+ * Integrated Feedback") it is hidden. Where it shows feedback, the outcome values decide it: `show`
+ * hides it "by default and shown only if the associated outcome variable matches, or contains, the
+ * value of the identifier", and `hide` shows it "by default and hidden if" the variable does (the
+ * information model's FeedbackBlock, section 5.49.3, FeedbackInline, 5.52.3, and ModalFeedback,
+ * 5.93.2), by {@link shows}; and when they hold no value of its outcome, as a stimulus, which
+ * declares no variable, holds none, it is withheld.
  *
- * @param outcomes The outcome values feedback reads, the record's as the database returned them
- *   ({@link printingOf}), none when the redaction has no values.
+ * @param feedback The outcome values feedback shows by, the record's as the database returned them
+ *   ({@link feedbackValuesOf}), none where the page shows no feedback.
  * @param visibility The element's `outcome-identifier` and `show-hide`.
  * @param identifier The element's `identifier`.
  * @returns Some whether it is shown, or none when it is withheld.
  */
 export const feedbackShownBy = (
-  outcomes: Option.Option<RedactRecord["outcomes"]>,
+  feedback: Option.Option<RedactRecord["outcomes"]>,
   visibility: FeedbackVisibility,
   identifier: string,
 ): Option.Option<boolean> =>
-  outcomes.pipe(
-    Option.flatMap((values) =>
+  Option.match(feedback, {
+    onNone: () => Option.some(false),
+    onSome: (values) =>
       Option.map(own(values, visibility.outcomeIdentifier), (value) =>
         shows(visibility.showHide, Option.some(value), identifier),
       ),
-    ),
-  );
+  });
+
+/**
+ * Give the outcome values a page's feedback shows by: the record's, where the page shows feedback,
+ * and none where it shows none ({@link Showing}).
+ *
+ * @param showing What the page shows the item by.
+ * @returns The outcome values, or none where the page shows no feedback.
+ */
+export const feedbackValuesOf = (showing: Showing): Option.Option<RedactRecord["outcomes"]> =>
+  showing.showFeedback ? Option.some(showing.record.outcomes) : Option.none();
 
 /**
  * Decide what the page sees of a part with a template visibility, a choice, a template block or a

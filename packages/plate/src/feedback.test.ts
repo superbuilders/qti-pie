@@ -22,13 +22,13 @@
  *
  * @module
  */
-import { assert, describe, it } from "@effect/vitest";
+import { assert, describe, expectTypeOf, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 import type { Configuration } from "#plate/configuration.ts";
 import { qtiNamespace } from "#plate/document/source.ts";
 import type { BodyNode } from "#plate/model/item.ts";
-import type { ItemRecord } from "#plate/model/record.ts";
+import type { ItemRecord, Showing } from "#plate/model/record.ts";
 import { nullOf } from "#plate/model/values.ts";
 import type { Value } from "#plate/model/values.ts";
 import { postings } from "#plate/postings.ts";
@@ -38,7 +38,13 @@ import type { Redacted } from "#plate/redact/walk.ts";
 import { restore } from "#plate/restore.ts";
 import { readCorpusFile, readCorpusPackage } from "#plate/test/corpus.ts";
 import { float, identifier, identifiers, jsonField } from "#plate/test/fixtures.ts";
-import { shownToCandidate, textOf } from "#plate/test/page.ts";
+import {
+  feedbackHidden,
+  showingOf,
+  shownToCandidate,
+  textOf,
+  underRecord,
+} from "#plate/test/page.ts";
 import { documentDigest, goldenRecords, recordOf } from "#plate/test/records.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
@@ -134,16 +140,16 @@ const isInlineChoiceIn = (node: BodyNode): boolean =>
   (node.kind === "element" && node.children.some(isInlineChoiceIn));
 
 /**
- * Build the page of an item as an app shows it to a candidate: `redact` by the record, which the
- * server shell renders node for node.
+ * Build the page of an item as an app shows it to a candidate: `redact` as `showing` says, which
+ * the server shell renders node for node.
  *
  * @param accepted The accepted item.
  * @param configuration The configuration.
- * @param record The record `redact` shows the item by; none for no record.
+ * @param showing What the page is shown by.
  * @returns What the page shows.
  */
-const shownBy = (accepted: Accepted, configuration: Configuration, record?: ItemRecord): Shown => {
-  const redacted = redact(accepted, { ...shownToCandidate, configuration }, record);
+const pageShown = (accepted: Accepted, configuration: Configuration, showing: Showing): Shown => {
+  const redacted = redact(accepted, { ...shownToCandidate, configuration }, showing);
   const modal = redacted.modalFeedback.map((feedback) => feedback.content);
 
   return {
@@ -155,6 +161,19 @@ const shownBy = (accepted: Accepted, configuration: Configuration, record?: Item
     text: textOf([...redacted.body, ...modal.flat()]),
   };
 };
+
+/**
+ * Build the page of an item whose test shows feedback, by the record the page shows, or of one
+ * that shows no feedback and has no record ({@link showingOf}).
+ *
+ * @param accepted The accepted item.
+ * @param configuration The configuration.
+ * @param record The record the page shows feedback by; none for a page that shows no feedback and
+ *   has no record.
+ * @returns What the page shows.
+ */
+const shownBy = (accepted: Accepted, configuration: Configuration, record?: ItemRecord): Shown =>
+  pageShown(accepted, configuration, showingOf(Option.fromUndefinedOr(record)));
 
 /**
  * Give an item's record before its first attempt, as the database's take returns it, and restore
@@ -275,7 +294,11 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
           { RESPONSE: identifier("true") },
           { FEEDBACK: identifier("correct") },
         );
-        const redacted = redact(accepted, { ...shownToCandidate, configuration }, right.record);
+        const redacted = redact(
+          accepted,
+          { ...shownToCandidate, configuration },
+          { record: right.record, showFeedback: true },
+        );
         const answering = redacted;
         const reviewed = shownBy(accepted, configuration, right.record);
 
@@ -387,15 +410,19 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
   );
 
   it.effect(
-    "Example04-feedbackBlock-templateBlock withholds every feedback block and inline with no record, naming none of the template parts inside them, and under its first record shows only the blocks its outcome defaults show",
+    "Example04-feedbackBlock-templateBlock shows no feedback block or inline on a page that shows no feedback, naming none of the template parts inside them, and under its first record shows only the blocks its outcome defaults show",
     () =>
       Effect.gen(function* templateBlockExample() {
         const configuration = yield* configure({ seed: "" });
         const accepted = yield* openCorpusItem(bpig.templateBlock);
-        const withheld = shownBy(accepted, configuration);
+        const unshown = shownBy(accepted, configuration);
         const start = shownBy(accepted, configuration, yield* begun(accepted));
 
-        assert.notInclude(withheld.text, "Incorrect");
+        assert.notInclude(unshown.text, "Incorrect");
+        assert.deepStrictEqual(
+          unshown.notices.filter((feature) => feedbackFeatures.has(feature)),
+          [],
+        );
 
         assert.include(
           start.redacted.responses.map((response) => response.identifier),
@@ -427,7 +454,9 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
           { BODY: identifiers("part2", "option2") },
         );
         const posted = (record: ItemRecord): readonly string[] =>
-          postings(accepted, instance, record).map((posting) => posting.identifier);
+          postings(accepted, instance, { record, showFeedback: true }).map(
+            (posting) => posting.identifier,
+          );
         const second = shownBy(accepted, configuration, chosen.record).text;
 
         assert.deepStrictEqual(posted(start), ["RESPONSE1"]);
@@ -562,7 +591,7 @@ describe("feedback visibility over a grid of values", () => {
     );
 
     it.effect(
-      `before processing runs, shows the blocks and inlines a ${cardinality} FB at the database's start value shows, and no modal feedback; with no record, none`,
+      `before processing runs, shows the blocks and inlines a ${cardinality} FB at the database's start value shows, and no modal feedback; on a page that shows no feedback, none`,
       () =>
         Effect.gen(function* gridBefore() {
           const configuration = yield* configure({ seed: "" });
@@ -606,6 +635,46 @@ describe("feedback visibility over a grid of values", () => {
         );
       }),
   );
+});
+
+describe("a page whose test shows no feedback", () => {
+  it("is a type error without showFeedback, and without its record where it shows feedback", () => {
+    expectTypeOf<{ readonly record: ItemRecord }>().not.toExtend<Showing>();
+    expectTypeOf<{ readonly showFeedback: true }>().not.toExtend<Showing>();
+    expectTypeOf<{ readonly showFeedback: boolean }>().not.toExtend<Showing>();
+    expectTypeOf<{
+      readonly record: ItemRecord;
+      readonly showFeedback: true;
+    }>().toExtend<Showing>();
+    expectTypeOf<{ readonly showFeedback: false }>().toExtend<Showing>();
+  });
+
+  for (const cardinality of ["single", "multiple"] as const) {
+    it.effect(
+      `shows no block, inline or modal feedback over a ${cardinality} FB, and no notice of one, for every value before and after processing, with FB left out, and with no record`,
+      () =>
+        Effect.gen(function* gridHidden() {
+          const configuration = yield* configure({ seed: "" });
+          const accepted = yield* openXml("items/grid.xml", gridXml(cardinality, Option.none()));
+          const record = yield* begun(accepted);
+          const records = [
+            ...gridValues[cardinality].flatMap((value) => [
+              recordOf({ outcomes: { FB: value } }),
+              submittedWith(record, "FB", Option.some(value)),
+            ]),
+            submittedWith(record, "FB", Option.none()),
+          ];
+
+          for (const showing of [feedbackHidden, ...records.map(underRecord)]) {
+            const shown = pageShown(accepted, configuration, showing);
+
+            assert.deepStrictEqual(gridShown(shown), [], JSON.stringify(showing.record?.outcomes));
+            assert.deepStrictEqual(shown.notices, []);
+            assert.deepStrictEqual(shown.redacted.modalFeedback, []);
+          }
+        }),
+    );
+  }
 });
 
 /**
@@ -681,7 +750,7 @@ const responsesOf = (redacted: Redacted): readonly string[] =>
 
 describe("feedback in its place", () => {
   it.effect(
-    "before an attempt, feedback reads the outcome the take's record holds, the default template processing set, and with no record an item with template processing withholds every block",
+    "before an attempt, feedback reads the outcome the take's record holds, the default template processing set, and a page that shows no feedback shows no block",
     () =>
       Effect.gen(function* templatedDefault() {
         const configuration = yield* configure({ seed: "" });

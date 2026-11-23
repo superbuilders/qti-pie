@@ -169,11 +169,15 @@ describe("shared stimuli, over the Best Practice guide's passage", { tags: ["cor
         );
         const configuration = yield* configure({ seed: "" });
         const shownWith = (catalog: ReadonlySet<"linguistic-guidance">) =>
-          redactStimulus(accepted.stimulus, {
-            configuration,
-            supports: { ...noSupports, catalog },
-            view: "candidate",
-          });
+          redactStimulus(
+            accepted.stimulus,
+            {
+              configuration,
+              supports: { ...noSupports, catalog },
+              view: "candidate",
+            },
+            false,
+          );
 
         assert.deepStrictEqual(shownWith(new Set()).content["qti-catalog-info"], []);
 

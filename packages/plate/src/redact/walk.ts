@@ -45,12 +45,13 @@ import type {
   Stimulus,
   TemplateContent,
 } from "#plate/model/item.ts";
-import type { RedactRecord } from "#plate/model/record.ts";
+import type { RedactRecord, Showing } from "#plate/model/record.ts";
 import { isNull, own } from "#plate/model/values.ts";
 import type { ModelledBaseType, RecordValue, Value } from "#plate/model/values.ts";
 import {
   expandedParameter,
   feedbackShownBy,
+  feedbackValuesOf,
   mathText,
   mathValueOf,
   parameterText,
@@ -330,9 +331,10 @@ interface RedactedBody {
  * template variable they do not hold, and every choice with a template visibility when there are
  * no values, is absent too.
  *
- * A feedback block or inline is shown, hidden or withheld by the outcome values as a template
- * block or inline is by the template values ({@link feedbackShownBy}), its notice
- * `qti-feedback-block` or `qti-feedback-inline`. A feedback inline the values show leaves its
+ * A feedback block or inline is hidden where the page shows no feedback, and else shown, hidden or
+ * withheld by the outcome values as a template block or inline is by the template values
+ * ({@link feedbackShownBy}), its notice `qti-feedback-block` or `qti-feedback-inline` where the
+ * values hold none of its outcome. A feedback inline the values show leaves its
  * content in its place, a run of its sentence; a feedback block they show stands as an element of
  * its own name ({@link feedbackBlockTag}) holding its content, and the walk tells whether the page
  * sees one.
@@ -389,6 +391,8 @@ interface RedactedBody {
  * @param printing The values the body is shown by, none to withhold every printed variable, every
  *   template block and inline, every choice with a template visibility and every `param-variable`
  *   parameter.
+ * @param feedbackBy The outcome values feedback shows by, none where the page shows no feedback
+ *   ({@link feedbackValuesOf}).
  * @param writing Whether the walk writes each printed variable's and parameter's text (`"text"`),
  *   within its budget, or none (`"structure"`).
  * @param supports The supports the host enabled, which each content module's `redact` decides by.
@@ -404,11 +408,11 @@ const printBody = (
   item: Printed,
   root: string,
   printing: Option.Option<RedactRecord>,
+  feedbackBy: Option.Option<RedactRecord["outcomes"]>,
   writing: Writing,
   supports: Supports,
   view: OutcomeView,
 ): RedactedBody => {
-  const outcomes = printing.pipe(Option.map((record) => record.outcomes));
   // The responses an interaction the page sees binds, and those content it does not see binds.
   const shownBound = new Set<string>();
   const unseenBound = new Set<string>();
@@ -668,7 +672,7 @@ const printBody = (
           case "feedback-block": {
             return walk.conditional(
               node,
-              feedbackShownBy(outcomes, node.feedbackVisibility, node.identifier),
+              feedbackShownBy(feedbackBy, node.feedbackVisibility, node.identifier),
               feedbackNotice[node.kind],
               seen,
               (content) => [shownBlock(node.path, node.identifier, content)],
@@ -677,7 +681,7 @@ const printBody = (
           case "feedback-inline": {
             return walk.conditional(
               node,
-              feedbackShownBy(outcomes, node.feedbackVisibility, node.identifier),
+              feedbackShownBy(feedbackBy, node.feedbackVisibility, node.identifier),
               feedbackNotice[node.kind],
               seen,
               (content) => content,
@@ -695,12 +699,12 @@ const printBody = (
 
   const body = walk.nodes(item.body, true);
   // Each modal feedback after the body, in document order, as the document holds it. Before
-  // response processing has run in the attempt shown none is seen, so its content is walked unseen:
-  // its printed variables print nothing.
+  // response processing has run in the attempt shown, and where the page shows no feedback, none is
+  // seen, so its content is walked unseen: its printed variables print nothing.
   const submitted = Option.exists(printing, (record) => record.attempt === "submitted");
   const modalFeedback = item.modalFeedback.flatMap((feedback): readonly ShownModalFeedback[] => {
     const decided = submitted
-      ? feedbackShownBy(outcomes, feedback.feedbackVisibility, feedback.identifier)
+      ? feedbackShownBy(feedbackBy, feedback.feedbackVisibility, feedback.identifier)
       : Option.some(false);
 
     return Option.match(decided, {
@@ -900,6 +904,11 @@ export interface RedactOptions {
  * hidden block and another the page sees binds stays, and so does one only a notice on content the
  * page sees binds, or no interaction binds.
  *
+ * Feedback shows as `showing` says ({@link Showing}): where the page shows no feedback, no feedback
+ * block, inline or modal feedback reaches it; where it shows feedback, each shows as the record's
+ * outcome values say ({@link feedbackShownBy}), modal feedback only once response processing has
+ * run in the attempt shown.
+ *
  * Each `param` whose `value` names a template variable declared `param-variable="true"` passes the
  * value the record holds for it in place of the name, converted as the information model's Param
  * `value` says: an integer by `%i`, and a float and a duration by `%G`, through `formatPrinted`, a
@@ -938,17 +947,19 @@ export interface RedactOptions {
  *
  * @param item The item.
  * @param options The output budget, the supports and the view ({@link RedactOptions}).
- * @param record The template values and outcome values of the attempt shown, which its printed
- *   variables print, its `param-variable` parameters pass, and which show or hide its template
- *   blocks, inlines and choices; none to show the item as it reads with no record.
+ * @param showing Whether the page shows the item's feedback, and the record of the attempt shown,
+ *   whose template values and outcome values its printed variables print and its `param-variable`
+ *   parameters pass, and which show or hide its template blocks, inlines and choices, and its
+ *   feedback where the page shows it ({@link Showing}).
  * @returns The redacted item.
  */
-export const redactItem = (item: Item, options: RedactOptions, record?: RedactRecord): Redacted => {
-  const printing = printingOf(record);
+export const redactItem = (item: Item, options: RedactOptions, showing: Showing): Redacted => {
+  const printing = printingOf(showing.record);
   const { body, content, hiddenOnly, modalFeedback, unprinted } = printBody(
     item,
     itemPath,
     printing,
+    feedbackValuesOf(showing),
     textWithin(options.configuration),
     options.supports,
     options.view,
@@ -1002,20 +1013,21 @@ export interface RedactedStructure {
  * response, so the supports and the view change none of what it reads.
  *
  * @example
- *   interactionsIn(redactStructure(item, record).body);
- *   // the interactions redactItem(item, record).body holds, each with the same choices
+ *   interactionsIn(redactStructure(item, showing).body);
+ *   // the interactions redactItem(item, options, showing).body holds, each with the same choices
  *
  * @param item The item.
- * @param record The template values and outcome values of the attempt shown, as `redactItem` takes
- *   them; none to read the item as it reads with no record.
+ * @param showing Whether the page shows feedback, and the record of the attempt shown, as
+ *   `redactItem` takes them.
  * @returns The item's structure as the page is shown it, with no printed text.
  */
-export const redactStructure = (item: Item, record?: RedactRecord): RedactedStructure => {
-  const printing = printingOf(record);
+export const redactStructure = (item: Item, showing: Showing): RedactedStructure => {
+  const printing = printingOf(showing.record);
   const { body, hiddenOnly } = printBody(
     item,
     itemPath,
     printing,
+    feedbackValuesOf(showing),
     structureOnly,
     noSupports,
     defaultView,
@@ -1038,16 +1050,24 @@ export const redactStructure = (item: Item, record?: RedactRecord): RedactedStru
  *
  * @example
  *   // A block shown when T holds A binds SHOWN; a block shown when T holds B binds HIDDEN.
- *   hiddenOnlyResponses(item, { outcomes: {}, templates: { T: identifierA } });
+ *   hiddenOnlyResponses(item, { record: { …, templates: { T: identifierA } }, showFeedback: false });
  *   // Set { "HIDDEN" }
  *
  * @param item The item.
- * @param record The template values and outcome values of the attempt shown, as `redactItem` takes
- *   them; none to read the item as it reads with no record.
+ * @param showing Whether the page shows feedback, and the record of the attempt shown, as
+ *   `redactItem` takes them.
  * @returns The responses, in the order the walk first meets them.
  */
-export const hiddenOnlyResponses = (item: Item, record?: RedactRecord): ReadonlySet<string> =>
-  printBody(item, itemPath, printingOf(record), structureOnly, noSupports, defaultView).hiddenOnly;
+export const hiddenOnlyResponses = (item: Item, showing: Showing): ReadonlySet<string> =>
+  printBody(
+    item,
+    itemPath,
+    printingOf(showing.record),
+    feedbackValuesOf(showing),
+    structureOnly,
+    noSupports,
+    defaultView,
+  ).hiddenOnly;
 
 /**
  * The fields of a stimulus the page may know, which {@link redactStimulus} copies by name.
@@ -1104,19 +1124,25 @@ const undeclared: Pick<Item, "outcomes" | "responses" | "templates"> = {
  * Copy the parts of a stimulus the page may know: the allowlist, and the only way to make a
  * {@link RedactedStimulus}.
  *
- * Its body is walked as {@link redactItem} walks an item's with no values: the stimulus declares
- * no variable ({@link undeclared}), so a printed variable, a template block or inline, a feedback
- * block or inline and a `param-variable` parameter in it stays its notice, and nothing is printed,
- * so no text passes a bound. Its catalogs are resolved under the supports the host enabled for the
- * candidate, as the item's are: a card of a support the host did not enable, its spoken card among
- * them, never reaches the page. It copies, each by name, the document location, `lang`, `title`,
- * the body and the kept catalogs.
+ * Its body is walked as {@link redactItem} walks an item's with no record: the stimulus declares no
+ * variable ({@link undeclared}), so a printed variable, a template block or inline and a
+ * `param-variable` parameter in it stays its notice, and nothing is printed, so no text passes a
+ * bound. A feedback block or inline in it is hidden where the page shows no feedback, and else
+ * stays its notice, since the stimulus holds no value of its outcome. Its catalogs are resolved
+ * under the supports the host enabled for the candidate, as the item's are: a card of a support the
+ * host did not enable, its spoken card among them, never reaches the page. It copies, each by name,
+ * the document location, `lang`, `title`, the body and the kept catalogs.
  *
  * @param stimulus The stimulus, as an accepted stimulus holds it.
  * @param options The output budget, the supports and the view ({@link RedactOptions}).
+ * @param showFeedback Whether the page shows feedback, the item's {@link Showing}'s.
  * @returns The redacted stimulus.
  */
-export const redactStimulus = (stimulus: Stimulus, options: RedactOptions): RedactedStimulus => {
+export const redactStimulus = (
+  stimulus: Stimulus,
+  options: RedactOptions,
+  showFeedback: Showing["showFeedback"],
+): RedactedStimulus => {
   const { body, content } = printBody(
     {
       ...undeclared,
@@ -1130,6 +1156,7 @@ export const redactStimulus = (stimulus: Stimulus, options: RedactOptions): Reda
     },
     stimulusPath,
     Option.none(),
+    showFeedback ? Option.some({}) : Option.none(),
     textWithin(options.configuration),
     options.supports,
     options.view,

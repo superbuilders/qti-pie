@@ -14,7 +14,7 @@
  */
 import type { Configuration } from "#plate/configuration.ts";
 import type { Entry } from "#plate/form/encoding.ts";
-import type { RedactRecord } from "#plate/model/record.ts";
+import type { Showing } from "#plate/model/record.ts";
 import type { ResponseValue } from "#plate/model/values.ts";
 import type { RenderMode } from "#plate/payload.ts";
 import type { HostFacts } from "#plate/pci/host.ts";
@@ -41,11 +41,11 @@ export type PostedEntry = Entry;
 export type PostedEntries = readonly PostedEntry[];
 
 /**
- * What `<Item>` takes: the opened item, the configuration, the instance the host names, the mode,
- * the QTI database's results the page shows, and what the host knows of where the item's scripts
- * run.
+ * What `<Item>` takes besides what it shows the item by: the opened item, the configuration, the
+ * instance the host names, the mode, the QTI database's results the page shows, and what the host
+ * knows of where the item's scripts run.
  */
-export interface ItemProps {
+interface ItemFields {
   /**
    * The configuration `configure` gives: the address of each file in `assets`, the `locale` of
    * plate's own text, the `seed` a shuffle is keyed by with the response, the
@@ -77,12 +77,6 @@ export interface ItemProps {
    */
   readonly mode: RenderMode;
   /**
-   * The record of the attempt shown, such as `restore`'s `record` after `score`: its outcomes
-   * decide the feedback shown and the printed variables' text, its template values the template
-   * content and the choices shown. None shows the item as it reads with no record.
-   */
-  readonly record?: RedactRecord;
-  /**
    * How the attempt a review shows did, read in `review` alone: the credit its feedback carries
    * where the host shows the review's feedback, and the marks it draws, the database's
    * `AttemptMark` rows of the attempt, revealing the solution where the host may show it
@@ -113,3 +107,14 @@ export interface ItemProps {
    */
   readonly view?: OutcomeView;
 }
+
+/**
+ * What `<Item>` takes: {@link ItemFields}, and what the page shows the item by ({@link Showing}):
+ * `showFeedback`, whether it shows the item's feedback, the item session control's `show-feedback`
+ * the test states (information model 7.19.2), and `record`, the record of the attempt shown, such
+ * as `restore`'s `record` after `score`, whose outcomes decide the feedback shown and the printed
+ * variables' text, and its template values the template content and the choices shown. A page
+ * that shows feedback is handed its record; one that hides it may have none, and then shows the
+ * item as it reads with no record.
+ */
+export type ItemProps = ItemFields & Showing;

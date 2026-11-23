@@ -191,9 +191,10 @@ const pageOf = (item: SourceItem, showing: ShowingName): Document => {
     configuration: item.configuration,
     instance,
     item: item.accepted,
+    showFeedback: false,
     stimuli: item.stimuli,
     supports,
-  };
+  } as const;
   const html = showing.startsWith("answering")
     ? renderToStaticMarkup(
         createElement(Responses, {

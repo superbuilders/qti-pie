@@ -12,7 +12,7 @@ import { interactionPayload } from "#plate/payload.ts";
 import { postings } from "#plate/postings.ts";
 import { redact } from "#plate/redact.ts";
 import { restore } from "#plate/restore.ts";
-import { pageOf, shownToCandidate } from "#plate/test/page.ts";
+import { feedbackHidden, pageOf, shownToCandidate } from "#plate/test/page.ts";
 import type { Page } from "#plate/test/page.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
@@ -122,7 +122,7 @@ describe("a record answer from post to review", () => {
       Effect.gen(function* postsRecordAnswer() {
         const configuration = yield* configure({ seed: "" });
         const accepted = yield* openMeasured();
-        const redacted = redact(accepted, shownToCandidate);
+        const redacted = redact(accepted, shownToCandidate, feedbackHidden);
 
         assert.deepStrictEqual(accepted.item.unsupported, []);
 
@@ -134,7 +134,7 @@ describe("a record answer from post to review", () => {
 
         const entries: readonly Entry[] = [[entryName(instance, "NUMBER"), typed]];
         const { own } = partition(entries, instance);
-        const posts = postings(accepted, instance);
+        const posts = postings(accepted, instance, feedbackHidden);
         assert.deepStrictEqual(
           posts.map(({ binding, identifier }) => [identifier, binding.cardinality]),
           [["NUMBER", "record"]],

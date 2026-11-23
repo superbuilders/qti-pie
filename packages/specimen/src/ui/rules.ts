@@ -340,7 +340,10 @@ export const see = (
       ),
     }),
   );
-  const posted = postings(accepted, instance, record);
+  // Every page shows the item's feedback by that record, as a host whose test states
+  // `show-feedback="true"` shows it.
+  const shownBy = { record, showFeedback: true } as const;
+  const posted = postings(accepted, instance, shownBy);
   const correct: Responses = solution(accepted, record);
   const drawables = posted.map((posting) => ({
     correct: correct[posting.identifier] ?? nullOf(posting),
@@ -378,8 +381,16 @@ export const see = (
   const propsIn = (mode: ItemProps["mode"]): ItemProps => {
     const { stimuli } = item;
     const plain = Option.match(item.host, {
-      onNone: (): ItemProps => ({ configuration, instance, item: accepted, mode, stimuli }),
+      onNone: (): ItemProps => ({
+        ...shownBy,
+        configuration,
+        instance,
+        item: accepted,
+        mode,
+        stimuli,
+      }),
       onSome: (host): ItemProps => ({
+        ...shownBy,
         configuration,
         host,
         instance,
@@ -389,7 +400,7 @@ export const see = (
       }),
     });
 
-    return { ...plain, record };
+    return plain;
   };
   const rendered = (showable: Showable): Outcome =>
     Result.match(

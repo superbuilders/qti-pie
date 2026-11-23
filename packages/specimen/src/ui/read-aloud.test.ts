@@ -175,6 +175,7 @@ const page = (mode: "answering" | "review", supports: Option.Option<Supports>) =
       instance,
       item: accepted,
       mode,
+      showFeedback: false,
       ...Option.match(supports, {
         onNone: () => ({}),
         onSome: (enabled) => ({ supports: enabled }),

@@ -145,6 +145,7 @@ const passageOf = (mode: "answering" | "review", spoken: boolean) =>
         instance,
         item,
         mode,
+        showFeedback: false,
         stimuli: [stimulus],
         supports: supportsOf(spoken),
       };

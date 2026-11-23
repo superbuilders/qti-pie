@@ -29,7 +29,7 @@ import type {
   UnsupportedFeature,
 } from "#plate/model/item.ts";
 import { recordOf } from "#plate/test/records.ts";
-import type { ItemRecord, RedactRecord } from "#plate/model/record.ts";
+import type { ItemRecord, RedactRecord, Showing } from "#plate/model/record.ts";
 import { nullOf } from "#plate/model/values.ts";
 import type { ResponseValue, Value } from "#plate/model/values.ts";
 import { interactionPayload } from "#plate/payload.ts";
@@ -41,7 +41,13 @@ import { hiddenOnlyResponses, redactItem, redactStructure } from "#plate/redact/
 import type { Redacted } from "#plate/redact/walk.ts";
 import { jsonField } from "#plate/test/fixtures.ts";
 import { growthFactor, growthLimit, growthRatio } from "#plate/test/growth.ts";
-import { pageOf, presentedChoices, shownToCandidate } from "#plate/test/page.ts";
+import {
+  feedbackHidden,
+  pageOf,
+  presentedChoices,
+  shownToCandidate,
+  underRecord,
+} from "#plate/test/page.ts";
 import { attr, doc, el, text as sourceText } from "#plate/test/source.ts";
 import { admittedSource } from "#plate/test/admitted.ts";
 import { acceptedItem, acceptForTest } from "#plate/validate/verdict.ts";
@@ -355,7 +361,7 @@ const item: Item = {
 /**
  * The item as the page may know it.
  */
-const redacted = redactItem(item, shownToCandidate);
+const redacted = redactItem(item, shownToCandidate, feedbackHidden);
 
 /**
  * The view of a first render: no values.
@@ -379,7 +385,7 @@ const held: ReadonlyMap<string, Value> = new Map([
  */
 const postingsOfItem = (): readonly Posting[] =>
   // @ts-expect-error -- an `Item` is not `Accepted`: only `checkAdmitted` makes one, so postings read only an admitted item.
-  postings(item, instance);
+  postings(item, instance, feedbackHidden);
 
 /**
  * Write a value as JSON, with every `Map` and `Set` written as its entries, so nothing it holds is
@@ -510,7 +516,7 @@ const textFor = (
  */
 const presentedOf = (interaction: ChoiceInteraction, view: View): readonly string[] =>
   choiceFor(
-    pageFor(redactItem({ ...item, body: [interaction] }, shownToCandidate), view),
+    pageFor(redactItem({ ...item, body: [interaction] }, shownToCandidate, feedbackHidden), view),
     interaction.response,
   ).choices.map((entry) => entry.identifier);
 
@@ -617,7 +623,7 @@ const riverItem: Item = {
 /**
  * {@link riverItem}, redacted.
  */
-const riverRedacted = redactItem(riverItem, shownToCandidate);
+const riverRedacted = redactItem(riverItem, shownToCandidate, feedbackHidden);
 
 /**
  * Find the Text Entry payload bound to a response.
@@ -673,6 +679,7 @@ const listOf = (maxStrings: Option.Option<bigint>, minStrings: bigint): Redacted
       unsupported: [],
     },
     shownToCandidate,
+    feedbackHidden,
   );
 
 /**
@@ -729,7 +736,7 @@ describe("redactItem", () => {
         ]),
       ),
     };
-    const copied = redactItem(widened, shownToCandidate);
+    const copied = redactItem(widened, shownToCandidate, feedbackHidden);
 
     assert.notInclude(json(copied), extra);
     assert.deepStrictEqual(Object.keys(copied).toSorted(), [
@@ -917,9 +924,9 @@ describe("redactItem on printed variables", () => {
         ...printing.unsupported.slice(1),
       ],
     };
-    const withheld = redactItem(printing, shownToCandidate);
+    const withheld = redactItem(printing, shownToCandidate, feedbackHidden);
 
-    assert.deepStrictEqual(withheld, redactItem(asNotices, shownToCandidate));
+    assert.deepStrictEqual(withheld, redactItem(asNotices, shownToCandidate, feedbackHidden));
   });
 
   it("withholds a printed variable the record holds no value of behind its notice inside the link a URL was dropped from", () => {
@@ -962,12 +969,16 @@ describe("redactItem on printed variables", () => {
       ),
     );
     const accepted = Option.getOrThrow(acceptedItem(verdict));
-    const withheld = redact(accepted, shownToCandidate, {
-      attempt: "submitted",
-      defaults: {},
-      outcomes: {},
-      templates: {},
-    });
+    const withheld = redact(
+      accepted,
+      shownToCandidate,
+      underRecord({
+        attempt: "submitted",
+        defaults: {},
+        outcomes: {},
+        templates: {},
+      }),
+    );
     const link = `${bodyPath}/p/a`;
 
     assert.deepStrictEqual(accepted.item.unsupported, [
@@ -1157,7 +1168,7 @@ const printedNoticeAt = (n: number): Unsupported => noticeOf("qti-printed-variab
 
 describe("redactItem with a record", () => {
   it("prints each printed variable from the record as text: a template value and an outcome value, through a format and in the default form, with an index and a base written as names read from the record", () => {
-    const printedOut = redactItem(templated, shownToCandidate, drawn);
+    const printedOut = redactItem(templated, shownToCandidate, underRecord(drawn));
 
     assert.deepStrictEqual(
       paragraphOf(printedOut),
@@ -1166,10 +1177,14 @@ describe("redactItem with a record", () => {
   });
 
   it("prints nothing for a NULL value", () => {
-    const empty = redactItem(templated, shownToCandidate, {
-      ...drawn,
-      templates: { ...drawn.templates, N: nullOf("integer", "single") },
-    });
+    const empty = redactItem(
+      templated,
+      shownToCandidate,
+      underRecord({
+        ...drawn,
+        templates: { ...drawn.templates, N: nullOf("integer", "single") },
+      }),
+    );
 
     assert.deepStrictEqual(
       paragraphOf(empty),
@@ -1178,10 +1193,14 @@ describe("redactItem with a record", () => {
   });
 
   it("leaves the notice where the record holds no value of the variable, or of the name its base or index names", () => {
-    const gaps = redactItem(templated, shownToCandidate, {
-      ...drawn,
-      templates: { N: integerValue(255n), POS: integerValue(2n) },
-    });
+    const gaps = redactItem(
+      templated,
+      shownToCandidate,
+      underRecord({
+        ...drawn,
+        templates: { N: integerValue(255n), POS: integerValue(2n) },
+      }),
+    );
 
     assert.deepStrictEqual(paragraphOf(gaps), [
       ...texts("N ", "255", ", score ", "2.67", ", member "),
@@ -1196,14 +1215,14 @@ describe("redactItem with a record", () => {
     const inherited = redactItem(
       { ...templated, body: [{ ...printed("constructor", printedAt(1)) }], unsupported: [] },
       shownToCandidate,
-      drawn,
+      underRecord(drawn),
     );
 
     assert.deepStrictEqual(inherited.body, [printedNoticeAt(1)]);
   });
 
   it("with no record, withholds every printed variable of an item whose template processing runs", () => {
-    const withheld = redactItem(templated, shownToCandidate);
+    const withheld = redactItem(templated, shownToCandidate, feedbackHidden);
 
     assert.deepStrictEqual(paragraphOf(withheld), [
       text("N "),
@@ -1221,8 +1240,8 @@ describe("redactItem with a record", () => {
 
   it("with no record, prints no template or outcome value, as an item with template processing does: each printed variable is its notice", () => {
     assert.deepStrictEqual(
-      paragraphOf(redactItem(untemplated, shownToCandidate)),
-      paragraphOf(redactItem(templated, shownToCandidate)),
+      paragraphOf(redactItem(untemplated, shownToCandidate, feedbackHidden)),
+      paragraphOf(redactItem(templated, shownToCandidate, feedbackHidden)),
     );
   });
 });
@@ -1487,7 +1506,7 @@ describe("redactItem on template blocks, inlines and choices", () => {
         const shown = redact(
           accepted,
           shownToCandidate,
-          holding({ VISIBLE: multipleOf("A", "MarkerTemplate") }),
+          underRecord(holding({ VISIBLE: multipleOf("A", "MarkerTemplate") })),
         );
         const [interaction] = shown.body;
         const written = json(shown);
@@ -1535,7 +1554,7 @@ describe("redactItem on template blocks, inlines and choices", () => {
         unsupported: [],
       };
       const record = holding({ VISIBLE: value });
-      const redaction = redactItem(parts, shownToCandidate, record);
+      const redaction = redactItem(parts, shownToCandidate, underRecord(record));
 
       assert.deepStrictEqual<readonly BodyNode[]>(
         redaction.body,
@@ -1546,21 +1565,43 @@ describe("redactItem on template blocks, inlines and choices", () => {
 
   it("shows a choice by its template value, keeps one with no template visibility, and leaves out one its value hides", () => {
     assert.deepStrictEqual(
-      choicesShown(redactItem(visibility, shownToCandidate, holding({ VISIBLE: multipleOf("X") }))),
+      choicesShown(
+        redactItem(
+          visibility,
+          shownToCandidate,
+          underRecord(holding({ VISIBLE: multipleOf("X") })),
+        ),
+      ),
       ["X", "Y", "Z"],
     );
     assert.deepStrictEqual(
       choicesShown(
-        redactItem(visibility, shownToCandidate, holding({ VISIBLE: multipleOf("X", "Z") })),
+        redactItem(
+          visibility,
+          shownToCandidate,
+          underRecord(holding({ VISIBLE: multipleOf("X", "Z") })),
+        ),
       ),
       ["X", "Y"],
     );
     assert.deepStrictEqual(
-      choicesShown(redactItem(visibility, shownToCandidate, holding({ VISIBLE: multipleOf("Z") }))),
+      choicesShown(
+        redactItem(
+          visibility,
+          shownToCandidate,
+          underRecord(holding({ VISIBLE: multipleOf("Z") })),
+        ),
+      ),
       ["Y"],
     );
     assert.deepStrictEqual(
-      choicesShown(redactItem(visibility, shownToCandidate, holding({ VISIBLE: multipleOf("W") }))),
+      choicesShown(
+        redactItem(
+          visibility,
+          shownToCandidate,
+          underRecord(holding({ VISIBLE: multipleOf("W") })),
+        ),
+      ),
       ["Y", "Z"],
     );
   });
@@ -1574,7 +1615,7 @@ describe("redactItem on template blocks, inlines and choices", () => {
     const redaction = redactItem(
       shuffled,
       shownToCandidate,
-      holding({ VISIBLE: identifierValue("P1") }),
+      underRecord(holding({ VISIBLE: identifierValue("P1") })),
     );
     const remaining = planets.choices.filter((entry) => entry.identifier !== "P1");
 
@@ -1590,7 +1631,7 @@ describe("redactItem on template blocks, inlines and choices", () => {
   });
 
   it("with no record, withholds a templated item's template block and inline behind their notices and leaves out each choice with a template visibility", () => {
-    const withheld = redactItem(visibility, shownToCandidate);
+    const withheld = redactItem(visibility, shownToCandidate, feedbackHidden);
 
     assert.deepStrictEqual<readonly BodyNode[]>(withheld.body, [
       noticeOf("qti-template-block", blockPath),
@@ -1602,12 +1643,12 @@ describe("redactItem on template blocks, inlines and choices", () => {
 
   it("withholds a template block, inline or choice whose template variable the record holds no value of, as with no record", () => {
     assert.deepStrictEqual(
-      redactItem(visibility, shownToCandidate, holding({})),
-      redactItem(visibility, shownToCandidate),
+      redactItem(visibility, shownToCandidate, underRecord(holding({}))),
+      redactItem(visibility, shownToCandidate, feedbackHidden),
     );
     assert.deepStrictEqual(
-      redactItem(visibility, shownToCandidate, holding({ OTHER: multipleOf("X") })),
-      redactItem(visibility, shownToCandidate),
+      redactItem(visibility, shownToCandidate, underRecord(holding({ OTHER: multipleOf("X") }))),
+      redactItem(visibility, shownToCandidate, feedbackHidden),
     );
   });
 
@@ -1615,8 +1656,8 @@ describe("redactItem on template blocks, inlines and choices", () => {
     const untemplatedParts: Item = { ...visibility, templated: false };
 
     assert.deepStrictEqual(
-      redactItem(untemplatedParts, shownToCandidate),
-      redactItem(visibility, shownToCandidate),
+      redactItem(untemplatedParts, shownToCandidate, feedbackHidden),
+      redactItem(visibility, shownToCandidate, feedbackHidden),
     );
   });
 
@@ -1638,12 +1679,12 @@ describe("redactItem on template blocks, inlines and choices", () => {
     const shown = redactItem(
       holdingNotice,
       shownToCandidate,
-      holding({ VISIBLE: multipleOf("X") }),
+      underRecord(holding({ VISIBLE: multipleOf("X") })),
     );
     const hidden = redactItem(
       holdingNotice,
       shownToCandidate,
-      holding({ VISIBLE: multipleOf("W") }),
+      underRecord(holding({ VISIBLE: multipleOf("W") })),
     );
 
     assert.deepStrictEqual(shown.body, [
@@ -1662,7 +1703,7 @@ describe("redactItem on template blocks, inlines and choices", () => {
       unsupported: [],
     };
     const postedOf = (value: Value): readonly string[] =>
-      postings(acceptForTest(holdingEntry), instance, holding({ VISIBLE: value })).map(
+      postings(acceptForTest(holdingEntry), instance, underRecord(holding({ VISIBLE: value }))).map(
         (posting) => posting.identifier,
       );
 
@@ -1792,7 +1833,7 @@ describe("redactItem on responses only hidden content binds", () => {
   it("lists no response only a template inline the record hides binds in the redacted item, and names that response as hidden-only", () => {
     const accepted = Option.getOrThrow(acceptedItem(admittedSource(inlineAnswers)));
     const showingA = holding({ T: identifierValue("A") });
-    const shown = redact(accepted, shownToCandidate, showingA);
+    const shown = redact(accepted, shownToCandidate, underRecord(showingA));
 
     assert.deepStrictEqual(shown.responses, [
       {
@@ -1802,18 +1843,24 @@ describe("redactItem on responses only hidden content binds", () => {
         identifier: "SHOWN_ANSWER",
       },
     ]);
-    assert.deepStrictEqual([...hiddenOnlyResponses(accepted.item, showingA)], ["HIDDEN_ANSWER"]);
     assert.deepStrictEqual(
-      postings(accepted, instance, showingA).map((posting) => posting.identifier),
+      [...hiddenOnlyResponses(accepted.item, underRecord(showingA))],
+      ["HIDDEN_ANSWER"],
+    );
+    assert.deepStrictEqual(
+      postings(accepted, instance, underRecord(showingA)).map((posting) => posting.identifier),
       ["SHOWN_ANSWER"],
     );
 
     const showingB = holding({ T: identifierValue("B") });
 
-    assert.deepStrictEqual(respondedTo(redact(accepted, shownToCandidate, showingB)), [
+    assert.deepStrictEqual(respondedTo(redact(accepted, shownToCandidate, underRecord(showingB))), [
       "HIDDEN_ANSWER",
     ]);
-    assert.deepStrictEqual([...hiddenOnlyResponses(accepted.item, showingB)], ["SHOWN_ANSWER"]);
+    assert.deepStrictEqual(
+      [...hiddenOnlyResponses(accepted.item, underRecord(showingB))],
+      ["SHOWN_ANSWER"],
+    );
   });
 
   it("counts a notice's response as hidden-only inside a template block the record hides, and passes it through inside one it shows", () => {
@@ -1829,12 +1876,16 @@ describe("redactItem on responses only hidden content binds", () => {
     const hiding = holding({ VISIBLE: multipleOf("W") });
     const showing = holding({ VISIBLE: multipleOf("X") });
 
-    assert.deepStrictEqual([...hiddenOnlyResponses(holdingOrder, hiding)], ["R2"]);
-    assert.deepStrictEqual(respondedTo(redactItem(holdingOrder, shownToCandidate, hiding)), []);
-    assert.deepStrictEqual([...hiddenOnlyResponses(holdingOrder, showing)], []);
-    assert.deepStrictEqual(respondedTo(redactItem(holdingOrder, shownToCandidate, showing)), [
-      "R2",
-    ]);
+    assert.deepStrictEqual([...hiddenOnlyResponses(holdingOrder, underRecord(hiding))], ["R2"]);
+    assert.deepStrictEqual(
+      respondedTo(redactItem(holdingOrder, shownToCandidate, underRecord(hiding))),
+      [],
+    );
+    assert.deepStrictEqual([...hiddenOnlyResponses(holdingOrder, underRecord(showing))], []);
+    assert.deepStrictEqual(
+      respondedTo(redactItem(holdingOrder, shownToCandidate, underRecord(showing))),
+      ["R2"],
+    );
   });
 
   it("passes through the response of a notice outside any template block, with a record and without one", () => {
@@ -1842,8 +1893,11 @@ describe("redactItem on responses only hidden content binds", () => {
     const loose = bindingOf([order], ["R2"], [order]);
 
     for (const record of [holding({ VISIBLE: multipleOf("W") }), undefined]) {
-      assert.deepStrictEqual([...hiddenOnlyResponses(loose, record)], []);
-      assert.deepStrictEqual(respondedTo(redactItem(loose, shownToCandidate, record)), ["R2"]);
+      assert.deepStrictEqual([...hiddenOnlyResponses(loose, underRecord(record))], []);
+      assert.deepStrictEqual(
+        respondedTo(redactItem(loose, shownToCandidate, underRecord(record))),
+        ["R2"],
+      );
     }
   });
 
@@ -1857,8 +1911,11 @@ describe("redactItem on responses only hidden content binds", () => {
     );
 
     for (const record of [holding({ VISIBLE: multipleOf("W") }), undefined]) {
-      assert.deepStrictEqual([...hiddenOnlyResponses(twice, record)], []);
-      assert.deepStrictEqual(respondedTo(redactItem(twice, shownToCandidate, record)), ["R1"]);
+      assert.deepStrictEqual([...hiddenOnlyResponses(twice, underRecord(record))], []);
+      assert.deepStrictEqual(
+        respondedTo(redactItem(twice, shownToCandidate, underRecord(record))),
+        ["R1"],
+      );
     }
   });
 
@@ -1874,8 +1931,11 @@ describe("redactItem on responses only hidden content binds", () => {
       ["R1", "R2", "R3", "R4"],
     );
 
-    assert.deepStrictEqual([...hiddenOnlyResponses(inside)], ["R1", "R3"]);
-    assert.deepStrictEqual(respondedTo(redactItem(inside, shownToCandidate)), ["R2", "R4"]);
+    assert.deepStrictEqual([...hiddenOnlyResponses(inside, feedbackHidden)], ["R1", "R3"]);
+    assert.deepStrictEqual(respondedTo(redactItem(inside, shownToCandidate, feedbackHidden)), [
+      "R2",
+      "R4",
+    ]);
   });
 });
 
@@ -1986,7 +2046,11 @@ describe("payload", () => {
     for (const interaction of [choice, named]) {
       const capital = choiceFor(
         pageFor(
-          redactItem({ ...item, body: [idParagraph("intro"), interaction] }, shownToCandidate),
+          redactItem(
+            { ...item, body: [idParagraph("intro"), interaction] },
+            shownToCandidate,
+            feedbackHidden,
+          ),
           answering,
         ),
         "CAPITAL",
@@ -2045,7 +2109,8 @@ describe("payload", () => {
     };
 
     assert.strictEqual(
-      textEntryFor(pageFor(redactItem(hexItem, shownToCandidate), view), "HEX").restore,
+      textEntryFor(pageFor(redactItem(hexItem, shownToCandidate, feedbackHidden), view), "HEX")
+        .restore,
       "ff",
     );
   });
@@ -2057,7 +2122,10 @@ describe("payload", () => {
         node.kind === "extended-text" ? { ...node, format: "xhtml" } : node,
       ),
     };
-    const essayPayload = textFor(pageFor(redactItem(xhtml, shownToCandidate), answering), "ESSAY");
+    const essayPayload = textFor(
+      pageFor(redactItem(xhtml, shownToCandidate, feedbackHidden), answering),
+      "ESSAY",
+    );
 
     assert.strictEqual(essayPayload.kind, "extended-text");
     assert.strictEqual(
@@ -2229,6 +2297,7 @@ const planetsRedacted = redact(
     ]),
   }),
   shownToCandidate,
+  feedbackHidden,
 );
 
 /**
@@ -2436,7 +2505,7 @@ describe("postings", () => {
       ]),
     };
 
-    assert.deepStrictEqual(postings(acceptForTest(bound), instance), [
+    assert.deepStrictEqual(postings(acceptForTest(bound), instance, feedbackHidden), [
       postingOf("CAPITAL", "identifier"),
       // A Text Entry's text is plain: white space alone reads as NULL (TextFormatEnum, SV-DESIGN-05).
       { ...postingOf("FIRST", "string", 16), options: { base: 16, blankIsEmpty: true } },
@@ -2453,7 +2522,11 @@ describe("postings", () => {
   });
 
   it("reads a Text Entry's text of XML white space alone as NULL, and any other text whole, over every blank of up to four characters (TextFormatEnum plain, SV-DESIGN-05)", () => {
-    const [posting] = postings(acceptForTest({ ...item, body: [textEntry("FIRST")] }), instance);
+    const [posting] = postings(
+      acceptForTest({ ...item, body: [textEntry("FIRST")] }),
+      instance,
+      feedbackHidden,
+    );
     const { binding, options } = posting ?? assert.fail("FIRST has no posting.");
     const space = [" ", "\t", "\n", "\r"];
     const blanks = [""];
@@ -2523,18 +2596,64 @@ describe("postings", () => {
       ]),
     };
     const accepted = acceptForTest(hidden);
-    const posted = postings(accepted, instance).map(({ identifier }) => identifier);
+    const posted = postings(accepted, instance, feedbackHidden).map(({ identifier }) => identifier);
 
     assert.include(posted, "HINT");
     assert.notInclude(posted, "MORE");
-    assert.deepStrictEqual(unpostedEndAttempts(accepted, instance), [["MORE", no]]);
+    assert.deepStrictEqual(unpostedEndAttempts(accepted, instance, feedbackHidden), [["MORE", no]]);
 
     const shown: Item = { ...hidden, body: [hidden.body[0] ?? assert.fail("no body")] };
-    assert.deepStrictEqual(unpostedEndAttempts(acceptForTest(shown), instance), []);
+    assert.deepStrictEqual(unpostedEndAttempts(acceptForTest(shown), instance, feedbackHidden), []);
+  });
+
+  it("posts an End Attempt inside feedback the record shows only where the page shows feedback, and gives it its false where the page shows none (show-feedback, 7.19.2)", () => {
+    const no: Value = {
+      baseType: "boolean",
+      cardinality: "single",
+      values: [{ baseType: "boolean", value: false }],
+    };
+    const clue: Item = {
+      ...item,
+      body: [
+        {
+          content: [
+            endAttempt(
+              "MORE",
+              "qti-assessment-item/qti-item-body/qti-feedback-block/qti-end-attempt-interaction",
+            ),
+          ],
+          feedbackVisibility: { outcomeIdentifier: "FEEDBACK", showHide: "hide" },
+          identifier: "clue",
+          kind: "feedback-block",
+          path: "qti-assessment-item/qti-item-body/qti-feedback-block",
+          responses: ["MORE"],
+        },
+      ],
+      responses: new Map([booleanResponse("MORE", Option.none())]),
+    };
+    const accepted = acceptForTest(clue);
+    // FEEDBACK at NULL, as the database's record holds it at the start: the hide block shows.
+    const start: RedactRecord = {
+      attempt: "none",
+      defaults: {},
+      outcomes: { FEEDBACK: { baseType: "identifier", cardinality: "single", values: [] } },
+      templates: {},
+    };
+    const fed: Showing = { record: start, showFeedback: true };
+
+    assert.deepStrictEqual(
+      postings(accepted, instance, fed).map(({ identifier }) => identifier),
+      ["MORE"],
+    );
+    assert.deepStrictEqual(unpostedEndAttempts(accepted, instance, fed), []);
+    for (const unfed of [underRecord(start), feedbackHidden]) {
+      assert.deepStrictEqual(postings(accepted, instance, unfed), []);
+      assert.deepStrictEqual(unpostedEndAttempts(accepted, instance, unfed), [["MORE", no]]);
+    }
   });
 
   it("gives an Inline Choice's response its posting with no base, which decodes an empty entry as NULL and refuses two entries", () => {
-    const [posting, ...others] = postings(acceptForTest(riverItem), instance);
+    const [posting, ...others] = postings(acceptForTest(riverItem), instance, feedbackHidden);
     assert.deepStrictEqual(posting, postingOf("RIVER", "identifier"));
     assert.lengthOf(others, 0);
 
@@ -2571,7 +2690,7 @@ describe("postings", () => {
         ["UNBOUND", { ...answer, identifier: "UNBOUND" }],
       ]),
     };
-    const shown = redactItem(recorded, shownToCandidate);
+    const shown = redactItem(recorded, shownToCandidate, feedbackHidden);
 
     assert.deepStrictEqual(
       shown.responses.filter((binding) => binding.cardinality === "record"),
@@ -2580,7 +2699,7 @@ describe("postings", () => {
         { cardinality: "record", defaultValue: Option.none(), identifier: "UNBOUND" },
       ],
     );
-    assert.deepStrictEqual(postings(acceptForTest(recorded), instance), [
+    assert.deepStrictEqual(postings(acceptForTest(recorded), instance, feedbackHidden), [
       postingOf("CAPITAL", "identifier"),
       {
         binding: { cardinality: "record", name: entryName(instance, "ANSWER") },
@@ -2595,7 +2714,7 @@ describe("postings", () => {
   it("gives no posting to a declared response no interaction binds, so a post carries nothing over its record value", () => {
     const unbound: Item = { ...item, body: [choice] };
 
-    assert.deepStrictEqual(postings(acceptForTest(unbound), instance), [
+    assert.deepStrictEqual(postings(acceptForTest(unbound), instance, feedbackHidden), [
       postingOf("CAPITAL", "identifier"),
     ]);
   });
@@ -2606,14 +2725,14 @@ describe("postings", () => {
       Effect.gen(function* postingsInLinearTime() {
         const fewer = entriesItem(fewerEntries);
         const more = entriesItem(fewerEntries * growthFactor);
-        assert.lengthOf(postings(more, instance), fewerEntries * growthFactor);
+        assert.lengthOf(postings(more, instance, feedbackHidden), fewerEntries * growthFactor);
 
         const growth = yield* growthRatio(
           () => {
-            postings(fewer, instance);
+            postings(fewer, instance, feedbackHidden);
           },
           () => {
-            postings(more, instance);
+            postings(more, instance, feedbackHidden);
           },
         );
         assert.isBelow(
@@ -2925,7 +3044,7 @@ describe("redactItem on param-variable parameters", () => {
     () =>
       Effect.gen(function* passesParameterValues() {
         const accepted = yield* Effect.fromOption(acceptedItem(admittedSource(parameterDocument)));
-        const expanded = redact(accepted, shownToCandidate, parameterValues);
+        const expanded = redact(accepted, shownToCandidate, underRecord(parameterValues));
 
         assert.deepStrictEqual(parametersOf(objectChildren(expanded.body)), expandedParameters);
       }),
@@ -2938,7 +3057,7 @@ describe("redactItem on param-variable parameters", () => {
         const accepted = yield* Effect.fromOption(
           acceptedItem(admittedSource(containerParameterDocument)),
         );
-        const expanded = redact(accepted, shownToCandidate, containerParameterValues);
+        const expanded = redact(accepted, shownToCandidate, underRecord(containerParameterValues));
         const passed = [
           ["list", "1;2;3"],
           ["set", "A;B"],
@@ -2955,7 +3074,7 @@ describe("redactItem on param-variable parameters", () => {
       Effect.gen(function* keepsWrittenValues() {
         const accepted = yield* Effect.fromOption(acceptedItem(admittedSource(parameterDocument)));
         const kept = parametersOf(
-          objectChildren(redact(accepted, shownToCandidate, parameterValues).body),
+          objectChildren(redact(accepted, shownToCandidate, underRecord(parameterValues)).body),
         );
 
         assert.deepStrictEqual(kept.slice(-2), [
@@ -2970,7 +3089,7 @@ describe("redactItem on param-variable parameters", () => {
     () =>
       Effect.gen(function* withholdsParameters() {
         const accepted = yield* Effect.fromOption(acceptedItem(admittedSource(parameterDocument)));
-        const withheld = redact(accepted, shownToCandidate);
+        const withheld = redact(accepted, shownToCandidate, feedbackHidden);
         const [count, ratio, spot, link, arrow, flag, span, ...rest] = objectChildren(
           accepted.item.body,
         );
@@ -2988,10 +3107,10 @@ describe("redactItem on param-variable parameters", () => {
       Effect.gen(function* withholdsUnheldParameter() {
         const accepted = yield* Effect.fromOption(acceptedItem(admittedSource(parameterDocument)));
         const { N: _held, ...unheld } = parameterValues.templates;
-        const gap = redact(accepted, shownToCandidate, holding(unheld));
+        const gap = redact(accepted, shownToCandidate, underRecord(holding(unheld)));
         const [count] = objectChildren(accepted.item.body);
         const [, ...expandedOthers] = objectChildren(
-          redact(accepted, shownToCandidate, parameterValues).body,
+          redact(accepted, shownToCandidate, underRecord(parameterValues)).body,
         );
 
         assert.deepStrictEqual(objectChildren(gap.body), [
@@ -3010,12 +3129,14 @@ describe("redactItem on param-variable parameters", () => {
         assert.deepStrictEqual(
           parametersOf(
             objectChildren(
-              redactItem({ ...accepted.item, templated: false }, shownToCandidate).body,
+              redactItem({ ...accepted.item, templated: false }, shownToCandidate, feedbackHidden)
+                .body,
             ),
           ),
           parametersOf(
             objectChildren(
-              redactItem({ ...accepted.item, templated: true }, shownToCandidate).body,
+              redactItem({ ...accepted.item, templated: true }, shownToCandidate, feedbackHidden)
+                .body,
             ),
           ),
         );
@@ -3128,7 +3249,11 @@ describe("redactItem on a printed variable whose text passes 1,000,000 character
       Effect.gen(function* recordsOversizedText() {
         for (const [document, value] of oversizedPrinting) {
           const accepted = yield* Effect.fromOption(acceptedItem(admittedSource(document)));
-          const emptied = redactItem(accepted.item, shownToCandidate, holding({ S: value }));
+          const emptied = redactItem(
+            accepted.item,
+            shownToCandidate,
+            underRecord(holding({ S: value })),
+          );
 
           assert.deepStrictEqual(paragraphOf(emptied), [text("Value: ")]);
           assert.deepStrictEqual(
@@ -3148,7 +3273,7 @@ describe("redactItem on a printed variable whose text passes 1,000,000 character
         const emptied = redactItem(
           accepted.item,
           shownToCandidate,
-          holding({ S: orderedIntegers([5n]) }),
+          underRecord(holding({ S: orderedIntegers([5n]) })),
         );
 
         assert.deepStrictEqual(paragraphOf(emptied), [text("Value: ")]);
@@ -3168,7 +3293,7 @@ describe("redactItem on a printed variable whose text passes 1,000,000 character
         const shown = redactItem(
           accepted.item,
           shownToCandidate,
-          holding({ S: orderedIntegers([1n, 1n, 1n]) }),
+          underRecord(holding({ S: orderedIntegers([1n, 1n, 1n]) })),
         );
 
         assert.deepStrictEqual(paragraphOf(shown), texts("Value: ", " 1; 1; 1"));
@@ -3270,22 +3395,22 @@ describe("redactStructure", () => {
     ];
 
     for (const [label, subject, record] of cases) {
-      const full = redactItem(subject, shownToCandidate, record);
-      const structure = redactStructure(subject, record);
+      const full = redactItem(subject, shownToCandidate, underRecord(record));
+      const structure = redactStructure(subject, underRecord(record));
 
       assert.deepStrictEqual(shownParts(structure.body), shownParts(full.body), label);
       assert.deepStrictEqual(structure.responses, full.responses, label);
       assert.deepStrictEqual(
         [...structure.hiddenOnly],
-        [...hiddenOnlyResponses(subject, record)],
+        [...hiddenOnlyResponses(subject, underRecord(record))],
         label,
       );
     }
   });
 
   it("holds no printed text: a printed variable the record covers leaves nothing in its place, one it does not cover keeps its notice, and a param-variable parameter keeps its value as written", () => {
-    const [paragraph] = redactStructure(templated, drawn).body;
-    const [uncovered] = redactStructure(templated).body;
+    const [paragraph] = redactStructure(templated, underRecord(drawn)).body;
+    const [uncovered] = redactStructure(templated, feedbackHidden).body;
     const parameters = acceptedFrom(parameterDocument);
 
     assert.deepStrictEqual(
@@ -3294,10 +3419,10 @@ describe("redactStructure", () => {
     );
     assert.deepStrictEqual(
       uncovered?.kind === "element" ? uncovered.children : assert.fail("No paragraph."),
-      paragraphOf(redactItem(templated, shownToCandidate)),
+      paragraphOf(redactItem(templated, shownToCandidate, feedbackHidden)),
     );
     assert.deepStrictEqual(
-      parametersOf(objectChildren(redactStructure(parameters, parameterValues).body)),
+      parametersOf(objectChildren(redactStructure(parameters, underRecord(parameterValues)).body)),
       writtenParameters,
     );
   });
@@ -3311,15 +3436,15 @@ describe("redactStructure", () => {
       templates: { ...drawn.templates, LIST: list.value },
     };
     const passing = holding({ ...parameterValues.templates, N: count.value });
-    redactStructure(templated, covering);
-    redactStructure(parameters, passing);
-    hiddenOnlyResponses(templated, covering);
-    hiddenOnlyResponses(parameters, passing);
+    redactStructure(templated, underRecord(covering));
+    redactStructure(parameters, underRecord(passing));
+    hiddenOnlyResponses(templated, underRecord(covering));
+    hiddenOnlyResponses(parameters, underRecord(passing));
 
     assert.deepStrictEqual([list.reads(), count.reads()], [0, 0]);
 
-    redactItem(templated, shownToCandidate, covering);
-    redactItem(parameters, shownToCandidate, passing);
+    redactItem(templated, shownToCandidate, underRecord(covering));
+    redactItem(parameters, shownToCandidate, underRecord(passing));
 
     assert.isAbove(list.reads(), 0);
     assert.isAbove(count.reads(), 0);
@@ -3332,7 +3457,7 @@ describe("redactItem records the first text past its bound on content the page s
     const emptied = redactItem(
       printing,
       shownToCandidate,
-      holding({ ROUND: huge, SCORE: floatValue(1.5), TOTAL: huge }),
+      underRecord(holding({ ROUND: huge, SCORE: floatValue(1.5), TOTAL: huge })),
     );
 
     assert.deepStrictEqual(
@@ -3353,7 +3478,9 @@ describe("redactItem records the first text past its bound on content the page s
     const emptied = redactItem(
       containers,
       shownToCandidate,
-      holding({ ...containerParameterValues.templates, SET: multipleOf("y".repeat(1_000_001)) }),
+      underRecord(
+        holding({ ...containerParameterValues.templates, SET: multipleOf("y".repeat(1_000_001)) }),
+      ),
     );
 
     assert.deepStrictEqual(parametersOf(objectChildren(emptied.body)), [
@@ -3374,7 +3501,9 @@ describe("redactItem records the first text past its bound on content the page s
       }),
     );
     assert.isTrue(
-      Option.isNone(redactItem(containers, shownToCandidate, containerParameterValues).unprinted),
+      Option.isNone(
+        redactItem(containers, shownToCandidate, underRecord(containerParameterValues)).unprinted,
+      ),
       "within the bound",
     );
   });
@@ -3392,7 +3521,7 @@ describe("redactItem records the first text past its bound on content the page s
     const redaction = redactItem(
       hidden,
       shownToCandidate,
-      holding({ S: lengthy.value, VISIBLE: identifierValue("OTHER") }),
+      underRecord(holding({ S: lengthy.value, VISIBLE: identifierValue("OTHER") })),
     );
 
     assert.deepStrictEqual(redaction.body, []);
@@ -3402,7 +3531,7 @@ describe("redactItem records the first text past its bound on content the page s
       redactItem(
         hidden,
         shownToCandidate,
-        holding({ S: lengthy.value, VISIBLE: identifierValue("X") }),
+        underRecord(holding({ S: lengthy.value, VISIBLE: identifierValue("X") })),
       ).unprinted,
       Option.some({
         bound: 1_000_000,
@@ -3457,7 +3586,7 @@ describe("redactItem under an output budget", () => {
     const redaction = redactItem(
       slotted(4500),
       { ...shownToCandidate, configuration: { outputBudget: 10_000 } },
-      holding({ S: value.value }),
+      underRecord(holding({ S: value.value })),
     );
 
     assert.isAtMost(value.reads(), 101);
@@ -3477,12 +3606,12 @@ describe("redactItem under an output budget", () => {
     const exact = redactItem(
       slotted(4500),
       { ...shownToCandidate, configuration: { outputBudget: whole } },
-      holding({ S: value }),
+      underRecord(holding({ S: value })),
     );
     const under = redactItem(
       slotted(4500),
       { ...shownToCandidate, configuration: { outputBudget: whole - 1 } },
-      holding({ S: value }),
+      underRecord(holding({ S: value })),
     );
 
     assert.strictEqual(paragraphOf(exact).length, 4500);
@@ -3503,7 +3632,7 @@ describe("redactItem under an output budget", () => {
     const redaction = redactItem(
       hidden,
       { ...shownToCandidate, configuration: { outputBudget: 10_000 } },
-      holding({ S: value.value, VISIBLE: identifierValue("OTHER") }),
+      underRecord(holding({ S: value.value, VISIBLE: identifierValue("OTHER") })),
     );
 
     assert.strictEqual(value.reads(), 50);
@@ -3516,7 +3645,11 @@ describe("redactItem under an output budget", () => {
 
   it("runs under the default budget, 16,777,216, when given none: 17 slots of 1,000,000 characters print 16 and record the 17th with that bound", () => {
     const value = counted(one({ baseType: "string", value: "y".repeat(1_000_000) }));
-    const redaction = redactItem(slotted(17), shownToCandidate, holding({ S: value.value }));
+    const redaction = redactItem(
+      slotted(17),
+      shownToCandidate,
+      underRecord(holding({ S: value.value })),
+    );
 
     assert.strictEqual(value.reads(), 17);
     assert.strictEqual(paragraphOf(redaction).length, 16);
@@ -3532,12 +3665,12 @@ describe("redactItem under an output budget", () => {
     const spent = redactItem(
       containers,
       { ...shownToCandidate, configuration: { outputBudget: 7 } },
-      containerParameterValues,
+      underRecord(containerParameterValues),
     );
     const fits = redactItem(
       containers,
       { ...shownToCandidate, configuration: { outputBudget: 8 } },
-      containerParameterValues,
+      underRecord(containerParameterValues),
     );
 
     assert.deepStrictEqual(parametersOf(objectChildren(spent.body)), [
@@ -3571,7 +3704,7 @@ describe("redactItem names which limit a text passed", () => {
     const redaction = redactItem(
       slotted(4),
       { ...shownToCandidate, configuration: { outputBudget: 1_000_000 } },
-      holding({ S: one({ baseType: "string", value: "y".repeat(300_000) }) }),
+      underRecord(holding({ S: one({ baseType: "string", value: "y".repeat(300_000) }) })),
     );
 
     assert.strictEqual(paragraphOf(redaction).length, 3);
@@ -3596,7 +3729,8 @@ describe("redactItem names which limit a text passed", () => {
     };
 
     assert.deepStrictEqual(
-      redactItem(widened, shownToCandidate, holding({ N: integerValue(5n) })).unprinted,
+      redactItem(widened, shownToCandidate, underRecord(holding({ N: integerValue(5n) })))
+        .unprinted,
       Option.some({ bound: 1_000_000, identifier: "N", limit: "text", path: slotPath(1) }),
     );
   });
@@ -3605,7 +3739,7 @@ describe("redactItem names which limit a text passed", () => {
     const redaction = redactItem(
       slotted(1),
       shownToCandidate,
-      holding({ S: one({ baseType: "string", value: "y".repeat(1_000_001) }) }),
+      underRecord(holding({ S: one({ baseType: "string", value: "y".repeat(1_000_001) }) })),
     );
 
     assert.deepStrictEqual(paragraphOf(redaction), []);
@@ -3658,7 +3792,7 @@ const recordBound: SourceDocument = doc(
 describe("a record-bound control", () => {
   it("gives a record-bound control the string control's payload with no notice, each posting under its response's one name, and postings a RecordBinding for each", () => {
     const recordItem = acceptedFrom(recordBound);
-    const shown = redactItem(recordItem, shownToCandidate);
+    const shown = redactItem(recordItem, shownToCandidate, feedbackHidden);
     const built = pageFor(shown, answering);
     const entry = textEntryFor(built, "NUMBER");
     const working = extendedTextFor(built, "WORKING");
@@ -3671,7 +3805,7 @@ describe("a record-bound control", () => {
       [working.baseType, working.cardinality, working.formName, working.n, working.notice],
       ["string", "record", entryName(instance, "WORKING"), 1, Option.none()],
     );
-    assert.deepStrictEqual(postings(acceptForTest(recordItem), instance), [
+    assert.deepStrictEqual(postings(acceptForTest(recordItem), instance, feedbackHidden), [
       {
         binding: { cardinality: "record", name: entryName(instance, "NUMBER") },
         identifier: "NUMBER",
@@ -3725,7 +3859,9 @@ const authorDataItem = doc(
 describe("an author's data-* on a module interaction's root (decision D24)", () => {
   it("reaches the interaction's paired model node in document order, and a name plate reserves does not", () => {
     const accepted = Option.getOrThrow(acceptedItem(admittedSource(authorDataItem)));
-    const [slider] = redactedInteractionsIn(redactItem(accepted.item, shownToCandidate).body);
+    const [slider] = redactedInteractionsIn(
+      redactItem(accepted.item, shownToCandidate, feedbackHidden).body,
+    );
     const node =
       slider === undefined
         ? assert.fail("The body holds no Slider.")

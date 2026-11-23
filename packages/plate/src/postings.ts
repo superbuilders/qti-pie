@@ -11,7 +11,7 @@ import { encode, entryName, isPosted } from "#plate/form/encoding.ts";
 import type { Binding, DecodeOptions, Entry } from "#plate/form/encoding.ts";
 import { absentValueOf, interactionsIn } from "#plate/model/interactions.ts";
 import type { Interaction } from "#plate/model/item.ts";
-import type { RedactRecord } from "#plate/model/record.ts";
+import type { Showing } from "#plate/model/record.ts";
 import type { ResponseValue, Value } from "#plate/model/values.ts";
 import { redactStructure } from "#plate/redact/walk.ts";
 import type { RedactedFields, ResponseBinding } from "#plate/redact/walk.ts";
@@ -178,22 +178,21 @@ export const postingsIn = (
  * replace the value the response holds in its record, the declared default a test session writes
  * when the item is first presented, and processing would read NULL instead.
  *
- * It reads the body as {@link redactStructure} shows it under the record, the body `redact` gives
+ * It reads the body as {@link redactStructure} shows it as `showing` says, the body `redact` gives
  * without its printed text, so the responses it gives are those the page `redact` gives posts, and
  * it formats no printed variable or parameter to learn them. It walks that body once and indexes
  * its interactions by the response each binds, keeping document order, so its time grows with the
  * item, not with its responses times its interactions.
  *
  * @example
- *   const values = postings(accepted, instance).map(({ binding, options }) =>
+ *   const values = postings(accepted, instance, showing).map(({ binding, options }) =>
  *     decode(entries, binding, options),
  *   );
  *
  * @param accepted The document `checkAdmitted` accepted.
  * @param instance The instance token the render used, one `checkInstance` passes.
- * @param record The record of the attempt the page shows, as `redact` takes it, whose template
- *   values and outcome values show or hide the content an interaction sits in; none to read the
- *   item as it reads with no record.
+ * @param showing Whether the page shows feedback, and the record of the attempt it shows, as
+ *   `redact` takes them, which show or hide the content an interaction sits in ({@link Showing}).
  * @returns The postings: a response no interaction binds, or of a base type no interaction posts
  *   (`isPosted`), has none. A pair response's values decode one per posted entry, as the pair's
  *   two identifiers separated by a space, and so do a point response's, as its two coordinates,
@@ -202,8 +201,8 @@ export const postingsIn = (
 export const postings = (
   accepted: Accepted,
   instance: string,
-  record?: RedactRecord,
-): readonly Posting[] => postingsIn(redactStructure(accepted.item, record), instance);
+  showing: Showing,
+): readonly Posting[] => postingsIn(redactStructure(accepted.item, showing), instance);
 
 /**
  * The responses an item's End Attempt interactions bind that no posting carries, each with the
@@ -218,17 +217,16 @@ export const postings = (
  *
  * @param accepted The accepted item.
  * @param instance The instance token the render used.
- * @param record The record of the attempt the page shows, as {@link postings} takes it, whose
- *   values show or hide the content an End Attempt sits in; none to read the item as it reads with
- *   no record.
+ * @param showing Whether the page shows feedback, and the record of the attempt it shows, as
+ *   {@link postings} takes them, which show or hide the content an End Attempt sits in.
  * @returns Each unposted End Attempt's response and its value, in document order, each once.
  */
 export const unpostedEndAttempts = (
   accepted: Accepted,
   instance: string,
-  record?: RedactRecord,
+  showing: Showing,
 ): readonly (readonly [string, Value])[] => {
-  const posted = new Set(postings(accepted, instance, record).map(({ identifier }) => identifier));
+  const posted = new Set(postings(accepted, instance, showing).map(({ identifier }) => identifier));
   const unposted = new Map<string, Value>();
   for (const interaction of interactionsIn(accepted.item.body)) {
     if (

@@ -47,6 +47,29 @@ export interface ItemRecord {
 export type RedactRecord = Pick<ItemRecord, "attempt" | "defaults" | "outcomes" | "templates">;
 
 /**
+ * What a page shows an item by, which the host hands `<Item>`, `redact` and `postings` alike, so
+ * the page and the responses it posts agree: whether the page shows the item's feedback, and the
+ * record of the attempt it shows.
+ *
+ * `showFeedback` is the item session control's `show-feedback` that the test states for the item
+ * (information model 7.19.2), and the host passes it as the test states it: "If it is 'false' then
+ * feedback is not shown. This includes both Modal Feedback and Integrated Feedback even if the
+ * candidate has access to the review state." So where it is `false`, no feedback block, feedback
+ * inline or modal feedback shows, whatever the record holds, and an interaction inside feedback
+ * posts nothing. Where it is `true`, each one shows as the record's outcome values say (redact's
+ * `feedbackShownBy`), so a page that shows feedback is always handed the record whose outcomes
+ * decide it: omitting `showFeedback`, or the record where it is `true`, is a type error, and no
+ * page leaves its feedback undecided.
+ *
+ * `record` gives the printed variables their text and shows or hides template content and choices
+ * by its template values; a page that hides feedback may have none, and then shows the item as it
+ * reads with no record.
+ */
+export type Showing =
+  | { readonly record: RedactRecord; readonly showFeedback: true }
+  | { readonly record?: RedactRecord; readonly showFeedback: false };
+
+/**
  * The part of an {@link ItemRecord} `solution` reads: the correct responses template processing
  * set. It holds no seed.
  */

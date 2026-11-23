@@ -6,7 +6,7 @@ import { redact } from "#plate/redact.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
 import { noSupports } from "#plate/supports.ts";
 import type { CatalogSupport, ExtensionSupport, Supports } from "#plate/supports.ts";
-import { shownToCandidate, textOf } from "#plate/test/page.ts";
+import { feedbackHidden, shownToCandidate, textOf } from "#plate/test/page.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
@@ -240,7 +240,7 @@ const catalogsOf = (redacted: Redacted): readonly ShownCatalog[] =>
  * @returns The redacted item and the page's catalogs.
  */
 const shownUnder = Effect.fnUntraced(function* shownUnder(supports: Supports) {
-  const redacted = redact(yield* accepted, { ...shownToCandidate, supports });
+  const redacted = redact(yield* accepted, { ...shownToCandidate, supports }, feedbackHidden);
 
   return { catalogs: catalogsOf(redacted), redacted } satisfies Shown;
 });

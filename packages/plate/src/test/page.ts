@@ -14,6 +14,7 @@ import type { Configuration } from "#plate/configuration.ts";
 import { defaultView } from "#plate/content/contract.ts";
 import { isInteraction, redactedInteractionsIn } from "#plate/model/interactions.ts";
 import type { RedactedNode } from "#plate/model/item.ts";
+import type { RedactRecord, Showing } from "#plate/model/record.ts";
 import type { ResponseValue } from "#plate/model/values.ts";
 import { interactionPayload } from "#plate/payload.ts";
 import type { View } from "#plate/payload.ts";
@@ -30,6 +31,36 @@ export const shownToCandidate: RedactOptions = {
   supports: noSupports,
   view: defaultView,
 };
+
+/**
+ * What a page that shows no feedback and has no record is shown by, as a host whose test states
+ * `show-feedback="false"` and that hands no record shows an item.
+ */
+export const feedbackHidden: Showing = { showFeedback: false };
+
+/**
+ * Give what a page that shows no feedback is shown by under a record: the record's template values
+ * and outcome values print and show template content, and no feedback shows.
+ *
+ * @param record The record; undefined for none ({@link feedbackHidden}).
+ * @returns What the page is shown by.
+ */
+export const underRecord = (record: RedactRecord | undefined): Showing =>
+  record === undefined ? feedbackHidden : { record, showFeedback: false };
+
+/**
+ * Give what a page is shown by from the record it holds: under a record, its feedback shown as the
+ * record's outcomes say, as a host whose test states `show-feedback="true"` shows it; with none, no
+ * feedback ({@link feedbackHidden}).
+ *
+ * @param record The record, if any.
+ * @returns What the page is shown by.
+ */
+export const showingOf = (record: Option.Option<RedactRecord>): Showing =>
+  Option.match(record, {
+    onNone: () => feedbackHidden,
+    onSome: (held): Showing => ({ record: held, showFeedback: true }),
+  });
 
 /**
  * What a page is shown with: the configuration, the host's instance, and, as `<Item>` takes them,

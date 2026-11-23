@@ -91,7 +91,7 @@ export { collapseXmlSpace } from "#plate/model/attributes.ts";
 
 export type { CompletionStatus } from "#plate/model/built-ins.ts";
 
-export type { ItemRecord } from "#plate/model/record.ts";
+export type { ItemRecord, Showing } from "#plate/model/record.ts";
 
 export { assetPaths } from "#plate/model/url.ts";
 

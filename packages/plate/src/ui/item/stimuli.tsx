@@ -45,6 +45,7 @@ import { scopedId } from "#plate/form/encoding.ts";
 import { message } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
+import type { Showing } from "#plate/model/record.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
 import { redactStimulus } from "#plate/redact/walk.ts";
 import type { RedactedStimulus, RedactOptions } from "#plate/redact/walk.ts";
@@ -95,11 +96,12 @@ export interface ShownStimulus {
 
 /**
  * Give the stimuli an item's refs name, each in the ref's order with the stimulus the host handed
- * for its target, redacted under the item's own options.
+ * for its target, redacted under the item's own options and whether its page shows feedback.
  *
  * @param refs The item's stimulus refs, as its payload holds them.
  * @param stimuli The accepted stimuli the host handed `<Item>`.
  * @param options The output budget, the supports and the view the item is redacted under.
+ * @param showFeedback Whether the item's page shows feedback (`<Item>`'s `showFeedback`).
  * @param item The item's location and identifier, which a refusal names.
  * @param instance The item's instance, which each stimulus's scope of ids extends.
  * @returns The stimuli shown, in the refs' order.
@@ -109,6 +111,7 @@ export const shownStimuli = (
   refs: ItemPayloadsHeld["qti-assessment-stimulus-ref"],
   stimuli: readonly AcceptedStimulus[],
   options: RedactOptions,
+  showFeedback: Showing["showFeedback"],
   item: { readonly document: string; readonly identifier: string },
   instance: string,
 ): readonly ShownStimulus[] => {
@@ -126,7 +129,7 @@ export const shownStimuli = (
       });
     }
 
-    const redacted = redactStimulus(stimulus, options);
+    const redacted = redactStimulus(stimulus, options, showFeedback);
 
     return {
       catalogs: copyItemContent({

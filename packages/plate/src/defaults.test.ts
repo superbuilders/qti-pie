@@ -36,7 +36,7 @@ import { redact } from "#plate/redact.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
 import { restore } from "#plate/restore.ts";
 import { jsonField } from "#plate/test/fixtures.ts";
-import { shownToCandidate } from "#plate/test/page.ts";
+import { feedbackHidden, shownToCandidate } from "#plate/test/page.ts";
 import { acceptedOf, openCorpus } from "#plate/test/sweep.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
@@ -351,10 +351,10 @@ const holdsStart = (
   starts: ReadonlyMap<string, Start>,
   where: string,
 ): void => {
-  const redacted = redact(accepted, shownToCandidate);
-  const posted = postings(accepted, instance).flatMap((posting) => posting.start);
+  const redacted = redact(accepted, shownToCandidate, feedbackHidden);
+  const posted = postings(accepted, instance, feedbackHidden).flatMap((posting) => posting.start);
   const byResponse = new Map(
-    postings(accepted, instance).map((posting) => [posting.identifier, posting]),
+    postings(accepted, instance, feedbackHidden).map((posting) => [posting.identifier, posting]),
   );
 
   for (const [response, start] of starts) {
@@ -445,7 +445,9 @@ describe("a fresh attempt's start", () => {
       );
 
       assert.deepStrictEqual(
-        postings(accepted, instance).flatMap((posting) => posting.start.map(([, text]) => text)),
+        postings(accepted, instance, feedbackHidden).flatMap((posting) =>
+          posting.start.map(([, text]) => text),
+        ),
         ["0.75"],
         "slider-float starts at its default",
       );
@@ -469,8 +471,9 @@ describe("a fresh attempt's start", () => {
       const known = cases.find((each) => each.location === "m2/items/p1-text-entry.xml");
       const accepted = yield* openCase(known ?? assert.fail("no text entry case"));
       const posting =
-        postings(accepted, instance).find((each) => each.identifier === "RESPONSE") ??
-        assert.fail("no posting of RESPONSE");
+        postings(accepted, instance, feedbackHidden).find(
+          (each) => each.identifier === "RESPONSE",
+        ) ?? assert.fail("no posting of RESPONSE");
       const restored = restore(
         accepted,
         recordOf({ attempt: "submitted", responses: { RESPONSE: nullOf("string", "single") } }),

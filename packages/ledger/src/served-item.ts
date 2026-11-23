@@ -44,6 +44,7 @@ import type {
   PciModuleRoute,
   PciModules,
   Responses,
+  Showing,
   Supports,
 } from "@qti-pie/plate";
 import type { Graded, ItemProps, PostedEntries } from "@qti-pie/plate/ui/props";
@@ -522,6 +523,23 @@ export const openSessionItem = Effect.fn("qti.item.session.open")(function* open
 });
 
 /**
+ * What a page is shown by that has no record: the item as it reads with none, its template content
+ * withheld, and no feedback, which only a record's outcomes could show.
+ */
+const unrecorded: Showing = { showFeedback: false };
+
+/**
+ * Give what an item is shown by while the child answers it, and in its solution: the record the
+ * attempt starts from, whose outcomes show its feedback, a hint's among them, since edullm's QTI
+ * app shows an item's feedback between attempts ({@link ReviewShows}' `feedback`), so the page the
+ * child answers, the entries it starts from and the responses it posts all read the same.
+ *
+ * @param record The database's record.
+ * @returns What the page is shown by.
+ */
+const answered = (record: ItemRecord): Showing => ({ record, showFeedback: true });
+
+/**
  * Give the entries that post some responses as each response's binding posts them.
  *
  * @param served The served item.
@@ -529,7 +547,7 @@ export const openSessionItem = Effect.fn("qti.item.session.open")(function* open
  * @returns The entries; a response they hold no value of posts none, so its control stays empty.
  */
 export const entriesOf = ({ instance, item }: ServedItem, responses: Responses): PostedEntries =>
-  postings(item, instance).flatMap(({ binding, identifier, options }) =>
+  postings(item, instance, unrecorded).flatMap(({ binding, identifier, options }) =>
     Option.match(Option.fromUndefinedOr(responses[identifier]), {
       onNone: () => [],
       onSome: (value) => encode(value, binding, options),
@@ -558,8 +576,8 @@ export const correctEntriesOf = (served: ServedItem, record: ItemRecord): Posted
  */
 export const solutionOf = (served: ServedItem, record: ItemRecord): ItemProps => ({
   ...served,
+  ...answered(record),
   mode: "solution",
-  record,
   values: solution(served.item, record),
 });
 
@@ -571,7 +589,7 @@ export const solutionOf = (served: ServedItem, record: ItemRecord): ItemProps =>
  * @returns Whether it posts no response.
  */
 export const asksNothing = ({ instance, item }: ServedItem): boolean =>
-  postings(item, instance).length === 0;
+  postings(item, instance, unrecorded).length === 0;
 
 /**
  * Give the item in plate's answering mode, as `record` shows it: each interaction its island,
@@ -596,7 +614,7 @@ export const answeringOf = Effect.fn("qti.item.answering")(function* answeringOf
 ) {
   const facts = yield* pciFactsOf(host, served.item, rows);
 
-  return { ...served, host: facts, mode: "answering", record } satisfies ItemProps;
+  return { ...served, ...answered(record), host: facts, mode: "answering" } satisfies ItemProps;
 });
 
 /**
@@ -614,7 +632,7 @@ export const answeringOf = Effect.fn("qti.item.answering")(function* answeringOf
 export const startingEntriesOf = (
   { instance, item }: ServedItem,
   record: ItemRecord,
-): PostedEntries => postings(item, instance, record).flatMap(({ start }) => start);
+): PostedEntries => postings(item, instance, answered(record)).flatMap(({ start }) => start);
 
 /**
  * Give how the attempt a review shows did, as plate's review is handed it, from what the database
@@ -651,9 +669,10 @@ const gradedOf = (shows: ReviewShows, judged: Judged): Graded => {
  * `restore` shows each, through its interaction's own reading of a stored value, with what the
  * database judged of it where the review shows marks or the solution ({@link gradedOf}). Where the
  * review shows feedback, the item's feedback follows the outcomes the database's response
- * processing set. Where it hides it, the item as `begun`, its record before the first attempt,
- * shows it, its template values kept, so no feedback says how the answer did; the marks and the
- * verdict, where it shows them, are the review's own.
+ * processing set. Where it hides it, no feedback shows (plate's `showFeedback` `false`), and the
+ * item as `begun`, its record before the first attempt, shows the rest, its template values kept,
+ * so nothing says how the answer did; the marks and the verdict, where it shows them, are the
+ * review's own.
  *
  * @param served The served item.
  * @param records The item session's records.
@@ -675,7 +694,9 @@ export const reviewOf = (
   ...served,
   graded: gradedOf(shows, judged),
   mode: "review",
-  record: shows.feedback ? records.after : records.begun,
+  ...(shows.feedback
+    ? { record: records.after, showFeedback: true }
+    : { record: records.begun, showFeedback: false }),
   values: restore(served.item, records.after).values,
 });
 
@@ -707,7 +728,7 @@ export const postedOf = Effect.fnUntraced(function* postedOf(
 ) {
   const { own } = partition(entries, instance);
   const posted = yield* Effect.forEach(
-    postings(item, instance, record),
+    postings(item, instance, answered(record)),
     ({ binding, identifier, options }) =>
       Effect.fromResult(decode(own, binding, options)).pipe(
         Effect.mapBoth({
@@ -718,7 +739,7 @@ export const postedOf = Effect.fnUntraced(function* postedOf(
   );
 
   return Object.fromEntries([
-    ...unpostedEndAttempts(item, instance, record),
+    ...unpostedEndAttempts(item, instance, answered(record)),
     ...posted,
   ]) satisfies Responses;
 });

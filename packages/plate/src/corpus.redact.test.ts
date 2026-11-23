@@ -15,7 +15,7 @@ import type { ItemRecord } from "#plate/model/record.ts";
 import { format, isModelled, parseLexical } from "#plate/model/values.ts";
 import { redact } from "#plate/redact.ts";
 import type { RedactedFields } from "#plate/redact/walk.ts";
-import { shownToCandidate } from "#plate/test/page.ts";
+import { showingOf, shownToCandidate } from "#plate/test/page.ts";
 import { goldenRecords, recordOf } from "#plate/test/records.ts";
 import { acceptedOf, noRecord, openCorpus, recordStates, templated } from "#plate/test/sweep.ts";
 import type { Member, RecordState } from "#plate/test/sweep.ts";
@@ -518,7 +518,7 @@ const subjectOf = (member: Member, state?: RecordState): Option.Option<Subject> 
     normalised: normalisedTexts(member),
     processing: processingLiteralsOf(member),
     record,
-    redacted: redact(accepted, shownToCandidate, Option.getOrUndefined(record)),
+    redacted: redact(accepted, shownToCandidate, showingOf(record)),
     state: name,
   }));
 };
@@ -688,8 +688,7 @@ describe("the template sweep over the corpus", () => {
             (templated(accepted) ? recordStates(member.bytes, golden) : [noRecord]).map(
               (state) => ({
                 location: `${member.location} (${state.name})`,
-                unprinted: redact(accepted, shownToCandidate, Option.getOrUndefined(state.record))
-                  .unprinted,
+                unprinted: redact(accepted, shownToCandidate, showingOf(state.record)).unprinted,
               }),
             ),
           ),

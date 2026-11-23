@@ -23,6 +23,7 @@ import type { Responses, Value } from "#plate/model/values.ts";
 import { postings } from "#plate/postings.ts";
 import type { Posting } from "#plate/postings.ts";
 import { solution } from "#plate/solution.ts";
+import { feedbackHidden } from "#plate/test/page.ts";
 import { fixturesDirectory } from "#plate/test/scratch.ts";
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
@@ -118,7 +119,7 @@ const decodeAll = (accepted: Accepted, entries: readonly Entry[]): Responses => 
   const { own } = partition(entries, instance);
 
   return Object.fromEntries(
-    postings(accepted, instance).map(({ binding, identifier, options }) => [
+    postings(accepted, instance, feedbackHidden).map(({ binding, identifier, options }) => [
       identifier,
       Result.getOrElse(decode(own, binding, options), (malformed) =>
         assert.fail(`${identifier} does not decode: ${malformed.reason}`),
@@ -141,7 +142,10 @@ describe("a composite item: four interactions of four kinds, each bound to its o
         const { accepted } = yield* opened();
 
         assert.deepStrictEqual(
-          postings(accepted, instance).map(({ binding, identifier }) => ({ binding, identifier })),
+          postings(accepted, instance, feedbackHidden).map(({ binding, identifier }) => ({
+            binding,
+            identifier,
+          })),
           parts.map(({ baseType, response }): Pick<Posting, "binding" | "identifier"> => ({
             binding: { baseType, cardinality: "single", name: entryName(instance, response) },
             identifier: response,

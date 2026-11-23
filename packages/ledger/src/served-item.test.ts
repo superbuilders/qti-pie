@@ -252,6 +252,7 @@ describe("reviewOf shows what its three switches say, each independent of the ot
         const named = JSON.stringify(shows);
 
         assert.strictEqual(props.mode, "review", named);
+        assert.strictEqual(props.showFeedback, shows.feedback, named);
         assert.deepStrictEqual(props.record, records[expected.record], named);
         assert.deepStrictEqual(
           props.values,

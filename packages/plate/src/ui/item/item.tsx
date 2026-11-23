@@ -219,10 +219,17 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  *
  * Feedback blocks and inlines, template blocks and inlines, and printed variables are the
  * redaction's: what the record shows stands in place, a feedback block in its part, and what it
- * hides is not there.
+ * hides is not there. Where the host says the page shows no feedback (`showFeedback` `false`, the
+ * test's `show-feedback`), no feedback block, inline or modal feedback is there at all.
  *
  * @example
- *   <Item item={accepted} configuration={configuration} instance="sitting-42.1" mode="answering" />
+ *   <Item
+ *     item={accepted}
+ *     configuration={configuration}
+ *     instance="sitting-42.1"
+ *     mode="answering"
+ *     showFeedback={false}
+ *   />;
  *
  * @param props The item, the configuration, the instance, the mode and the database's results.
  * @returns The item's root.
@@ -239,7 +246,7 @@ export const Item = (props: ItemProps): ReactNode => {
   const redacted = redact(
     item,
     { configuration, supports, view: props.view ?? defaultView },
-    props.record,
+    props,
   );
   const credit = Option.fromUndefinedOr(props.graded?.credit);
   const itemContent = copyItemContent(redacted.content);
@@ -247,6 +254,7 @@ export const Item = (props: ItemProps): ReactNode => {
     itemContent["qti-assessment-stimulus-ref"],
     props.stimuli ?? [],
     { configuration, supports, view: props.view ?? defaultView },
+    props.showFeedback,
     redacted,
     instance,
   );
