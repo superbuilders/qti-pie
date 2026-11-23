@@ -52,9 +52,11 @@ export const presenceBeaconPeriodMillis = 1000;
 export const presenceIdleMillis = 5 * 60_000;
 
 /**
- * The window events that are the child's input, as AlphaTest's player listens for them.
+ * The window events that are the child's input, as AlphaTest's player listens for them: the one
+ * roster {@link usePresenceBeacon} listens for, in the capture phase, and any host part that tells
+ * the child's input apart reads.
  */
-const inputs = [
+export const presenceInputEvents = [
   "pointermove",
   "pointerdown",
   "click",
@@ -64,6 +66,11 @@ const inputs = [
   "scroll",
   "touchstart",
 ] as const;
+
+/**
+ * One of the window events that are the child's input ({@link presenceInputEvents}).
+ */
+export type PresenceInputEvent = (typeof presenceInputEvents)[number];
 
 /**
  * What a host hands the beacon.
@@ -143,7 +150,7 @@ export const usePresenceBeacon = ({
       touched = performance.now();
     };
     const listeners = new AbortController();
-    for (const input of inputs) {
+    for (const input of presenceInputEvents) {
       window.addEventListener(input, touch, {
         capture: true,
         passive: true,

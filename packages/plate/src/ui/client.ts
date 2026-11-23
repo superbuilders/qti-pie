@@ -60,10 +60,11 @@ export type { PciFailure } from "#plate/ui/portable-custom/failures.tsx";
 export {
   presenceBeaconPeriodMillis,
   presenceIdleMillis,
+  presenceInputEvents,
   usePresenceBeacon,
 } from "#plate/ui/presence/beacon.ts";
 
-export type { PresenceBeacon } from "#plate/ui/presence/beacon.ts";
+export type { PresenceBeacon, PresenceInputEvent } from "#plate/ui/presence/beacon.ts";
 
 export { ReadAloudSession } from "#plate/ui/read-aloud/session.tsx";
 
