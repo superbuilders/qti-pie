@@ -3795,20 +3795,29 @@ const sumOf = (parts: Iterable<bigint>) => {
 };
 
 /**
+ * The UTC day a microsecond of the database's clock falls in, as its date's ISO 8601 text, the
+ * value a `date` reads as.
+ *
+ * @param micros - The microsecond, since the Unix epoch.
+ */
+const utcDayOf = (micros: bigint) =>
+  new Date(Number((micros / dayMicros) * 86_400_000n)).toISOString().slice(0, 10);
+
+/**
  * A window's credit from `at` on, by UTC day: from its first beacon to its last, each day's part.
  *
  * @param windows - The sitting's windows.
  * @param at - The presentation on screen throughout, from its instant.
  */
 const creditByDayOf = (windows: readonly Window[], at: bigint) => {
-  const days = new Map<bigint, bigint>();
+  const days = new Map<string, bigint>();
   for (const [start, end] of windows) {
     let from = start < at ? at : start;
     const to = end - 1n;
     while (from < to) {
-      const day = from / dayMicros;
-      const dayEnd = (day + 1n) * dayMicros;
+      const dayEnd = (from / dayMicros + 1n) * dayMicros;
       const part = (to < dayEnd ? to : dayEnd) - from;
+      const day = utcDayOf(from);
       days.set(day, (days.get(day) ?? 0n) + part);
       from = dayEnd;
     }

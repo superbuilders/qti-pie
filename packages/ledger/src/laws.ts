@@ -242,6 +242,14 @@ export const ledgerLaws = {
   "Ordered gapless": {
     source: `${info}#Enumerated_CardinalityEnum (§8.17, CardinalityEnum: 'ordered' - '[A,B,C] is equivalent to a similar one with value [C,B,A] whereas these two values would be considered distinct for containers with cardinality ordered'): 'an ordered's values at their places from 0, gapless' (src/ledger.ts)`,
   },
+  "Piece end": {
+    source:
+      "src/delivery.ts PieceEnd: 'The end of a piece of a sitting's presence, one past its last microsecond: never past the last microsecond of the clock's top'",
+  },
+  "Piece start": {
+    source:
+      "src/delivery.ts PieceStart: 'The first microsecond of a piece of a sitting's presence: never before the clock's 0'",
+  },
   "Presence moment": {
     source:
       "src/sittings.ts Moment: 'An end of a presence window: an instant on the database's clock in microseconds since the Unix epoch, from 0 to clockTop'",

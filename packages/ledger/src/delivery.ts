@@ -61,12 +61,12 @@ import {
   query,
   Range,
   schema,
+  Time,
   Type,
   v,
 } from "@bjornpagen/grizzle";
 import { assertionViewsOf } from "#ledger/assertion-views.ts";
 import { creditRelationsOf } from "#ledger/credit-relations.ts";
-import { LearnerId } from "#ledger/keys.ts";
 import { named } from "#ledger/laws.ts";
 import type { ledgerOf } from "#ledger/ledger.ts";
 import { memberControlsOf } from "#ledger/member-controls.ts";
@@ -75,7 +75,7 @@ import { resultRelationsOf } from "#ledger/results.ts";
 import { servableOf } from "#ledger/servable.ts";
 import { sessionAttemptsOf } from "#ledger/session-attempts.ts";
 import { sessionControlsOf } from "#ledger/session-control.ts";
-import { Moment, clockTop } from "#ledger/sittings.ts";
+import { clockTop, Moment } from "#ledger/sittings.ts";
 import { testLawsOf } from "#ledger/test-laws.ts";
 
 /**
@@ -173,18 +173,24 @@ const LastBeacon = named(
 );
 
 /**
- * The most UTC days one piece of a sitting's presence touches: every piece lies between 0 and the
- * top of a window's end ({@link clockTop}), so it begins on a day at most this many less one before
- * the last it touches.
- *
- * @limitKind derived
- * @owner the presence readers (#ledger/delivery.ts PresentTime)
- * @unit UTC days
- * @scope the days one piece of presence in one question visit touches
- * @derivation the whole days below {@link clockTop}, and the one it falls in
- * @from {@link clockTop}, {@link dayMicros}
+ * The first microsecond of a piece of a sitting's presence ({@link presentPieces}): the later of
+ * its window's first beacon and its presentation's instant, so never before the clock's 0, which a
+ * window's start is not ({@link Moment}).
  */
-const pieceDaysMost = clockTop / dayMicros + 1n;
+const PieceStart = named(
+  "Piece start",
+  contract("PieceStart", pg.bigint, (t) => Num.within(t, 0n, 2n ** 63n - 1n)),
+);
+
+/**
+ * The end of a piece of a sitting's presence ({@link presentPieces}), one past its last
+ * microsecond: the earlier of its window's last beacon and its presentation's end, so never past
+ * the last microsecond of the clock's top, which a window's end is not ({@link Moment}).
+ */
+const PieceEnd = named(
+  "Piece end",
+  contract("PieceEnd", pg.bigint, (t) => Num.within(t, -(2n ** 63n), clockTop - 1n)),
+);
 
 /**
  * The delivery level over the ledger.
@@ -790,7 +796,16 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
         .match(Presence, { child, during, stage })
         .where(r.lt(from, to))
-        .find({ at, child, from, k, package: pkg, path, stage, to });
+        .find({
+          at,
+          child,
+          from: Type.cast(from, PieceStart),
+          k,
+          package: pkg,
+          path,
+          stage,
+          to: Type.cast(to, PieceEnd),
+        });
     })
     .rule((r) => {
       const { child, stage, at, k, package: pkg, path } = v(TestPresented, "onScreen");
@@ -803,53 +818,24 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .match(latestMoments, { at, child, stage })
         .match(Presence, { child, during, stage })
         .where(r.lt(from, to))
-        .find({ at, child, from, k, package: pkg, path, stage, to });
+        .find({
+          at,
+          child,
+          from: Type.cast(from, PieceStart),
+          k,
+          package: pkg,
+          path,
+          stage,
+          to: Type.cast(to, PieceEnd),
+        });
     });
-
-  /**
-   * Each UTC day a piece of presence ({@link presentPieces}) touches, by its place `n` among them
-   * from the day of the piece's first microsecond: that day, and each next day that begins before
-   * the piece ends, never more than {@link pieceDaysMost}.
-   */
-  const presentDays = query(ledger).recursive("PresentDay", {
-    base: [
-      (r) => {
-        const { child, stage, from, to } = v(presentPieces, "firstDay");
-
-        return r
-          .match(presentPieces, { child, from, stage, to })
-          .find({ child, from, n: 0n, stage, to });
-      },
-    ],
-    rec: [
-      (r, self) => {
-        const { child, stage, from, to, n } = v(self, "nextDay");
-        const next = Num.add(n, 1n);
-
-        return r
-          .match(self, { child, from, n, stage, to })
-          .where(
-            r.lt(n, pieceDaysMost - 1n),
-            r.lt(Num.mul(Num.add(Num.div(from, dayMicros), next), dayMicros), to),
-          )
-          .find({ child, from, n: next, stage, to });
-      },
-    ],
-    row: {
-      child: LearnerId,
-      from: pg.bigint,
-      n: pg.bigint,
-      stage: pg.bigint,
-      to: pg.bigint,
-    },
-  });
 
   /**
    * PresentTime: the time the candidate was there in each question visit, by UTC day, the reader
    * every application's time credit is read from (AlphaTest's question time, by day, which metis
    * rounds to whole seconds and rules over at its own level), stored nowhere. A question visit is a
    * presentation, by its instant `at`, with its candidate session `k` and its item's document;
-   * `day` is the UTC day as days since 1970-01-01, and `micros` the microseconds of the sitting's
+   * `day` is the UTC day, its date, and `micros` the microseconds of the sitting's
    * presence inside the visit that day ({@link presentPieces}), cut at the sitting's next moment,
    * so at a move, a suspension and the end, and for the presentation on screen now running to its
    * latest window's last beacon. A window credits from its first beacon to its last, its width
@@ -861,17 +847,17 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     "PresentTime",
     query(ledger).rule((r) => {
       const { child, stage, at, k, package: pkg, path, from, to } = v(presentPieces, "timePiece");
-      const { n } = v(presentDays, "timeDay");
-      const day = Num.add(Num.div(from, dayMicros), n);
+      const days = r.series(Num.div(from, dayMicros), Num.div(Num.sub(to, 1n), dayMicros));
+      const { at: day } = v(days, "timeDay");
       const dayStart = Num.mul(day, dayMicros);
 
       return r
         .match(presentPieces, { at, child, from, k, package: pkg, path, stage, to })
-        .match(presentDays, { child, from, n, stage, to })
+        .match(days, { at: day })
         .find({
           at,
           child,
-          day,
+          day: Time.dateOfEpochDay(Type.cast(day, pg.bigint)),
           k,
           micros: r.sum(
             Num.sub(

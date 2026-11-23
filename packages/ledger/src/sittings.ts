@@ -77,18 +77,19 @@ export const Micros = named("Micros", contract("Micros", pg.numeric(20, 0)));
 
 /**
  * The top of the database's clock as a presence window holds it, in microseconds since the Unix
- * epoch: 2^62, about the year 148,000, so a reading, the microsecond past it and the grace past
- * that are each a bigint.
+ * epoch: 10000-01-01T00:00:00Z, the first microsecond past the last date grizzle holds, so every
+ * microsecond of a window falls in a calendar day, which PresentTime credits it to as a `date`. A
+ * reading, the microsecond past it and the grace past that are each well inside a bigint.
  *
  * @limitKind derived
- * @owner grizzle's presence window (its README, "A window a put extends", at grizzle 5afbe5096)
+ * @owner the presence readers (#ledger/delivery.ts PresentTime)
  * @unit microseconds since the Unix epoch
  * @scope each end of a presence window ({@link Moment}) and each reading ({@link Reading})
- * @derivation PostgreSQL's bigint holds below 2^63; half of that leaves a reading's next
- *   microsecond and any grace a bigint
- * @from PostgreSQL's bigint range
+ * @derivation grizzle's `date` holds 0001-01-01 to 9999-12-31; the day after the last, in
+ *   microseconds since 1970-01-01T00:00:00Z
+ * @from grizzle's README, `date`
  */
-export const clockTop = 2n ** 62n;
+export const clockTop = 253_402_300_800_000_000n;
 
 /**
  * An end of a presence window: an instant on the database's clock in microseconds since the Unix
