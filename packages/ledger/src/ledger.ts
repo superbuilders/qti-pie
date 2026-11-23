@@ -69,6 +69,12 @@ import type { RegistryLevel } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
 import { QtiFloat, QtiInteger } from "#ledger/scalars.ts";
 import { SittingStanding, sittingTablesOf } from "#ledger/sittings.ts";
+import {
+  templateAttributes,
+  templateElements,
+  templateNodes,
+  templateTexts,
+} from "#ledger/standard-templates.ts";
 
 /**
  * QTI's built-in `completionStatus` outcome, which no item declares (QTI 3.0 information model,
@@ -2580,24 +2586,55 @@ export const ledgerOf = (qti: RegistryLevel) => {
 
   /**
    * The published response processing templates (spec reading 51, pantry's `publishedTemplates`),
-   * and each one's document as the reference package `qti-rptemplates` stores it, `<name>.xml`,
-   * whose root is the template's `qti-response-processing`: what the SQL grader runs where an
-   * item's processing names one and holds no rule of its own (§4.6.1, §4.6.2).
+   * whose rules the SQL grader runs where an item's processing names one and holds no rule of its
+   * own (§4.6.1, §4.6.2), and those rules as closed facts: each template's
+   * `qti-response-processing` subtree, its elements (**TemplateNode**, each by its handle
+   * **TemplateElement**, since a closed relation is keyed by closed ids), their closed attributes
+   * (**TemplateAttribute**) and its base values' texts (**TemplateText**), at the positions
+   * pantry's import gives the template's document (`#ledger/standard-templates.ts`, generated from
+   * the documents `https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/<name>.xml` serves, which
+   * the package keeps in `qti-rptemplates/`). The templates are part of the standard, never content
+   * a package holds: information model §4.6.1, "If a template identifier is given it may be used to
+   * locate an externally defined responseProcessing template", and a processor that knows a
+   * template "from the template identifier alone" ignores its `template-location` (§4.6.2).
    */
   const PublishedTemplate = closed.ordered("PublishedTemplate", publishedTemplates);
-  const PublishedTemplateDocument = closed.relation(
-    "PublishedTemplateDocument",
+  const TemplateElement = closed.ordered("TemplateElement", templateElements);
+  const TemplateNode = closed.relation(
+    "TemplateNode",
     {
-      package: Package.fields.package,
-      path: Document.fields.path,
+      element: closedId(TemplateElement),
+      end: natural,
+      kind: closedId(NodeKind),
+      parent: natural,
+      start: natural,
       template: closedId(PublishedTemplate),
     },
-    ["template"],
-    publishedTemplates.map((template) => ({
-      package: "qti-rptemplates",
-      path: `${template}.xml`,
-      template,
-    })),
+    ["element"],
+    templateNodes,
+  );
+  const TemplateAttribute = closed.relation(
+    "TemplateAttribute",
+    {
+      element: closedId(TemplateElement),
+      name: Attribute.fields.name,
+      start: natural,
+      template: closedId(PublishedTemplate),
+      value: Attribute.fields.lexical,
+    },
+    ["element", "name"],
+    templateAttributes,
+  );
+  const TemplateText = closed.relation(
+    "TemplateText",
+    {
+      element: closedId(TemplateElement),
+      start: natural,
+      template: closedId(PublishedTemplate),
+      text: Literal.fields.text,
+    },
+    ["element"],
+    templateTexts,
   );
   /**
    * Each `template` URI that names a published template, by its form: pantry's `urisOf`, each
@@ -2653,7 +2690,10 @@ export const ledgerOf = (qti: RegistryLevel) => {
       RegistryWordText,
       SessionValueHolds,
       PublishedTemplate,
-      PublishedTemplateDocument,
+      TemplateElement,
+      TemplateNode,
+      TemplateAttribute,
+      TemplateText,
       TemplateUriForm,
       PublishedTemplateUri,
       ItemSessionValue,

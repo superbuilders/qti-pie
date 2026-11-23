@@ -15,11 +15,12 @@
  * statement evaluates the machine once (`Fn.row`), whichever of its fields each insert reads:
  *
  * - The program: the subtree of the item's own `qti-response-processing` where it holds a rule, else
- *   of the template document its `template-location` locates (pantry's `LocatedTemplate`), else of
- *   the published template its `template` names (`PublishedTemplateUri`, as the reference package
- *   `qti-rptemplates` holds it, `PublishedTemplateDocument`), each element of a processing kind by
- *   the machine's token (`ProgramNodeKind`), with the attributes the machine reads
- *   (`GradedAttributeName`) and each base value's text (`Literal`);
+ *   of the template document its `template-location` locates (pantry's `LocatedTemplate`), both the
+ *   delivery level's `ResponseProgram`, read by the item's key, else the published template's its
+ *   `template` names (`TemplatedProgram`), whose rules are the ledger's closed `TemplateNode`,
+ *   `TemplateAttribute` and `TemplateText`; each element of a processing kind by the machine's
+ *   token (`ProgramNodeKind`), with the attributes the machine reads (`GradedAttributeName`) and
+ *   each base value's text (`Literal`);
  * - The declarations: every node of the item's declarations of a kind the machine reads
  *   (`DeclarationNodeKind`), with their attributes and each `qti-value`'s string value;
  * - The run: the seed the session draws under (`SessionSeed`, its take's `processingSeed`) and the
@@ -754,160 +755,155 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
   const boundGradableIn = (r: Rule<DeliveryLevel>) => gradableOf.bind(bySession(r));
 
   /**
-   * The subtree the item's response processing runs, by the document it is in: its own processing
-   * where it holds a rule (§4.6.1: "if both are given the internal rules are still preferred"),
-   * else the template document its `template-location` locates (pantry's LocatedTemplate), else the
-   * published template its `template` names (spec reading 51; §4.6.2: "If a delivery system is able
-   * to determine the correct behaviour from the template identifier alone the template-location
-   * should be ignored"), as the reference package holds it.
+   * The subtree the item's response processing runs, by the document it is in (the delivery level's
+   * ResponseProgram, read by the item's key): its own processing where it holds a rule (§4.6.1: "if
+   * both are given the internal rules are still preferred"), else the template document its
+   * `template-location` locates (pantry's LocatedTemplate). An item whose processing names a
+   * published template runs that template's rules, the ledger's closed TemplateNode, read by the
+   * program's readers' second rule (the delivery level's TemplatedProgram).
    */
-  const responseRootsOf = query(delivery)
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const {
+  const responseRootsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { source, document } = v(fields.ResponseProgram, "program");
+    const { start, end } = v(fields.Node, "root");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.ResponseProgram, { document, package: pkg, path: item, source })
+      .match(fields.Node, {
+        end,
+        kind: "qti-response-processing",
         package: source,
         path: document,
         start,
-        end,
-        elementChildren,
-      } = v(fields.Node, "inline");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.Node, {
-          elementChildren,
-          end,
-          kind: "qti-response-processing",
-          package: source,
-          parentKind: "qti-assessment-item",
-          path: document,
-          start,
-        })
-        .where(r.eq(source, pkg), r.eq(document, item), r.gt(elementChildren, 0n))
-        .find({ document, end, package: pkg, path: item, source, start });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const { package: source, template: document } = v(fields.LocatedTemplate, "located");
-      const { start, end } = v(fields.Node, "template");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.LocatedTemplate, { package: source, path: item, template: document })
-        .match(fields.Node, {
-          end,
-          kind: "qti-response-processing",
-          package: source,
-          parentKind: "document",
-          path: document,
-          start,
-        })
-        .where(r.eq(source, pkg))
-        .find({ document, end, package: pkg, path: item, source, start });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const { value } = v(fields.TemplateProcessing, "named");
-      const { template } = v(fields.PublishedTemplateUri, "uri");
-      const { package: source, path: document } = v(fields.PublishedTemplateDocument, "published");
-      const { start, end } = v(fields.Node, "template");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.TemplateProcessing, { package: pkg, path: item, value })
-        .match(fields.PublishedTemplateUri, { template, uri: value })
-        .match(fields.PublishedTemplateDocument, { package: source, path: document, template })
-        .match(fields.Node, {
-          end,
-          kind: "qti-response-processing",
-          package: source,
-          parentKind: "document",
-          path: document,
-          start,
-        })
-        .find({ document, end, package: pkg, path: item, source, start });
-    });
+      })
+      .find({ document, end, package: pkg, path: item, source, start });
+  });
   const boundResponseRootsIn = (r: Rule<DeliveryLevel>) => responseRootsOf.bind(bySession(r));
 
   /**
-   * The program's elements, each of a processing kind, by the machine's token.
+   * The program's elements, each of a processing kind, by the machine's token: its document's, or
+   * the published template's its processing names (TemplatedProgram, TemplateNode).
    */
-  const programNodesOf = query(delivery).rule((r) => {
-    const boundResponseRoots = boundResponseRootsIn(r);
-    const roots = boundResponseRoots;
-    const {
-      package: pkg,
-      path: item,
-      source,
-      document,
-      start: first,
-      end: last,
-    } = v(roots, "root");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.ProgramNodeKind, "kind");
+  const programNodesOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, end, parent, kind } = v(fields.Node, "node");
+      const { token } = v(fields.ProgramNodeKind, "kind");
 
-    return r
-      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Node, { end, kind, package: source, parent, path: document, start })
-      .match(fields.ProgramNodeKind, { kind, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ end, kind: token, package: pkg, parent, path: item, start });
-  });
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.Node, { end, kind, package: source, parent, path: document, start })
+        .match(fields.ProgramNodeKind, { kind, token })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ end, kind: token, package: pkg, parent, path: item, start });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, end, parent, kind } = v(fields.TemplateNode, "node");
+      const { token } = v(fields.ProgramNodeKind, "kind");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateNode, { end, kind, parent, start, template })
+        .match(fields.ProgramNodeKind, { kind, token })
+        .find({ end, kind: token, package: pkg, parent, path: item, start });
+    });
 
   /**
    * The attributes of the program's elements the machine reads, as pantry's Attribute holds their
-   * values.
+   * values, or as the published template's are (TemplateAttribute).
    */
-  const programAttributesOf = query(delivery).rule((r) => {
-    const boundResponseRoots = boundResponseRootsIn(r);
-    const roots = boundResponseRoots;
-    const {
-      package: pkg,
-      path: item,
-      source,
-      document,
-      start: first,
-      end: last,
-    } = v(roots, "root");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+  const programAttributesOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, name, value } = v(fields.Attribute, "attribute");
+      const { token } = v(fields.GradedAttributeName, "name");
 
-    return r
-      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Attribute, { name, package: source, path: document, start, value })
-      .match(fields.GradedAttributeName, { name, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ name: token, package: pkg, path: item, start, value });
-  });
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.Attribute, { name, package: source, path: document, start, value })
+        .match(fields.GradedAttributeName, { name, token })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ name: token, package: pkg, path: item, start, value });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, name, value } = v(fields.TemplateAttribute, "attribute");
+      const { token } = v(fields.GradedAttributeName, "name");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateAttribute, { name, start, template, value })
+        .match(fields.GradedAttributeName, { name, token })
+        .find({ name: token, package: pkg, path: item, start, value });
+    });
 
   /**
-   * Each base value's text in the program (pantry's Literal).
+   * Each base value's text in the program (pantry's Literal), or in the published template's
+   * (TemplateText).
    */
-  const programTextsOf = query(delivery).rule((r) => {
-    const boundResponseRoots = boundResponseRootsIn(r);
-    const roots = boundResponseRoots;
-    const {
-      package: pkg,
-      path: item,
-      source,
-      document,
-      start: first,
-      end: last,
-    } = v(roots, "root");
-    const { start, text } = v(fields.Literal, "literal");
+  const programTextsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, text } = v(fields.Literal, "literal");
 
-    return r
-      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Literal, { package: source, path: document, start, text })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ package: pkg, path: item, start, text });
-  });
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.Literal, { package: source, path: document, start, text })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ package: pkg, path: item, start, text });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, text } = v(fields.TemplateText, "literal");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateText, { start, template, text })
+        .find({ package: pkg, path: item, start, text });
+    });
 
   /**
    * Each content pattern of the program compiled (pattern_program_of), by its package, until the
@@ -23389,160 +23385,155 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
   const boundGradableIn = (r: Rule<DeliveryLevel>) => gradableOf.bind(bySession(r));
 
   /**
-   * The subtree the item's response processing runs, by the document it is in: its own processing
-   * where it holds a rule (§4.6.1: "if both are given the internal rules are still preferred"),
-   * else the template document its `template-location` locates (pantry's LocatedTemplate), else the
-   * published template its `template` names (spec reading 51; §4.6.2: "If a delivery system is able
-   * to determine the correct behaviour from the template identifier alone the template-location
-   * should be ignored"), as the reference package holds it.
+   * The subtree the item's response processing runs, by the document it is in (the delivery level's
+   * ResponseProgram, read by the item's key): its own processing where it holds a rule (§4.6.1: "if
+   * both are given the internal rules are still preferred"), else the template document its
+   * `template-location` locates (pantry's LocatedTemplate). An item whose processing names a
+   * published template runs that template's rules, the ledger's closed TemplateNode, read by the
+   * program's readers' second rule (the delivery level's TemplatedProgram).
    */
-  const responseRootsOf = query(delivery)
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const {
+  const responseRootsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const graded = boundGradable;
+    const { package: pkg, path: item } = v(graded, "graded");
+    const { source, document } = v(fields.ResponseProgram, "program");
+    const { start, end } = v(fields.Node, "root");
+
+    return r
+      .match(graded, { package: pkg, path: item })
+      .match(fields.ResponseProgram, { document, package: pkg, path: item, source })
+      .match(fields.Node, {
+        end,
+        kind: "qti-response-processing",
         package: source,
         path: document,
         start,
-        end,
-        elementChildren,
-      } = v(fields.Node, "inline");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.Node, {
-          elementChildren,
-          end,
-          kind: "qti-response-processing",
-          package: source,
-          parentKind: "qti-assessment-item",
-          path: document,
-          start,
-        })
-        .where(r.eq(source, pkg), r.eq(document, item), r.gt(elementChildren, 0n))
-        .find({ document, end, package: pkg, path: item, source, start });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const { package: source, template: document } = v(fields.LocatedTemplate, "located");
-      const { start, end } = v(fields.Node, "template");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.LocatedTemplate, { package: source, path: item, template: document })
-        .match(fields.Node, {
-          end,
-          kind: "qti-response-processing",
-          package: source,
-          parentKind: "document",
-          path: document,
-          start,
-        })
-        .where(r.eq(source, pkg))
-        .find({ document, end, package: pkg, path: item, source, start });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const { value } = v(fields.TemplateProcessing, "named");
-      const { template } = v(fields.PublishedTemplateUri, "uri");
-      const { package: source, path: document } = v(fields.PublishedTemplateDocument, "published");
-      const { start, end } = v(fields.Node, "template");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.TemplateProcessing, { package: pkg, path: item, value })
-        .match(fields.PublishedTemplateUri, { template, uri: value })
-        .match(fields.PublishedTemplateDocument, { package: source, path: document, template })
-        .match(fields.Node, {
-          end,
-          kind: "qti-response-processing",
-          package: source,
-          parentKind: "document",
-          path: document,
-          start,
-        })
-        .find({ document, end, package: pkg, path: item, source, start });
-    });
+      })
+      .find({ document, end, package: pkg, path: item, source, start });
+  });
   const boundResponseRootsIn = (r: Rule<DeliveryLevel>) => responseRootsOf.bind(bySession(r));
 
   /**
-   * The program's elements, each of a processing kind, by the machine's token.
+   * The program's elements, each of a processing kind, by the machine's token: its document's, or
+   * the published template's its processing names (TemplatedProgram, TemplateNode).
    */
-  const programNodesOf = query(delivery).rule((r) => {
-    const boundResponseRoots = boundResponseRootsIn(r);
-    const roots = boundResponseRoots;
-    const {
-      package: pkg,
-      path: item,
-      source,
-      document,
-      start: first,
-      end: last,
-    } = v(roots, "root");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.ProgramNodeKind, "kind");
+  const programNodesOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, end, parent, kind } = v(fields.Node, "node");
+      const { token } = v(fields.ProgramNodeKind, "kind");
 
-    return r
-      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Node, { end, kind, package: source, parent, path: document, start })
-      .match(fields.ProgramNodeKind, { kind, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ end, kind: token, package: pkg, parent, path: item, start });
-  });
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.Node, { end, kind, package: source, parent, path: document, start })
+        .match(fields.ProgramNodeKind, { kind, token })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ end, kind: token, package: pkg, parent, path: item, start });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, end, parent, kind } = v(fields.TemplateNode, "node");
+      const { token } = v(fields.ProgramNodeKind, "kind");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateNode, { end, kind, parent, start, template })
+        .match(fields.ProgramNodeKind, { kind, token })
+        .find({ end, kind: token, package: pkg, parent, path: item, start });
+    });
 
   /**
    * The attributes of the program's elements the machine reads, as pantry's Attribute holds their
-   * values.
+   * values, or as the published template's are (TemplateAttribute).
    */
-  const programAttributesOf = query(delivery).rule((r) => {
-    const boundResponseRoots = boundResponseRootsIn(r);
-    const roots = boundResponseRoots;
-    const {
-      package: pkg,
-      path: item,
-      source,
-      document,
-      start: first,
-      end: last,
-    } = v(roots, "root");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+  const programAttributesOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, name, value } = v(fields.Attribute, "attribute");
+      const { token } = v(fields.GradedAttributeName, "name");
 
-    return r
-      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Attribute, { name, package: source, path: document, start, value })
-      .match(fields.GradedAttributeName, { name, token })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ name: token, package: pkg, path: item, start, value });
-  });
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.Attribute, { name, package: source, path: document, start, value })
+        .match(fields.GradedAttributeName, { name, token })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ name: token, package: pkg, path: item, start, value });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, name, value } = v(fields.TemplateAttribute, "attribute");
+      const { token } = v(fields.GradedAttributeName, "name");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateAttribute, { name, start, template, value })
+        .match(fields.GradedAttributeName, { name, token })
+        .find({ name: token, package: pkg, path: item, start, value });
+    });
 
   /**
-   * Each base value's text in the program (pantry's Literal).
+   * Each base value's text in the program (pantry's Literal), or in the published template's
+   * (TemplateText).
    */
-  const programTextsOf = query(delivery).rule((r) => {
-    const boundResponseRoots = boundResponseRootsIn(r);
-    const roots = boundResponseRoots;
-    const {
-      package: pkg,
-      path: item,
-      source,
-      document,
-      start: first,
-      end: last,
-    } = v(roots, "root");
-    const { start, text } = v(fields.Literal, "literal");
+  const programTextsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, text } = v(fields.Literal, "literal");
 
-    return r
-      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Literal, { package: source, path: document, start, text })
-      .where(r.ge(start, first), r.lt(start, last))
-      .find({ package: pkg, path: item, start, text });
-  });
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.Literal, { package: source, path: document, start, text })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ package: pkg, path: item, start, text });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, text } = v(fields.TemplateText, "literal");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateText, { start, template, text })
+        .find({ package: pkg, path: item, start, text });
+    });
 
   /**
    * Each content pattern of the program compiled (pattern_program_of), by its package, until the
@@ -34622,7 +34613,8 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
   const boundTemplateRootsIn = (r: Rule<DeliveryLevel>) => templateRootsOf.bind(bySession(r));
 
   /**
-   * The program's elements, each of a processing kind, by the machine's token.
+   * The program's elements, each of a processing kind, by the machine's token: its document's, or
+   * the published template's its processing names (TemplatedProgram, TemplateNode).
    */
   const programNodesOf = query(delivery).rule((r) => {
     const boundTemplateRoots = boundTemplateRootsIn(r);
@@ -34648,7 +34640,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
 
   /**
    * The attributes of the program's elements the machine reads, as pantry's Attribute holds their
-   * values.
+   * values, or as the published template's are (TemplateAttribute).
    */
   const programAttributesOf = query(delivery).rule((r) => {
     const boundTemplateRoots = boundTemplateRootsIn(r);
@@ -34673,7 +34665,8 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * Each base value's text in the program (pantry's Literal).
+   * Each base value's text in the program (pantry's Literal), or in the published template's
+   * (TemplateText).
    */
   const programTextsOf = query(delivery).rule((r) => {
     const boundTemplateRoots = boundTemplateRootsIn(r);

@@ -72,6 +72,7 @@ import type { ledgerOf } from "#ledger/ledger.ts";
 import { memberControlsOf } from "#ledger/member-controls.ts";
 import { applicationOperandRelationsOf } from "#ledger/operands.ts";
 import { resultRelationsOf } from "#ledger/results.ts";
+import { responseProgramsOf } from "#ledger/response-programs.ts";
 import { servableOf } from "#ledger/servable.ts";
 import { sessionAttemptsOf } from "#ledger/session-attempts.ts";
 import { sessionControlsOf } from "#ledger/session-control.ts";
@@ -1162,6 +1163,11 @@ export const deliveryOf = (ledger: LedgerLevel) => {
    */
   const servable = servableOf(ledger);
 
+  /**
+   * The program each item's response processing runs, by the item (COMPILE-AT-PUBLISH C2).
+   */
+  const programs = responseProgramsOf(ledger);
+
   const deliveryRelations = [
     DeliveredTest,
     ItemDuration,
@@ -1183,6 +1189,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ...testLaws.relations,
     ...assertions.relations,
     ...servable.relations,
+    ...programs.relations,
     ...creditRelationsOf(ledger, assertions),
     ...results.relations,
     ...sessionAttemptsOf(ledger),

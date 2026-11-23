@@ -88,6 +88,33 @@ const replacedBetween = (
 };
 
 /**
+ * The readers' text with each rule over a published template's rules dropped (the program readers'
+ * second rules, which read the delivery level's TemplatedProgram): a take runs an item's template
+ * processing, which names no template (QTI 3.0.1 §4.4), so no take reads one.
+ *
+ * @param text The readers' text.
+ * @returns The text without them.
+ */
+const untemplated = (text: string): string => {
+  let dropped = 0;
+  const kept = text.replaceAll(
+    /\n\t\t\.rule\(\(r\) => \{\n(?:\t\t\t[^\n]*\n)+?\t\t\}\)/gu,
+    (rule) => {
+      if (!rule.includes("fields.TemplatedProgram")) {
+        return rule;
+      }
+
+      dropped += 1;
+
+      return "";
+    },
+  );
+  must(dropped === 3, "the program readers' three template rules");
+
+  return kept;
+};
+
+/**
  * The take's arguments builder, takeArgumentsOf, before its readers are hoisted.
  *
  * @param fragment The generator's fragments.
@@ -102,7 +129,7 @@ const takeArguments = (fragment: Fragments): string => {
   );
   const templated = replaceAll(
     replacedBetween(
-      rooted,
+      untemplated(rooted),
       "/** The subtree the item's response processing runs",
       "/** The program's elements",
       () => fragment("take/template-roots"),

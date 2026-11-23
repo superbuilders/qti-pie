@@ -15,11 +15,12 @@
  * statement evaluates the machine once (`Fn.row`), whichever of its fields each insert reads:
  *
  * - The program: the subtree of the item's own `qti-response-processing` where it holds a rule, else
- *   of the template document its `template-location` locates (pantry's `LocatedTemplate`), else of
- *   the published template its `template` names (`PublishedTemplateUri`, as the reference package
- *   `qti-rptemplates` holds it, `PublishedTemplateDocument`), each element of a processing kind by
- *   the machine's token (`ProgramNodeKind`), with the attributes the machine reads
- *   (`GradedAttributeName`) and each base value's text (`Literal`);
+ *   of the template document its `template-location` locates (pantry's `LocatedTemplate`), both the
+ *   delivery level's `ResponseProgram`, read by the item's key, else the published template's its
+ *   `template` names (`TemplatedProgram`), whose rules are the ledger's closed `TemplateNode`,
+ *   `TemplateAttribute` and `TemplateText`; each element of a processing kind by the machine's
+ *   token (`ProgramNodeKind`), with the attributes the machine reads (`GradedAttributeName`) and
+ *   each base value's text (`Literal`);
  * - The declarations: every node of the item's declarations of a kind the machine reads
  *   (`DeclarationNodeKind`), with their attributes and each `qti-value`'s string value;
  * - The run: the seed the session draws under (`SessionSeed`, its take's `processingSeed`) and the

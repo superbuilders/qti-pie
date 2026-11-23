@@ -34,6 +34,7 @@ import { contained, derived, on, query, v } from "@bjornpagen/grizzle";
 import { externallyScoredOf } from "#ledger/assertion-views.ts";
 import type { LedgerLevel } from "#ledger/delivery.ts";
 import { named } from "#ledger/laws.ts";
+import { templatedProgramsOf } from "#ledger/response-programs.ts";
 
 /**
  * An item's document's root: `qti-assessment-item` (information model §4.1, AssessmentItem).
@@ -63,10 +64,7 @@ export const servableOf = (ledger: LedgerLevel) => {
     LocatedTemplate,
     Node,
     OutsideProfile,
-    PublishedTemplateDocument,
-    PublishedTemplateUri,
     Reference,
-    TemplateProcessing,
   } = ledger.relations;
   const externallyScored = externallyScoredOf(ledger);
 
@@ -107,31 +105,13 @@ export const servableOf = (ledger: LedgerLevel) => {
 
   /**
    * The item documents whose response processing names a published template whose rules the grader
-   * runs: pantry's `TemplateProcessing` (a `qti-response-processing` child of the item that holds
-   * no element), whose `template` is a spelling of a published template (the ledger's
-   * `PublishedTemplateUri`, its rows pantry's `urisOf`; spec reading 51), where that template's
-   * document is stored (`PublishedTemplateDocument`: the reference package `qti-rptemplates`,
-   * published as any package is), its root the template's `qti-response-processing`. It is the
-   * resolution the SQL grader reads a published template's rules by, so an item is served exactly
-   * where the grader holds the rules it runs.
+   * runs (`#ledger/response-programs.ts`'s TemplatedProgram, the one statement of it): pantry's
+   * `TemplateProcessing`, whose `template` is a spelling of a published template (the ledger's
+   * `PublishedTemplateUri`, its rows pantry's `urisOf`; spec reading 51). The templates' rules are
+   * the ledger's closed facts (`TemplateNode`), so the item is served exactly where the grader
+   * holds the rules it runs, whatever the installation's content holds.
    */
-  const publishedProcessings = query(ledger).rule((r) => {
-    const { package: pkg, path, value } = v(TemplateProcessing, "processing");
-    const { template } = v(PublishedTemplateUri, "named");
-    const { package: source, path: document } = v(PublishedTemplateDocument, "published");
-
-    return r
-      .match(TemplateProcessing, { package: pkg, path, value })
-      .match(PublishedTemplateUri, { template, uri: value })
-      .match(PublishedTemplateDocument, { package: source, path: document, template })
-      .match(Node, {
-        kind: processingKind,
-        package: source,
-        parentKind: "document",
-        path: document,
-      })
-      .find({ package: pkg, path });
-  });
+  const publishedProcessings = templatedProgramsOf(ledger);
 
   /**
    * Each response processing of an item that holds no rule of its own and writes `attribute`, where
@@ -173,7 +153,8 @@ export const servableOf = (ledger: LedgerLevel) => {
    * §4.6.2, Table 4.6.2 (`template-location`): it "can be used to obtain a copy of the response
    * processing template. If a delivery system is able to determine the correct behaviour from the
    * template identifier alone the template-location should be ignored." So a published template is
-   * run from its stored document, whatever location is written beside it. Otherwise a location the
+   * run from the ledger's closed rules of it, whatever location is written beside it. Otherwise a
+   * location the
    * package resolves to a template document (pantry's `LocatedTemplate`: a Document of root
    * `qti-response-processing`) gives the rules the grader runs as the item's own, which pantry
    * types and judges in the item's own placement (`placedDocuments`: a variable "that has been
@@ -356,10 +337,9 @@ export const servableOf = (ledger: LedgerLevel) => {
    * verdict (an unresolved processing, an unpackaged stimulus, an unassertable outcome or an
    * element outside the profile) is stored as written and never served (Conformance §3, this
    * module's header), and a session start on it, of any program, a take or a test member's take
-   * alike, is refused naming this law. An item whose response processing names a published template
-   * the database does not hold has no rules to run (information model §4.6.1), so a session of it
-   * would keep every outcome at its default, SCORE 0, with no rule run; it opens once the
-   * template's document is stored.
+   * alike, is refused naming this law. A processing that names a template no published one is and
+   * locates none has no rules to run (information model §4.6.1), so a session of it would keep
+   * every outcome at its default, SCORE 0, with no rule run.
    */
   const servedForCredit = named(
     "Served for credit",
