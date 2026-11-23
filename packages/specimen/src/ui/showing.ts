@@ -9,7 +9,7 @@
  * @module
  */
 import { Array as Arr, Option } from "effect";
-import { format } from "@qti-pie/plate";
+import { format, isNullResponse } from "@qti-pie/plate";
 import type { ResponseValue, Value } from "@qti-pie/plate";
 import type { PartMark } from "@qti-pie/plate/ui";
 
@@ -189,7 +189,7 @@ const credited = (shown: Value, correct: Value): number => {
 export const handedMarks = (shown: ResponseValue, correct: ResponseValue): readonly PartMark[] => {
   if (
     correct.cardinality === "record" ||
-    correct.values.length === 0 ||
+    isNullResponse(correct) ||
     shown.cardinality === "record"
   ) {
     return [];
@@ -244,11 +244,11 @@ export const handedMarks = (shown: ResponseValue, correct: ResponseValue): reado
  * @returns The class.
  */
 export const classOf = (shown: ResponseValue, correct: ResponseValue): ResponseClass => {
-  if (correct.cardinality === "record" || correct.values.length === 0) {
+  if (correct.cardinality === "record" || isNullResponse(correct)) {
     return "unjudged";
   }
 
-  if (shown.cardinality === "record" || shown.values.length === 0) {
+  if (shown.cardinality === "record" || isNullResponse(shown)) {
     return "empty";
   }
 

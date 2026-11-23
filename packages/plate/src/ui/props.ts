@@ -27,6 +27,8 @@ export type { Credit, Graded, GradedMarks, Reveals } from "#plate/ui/item/contex
 
 export type { AnswerMark, PartMark } from "#plate/ui/item/interactions/marks.ts";
 
+export { isNullResponse } from "#plate/model/values.ts";
+
 export type { Held, Typed } from "#plate/held.ts";
 
 export {

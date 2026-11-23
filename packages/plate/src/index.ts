@@ -101,7 +101,13 @@ export type {
   Value,
 } from "#plate/model/values.ts";
 
-export { format, isModelled, parseLexical, readIeeeDouble } from "#plate/model/values.ts";
+export {
+  format,
+  isModelled,
+  isNullResponse,
+  parseLexical,
+  readIeeeDouble,
+} from "#plate/model/values.ts";
 
 export type { HostFacts, PciHostFacts, PciModuleRoute } from "#plate/pci/host.ts";
 

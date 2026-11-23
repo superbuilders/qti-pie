@@ -311,7 +311,10 @@ export const isNull = (value: Value): boolean => value.values.length === 0;
 
 /**
  * Report whether a response's value is NULL: a {@link Value} with no values, or a record with no
- * field.
+ * field. QTI treats an empty string and an empty container as NULL, and the value model has no
+ * other spelling of either: an empty string is no value (`ValueSchema` refuses one), and a NULL
+ * field is no field. The one test of NULL every caller reads, `@qti-pie/plate` and
+ * `@qti-pie/plate/ui/props` export it.
  *
  * @param value The value to test.
  * @returns Whether `value` holds nothing.

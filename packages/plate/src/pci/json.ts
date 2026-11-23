@@ -59,6 +59,7 @@ import { Option, Result } from "effect";
 import {
   format,
   isModelled,
+  isNullResponse,
   isRecordValue,
   isXmlText,
   nullOf,
@@ -236,13 +237,12 @@ const keyed = <A>(baseType: string, payload: A) => ({ [baseType]: payload });
 export const toPciJson = (value: ResponseValue): PciJson => {
   if (isRecordValue(value)) {
     return {
-      record:
-        value.fields.length === 0
-          ? null
-          : value.fields.map(({ identifier, value: single }) => ({
-              base: keyed(single.baseType, written(single)),
-              name: identifier,
-            })),
+      record: isNullResponse(value)
+        ? null
+        : value.fields.map(({ identifier, value: single }) => ({
+            base: keyed(single.baseType, written(single)),
+            name: identifier,
+          })),
     };
   }
 
@@ -253,7 +253,7 @@ export const toPciJson = (value: ResponseValue): PciJson => {
   }
 
   return {
-    list: value.values.length === 0 ? null : keyed(value.baseType, value.values.map(written)),
+    list: isNullResponse(value) ? null : keyed(value.baseType, value.values.map(written)),
   };
 };
 

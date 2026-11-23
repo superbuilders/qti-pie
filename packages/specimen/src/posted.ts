@@ -6,6 +6,7 @@
  *
  * @module
  */
+import { isNullResponse } from "@qti-pie/plate";
 import type { Responses, Value } from "@qti-pie/plate";
 
 /**
@@ -142,4 +143,4 @@ export const booleanValue = (boolean: boolean): Value => ({
  * @returns The response, or none.
  */
 export const responding = (response: string, value: Value): Responses =>
-  value.values.length === 0 ? {} : { [response]: value };
+  isNullResponse(value) ? {} : { [response]: value };
