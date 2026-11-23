@@ -22,6 +22,7 @@ import {
   sha256,
   str,
   Type,
+  unit,
   v,
 } from "@bjornpagen/grizzle";
 import type { Rule } from "@bjornpagen/grizzle";
@@ -2697,6 +2698,12 @@ export const ledgerOf = (qti: RegistryLevel) => {
       ...gradingFunctions,
     ],
     [
+      /**
+       * The learner is the unit, not the sitting: an attempt's key carries no stage, every learner
+       * key leads with the child, and a child sits one live test session at a time, so holding the
+       * child queues nothing but the child's own calls (the read-committed cutover, 2026-11-23).
+       */
+      unit("Learner", { child: LearnerId }),
       named("Item session key", key(on(ItemSession, "child", "stage", "package", "path"))),
       named(
         "Session seed",
