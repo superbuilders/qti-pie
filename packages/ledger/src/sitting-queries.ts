@@ -8,7 +8,6 @@
  */
 import { pg, query, uuid, v } from "@bjornpagen/grizzle";
 import { EntryPath, PackageName } from "@qti-pie/pantry/qti/limits.ts";
-import { heldSavesOf } from "#ledger/held-saves.ts";
 import { LearnerId } from "#ledger/keys.ts";
 import type { DeliveryLevel } from "#ledger/sitting-programs.ts";
 
@@ -196,6 +195,12 @@ export const latestSavesOf = (delivery: DeliveryLevel) => {
 };
 
 /**
+ * The latest saves of the call's sittings ({@link latestSavesOf}), the one value every read of a
+ * close shares.
+ */
+type LatestSaves = ReturnType<typeof latestSavesOf>;
+
+/**
  * The instant of each of the call's sittings' latest presentation.
  */
 const lastShownOf = (delivery: DeliveryLevel) => {
@@ -237,9 +242,8 @@ export const shownMemberOf = (delivery: DeliveryLevel) => {
  * The member on screen in each of the call's sittings ({@link shownMemberOf}), by its item
  * session, with the instant of that session's latest save, where it has one.
  */
-const shownSaveOf = (delivery: DeliveryLevel) => {
+const shownSaveOf = (delivery: DeliveryLevel, saves: LatestSaves) => {
   const shown = shownMemberOf(delivery);
-  const saves = latestSavesOf(delivery);
 
   return query(delivery).rule((r) => {
     const sittings = r.relation("sittings", sittingHeading);
@@ -253,6 +257,366 @@ const shownSaveOf = (delivery: DeliveryLevel) => {
       .match(savesAt, { at, child, n, package: pkg, path })
       .find({ at, child, n, package: pkg, path, stage });
   });
+};
+
+/**
+ * The member on screen with its latest save ({@link shownSaveOf}).
+ */
+type ShownSaves = ReturnType<typeof shownSaveOf>;
+
+/**
+ * The member on screen in each of the call's sittings ({@link shownSaveOf}), by its item session,
+ * where its latest save holds a value: a row of any of the save's value sidecars at the save's key,
+ * a record's field header among them. A save with none is an answer the candidate cleared. One rule
+ * per sidecar, since grizzle's types admit no helper generic over a relation's heading, each bound
+ * to the call's sittings through the member on screen before it reads its sidecar, so it reads that
+ * save's rows alone.
+ */
+const shownHeldOf = (delivery: DeliveryLevel, shownSave: ShownSaves) => {
+  const {
+    SnapshotMultipleBoolean,
+    SnapshotMultipleDirectedPair,
+    SnapshotMultipleDuration,
+    SnapshotMultipleFile,
+    SnapshotMultipleFloat,
+    SnapshotMultipleIdentifier,
+    SnapshotMultipleInteger,
+    SnapshotMultiplePair,
+    SnapshotMultiplePoint,
+    SnapshotMultipleString,
+    SnapshotMultipleUri,
+    SnapshotOrderedBoolean,
+    SnapshotOrderedDirectedPair,
+    SnapshotOrderedDuration,
+    SnapshotOrderedFile,
+    SnapshotOrderedFloat,
+    SnapshotOrderedIdentifier,
+    SnapshotOrderedInteger,
+    SnapshotOrderedPair,
+    SnapshotOrderedPoint,
+    SnapshotOrderedString,
+    SnapshotOrderedUri,
+    SnapshotRecord,
+    SnapshotSingleBoolean,
+    SnapshotSingleDirectedPair,
+    SnapshotSingleDuration,
+    SnapshotSingleFile,
+    SnapshotSingleFloat,
+    SnapshotSingleIdentifier,
+    SnapshotSingleInteger,
+    SnapshotSinglePair,
+    SnapshotSinglePoint,
+    SnapshotSingleString,
+    SnapshotSingleUri,
+  } = delivery.relations;
+
+  return query(delivery)
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSingleIdentifier, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSingleBoolean, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSingleInteger, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSingleFloat, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSingleString, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSinglePoint, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSinglePair, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSingleDirectedPair, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSingleDuration, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSingleUri, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotSingleFile, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultipleIdentifier, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultipleBoolean, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultipleInteger, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultipleFloat, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultipleString, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultiplePoint, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultiplePair, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultipleDirectedPair, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultipleDuration, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultipleUri, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotMultipleFile, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedIdentifier, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedBoolean, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedInteger, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedFloat, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedString, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedPoint, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedPair, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedDirectedPair, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedDuration, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedUri, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotOrderedFile, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const shownAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { at, child, n, package: pkg, path, stage } = v(shownAt, "heldShown");
+
+      return r
+        .match(shownAt, { at, child, n, package: pkg, path, stage })
+        .match(SnapshotRecord, { at, child, n, package: pkg, path })
+        .find({ child, n, package: pkg, path, stage });
+    });
 };
 
 /**
@@ -309,9 +673,8 @@ const partsOf = (delivery: DeliveryLevel) => {
  * last submission, the other. A member under QTI's default `max-attempts`, 1, is closed by its one
  * attempt (Table 7.19.1, §2.2.1); an unlimited member's next attempt begins when its last ends.
  */
-const inProgressOf = (delivery: DeliveryLevel) => {
+const inProgressOf = (delivery: DeliveryLevel, saves: LatestSaves) => {
   const { Attempt, ItemSession, TestMember, TestSession, UnlimitedMember } = delivery.relations;
-  const saves = latestSavesOf(delivery);
   /**
    * Each item session of the call's sittings with an attempt at or after its latest save.
    */
@@ -364,55 +727,18 @@ const inProgressOf = (delivery: DeliveryLevel) => {
  * The item sessions the end of each of the call's sittings submits, by the close rule (module note
  * of `#ledger/finish.ts`), each by its key: one rule per way a part's end submits, the part its
  * member's item ref is in (`TestMember.part`, the place of the test's one part), each a member
- * whose attempt is in progress ({@link inProgressOf}).
+ * whose attempt is in progress ({@link inProgressOf}), over the close's one `saves`.
  */
-export const closingOf = (delivery: DeliveryLevel) => {
+const closingOf = (delivery: DeliveryLevel, saves: LatestSaves) => {
   const { TestMember, TestPresented } = delivery.relations;
   const parts = partsOf(delivery);
-  const inProgress = inProgressOf(delivery);
+  const inProgress = inProgressOf(delivery, saves);
   const ended = endedSittingOf(delivery);
-  const held = heldSavesOf(delivery);
-  const shownSave = shownSaveOf(delivery);
+  const shownSave = shownSaveOf(delivery, saves);
   /**
    * The member on screen, by its item session, where its latest save holds a value.
    */
-  const shownHeld = query(delivery)
-    .rule((r) => {
-      const shownSaveAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
-      const { child, stage, package: pkg, path, n, at } = v(shownSaveAt, "singlesShown");
-
-      return r
-        .match(shownSaveAt, { at, child, n, package: pkg, path, stage })
-        .match(held.singles, { at, child, n, package: pkg, path })
-        .find({ child, n, package: pkg, path, stage });
-    })
-    .rule((r) => {
-      const shownSaveAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
-      const { child, stage, package: pkg, path, n, at } = v(shownSaveAt, "multiplesShown");
-
-      return r
-        .match(shownSaveAt, { at, child, n, package: pkg, path, stage })
-        .match(held.multiples, { at, child, n, package: pkg, path })
-        .find({ child, n, package: pkg, path, stage });
-    })
-    .rule((r) => {
-      const shownSaveAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
-      const { child, stage, package: pkg, path, n, at } = v(shownSaveAt, "orderedsShown");
-
-      return r
-        .match(shownSaveAt, { at, child, n, package: pkg, path, stage })
-        .match(held.ordereds, { at, child, n, package: pkg, path })
-        .find({ child, n, package: pkg, path, stage });
-    })
-    .rule((r) => {
-      const shownSaveAt = shownSave.bind({ sittings: r.relation("sittings", sittingHeading) });
-      const { child, stage, package: pkg, path, n, at } = v(shownSaveAt, "recordsShown");
-
-      return r
-        .match(shownSaveAt, { at, child, n, package: pkg, path, stage })
-        .match(held.records, { at, child, n, package: pkg, path })
-        .find({ child, n, package: pkg, path, stage });
-    });
+  const shownHeld = shownHeldOf(delivery, shownSave);
 
   return query(delivery)
     .rule((r) => {
@@ -450,3 +776,19 @@ export const closingOf = (delivery: DeliveryLevel) => {
         .find({ child, n, package: pkg, path: item });
     });
 };
+
+/**
+ * What a close reads, each once: the latest saves of the call's sittings ({@link latestSavesOf}),
+ * the one value its in-progress members, its member on screen and every copy of a save read, and
+ * the members its end submits ({@link closingOf}).
+ */
+export const closeReadsOf = (delivery: DeliveryLevel) => {
+  const saves = latestSavesOf(delivery);
+
+  return { closing: closingOf(delivery, saves), saves } as const;
+};
+
+/**
+ * A close's reads ({@link closeReadsOf}).
+ */
+export type CloseReads = ReturnType<typeof closeReadsOf>;

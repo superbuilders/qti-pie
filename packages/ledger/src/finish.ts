@@ -6,13 +6,13 @@
  * (`ChangeSet.bind`). An application sequences {@link finishTestOf} after the stratum that writes
  * the sitting's end (`TestEnd`).
  *
- * - **The close** ({@link closeOf}): an attempt for every member the end submits ({@link closingOf}),
- *   its response values its latest save's (`#ledger/finish-copies.ts`). "The end of an attempt, and
- *   therefore response processing, must only take place in direct response to a user action or in
- *   response to some expected event, such as the end of a test" (§2.2.4), and "In simultaneous mode
- *   the candidate's responses are all submitted together at the end of the qti-test-part" (Table
- *   5.159.5). The close rule (research/14 §3.5, IMPL-TESTPLAYER's statement, confirmed
- *   2026-11-20):
+ * - **The close** ({@link closeOf}): an attempt for every member the end submits
+ *   ({@link closeReadsOf}), its response values its latest save's (`#ledger/finish-copies.ts`).
+ *   "The end of an attempt, and therefore response processing, must only take place in direct
+ *   response to a user action or in response to some expected event, such as the end of a test"
+ *   (§2.2.4), and "In simultaneous mode the candidate's responses are all submitted together at the
+ *   end of the qti-test-part" (Table 5.159.5). The close rule (research/14 §3.5, IMPL-TESTPLAYER's
+ *   statement, confirmed 2026-11-20):
  *
  *   - A simultaneous part, in either navigation mode: every presented member, each attemptless until
  *     the end (`#ledger/test-laws.ts`, "Submitted together"), from its latest save, or, where it has
@@ -47,19 +47,20 @@ import { savedCopiesOf } from "#ledger/finish-copies.ts";
 import { gradeAttemptOf } from "#ledger/grade.ts";
 import { SnapshotKind } from "#ledger/ledger.ts";
 import type { DeliveryLevel } from "#ledger/sitting-programs.ts";
-import { closingOf, sittingHeading } from "#ledger/sitting-queries.ts";
+import { closeReadsOf, sittingHeading } from "#ledger/sitting-queries.ts";
 import { testRunWritesOf } from "#ledger/test-run-writes.ts";
 
 /**
- * The close, one stratum: for each member the end submits ({@link closingOf}) its attempt, a
- * response snapshot of kind `attempt` at the instant the database stamps, with its latest save's
- * values; a member with no save submits its declared defaults, a `DefaultSubmission` of the same
- * key in the same stratum, so of the same instant. Its outcomes and completion status are its
- * response processing's, written by the grading in the next stratum.
+ * The close, one stratum: for each member the end submits (`closing`, {@link closeReadsOf}) its
+ * attempt, a response snapshot of kind `attempt` at the instant the database stamps, with its
+ * latest save's values; a member with no save submits its declared defaults, a `DefaultSubmission`
+ * of the same key in the same stratum, so of the same instant. Its outcomes and completion status
+ * are its response processing's, written by the grading in the next stratum.
  */
 const closeOf = (delivery: DeliveryLevel) => {
   const { Attempt, DefaultSubmission, ResponseSnapshot, Save } = delivery.relations;
-  const closing = closingOf(delivery);
+  const reads = closeReadsOf(delivery);
+  const { closing } = reads;
   const submitted = ChangeSet.empty(delivery)
     .insert(
       ResponseSnapshot,
@@ -96,7 +97,7 @@ const closeOf = (delivery: DeliveryLevel) => {
       }),
     );
 
-  return ChangeSet.union(submitted, savedCopiesOf(delivery));
+  return ChangeSet.union(submitted, savedCopiesOf(delivery, reads));
 };
 
 /**

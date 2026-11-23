@@ -14,17 +14,16 @@
  */
 import { ChangeSet, query, v } from "@bjornpagen/grizzle";
 import type { DeliveryLevel } from "#ledger/sitting-programs.ts";
-import { closingOf, latestSavesOf, sittingHeading } from "#ledger/sitting-queries.ts";
+import { sittingHeading } from "#ledger/sitting-queries.ts";
+import type { CloseReads } from "#ledger/sitting-queries.ts";
 
 /**
  * Each closing member's latest save: an item session the end of one of the call's `sittings`
- * submits ({@link closingOf}), with its latest save's instant, the one source every copy reads.
+ * submits, with its latest save's instant, both the close's own reads (`CloseReads`), the one
+ * source every copy reads.
  */
-const closingSavesOf = (delivery: DeliveryLevel) => {
-  const closing = closingOf(delivery);
-  const saves = latestSavesOf(delivery);
-
-  return query(delivery).rule((r) => {
+const closingSavesOf = (delivery: DeliveryLevel, { closing, saves }: CloseReads) =>
+  query(delivery).rule((r) => {
     const sittings = r.relation("sittings", sittingHeading);
     const closingAt = closing.bind({ sittings });
     const savesAt = saves.bind({ sittings });
@@ -36,13 +35,12 @@ const closingSavesOf = (delivery: DeliveryLevel) => {
       .match(savesAt, { at, child, n, package: pkg, path })
       .find({ at, child, n, package: pkg, path });
   });
-};
 
 /**
  * The copies of each closing member's latest save.
  */
-export const savedCopiesOf = (delivery: DeliveryLevel) => {
-  const closingSaves = closingSavesOf(delivery);
+export const savedCopiesOf = (delivery: DeliveryLevel, reads: CloseReads) => {
+  const closingSaves = closingSavesOf(delivery, reads);
   const {
     SnapshotMultipleBoolean,
     SnapshotMultipleDirectedPair,
