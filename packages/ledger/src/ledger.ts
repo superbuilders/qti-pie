@@ -53,6 +53,7 @@ import {
   DeclarationNode,
   declarationParts,
   DocBase,
+  DocText,
   DocumentAttribute,
   DocVar,
   gradedAttributes,
@@ -2424,6 +2425,17 @@ export const ledgerOf = (qti: RegistryLevel) => {
     ["cardinality"],
     Cardinality.handles.map((cardinality) => ({ cardinality, token: cardinality })),
   );
+  /**
+   * QTI's completion status as the machine holds it, its built-in outcome's identifier value
+   * (`completionStatus`, §2.2.2.3): what the grade write reads the run's end by, one query for all
+   * four.
+   */
+  const CompletionStatusToken = closed.relation(
+    "CompletionStatusToken",
+    { status: closedId(CompletionStatus), token: DocText.fields.value },
+    ["status"],
+    CompletionStatus.handles.map((status) => ({ status, token: status })),
+  );
   const BaseTypeToken = closed.relation(
     "BaseTypeToken",
     { baseType: closedId(BaseType), token: DocBase.fields.base },
@@ -2568,6 +2580,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       BodyNodeKind,
       AdmittedAttributeName,
       CardinalityToken,
+      CompletionStatusToken,
       BaseTypeToken,
       VariableKindToken,
       OperatorClassToken,

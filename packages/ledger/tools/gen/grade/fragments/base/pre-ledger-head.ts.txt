@@ -72,7 +72,6 @@ import {
   seedStreamKey,
 } from "#ledger/grading.ts";
 import { LearnerId } from "#ledger/keys.ts";
-import { CompletionStatus } from "#ledger/ledger.ts";
 import { QtiInteger } from "#ledger/scalars.ts";
 
 /**

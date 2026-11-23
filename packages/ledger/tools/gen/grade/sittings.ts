@@ -559,6 +559,43 @@ const unreadSessions = (source: string): string => {
 };
 
 /**
+ * A reader that step 5 found reading no `session`: its head, up to its body.
+ */
+const UNREAD_READER = /^ {2}const (?<reader>\w+) = \(_session: GradedSession\) =>\s*/gmu;
+
+/**
+ * Step 7: each reader that reads no `session` is one query value, built once per builder: its
+ * definition becomes its body, and each call of it the value. Steps 5 and 7 run to a fixed point,
+ * since a reader whose only read of its `session` was a call of another reader reads none once that
+ * call is a value. Every rule binds the value it reads
+ * (`<hoist>In`), and grizzle emits one copy of a value that rules and call arguments read, where a
+ * reader called once per reading rule built each rule its own copy: the grade statement's runs core
+ * was emitted once per machine argument, 29 times, and once more for the inserts, which read
+ * `args.gradable`, one value (COMPILE-AT-PUBLISH C1).
+ *
+ * @param source The builder's text, edited.
+ * @param name The builder's name.
+ * @returns The text with each such reader a value.
+ */
+const readerValues = (source: string, name: string): string => {
+  const readers = matchesOf(source, UNREAD_READER);
+  let t = source;
+  for (const head of readers.toReversed()) {
+    t = `${t.slice(0, head.index)}  const ${groupOf(head, "reader")} = ${t.slice(endOf(head))}`;
+  }
+  for (const head of readers) {
+    const reader = groupOf(head, "reader");
+    t = t.replaceAll(new RegExp(`\\b${reader}\\((?:gradedSitting|_?session)\\)`, "gu"), reader);
+    must(
+      !new RegExp(`\\b${reader}\\(`, "u").test(masked(t)),
+      `${name}: ${reader} is called nowhere, every read its value`,
+    );
+  }
+
+  return t;
+};
+
+/**
  * The graded sitting's type alias, as the graded sitting's fragment declares it.
  */
 const SESSION_ALIAS = "  type GradedSession = typeof gradedSitting;\n";
@@ -598,7 +635,13 @@ const transform = (source: string, name: string, fragment: Fragments): string =>
   ]);
   mustReadSittings(edited, names, name);
 
-  return unreadAlias(unreadSessions(edited));
+  let settled = edited;
+  for (let previous = ""; previous !== settled;) {
+    previous = settled;
+    settled = readerValues(unreadSessions(settled), name);
+  }
+
+  return unreadAlias(settled);
 };
 
 /**

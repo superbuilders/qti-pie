@@ -47,7 +47,7 @@ const exportOf = (text: string, name: string): readonly [number, number] => {
  * @returns The builder rewritten.
  */
 const withoutDefaultedResponses = (builder: string): string => {
-  const head = "  const varsOf = (_session: GradedSession) =>";
+  const head = "  const varsOf = ";
   const varsFrom = indexOf(builder, head);
   const varsTo = varsFrom + readerOf(builder, head).length;
   let vars = builder.slice(varsFrom, varsTo);
@@ -145,7 +145,7 @@ const writtenRule = (rule: string): string => {
  */
 const writingDefaults = (builder: string, fragment: Fragments): string => {
   const anchor =
-    "  const boundGradableIn = (r: Rule<DeliveryLevel>) => gradableOf(gradedSitting).bind(bySession(r));\n";
+    "  const boundGradableIn = (r: Rule<DeliveryLevel>) => gradableOf.bind(bySession(r));\n";
   must(count(builder, anchor) === 1, "gradeAttemptOf's boundGradableIn");
 
   const head = replaceFirst(builder, anchor, anchor + fragment("defaults/written"));

@@ -789,9 +789,10 @@ const withGradingNames = (src: string, added: readonly string[]): string => {
 };
 
 /**
- * The ledger module's import, as the stages before leave it.
+ * The scalars module's import, as the stages before leave it, which the ledger module's comes
+ * before.
  */
-const LEDGER_IMPORT = 'import { CompletionStatus } from "#ledger/ledger.ts";\n';
+const SCALARS_IMPORT = 'import { QtiInteger } from "#ledger/scalars.ts";\n';
 
 /**
  * The take stage: takeArgumentsOf, hoisted, and takeValuesOf appended to the admission stage, and
@@ -806,7 +807,7 @@ export const takeStage = (stage: string, fragment: Fragments): string => {
 
   const src = `${stage.replace(/\n+$/u, "")}\n${hoist(takeArguments(fragment))}${takeValues(fragment)}${takeTables()}`;
   must(count(src, GRADING_IMPORT_END) === 1, "the grading module's one import");
-  must(count(src, LEDGER_IMPORT) === 1, "the ledger module's one import");
+  must(count(src, SCALARS_IMPORT) === 1, "the scalars module's one import");
 
   return replaceFirst(
     withGradingNames(src, [
@@ -814,7 +815,7 @@ export const takeStage = (stage: string, fragment: Fragments): string => {
       "templateProcessingOf",
       ...START_EMPTIES.map(([, heading]) => heading),
     ]),
-    LEDGER_IMPORT,
-    'import { CompletionStatus, SessionValueKind } from "#ledger/ledger.ts";\n',
+    SCALARS_IMPORT,
+    `import { SessionValueKind } from "#ledger/ledger.ts";\n${SCALARS_IMPORT}`,
   );
 };

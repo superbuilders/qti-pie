@@ -4,8 +4,7 @@
    * where the attempt submitted every response at its default (DefaultSubmission, QTI 3.0.1 Table
    * 7.19.6), its responses as the run began them, so the stored attempt reads as it was submitted.
    */
-  const writtenOf = (_session: GradedSession) =>
-    query(delivery)
+  const writtenOf = query(delivery)
       .rule((r) => {
         const attempt = boundGradableIn(r);
         const { child, package: pkg, path, stage } = v(attempt, "attempt");
@@ -33,4 +32,4 @@
             stage,
           });
       });
-  const boundWrittenIn = (r: Rule<DeliveryLevel>) => writtenOf(gradedSitting).bind(bySession(r));
+  const boundWrittenIn = (r: Rule<DeliveryLevel>) => writtenOf.bind(bySession(r));
