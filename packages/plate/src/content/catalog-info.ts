@@ -221,6 +221,46 @@ export const spokenAudioOf = (card: CatalogCard): readonly CatalogFile[] =>
   catalogKey(card.support) === spokenSupport ? card.files.filter(isAudio) : [];
 
 /**
+ * The support whose cards are presented beside the terms that reference their catalog.
+ */
+const glossarySupport = "glossary-on-screen";
+
+/**
+ * Tell whether a card is a glossary card.
+ *
+ * @param card The card.
+ * @returns Whether its collapsed `support` is `glossary-on-screen`.
+ */
+export const isGlossary = (card: CatalogCard): boolean =>
+  catalogKey(card.support) === glossarySupport;
+
+/**
+ * Give the kept cards the page lists after the body, in document order: every kept card but two
+ * kinds. A `spoken` card is for spoken support, never drawn on the page: it is the content a
+ * candidate hears in place of the part that references its catalog, read aloud where it gives
+ * audio ({@link spokenAudioOf}) and presenting nothing where it holds only text for a speech engine
+ * plate does not have, so a reader's script, such as a stem's "Add. … blank", never reaches the
+ * page as text (edullm-bd, 2026-11-22). A glossary card of a catalog a term of the body references
+ * is presented beside that term instead.
+ *
+ * @param catalogs The kept catalogs, in document order.
+ * @param presented The keys ({@link catalogKey}) of the catalogs a term of the body references,
+ *   whose glossary cards the glossary presents.
+ * @returns The cards listed, in document order.
+ */
+export const listedCards = (
+  catalogs: readonly CatalogPayload[],
+  presented: ReadonlySet<string>,
+): readonly CatalogCard[] =>
+  catalogs.flatMap((catalog) =>
+    catalog.cards.filter(
+      (card) =>
+        catalogKey(card.support) !== spokenSupport &&
+        !(isGlossary(card) && presented.has(catalogKey(catalog.id))),
+    ),
+  );
+
+/**
  * Read an element's `xml:lang` as written.
  *
  * @param read The reader kit.

@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
-import type { CatalogFile } from "#plate/content/catalog-info.ts";
+import { listedCards } from "#plate/content/catalog-info.ts";
+import type { CatalogFile, CatalogPayload } from "#plate/content/catalog-info.ts";
 import { copyItemContent } from "#plate/content/modules.ts";
 import { redact } from "#plate/redact.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
@@ -528,4 +529,96 @@ describe("catalog resolution, held to the information model's Catalog, Card and 
         assert.deepStrictEqual(shown.redacted.content["qti-catalog-info"], []);
       }),
   );
+});
+
+/**
+ * The supports the listing property draws cards of: the two it never lists, each as written and
+ * with white space around it (a `support` compares by its collapsed value, reading R9-a), and
+ * others it lists.
+ */
+const listingSupports = [
+  "spoken",
+  " spoken\n",
+  "glossary-on-screen",
+  "\tglossary-on-screen ",
+  "additional-directions",
+  "linguistic-guidance",
+  "ext:pacing",
+] as const;
+
+/**
+ * The files the listing property gives a card: none, as a spoken card of text for a speech engine
+ * has, an audio recording, and a file of another type.
+ */
+const listingFiles: readonly (readonly CatalogFile[])[] = [
+  [],
+  [{ href: "media/stem.mp3", mimeType: "audio/mpeg" }],
+  [{ href: "media/notes.pdf", mimeType: "application/pdf" }],
+];
+
+/**
+ * Decide, as the rule says and never from plate's code, whether the page lists a card after the
+ * body: never a spoken card, whatever files it has (edullm-bd, 2026-11-22: "a catalog card is for
+ * spoken support, never drawn on the page"), never a glossary card whose catalog a term of the body
+ * references, and every other card.
+ *
+ * @param support The card's `support` as written.
+ * @param presented Whether a term of the body references its catalog.
+ * @returns Whether it is listed.
+ */
+const listedByRule = (support: string, presented: boolean): boolean => {
+  const collapsed = support
+    .split(/[\t\n\r ]+/u)
+    .filter((part) => part !== "")
+    .join(" ");
+
+  return collapsed !== "spoken" && !(collapsed === "glossary-on-screen" && presented);
+};
+
+describe("the listing after the body", () => {
+  it("lists every kept card but a spoken one and a glossary card presented beside a term, in document order, over every support, file and reference", () => {
+    const drawn = listingSupports.flatMap((support) =>
+      listingFiles.flatMap((files) =>
+        [false, true].map((presented) => ({ files, presented, support })),
+      ),
+    );
+    const catalogs: readonly CatalogPayload[] = drawn.map((each, index) => ({
+      cards: [{ content: [], files: each.files, lang: Option.none(), support: each.support }],
+      id: ` catalog-${String(index)} `,
+      references: each.presented ? 1 : 0,
+    }));
+    const presented = new Set(
+      drawn.flatMap((each, index) => (each.presented ? [`catalog-${String(index)}`] : [])),
+    );
+
+    assert.deepStrictEqual(
+      listedCards(catalogs, presented),
+      drawn.flatMap((each, index) =>
+        listedByRule(each.support, each.presented)
+          ? (catalogs[index]?.cards ?? assert.fail("no catalog"))
+          : [],
+      ),
+    );
+    assert.isTrue(
+      drawn.some((each) => listedByRule(each.support, each.presented)),
+      "some card is listed",
+    );
+  });
+
+  it("never lists the stem's spoken card a reader speaks, which holds text and no audio", () => {
+    const stem: CatalogPayload = {
+      cards: [
+        {
+          content: [{ kind: "text", text: "Add. blank" }],
+          files: [],
+          lang: Option.none(),
+          support: "spoken",
+        },
+      ],
+      id: "tts_stem",
+      references: 1,
+    };
+
+    assert.deepStrictEqual(listedCards([stem], new Set()), []);
+  });
 });

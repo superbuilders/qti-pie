@@ -202,7 +202,8 @@ const classOf = (paired: PairedInteraction): Option.Option<string> => paired.pay
  *   item's in one read-aloud session keyed by the instance, which the host's `<ReadAloudSession>`
  *   remembers for its test where one encloses the item (`#plate/ui/read-aloud/session.tsx`), and
  *   `plate-catalog`, after the body, the listing of every other card the supports the host enabled
- *   keep (`#plate/ui/item/contents/catalog.tsx`);
+ *   keep but a spoken card, which is never drawn on the page
+ *   (`#plate/ui/item/contents/catalog.tsx`);
  * - Each interaction, through the interactions' seam: in `answering` its island inside its own
  *   `<Suspense fallback={null}>`, a hydration unit that suspends on nothing; in `review` and
  *   `solution` its server markup, with no boundary;

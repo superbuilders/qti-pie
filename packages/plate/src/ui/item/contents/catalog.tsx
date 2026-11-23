@@ -20,14 +20,16 @@
  *   its catalog where a control can stand ({@link readAloudOf}): before an element of the body at a
  *   flow position, at the top of what it reads, after an interaction's prompt, and beside a choice:
  *   a Choice's, a Hot Text's in its line, a Match's group, a Graphic Gap Match's hotspot in its
- *   row, and every other choice beside its chip in the bank, never an Inline Choice's. It is never
- *   listed: a recording is heard beside what it reads, and a list of recordings apart from their
- *   text, or of links to them, presents nothing a candidate can follow. A review and a solution
- *   present it nowhere, since their page ships no island but a Media's replay.
- * - **The listing**: every other kept card, and the glossary cards of a catalog no element of the
- *   body references (one referenced only from an interaction's own content, where a disclosure
- *   would sit inside a control), are listed after the body in `plate-catalog`, each card a
- *   `plate-catalog-card` carrying its `support` as `data-support` and its language as `lang`,
+ *   row, and every other choice beside its chip in the bank, never an Inline Choice's. A review and
+ *   a solution present it nowhere, since their page ships no island but a Media's replay. No spoken
+ *   card is ever drawn on the page, one that gives audio or one that holds only text for a speech
+ *   engine plate does not have (`listedCards` in `#plate/content/catalog-info.ts`): it is what a
+ *   candidate hears in place of the part that references it, a reader's script, and a list of
+ *   recordings or scripts apart from what they read presents nothing a candidate can follow.
+ * - **The listing**: every other kept card but a spoken one, and the glossary cards of a catalog no
+ *   element of the body references (one referenced only from an interaction's own content, where a
+ *   disclosure would sit inside a control), are listed after the body in `plate-catalog`, each card
+ *   a `plate-catalog-card` carrying its `support` as `data-support` and its language as `lang`,
  *   holding its content and a link to each of its files.
  *
  * A card's file is written as a link whose text is the href as written and whose `href` is the
@@ -42,9 +44,8 @@
 import { Array as Arr, Option, Result } from "effect";
 import { createElement } from "react";
 import type { Key, ReactNode } from "react";
-import { catalogKey, spokenAudioOf } from "#plate/content/catalog-info.ts";
+import { catalogKey, isGlossary, listedCards, spokenAudioOf } from "#plate/content/catalog-info.ts";
 import type {
-  CatalogCard,
   CatalogFile,
   CatalogInfoPayload,
   CatalogPayload,
@@ -63,11 +64,6 @@ import { bodyAttributeOf } from "#plate/model/attributes.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import { ReadAloud } from "#plate/ui/read-aloud/read-aloud.tsx";
 import type { ReadAloudSource } from "#plate/ui/read-aloud/read-aloud.tsx";
-
-/**
- * The support whose cards are presented beside the terms that reference their catalog.
- */
-const glossarySupport = "glossary-on-screen";
 
 /**
  * What the glossary gives a term of the body: the id its disclosure carries, which the term names
@@ -110,14 +106,6 @@ export type Glossary = (element: BodyElement<RedactedLevel>) => Option.Option<Gl
  */
 const catalogsOf = (payloads: readonly CatalogInfoPayload[]): readonly CatalogPayload[] =>
   payloads.flatMap((payload) => payload.catalogs);
-
-/**
- * Tell whether a card is a glossary card.
- *
- * @param card The card.
- * @returns Whether its collapsed `support` is `glossary-on-screen`.
- */
-const isGlossary = (card: CatalogCard): boolean => catalogKey(card.support) === glossarySupport;
 
 /**
  * Collect the elements of the body that reference a catalog, in document order: through every
@@ -343,9 +331,9 @@ export const glossaryOf = (
 };
 
 /**
- * Write the listing after the body: each kept card but a glossary card presented beside a term and
- * a spoken card that gives audio, which read-aloud presents or nothing does ({@link readAloudOf}),
- * in document order, as a `plate-catalog-card` in `plate-catalog`; nothing when no card is listed.
+ * Write the listing after the body: each kept card `listedCards` lists, never a spoken card nor a
+ * glossary card presented beside a term, in document order, as a `plate-catalog-card` in
+ * `plate-catalog`; nothing when no card is listed.
  *
  * @param payloads The payload's `qti-catalog-info` nodes.
  * @param body The payload's body, whose terms the glossary presents.
@@ -362,13 +350,7 @@ export const listing = (
   const presented = new Set(
     termsIn(body).flatMap((term) => (term.catalog === undefined ? [] : [catalogKey(term.catalog)])),
   );
-  const listed = catalogsOf(payloads).flatMap((catalog) =>
-    catalog.cards.filter(
-      (card) =>
-        (!isGlossary(card) || !presented.has(catalogKey(catalog.id))) &&
-        spokenAudioOf(card).length === 0,
-    ),
-  );
+  const listed = listedCards(catalogsOf(payloads), presented);
 
   return listed.length === 0
     ? undefined
