@@ -96,6 +96,13 @@
     --plate-stage-block-size: 100svh;
 
     /*
+     * The height of the host's view of the item: the screen's, less what the host's page keeps over
+     * and under the item, a band or a bar. An essay's box grows with its text to this height and
+     * scrolls past it, so the box and its last line stand on one screen.
+     */
+    --plate-view-block-size: 100svh;
+
+    /*
      * The shade a stage that scrolls lays on an edge past which more of its picture lies: the ink,
      * thinned, over the picture's edge, with the light tone's chevron in it.
      */
@@ -613,6 +620,41 @@
     min-block-size: var(--plate-control-size);
     border: 2px solid var(--ui-input);
     font: inherit;
+  }
+
+  /*
+   * An Extended Text's box grows with its text, as a rich-text editor's editing area does, its
+   * every line on the page: no shorter than its expected lines (`rows`, from `expected-lines`, QTI
+   * 3.0 information model 5.48.3), and as it fills, down to the host's view
+   * (`--plate-view-block-size`), past which it scrolls inside, so the child sees the whole answer as
+   * AlphaTest's full-width box showed it, never its last ten lines alone (edullm-bd, 2026-11-22,
+   * from PLAYER-PARITY's _eece8d1d). A review's box, which takes no typing, is its whole answer
+   * however long, as AlphaTest's review showed it. The edge and padding the minimum adds are plate
+   * theme's, 1rem and 4px, as its three-line floor counts them; a box the author gives a width
+   * (`cols`, from `expected-length`) keeps that width in the text's characters.
+   *
+   * `field-sizing: content` sizes a box to its text and leaves `rows` and `cols` unread, so the
+   * minimum reads them back through `attr()`. A browser that reads either not keeps the box at its
+   * rows, scrolling inside, as before.
+   */
+  @supports (field-sizing: content) and (min-block-size: calc(attr(rows type(<number>), 1) * 1lh)) {
+    :where([data-slot="plate-extended-text"]) [data-slot="textarea"] {
+      field-sizing: content;
+      max-block-size: var(--plate-view-block-size);
+      overflow-y: auto;
+    }
+
+    :where([data-slot="plate-extended-text"]) [data-slot="textarea"][rows] {
+      min-block-size: calc(attr(rows type(<number>), 1) * 1lh + 1rem + 4px);
+    }
+
+    :where([data-slot="plate-extended-text"]) [data-slot="textarea"][cols] {
+      inline-size: calc(attr(cols type(<number>), 1) * 1ch + 1.5rem + 4px);
+    }
+
+    :where([data-slot="plate-extended-text"]) [data-slot="textarea"][readonly] {
+      max-block-size: none;
+    }
   }
 
   /*
