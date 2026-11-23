@@ -292,12 +292,13 @@ const draw = (n: number) =>
   `<qti-set-outcome-value identifier="DRAW_${String(n)}"><qti-custom-operator class="rubric-score" definition="${rubricScore}"><qti-variable identifier="RESPONSE"/><qti-base-value base-type="identifier">${RUBRIC}</qti-base-value><qti-default identifier="MAXSCORE"/><qti-base-value base-type="integer">${String(n)}</qti-base-value></qti-custom-operator></qti-set-outcome-value>`;
 
 /**
- * The essay: an extended-text response scored by two draws of `rubric-score`, SCORE the better
- * reply.
+ * The essay: an extended-text response its own rule finds empty, NULL or nothing but whitespace and
+ * markup (`is-null(normalize-space(markup-text(RESPONSE)))`, the converter's), scoring SCORE 0 and
+ * reaching no draw, else scored by two draws of `rubric-score`, SCORE the better reply.
  */
 const essayXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="${asi}" identifier="essay" title="essay" adaptive="false" time-dependent="false" xml:lang="en">
-<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>${String(essayMaximum)}</qti-value></qti-default-value></qti-outcome-declaration><qti-outcome-declaration identifier="DRAW_1" cardinality="record" view="author"/><qti-outcome-declaration identifier="DRAW_2" cardinality="record" view="author"/><qti-item-body><qti-rubric-block use="${rubricUse}" view="scorer" id="${RUBRIC}"><qti-content-body><p>Award 2 for a force named with its direction.</p></qti-content-body></qti-rubric-block><qti-extended-text-interaction response-identifier="RESPONSE"/></qti-item-body><qti-response-processing>${draw(1)}${draw(2)}<qti-set-outcome-value identifier="SCORE"><qti-max><qti-multiple><qti-field-value field-identifier="score"><qti-variable identifier="DRAW_1"/></qti-field-value><qti-field-value field-identifier="score"><qti-variable identifier="DRAW_2"/></qti-field-value></qti-multiple></qti-max></qti-set-outcome-value></qti-response-processing>
+<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>${String(essayMaximum)}</qti-value></qti-default-value></qti-outcome-declaration><qti-outcome-declaration identifier="DRAW_1" cardinality="record" view="author"/><qti-outcome-declaration identifier="DRAW_2" cardinality="record" view="author"/><qti-item-body><qti-rubric-block use="${rubricUse}" view="scorer" id="${RUBRIC}"><qti-content-body><p>Award 2 for a force named with its direction.</p></qti-content-body></qti-rubric-block><qti-extended-text-interaction response-identifier="RESPONSE"/></qti-item-body><qti-response-processing><qti-response-condition><qti-response-if><qti-is-null><qti-custom-operator class="normalize-space" definition="${operatorTagPrefix}normalize-space"><qti-custom-operator class="markup-text" definition="${operatorTagPrefix}markup-text"><qti-variable identifier="RESPONSE"/></qti-custom-operator></qti-custom-operator></qti-is-null><qti-set-outcome-value identifier="SCORE"><qti-base-value base-type="float">0</qti-base-value></qti-set-outcome-value></qti-response-if><qti-response-else>${draw(1)}${draw(2)}<qti-set-outcome-value identifier="SCORE"><qti-max><qti-multiple><qti-field-value field-identifier="score"><qti-variable identifier="DRAW_1"/></qti-field-value><qti-field-value field-identifier="score"><qti-variable identifier="DRAW_2"/></qti-field-value></qti-multiple></qti-max></qti-set-outcome-value></qti-response-else></qti-response-condition></qti-response-processing>
 </qti-assessment-item>`;
 
 /**
@@ -631,9 +632,8 @@ type Case = Readonly<{
 type Family = "essay" | "history" | "bounds" | "empty";
 
 /**
- * The empty essays an evaluator declines `unanswered`: whitespace alone, and markup alone, which
- * the item's own empty-essay rule makes NULL (`when-present(normalize-space(markup-text(RESPONSE)),
- * RESPONSE)`).
+ * The empty essays: whitespace alone, and markup alone, which the item's own empty-essay rule finds
+ * empty, so its response processing scores them 0 and reaches no draw.
  */
 const emptyResponses = ["  \n\t ", "<p> </p>"] as const;
 
@@ -711,23 +711,20 @@ const boundsSpace: Gen<Case> = (source) => {
 };
 
 /**
- * The empty family: an essay of whitespace or markup alone, its draws both declined `unanswered`,
- * which the commit accepts and routes to no person, so the second decline grades the attempt on its
- * NULL; or, the control, both declined `refused`, a person's to score as any refusal; and a
- * person's value or none.
+ * The empty family: an essay of whitespace or markup alone, which its response processing scores 0
+ * at its submission, the run reaching no draw, so nothing is requested and nothing waits; and a
+ * person's value or none, of a group that does not wait.
  */
 const emptySpace: Gen<Case> = (source) => {
   const response = source.draw(element(emptyResponses));
-  const reason = source.draw(element(["unanswered", "refused"] as const));
   const person = source.draw(boolean) ? Option.some(personScore) : Option.none();
-  const declined: Option.Option<Evaluation> = Option.some({ reason, result: "declined" });
 
   return {
     answered: true,
-    evaluations: [declined, declined],
+    evaluations: [],
     family: "empty",
     history: false,
-    name: `empty ${JSON.stringify(response)} ${reason} ${Formatter.format(person)}`,
+    name: `empty ${JSON.stringify(response)} ${Formatter.format(person)}`,
     person,
     response,
   };
@@ -772,28 +769,30 @@ type Held = Readonly<{
 }>;
 
 /**
- * Whether the attempt's rubric group is a person's to score: every draw evaluated and declined, and
- * one of them for a reason a person scores, `refused` or `unreadable`. A group whose every draw
- * declined `unanswered` (an empty essay) is no one's: it holds none and never waits, as a NULL
- * response's. Such a group waits (`AwaitingHumanEvaluation`) until a person gives a value.
+ * Whether the attempt's rubric group is a person's to score: every draw evaluated and declined.
+ * Such a group waits (`AwaitingHumanEvaluation`) until a person gives a value.
  */
 const allDeclined = (held: Held) =>
-  held.evaluated.every((e) => Option.exists(e, ({ result }) => result === "declined")) &&
-  held.evaluated.some((e) =>
-    Option.exists(
-      e,
-      (evaluated) => evaluated.result === "declined" && evaluated.reason !== "unanswered",
-    ),
-  );
+  held.evaluated.every((e) => Option.exists(e, ({ result }) => result === "declined"));
 
 /**
- * Whether the attempt's response processing waits: an answered essay's request made and an
- * application unevaluated, or every draw declined and no person's value; a processed attempt,
- * history's among them, waits for nothing.
+ * Whether the item's own rule finds the case's essay empty: NULL, or nothing but whitespace and
+ * markup once its markup is read as text (`is-null(normalize-space(markup-text(RESPONSE)))`). Its
+ * response processing then scores it 0 and reaches no draw.
+ *
+ * @param c - The case.
+ */
+const blankOf = (c: Case) => !c.answered || emptyResponses.some((empty) => empty === c.response);
+
+/**
+ * Whether the attempt's response processing waits: an essay its rule does not find empty, a draw
+ * the run demanded and unevaluated, or every draw declined and no person's value; a processed
+ * attempt, history's among them, waits for nothing, and an empty essay is graded at its
+ * submission.
  */
 const waitsOf = (held: Held) =>
   !held.case.history &&
-  held.case.answered &&
+  !blankOf(held.case) &&
   (held.evaluated.some(Option.isNone) || (allDeclined(held) && Option.isNone(held.person)));
 
 /**
@@ -803,14 +802,17 @@ const awaitingOf = (held: Held): readonly string[] =>
   waitsOf(held) && allDeclined(held) && Option.isNone(held.person) ? [RUBRIC] : [];
 
 /**
- * SCORE as grading sets it once nothing waits, `qti-max` over `qti-multiple` of the draws' scores,
- * NULL members ignored: the better reply, else the person's value every declined draw of the
- * group takes, else NULL, an unanswered essay's (rubric-score's contract: "NULL iff the response is
- * NULL (no request is made)"); history's 2, as imported.
+ * SCORE as grading sets it once nothing waits: 0 for an essay its rule finds empty; else `qti-max`
+ * over `qti-multiple` of the draws' scores, NULL members ignored: the better reply, else the
+ * person's value every declined draw of the group takes; history's 2, as imported.
  */
 const scoreOf = (held: Held): Option.Option<number> => {
   if (held.case.history) {
     return Option.some(essayMaximum);
+  }
+
+  if (blankOf(held.case)) {
+    return Option.some(0);
   }
 
   const replies = held.evaluated.flatMap((e) =>
@@ -894,16 +896,19 @@ const statusOf = (held: Held) => (waitsOf(held) ? "pendingResponseProcessing" : 
  * - **Bounds** (`rubric-score`: "`score` is in [0, maximum]. A reply outside that range is a decline,
  *   never clamped"): a reply or a person's value past MAXSCORE's default is refused at its write,
  *   its law named, and nothing after it is written.
- * - **Waiting** (ASI Table 5.37; review M6, route 1): an answered, unprocessed essay waits on each
- *   unevaluated draw, and on its rubric group when every draw declined and no person's value
- *   stands. A person's value answers only a group that waits: of any other it records nothing.
+ * - **Waiting** (ASI Table 5.37; review M6, route 1): an unprocessed essay its rule does not find
+ *   empty waits on each draw its run demanded and no evaluation answered, and on its rubric group
+ *   when every draw declined and no person's value stands. An empty one waits for nothing: its run
+ *   reaches no draw. A person's value answers only a group that waits: of any other it records
+ *   nothing.
  * - **Grading** (Bjorn, 2026-11-18: "grading MUST be done in the same database transaction"): an
  *   attempt is processed by the write after which nothing of it waits, in that write's own
  *   transaction, and by no earlier one.
- * - **Operands**: each draw of an answered essay the grader's run demands, its response, rubric
- *   group, grader in force and maximum; none of a history attempt, which nothing grades.
- * - **Values and credit**: grading's SCORE and MAXSCORE, SCORE NULL for an unanswered essay; the
- *   credit none at 0, full at the maximum, partial between, and none where SCORE is NULL.
+ * - **Operands**: each draw of an essay its rule does not find empty and the grader's run demands,
+ *   its response, rubric group, grader in force and maximum; none of an empty one, never requested,
+ *   and none of a history attempt, which nothing grades.
+ * - **Values and credit**: grading's SCORE and MAXSCORE, SCORE 0 for an essay its rule finds empty;
+ *   the credit none at 0, full at the maximum, partial between.
  */
 const expectedOf = (c: Case): Expected => {
   const steps: StepExpected[] = [];
@@ -953,7 +958,7 @@ const expectedOf = (c: Case): Expected => {
 
   return {
     final: Option.some({
-      applications: c.answered && unprocessed ? evaluated.filter(Option.isNone).length : 0,
+      applications: unprocessed ? evaluated.filter(Option.isNone).length : 0,
       awaiting: awaitingOf(held),
       credit: unprocessed
         ? []
@@ -965,12 +970,12 @@ const expectedOf = (c: Case): Expected => {
             ...Option.toArray(score).map((value) => ["SCORE", value] as const),
           ],
       operands:
-        c.answered && !c.history
-          ? Array.from(
+        blankOf(c) || c.history
+          ? []
+          : Array.from(
               { length: essayDraws },
               () => [c.response, RUBRIC, grader.version, essayMaximum] as const,
-            )
-          : [],
+            ),
       status: unprocessed ? "pendingResponseProcessing" : "final",
     }),
     steps,
@@ -996,12 +1001,10 @@ const situations = [
   "credit:none",
   "credit:partial",
   "credit:full",
-  "credit:absent",
   "refused:Reply_within_maximum",
   "refused:Human_within_maximum",
   "held at the maximum",
-  "an empty essay declined unanswered, graded on its NULL with no one waiting",
-  "an empty essay declined refused, a person's",
+  "an empty essay scored 0 at its submission, never requested",
 ] as const;
 
 type Situation = (typeof situations)[number];
@@ -1037,14 +1040,12 @@ const situationsOf = (c: Case, expected: Expected): readonly Situation[] => {
       ...(want.applications > 0 ? ["waiting for an evaluation" as const] : []),
       ...(want.awaiting.length > 0 ? ["waiting for a person" as const] : []),
       ...want.credit.map((credit): Situation => `credit:${credit[2]}`),
-      ...(want.status === "final" && want.credit.length === 0 ? ["credit:absent" as const] : []),
       ...(c.family === "bounds" ? ["held at the maximum" as const] : []),
-      ...(c.family === "empty"
-        ? [
-            want.status === "final" && want.awaiting.length === 0 && want.floats.length === 1
-              ? ("an empty essay declined unanswered, graded on its NULL with no one waiting" as const)
-              : ("an empty essay declined refused, a person's" as const),
-          ]
+      ...(c.family === "empty" &&
+      want.status === "final" &&
+      want.operands.length === 0 &&
+      want.applications === 0
+        ? ["an empty essay scored 0 at its submission, never requested" as const]
         : []),
     ]),
   ];
@@ -1428,8 +1429,8 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
     const operators = Arr.sort(Arr.dedupe(maxima.map((row) => row.operator)), Order.BigInt);
     assert.strictEqual(
       Arr.fromIterable(waitingRows).length,
-      c.answered && !c.history ? essayDraws : 0,
-      `${c.name}: PendingApplication once the attempt is recorded, none of history's`,
+      !blankOf(c) && !c.history ? essayDraws : 0,
+      `${c.name}: PendingApplication once the attempt is graded at its submission, none of an empty essay's or history's`,
     );
 
     const attempt = { at, child, n: 0n, package: PACKAGE, path: ESSAY };

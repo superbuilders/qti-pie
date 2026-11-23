@@ -125,18 +125,15 @@ export const externallyScoredOf = (ledger: LedgerLevel) =>
  * (dependent, for the sitting that holds it): every `rubric-score` application of the group
  * declined, none replied, and no `HumanOperatorValue` answers it. The one definition the deferred
  * response processing, the operator's `essays` and `evaluate` and the evaluator's read-back read
- * (IMPL-OPS's route 1, review M6). Requests are static, every `RecordedApplication` of an item
- * whose response is non-NULL, so a decline stands for a sent request, and a group of a NULL
- * response (which response processing scores 0) holds none and never waits. Response processing
- * runs once no group of the attempt waits and no application is in flight: Results Reporting, Table
- * 2.7.7, `pendingResponseProcessing`, "the item variables represent the values of the response
- * variables after submission but before response processing has taken place". A `refused` or
- * `unreadable` decline counts, so an essay whose every draw declined is a person's to score, never
- * scored wrong; an `unanswered` one (an essay of whitespace or markup alone, which the item's own
- * empty-essay rule makes NULL) routes to no person, so a group whose every draw declined
- * `unanswered` holds none and never waits, as a NULL response's, and response processing runs on
- * its NULL; an attempt whose response processing has run (`ProcessedAttempt`) waits for no one,
- * history imported with its outcomes among them.
+ * (IMPL-OPS's route 1, review M6). A request is what the attempt's run demanded
+ * (`ApplicationDemand`), so a decline stands for a sent request, and a group the processing never
+ * reaches (an essay its own rule finds empty, which it scores 0) holds none and never waits.
+ * Response processing runs once no group of the attempt waits and no application is in flight:
+ * Results Reporting, Table 2.7.7, `pendingResponseProcessing`, "the item variables represent the
+ * values of the response variables after submission but before response processing has taken
+ * place". Every decline counts, `refused` and `unreadable` alike, so an essay whose every draw
+ * declined is a person's to score, never scored wrong; an attempt whose response processing has run
+ * (`ProcessedAttempt`) waits for no one, history imported with its outcomes among them.
  *
  * @param ledger - The ledger level.
  * @returns The query, `(child, package, path, n, at, rubric, stage)`.
@@ -152,21 +149,19 @@ export const awaitingHumanEvaluationsOf = (ledger: LedgerLevel) => {
   } = ledger.relations;
 
   /**
-   * Each rubric group of an attempt that holds a decline a person scores, `refused` or
-   * `unreadable`: an attempt's `OperatorDecline` of that reason of an application of the group
-   * (`RubricApplication`), by the attempt and the group's rubric. An `unanswered` decline puts its
-   * group here by no rule.
+   * Each rubric group of an attempt that holds a decline, every reason a person's to score: an
+   * attempt's `OperatorDecline` of an application of the group (`RubricApplication`), by the
+   * attempt and the group's rubric.
    */
-  const declinedOf = (reason: "refused" | "unreadable") => (r: Rule<LedgerLevel>) => {
+  const declinedGroups = query(ledger).rule((r) => {
     const { child, package: pkg, path, n, at, operator } = v(OperatorDecline, "declined");
     const { rubric } = v(RubricApplication, "application");
 
     return r
-      .match(OperatorDecline, { at, child, n, operator, package: pkg, path, reason })
+      .match(OperatorDecline, { at, child, n, operator, package: pkg, path })
       .match(RubricApplication, { package: pkg, path, rubric, start: operator })
       .find({ at, child, n, package: pkg, path, rubric });
-  };
-  const declinedGroups = query(ledger).rule(declinedOf("refused")).rule(declinedOf("unreadable"));
+  });
 
   /**
    * Each rubric group of an attempt that holds a reply: an `OperatorReply` of an application of the

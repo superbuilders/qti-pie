@@ -12,20 +12,14 @@ import { named } from "#ledger/laws.ts";
 export const EvaluationResult = closed.ordered("EvaluationResult", ["replied", "declined"]);
 
 /**
- * Why a completed reply holds no value: the model refused, its reply failed the class's contract
- * (not JSON, a field missing, a score outside [0, maximum]), which is never clamped or repaired, or
- * the essay was unanswered: whitespace or markup alone, which the item's own empty-essay rule makes
- * NULL (`when-present(normalize-space(markup-text(RESPONSE)), RESPONSE)`). The operator's value is
- * then NULL, as an empty response's is (ASI §2.11, NULL in, NULL out), and the item's own
- * processing decides what NULL scores. A `refused` or `unreadable` group is a person's to score
- * (`#ledger/assertion-views.ts` awaitingHumanEvaluationsOf); an `unanswered` one is no one's, as a
- * NULL response's. Appended, since codes are history.
+ * Why a completed reply holds no value: the model refused, or its reply failed the class's contract
+ * (not JSON, a field missing, a score outside [0, maximum]), which is never clamped or repaired.
+ * The operator's value is then NULL (ASI §2.11, NULL in, NULL out), and a group whose every draw
+ * declined is a person's to score (`#ledger/assertion-views.ts` awaitingHumanEvaluationsOf). An
+ * essay its item's own rule finds empty is no reason: the processing never reaches its draws, so it
+ * is never requested (`ApplicationDemand`). Appended, since codes are history.
  */
-export const DeclineReason = closed.ordered("DeclineReason", [
-  "refused",
-  "unreadable",
-  "unanswered",
-]);
+export const DeclineReason = closed.ordered("DeclineReason", ["refused", "unreadable"]);
 
 /**
  * A reply's feedback: some text, since an empty string is QTI's NULL (ASI §2.11) and is no row.

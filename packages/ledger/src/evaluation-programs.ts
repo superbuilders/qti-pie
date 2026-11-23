@@ -21,8 +21,8 @@
  *     the call records, one row per reply that has one; an empty feedback is QTI's NULL and has no
  *     row;
  *   - `declines` { child, package, path, n, at, operator, grader, request, reason }: a declined
- *     evaluation, with why: `refused`, `unreadable`, or `unanswered` (an essay of whitespace or
- *     markup alone), the one reason that routes the group to no person.
+ *     evaluation, with why: `refused` or `unreadable`, each a person's to score once every draw of
+ *     the group declined.
  *
  *   Its read-back is `awaiting` { replies, declines } → [{ child, package, path, n, at, rubric }]:
  *   each rubric group of an attempt the call's rows name that still waits for a person once the call
