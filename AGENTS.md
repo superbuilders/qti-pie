@@ -1,6 +1,6 @@
 # qti-pie
 
-qti-pie is edullm's IMS QTI 3.0.1 stack: three packages under `packages/qti-pie/packages/`. Follow edullm's root
+qti-pie is edullm's IMS QTI 3.0.1 stack: five packages under `packages/qti-pie/packages/`. Follow edullm's root
 `AGENTS.md` for everything this file does not say.
 
 This repository is `superbuilders/qti-pie`, a git submodule of edullm at `packages/qti-pie` (and of
@@ -16,6 +16,11 @@ metis). Every qti-pie change is committed here and pushed to `main`; edullm then
 - `plate` (`@qti-pie/plate`) renders QTI 3.0.1 and scores the responses. Its UI is UI SDK through React: `<Item>` from
   `@qti-pie/plate/ui` is a server component, and each interaction is a client island in `plate/src/ui/`. It depends on
   crust, never on pantry.
+- `ledger` (`@qti-pie/ledger`) holds QTI's session facts as grizzle levels above pantry's: item and test sessions,
+  saves, attempts, assertions and operator evaluations, delivery and test outcomes, the SQL grader, and the one item
+  opening every application serves (`served-item.ts`).
+- `specimen` (`@qti-pie/specimen`) generates specimen items and the child's responses as data, drawn at random, in
+  order or from a test's replay token, for the suites and for headless pages.
 
 QTI comes first: the specification and its XSD defaults decide. `docs/spec-readings.md` records how the packages read
 the specifications.
@@ -26,13 +31,14 @@ the specifications.
   exactly to `0.1.0-beta.10`. Versions live in edullm's catalog.
 - grizzle is this repository's submodule `vendor/grizzle`, which edullm reaches through recursion (its
   `submodule.recurse`), at its pinned commit. Move it one exact commit at a time, never
-  floating, with the full checks.
+  floating, and run the whole gate on the bump before pushing it.
 - After an edit, run edullm's `pnpm types`, the incremental typecheck (`pnpm types --filter './packages/qti-pie/**'`
   for qti-pie alone): each package checks its own tsconfig, as every edullm package does (crust, plate with its UI
   program, pantry, specimen with its UI program, and qti-pie's root over `tools/` and `oxlint.config.ts`), so an edit
-  re-checks its package and what depends on it. The push runs edullm's full gate, `pnpm check`: format, lint and
-  typecheck (each package's `typecheck`, `qti-pie#oxlint`, and the root's format), with qti-pie's own
-  `oxlint.config.ts` and `.oxfmtrc.json`. Tests run in edullm's `pnpm test`.
+  re-checks its package and what depends on it. Nothing gates a push: before pushing to `main`, run what the change
+  needs. The whole gate is `pnpm trunk` at qti-pie's root: every package's typecheck, oxlint with qti-pie's own
+  `oxlint.config.ts`, oxfmt with its `.oxfmtrc.json`, the ledger's `generate:check`, pantry's `grizzle:check`, and every
+  package's tests and the tools' tests at the pinned seed.
 
 ## Local database
 
