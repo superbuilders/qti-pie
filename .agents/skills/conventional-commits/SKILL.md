@@ -1,101 +1,41 @@
 ---
 name: conventional-commits
-description: Use when staging or committing changes in a git repo; split work into targeted commits with idiomatic conventional-commit prefixes and a clear DAG story.
+description: How qti-pie's commits are cut and worded - one story per commit, a conventional type with the package as scope, and a subject that states what is now true. Use when committing in qti-pie or splitting work into commits.
 ---
 
-# Conventional Commits
+# Commits in qti-pie
 
-Use this skill when preparing commits.
+Commits are made with jj (the jj-lanes skill). Read `jj log` for the house style; recent subjects are the examples.
 
-The goal is a commit history that reads like a small design document. Each commit should be targeted, reviewable, and meaningful on its own. A commit does not need to be large; it needs to represent one coherent reason for change.
+## The message
 
-Before preparing commits, read [references/examples.md](references/examples.md). Its labeled POSITIVE and NEGATIVE pairs define acceptance boundaries for prefixes, subjects, commit scope, staging, and useful bodies.
+`<type>(<scope>): <what is now true>`
 
-## Commit Prefixes
+- Scope is the package or area: `plate`, `pantry`, `crust`, `ledger`, `specimen`, `tools`, `lint`.
+- The subject states the behavior the commit makes true, as a fact, in the domain's words:
+  `feat(plate): a Text Entry marked plate-digits takes digits alone and asks for the number keyboard`,
+  `fix(pantry): scripts/db.sh runs grizzle's own bin, so a migration starts no pnpm`. Never `update`, `cleanup` or
+  `misc`.
+- The type is the most specific true one: `feat` new behavior or API, `fix` a wrong behavior, `refactor` the same
+  behavior in a new shape, `perf` measured speed, `test` tests or test support alone, `docs`, `build`, `ci`,
+  `chore` tooling, config, dependencies or generated metadata, `revert`.
+- A body only for what the diff can't say: why this boundary, what was left out, which trade-off, what proved it.
+  Report a check as passed only when it ran and passed.
 
-Use these prefixes as the default vocabulary:
+## One story per commit
 
-- `feat:` for new product behavior, new developer-facing capability, or new reusable API surface
-- `fix:` for correctness fixes, regressions, crashes, broken workflows, or user-visible bugs
-- `refactor:` for behavior-preserving structure, naming, boundary, or API reshaping
-- `chore:` for repository maintenance, dependency updates, generated metadata, tooling, config, or cleanup
-- `test:` for test-only changes or reusable test infrastructure
-- `docs:` for documentation-only changes
-- `style:` for presentation-only UI/CSS changes that do not alter behavior
-- `perf:` for measurable performance work
-- `build:` for package manager, bundler, compiler, or artifact pipeline changes
-- `ci:` for CI workflow changes
-- `revert:` for explicit reversions
-
-Prefer the most specific truthful prefix. Avoid vague subjects such as `update`, `cleanup`, `misc`, or `changes`.
-
-Optional scopes are fine when they clarify the boundary (`feat(api):`, `chore(lint):`). Do not invent noisy scopes.
-
-## Split Commits By Story
-
-Before staging, inspect the whole change:
+- Each commit is one complete change that leaves the repository working, however many files it touches. Keep a fix
+  with the test that proves it.
+- Split unrelated concerns, tooling or config from behavior, and an API from its first use when each stands alone.
+- Leave out scratch, demos and generated churn unless asked to keep them.
 
 ```bash
-git status --short
-git diff --stat
-git diff
+jj diff --stat                              # the whole change first
+jj split -m "<message>" <paths>             # the listed paths become the first commit, the rest stays in @
+jj describe -m "<message>" && jj new        # or: name what is left and start the next change
 ```
 
-Then split by story boundary:
+`jj split` without paths opens an editor, which doesn't work here. To split hunks inside one file, make and commit one
+story's edit before starting the next.
 
-- separate unrelated concerns, even when they touched nearby files
-- separate tooling/config/dependency changes from product or library behavior
-- separate reusable API additions from their first usage when each is independently meaningful
-- keep tests with the behavior when the tests are the proof for that behavior
-- split reusable test infrastructure into its own `test:` commit when it supports later commits
-- keep mechanical formatting separate only when it would obscure the semantic diff
-- exclude demos, scratch files, generated churn, and local experiments unless the user explicitly wants them kept
-
-Each commit should represent one coherent change and leave the repository working. Keep everything required for that change together. Separate unrelated changes so each can be reverted independently. Dependencies between commits are acceptable; make them clear rather than splitting tightly coupled work into broken intermediate states.
-
-Atomic means one complete change, not necessarily a small number of files.
-
-## Stage Carefully
-
-Stage by path or hunk so the index matches the intended story:
-
-```bash
-git add path/to/file
-git add -p
-git diff --cached --stat
-git diff --cached
-```
-
-Avoid `git add .` unless the working tree has already been inspected and every changed file belongs in the same commit.
-
-## Write The Message
-
-Use an imperative, concise subject:
-
-```text
-feat: add async boundary component
-chore: remove eslint config package
-fix: ignore generated ui components
-```
-
-Add a body only when the commit needs context that is not obvious from the diff:
-
-- why this boundary exists
-- what was deliberately excluded
-- what migration or compatibility trade-off was chosen
-- what verification proves the change
-
-## Verify The Boundary
-
-Before committing, run the narrowest useful checks for the staged story. Prefer the repo's normal hygiene commands when relevant (format, lint, typecheck, test).
-
-If a check is skipped, say why in the handoff. If a commit is intentionally not green on its own because it is part of a local migration sequence, make that explicit before committing.
-
-## Final Pass
-
-Before reporting completion:
-
-- confirm `git status --short`
-- confirm the new log tells the story in order
-- report the commit hashes and the checks that ran
-- do not push unless the user confirms the remote target
+Push only when asked, and to the remote the task names.

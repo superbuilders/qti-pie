@@ -1,4 +1,4 @@
 interface:
   display_name: "Conventional Commits"
   short_description: "Create targeted commits with idiomatic conventional-commit prefixes"
-  default_prompt: "Use $conventional-commits when staging or committing. Inspect the diff, split changes into targeted DAG-story commits, choose idiomatic prefixes, verify each boundary, and keep demo or scratch work out unless explicitly requested."
+  default_prompt: "Use $conventional-commits when committing. Inspect the diff, split it into one-story commits with jj, choose the most specific type with the package as scope, state what the commit makes true, and keep demo or scratch work out unless explicitly requested."
