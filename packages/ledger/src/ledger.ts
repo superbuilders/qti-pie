@@ -206,10 +206,16 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  *   `rubric-score`'s fields, its `score` a finite float of zero or more and its `feedback` where
  *   the reply's is no empty string, which is QTI's NULL; a declined one's reason. A declined
  *   evaluation's value is NULL.
+ * - **HumanDemand**: a rubric group of an attempt (the registry's `RubricGrader`, every
+ *   `rubric-score` application of an item that names one scorer rubric block) whose every
+ *   application the attempt's response processing reached declined, with no person's value: a fact
+ *   of the grader's run, which only the grade write stores, as it stores ApplicationDemand, so a
+ *   person is asked for a group exactly when the processing can go no further without one, and
+ *   never while an application it reached is still in flight. A run that demands a person writes no
+ *   outcome; the person's value answers it, and the run after it grades the attempt.
  * - **HumanOperatorValue** and **HumanOperatorFeedback**: the value a person recorded for a rubric
- *   group of an attempt (the registry's `RubricGrader`, every `rubric-score` application of an item
- *   that names one scorer rubric block), which the grader reads in place of the group's draws where
- *   every draw declined: by the attempt's key, the rubric block's `id` and the instant it was
+ *   group the attempt's run asked a person for (HumanDemand), which the grader reads in place of
+ *   each of the group's draws: by the attempt's key, the rubric block's `id` and the instant it was
  *   recorded, a clock whose child is the attempt and the group, append-only, the latest the one in
  *   force; the person who scored (`scorer`, a {@link ScorerId}) and the score, a finite float of
  *   zero or more; and the feedback where it is no empty string.
@@ -2002,6 +2008,16 @@ export const ledgerOf = (qti: RegistryLevel) => {
   const RubricName = Literal.fields.text;
 
   /**
+   * A human demand's key's fields: its attempt's, and the rubric group.
+   */
+  const humanDemandKey = [...snapshotKey, "rubric"] as const;
+
+  const HumanDemand = named(
+    "One human demand a group",
+    relation("HumanDemand", { ...snapshotFields, rubric: RubricName }, humanDemandKey),
+  );
+
+  /**
    * A human value's key's fields: its attempt's, the rubric group, and the instant it was recorded.
    */
   const humanKey = [...snapshotKey, "rubric", "asserted"] as const;
@@ -2794,6 +2810,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       OperatorReply,
       OperatorFeedback,
       OperatorDecline,
+      HumanDemand,
       HumanOperatorValue,
       HumanOperatorFeedback,
       sittings.tables.TestSession,
@@ -4656,15 +4673,19 @@ export const ledgerOf = (qti: RegistryLevel) => {
         contained(on(OperatorFeedback, ...evaluationKey), on(OperatorReply, ...evaluationKey)),
       ),
       named(
-        "Human value of its attempt",
-        contained(on(HumanOperatorValue, ...snapshotKey), on(Attempt, ...snapshotKey)),
+        "Human demand of its attempt",
+        contained(on(HumanDemand, ...snapshotKey), on(Attempt, ...snapshotKey)),
       ),
       named(
-        "Human value rubric",
+        "Human demand rubric",
         contained(
-          on(HumanOperatorValue, "package", "path", "rubric"),
+          on(HumanDemand, "package", "path", "rubric"),
           on(RubricGrader, "package", "path", "rubric"),
         ),
+      ),
+      named(
+        "Value of a human demand",
+        contained(on(HumanOperatorValue, ...humanDemandKey), on(HumanDemand, ...humanDemandKey)),
       ),
       named(
         "Human score",

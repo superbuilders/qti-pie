@@ -19,6 +19,8 @@
 			texts: args.texts.bind(bySession(session)),
 			integers: args.integers.bind(bySession(session)),
 			floats: args.floats.bind(bySession(session)),
+			human_feedbacks: args.human_feedbacks.bind(bySession(session)),
+			humans: args.humans.bind(bySession(session)),
 			booleans: args.booleans.bind(bySession(session)),
 			pairs: args.pairs.bind(bySession(session)),
 			directed_pairs: args.directed_pairs.bind(bySession(session)),

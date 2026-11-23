@@ -128,6 +128,14 @@ export const ledgerLaws = {
     source:
       "src/ledger.ts SnapshotGiven: 'A sitting's response snapshot with `given`', beside its snapshot",
   },
+  "Human demand of its attempt": {
+    source:
+      "src/ledger.ts HumanDemand: 'a fact of the grader's run, which only the grade write stores', by the attempt's key",
+  },
+  "Human demand rubric": {
+    source:
+      "src/ledger.ts HumanDemand: a rubric group 'the registry's `RubricGrader`, every `rubric-score` application of an item that names one scorer rubric block'",
+  },
   "Human feedback": {
     source:
       "src/ledger.ts HumanOperatorFeedback: 'the feedback where it is no empty string', of a person's value",
@@ -139,14 +147,6 @@ export const ledgerLaws = {
   "Human value instant": {
     source:
       "src/ledger.ts HumanOperatorValue: by the attempt's key, the rubric block's `id` and 'the instant it was recorded, a clock whose child is the attempt and the group, append-only, the latest the one in force'",
-  },
-  "Human value of its attempt": {
-    source:
-      "src/ledger.ts HumanOperatorValue: 'the value a person recorded for a rubric group of an attempt', by the attempt's key",
-  },
-  "Human value rubric": {
-    source:
-      "src/ledger.ts HumanOperatorValue: a rubric group 'the registry's `RubricGrader`, every `rubric-score` application of an item that names one scorer rubric block'",
   },
   "Human within maximum": {
     source:
@@ -237,6 +237,10 @@ export const ledgerLaws = {
   },
   "One end a sitting": {
     source: `${info}#DataCharacteristic_TestPart.Attr_submission-mode (Table 5.159.5: 'all submitted together at the end'): 'TestEnd is that end', one a sitting (src/sittings.ts)`,
+  },
+  "One human demand a group": {
+    source:
+      "src/ledger.ts HumanDemand: one demand per rubric group and attempt, its key the attempt's and the group's: a run asks a person for a group once, and the person's value answers it",
   },
   "One seed a session": {
     source:
@@ -425,6 +429,10 @@ export const ledgerLaws = {
   "Value in its header": {
     source:
       "src/ledger.ts: a value's row is in the sidecar of its declared cardinality and base type beside its header ('ItemSessionValue<Single|Multiple|Ordered><BaseType>', 'Snapshot<Single|Multiple|Ordered><BaseType>', TestOutcome's and an assertion's alike), so a sidecar's row has its header's",
+  },
+  "Value of a human demand": {
+    source:
+      "src/ledger.ts HumanOperatorValue: the value a person recorded for a rubric group 'the attempt's run asked a person for (HumanDemand)'",
   },
   "Value of its session": {
     source:

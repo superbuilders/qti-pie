@@ -68,6 +68,8 @@ import {
   copies,
   DocBase,
   DocEvaluation,
+  DocHuman,
+  DocHumanFeedback,
   DocReplyFloat,
   DocReplyText,
   DocText,
@@ -1373,6 +1375,95 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       .match(attempt, { at, child, n, package: pkg, path, stage })
       .match(fields.OperatorEvaluation, { at, child, n, operator, package: pkg, path })
       .find({ child, package: pkg, path, stage, start: operator });
+  });
+
+  /**
+   * The instant of each rubric group's latest person's value at the graded attempt
+   * (HumanOperatorValue, append-only, "the latest the one in force"), by the run key and the
+   * group's rubric.
+   */
+  const humanLatestOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const attempt = boundGradable;
+    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+    const { rubric, asserted } = v(fields.HumanOperatorValue, "person");
+
+    return r
+      .match(attempt, { at, child, n, package: pkg, path, stage })
+      .match(fields.HumanOperatorValue, { asserted, at, child, n, package: pkg, path, rubric })
+      .find({ at, child, latest: r.max(asserted), n, package: pkg, path, rubric, stage });
+  });
+  const boundHumanLatestIn = (r: Rule<DeliveryLevel>) => humanLatestOf.bind(bySession(r));
+
+  /**
+   * Each person's value in force of a rubric group of the graded attempt, by the run key and the
+   * group's rubric: what the grader reads in place of each of the group's draws, where the
+   * attempt's run asked a person for it (HumanDemand).
+   */
+  const humansOf = query(delivery).rule((r) => {
+    const boundHumanLatest = boundHumanLatestIn(r);
+    const latest = boundHumanLatest;
+    const {
+      child,
+      package: pkg,
+      path,
+      n,
+      stage,
+      at,
+      rubric,
+      latest: asserted,
+    } = v(latest, "latest");
+    const { score } = v(fields.HumanOperatorValue, "inForce");
+
+    return r
+      .match(latest, { at, child, latest: asserted, n, package: pkg, path, rubric, stage })
+      .match(fields.HumanOperatorValue, {
+        asserted,
+        at,
+        child,
+        n,
+        package: pkg,
+        path,
+        rubric,
+        score,
+      })
+      .find({ child, package: pkg, path, rubric, score, stage });
+  });
+
+  /**
+   * The feedback a person gave beside a rubric group's value in force (HumanOperatorFeedback, which
+   * holds none for an empty one), at that value's own instant, by the run key and the group's
+   * rubric: the `feedback` field of the record the grader reads in place of the group's draws, as a
+   * reply's feedback is.
+   */
+  const humanFeedbacksOf = query(delivery).rule((r) => {
+    const boundHumanLatest = boundHumanLatestIn(r);
+    const latest = boundHumanLatest;
+    const {
+      child,
+      package: pkg,
+      path,
+      n,
+      stage,
+      at,
+      rubric,
+      latest: asserted,
+    } = v(latest, "latestFeedback");
+    const { feedback } = v(fields.HumanOperatorFeedback, "feedbackInForce");
+
+    return r
+      .match(latest, { at, child, latest: asserted, n, package: pkg, path, rubric, stage })
+      .match(fields.HumanOperatorFeedback, {
+        asserted,
+        at,
+        child,
+        feedback,
+        n,
+        package: pkg,
+        path,
+        rubric,
+      })
+      .find({ child, feedback, package: pkg, path, rubric, stage });
   });
 
   /**
@@ -8554,6 +8645,8 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     files: filesOf,
     floats: floatsOf,
     gradable: gradableOf,
+    human_feedbacks: humanFeedbacksOf,
+    humans: humansOf,
     integers: integersOf,
     pairs: pairsOf,
     points: pointsOf,
@@ -29166,6 +29259,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
  */
 export const gradeAttemptTables = [
   "ApplicationDemand",
+  "HumanDemand",
   "ProcessedAttempt",
   "SnapshotSingleIdentifier",
   "SnapshotSingleBoolean",
@@ -29306,6 +29400,8 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       file_names: args.file_names.bind(bySession(r)),
       files: args.files.bind(bySession(r)),
       floats: args.floats.bind(bySession(r)),
+      human_feedbacks: args.human_feedbacks.bind(bySession(r)),
+      humans: args.humans.bind(bySession(r)),
       integers: args.integers.bind(bySession(r)),
       pairs: args.pairs.bind(bySession(r)),
       points: args.points.bind(bySession(r)),
@@ -32171,8 +32267,30 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       .find({ at, child, n, operator: start, package: pkg, path });
   });
 
+  /**
+   * What the run asked a person for (HumanDemand): each rubric group of the attempt whose every
+   * application the run reached declined, with no person's value. A run that asks returns its human
+   * demands alone, no value and no end, so none of the outcomes above is written for it and the
+   * attempt waits for the person's value, which the run after it reads in place of the group's
+   * draws.
+   */
+  const humanDemandedOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const run = runIn(r);
+    const out = run;
+    const attempt = boundGradable;
+    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+    const { rubric } = v(out.human_demands, "humanDemand");
+
+    return r
+      .match(attempt, { at, child, n, package: pkg, path, stage })
+      .match(out.human_demands, { child, package: pkg, path, rubric, stage })
+      .find({ at, child, n, package: pkg, path, rubric });
+  });
+
   const processed = ChangeSet.empty(delivery)
     .insert(fields.ApplicationDemand, demandedOf)
+    .insert(fields.HumanDemand, humanDemandedOf)
     .insert(fields.ProcessedAttempt, statusesOf);
 
   return ChangeSet.union(
@@ -34923,6 +35041,95 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       .match(attempt, { at, child, n, package: pkg, path, stage })
       .match(fields.OperatorEvaluation, { at, child, n, operator, package: pkg, path })
       .find({ child, package: pkg, path, stage, start: operator });
+  });
+
+  /**
+   * The instant of each rubric group's latest person's value at the graded attempt
+   * (HumanOperatorValue, append-only, "the latest the one in force"), by the run key and the
+   * group's rubric.
+   */
+  const humanLatestOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const attempt = boundGradable;
+    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+    const { rubric, asserted } = v(fields.HumanOperatorValue, "person");
+
+    return r
+      .match(attempt, { at, child, n, package: pkg, path, stage })
+      .match(fields.HumanOperatorValue, { asserted, at, child, n, package: pkg, path, rubric })
+      .find({ at, child, latest: r.max(asserted), n, package: pkg, path, rubric, stage });
+  });
+  const boundHumanLatestIn = (r: Rule<DeliveryLevel>) => humanLatestOf.bind(bySession(r));
+
+  /**
+   * Each person's value in force of a rubric group of the graded attempt, by the run key and the
+   * group's rubric: what the grader reads in place of each of the group's draws, where the
+   * attempt's run asked a person for it (HumanDemand).
+   */
+  const humansOf = query(delivery).rule((r) => {
+    const boundHumanLatest = boundHumanLatestIn(r);
+    const latest = boundHumanLatest;
+    const {
+      child,
+      package: pkg,
+      path,
+      n,
+      stage,
+      at,
+      rubric,
+      latest: asserted,
+    } = v(latest, "latest");
+    const { score } = v(fields.HumanOperatorValue, "inForce");
+
+    return r
+      .match(latest, { at, child, latest: asserted, n, package: pkg, path, rubric, stage })
+      .match(fields.HumanOperatorValue, {
+        asserted,
+        at,
+        child,
+        n,
+        package: pkg,
+        path,
+        rubric,
+        score,
+      })
+      .find({ child, package: pkg, path, rubric, score, stage });
+  });
+
+  /**
+   * The feedback a person gave beside a rubric group's value in force (HumanOperatorFeedback, which
+   * holds none for an empty one), at that value's own instant, by the run key and the group's
+   * rubric: the `feedback` field of the record the grader reads in place of the group's draws, as a
+   * reply's feedback is.
+   */
+  const humanFeedbacksOf = query(delivery).rule((r) => {
+    const boundHumanLatest = boundHumanLatestIn(r);
+    const latest = boundHumanLatest;
+    const {
+      child,
+      package: pkg,
+      path,
+      n,
+      stage,
+      at,
+      rubric,
+      latest: asserted,
+    } = v(latest, "latestFeedback");
+    const { feedback } = v(fields.HumanOperatorFeedback, "feedbackInForce");
+
+    return r
+      .match(latest, { at, child, latest: asserted, n, package: pkg, path, rubric, stage })
+      .match(fields.HumanOperatorFeedback, {
+        asserted,
+        at,
+        child,
+        feedback,
+        n,
+        package: pkg,
+        path,
+        rubric,
+      })
+      .find({ child, feedback, package: pkg, path, rubric, stage });
   });
 
   /**
@@ -40342,6 +40549,8 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     file_names: fileNamesOf,
     files: filesOf,
     floats: floatsOf,
+    human_feedbacks: humanFeedbacksOf,
+    humans: humansOf,
     integers: integersOf,
     pairs: pairsOf,
     points: pointsOf,
@@ -45678,6 +45887,26 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       start: Type.literal(DocEvaluation.fields.start, 0n),
     }),
   );
+  const noHumanFeedbacks = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      child: Type.literal(DocHumanFeedback.fields.child, "x"),
+      feedback: Type.literal(DocHumanFeedback.fields.feedback, ""),
+      package: Type.literal(DocHumanFeedback.fields.package, ""),
+      path: Type.literal(DocHumanFeedback.fields.path, ""),
+      rubric: Type.literal(DocHumanFeedback.fields.rubric, ""),
+      stage: Type.literal(DocHumanFeedback.fields.stage, 0n),
+    }),
+  );
+  const noHumans = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      child: Type.literal(DocHuman.fields.child, "x"),
+      package: Type.literal(DocHuman.fields.package, ""),
+      path: Type.literal(DocHuman.fields.path, ""),
+      rubric: Type.literal(DocHuman.fields.rubric, ""),
+      score: Type.literal(DocHuman.fields.score, 0),
+      stage: Type.literal(DocHuman.fields.stage, 0n),
+    }),
+  );
   const noPrograms = query(delivery).rule((r) =>
     r.where(r.or()).find({
       end: Type.literal(ProgramNode.fields.end, 0n),
@@ -46585,6 +46814,8 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       file_names: startFileNamesOf.bind(bySession(r)),
       files: startFilesOf.bind(bySession(r)),
       floats: startFloatsOf.bind(bySession(r)),
+      human_feedbacks: noHumanFeedbacks,
+      humans: noHumans,
       integers: startIntegersOf.bind(bySession(r)),
       pairs: startPairsOf.bind(bySession(r)),
       points: startPointsOf.bind(bySession(r)),

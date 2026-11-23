@@ -40,9 +40,26 @@ const demandedOf = (session: GradedSession) =>
 			.find({ child, package: pkg, path, n, at, operator: start })
 	})
 
+/** What the run asked a person for (HumanDemand): each rubric group of the attempt whose every application the run reached
+ * declined, with no person's value. A run that asks returns its human demands alone, no value and no end, so none of the
+ * outcomes above is written for it and the attempt waits for the person's value, which the run after it reads in place of
+ * the group's draws. */
+const humanDemandedOf = (session: GradedSession) =>
+	query(Learner).rule((r) => {
+		const out = runOf(session)
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const { rubric } = v(out.human_demands, "humanDemand")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(out.human_demands, { child, package: pkg, path, stage, rubric })
+			.find({ child, package: pkg, path, n, at, rubric })
+	})
+
 const processed = (session: GradedSession) =>
 	ChangeSet.empty(Learner)
 		.insert(mine.ApplicationDemand, demandedOf(session))
+		.insert(mine.HumanDemand, humanDemandedOf(session))
 		.insert(mine.ProcessedAttempt, statusesOf(session))
 
 	return ChangeSet.union(
