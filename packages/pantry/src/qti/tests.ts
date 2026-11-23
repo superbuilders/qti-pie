@@ -771,28 +771,6 @@ const itemDocuments = select(Document, (d) => d.eq(d.rootKind, itemKind));
  * or not (reading 147).
  */
 export const testLawsByName = {
-  "Variable mapping target": declared("Variable mapping target", [
-    key(
-      on(
-        select(Attribute, (a) => namedOn(a, "target-identifier", [mappingKind])),
-        "package",
-        "path",
-        "parent",
-        "valueDigest",
-      ),
-    ),
-  ]),
-  "Weight key": declared("Weight key", [
-    key(
-      on(
-        select(Attribute, (a) => namedOn(a, "identifier", [weightKind])),
-        "package",
-        "path",
-        "parent",
-        "valueDigest",
-      ),
-    ),
-  ]),
   "E1 derived": declared("E1 derived", [
     siteTargetFamily,
     contextFold,
@@ -1038,6 +1016,28 @@ export const testLawsByName = {
       on(StimulusRef, "package", "path", "start"),
     ),
     contained(on(assembledDocuments, "package", "path"), on(AssembledDocument, "package", "path")),
+  ]),
+  "Variable mapping target": declared("Variable mapping target", [
+    key(
+      on(
+        select(Attribute, (a) => namedOn(a, "target-identifier", [mappingKind])),
+        "package",
+        "path",
+        "parent",
+        "valueDigest",
+      ),
+    ),
+  ]),
+  "Weight key": declared("Weight key", [
+    key(
+      on(
+        select(Attribute, (a) => namedOn(a, "identifier", [weightKind])),
+        "package",
+        "path",
+        "parent",
+        "valueDigest",
+      ),
+    ),
   ]),
 } as const;
 
