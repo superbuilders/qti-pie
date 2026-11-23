@@ -135,6 +135,16 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  *   since the call that takes the session writes its values in the same insert that stamps the
  *   session's place, and a place is stamped only in its own relation, never carried to a row beside
  *   it as a stage's instant is.
+ * - **StartVariable**: the record an item session begins with (COMPILE-AT-PUBLISH S), each variable
+ *   that is no context as the machine's run of the session with no program leaves it, which the
+ *   take stores once, in the stratum after the session's values, so a read of the session's start
+ *   is a read by its key: each outcome at its default in force (a numeric single with none at 0),
+ *   `completionStatus` at `unknown`, each template variable at its set or declared value, and each
+ *   response NULL. Its value in the sidecar of its declared base type and cardinality,
+ *   **Start**`<Single|Multiple|Ordered><BaseType>`, and a record's fields in **StartRecord**, each
+ *   with its own base type, whose arm **StartRecord**`<BaseType>` holds its value; no value row is
+ *   NULL. Its session is named by its stage, as a session value's is, and every item session holds
+ *   one (ItemSession ⊆ StartVariable): its `completionStatus` at least.
  * - **SessionSeed**: the seed an item session's template and response processing draw under, by the
  *   session's sitting (`stage`) and item, which its take computes in the database from the take's
  *   seed (the SQL grader's `processingSeed`); every item session holds one (ItemSession ⊆
@@ -292,13 +302,11 @@ export const ledgerOf = (qti: RegistryLevel) => {
    * reserved", 3.0.1 tables 4.5.1, 5.115.1 and 5.151.1), which pantry's `Declaration not reserved`
    * holds, so a variable is one row.
    */
-  const ItemSessionVariable = derived(
-    "ItemSessionVariable",
-    declaredVariables
-      .rule(builtInVariable("numAttempts", "integer"))
-      .rule(builtInVariable("duration", "float"))
-      .rule(builtInVariable("completionStatus", "identifier")),
-  );
+  const sessionVariables = declaredVariables
+    .rule(builtInVariable("numAttempts", "integer"))
+    .rule(builtInVariable("duration", "float"))
+    .rule(builtInVariable("completionStatus", "identifier"));
+  const ItemSessionVariable = derived("ItemSessionVariable", sessionVariables);
 
   /**
    * QTI's record variables: every variable an item declares of cardinality `record`, which has no
@@ -307,23 +315,46 @@ export const ledgerOf = (qti: RegistryLevel) => {
    * declared identifier, with the kind of declaration: pantry's `DeclarationName` of cardinality
    * `record`.
    */
-  const ItemRecordVariable = derived(
-    "ItemRecordVariable",
-    query(qti).rule((r) => {
-      const { package: pkg, path } = v(ObjectIdentifier, "item");
-      const { identifier, declarationKind } = v(DeclarationName, "declaration");
+  const recordVariables = query(qti).rule((r) => {
+    const { package: pkg, path } = v(ObjectIdentifier, "item");
+    const { identifier, declarationKind } = v(DeclarationName, "declaration");
 
-      return r
-        .match(ObjectIdentifier, { package: pkg, path })
-        .match(DeclarationName, {
-          cardinality: "record",
-          declarationKind,
-          identifier,
-          package: pkg,
-          path,
-        })
-        .find({ declarationKind, identifier, package: pkg, path });
-    }),
+    return r
+      .match(ObjectIdentifier, { package: pkg, path })
+      .match(DeclarationName, {
+        cardinality: "record",
+        declarationKind,
+        identifier,
+        package: pkg,
+        path,
+      })
+      .find({ declarationKind, identifier, package: pkg, path });
+  });
+  const ItemRecordVariable = derived("ItemRecordVariable", recordVariables);
+
+  /**
+   * Every variable an item's session holds, by its package, the item's `identifier` and the
+   * variable's name, with the kind of its declaration: a typed one or a built-in
+   * ({@link ItemSessionVariable}'s rows) and a record ({@link ItemRecordVariable}'s). What a
+   * session's start record is made of (`StartVariable`), a record's among them.
+   */
+  const SessionVariableName = derived(
+    "SessionVariableName",
+    query(qti)
+      .rule((r) => {
+        const { declarationKind, identifier, package: pkg, path } = v(sessionVariables, "typed");
+
+        return r
+          .match(sessionVariables, { declarationKind, identifier, package: pkg, path })
+          .find({ declarationKind, identifier, package: pkg, path });
+      })
+      .rule((r) => {
+        const { declarationKind, identifier, package: pkg, path } = v(recordVariables, "record");
+
+        return r
+          .match(recordVariables, { declarationKind, identifier, package: pkg, path })
+          .find({ declarationKind, identifier, package: pkg, path });
+      }),
   );
 
   /**
@@ -1516,6 +1547,302 @@ export const ledgerOf = (qti: RegistryLevel) => {
   );
 
   /**
+   * A start value's key's fields: its item session's by its stage, as a session value's, since the
+   * take that stores the session's values stores its start in the stratum after them, and the
+   * variable.
+   */
+  const startValue = {
+    child: LearnerId,
+    package: PackageName,
+    path: ItemPath,
+    stage: pg.bigint,
+    variable: VariableName,
+  } as const;
+  const startValueKey = ["child", "stage", "package", "path", "variable"] as const;
+
+  /**
+   * A start record field's key's fields: its variable's, and the field.
+   */
+  const startFielded = { ...startValue, field: QtiIdentifier } as const;
+  const startFieldedKey = [...startValueKey, "field"] as const;
+
+  /**
+   * A variable of the record an item session begins with (COMPILE-AT-PUBLISH S): every variable
+   * that is no context of the machine's run of the session with no program, which its take runs
+   * once, in the stratum after the session's values (`#ledger/grade.ts` takeValuesOf), whose value
+   * rows its sidecars hold, inserted with it; a NULL one has its header and no value row.
+   */
+  const StartVariable = named(
+    "Start variable once",
+    relation("StartVariable", startValue, startValueKey),
+  );
+
+  const StartSingleIdentifier = named(
+    "Single value",
+    relation("StartSingleIdentifier", { ...startValue, ...leaf.identifier }, startValueKey),
+  );
+  const StartSingleBoolean = named(
+    "Single value",
+    relation("StartSingleBoolean", { ...startValue, ...leaf.boolean }, startValueKey),
+  );
+  const StartSingleInteger = named(
+    "Single value",
+    relation("StartSingleInteger", { ...startValue, ...leaf.integer }, startValueKey),
+  );
+  const StartSingleFloat = named(
+    "Single value",
+    relation("StartSingleFloat", { ...startValue, ...leaf.float }, startValueKey),
+  );
+  const StartSingleString = named(
+    "Single value",
+    relation("StartSingleString", { ...startValue, ...leaf.string }, startValueKey),
+  );
+  const StartSinglePoint = named(
+    "Single value",
+    relation("StartSinglePoint", { ...startValue, ...leaf.point }, startValueKey),
+  );
+  const StartSinglePair = named(
+    "Single value",
+    relation("StartSinglePair", { ...startValue, ...leaf.pair }, startValueKey),
+  );
+  const StartSingleDirectedPair = named(
+    "Single value",
+    relation("StartSingleDirectedPair", { ...startValue, ...leaf.directedPair }, startValueKey),
+  );
+  const StartSingleDuration = named(
+    "Single value",
+    relation("StartSingleDuration", { ...startValue, ...leaf.duration }, startValueKey),
+  );
+  const StartSingleUri = named(
+    "Single value",
+    relation("StartSingleUri", { ...startValue, ...leaf.uri }, startValueKey),
+  );
+  const StartSingleFile = named(
+    "Single value",
+    relation("StartSingleFile", { ...startValue, ...leaf.file }, startValueKey),
+  );
+
+  const StartMultipleIdentifier = named(
+    "Distinct values",
+    relation("StartMultipleIdentifier", { ...startValue, ...leaf.identifier, count: natural }, [
+      ...startValueKey,
+      "value",
+    ]),
+  );
+  const StartMultipleBoolean = named(
+    "Distinct values",
+    relation("StartMultipleBoolean", { ...startValue, ...leaf.boolean, count: natural }, [
+      ...startValueKey,
+      "value",
+    ]),
+  );
+  const StartMultipleInteger = named(
+    "Distinct values",
+    relation("StartMultipleInteger", { ...startValue, ...leaf.integer, count: natural }, [
+      ...startValueKey,
+      "value",
+    ]),
+  );
+  const StartMultipleFloat = named(
+    "Distinct values",
+    relation(
+      "StartMultipleFloat",
+      { ...startValue, bits: pg.bigint, ...leaf.float, count: natural },
+      [...startValueKey, "bits"],
+    ),
+  );
+  const StartMultipleString = named(
+    "Distinct values",
+    relation.generated(
+      "StartMultipleString",
+      { ...startValue, ...leaf.string, count: natural },
+      [...startValueKey, "valueDigest"],
+      (row) => ({
+        valueDigest: named("Value digest", generated(sha256, Crypto.sha256(row.value))),
+      }),
+    ),
+  );
+  const StartMultiplePoint = named(
+    "Distinct values",
+    relation("StartMultiplePoint", { ...startValue, ...leaf.point, count: natural }, [
+      ...startValueKey,
+      "x",
+      "y",
+    ]),
+  );
+  const StartMultiplePair = named(
+    "Distinct values",
+    relation("StartMultiplePair", { ...startValue, ...leaf.pair, count: natural }, [
+      ...startValueKey,
+      "least",
+      "greatest",
+    ]),
+  );
+  const StartMultipleDirectedPair = named(
+    "Distinct values",
+    relation("StartMultipleDirectedPair", { ...startValue, ...leaf.directedPair, count: natural }, [
+      ...startValueKey,
+      "source",
+      "target",
+    ]),
+  );
+  const StartMultipleDuration = named(
+    "Distinct values",
+    relation(
+      "StartMultipleDuration",
+      { ...startValue, bits: pg.bigint, ...leaf.duration, count: natural },
+      [...startValueKey, "bits"],
+    ),
+  );
+  const StartMultipleUri = named(
+    "Distinct values",
+    relation("StartMultipleUri", { ...startValue, ...leaf.uri, count: natural }, [
+      ...startValueKey,
+      "value",
+    ]),
+  );
+  const StartMultipleFile = named(
+    "Distinct values",
+    relation("StartMultipleFile", { ...startValue, ...leaf.file, count: natural }, [
+      ...startValueKey,
+      "digest",
+      "name",
+      "type",
+    ]),
+  );
+
+  const StartOrderedIdentifier = named(
+    "One value a place",
+    relation("StartOrderedIdentifier", { ...startValue, place: natural, ...leaf.identifier }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedBoolean = named(
+    "One value a place",
+    relation("StartOrderedBoolean", { ...startValue, place: natural, ...leaf.boolean }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedInteger = named(
+    "One value a place",
+    relation("StartOrderedInteger", { ...startValue, place: natural, ...leaf.integer }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedFloat = named(
+    "One value a place",
+    relation("StartOrderedFloat", { ...startValue, place: natural, ...leaf.float }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedString = named(
+    "One value a place",
+    relation("StartOrderedString", { ...startValue, place: natural, ...leaf.string }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedPoint = named(
+    "One value a place",
+    relation("StartOrderedPoint", { ...startValue, place: natural, ...leaf.point }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedPair = named(
+    "One value a place",
+    relation("StartOrderedPair", { ...startValue, place: natural, ...leaf.pair }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedDirectedPair = named(
+    "One value a place",
+    relation("StartOrderedDirectedPair", { ...startValue, place: natural, ...leaf.directedPair }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedDuration = named(
+    "One value a place",
+    relation("StartOrderedDuration", { ...startValue, place: natural, ...leaf.duration }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedUri = named(
+    "One value a place",
+    relation("StartOrderedUri", { ...startValue, place: natural, ...leaf.uri }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+  const StartOrderedFile = named(
+    "One value a place",
+    relation("StartOrderedFile", { ...startValue, place: natural, ...leaf.file }, [
+      ...startValueKey,
+      "place",
+    ]),
+  );
+
+  /**
+   * A record variable's field in the record its item session begins with, with its base type, whose
+   * arm holds its value, inserted with it.
+   */
+  const StartRecord = named(
+    "One value a field",
+    relation("StartRecord", { ...startFielded, baseType: closedId(BaseType) }, startFieldedKey),
+  );
+  const StartRecordIdentifier = named(
+    "One value a field",
+    relation("StartRecordIdentifier", { ...startFielded, ...leaf.identifier }, startFieldedKey),
+  );
+  const StartRecordBoolean = named(
+    "One value a field",
+    relation("StartRecordBoolean", { ...startFielded, ...leaf.boolean }, startFieldedKey),
+  );
+  const StartRecordInteger = named(
+    "One value a field",
+    relation("StartRecordInteger", { ...startFielded, ...leaf.integer }, startFieldedKey),
+  );
+  const StartRecordFloat = named(
+    "One value a field",
+    relation("StartRecordFloat", { ...startFielded, ...leaf.float }, startFieldedKey),
+  );
+  const StartRecordString = named(
+    "One value a field",
+    relation("StartRecordString", { ...startFielded, ...leaf.string }, startFieldedKey),
+  );
+  const StartRecordPoint = named(
+    "One value a field",
+    relation("StartRecordPoint", { ...startFielded, ...leaf.point }, startFieldedKey),
+  );
+  const StartRecordPair = named(
+    "One value a field",
+    relation("StartRecordPair", { ...startFielded, ...leaf.pair }, startFieldedKey),
+  );
+  const StartRecordDirectedPair = named(
+    "One value a field",
+    relation("StartRecordDirectedPair", { ...startFielded, ...leaf.directedPair }, startFieldedKey),
+  );
+  const StartRecordDuration = named(
+    "One value a field",
+    relation("StartRecordDuration", { ...startFielded, ...leaf.duration }, startFieldedKey),
+  );
+  const StartRecordUri = named(
+    "One value a field",
+    relation("StartRecordUri", { ...startFielded, ...leaf.uri }, startFieldedKey),
+  );
+  const StartRecordFile = named(
+    "One value a field",
+    relation("StartRecordFile", { ...startFielded, ...leaf.file }, startFieldedKey),
+  );
+
+  /**
    * An evaluation's key's fields: its attempt's, the operator's place in the item's document, and
    * its clock.
    */
@@ -2195,6 +2522,52 @@ export const ledgerOf = (qti: RegistryLevel) => {
       ItemSessionValueOrderedDuration,
       ItemSessionValueOrderedUri,
       ItemSessionValueOrderedFile,
+      StartVariable,
+      StartSingleIdentifier,
+      StartSingleBoolean,
+      StartSingleInteger,
+      StartSingleFloat,
+      StartSingleString,
+      StartSinglePoint,
+      StartSinglePair,
+      StartSingleDirectedPair,
+      StartSingleDuration,
+      StartSingleUri,
+      StartSingleFile,
+      StartMultipleIdentifier,
+      StartMultipleBoolean,
+      StartMultipleInteger,
+      StartMultipleFloat,
+      StartMultipleString,
+      StartMultiplePoint,
+      StartMultiplePair,
+      StartMultipleDirectedPair,
+      StartMultipleDuration,
+      StartMultipleUri,
+      StartMultipleFile,
+      StartOrderedIdentifier,
+      StartOrderedBoolean,
+      StartOrderedInteger,
+      StartOrderedFloat,
+      StartOrderedString,
+      StartOrderedPoint,
+      StartOrderedPair,
+      StartOrderedDirectedPair,
+      StartOrderedDuration,
+      StartOrderedUri,
+      StartOrderedFile,
+      StartRecord,
+      StartRecordIdentifier,
+      StartRecordBoolean,
+      StartRecordInteger,
+      StartRecordFloat,
+      StartRecordString,
+      StartRecordPoint,
+      StartRecordPair,
+      StartRecordDirectedPair,
+      StartRecordDuration,
+      StartRecordUri,
+      StartRecordFile,
       ResponseSnapshot,
       Attempt,
       ProcessedAttempt,
@@ -2316,6 +2689,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       ItemVariable,
       ItemSessionVariable,
       ItemRecordVariable,
+      SessionVariableName,
       ScoreDeclared,
       MaximumOutcome,
       MaximumNormal,
@@ -3544,6 +3918,565 @@ export const ledgerOf = (qti: RegistryLevel) => {
           point: SnapshotRecordPoint,
           string: SnapshotRecordString,
           uri: SnapshotRecordUri,
+        }),
+      ),
+      named(
+        "Start of its session",
+        contained(
+          on(StartVariable, "child", "stage", "package", "path"),
+          on(ItemSession, "child", "stage", "package", "path"),
+        ),
+      ),
+      named(
+        "Start of every session",
+        contained(
+          on(ItemSession, "child", "stage", "package", "path"),
+          on(StartVariable, "child", "stage", "package", "path"),
+        ),
+      ),
+      named(
+        "Start variable declared",
+        contained(
+          on(StartVariable, "package", "path", "variable"),
+          on(SessionVariableName, "package", "path", "identifier"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSingleIdentifier, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartSingleIdentifier, "package", "path", "variable"),
+          declaredOf("single", "identifier"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSingleBoolean, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartSingleBoolean, "package", "path", "variable"),
+          declaredOf("single", "boolean"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSingleInteger, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartSingleInteger, "package", "path", "variable"),
+          declaredOf("single", "integer"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSingleFloat, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartSingleFloat, "package", "path", "variable"),
+          declaredOf("single", "float"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSingleString, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartSingleString, "package", "path", "variable"),
+          declaredOf("single", "string"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSinglePoint, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartSinglePoint, "package", "path", "variable"),
+          declaredOf("single", "point"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSinglePair, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(on(StartSinglePair, "package", "path", "variable"), declaredOf("single", "pair")),
+      ),
+      named(
+        "Value in its header",
+        contained(
+          on(StartSingleDirectedPair, ...startValueKey),
+          on(StartVariable, ...startValueKey),
+        ),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartSingleDirectedPair, "package", "path", "variable"),
+          declaredOf("single", "directedPair"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSingleDuration, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartSingleDuration, "package", "path", "variable"),
+          declaredOf("single", "duration"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSingleUri, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(on(StartSingleUri, "package", "path", "variable"), declaredOf("single", "uri")),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartSingleFile, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(on(StartSingleFile, "package", "path", "variable"), declaredOf("single", "file")),
+      ),
+      named(
+        "Value in its header",
+        contained(
+          on(StartMultipleIdentifier, ...startValueKey),
+          on(StartVariable, ...startValueKey),
+        ),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultipleIdentifier, "package", "path", "variable"),
+          declaredOf("multiple", "identifier"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartMultipleBoolean, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultipleBoolean, "package", "path", "variable"),
+          declaredOf("multiple", "boolean"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartMultipleInteger, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultipleInteger, "package", "path", "variable"),
+          declaredOf("multiple", "integer"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartMultipleFloat, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultipleFloat, "package", "path", "variable"),
+          declaredOf("multiple", "float"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartMultipleString, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultipleString, "package", "path", "variable"),
+          declaredOf("multiple", "string"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartMultiplePoint, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultiplePoint, "package", "path", "variable"),
+          declaredOf("multiple", "point"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartMultiplePair, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultiplePair, "package", "path", "variable"),
+          declaredOf("multiple", "pair"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(
+          on(StartMultipleDirectedPair, ...startValueKey),
+          on(StartVariable, ...startValueKey),
+        ),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultipleDirectedPair, "package", "path", "variable"),
+          declaredOf("multiple", "directedPair"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartMultipleDuration, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultipleDuration, "package", "path", "variable"),
+          declaredOf("multiple", "duration"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartMultipleUri, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultipleUri, "package", "path", "variable"),
+          declaredOf("multiple", "uri"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartMultipleFile, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartMultipleFile, "package", "path", "variable"),
+          declaredOf("multiple", "file"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(
+          on(StartOrderedIdentifier, ...startValueKey),
+          on(StartVariable, ...startValueKey),
+        ),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedIdentifier, "package", "path", "variable"),
+          declaredOf("ordered", "identifier"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartOrderedBoolean, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedBoolean, "package", "path", "variable"),
+          declaredOf("ordered", "boolean"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartOrderedInteger, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedInteger, "package", "path", "variable"),
+          declaredOf("ordered", "integer"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartOrderedFloat, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedFloat, "package", "path", "variable"),
+          declaredOf("ordered", "float"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartOrderedString, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedString, "package", "path", "variable"),
+          declaredOf("ordered", "string"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartOrderedPoint, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedPoint, "package", "path", "variable"),
+          declaredOf("ordered", "point"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartOrderedPair, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedPair, "package", "path", "variable"),
+          declaredOf("ordered", "pair"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(
+          on(StartOrderedDirectedPair, ...startValueKey),
+          on(StartVariable, ...startValueKey),
+        ),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedDirectedPair, "package", "path", "variable"),
+          declaredOf("ordered", "directedPair"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartOrderedDuration, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedDuration, "package", "path", "variable"),
+          declaredOf("ordered", "duration"),
+        ),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartOrderedUri, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(on(StartOrderedUri, "package", "path", "variable"), declaredOf("ordered", "uri")),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartOrderedFile, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Declared type",
+        contained(
+          on(StartOrderedFile, "package", "path", "variable"),
+          declaredOf("ordered", "file"),
+        ),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultipleIdentifier, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultipleBoolean, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultipleInteger, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultipleFloat, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultipleString, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultiplePoint, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultiplePair, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultipleDirectedPair, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultipleDuration, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultipleUri, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Some occurrence",
+        check("SomeOccurrence", StartMultipleFile, (m) => m.ge(m.count, 1n)),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedIdentifier, ...startValueKey, pred("place")),
+          on(StartOrderedIdentifier, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedBoolean, ...startValueKey, pred("place")),
+          on(StartOrderedBoolean, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedInteger, ...startValueKey, pred("place")),
+          on(StartOrderedInteger, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedFloat, ...startValueKey, pred("place")),
+          on(StartOrderedFloat, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedString, ...startValueKey, pred("place")),
+          on(StartOrderedString, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedPoint, ...startValueKey, pred("place")),
+          on(StartOrderedPoint, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedPair, ...startValueKey, pred("place")),
+          on(StartOrderedPair, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedDirectedPair, ...startValueKey, pred("place")),
+          on(StartOrderedDirectedPair, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedDuration, ...startValueKey, pred("place")),
+          on(StartOrderedDuration, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedUri, ...startValueKey, pred("place")),
+          on(StartOrderedUri, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Ordered gapless",
+        contained(
+          on(StartOrderedFile, ...startValueKey, pred("place")),
+          on(StartOrderedFile, ...startValueKey, "place"),
+        ),
+      ),
+      named(
+        "Bag image",
+        check("BagImage", StartMultipleFloat, (b) => b.eq(b.bits, Num.floatBits(b.value))),
+      ),
+      named(
+        "Bag image",
+        check("BagImage", StartMultipleDuration, (b) => b.eq(b.bits, Num.floatBits(b.value))),
+      ),
+      named(
+        "Least first",
+        check("LeastFirst", StartSinglePair, (p) => p.le(p.least, p.greatest)),
+      ),
+      named(
+        "Least first",
+        check("LeastFirst", StartMultiplePair, (p) => p.le(p.least, p.greatest)),
+      ),
+      named(
+        "Least first",
+        check("LeastFirst", StartOrderedPair, (p) => p.le(p.least, p.greatest)),
+      ),
+      named(
+        "Least first",
+        check("LeastFirst", StartRecordPair, (p) => p.le(p.least, p.greatest)),
+      ),
+      named(
+        "Value in its header",
+        contained(on(StartRecord, ...startValueKey), on(StartVariable, ...startValueKey)),
+      ),
+      named(
+        "Record declared",
+        contained(
+          on(StartRecord, "package", "path", "variable"),
+          on(ItemRecordVariable, "package", "path", "identifier"),
+        ),
+      ),
+      named(
+        "Record field type",
+        alternatives(StartRecord, "baseType", BaseType, {
+          boolean: StartRecordBoolean,
+          directedPair: StartRecordDirectedPair,
+          duration: StartRecordDuration,
+          file: StartRecordFile,
+          float: StartRecordFloat,
+          identifier: StartRecordIdentifier,
+          integer: StartRecordInteger,
+          pair: StartRecordPair,
+          point: StartRecordPoint,
+          string: StartRecordString,
+          uri: StartRecordUri,
         }),
       ),
       named(

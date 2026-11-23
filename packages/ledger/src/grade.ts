@@ -69,7 +69,10 @@ import {
   DocReplyFloat,
   DocReplyText,
   DocText,
+  DocumentAttribute,
+  DocumentText,
   DocVar,
+  ProgramNode,
   responseLabel,
   responseProcessingOf,
   seedStreamKey,
@@ -45077,14 +45080,6315 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       }),
     );
 
-  return ChangeSet.union(
+  /**
+   * The start run's arguments that hold no rows.
+   */
+  const noPrograms = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      end: Type.literal(ProgramNode.fields.end, 0n),
+      kind: Type.literal(ProgramNode.fields.kind, "qti-response-processing"),
+      package: Type.literal(ProgramNode.fields.package, ""),
+      parent: Type.literal(ProgramNode.fields.parent, 0n),
+      path: Type.literal(ProgramNode.fields.path, ""),
+      start: Type.literal(ProgramNode.fields.start, 0n),
+    }),
+  );
+  const noProgramAttributes = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      name: Type.literal(DocumentAttribute.fields.name, "identifier"),
+      package: Type.literal(DocumentAttribute.fields.package, ""),
+      path: Type.literal(DocumentAttribute.fields.path, ""),
+      start: Type.literal(DocumentAttribute.fields.start, 0n),
+      value: Type.literal(DocumentAttribute.fields.value, ""),
+    }),
+  );
+  const noProgramTexts = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      package: Type.literal(DocumentText.fields.package, ""),
+      path: Type.literal(DocumentText.fields.path, ""),
+      start: Type.literal(DocumentText.fields.start, 0n),
+      text: Type.literal(DocumentText.fields.text, ""),
+    }),
+  );
+
+  /**
+   * Each declared variable's base type, built-ins included, by the taken session.
+   */
+  const startBasesOf = query(delivery).rule((r) => {
+    const boundTaken = boundTakenIn(r);
+    const taken = boundTaken;
+    const { child, package: pkg, path, stage } = v(taken, "taken");
+    const { identifier, baseType } = v(fields.ItemSessionVariable, "startTypedVariable");
+    const { token: base } = v(fields.BaseTypeToken, "startBase");
+
+    return r
+      .match(taken, { child, package: pkg, path, stage })
+      .match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
+      .match(fields.BaseTypeToken, { baseType, token: base })
+      .find({ base, child, identifier, package: pkg, path, stage });
+  });
+
+  /**
+   * Each value the session's template processing set, held as the rule that set it says, with its
+   * kind and cardinality.
+   */
+  const startVarsOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable } = v(fields.ItemSessionValue, "startSetValue");
+      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "startSetDeclared");
+      const { token: card } = v(fields.CardinalityToken, "startSetCard");
+      const { token: kind } = v(fields.VariableKindToken, "startSetKind");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValue, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          variable,
+        })
+        .match(fields.ItemSessionVariable, {
+          cardinality,
+          declarationKind,
+          identifier: variable,
+          package: pkg,
+          path,
+        })
+        .match(fields.CardinalityToken, { cardinality, token: card })
+        .match(fields.VariableKindToken, { declarationKind, token: kind })
+        .find({
+          card,
+          child,
+          holds: Type.literal(DocVar.fields.holds, "value"),
+          identifier: Type.cast(variable, DocVar.fields.identifier),
+          kind,
+          package: pkg,
+          path,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable } = v(fields.ItemSessionValue, "startSetValue");
+      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "startSetDeclared");
+      const { token: card } = v(fields.CardinalityToken, "startSetCard");
+      const { token: kind } = v(fields.VariableKindToken, "startSetKind");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValue, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          variable,
+        })
+        .match(fields.ItemSessionVariable, {
+          cardinality,
+          declarationKind,
+          identifier: variable,
+          package: pkg,
+          path,
+        })
+        .match(fields.CardinalityToken, { cardinality, token: card })
+        .match(fields.VariableKindToken, { declarationKind, token: kind })
+        .find({
+          card,
+          child,
+          holds: Type.literal(DocVar.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocVar.fields.identifier),
+          kind,
+          package: pkg,
+          path,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable } = v(fields.ItemSessionValue, "startSetValue");
+      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "startSetDeclared");
+      const { token: card } = v(fields.CardinalityToken, "startSetCard");
+      const { token: kind } = v(fields.VariableKindToken, "startSetKind");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValue, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          variable,
+        })
+        .match(fields.ItemSessionVariable, {
+          cardinality,
+          declarationKind,
+          identifier: variable,
+          package: pkg,
+          path,
+        })
+        .match(fields.CardinalityToken, { cardinality, token: card })
+        .match(fields.VariableKindToken, { declarationKind, token: kind })
+        .find({
+          card,
+          child,
+          holds: Type.literal(DocVar.fields.holds, "default"),
+          identifier: Type.cast(variable, DocVar.fields.identifier),
+          kind,
+          package: pkg,
+          path,
+          stage,
+        });
+    });
+
+  /**
+   * The taken session's values that cross as `doc_texts`: what its template processing set.
+   */
+  const startTextsOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleIdentifier, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "identifier"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleIdentifier, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "identifier"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleIdentifier, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "identifier"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleIdentifier,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleIdentifier, {
+          child,
+          count,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "identifier"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleIdentifier,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleIdentifier, {
+          child,
+          count,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "identifier"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleIdentifier,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleIdentifier, {
+          child,
+          count,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "identifier"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(
+        fields.ItemSessionValueOrderedIdentifier,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedIdentifier, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "identifier"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(
+        fields.ItemSessionValueOrderedIdentifier,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedIdentifier, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "identifier"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(
+        fields.ItemSessionValueOrderedIdentifier,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedIdentifier, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "identifier"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleString, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleString, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "string"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleString, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleString, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "string"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleString, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleString, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "string"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleString, {
+          child,
+          count,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "string"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleString, {
+          child,
+          count,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "string"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleString, {
+          child,
+          count,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "string"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedString, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "string"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedString, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "string"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedString, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "string"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleUri, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleUri, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "uri"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleUri, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleUri, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "uri"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleUri, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleUri, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "uri"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleUri, {
+          child,
+          count,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "uri"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleUri, {
+          child,
+          count,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "uri"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleUri, {
+          child,
+          count,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "uri"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedUri, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "uri"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedUri, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "uri"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedUri, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "uri"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    });
+
+  /**
+   * The taken session's values that cross as `doc_integers`: what its template processing set.
+   */
+  const startIntegersOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleInteger, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleInteger, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleInteger, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleInteger, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleInteger, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleInteger, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleInteger,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleInteger, {
+          child,
+          count,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleInteger,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleInteger, {
+          child,
+          count,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleInteger,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleInteger, {
+          child,
+          count,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedInteger, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedInteger, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedInteger, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    });
+
+  /**
+   * The taken session's values that cross as `doc_floats`: what its template processing set.
+   */
+  const startFloatsOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleFloat, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleFloat, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "float"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleFloat, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleFloat, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "float"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleFloat, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleFloat, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "float"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleFloat, {
+          child,
+          count,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "float"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleFloat, {
+          child,
+          count,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "float"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleFloat, {
+          child,
+          count,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "float"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedFloat, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "float"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedFloat, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "float"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedFloat, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "float"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleDuration, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleDuration, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "duration"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleDuration, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleDuration, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "duration"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleDuration, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleDuration, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "duration"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleDuration,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleDuration, {
+          child,
+          count,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "duration"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleDuration,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleDuration, {
+          child,
+          count,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "duration"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleDuration,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleDuration, {
+          child,
+          count,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          base: Type.literal(DocText.fields.base, "duration"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(
+        fields.ItemSessionValueOrderedDuration,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedDuration, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "duration"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(
+        fields.ItemSessionValueOrderedDuration,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedDuration, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "duration"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(
+        fields.ItemSessionValueOrderedDuration,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedDuration, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          base: Type.literal(DocText.fields.base, "duration"),
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    });
+
+  /**
+   * The taken session's values that cross as `doc_booleans`: what its template processing set.
+   */
+  const startBooleansOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleBoolean, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleBoolean, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleBoolean, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleBoolean,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleBoolean, {
+          child,
+          count,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleBoolean,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleBoolean, {
+          child,
+          count,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, count } = v(
+        fields.ItemSessionValueMultipleBoolean,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleBoolean, {
+          child,
+          count,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedBoolean, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedBoolean, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedBoolean, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          value,
+        });
+    });
+
+  /**
+   * The taken session's values that cross as `doc_pairs`: what its template processing set.
+   */
+  const startPairsOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSinglePair, {
+          child,
+          greatest,
+          kind: "template",
+          least,
+          package: pkg,
+          path,
+          stage,
+          variable,
+        })
+        .find({
+          child,
+          greatest,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          least,
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSinglePair, {
+          child,
+          greatest,
+          kind: "correct",
+          least,
+          package: pkg,
+          path,
+          stage,
+          variable,
+        })
+        .find({
+          child,
+          greatest,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          least,
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSinglePair, {
+          child,
+          greatest,
+          kind: "default",
+          least,
+          package: pkg,
+          path,
+          stage,
+          variable,
+        })
+        .find({
+          child,
+          greatest,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          least,
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, least, greatest, count } = v(
+        fields.ItemSessionValueMultiplePair,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultiplePair, {
+          child,
+          count,
+          greatest,
+          kind: "template",
+          least,
+          package: pkg,
+          path,
+          stage,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          greatest,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, least, greatest, count } = v(
+        fields.ItemSessionValueMultiplePair,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultiplePair, {
+          child,
+          count,
+          greatest,
+          kind: "correct",
+          least,
+          package: pkg,
+          path,
+          stage,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          greatest,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, least, greatest, count } = v(
+        fields.ItemSessionValueMultiplePair,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultiplePair, {
+          child,
+          count,
+          greatest,
+          kind: "default",
+          least,
+          package: pkg,
+          path,
+          stage,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          greatest,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, least, greatest, place } = v(
+        fields.ItemSessionValueOrderedPair,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedPair, {
+          child,
+          greatest,
+          kind: "template",
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+          variable,
+        })
+        .find({
+          child,
+          greatest,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, least, greatest, place } = v(
+        fields.ItemSessionValueOrderedPair,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedPair, {
+          child,
+          greatest,
+          kind: "correct",
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+          variable,
+        })
+        .find({
+          child,
+          greatest,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, least, greatest, place } = v(
+        fields.ItemSessionValueOrderedPair,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedPair, {
+          child,
+          greatest,
+          kind: "default",
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+          variable,
+        })
+        .find({
+          child,
+          greatest,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          least,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    });
+
+  /**
+   * The taken session's values that cross as `doc_directed_pairs`: what its template processing
+   * set.
+   */
+  const startDirectedPairsOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, source, target } = v(
+        fields.ItemSessionValueSingleDirectedPair,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleDirectedPair, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          source,
+          stage,
+          target,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          source,
+          stage,
+          target,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, source, target } = v(
+        fields.ItemSessionValueSingleDirectedPair,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleDirectedPair, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          source,
+          stage,
+          target,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          source,
+          stage,
+          target,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, source, target } = v(
+        fields.ItemSessionValueSingleDirectedPair,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleDirectedPair, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          source,
+          stage,
+          target,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          source,
+          stage,
+          target,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, source, target, count } = v(
+        fields.ItemSessionValueMultipleDirectedPair,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleDirectedPair, {
+          child,
+          count,
+          kind: "template",
+          package: pkg,
+          path,
+          source,
+          stage,
+          target,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, source, target, count } = v(
+        fields.ItemSessionValueMultipleDirectedPair,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleDirectedPair, {
+          child,
+          count,
+          kind: "correct",
+          package: pkg,
+          path,
+          source,
+          stage,
+          target,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, source, target, count } = v(
+        fields.ItemSessionValueMultipleDirectedPair,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleDirectedPair, {
+          child,
+          count,
+          kind: "default",
+          package: pkg,
+          path,
+          source,
+          stage,
+          target,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, source, target, place } = v(
+        fields.ItemSessionValueOrderedDirectedPair,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedDirectedPair, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, source, target, place } = v(
+        fields.ItemSessionValueOrderedDirectedPair,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedDirectedPair, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, source, target, place } = v(
+        fields.ItemSessionValueOrderedDirectedPair,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedDirectedPair, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          source,
+          stage,
+          target,
+        });
+    });
+
+  /**
+   * The taken session's values that cross as `doc_points`: what its template processing set.
+   */
+  const startPointsOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSinglePoint, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          variable,
+          x,
+          y,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          x,
+          y,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSinglePoint, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          variable,
+          x,
+          y,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          x,
+          y,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSinglePoint, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          variable,
+          x,
+          y,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+          x,
+          y,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultiplePoint, {
+          child,
+          count,
+          kind: "template",
+          package: pkg,
+          path,
+          stage,
+          variable,
+          x,
+          y,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          x,
+          y,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultiplePoint, {
+          child,
+          count,
+          kind: "correct",
+          package: pkg,
+          path,
+          stage,
+          variable,
+          x,
+          y,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          x,
+          y,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "startHeldValue");
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultiplePoint, {
+          child,
+          count,
+          kind: "default",
+          package: pkg,
+          path,
+          stage,
+          variable,
+          x,
+          y,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          x,
+          y,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedPoint, {
+          child,
+          kind: "template",
+          package: pkg,
+          path,
+          place,
+          stage,
+          variable,
+          x,
+          y,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          x,
+          y,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedPoint, {
+          child,
+          kind: "correct",
+          package: pkg,
+          path,
+          place,
+          stage,
+          variable,
+          x,
+          y,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          x,
+          y,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "startHeldValue");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedPoint, {
+          child,
+          kind: "default",
+          package: pkg,
+          path,
+          place,
+          stage,
+          variable,
+          x,
+          y,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+          x,
+          y,
+        });
+    });
+
+  /**
+   * The taken session's values that cross as `doc_files`: what its template processing set.
+   */
+  const startFilesOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type } = v(
+        fields.ItemSessionValueSingleFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleFile, {
+          child,
+          digest,
+          kind: "template",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          content_type: type,
+          digest,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type } = v(
+        fields.ItemSessionValueSingleFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleFile, {
+          child,
+          digest,
+          kind: "correct",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          content_type: type,
+          digest,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type } = v(
+        fields.ItemSessionValueSingleFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleFile, {
+          child,
+          digest,
+          kind: "default",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          content_type: type,
+          digest,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, count } = v(
+        fields.ItemSessionValueMultipleFile,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleFile, {
+          child,
+          count,
+          digest,
+          kind: "template",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          content_type: type,
+          digest,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, count } = v(
+        fields.ItemSessionValueMultipleFile,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleFile, {
+          child,
+          count,
+          digest,
+          kind: "correct",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          content_type: type,
+          digest,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, count } = v(
+        fields.ItemSessionValueMultipleFile,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleFile, {
+          child,
+          count,
+          digest,
+          kind: "default",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          content_type: type,
+          digest,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, place } = v(
+        fields.ItemSessionValueOrderedFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedFile, {
+          child,
+          digest,
+          kind: "template",
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          content_type: type,
+          digest,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, place } = v(
+        fields.ItemSessionValueOrderedFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedFile, {
+          child,
+          digest,
+          kind: "correct",
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          content_type: type,
+          digest,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, place } = v(
+        fields.ItemSessionValueOrderedFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedFile, {
+          child,
+          digest,
+          kind: "default",
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          content_type: type,
+          digest,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    });
+
+  /**
+   * The taken session's values that cross as `doc_file_names`: what its template processing set.
+   */
+  const startFileNamesOf = query(delivery)
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type } = v(
+        fields.ItemSessionValueSingleFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleFile, {
+          child,
+          digest,
+          kind: "template",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          name,
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type } = v(
+        fields.ItemSessionValueSingleFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleFile, {
+          child,
+          digest,
+          kind: "correct",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          name,
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type } = v(
+        fields.ItemSessionValueSingleFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueSingleFile, {
+          child,
+          digest,
+          kind: "default",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          name,
+          package: pkg,
+          path,
+          place: Type.literal(DocText.fields.place, 0n),
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, count } = v(
+        fields.ItemSessionValueMultipleFile,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleFile, {
+          child,
+          count,
+          digest,
+          kind: "template",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, count } = v(
+        fields.ItemSessionValueMultipleFile,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleFile, {
+          child,
+          count,
+          digest,
+          kind: "correct",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, count } = v(
+        fields.ItemSessionValueMultipleFile,
+        "startHeldValue",
+      );
+      const copy = Fn.rows(copies, { count });
+      const { place } = v(copy, "startCopy");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueMultipleFile, {
+          child,
+          count,
+          digest,
+          kind: "default",
+          name,
+          package: pkg,
+          path,
+          stage,
+          type,
+          variable,
+        })
+        .match(copy, { place })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, place } = v(
+        fields.ItemSessionValueOrderedFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedFile, {
+          child,
+          digest,
+          kind: "template",
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "value"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, place } = v(
+        fields.ItemSessionValueOrderedFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedFile, {
+          child,
+          digest,
+          kind: "correct",
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "correct"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { variable, digest, name, type, place } = v(
+        fields.ItemSessionValueOrderedFile,
+        "startHeldValue",
+      );
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(fields.ItemSessionValueOrderedFile, {
+          child,
+          digest,
+          kind: "default",
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+          type,
+          variable,
+        })
+        .find({
+          child,
+          holds: Type.literal(DocText.fields.holds, "default"),
+          identifier: Type.cast(variable, DocText.fields.identifier),
+          name,
+          package: pkg,
+          path,
+          place,
+          stage,
+        });
+    });
+
+  /**
+   * The machine's run of each taken session's start, in the stratum after what the take stored,
+   * which it is given as the session's own: response processing with no program, so its state is
+   * the one `response_state` gives unrun, each outcome at its default in force, `completionStatus`
+   * at `unknown`, each template variable at its set or declared value and each response NULL. One
+   * call, every argument a query over the sitting's key, so every insert below reads one evaluation
+   * of it.
+   */
+  const startRunIn = (r: Rule<DeliveryLevel>) =>
+    Fn.row(responseProcessingOf, {
+      bases: startBasesOf.bind(bySession(r)),
+      booleans: startBooleansOf.bind(bySession(r)),
+      declaration_attributes: args.declaration_attributes.bind(bySession(r)),
+      declaration_texts: args.declaration_texts.bind(bySession(r)),
+      declarations: args.declarations.bind(bySession(r)),
+      directed_pairs: startDirectedPairsOf.bind(bySession(r)),
+      field_booleans: args.field_booleans.bind(bySession(r)),
+      field_directed_pairs: args.field_directed_pairs.bind(bySession(r)),
+      field_file_names: args.field_file_names.bind(bySession(r)),
+      field_files: args.field_files.bind(bySession(r)),
+      field_floats: args.field_floats.bind(bySession(r)),
+      field_integers: args.field_integers.bind(bySession(r)),
+      field_pairs: args.field_pairs.bind(bySession(r)),
+      field_points: args.field_points.bind(bySession(r)),
+      field_texts: args.field_texts.bind(bySession(r)),
+      file_names: startFileNamesOf.bind(bySession(r)),
+      files: startFilesOf.bind(bySession(r)),
+      floats: startFloatsOf.bind(bySession(r)),
+      integers: startIntegersOf.bind(bySession(r)),
+      pairs: startPairsOf.bind(bySession(r)),
+      points: startPointsOf.bind(bySession(r)),
+      program_attributes: noProgramAttributes,
+      program_texts: noProgramTexts,
+      programs: noPrograms,
+      reply_floats: args.reply_floats.bind(bySession(r)),
+      reply_texts: args.reply_texts.bind(bySession(r)),
+      runs: args.runs.bind(bySession(r)),
+      table_bindings: args.table_bindings,
+      table_entries: args.table_entries,
+      table_values: args.table_values,
+      texts: startTextsOf.bind(bySession(r)),
+      vars: startVarsOf.bind(bySession(r)),
+    });
+
+  /**
+   * Each variable of the start that is no context, a NULL one's among them, whose value rows its
+   * sidecars hold.
+   */
+  const startHeaders = ChangeSet.empty(delivery).insert(
+    fields.StartVariable,
+    query(delivery).rule((r) => {
+      const boundTaken = boundTakenIn(r);
+      const startRun = startRunIn(r);
+      const out = startRun;
+      const taken = boundTaken;
+      const { child, package: pkg, path, stage } = v(taken, "taken");
+      const { identifier, kind } = v(out.vars, "start");
+
+      return r
+        .match(taken, { child, package: pkg, path, stage })
+        .match(out.vars, { child, holds: "value", identifier, kind, package: pkg, path, stage })
+        .where(r.ne(kind, "context"))
+        .find({ child, package: pkg, path, stage, variable: identifier });
+    }),
+  );
+
+  /**
+   * The start's single values, one sidecar each.
+   */
+  const startSingles = ChangeSet.empty(delivery)
+    .insert(
+      fields.StartSingleIdentifier,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value } = v(out.texts, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.texts, {
+            base: "identifier",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartSingleBoolean,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value } = v(out.booleans, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.booleans, {
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartSingleInteger,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value } = v(out.integers, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.integers, {
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartSingleFloat,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value } = v(out.floats, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.floats, {
+            base: "float",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartSingleString,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value } = v(out.texts, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.texts, {
+            base: "string",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartSinglePoint,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { x, y } = v(out.points, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.points, {
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+            x,
+            y,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, stage, variable: identifier, x, y });
+      }),
+    )
+    .insert(
+      fields.StartSinglePair,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { least, greatest } = v(out.pairs, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.pairs, {
+            child,
+            greatest,
+            holds: "value",
+            identifier,
+            least,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, greatest, least, package: pkg, path, stage, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartSingleDirectedPair,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { source, target } = v(out.directed_pairs, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.directed_pairs, {
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            source,
+            stage,
+            target,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, source, stage, target, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartSingleDuration,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value } = v(out.floats, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.floats, {
+            base: "duration",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartSingleUri,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value } = v(out.texts, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.texts, {
+            base: "uri",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartSingleFile,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { digest, content_type } = v(out.files, "value");
+        const { name } = v(out.file_names, "name");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "single",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.files, {
+            child,
+            content_type,
+            digest,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+          })
+          .match(out.file_names, {
+            child,
+            holds: "value",
+            identifier,
+            name,
+            package: pkg,
+            path,
+            place: 0n,
+            stage,
+          })
+          .where(r.ne(kind, "context"))
+          .find({
+            child,
+            digest,
+            name,
+            package: pkg,
+            path,
+            stage,
+            type: content_type,
+            variable: identifier,
+          });
+      }),
+    );
+
+  /**
+   * The start's multiple values, one sidecar each.
+   */
+  const startMultiples = ChangeSet.empty(delivery)
+    .insert(
+      fields.StartMultipleIdentifier,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { value, place } = v(out.texts, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.texts, {
+                base: "identifier",
+                child,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                stage,
+                value,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, identifier, package: pkg, path, place, stage, value });
+          })
+          .bind(bySession(r));
+        const { child, stage, package: pkg, path, identifier, place, value } = v(bag, "copy");
+
+        return r.match(bag, { child, identifier, package: pkg, path, place, stage, value }).find({
+          child,
+          count: r.count(),
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable: identifier,
+        });
+      }),
+    )
+    .insert(
+      fields.StartMultipleBoolean,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { value, place } = v(out.booleans, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.booleans, {
+                child,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                stage,
+                value,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, identifier, package: pkg, path, place, stage, value });
+          })
+          .bind(bySession(r));
+        const { child, stage, package: pkg, path, identifier, place, value } = v(bag, "copy");
+
+        return r.match(bag, { child, identifier, package: pkg, path, place, stage, value }).find({
+          child,
+          count: r.count(),
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable: identifier,
+        });
+      }),
+    )
+    .insert(
+      fields.StartMultipleInteger,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { value, place } = v(out.integers, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.integers, {
+                child,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                stage,
+                value,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, identifier, package: pkg, path, place, stage, value });
+          })
+          .bind(bySession(r));
+        const { child, stage, package: pkg, path, identifier, place, value } = v(bag, "copy");
+
+        return r.match(bag, { child, identifier, package: pkg, path, place, stage, value }).find({
+          child,
+          count: r.count(),
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable: identifier,
+        });
+      }),
+    )
+    .insert(
+      fields.StartMultipleFloat,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { value, place } = v(out.floats, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.floats, {
+                base: "float",
+                child,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                stage,
+                value,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, identifier, package: pkg, path, place, stage, value });
+          })
+          .bind(bySession(r));
+        const { child, stage, package: pkg, path, identifier, place, value } = v(bag, "copy");
+
+        return r.match(bag, { child, identifier, package: pkg, path, place, stage, value }).find({
+          bits: Num.floatBits(value),
+          child,
+          count: r.count(),
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable: identifier,
+        });
+      }),
+    )
+    .insert(
+      fields.StartMultipleString,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { value, place } = v(out.texts, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.texts, {
+                base: "string",
+                child,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                stage,
+                value,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, identifier, package: pkg, path, place, stage, value });
+          })
+          .bind(bySession(r));
+        const { child, stage, package: pkg, path, identifier, place, value } = v(bag, "copy");
+
+        return r.match(bag, { child, identifier, package: pkg, path, place, stage, value }).find({
+          child,
+          count: r.count(),
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable: identifier,
+        });
+      }),
+    )
+    .insert(
+      fields.StartMultiplePoint,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { x, y, place } = v(out.points, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.points, {
+                child,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                stage,
+                x,
+                y,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, identifier, package: pkg, path, place, stage, x, y });
+          })
+          .bind(bySession(r));
+        const { child, stage, package: pkg, path, identifier, place, x, y } = v(bag, "copy");
+
+        return r
+          .match(bag, { child, identifier, package: pkg, path, place, stage, x, y })
+          .find({ child, count: r.count(), package: pkg, path, stage, variable: identifier, x, y });
+      }),
+    )
+    .insert(
+      fields.StartMultiplePair,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { least, greatest, place } = v(out.pairs, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.pairs, {
+                child,
+                greatest,
+                holds: "value",
+                identifier,
+                least,
+                package: pkg,
+                path,
+                place,
+                stage,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, greatest, identifier, least, package: pkg, path, place, stage });
+          })
+          .bind(bySession(r));
+        const {
+          child,
+          stage,
+          package: pkg,
+          path,
+          identifier,
+          place,
+          least,
+          greatest,
+        } = v(bag, "copy");
+
+        return r
+          .match(bag, { child, greatest, identifier, least, package: pkg, path, place, stage })
+          .find({
+            child,
+            count: r.count(),
+            greatest,
+            least,
+            package: pkg,
+            path,
+            stage,
+            variable: identifier,
+          });
+      }),
+    )
+    .insert(
+      fields.StartMultipleDirectedPair,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { source, target, place } = v(out.directed_pairs, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.directed_pairs, {
+                child,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                source,
+                stage,
+                target,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, identifier, package: pkg, path, place, source, stage, target });
+          })
+          .bind(bySession(r));
+        const {
+          child,
+          stage,
+          package: pkg,
+          path,
+          identifier,
+          place,
+          source,
+          target,
+        } = v(bag, "copy");
+
+        return r
+          .match(bag, { child, identifier, package: pkg, path, place, source, stage, target })
+          .find({
+            child,
+            count: r.count(),
+            package: pkg,
+            path,
+            source,
+            stage,
+            target,
+            variable: identifier,
+          });
+      }),
+    )
+    .insert(
+      fields.StartMultipleDuration,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { value, place } = v(out.floats, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.floats, {
+                base: "duration",
+                child,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                stage,
+                value,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, identifier, package: pkg, path, place, stage, value });
+          })
+          .bind(bySession(r));
+        const { child, stage, package: pkg, path, identifier, place, value } = v(bag, "copy");
+
+        return r.match(bag, { child, identifier, package: pkg, path, place, stage, value }).find({
+          bits: Num.floatBits(value),
+          child,
+          count: r.count(),
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable: identifier,
+        });
+      }),
+    )
+    .insert(
+      fields.StartMultipleUri,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { value, place } = v(out.texts, "value");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.texts, {
+                base: "uri",
+                child,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                stage,
+                value,
+              })
+              .where(q.ne(kind, "context"))
+              .find({ child, identifier, package: pkg, path, place, stage, value });
+          })
+          .bind(bySession(r));
+        const { child, stage, package: pkg, path, identifier, place, value } = v(bag, "copy");
+
+        return r.match(bag, { child, identifier, package: pkg, path, place, stage, value }).find({
+          child,
+          count: r.count(),
+          package: pkg,
+          path,
+          stage,
+          value,
+          variable: identifier,
+        });
+      }),
+    )
+    .insert(
+      fields.StartMultipleFile,
+      query(delivery).rule((r) => {
+        const bag = query(delivery)
+          .rule((q) => {
+            const boundTaken = boundTakenIn(q);
+            const startRun = startRunIn(q);
+            const out = startRun;
+            const taken = boundTaken;
+            const { child, package: pkg, path, stage } = v(taken, "taken");
+            const { identifier, kind } = v(out.vars, "start");
+            const { digest, content_type, place } = v(out.files, "value");
+            const { name } = v(out.file_names, "name");
+
+            return q
+              .match(taken, { child, package: pkg, path, stage })
+              .match(out.vars, {
+                card: "multiple",
+                child,
+                holds: "value",
+                identifier,
+                kind,
+                package: pkg,
+                path,
+                stage,
+              })
+              .match(out.files, {
+                child,
+                content_type,
+                digest,
+                holds: "value",
+                identifier,
+                package: pkg,
+                path,
+                place,
+                stage,
+              })
+              .match(out.file_names, {
+                child,
+                holds: "value",
+                identifier,
+                name,
+                package: pkg,
+                path,
+                place,
+                stage,
+              })
+              .where(q.ne(kind, "context"))
+              .find({
+                child,
+                content_type,
+                digest,
+                identifier,
+                name,
+                package: pkg,
+                path,
+                place,
+                stage,
+              });
+          })
+          .bind(bySession(r));
+        const {
+          child,
+          stage,
+          package: pkg,
+          path,
+          identifier,
+          place,
+          digest,
+          content_type,
+          name,
+        } = v(bag, "copy");
+
+        return r
+          .match(bag, {
+            child,
+            content_type,
+            digest,
+            identifier,
+            name,
+            package: pkg,
+            path,
+            place,
+            stage,
+          })
+          .find({
+            child,
+            count: r.count(),
+            digest,
+            name,
+            package: pkg,
+            path,
+            stage,
+            type: content_type,
+            variable: identifier,
+          });
+      }),
+    );
+
+  /**
+   * The start's ordered values, one sidecar each.
+   */
+  const startOrdereds = ChangeSet.empty(delivery)
+    .insert(
+      fields.StartOrderedIdentifier,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, place } = v(out.texts, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.texts, {
+            base: "identifier",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, place, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartOrderedBoolean,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, place } = v(out.booleans, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.booleans, {
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, place, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartOrderedInteger,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, place } = v(out.integers, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.integers, {
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, place, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartOrderedFloat,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, place } = v(out.floats, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.floats, {
+            base: "float",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, place, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartOrderedString,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, place } = v(out.texts, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.texts, {
+            base: "string",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, place, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartOrderedPoint,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { x, y, place } = v(out.points, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.points, {
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            stage,
+            x,
+            y,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, place, stage, variable: identifier, x, y });
+      }),
+    )
+    .insert(
+      fields.StartOrderedPair,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { least, greatest, place } = v(out.pairs, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.pairs, {
+            child,
+            greatest,
+            holds: "value",
+            identifier,
+            least,
+            package: pkg,
+            path,
+            place,
+            stage,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, greatest, least, package: pkg, path, place, stage, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartOrderedDirectedPair,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { source, target, place } = v(out.directed_pairs, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.directed_pairs, {
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            source,
+            stage,
+            target,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, place, source, stage, target, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartOrderedDuration,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, place } = v(out.floats, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.floats, {
+            base: "duration",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, place, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartOrderedUri,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, place } = v(out.texts, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.texts, {
+            base: "uri",
+            child,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, package: pkg, path, place, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartOrderedFile,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { digest, content_type, place } = v(out.files, "value");
+        const { name } = v(out.file_names, "name");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "ordered",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.files, {
+            child,
+            content_type,
+            digest,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            place,
+            stage,
+          })
+          .match(out.file_names, {
+            child,
+            holds: "value",
+            identifier,
+            name,
+            package: pkg,
+            path,
+            place,
+            stage,
+          })
+          .where(r.ne(kind, "context"))
+          .find({
+            child,
+            digest,
+            name,
+            package: pkg,
+            path,
+            place,
+            stage,
+            type: content_type,
+            variable: identifier,
+          });
+      }),
+    );
+
+  /**
+   * The start's record fields: each field's header with its base type, then its arm.
+   */
+  const startRecords = ChangeSet.empty(delivery)
+    .insert(
+      fields.StartRecord,
+      query(delivery)
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_texts, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_texts, {
+              base: "identifier",
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("identifier"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_booleans, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_booleans, {
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("boolean"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_integers, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_integers, {
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("integer"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_floats, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_floats, {
+              base: "float",
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("float"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_texts, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_texts, {
+              base: "string",
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("string"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_points, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_points, {
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("point"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_pairs, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_pairs, {
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("pair"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_directed_pairs, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_directed_pairs, {
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("directedPair"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_floats, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_floats, {
+              base: "duration",
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("duration"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_texts, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_texts, {
+              base: "uri",
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("uri"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        })
+        .rule((r) => {
+          const boundTaken = boundTakenIn(r);
+          const startRun = startRunIn(r);
+          const out = startRun;
+          const taken = boundTaken;
+          const { child, package: pkg, path, stage } = v(taken, "taken");
+          const { identifier, kind } = v(out.vars, "start");
+          const { field } = v(out.field_files, "value");
+
+          return r
+            .match(taken, { child, package: pkg, path, stage })
+            .match(out.vars, {
+              card: "record",
+              child,
+              holds: "value",
+              identifier,
+              kind,
+              package: pkg,
+              path,
+              stage,
+            })
+            .match(out.field_files, {
+              child,
+              field,
+              holds: "value",
+              identifier,
+              package: pkg,
+              path,
+              stage,
+            })
+            .find({
+              baseType: BaseType.handle("file"),
+              child,
+              field,
+              package: pkg,
+              path,
+              stage,
+              variable: identifier,
+            });
+        }),
+    )
+    .insert(
+      fields.StartRecordIdentifier,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, field } = v(out.field_texts, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_texts, {
+            base: "identifier",
+            child,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartRecordBoolean,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, field } = v(out.field_booleans, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_booleans, {
+            child,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartRecordInteger,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, field } = v(out.field_integers, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_integers, {
+            child,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartRecordFloat,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, field } = v(out.field_floats, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_floats, {
+            base: "float",
+            child,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartRecordString,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, field } = v(out.field_texts, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_texts, {
+            base: "string",
+            child,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartRecordPoint,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { x, y, field } = v(out.field_points, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_points, {
+            child,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            stage,
+            x,
+            y,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, package: pkg, path, stage, variable: identifier, x, y });
+      }),
+    )
+    .insert(
+      fields.StartRecordPair,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { least, greatest, field } = v(out.field_pairs, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_pairs, {
+            child,
+            field,
+            greatest,
+            holds: "value",
+            identifier,
+            least,
+            package: pkg,
+            path,
+            stage,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, greatest, least, package: pkg, path, stage, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartRecordDirectedPair,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { source, target, field } = v(out.field_directed_pairs, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_directed_pairs, {
+            child,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            source,
+            stage,
+            target,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, package: pkg, path, source, stage, target, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartRecordDuration,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, field } = v(out.field_floats, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_floats, {
+            base: "duration",
+            child,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartRecordUri,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { value, field } = v(out.field_texts, "value");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_texts, {
+            base: "uri",
+            child,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            stage,
+            value,
+          })
+          .where(r.ne(kind, "context"))
+          .find({ child, field, package: pkg, path, stage, value, variable: identifier });
+      }),
+    )
+    .insert(
+      fields.StartRecordFile,
+      query(delivery).rule((r) => {
+        const boundTaken = boundTakenIn(r);
+        const startRun = startRunIn(r);
+        const out = startRun;
+        const taken = boundTaken;
+        const { child, package: pkg, path, stage } = v(taken, "taken");
+        const { identifier, kind } = v(out.vars, "start");
+        const { digest, content_type, field } = v(out.field_files, "value");
+        const { name } = v(out.field_file_names, "name");
+
+        return r
+          .match(taken, { child, package: pkg, path, stage })
+          .match(out.vars, {
+            card: "record",
+            child,
+            holds: "value",
+            identifier,
+            kind,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_files, {
+            child,
+            content_type,
+            digest,
+            field,
+            holds: "value",
+            identifier,
+            package: pkg,
+            path,
+            stage,
+          })
+          .match(out.field_file_names, {
+            child,
+            field,
+            holds: "value",
+            identifier,
+            name,
+            package: pkg,
+            path,
+            stage,
+          })
+          .where(r.ne(kind, "context"))
+          .find({
+            child,
+            digest,
+            field,
+            name,
+            package: pkg,
+            path,
+            stage,
+            type: content_type,
+            variable: identifier,
+          });
+      }),
+    );
+
+  return ChangeSet.sequence(
     ChangeSet.union(
-      ChangeSet.union(set, templateSingles),
-      ChangeSet.union(correctSingles, ChangeSet.union(defaultSingles, templateMultiples)),
+      ChangeSet.union(
+        ChangeSet.union(set, templateSingles),
+        ChangeSet.union(correctSingles, ChangeSet.union(defaultSingles, templateMultiples)),
+      ),
+      ChangeSet.union(
+        ChangeSet.union(correctMultiples, defaultMultiples),
+        ChangeSet.union(templateOrdereds, ChangeSet.union(correctOrdereds, defaultOrdereds)),
+      ),
     ),
     ChangeSet.union(
-      ChangeSet.union(correctMultiples, defaultMultiples),
-      ChangeSet.union(templateOrdereds, ChangeSet.union(correctOrdereds, defaultOrdereds)),
+      ChangeSet.union(startHeaders, startSingles),
+      ChangeSet.union(startMultiples, ChangeSet.union(startOrdereds, startRecords)),
     ),
   );
 };
+
+/**
+ * Every relation the take's write inserts into, by name: what a role that composes it inserts into.
+ */
+export const takeValuesTables = [
+  "ItemSessionValue",
+  "ItemSessionValueSingleIdentifier",
+  "ItemSessionValueSingleBoolean",
+  "ItemSessionValueSingleInteger",
+  "ItemSessionValueSingleFloat",
+  "ItemSessionValueSingleString",
+  "ItemSessionValueSinglePoint",
+  "ItemSessionValueSinglePair",
+  "ItemSessionValueSingleDirectedPair",
+  "ItemSessionValueSingleDuration",
+  "ItemSessionValueSingleUri",
+  "ItemSessionValueSingleFile",
+  "ItemSessionValueMultipleIdentifier",
+  "ItemSessionValueMultipleBoolean",
+  "ItemSessionValueMultipleInteger",
+  "ItemSessionValueMultipleFloat",
+  "ItemSessionValueMultipleString",
+  "ItemSessionValueMultiplePoint",
+  "ItemSessionValueMultiplePair",
+  "ItemSessionValueMultipleDirectedPair",
+  "ItemSessionValueMultipleDuration",
+  "ItemSessionValueMultipleUri",
+  "ItemSessionValueMultipleFile",
+  "ItemSessionValueOrderedIdentifier",
+  "ItemSessionValueOrderedBoolean",
+  "ItemSessionValueOrderedInteger",
+  "ItemSessionValueOrderedFloat",
+  "ItemSessionValueOrderedString",
+  "ItemSessionValueOrderedPoint",
+  "ItemSessionValueOrderedPair",
+  "ItemSessionValueOrderedDirectedPair",
+  "ItemSessionValueOrderedDuration",
+  "ItemSessionValueOrderedUri",
+  "ItemSessionValueOrderedFile",
+  "StartVariable",
+  "StartSingleIdentifier",
+  "StartSingleBoolean",
+  "StartSingleInteger",
+  "StartSingleFloat",
+  "StartSingleString",
+  "StartSinglePoint",
+  "StartSinglePair",
+  "StartSingleDirectedPair",
+  "StartSingleDuration",
+  "StartSingleUri",
+  "StartSingleFile",
+  "StartMultipleIdentifier",
+  "StartMultipleBoolean",
+  "StartMultipleInteger",
+  "StartMultipleFloat",
+  "StartMultipleString",
+  "StartMultiplePoint",
+  "StartMultiplePair",
+  "StartMultipleDirectedPair",
+  "StartMultipleDuration",
+  "StartMultipleUri",
+  "StartMultipleFile",
+  "StartOrderedIdentifier",
+  "StartOrderedBoolean",
+  "StartOrderedInteger",
+  "StartOrderedFloat",
+  "StartOrderedString",
+  "StartOrderedPoint",
+  "StartOrderedPair",
+  "StartOrderedDirectedPair",
+  "StartOrderedDuration",
+  "StartOrderedUri",
+  "StartOrderedFile",
+  "StartRecord",
+  "StartRecordIdentifier",
+  "StartRecordBoolean",
+  "StartRecordInteger",
+  "StartRecordFloat",
+  "StartRecordString",
+  "StartRecordPoint",
+  "StartRecordPair",
+  "StartRecordDirectedPair",
+  "StartRecordDuration",
+  "StartRecordUri",
+  "StartRecordFile",
+] as const;

@@ -43,14 +43,14 @@
  * - **Bounds**: a reply or a person's value past the application's maximum is refused at its write,
  *   never clamped.
  *
- * And a templated item's take (`take`, `takeValuesOf`), held to its own table
+ * And a templated item's take (`begin`, `takeValuesOf`), held to its own table
  * ({@link takeExpectedOf}): a fresh child's session of the item under each of a set of seeds, taken
  * as every take takes one, records exactly what template processing set (QTI 3.0.1 §2.2.1; ASI
  * `qti-set-template-value`, `qti-set-correct-response`, `qti-set-default-value`), each value by the
  * rule that set it, and nothing declared: T at the machine's own run of the session's template
- * processing (`templateProcessingOf` over `takeArgumentsOf`, read before the take, as the take
- * reads it), RESPONSE's correct response T, RESPONSE's default T where T is past 5, and FEEDBACK's
- * default NULL where T is even, a header with no value row.
+ * processing (`templateProcessingOf` over `takeArgumentsOf`, as the take ran it), RESPONSE's
+ * correct response T, RESPONSE's default T where T is past 5, and FEEDBACK's default NULL where T
+ * is even, a header with no value row.
  *
  * And an item session's attempts, each graded as the write that records it grades it, held to a
  * table of QTI 3.0.1's outcome rule ({@link drawExpectedOf}; info §2.2.2.3): "For Adaptive Items
@@ -1204,6 +1204,12 @@ const seedOf = (name: string) => Sha256.ofBytes(new TextEncoder().encode(name));
 const SEED = seedOf("result-suite");
 
 /**
+ * The decision seed of every sitting the suite takes through the test runtime's take, from which
+ * its members' processing seeds derive (the machine's `processing_seed`).
+ */
+const DECISION = "7d3c2a4e-58b1-4f6a-9c0d-2b8e5f1a6c34";
+
+/**
  * The scorer of a person's value, the suite's own.
  */
 const SCORER = "user_ledgerscorer";
@@ -1259,19 +1265,26 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
     const db = yield* Db.open(suite.roles.result_runner, {});
     const key = { child, n: 0n, package: PACKAGE, path: ESSAY };
     const stage = 1n;
+    yield* db.workload.begin.once({
+      facts: {
+        insert: {
+          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: ESSAY, stage }]),
+          SessionSeed: rowsOf("SessionSeed", [
+            { child, package: PACKAGE, path: ESSAY, seed: SEED, stage },
+          ]),
+        },
+      },
+      params: key,
+    });
     yield* db.workload.facts.once({
       facts: {
         insert: {
           Attempt: rowsOf("Attempt", [key]),
-          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: ESSAY, stage }]),
           ProcessedAttempt: rowsOf(
             "ProcessedAttempt",
             c.history ? [{ ...key, completionStatus: "completed" }] : [],
           ),
           ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
-          SessionSeed: rowsOf("SessionSeed", [
-            { child, package: PACKAGE, path: ESSAY, seed: SEED, stage },
-          ]),
           SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
           SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
           SnapshotSingleFloat: rowsOf(
@@ -1515,10 +1528,10 @@ const byVariable = <R extends Readonly<{ kind: string; variable: string }>>(rows
   );
 
 /**
- * One take: a fresh child's session of the templated item under its seed, as host rows; the
- * machine's own run of its sitting's template processing, read before the take, as the take reads
- * it, its T one value from 2 to 9; then the take (`take`, `takeValuesOf` over the session's
- * sitting), and what it stored, every header and value row, held to the table for that T.
+ * One take: a fresh child's session of the templated item under its seed, begun by its take
+ * (`begin`: its host rows, then `takeValuesOf` over the session's sitting, in one transaction);
+ * the machine's own run of its sitting's template processing, as the take ran it, its T one value
+ * from 2 to 9; and what the take stored, every header and value row, held to the table for that T.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -1529,27 +1542,20 @@ const holdTake = (c: TakeCase, child: string, note: (situation: TakeSituation) =
     const { suite } = yield* SuiteLogin;
     const db = yield* Db.open(suite.roles.result_runner, {});
     const stage = 1n;
-    yield* db.workload.facts.once({
+    const taken = yield* db.workload.begin.once({
       facts: {
         insert: {
-          Attempt: rowsOf("Attempt", []),
           ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: TAKE, stage }]),
-          ProcessedAttempt: rowsOf("ProcessedAttempt", []),
-          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
           SessionSeed: rowsOf("SessionSeed", [
             { child, package: PACKAGE, path: TAKE, seed: seedOf(c.seed), stage },
           ]),
-          SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
-          SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
-          SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
-          SnapshotSingleString: rowsOf("SnapshotSingleString", []),
         },
       },
-      params: {},
+      params: { child, n: 0n, package: PACKAGE, path: TAKE },
     });
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the take writes what its run set`);
 
     const atChild = { facts: {}, params: { child } };
-    const atSession = { facts: {}, params: { child, n: 0n, package: PACKAGE, path: TAKE } };
     const runRows = yield* db.workload.takeRunIntegersOf.once({
       facts: {},
       params: { sittings: [{ child, stage }] },
@@ -1571,9 +1577,6 @@ const holdTake = (c: TakeCase, child: string, note: (situation: TakeSituation) =
         ? "T even: FEEDBACK's default set to NULL, a header with no value"
         : "T odd: FEEDBACK's default not set, nothing stored",
     );
-
-    const taken = yield* db.workload.take.once(atSession);
-    assert.strictEqual(taken.kind, "accepted", `${c.name}: the take writes what its run set`);
 
     const want = takeExpectedOf(t);
     const headerRows = yield* db.workload.takenHeadersOf.once(atChild);
@@ -1693,16 +1696,23 @@ const holdOperators = (
     const db = yield* Db.open(suite.roles.result_runner, {});
     const key = { child, n: 0n, package: PACKAGE, path: OPERATORS };
     const stage = 1n;
+    yield* db.workload.begin.once({
+      facts: {
+        insert: {
+          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: OPERATORS, stage }]),
+          SessionSeed: rowsOf("SessionSeed", [
+            { child, package: PACKAGE, path: OPERATORS, seed: SEED, stage },
+          ]),
+        },
+      },
+      params: key,
+    });
     yield* db.workload.facts.once({
       facts: {
         insert: {
           Attempt: rowsOf("Attempt", [key]),
-          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: OPERATORS, stage }]),
           ProcessedAttempt: rowsOf("ProcessedAttempt", []),
           ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
-          SessionSeed: rowsOf("SessionSeed", [
-            { child, package: PACKAGE, path: OPERATORS, seed: SEED, stage },
-          ]),
           SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
           SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
           SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
@@ -1774,20 +1784,27 @@ const holdDrawCase = (c: DrawCase, child: string, note: (situation: DrawSituatio
     for (const [k, ending] of c.endings.entries()) {
       const { drawn, ticked } = responsesOf(ending);
       const first = k === 0;
+
+      if (first) {
+        yield* db.workload.begin.once({
+          facts: {
+            insert: {
+              ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path, stage }]),
+              SessionSeed: rowsOf("SessionSeed", [
+                { child, package: PACKAGE, path, seed: SEED, stage },
+              ]),
+            },
+          },
+          params: key,
+        });
+      }
+
       yield* db.workload.facts.once({
         facts: {
           insert: {
             Attempt: rowsOf("Attempt", [key]),
-            ItemSession: rowsOf(
-              "ItemSession",
-              first ? [{ child, package: PACKAGE, path, stage }] : [],
-            ),
             ProcessedAttempt: rowsOf("ProcessedAttempt", []),
             ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
-            SessionSeed: rowsOf(
-              "SessionSeed",
-              first ? [{ child, package: PACKAGE, path, seed: SEED, stage }] : [],
-            ),
             SnapshotMultipleIdentifier: rowsOf(
               "SnapshotMultipleIdentifier",
               ticked.map((value) => ({ ...key, count: 1n, value, variable: "RESPONSE" })),
@@ -1964,12 +1981,13 @@ const standingsOf = (reads: Readonly<{ standing: Iterable<Readonly<{ standing: s
   Arr.fromIterable(reads.standing).map((row) => row.standing);
 
 /**
- * One response case: a fresh child's sitting of the case's test, written as host rows as a take
- * writes it and, but for a save before its first candidate session, entered, a timed entry with the
- * case's first budget, then suspended, or ended as the case says, an attempt of {@link MEMBER}
- * before the end, which nothing grades, so the ended sitting waits on it and is not final; then a
- * save of {@link SAVED} with no value, its `given` the case's from the session's beginning, held to
- * the table, and every move's `standing` read-back to the sitting's standing after it.
+ * One response case: a fresh child's sitting of the case's test, taken by the test runtime's own
+ * take (`takeSitting`, its members' sessions and starts the take's) and, but for a save before its
+ * first candidate session, entered, a timed entry with the case's first budget, then suspended, or
+ * ended as the case says, an attempt of {@link MEMBER} before the end, which nothing grades, so the
+ * ended sitting waits on it and is not final; then a save of {@link SAVED} with no value, its
+ * `given` the case's from the session's beginning, held to the table, and every move's `standing`
+ * read-back to the sitting's standing after it.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -1985,26 +2003,11 @@ const holdResponse = (
     const db = yield* Db.open(suite.roles.result_runner, {});
     const timing = timings[c.timing];
     const sitting = { child, stage: 1n };
-    const members = [SHORT, OTHER] as const;
-    const taken = yield* db.workload.sittingFacts.once({
-      facts: {
-        insert: {
-          Attempt: rowsOf("Attempt", []),
-          ItemSession: rowsOf(
-            "ItemSession",
-            members.map((path) => ({ ...sitting, package: PACKAGE, path })),
-          ),
-          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
-          SessionSeed: rowsOf(
-            "SessionSeed",
-            members.map((path) => ({ ...sitting, package: PACKAGE, path, seed: SEED })),
-          ),
-          TestSession: rowsOf("TestSession", [{ ...sitting, package: PACKAGE, path: timing.test }]),
-        },
-      },
-      params: {},
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: PACKAGE, path: timing.test, seed: DECISION },
     });
-    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as a take writes it`);
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
     const began =
       c.when === "unstarted"
@@ -2042,10 +2045,7 @@ const holdResponse = (
         facts: {
           insert: {
             Attempt: rowsOf("Attempt", [attempt]),
-            ItemSession: rowsOf("ItemSession", []),
             ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...attempt, kind: "attempt" }]),
-            SessionSeed: rowsOf("SessionSeed", []),
-            TestSession: rowsOf("TestSession", []),
           },
         },
         params: {},
@@ -2402,12 +2402,12 @@ const controlsSituationsOf = (c: ControlsCase, expected: ControlsExpected) => {
 };
 
 /**
- * One controls case: a fresh child's sitting of the controls test, written as host rows as a take
- * writes it, entered, which presents {@link MEMBER_REF}; then each move through the test runtime's
- * own programs, its outcome held to the table, and the child's attempts after a presentation held
- * to be the attempts before it; then the end with its finish (`finishTest`), and every member's
- * attempts, in their order, held to the table, each by the string its snapshot holds, none where
- * the end submitted it at its default.
+ * One controls case: a fresh child's sitting of the controls test, taken by the test runtime's own
+ * take (`takeSitting`), entered, which presents {@link MEMBER_REF}; then each move through the test
+ * runtime's own programs, its outcome held to the table, and the child's attempts after a
+ * presentation held to be the attempts before it; then the end with its finish (`finishTest`), and
+ * every member's attempts, in their order, held to the table, each by the string its snapshot
+ * holds, none where the end submitted it at its default.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -2427,27 +2427,11 @@ const holdControls = (
     const { suite } = yield* SuiteLogin;
     const db = yield* Db.open(suite.roles.result_runner, {});
     const sitting = { child, stage: 1n };
-    const taken = yield* db.workload.sittingFacts.once({
-      facts: {
-        insert: {
-          Attempt: rowsOf("Attempt", []),
-          ItemSession: rowsOf(
-            "ItemSession",
-            controlsMembers.map(({ path }) => ({ ...sitting, package: PACKAGE, path })),
-          ),
-          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
-          SessionSeed: rowsOf(
-            "SessionSeed",
-            controlsMembers.map(({ path }) => ({ ...sitting, package: PACKAGE, path, seed: SEED })),
-          ),
-          TestSession: rowsOf("TestSession", [
-            { ...sitting, package: PACKAGE, path: CONTROLS_TEST },
-          ]),
-        },
-      },
-      params: {},
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: PACKAGE, path: CONTROLS_TEST, seed: DECISION },
     });
-    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as a take writes it`);
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
     const entered = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
     assert.strictEqual(entered.kind, "accepted", `${c.name}: the entry`);
@@ -2590,11 +2574,11 @@ const supersedeSituations = [
 type SupersedeSituation = (typeof supersedeSituations)[number];
 
 /**
- * One supersede case: a fresh child's sitting of the timed test, written as host rows as a take
- * writes it, entered with the case's budget, which presents {@link MEMBER}; its save of the first
- * text at once; then, once the database's clock is the case's offset past the deadline, its save of
- * the later text, held to the table; then the end with its finish, and the member's one attempt
- * held to submit the text the table says.
+ * One supersede case: a fresh child's sitting of the timed test, taken by the test runtime's own
+ * take (`takeSitting`), entered with the case's budget, which presents {@link MEMBER}; its save of
+ * the first text at once; then, once the database's clock is the case's offset past the deadline,
+ * its save of the later text, held to the table; then the end with its finish, and the member's one
+ * attempt held to submit the text the table says.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -2616,26 +2600,11 @@ const holdSupersede = (
     const { suite } = yield* SuiteLogin;
     const db = yield* Db.open(suite.roles.result_runner, {});
     const sitting = { child, stage: 1n };
-    const members = [SHORT, OTHER] as const;
-    const taken = yield* db.workload.sittingFacts.once({
-      facts: {
-        insert: {
-          Attempt: rowsOf("Attempt", []),
-          ItemSession: rowsOf(
-            "ItemSession",
-            members.map((path) => ({ ...sitting, package: PACKAGE, path })),
-          ),
-          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
-          SessionSeed: rowsOf(
-            "SessionSeed",
-            members.map((path) => ({ ...sitting, package: PACKAGE, path, seed: SEED })),
-          ),
-          TestSession: rowsOf("TestSession", [{ ...sitting, package: PACKAGE, path: TIMED_TEST }]),
-        },
-      },
-      params: {},
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: PACKAGE, path: TIMED_TEST, seed: DECISION },
     });
-    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as a take writes it`);
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
     const entered = yield* db.workload.enterTimedTest.once({
       facts: {},
@@ -2786,12 +2755,12 @@ const presenceSituations = [
 type PresenceSituation = (typeof presenceSituations)[number];
 
 /**
- * One presence case: a fresh child's sitting of the timed test, written as host rows as a take
- * writes it, entered with the case's budget; then its ending, held to the table; and, where the
- * suspension is accepted, a resumption, whose budget is held to the first budget less the time from
- * the session's start to its last sign of presence, the last beacon's instant, and the member the
- * start presented, whose built-in `duration` (the CQPM window's part) is held to the same time: a
- * closed tab's time counts against neither the budget nor a child's rate.
+ * One presence case: a fresh child's sitting of the timed test, taken by the test runtime's own
+ * take (`takeSitting`), entered with the case's budget; then its ending, held to the table; and,
+ * where the suspension is accepted, a resumption, whose budget is held to the first budget less the
+ * time from the session's start to its last sign of presence, the last beacon's instant, and the
+ * member the start presented, whose built-in `duration` (the CQPM window's part) is held to the
+ * same time: a closed tab's time counts against neither the budget nor a child's rate.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -2807,26 +2776,11 @@ const holdPresence = (
     const { suite } = yield* SuiteLogin;
     const db = yield* Db.open(suite.roles.result_runner, {});
     const sitting = { child, stage: 1n };
-    const members = [SHORT, OTHER] as const;
-    const taken = yield* db.workload.sittingFacts.once({
-      facts: {
-        insert: {
-          Attempt: rowsOf("Attempt", []),
-          ItemSession: rowsOf(
-            "ItemSession",
-            members.map((path) => ({ ...sitting, package: PACKAGE, path })),
-          ),
-          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
-          SessionSeed: rowsOf(
-            "SessionSeed",
-            members.map((path) => ({ ...sitting, package: PACKAGE, path, seed: SEED })),
-          ),
-          TestSession: rowsOf("TestSession", [{ ...sitting, package: PACKAGE, path: TIMED_TEST }]),
-        },
-      },
-      params: {},
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: PACKAGE, path: TIMED_TEST, seed: DECISION },
     });
-    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as a take writes it`);
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
     const budget = presenceBudgetOf(c);
     const entered = yield* db.workload.enterTimedTest.once({

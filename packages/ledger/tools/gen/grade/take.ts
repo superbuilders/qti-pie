@@ -1,11 +1,15 @@
+import type { BaseTypeName } from "#tools/gen/grade/base.ts";
 import {
   CARDINALITIES,
   DOC_HEADS,
+  HEAD,
   hoist,
   outcomeMember,
   overDelivery,
+  recordHeaderMember,
   RUN_INPUTS,
   STATUS,
+  TOKEN,
   TYPES,
   valueRules,
   withRunInputs,
@@ -43,7 +47,10 @@ import {
  *   with): each template variable's value (kind template), each response's correct response (kind
  *   correct), each response's and outcome's default (kind default), each in the sidecar of its
  *   cardinality and base type; nothing declared is copied; a record has no session sidecar, so none
- *   of it is written.
+ *   of it is written. Then, in the stratum after those, the record each session begins with
+ *   (COMPILE-AT-PUBLISH S): the machine's response processing run of the sessions with no program,
+ *   given what the take stored, its every variable that is no context in the Start family, from the
+ *   base stage's outcome writes, so a read of a session's start is a read by its key.
  */
 
 /**
@@ -271,6 +278,360 @@ const headerRule = ([kind, holds, kinds]: SetKind): string => {
 };
 
 /**
+ * The start run's arguments that hold no rows, each by its machine name, its heading and a literal
+ * row of it, which `r.or()` never matches: the start runs no program (`response_state`: "No
+ * program, no run: the values stand as they start").
+ */
+const START_EMPTIES = [
+  [
+    "programs",
+    "ProgramNode",
+    [
+      ["end", "0n"],
+      ["kind", '"qti-response-processing"'],
+      ["package", '""'],
+      ["parent", "0n"],
+      ["path", '""'],
+      ["start", "0n"],
+    ],
+  ],
+  [
+    "program_attributes",
+    "DocumentAttribute",
+    [
+      ["name", '"identifier"'],
+      ["package", '""'],
+      ["path", '""'],
+      ["start", "0n"],
+      ["value", '""'],
+    ],
+  ],
+  [
+    "program_texts",
+    "DocumentText",
+    [
+      ["package", '""'],
+      ["path", '""'],
+      ["start", "0n"],
+      ["text", '""'],
+    ],
+  ],
+] as const;
+
+/**
+ * What the session's template processing set, by the rule that set it, and what the machine holds
+ * each as: the start run is given the session's values as the take stored them.
+ */
+const START_HOLDERS = [
+  ["template", "value"],
+  ["correct", "correct"],
+  ["default", "default"],
+] as const;
+
+/**
+ * The value headings the start run is given, each with the base types that cross as it: a file's
+ * name crosses apart, as `file_names`.
+ */
+const START_HEADINGS: readonly (readonly [string, readonly BaseTypeName[]])[] = [
+  ...["texts", "integers", "floats", "booleans", "pairs", "directed_pairs", "points", "files"].map(
+    (head): readonly [string, readonly BaseTypeName[]] => [
+      head,
+      TYPES.filter((t) => HEAD[t].head === head),
+    ],
+  ),
+  ["file_names", ["File"]],
+];
+
+/**
+ * A taken session's value of one sidecar held one way, as a rule of its heading's start source:
+ * its item session by the taken sitting (`boundTaken`), never an attempt, since the start is the
+ * session's before any.
+ *
+ * @param head The heading.
+ * @param t The base type.
+ * @param cardinality The cardinality.
+ * @param holder The rule that set the value and what the machine holds it as.
+ * @returns The rule's text.
+ */
+const startHeldRule = (
+  head: string,
+  t: BaseTypeName,
+  cardinality: (typeof CARDINALITIES)[number],
+  [kind, held]: (typeof START_HOLDERS)[number],
+): string => {
+  const { cols, hasBase } = HEAD[t];
+  const relation = `fields.ItemSessionValue${cardinality}${t}`;
+  const ledger = t === "File" ? ["digest", "name", "type"] : cols.map(([, column]) => column);
+  const columns = ledger.join(", ");
+  const extra = { Multiple: ", count", Ordered: ", place", Single: "" }[cardinality];
+  const copy =
+    cardinality === "Multiple"
+      ? '\t\t\tconst copy = Fn.rows(copies, { count })\n\t\t\tconst { place } = v(copy, "startCopy")\n'
+      : "";
+  const copyMatch = cardinality === "Multiple" ? "\n\t\t\t\t.match(copy, { place })" : "";
+  const place =
+    cardinality === "Single" ? "place: Type.literal(DocText.fields.place, 0n)" : "place";
+  const base =
+    hasBase && head !== "file_names"
+      ? `base: Type.literal(DocText.fields.base, "${TOKEN[t]}"), `
+      : "";
+  const values =
+    head === "file_names"
+      ? "name"
+      : cols.map(([doc, column]) => (doc === column ? doc : `${doc}: ${column}`)).join(", ");
+
+  return `\t\t.rule((r) => {
+\t\t\tconst taken = boundTaken
+\t\t\tconst { child, package: pkg, path, stage } = v(taken, "taken")
+\t\t\tconst { variable, ${columns}${extra} } = v(${relation}, "startHeldValue")
+${copy}\t\t\treturn r
+\t\t\t\t.match(taken, { child, package: pkg, path, stage })
+\t\t\t\t.match(${relation}, { child, kind: "${kind}", package: pkg, path, stage, variable, ${columns}${extra} })${copyMatch}
+\t\t\t\t.find({ ${base}child, holds: Type.literal(DocText.fields.holds, "${held}"), identifier: Type.cast(variable, DocText.fields.identifier), package: pkg, path, ${place}, stage, ${values} })
+\t\t})`;
+};
+
+/**
+ * The start run's own readers, over the taken sessions as the take stored them: each declared
+ * variable's base type, built-ins included; each value the session's template processing set, its
+ * header held as the rule that set it says, with its kind and cardinality; and the values
+ * themselves, by heading. The take's own readers read an attempt's values, of which a session has
+ * none at its take.
+ *
+ * @returns The readers' text and the start run's binds of them.
+ */
+const startReaders = () => {
+  const bases = `\t/** Each declared variable's base type, built-ins included, by the taken session. */
+\tconst startBasesOf = query(delivery).rule((r) => {
+\t\tconst taken = boundTaken
+\t\tconst { child, package: pkg, path, stage } = v(taken, "taken")
+\t\tconst { identifier, baseType } = v(fields.ItemSessionVariable, "startTypedVariable")
+\t\tconst { token: base } = v(fields.BaseTypeToken, "startBase")
+\t\treturn r
+\t\t\t.match(taken, { child, package: pkg, path, stage })
+\t\t\t.match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
+\t\t\t.match(fields.BaseTypeToken, { baseType, token: base })
+\t\t\t.find({ base, child, identifier, package: pkg, path, stage })
+\t})`;
+  const vars = `\t/** Each value the session's template processing set, held as the rule that set it says, with its kind and
+\t * cardinality. */
+\tconst startVarsOf = query(delivery)
+${START_HOLDERS.map(
+  ([kind, held]) => `\t\t.rule((r) => {
+\t\t\tconst taken = boundTaken
+\t\t\tconst { child, package: pkg, path, stage } = v(taken, "taken")
+\t\t\tconst { variable } = v(fields.ItemSessionValue, "startSetValue")
+\t\t\tconst { cardinality, declarationKind } = v(fields.ItemSessionVariable, "startSetDeclared")
+\t\t\tconst { token: card } = v(fields.CardinalityToken, "startSetCard")
+\t\t\tconst { token: kind } = v(fields.VariableKindToken, "startSetKind")
+\t\t\treturn r
+\t\t\t\t.match(taken, { child, package: pkg, path, stage })
+\t\t\t\t.match(fields.ItemSessionValue, { child, kind: "${kind}", package: pkg, path, stage, variable })
+\t\t\t\t.match(fields.ItemSessionVariable, { cardinality, declarationKind, identifier: variable, package: pkg, path })
+\t\t\t\t.match(fields.CardinalityToken, { cardinality, token: card })
+\t\t\t\t.match(fields.VariableKindToken, { declarationKind, token: kind })
+\t\t\t\t.find({ card, child, holds: Type.literal(DocVar.fields.holds, "${held}"), identifier: Type.cast(variable, DocVar.fields.identifier), kind, package: pkg, path, stage })
+\t\t})`,
+).join("\n")}`;
+  const sources = START_HEADINGS.map(([head, types]) => {
+    const name = `start${camel(head).charAt(0).toUpperCase()}${camel(head).slice(1)}Of`;
+    const rules = types.flatMap((t) =>
+      CARDINALITIES.flatMap((cardinality) =>
+        START_HOLDERS.map((holder) => startHeldRule(head, t, cardinality, holder)),
+      ),
+    );
+
+    return {
+      bind: `\t\t${head}: ${name}.bind(bySession(gradedSitting))`,
+      text: `\t/** The taken session's values that cross as \`doc_${head}\`: what its template processing set. */
+\tconst ${name} = query(delivery)
+${rules.join("\n")}`,
+    };
+  });
+
+  return {
+    binds: [
+      "\t\tbases: startBasesOf.bind(bySession(gradedSitting))",
+      "\t\tvars: startVarsOf.bind(bySession(gradedSitting))",
+      ...sources.map(({ bind }) => bind),
+    ],
+    text: [bases, vars, ...sources.map(({ text }) => text)].join("\n\n"),
+  };
+};
+
+/**
+ * The name of an empty argument's source: `no` and its machine name in Pascal case.
+ *
+ * @param name The machine name.
+ * @returns The source's name.
+ */
+const emptyName = (name: string): string =>
+  `no${name
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("")}`;
+
+/**
+ * A base stage outcome write of an attempt's run, retargeted to the start of the taken sessions:
+ * from the start run, keyed by the taken session's stage, into the Start family, of every variable
+ * that is no context (completionStatus among them, whose start is `unknown`).
+ *
+ * @param member The base stage's insert or rule.
+ * @returns The start's.
+ */
+const startOf = (member: string): string => {
+  const attempt =
+    /const attempt = gradableOf\(session\)\.bind\(bySession\(session\)\)\n(?<tabs>\t+)const \{ child, package: pkg, path, n, stage, at \} = v\(attempt, "attempt"\)/gu;
+  must(member.match(attempt)?.length === 1, `one attempt key in ${member.slice(0, 300)}`);
+
+  let m = member.replaceAll(
+    attempt,
+    (_match, tabs: string) =>
+      `const taken = boundTaken\n${tabs}const { child, package: pkg, path, stage } = v(taken, "taken")`,
+  );
+  const edits: readonly (readonly [string, string])[] = [
+    [
+      ".match(attempt, { child, package: pkg, path, n, stage, at })",
+      ".match(taken, { child, package: pkg, path, stage })",
+    ],
+    [
+      'const { identifier } = v(out.vars, "outcome")',
+      'const { identifier, kind } = v(out.vars, "start")',
+    ],
+    [
+      'holds: "value", kind: "outcome", identifier, card:',
+      'holds: "value", kind, identifier, card:',
+    ],
+    ['.where(r.ne(identifier, "completionStatus"))', '.where(r.ne(kind, "context"))'],
+    ['.where(q.ne(identifier, "completionStatus"))', '.where(q.ne(kind, "context"))'],
+    ["const out = runOf(session)", "const out = startRun"],
+    ["child, package: pkg, path, n, at, ", "child, stage, package: pkg, path, "],
+    [".bind(bySession(session))", ".bind(bySession(gradedSitting))"],
+    ["query(Learner)", "query(delivery)"],
+    ["mine.Snapshot", "fields.Start"],
+  ];
+  for (const [from, to] of edits) {
+    m = replaceAll(m, from, to);
+  }
+  must(
+    !m.includes("attempt") && !m.includes(", at") && !m.includes(" n,") && !m.includes("Snapshot"),
+    `a start write over no attempt: ${m}`,
+  );
+
+  return m;
+};
+
+/**
+ * The take's start write (COMPILE-AT-PUBLISH S): the start run, over the taken sessions as the take
+ * stored them, and each insert of its record into the Start family, by name.
+ *
+ * @param binds The take's run binds, its arguments' and its run inputs'.
+ * @returns The write's text and its change sets' names.
+ */
+const startWrite = (binds: readonly string[]) => {
+  const programArguments: ReadonlySet<string> = new Set([
+    "programs",
+    "program_attributes",
+    "program_texts",
+  ]);
+  const readers = startReaders();
+  const own = new Set(
+    readers.binds.map((bind) => /^\t\t(?<arg>\w+):/u.exec(bind)?.groups?.["arg"] ?? ""),
+  );
+  const startBinds = [
+    ...binds.filter((bind) => {
+      const arg = /^\t\t(?<arg>\w+):/u.exec(bind)?.groups?.["arg"] ?? "";
+
+      return !programArguments.has(arg) && !own.has(arg);
+    }),
+    ...readers.binds,
+    ...START_EMPTIES.map(([name]) => `\t\t${name}: ${emptyName(name)}`),
+  ].join(",\n");
+  const empties = START_EMPTIES.map(([name, heading, columns]) => {
+    const literals = columns
+      .map(
+        ([column, literal]) => `${column}: Type.literal(${heading}.fields.${column}, ${literal})`,
+      )
+      .join(", ");
+
+    return `\tconst ${emptyName(name)} = query(delivery).rule((r) => r.where(r.or()).find({ ${literals} }))`;
+  }).join("\n");
+  const values = CARDINALITIES.map((cardinality) => ({
+    name: `start${cardinality}s`,
+    text: [
+      `\n\t/** The start's ${cardinality.toLowerCase()} values, one sidecar each. */`,
+      `\tconst start${cardinality}s = ChangeSet.empty(delivery)`,
+      indented(TYPES.map((t) => startOf(outcomeMember(cardinality, t))).join("\n"), "\t"),
+    ].join("\n"),
+  }));
+  const text = `
+\t/** The start run's arguments that hold no rows. */
+${empties}
+
+${readers.text}
+
+\t/** The machine's run of each taken session's start, in the stratum after what the take stored, which it is given as the
+\t * session's own: response processing with no program, so its state is the one \`response_state\` gives unrun, each
+\t * outcome at its default in force, \`completionStatus\` at \`unknown\`, each template variable at its set or declared
+\t * value and each response NULL. One call, every argument a query over the sitting's key, so every insert below reads
+\t * one evaluation of it. */
+\tconst startRun = Fn.row(responseProcessingOf, {
+${startBinds}
+\t})
+
+\t/** Each variable of the start that is no context, a NULL one's among them, whose value rows its sidecars hold. */
+\tconst startHeaders = ChangeSet.empty(delivery).insert(
+\t\tfields.StartVariable,
+\t\tquery(delivery).rule((r) => {
+\t\t\tconst out = startRun
+\t\t\tconst taken = boundTaken
+\t\t\tconst { child, package: pkg, path, stage } = v(taken, "taken")
+\t\t\tconst { identifier, kind } = v(out.vars, "start")
+\t\t\treturn r
+\t\t\t\t.match(taken, { child, package: pkg, path, stage })
+\t\t\t\t.match(out.vars, { child, package: pkg, path, stage, holds: "value", kind, identifier })
+\t\t\t\t.where(r.ne(kind, "context"))
+\t\t\t\t.find({ child, stage, package: pkg, path, variable: identifier })
+\t\t})
+\t)
+${values.map(({ text: value }) => value).join("\n")}
+
+\t/** The start's record fields: each field's header with its base type, then its arm. */
+\tconst startRecords = ChangeSet.empty(delivery)
+\t.insert(
+\t\tfields.StartRecord,
+\t\tquery(delivery)
+${TYPES.map((t) => startOf(recordHeaderMember(t))).join("\n")}
+\t)
+${indented(TYPES.map((t) => startOf(outcomeMember("Record", t))).join("\n"), "\t")}
+`;
+
+  return { names: ["startHeaders", ...values.map(({ name }) => name), "startRecords"], text };
+};
+
+/**
+ * The list of every relation the take's write inserts into, by name, as grade.ts exports it: each
+ * value template processing set, its header and the sidecar of its cardinality and base type, and
+ * the session's start, its header, its sidecars and its record fields.
+ *
+ * @returns The list's text.
+ */
+const takeTables = (): string =>
+  [
+    "\n/** Every relation the take's write inserts into, by name: what a role that composes it inserts into. */",
+    "export const takeValuesTables = [",
+    '\t"ItemSessionValue",',
+    ...CARDINALITIES.flatMap((cardinality) =>
+      TYPES.map((t) => `\t"ItemSessionValue${cardinality}${t}",`),
+    ),
+    '\t"StartVariable",',
+    ...CARDINALITIES.flatMap((cardinality) => TYPES.map((t) => `\t"Start${cardinality}${t}",`)),
+    '\t"StartRecord",',
+    ...TYPES.map((t) => `\t"StartRecord${t}",`),
+    "] as const\n",
+  ].join("\n");
+
+/**
  * The arguments the take's run binds, in the order it binds them.
  */
 const RUN_ARGUMENTS = [
@@ -340,14 +701,16 @@ const unionTree = (names: readonly [string, ...string[]]): string => {
  * @returns Its text.
  */
 const takeValues = (fragment: Fragments): string => {
-  const binds = [
+  const bound = [
     ...RUN_ARGUMENTS.map((arg) => `\t\t${arg}: args.${arg}.bind(bySession(gradedSitting))`),
     ...RUN_INPUTS.map(([arg, , reads]) =>
       reads === "attempts"
         ? `\t\t${arg}: args.${arg}.bind(bySession(gradedSitting))`
         : `\t\t${arg}: args.${arg}`,
     ),
-  ].join(",\n");
+  ];
+  const binds = bound.join(",\n");
+  const start = startWrite(bound);
   const sets = CARDINALITIES.flatMap((cardinality) =>
     SETS.map((set) => {
       const [kind] = set;
@@ -383,7 +746,8 @@ ${SETS.map(headerRule).join("\n")}
 \t)
 `,
     ...sets.flatMap(({ text }) => text),
-    `\n\treturn ${unionTree(["set", ...sets.map(({ name }) => name)])}\n}\n`,
+    start.text,
+    `\n\treturn ChangeSet.sequence(${unionTree(["set", ...sets.map(({ name }) => name)])}, ${unionTree(nonEmpty(start.names))})\n}\n`,
   ];
 
   return overDelivery(out.join("\n"));
@@ -393,6 +757,36 @@ ${SETS.map(headerRule).join("\n")}
  * The end of the grading module's import, as the stages before leave it.
  */
 const GRADING_IMPORT_END = '  seedStreamKey,\n} from "#ledger/grading.ts";\n';
+
+/**
+ * The text with names added to its one import of the grading module, every name in the order the
+ * import's names keep, by their text without case.
+ *
+ * @param src The text.
+ * @param added The names to add.
+ * @returns The text with the names imported.
+ */
+const withGradingNames = (src: string, added: readonly string[]): string => {
+  const end = indexOf(src, GRADING_IMPORT_END) + "  seedStreamKey,\n".length;
+  const start = src.lastIndexOf("import {\n", end);
+  must(start !== -1, "the grading module's import");
+
+  const names = [
+    ...src
+      .slice(start + "import {\n".length, end)
+      .split(",\n")
+      .map((name) => name.trim())
+      .filter((name) => name !== ""),
+    ...added,
+  ].toSorted((left, right) => {
+    const a = left.toLowerCase();
+    const b = right.toLowerCase();
+
+    return Number(a > b) - Number(a < b);
+  });
+
+  return `${src.slice(0, start)}import {\n${names.map((name) => `  ${name},\n`).join("")}${src.slice(end)}`;
+};
 
 /**
  * The ledger module's import, as the stages before leave it.
@@ -410,16 +804,16 @@ const LEDGER_IMPORT = 'import { CompletionStatus } from "#ledger/ledger.ts";\n';
 export const takeStage = (stage: string, fragment: Fragments): string => {
   must(!stage.includes("export const takeArgumentsOf = "), "take stage: already generated");
 
-  const src = `${stage.replace(/\n+$/u, "")}\n${hoist(takeArguments(fragment))}${takeValues(fragment)}`;
+  const src = `${stage.replace(/\n+$/u, "")}\n${hoist(takeArguments(fragment))}${takeValues(fragment)}${takeTables()}`;
   must(count(src, GRADING_IMPORT_END) === 1, "the grading module's one import");
   must(count(src, LEDGER_IMPORT) === 1, "the ledger module's one import");
 
   return replaceFirst(
-    replaceFirst(
-      src,
-      GRADING_IMPORT_END,
-      '  seedStreamKey,\n  templateLabel,\n  templateProcessingOf,\n} from "#ledger/grading.ts";\n',
-    ),
+    withGradingNames(src, [
+      "templateLabel",
+      "templateProcessingOf",
+      ...START_EMPTIES.map(([, heading]) => heading),
+    ]),
     LEDGER_IMPORT,
     'import { CompletionStatus, SessionValueKind } from "#ledger/ledger.ts";\n',
   );

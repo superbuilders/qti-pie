@@ -41,12 +41,12 @@ export const TYPES = [
 /**
  * A base type, by its sidecars' name.
  */
-type BaseTypeName = (typeof TYPES)[number];
+export type BaseTypeName = (typeof TYPES)[number];
 
 /**
  * Each base type's token, as QTI spells it.
  */
-const TOKEN: Readonly<Record<BaseTypeName, string>> = {
+export const TOKEN: Readonly<Record<BaseTypeName, string>> = {
   Boolean: "boolean",
   DirectedPair: "directedPair",
   Duration: "duration",
@@ -73,7 +73,7 @@ interface Crossing {
 /**
  * Each base type's crossing.
  */
-const HEAD: Readonly<Record<BaseTypeName, Crossing>> = {
+export const HEAD: Readonly<Record<BaseTypeName, Crossing>> = {
   Boolean: { cols: [["value", "value"]], hasBase: false, head: "booleans" },
   DirectedPair: {
     cols: [
@@ -592,7 +592,7 @@ export const outcomeMember = (
  * @param t The base type.
  * @returns The rule.
  */
-const recordHeaderMember = (t: BaseTypeName): string => {
+export const recordHeaderMember = (t: BaseTypeName): string => {
   const { hasBase, head: flat } = HEAD[t];
   const head = FIELD_HEAD.get(flat) ?? "";
   const base = hasBase ? `, base: "${TOKEN[t]}"` : "";

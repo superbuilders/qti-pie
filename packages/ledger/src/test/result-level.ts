@@ -15,11 +15,13 @@
  * session the call names, `sittingOfSessionOf`), records each application's evaluation through the
  * ledger's own evaluator write (`recordEvaluations`, `evaluationProgramsOf`) and a person's value
  * through its own person's-value write (`evaluate`, `personValueOf`'s `recordValue` over the call's
- * `scorer`), each grading and settling the attempt's sitting in its own transaction; takes a
- * templated item's session as every take does (`take`, `takeValuesOf` over the session's sitting),
- * reading both what it stored and the machine's own run of it (`templateProcessingOf` over
- * `takeArgumentsOf`); writes a test's sitting as host rows (`sittingFacts`: its test session, its
- * members' item sessions with their seeds, and an attempt), then enters, presents in, saves in,
+ * `scorer`), each grading and settling the attempt's sitting in its own transaction; begins every
+ * item stage's session as an application's decision does (`begin`: its item session and seed as
+ * host rows, then `takeValuesOf` over the session's sitting, in one transaction, so what template
+ * processing set and the record it begins with are the machine's), reading both what the take
+ * stored and the machine's own run of it (`templateProcessingOf` over `takeArgumentsOf`); takes a
+ * test's sitting through the test runtime's own take (`takeSitting`), writes an attempt of a member
+ * as host rows (`sittingFacts`), then enters, presents in, saves in,
  * answers in, beacons in, pauses (a beacon and a suspension in one statement), suspends and ends it
  * through the test runtime's own programs (`sittingProgramsOf`),
  * each over the sitting the call names, a timed entry with the first budget the call gives, as an
@@ -54,6 +56,7 @@ import {
   gradeAttemptTables,
   takeArgumentsOf,
   takeValuesOf,
+  takeValuesTables,
 } from "#ledger/grade.ts";
 import { templateProcessingOf } from "#ledger/grading.ts";
 import { LearnerId } from "#ledger/keys.ts";
@@ -62,7 +65,7 @@ import type { GraderVersion } from "#ledger/registry/contract.ts";
 import { registryOf } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
 import { sittingProgramsOf } from "#ledger/sitting-programs.ts";
-import { sittingHeading, sittingOfSessionOf } from "#ledger/sitting-queries.ts";
+import { sittingHeading, sittingOfSessionOf, takenHeading } from "#ledger/sitting-queries.ts";
 import { testOutcomeRunTables } from "#ledger/test-run-writes.ts";
 
 /**
@@ -142,14 +145,14 @@ const {
 const sessionRelations = ["ItemSession", "SessionSeed", "ResponseSnapshot", "Attempt"] as const;
 
 /**
- * The session facts' write: one insert of each relation it names, with no row of its own.
+ * The session facts' write: one insert of each relation it names, with no row of its own. An item
+ * session is no fact of it: a session begins by {@link begin} or a sitting's take, so the machine
+ * writes its start ("Start of every session").
  */
 const facts = ChangeSet.empty(ResultLevel).insertAll({
   Attempt: [],
-  ItemSession: [],
   ProcessedAttempt: [],
   ResponseSnapshot: [],
-  SessionSeed: [],
   SnapshotMultipleIdentifier: [],
   SnapshotSingleBoolean: [],
   SnapshotSingleFloat: [],
@@ -166,47 +169,6 @@ const evaluationRelations = [
   "OperatorFeedback",
   "OperatorDecline",
   "HumanOperatorValue",
-] as const;
-
-/**
- * What the take writes: each value template processing set, by the rule that set it, and its rows
- * in the sidecar of its cardinality and base type.
- */
-const takeRelations = [
-  "ItemSessionValue",
-  "ItemSessionValueSingleIdentifier",
-  "ItemSessionValueSingleBoolean",
-  "ItemSessionValueSingleInteger",
-  "ItemSessionValueSingleFloat",
-  "ItemSessionValueSingleString",
-  "ItemSessionValueSinglePoint",
-  "ItemSessionValueSinglePair",
-  "ItemSessionValueSingleDirectedPair",
-  "ItemSessionValueSingleDuration",
-  "ItemSessionValueSingleUri",
-  "ItemSessionValueSingleFile",
-  "ItemSessionValueMultipleIdentifier",
-  "ItemSessionValueMultipleBoolean",
-  "ItemSessionValueMultipleInteger",
-  "ItemSessionValueMultipleFloat",
-  "ItemSessionValueMultipleString",
-  "ItemSessionValueMultiplePoint",
-  "ItemSessionValueMultiplePair",
-  "ItemSessionValueMultipleDirectedPair",
-  "ItemSessionValueMultipleDuration",
-  "ItemSessionValueMultipleUri",
-  "ItemSessionValueMultipleFile",
-  "ItemSessionValueOrderedIdentifier",
-  "ItemSessionValueOrderedBoolean",
-  "ItemSessionValueOrderedInteger",
-  "ItemSessionValueOrderedFloat",
-  "ItemSessionValueOrderedString",
-  "ItemSessionValueOrderedPoint",
-  "ItemSessionValueOrderedPair",
-  "ItemSessionValueOrderedDirectedPair",
-  "ItemSessionValueOrderedDuration",
-  "ItemSessionValueOrderedUri",
-  "ItemSessionValueOrderedFile",
 ] as const;
 
 /**
@@ -240,7 +202,7 @@ const Suite = role(ResultLevel, "result_runner", wholeEntriesOf(ResultLevel), {
     ...authorWrites,
     ...sessionRelations,
     ...evaluationRelations,
-    ...takeRelations,
+    ...takeValuesTables,
     ...gradeAttemptTables,
     ...testOutcomeRunTables,
     "SittingFinal",
@@ -262,17 +224,12 @@ const namedSitting = query(ResultLevel).rule((r) =>
 );
 
 /**
- * A test's sitting as host rows, each relation once, its rows the call's: its test session, its
- * members' item sessions with the seeds their processing draws under, as a take writes them, and an
- * attempt of a member with its snapshot, every instant the insert's own. A sitting written so takes
- * no template processing, which none of its members declares.
+ * An attempt of a sitting's member as host rows: the attempt with its snapshot, every instant the
+ * insert's own.
  */
 const sittingFacts = ChangeSet.empty(ResultLevel).insertAll({
   Attempt: [],
-  ItemSession: [],
   ResponseSnapshot: [],
-  SessionSeed: [],
-  TestSession: [],
 });
 
 /**
@@ -303,6 +260,32 @@ const firstBudget = ChangeSet.empty(ResultLevel).insert(
  * over a session binds `sittings` to.
  */
 const sessionSitting = sittingOfSessionOf(ResultLevel);
+
+/**
+ * An item stage's session, begun as an application's decision begins one (edullm's decideStage):
+ * its item session and the seed its processing draws under, as host rows, then its take
+ * (`takeValuesOf`, over the sitting of the session the call names) in the stratum after them, so
+ * what its template processing set and the record it begins with are the machine's, in one
+ * transaction, as "Start of every session" holds.
+ */
+const begin = ChangeSet.sequence(
+  ChangeSet.empty(ResultLevel).insertAll({ ItemSession: [], SessionSeed: [] }),
+  takeValuesOf(ResultLevel).bind({ sittings: sessionSitting }),
+);
+
+/**
+ * The sitting a call names as an application's decision makes one, by its key, its test and its
+ * decision's seed (`takenHeading`): what the test runtime's take reads.
+ */
+const namedTaken = query(ResultLevel).rule((r) =>
+  r.find({
+    child: r.param("child", takenHeading.child),
+    package: r.param("package", takenHeading.package),
+    path: r.param("path", takenHeading.path),
+    seed: r.param("seed", takenHeading.seed),
+    stage: r.param("stage", takenHeading.stage),
+  }),
+);
 
 /**
  * The machine's own run of the template processing of the call's `sittings` (`sittingHeading`),
@@ -797,6 +780,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       attemptsOf,
       awaitingOf,
       beaconTest: sittingPrograms.beaconTest.bind({ sittings: namedSitting }),
+      begin,
       budgetsOf,
       completionsOf,
       creditsOf,
@@ -832,8 +816,8 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       snapshotStringsOf,
       statusesOf,
       suspendTest: sittingPrograms.suspendTest.bind({ sittings: namedSitting }),
-      take: takeValuesOf(ResultLevel).bind({ sittings: sessionSitting }),
       takeRunIntegersOf,
+      takeSitting: sittingPrograms.take.bind({ taken: namedTaken }),
       takenHeadersOf,
       takenIdentifiersOf,
       takenIntegersOf,

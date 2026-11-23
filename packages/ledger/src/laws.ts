@@ -332,6 +332,22 @@ export const ledgerLaws = {
   "Some occurrence": {
     source: `${info}#Enumerated_CardinalityEnum (§8.17, CardinalityEnum: 'multiple' - 'containers may contain multiple occurrences of the same value'): 'a multiple's distinct values, each with how many times it occurs' (src/ledger.ts), at least once`,
   },
+  "Start of every session": {
+    source:
+      "src/ledger.ts StartVariable: every item session begins with its start, which its take writes in the stratum after its values; the start holds completionStatus, so every session has a header",
+  },
+  "Start of its session": {
+    source:
+      "src/ledger.ts StartVariable: 'the record an item session begins with', by the session's key, its stage",
+  },
+  "Start variable declared": {
+    source:
+      "src/ledger.ts StartVariable: 'each variable that is no context' of the session's item, a declared one, a record or a built-in (SessionVariableName)",
+  },
+  "Start variable once": {
+    source:
+      "src/ledger.ts StartVariable: one header a variable of the session's start, its key the session's by its stage and the variable",
+  },
   "Submitted together": {
     source: `${info}#DataCharacteristic_TestPart.Attr_submission-mode (Table 5.159.5: 'simultaneous ... all submitted together at the end'): a simultaneous part's attempts exist only with its sitting's end, and its end submits every member the candidate was shown (src/test-laws.ts)`,
   },
