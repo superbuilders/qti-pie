@@ -139,7 +139,7 @@ export const memoryReasonOf = (record: MemoryRecord): string => {
   const before = `${(record.coldKb / kbPerMb).toFixed(1)} MB of cold planner memory in the ${String(record.measured.plans.length)} steps before it`;
 
   if (stopped?.kind === "overBudget") {
-    return `cold planning passed ${String(record.budgetMs)} ms of CPU at step ${String(stopped.step)} of ${String(record.statements)} statements and ${String(record.judges)} judge blocks, a ${stopped.source === "judge" ? "judge block" : `statement (${stopped.name})`} of ${stopped.bytes.toLocaleString("en-US")} bytes; ${before}`;
+    return `cold planning passed ${String(record.budgetMs)} ms of CPU at step ${String(stopped.step)} of ${String(record.statements)} statements and ${String(record.judges)} judge blocks, a ${stopped.source === "judge" ? `judge block (${stopped.name})` : `statement (${stopped.name})`} of ${stopped.bytes.toLocaleString("en-US")} bytes; ${before}`;
   }
 
   if (stopped?.kind === "refused") {
@@ -165,9 +165,12 @@ export const measureMemory = (
     const bodies = yield* Effect.tryPromise({
       catch: (cause) =>
         new MeasureFailed({ action: "the installation's judge functions", at: "pg_proc", cause }),
-      try: () => connections.watcher.query<{ readonly body: string }>(judgeBodiesQuery),
+      try: () =>
+        connections.watcher.query<{ readonly name: string; readonly body: string }>(
+          judgeBodiesQuery,
+        ),
     });
-    const judges = bodies.rows.flatMap(({ body }) => judgeBlocksOf(body));
+    const judges = bodies.rows.flatMap(({ body, name }) => judgeBlocksOf(name, body));
     const captures = yield* Effect.tryPromise({
       catch: (cause) =>
         new MeasureFailed({ action: "the installation's capture functions", at: "pg_proc", cause }),

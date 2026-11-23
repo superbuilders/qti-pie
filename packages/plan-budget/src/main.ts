@@ -8,6 +8,8 @@
  * - `memory --migrations <folder> [--login <login>]… [--watch-ms <ms>] [--out <records.jsonl>]`: the
  *   first check over every action of the composition (#plan-budget/memory.ts), each action's record
  *   as a JSON line and its verdict line on standard output; exits 1 when any action fails.
+ * - `table --record <records.jsonl> --out <plans.tsv>`: the first check's records as one table, a row
+ *   for every planned step of every action (#plan-budget/table.ts).
  * - `calibrate --record <records.jsonl>… --out <calibration.json>`: the ceiling's calibration from
  *   the first check's records of runs on a cluster no other client used
  *   (#plan-budget/calibrate.ts).
@@ -35,6 +37,7 @@ import { installFresh } from "#plan-budget/install.ts";
 import { measureMemory, memoryReasonOf } from "#plan-budget/memory.ts";
 import type { Connections } from "#plan-budget/plans.ts";
 import { keepSummary, writeBacklog } from "#plan-budget/report.ts";
+import { writePlanTable } from "#plan-budget/table.ts";
 
 /**
  * The bar: a student action's database time, in milliseconds (Bjorn, approved 2026-11-23).
@@ -194,6 +197,12 @@ const program = Effect.gen(function* planBudget() {
     yield* Effect.logInfo(
       `ceiling ${String(calibration.ceilingKb)} kB: cold CPU = ${calibration.msAtOneMb.toFixed(2)} ms × MB^${calibration.exponent.toFixed(3)}, r2 ${calibration.r2.toFixed(3)} in log CPU, measured over fitted p05 ${calibration.residualFactor.p05.toFixed(2)} p50 ${calibration.residualFactor.p50.toFixed(2)} p95 ${calibration.residualFactor.p95.toFixed(2)} over ${String(calibration.points.length)} actions; memory unequal between runs: ${String(calibration.unequalMemory.length)}`,
     );
+  } else if (command === "table" && values.record !== undefined && values.out !== undefined) {
+    for (const record of values.record) {
+      yield* Effect.logInfo(
+        `${String(writePlanTable(record, values.out))} rows from ${record} into ${values.out}`,
+      );
+    }
   } else if (command === "memory" && values.migrations !== undefined && database !== "") {
     yield* memory(values.migrations);
   } else if (command === "install" && values.config !== undefined && database !== "") {

@@ -54,9 +54,11 @@ export interface SentStatement {
  * A commit-time judge block: the query of one `PERFORM 1 FROM (<query>) AS "found";` in a judge
  * function's body, planned as `SELECT 1 FROM (<query>) AS "found"`, the tables whose deltas it
  * reads (through reader functions, or as the session's temporary delta tables at grizzle pins
- * before the readers), and those temporary tables.
+ * before the readers), and those temporary tables; named by its judge function and its place in the
+ * function's body (`__judge_attempt_x4…#12`), so a measurement's every block is found again.
  */
 export interface JudgeBlock {
+  readonly name: string;
   readonly sql: string;
   readonly tables: ReadonlySet<string>;
   readonly deltas: ReadonlySet<string>;
@@ -329,10 +331,11 @@ const writtenBy = (statements: readonly SentStatement[]): ReadonlySet<string> =>
  * one, `pg_proc.prosrc`, so however the migration quoted it (a dollar quote, or the run of escaped
  * string literals grizzle writes for a body past a size) it reads the same.
  *
- * @param body - A judge function's body.
+ * @param judge - The judge function's name.
+ * @param body - Its body.
  * @returns Its blocks.
  */
-export const judgeBlocksOf = (body: string): readonly JudgeBlock[] => {
+export const judgeBlocksOf = (judge: string, body: string): readonly JudgeBlock[] => {
   const { tokens } = lex(body);
   const blocks: JudgeBlock[] = [];
 
@@ -377,7 +380,7 @@ export const judgeBlocksOf = (body: string): readonly JudgeBlock[] => {
         ),
       );
 
-      blocks.push({ deltas, sql, tables });
+      blocks.push({ deltas, name: `${judge}#${String(blocks.length)}`, sql, tables });
       at = end;
     }
   }
@@ -413,7 +416,7 @@ export const captureBodiesQuery = `SELECT p.prosrc AS body FROM pg_catalog.pg_pr
  * The installed judge functions' bodies: every `__judge_<table>_<digest>` function of the
  * installation, the parts its commit-time dispatcher runs where their deltas hold rows.
  */
-export const judgeBodiesQuery = `SELECT p.prosrc AS body FROM pg_catalog.pg_proc AS p WHERE p.proname LIKE '\\_\\_judge\\_%' AND p.prosrc LIKE '%PERFORM 1 FROM%' ORDER BY p.oid`;
+export const judgeBodiesQuery = `SELECT p.proname AS name, p.prosrc AS body FROM pg_catalog.pg_proc AS p WHERE p.proname LIKE '\\_\\_judge\\_%' AND p.prosrc LIKE '%PERFORM 1 FROM%' ORDER BY p.oid`;
 
 /**
  * The logins a migrations directory serves: each `served/<login>.json`.
@@ -481,10 +484,10 @@ export const actionsOf = (
             source: "judge",
             sql,
           })),
-          ...armed.map(({ sql }): ActionStep => ({
+          ...armed.map(({ name, sql }): ActionStep => ({
             bytes: Buffer.byteLength(sql),
             kind: "plan",
-            name: "judge block",
+            name,
             source: "judge",
             sql,
           })),

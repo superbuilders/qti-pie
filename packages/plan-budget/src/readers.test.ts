@@ -27,9 +27,13 @@ END`;
 
 describe("judgeBlocksOf", () => {
   it("reads every block of an installed body, with the tables and the temporary deltas it reads", () => {
-    const blocks = judgeBlocksOf(body);
+    const blocks = judgeBlocksOf("__judge_attempt_ab12cd34ef", body);
 
     assert.strictEqual(blocks.length, 2);
+    assert.deepStrictEqual(
+      blocks.map(({ name }) => name),
+      ["__judge_attempt_ab12cd34ef#0", "__judge_attempt_ab12cd34ef#1"],
+    );
     assert.match(
       blocks[0]?.sql ?? "",
       /^SELECT 1 FROM \(SELECT "r1"\."c1" FROM .*';'\)\) AS "found"$/u,
@@ -41,7 +45,7 @@ describe("judgeBlocksOf", () => {
   });
 
   it("reads no block where a body holds none", () => {
-    assert.strictEqual(judgeBlocksOf("BEGIN RETURN; END").length, 0);
+    assert.strictEqual(judgeBlocksOf("__judge_none", "BEGIN RETURN; END").length, 0);
   });
 });
 
