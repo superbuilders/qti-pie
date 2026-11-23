@@ -20,6 +20,8 @@
  *   a connection that already sent one, as the browser sends one a second: from PRESENCE-LEDGER's
  *   Presence on, one put of the sitting's growing window.
  *
+ * `--only <name,…>` measures those actions alone, as a run that scopes its heavy arm does.
+ *
  * Run from this package: `node budget/plan-budget.ts --database <scratch database> --migrations
  * <the generated result composition's folder>`, with pantry's `QTI_PIE_PG_*` settings naming the
  * scratch cluster.
@@ -57,6 +59,7 @@ const { values } = parseArgs({
   options: {
     database: { type: "string" },
     migrations: { type: "string" },
+    only: { type: "string" },
     out: { type: "string" },
     populate: { type: "boolean" },
     repeats: { type: "string" },
@@ -343,7 +346,12 @@ const program = Effect.gen(function* planBudget() {
   ];
   const verdicts = yield* measureActions(
     {
-      actions: values.populate === true ? [] : actions,
+      actions:
+        values.populate === true
+          ? []
+          : actions.filter(
+              ({ name }) => values.only === undefined || values.only.split(",").includes(name),
+            ),
       admin,
       composition: "ledger-result",
       grow: copyUnits("child"),

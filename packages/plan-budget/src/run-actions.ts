@@ -122,6 +122,70 @@ const copiesAt = <R, E>(composition: ActionsComposition<R, E>, scale: number): n
   Math.max(0, Math.ceil((scale * composition.unitsAt1x) / composition.seedUnits) - 1);
 
 /**
+ * One measured record, as a verdict reads it: the action, the population's size, and the action's
+ * CPU, pages, wall time and waits there.
+ */
+export interface MeasuredAt {
+  readonly action: string;
+  readonly size: number;
+  readonly cpuMs: number;
+  readonly pages: number;
+  readonly wallMs: number;
+  readonly waits: Readonly<Record<string, number>>;
+}
+
+/**
+ * An action's verdict over the scales it was measured at: at each, the least CPU, pages and wall
+ * time of its repeats; over them, the pages' log-log slope; a reason for every scale over its bar
+ * and for a slope past the descents' bound.
+ *
+ * @param action - The action, by its name and bar.
+ * @param records - Every record measured, of any action.
+ * @param scales - The scales the verdict reads, each one the action was measured at.
+ * @returns The verdict.
+ */
+export const verdictOf = (
+  action: { readonly name: string; readonly barMs: number },
+  records: readonly MeasuredAt[],
+  scales: readonly number[],
+): ActionVerdict => {
+  const byScale = scales.map((scale) => {
+    const runs = records.filter((record) => record.action === action.name && record.size === scale);
+
+    return {
+      cpuMs: Math.min(...runs.map(({ cpuMs }) => cpuMs)),
+      pages: Math.min(...runs.map(({ pages }) => pages)),
+      scale,
+      waits: runs.at(-1)?.waits ?? {},
+      wallMs: Math.min(...runs.map(({ wallMs }) => wallMs)),
+    };
+  });
+  const slope =
+    byScale.length > 1 ? slopeOf(byScale.map(({ pages, scale }) => ({ pages, size: scale }))) : 0;
+  const over = byScale.filter(({ cpuMs }) => cpuMs > action.barMs);
+  const reasons = [
+    ...over.map(
+      ({ cpuMs, scale }) =>
+        `${cpuMs.toFixed(1)} ms of database time at ${String(scale)}x, over ${String(action.barMs)} ms`,
+    ),
+    ...(slope > descentSlope
+      ? [
+          `pages grow with the data: log-log slope ${slope.toFixed(2)} over ${byScale.map(({ pages, scale }) => `${String(pages)} at ${String(scale)}x`).join(", ")}, past the descents' ${descentSlope.toFixed(2)}`,
+        ]
+      : []),
+  ];
+
+  return {
+    action: action.name,
+    barMs: action.barMs,
+    byScale,
+    reasons,
+    slope,
+    verdict: reasons.length === 0 ? "pass" : "fail",
+  };
+};
+
+/**
  * Every action measured at every scale of a composition, its records appended to `out`, and its
  * verdicts.
  *
@@ -207,46 +271,9 @@ export const measureActions = <R, E>(
       }
     }
 
-    const measured = composition.actions.map((action): ActionVerdict => {
-      const byScale = composition.scales.map((scale) => {
-        const runs = records.filter(
-          (record) => record.action === action.name && record.size === scale,
-        );
-
-        return {
-          cpuMs: Math.min(...runs.map(({ cpuMs }) => cpuMs)),
-          pages: Math.min(...runs.map(({ pages }) => pages)),
-          scale,
-          waits: runs.at(-1)?.waits ?? {},
-          wallMs: Math.min(...runs.map(({ wallMs }) => wallMs)),
-        };
-      });
-      const slope =
-        byScale.length > 1
-          ? slopeOf(byScale.map(({ pages, scale }) => ({ pages, size: scale })))
-          : 0;
-      const over = byScale.filter(({ cpuMs }) => cpuMs > action.barMs);
-      const reasons = [
-        ...over.map(
-          ({ cpuMs, scale }) =>
-            `${cpuMs.toFixed(1)} ms of database time at ${String(scale)}x, over ${String(action.barMs)} ms`,
-        ),
-        ...(slope > descentSlope
-          ? [
-              `pages grow with the data: log-log slope ${slope.toFixed(2)} over ${byScale.map(({ pages, scale }) => `${String(pages)} at ${String(scale)}x`).join(", ")}, past the descents' ${descentSlope.toFixed(2)}`,
-            ]
-          : []),
-      ];
-
-      return {
-        action: action.name,
-        barMs: action.barMs,
-        byScale,
-        reasons,
-        slope,
-        verdict: reasons.length === 0 ? "pass" : "fail",
-      };
-    });
+    const measured = composition.actions.map((action) =>
+      verdictOf(action, records, composition.scales),
+    );
     const pending = composition.pending.map(({ barMs, name, reason }): ActionVerdict => ({
       action: name,
       barMs,

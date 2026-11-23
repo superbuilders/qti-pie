@@ -22,13 +22,13 @@
  *
  * @module
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { Client } from "pg";
 import { loadNow } from "#plan-budget/backend.ts";
 import { calibrationOf } from "#plan-budget/calibrate.ts";
@@ -37,6 +37,7 @@ import { installFresh } from "#plan-budget/install.ts";
 import { measureMemory, memoryReasonOf } from "#plan-budget/memory.ts";
 import type { Connections } from "#plan-budget/plans.ts";
 import { keepSummary, writeBacklog } from "#plan-budget/report.ts";
+import { verdictOf } from "#plan-budget/run-actions.ts";
 import { writePlanTable } from "#plan-budget/table.ts";
 
 /**
@@ -56,6 +57,7 @@ const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: {
     backlog: { type: "string" },
+    bar: { multiple: true, type: "string" },
     "ceiling-kb": { type: "string" },
     composition: { type: "string" },
     conditions: { type: "string" },
@@ -187,6 +189,77 @@ const install = (config: string) =>
     superuser,
   });
 
+/**
+ * What a verdict reads of a second check's record.
+ */
+const MeasuredSchema = Schema.Struct({
+  action: Schema.String,
+  cpuMs: Schema.Number,
+  pages: Schema.Number,
+  size: Schema.Number,
+  waits: Schema.Record(Schema.String, Schema.Number),
+  wallMs: Schema.Number,
+});
+
+/**
+ * A record's line, decoded.
+ */
+const measuredOf = Schema.decodeUnknownSync(Schema.fromJsonString(MeasuredSchema));
+
+/**
+ * The second check's verdicts over records of one or more runs, each named action at the scales it
+ * was measured at, with its bar (`<name>=<ms>`); a summary kept, and the backlog rewritten, where
+ * the run names them.
+ *
+ * @param files - The records.
+ * @param bars - The actions' bars.
+ * @returns Completes once every verdict is printed.
+ */
+const verdicts = (files: readonly string[], bars: readonly string[]) =>
+  Effect.gen(function* verdictsCommand() {
+    const records = files.flatMap((file) =>
+      readFileSync(file, "utf-8")
+        .split("\n")
+        .filter((line) => line.trim() !== "")
+        .map((line) => measuredOf(line)),
+    );
+    const judged = bars.map((bar) => {
+      const [name, ms] = settingOf(bar);
+      const scales = [
+        ...new Set(records.filter(({ action }) => action === name).map(({ size }) => size)),
+      ].toSorted((a, b) => a - b);
+
+      return verdictOf({ barMs: Number(ms), name }, records, scales);
+    });
+
+    for (const verdict of judged) {
+      yield* Effect.logInfo(
+        `${verdict.verdict === "pass" ? "pass" : "FAIL"} ${verdict.action}: slope ${verdict.slope.toFixed(2)}; ${verdict.byScale.map(({ cpuMs, pages, scale }) => `${String(scale)}x ${cpuMs.toFixed(1)} ms ${String(pages)} pages`).join(", ")}; ${verdict.reasons.join("; ") || "within its bar, flat"}`,
+      );
+    }
+
+    if (values.summaries !== undefined && values.composition !== undefined) {
+      const failed = judged.filter(({ verdict }) => verdict === "fail");
+
+      keepSummary(values.summaries, {
+        at: new Date().toISOString(),
+        check: "actions",
+        composition: values.composition,
+        failing: failed.map(({ action, byScale, reasons, slope }) => ({
+          action,
+          reason: `${reasons.join("; ")} (least CPU and pages: ${byScale.map(({ cpuMs, pages, scale }) => `${String(scale)}x ${cpuMs.toFixed(0)} ms, ${String(pages)} pages`).join("; ")}; slope ${slope.toFixed(2)})`,
+        })),
+        load: loadNow(),
+        measured: judged.length,
+        subject: values.subject ?? files.join(", "),
+      });
+
+      if (values.backlog !== undefined) {
+        writeBacklog(values.summaries, values.backlog);
+      }
+    }
+  });
+
 const program = Effect.gen(function* planBudget() {
   const [command] = positionals;
 
@@ -197,6 +270,8 @@ const program = Effect.gen(function* planBudget() {
     yield* Effect.logInfo(
       `ceiling ${String(calibration.ceilingKb)} kB: cold CPU = ${calibration.msAtOneMb.toFixed(2)} ms × MB^${calibration.exponent.toFixed(3)}, r2 ${calibration.r2.toFixed(3)} in log CPU, measured over fitted p05 ${calibration.residualFactor.p05.toFixed(2)} p50 ${calibration.residualFactor.p50.toFixed(2)} p95 ${calibration.residualFactor.p95.toFixed(2)} over ${String(calibration.points.length)} actions; memory unequal between runs: ${String(calibration.unequalMemory.length)}`,
     );
+  } else if (command === "verdicts" && values.record !== undefined && values.bar !== undefined) {
+    yield* verdicts(values.record, values.bar);
   } else if (command === "table" && values.record !== undefined && values.out !== undefined) {
     for (const record of values.record) {
       yield* Effect.logInfo(
