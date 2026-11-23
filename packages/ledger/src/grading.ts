@@ -11724,7 +11724,7 @@ export const texOneToken = fn("texOneToken", {
 export const texOneName = fn("texOneName", {
   args: { t: anyText },
   body: fn.body`
-  select t ~ '^[0-9]+([.][0-9]+)?$' or tex_one_token(t => t)
+  select t ~ '^-?[0-9]+([.][0-9]+)?$' or tex_one_token(t => t)
 `,
   calls: [texOneToken],
   language: "sql",
@@ -11966,7 +11966,8 @@ export const texPlace = fn("texPlace", {
 declare head text := left(s, pos - 1); tail text := substr(s, ends_at); kept text := regexp_replace(head, '[\\t\\n\\v\\f\\r \\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]+$', '');
   before text := right(kept, 1); after text := left(regexp_replace(tail, '^[\\t\\n\\v\\f\\r \\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]+', ''), 1); numeral integer;
 begin
-  if before ~ '^[0-9]$' then
+  -- A mixed number's fraction is unsigned: a signed one after a digit is parenthesised whole, below.
+  if before ~ '^[0-9]$' and left(fraction, 1) <> '-' then
     numeral := integer_numeral_start(last => char_length(kept), s => s);
     if numeral is not null and term_starts_at(at => numeral, s => s) then return kept || ' ' || fraction || tail; end if;
   end if;
@@ -12087,7 +12088,7 @@ declare t text := s;
 begin
   t := replace(replace(replace(t, '\\\\', '\\'), '\\%', '%'), '\\$', '$');
   t := regexp_replace(t, '\\\\(?:left|right)(?![A-Za-z])[\\t\\n\\v\\f\\r \\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000]*', '', 'g');
-  t := regexp_replace(t, '\\\\[,:;!]', '', 'g');
+  t := regexp_replace(regexp_replace(t, '(\\\\[A-Za-z]+)(?:\\\\[,:;!])+(?=[A-Za-z])', '\\1 ', 'g'), '\\\\[,:;!]', '', 'g');
   t := replace(replace(regexp_replace(t, '\\\\(?:qquad|quad)(?![A-Za-z])', ' ', 'g'), '\\ ', ' '), '~', ' ');
   t := regexp_replace(t, '[\\u200b-\\u200d\\u2060\\ufeff]', '', 'g');
   t := regexp_replace(t, '\\\\(?:dfrac|tfrac)(?![A-Za-z])', '\\\\frac', 'g');

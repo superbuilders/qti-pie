@@ -215,9 +215,10 @@ create function p3.tex_one_token(t text) returns boolean language sql immutable 
   select t ~ '^[0-9]$' or t ~ '^[A-Za-z]$' or t ~ '^[\u0391-\u03a1\u03a3-\u03a9\u03b1-\u03c9\u03d1\u03d5\u03d6\u03f1\u03f5]$'
     or t ~ '^\\(alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|omicron|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega)$'
 $$;
--- One numeral or one name (T-6): a numeral may run to several digits, since `/` delimits it.
+-- One numeral or one name (T-6): a numeral may run to several digits, since `/` delimits it, and carry a sign, a
+-- signed numeral being one numeral (`\frac{-37}{2}` is `-37/2`).
 create function p3.tex_one_name(t text) returns boolean language sql immutable strict as $$
-  select t ~ '^[0-9]+([.][0-9]+)?$' or tex_one_token(t => t)
+  select t ~ '^-?[0-9]+([.][0-9]+)?$' or tex_one_token(t => t)
 $$;
 -- TeX's reading of one macro argument from `i`: white space skipped, then a balanced brace group (a backslash escaping
 -- the character after it), or a control word or symbol, or one character. Where it ends (the place after it) and its
@@ -416,7 +417,8 @@ create function p3.tex_place(ends_at integer, fraction text, pos integer, s text
 declare head text := left(s, pos - 1); tail text := substr(s, ends_at); kept text := regexp_replace(head, '[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$', '');
   before text := right(kept, 1); after text := left(regexp_replace(tail, '^[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ''), 1); numeral integer;
 begin
-  if before ~ '^[0-9]$' then
+  -- A mixed number's fraction is unsigned: a signed one after a digit is parenthesised whole, below.
+  if before ~ '^[0-9]$' and left(fraction, 1) <> '-' then
     numeral := integer_numeral_start(last => char_length(kept), s => s);
     if numeral is not null and term_starts_at(at => numeral, s => s) then return kept || ' ' || fraction || tail; end if;
   end if;
@@ -499,7 +501,9 @@ begin
   return kept;
 end $$;
 -- One pass: T-1 escapes; T-2 presentation commands (\left and \right with the white space after them, \, \: \; \!
--- deleted, \quad, \qquad, `\ ` and `~` a space, the zero-width characters U+200B-U+200D, U+2060, U+FEFF deleted); T-3
+-- deleted but for a run of them right after a command and before a letter, one space, since a space terminates a
+-- control word (`\times\,c` is `\times c`, never the command `\timesc`); \quad, \qquad, `\ ` and `~` a space; the
+-- zero-width characters U+200B-U+200D, U+2060, U+FEFF deleted); T-3
 -- synonyms (⋅ and ∙ as `*`, √ as `\sqrt`, `=>` `=<` `\gt` `\lt`, the relation, π, ², ³, degree and prime symbols among
 -- them); T-4 unwrapping (\textrm, \operatorname and \mbox among them), innermost first; T-9 empty templates; T-5
 -- arguments; T-7 spacing; T-6 fractions (the vulgar fraction characters first), placed by tex_place; T-8 answer
@@ -510,7 +514,7 @@ declare t text := s;
 begin
   t := replace(replace(replace(t, '\\', '\'), '\%', '%'), '\$', '$');
   t := regexp_replace(t, '\\(?:left|right)(?![A-Za-z])[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]*', '', 'g');
-  t := regexp_replace(t, '\\[,:;!]', '', 'g');
+  t := regexp_replace(regexp_replace(t, '(\\[A-Za-z]+)(?:\\[,:;!])+(?=[A-Za-z])', '\1 ', 'g'), '\\[,:;!]', '', 'g');
   t := replace(replace(regexp_replace(t, '\\(?:qquad|quad)(?![A-Za-z])', ' ', 'g'), '\ ', ' '), '~', ' ');
   t := regexp_replace(t, '[\u200b-\u200d\u2060\ufeff]', '', 'g');
   t := regexp_replace(t, '\\(?:dfrac|tfrac)(?![A-Za-z])', '\\frac', 'g');
