@@ -42,7 +42,7 @@ import { redactedInteractionsIn } from "#plate/model/interactions.ts";
 import type { ResponseValue } from "#plate/model/values.ts";
 import { carriesRendererClass } from "#plate/vocabulary.ts";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
-import { floorOf, plotKindOf } from "#plate/interactions/plot-roles.ts";
+import { bankCaptionKeyOf, floorOf, plotKindOf } from "#plate/interactions/plot-roles.ts";
 import type { Statistic } from "#plate/interactions/plot-roles.ts";
 import { sizeOf } from "#plate/ui/graphic/size.ts";
 import { graphicKeys } from "#plate/ui/graphic/labels.ts";
@@ -196,7 +196,7 @@ export const island = (
 
   return (
     <GraphicGapMatch
-      caption={bankCaptionOf(context)}
+      caption={bankCaptionOf(context, bankCaptionKeyOf(context.className, node.choices.length))}
       gapChoices={node.choices.map((choice, index) => ({
         ...associableOf(choice, { count: node.choices.length, n: index + 1 }, "phrasing", context),
         ...plotChoiceOf(choice),
@@ -283,7 +283,12 @@ export const review = (
       <PromptPart prompt={prompt} />
       <div data-slot="plate-placement">
         <div data-slot="plate-placement-dock">
-          <BankCaption caption={bankCaptionOf(context)} />
+          <BankCaption
+            caption={bankCaptionOf(
+              context,
+              bankCaptionKeyOf(context.className, node.choices.length),
+            )}
+          />
           <div data-slot="plate-placement-bank">
             {node.choices.map((choice) =>
               bankChipPart(

@@ -59,6 +59,37 @@ export const plotKindOf = (classes: Option.Option<string>): PlotKind => {
 };
 
 /**
+ * The message a Graphic Gap Match's bank is captioned by where the host asks for a caption
+ * (`bankCaption`), as AlphaTest's player captioned the bank it drew, by what the bank's choices go
+ * on: a graph, whose root carries `plate-lattice` (its hotspots tiling its plot) or asks for a
+ * plot, takes the values a child places on it, `bankCaptionValue`, "DRAG & DROP THE VALUE", for one
+ * choice and `bankCaptionValues`, "DRAG & DROP THE VALUES", for more, as AlphaTest's number line
+ * said (mastery-track-player 941a86a, `GraphicGapMatchInteraction.tsx` lines 561 and 752, where its
+ * one value was named in the plural only beside a passage); a picture takes the answer,
+ * `bankCaption`, "DRAG & DROP THE ANSWER", as its gap match said (`GapMatchInteraction.tsx` lines
+ * 1277 and 1512) (edullm-bd, 2026-11-22).
+ */
+export type BankCaptionKey = "bankCaption" | "bankCaptionValue" | "bankCaptionValues";
+
+/**
+ * Give the message a Graphic Gap Match's bank is captioned by ({@link BankCaptionKey}).
+ *
+ * @param classes The class the root carries, none when it carries none.
+ * @param choices How many gap choices the bank holds.
+ * @returns The caption's message.
+ */
+export const bankCaptionKeyOf = (
+  classes: Option.Option<string>,
+  choices: number,
+): BankCaptionKey => {
+  if (floorOf(classes) === "enhanced" && plotKindOf(classes) === "plain") {
+    return "bankCaption";
+  }
+
+  return choices === 1 ? "bankCaptionValue" : "bankCaptionValues";
+};
+
+/**
  * The five statistics of a box plot, in the order its axis shows them.
  */
 export const statistics = ["min", "q1", "median", "q3", "max"] as const;

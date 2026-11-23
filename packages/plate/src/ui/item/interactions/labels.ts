@@ -26,6 +26,7 @@ import { bodyAttributeOf } from "#plate/model/attributes.ts";
 import type { BodyAttribute, Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import type { Prompt, PromptContent } from "#plate/ui/prompt.tsx";
 import type { ChoiceInteraction } from "#plate/interactions/choice.ts";
+import type { BankCaptionKey } from "#plate/interactions/plot-roles.ts";
 import type { ExtendedTextInteraction } from "#plate/interactions/extended-text.ts";
 import type { InlineChoiceInteraction } from "#plate/interactions/inline-choice.ts";
 import type { TextEntryInteraction } from "#plate/interactions/text-entry.ts";
@@ -488,11 +489,15 @@ export const classRootOf = (context: Pick<IslandContext, "className">): ClassRoo
 
 /**
  * Give a Gap Match's or a Graphic Gap Match's bank its caption where the host asks for one
- * (`bankCaption`): AlphaTest's "DRAG & DROP THE ANSWER", the island's and the review's alike.
+ * (`bankCaption`), the island's and the review's alike: a Gap Match's AlphaTest's "DRAG & DROP THE
+ * ANSWER", and a Graphic Gap Match's by what its choices go on (`bankCaptionKeyOf` in
+ * `#plate/interactions/plot-roles.ts`).
  *
  * @param context What the shell knows: the host's `bankCaption` and the locale.
+ * @param key The caption's message.
  * @returns The caption, or undefined where the host asks for none.
  */
 export const bankCaptionOf = (
   context: Pick<IslandContext, "bankCaption" | "locale">,
-): string | undefined => (context.bankCaption ? message(context.locale, "bankCaption") : undefined);
+  key: BankCaptionKey,
+): string | undefined => (context.bankCaption ? message(context.locale, key) : undefined);

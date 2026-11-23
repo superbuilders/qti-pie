@@ -83,6 +83,66 @@ export const walkLattice = (subject: LatticeSubject): string | undefined => {
 };
 
 /**
+ * The caption's choice the bank caption's walk calls: plate's own, or a mutant copy's.
+ */
+export interface BankCaptionSubject {
+  readonly bankCaptionKeyOf: (classes: Option.Option<string>, choices: number) => string;
+  readonly some: (value: string) => Option.Option<string>;
+  readonly none: Option.Option<string>;
+}
+
+/**
+ * The root classes the bank caption's walk reads, each with whether the rule calls the stage a
+ * graph: `plate-lattice` as a token, or exactly one plot class as a token, the five plate draws.
+ */
+const captionClasses: readonly (readonly [string | undefined, boolean])[] = [
+  [undefined, false],
+  ["", false],
+  ["qti-unselected-hidden", false],
+  ["plate-lattices", false],
+  ["Plate-Lattice", false],
+  ["plate-lattice", true],
+  ["qti-selections-dark	plate-lattice", true],
+  ["plate-number-line-graph", true],
+  ["plate-graph-line", true],
+  ["plate-graph-segment", true],
+  ["plate-box-plot", true],
+  ["plate-dot-plot", true],
+  ["plate-lattice plate-number-line-graph", true],
+  ["plate-graph-line plate-box-plot", false],
+  ["plate-lattice plate-graph-line plate-box-plot", true],
+  ["xplate-dot-plot", false],
+];
+
+/**
+ * Walk the bank caption's cases, every class above with every count of choices from 0 to 4, and
+ * give the first disagreement with the rule: a graph's bank says "VALUE" for one choice and
+ * "VALUES" for any other count, and a picture's says "ANSWER" (`bankCaptionKeyOf` in
+ * `#plate/interactions/plot-roles.ts`).
+ *
+ * @param subject The program's modules.
+ * @returns The disagreement, undefined where every case agrees.
+ */
+export const walkBankCaption = (subject: BankCaptionSubject): string | undefined => {
+  for (const [classes, graph] of captionClasses) {
+    for (let choices = 0; choices <= 4; choices += 1) {
+      const said = subject.bankCaptionKeyOf(
+        classes === undefined ? subject.none : subject.some(classes),
+        choices,
+      );
+      const value = choices === 1 ? "bankCaptionValue" : "bankCaptionValues";
+      const rule = graph ? value : "bankCaption";
+
+      if (said !== rule) {
+        return `the class ${JSON.stringify(classes)} with ${String(choices)} choices says ${said}`;
+      }
+    }
+  }
+
+  return undefined;
+};
+
+/**
  * A figure as the rules give it, in the image's pixels, rounded to a thousandth so floating
  * error never decides a comparison, its two ends sorted for a line or a whisker, whose direction
  * means nothing.

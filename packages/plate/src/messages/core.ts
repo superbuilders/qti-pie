@@ -44,7 +44,9 @@
  * described by `picksEliminated`. A Gap Match's and a Graphic Gap Match's bank whose host asks for
  * it (`bankCaption`) is captioned `bankCaption`, AlphaTest's player's words over its bank, written
  * in capitals as it wrote them (mastery-track-player 941a86a, `GapMatchInteraction.tsx` lines 1277
- * and 1512).
+ * and 1512), and a graph's `bankCaptionValue` for one choice and `bankCaptionValues` for more, as
+ * its number line wrote them (`GraphicGapMatchInteraction.tsx` lines 561 and 752;
+ * `bankCaptionKeyOf` in `#plate/interactions/plot-roles.ts`).
  *
  * Match, Gap Match and Order refuse a response past their own limits with the `match…`,
  * `gapMatch…` and `order…` keys that name a choice, a gap or a pair by its identifier (`{choice}`,
@@ -61,6 +63,8 @@ export const coreMessages = {
   atMostOneString: "Enter at most 1 answer.",
   atMostStrings: "Enter at most {n} answers.",
   bankCaption: "DRAG & DROP THE ANSWER",
+  bankCaptionValue: "DRAG & DROP THE VALUE",
+  bankCaptionValues: "DRAG & DROP THE VALUES",
   choiceLimit: "You can choose up to {n}. Take one back to choose another.",
   choiceOf: "Choice {n} of {count}",
   feedbackWhy: "Why",
