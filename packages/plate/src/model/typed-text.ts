@@ -2,23 +2,35 @@
  * The one reading of the text a child types into a box, a Text Entry's `input` or one of an
  * Extended Text's `textarea`s, as a value of the response it writes, and the one writing of a value
  * back into a box: what the typed islands derive their responses from (`#plate/ui/typed.ts`), so a
- * box's text is the child's, exactly as typed, and the value is a function of it.
+ * box's text is the child's, exactly as typed, and the value is a function of it. It renders
+ * nothing and loads no browser API, so `@qti-pie/plate` exports it for server code that reads a
+ * typed text as a page does: {@link typedResponseOf} a response from its boxes' texts, the islands'
+ * own, and {@link readTyped} and {@link readRecord} one box's.
  *
  * A box writes a `string`, an `integer` in the interaction's `base`, a `float`, or, for a record
  * response, the record QTI gives a string interaction's text (information model 2.4.2.2, spec
  * reading 191). Text that is no value of its base type, `abc` or a bare `-` in an integer box, is
- * {@link Unread}: no response can carry it, so the island holds it as typed and its response posts
- * none of it.
+ * {@link UnreadReason}: no response can carry it, so the island holds it as typed and its response
+ * posts none of it.
  *
  * @module
  */
 import { Array, Option, Result } from "effect";
-import { format, isXmlText, parseLexical, trimXmlSpace } from "#plate/model/values.ts";
+import type { Typed } from "#plate/held.ts";
+import {
+  format,
+  isXmlText,
+  nullOf,
+  nullRecord,
+  parseLexical,
+  trimXmlSpace,
+} from "#plate/model/values.ts";
 import type {
   Declared,
   RecordDeclared,
   RecordField,
   RecordValue,
+  ResponseValue,
   Single,
 } from "#plate/model/values.ts";
 
@@ -58,7 +70,7 @@ export type TypedDeclared = Declared<TypedReading["baseType"]> | RecordDeclared;
  * lone surrogate, so no result could hold it; `number`, an `integer` box's text is no integer in
  * its base or a `float` box's no finite decimal.
  */
-export type Unread = "character" | "number";
+export type UnreadReason = "character" | "number";
 
 /**
  * Read the text a typed number holds: the text with its outer XML white space shed, as XSD's
@@ -179,7 +191,7 @@ const readInteger = (text: string, base: number): Option.Option<bigint> => {
  *
  * @returns `number`.
  */
-const notANumber = (): Unread => "number";
+const notANumber = (): UnreadReason => "number";
 
 /**
  * Read one box's text as a value of its base type.
@@ -201,7 +213,7 @@ const notANumber = (): Unread => "number";
 export const readTyped = (
   text: string,
   reading: TypedReading,
-): Result.Result<Option.Option<Single>, Unread> => {
+): Result.Result<Option.Option<Single>, UnreadReason> => {
   if (!isXmlText(text)) {
     return Result.fail("character");
   }
@@ -333,7 +345,7 @@ const numberFields = (text: string): readonly RecordField[] => {
 export const readRecord = (
   text: string,
   blankIsEmpty: boolean,
-): Result.Result<RecordValue, Unread> =>
+): Result.Result<RecordValue, UnreadReason> =>
   readTyped(text, { base: 10, baseType: "string", blankIsEmpty }).pipe(
     Result.map((stringValue): RecordValue => ({
       cardinality: "record",
@@ -362,4 +374,79 @@ export const typedText = (
   }
 
   return format(single);
+};
+
+/**
+ * How a box's text stands in its response: `write` makes the text the value holds from the text a
+ * box shows, `read` the text a box shows from the one a value holds, each the other's inverse on
+ * what `write` makes. A Text Entry's and a plain or preformatted Extended Text's is {@link asTyped};
+ * an `xhtml` Extended Text's writes the XHTML its conventions make of the text
+ * (`#plate/interactions/xhtml-text.ts`).
+ */
+export interface Written {
+  readonly write: (text: string) => string;
+  readonly read: (posted: string) => string;
+}
+
+/**
+ * Typed text as a value holds it: the text itself.
+ */
+export const asTyped: Written = { read: (posted) => posted, write: (text) => text };
+
+/**
+ * Read a typed response from its boxes' texts, as the typed islands do on every keystroke: each box
+ * whose text is an answer ({@link typedLexical}), in the boxes' order, written into the response
+ * ({@link Written}) and read by {@link readTyped}, a record from its one box by {@link readRecord}.
+ * A box whose text is no value of its base type leaves the response unread, its value NULL, since
+ * the screen holds no value of its type, and the host refuses an answer until the child changes it
+ * (`answerOf` in `#plate/held.ts`).
+ *
+ * A Text Entry reads its box with its `base`, its response's base type (`string` for a record), and
+ * `blankIsEmpty` true, its text being plain; an Extended Text with `blankIsEmpty` true but for an
+ * `xhtml` one (QTI's `TextFormatEnum`, SV-DESIGN-05).
+ *
+ * @example
+ *   typedResponseOf(
+ *     ["24 lb"],
+ *     { cardinality: "record", identifier: "RESPONSE" },
+ *     { base: 10, baseType: "string", blankIsEmpty: true },
+ *     asTyped,
+ *   );
+ *   // [{ texts: ["24 lb"], unread: false }, a record holding stringValue "24 lb" alone]
+ *
+ * @param texts The boxes' texts, as typed, empty boxes included.
+ * @param declared The response's declaration.
+ * @param reading How a box's text is read.
+ * @param written How a box's text stands in its response.
+ * @returns The boxes the state holds, and the value read from them.
+ */
+export const typedResponseOf = (
+  texts: readonly string[],
+  declared: TypedDeclared,
+  reading: TypedReading,
+  written: Written,
+): readonly [typed: Typed, value: ResponseValue] => {
+  const answers = texts
+    .filter((text) => Option.isSome(typedLexical(text, reading)))
+    .map(written.write);
+  if (declared.cardinality === "record") {
+    const [text = ""] = answers;
+
+    return Result.match(readRecord(text, reading.blankIsEmpty), {
+      onFailure: () => [{ texts, unread: true }, nullRecord],
+      onSuccess: (value) => [{ texts, unread: false }, value],
+    });
+  }
+
+  return Result.match(Result.all(answers.map((text) => readTyped(text, reading))), {
+    onFailure: () => [{ texts, unread: true }, nullOf(declared.baseType, declared.cardinality)],
+    onSuccess: (singles) => [
+      { texts, unread: false },
+      {
+        baseType: declared.baseType,
+        cardinality: declared.cardinality,
+        values: Array.getSomes(singles),
+      },
+    ],
+  });
 };

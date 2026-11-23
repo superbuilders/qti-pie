@@ -14,13 +14,13 @@
  *
  * @module
  */
-import { Array as Arr, Option, Result } from "effect";
+import { Option, Result } from "effect";
 import { useMemo, useState } from "react";
 import { compile, matches } from "#plate/model/regex.ts";
 import type { Matcher } from "#plate/model/regex.ts";
-import { readRecord, readTyped, typedLexical, typedText } from "#plate/model/typed-text.ts";
-import type { TypedDeclared, TypedReading } from "#plate/model/typed-text.ts";
-import { format, isRecordValue, nullOf, nullRecord } from "#plate/model/values.ts";
+import { readTyped, typedLexical, typedResponseOf, typedText } from "#plate/model/typed-text.ts";
+import type { TypedDeclared, TypedReading, Written } from "#plate/model/typed-text.ts";
+import { format, isRecordValue } from "#plate/model/values.ts";
 import type { ResponseValue, Single } from "#plate/model/values.ts";
 import type { Typed } from "#plate/held.ts";
 import { useTypedResponse } from "#plate/ui/responses.tsx";
@@ -151,21 +151,6 @@ const withBox = (boxes: Boxes, index: number, change: (box: Box) => Box): Boxes 
 };
 
 /**
- * How a box's text stands in its response: `write` makes the text the value holds from the text a
- * box shows, `read` the text a box shows from the one a value holds, each the other's inverse on
- * what `write` makes.
- */
-export interface Written {
-  readonly write: (text: string) => string;
-  readonly read: (posted: string) => string;
-}
-
-/**
- * Typed text as a value holds it: the text itself.
- */
-export const asTyped: Written = { read: (posted) => posted, write: (text) => text };
-
-/**
  * Give the texts a value shows in its boxes before the child types: a record's `stringValue`, the
  * text it was typed as, and each single of any other value written back as a box shows it, an
  * integer in the interaction's `base` ({@link typedText}).
@@ -185,50 +170,6 @@ const textsOf = (value: ResponseValue, reading: TypedReading, written: Written):
       ? [written.read(typedText(single, reading.base))]
       : [],
   );
-};
-
-/**
- * Read a typed response from its boxes' texts: each box whose text is an answer ({@link posts}), in
- * order, read by plate's one reading of typed text, a record from its one box. A box whose text is
- * no value of its base type leaves the response unread, its value NULL, since the screen holds no
- * value of its type.
- *
- * @param texts The boxes' texts, as typed.
- * @param declared The response's declaration.
- * @param reading How a box's text is read.
- * @param written How a box's text stands in its response.
- * @returns The boxes the state holds, and the value read from them.
- */
-const readBoxes = (
-  texts: readonly string[],
-  declared: TypedDeclared,
-  reading: TypedReading,
-  written: Written,
-): readonly [typed: Typed, value: ResponseValue] => {
-  const answers = texts.filter((text) => posts(text, reading)).map(written.write);
-  if (declared.cardinality === "record") {
-    const [text = ""] = answers;
-    const record = readRecord(text, reading.blankIsEmpty);
-
-    return Result.match(record, {
-      onFailure: () => [{ texts, unread: true }, nullRecord],
-      onSuccess: (value) => [{ texts, unread: false }, value],
-    });
-  }
-
-  const reads = Result.all(answers.map((text) => readTyped(text, reading)));
-
-  return Result.match(reads, {
-    onFailure: () => [{ texts, unread: true }, nullOf(declared.baseType, declared.cardinality)],
-    onSuccess: (singles) => [
-      { texts, unread: false },
-      {
-        baseType: declared.baseType,
-        cardinality: declared.cardinality,
-        values: Arr.getSomes(singles),
-      },
-    ],
-  });
 };
 
 /**
@@ -256,12 +197,12 @@ const layoutOf = (
  * every change, and say which boxes show their hint.
  *
  * The state holds every box's text as typed, empty boxes among them, and the value read from the
- * texts that are answers, in the boxes' order ({@link readBoxes}): a box the child empties is no
- * answer, and the boxes after it keep their places. When the state changes from outside, the host
- * restoring a save or starting the item afresh, the boxes are laid out again from what it holds,
- * and none shows its hint. That is detected while rendering, by the state holding another `Typed`
- * or value than the one last laid out or written; the same render shows the new layout and stores
- * it, so no frame shows the old text.
+ * texts that are answers, in the boxes' order (`typedResponseOf` in `#plate/model/typed-text.ts`):
+ * a box the child empties is no answer, and the boxes after it keep their places. When the state
+ * changes from outside, the host restoring a save or starting the item afresh, the boxes are laid
+ * out again from what it holds, and none shows its hint. That is detected while rendering, by the
+ * state holding another `Typed` or value than the one last laid out or written; the same render
+ * shows the new layout and stores it, so no frame shows the old text.
  *
  * A box's hint waits for the child to finish: it shows once the box loses focus holding text that
  * fails the `pattern-mask`, so a child typing `12` toward `123` sees nothing after the `1`. It
@@ -315,7 +256,7 @@ export const useBoxes = (options: {
       flagged: box.flagged && failing(text),
       text,
     }));
-    const [typed, value] = readBoxes(
+    const [typed, value] = typedResponseOf(
       boxes.map((box) => box.text),
       declared,
       reading,

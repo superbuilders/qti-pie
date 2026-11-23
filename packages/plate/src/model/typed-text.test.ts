@@ -9,8 +9,14 @@
  */
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option, Result } from "effect";
-import { readRecord, readTyped, typedText } from "#plate/model/typed-text.ts";
-import type { TypedReading, Unread } from "#plate/model/typed-text.ts";
+import {
+  asTyped,
+  readRecord,
+  readTyped,
+  typedResponseOf,
+  typedText,
+} from "#plate/model/typed-text.ts";
+import type { TypedReading, UnreadReason } from "#plate/model/typed-text.ts";
 import type { RecordField, RecordValue, Single } from "#plate/model/values.ts";
 import { growthFactor, growthLimit, growthRatio } from "#plate/test/growth.ts";
 
@@ -35,8 +41,10 @@ const reading = (
  * @param how How it is read.
  * @returns The value, none for no answer.
  */
-const read = (text: string, how: TypedReading): Effect.Effect<Option.Option<Single>, Unread> =>
-  Effect.fromResult(readTyped(text, how));
+const read = (
+  text: string,
+  how: TypedReading,
+): Effect.Effect<Option.Option<Single>, UnreadReason> => Effect.fromResult(readTyped(text, how));
 
 /**
  * Give why a box's text is unread, none when it reads.
@@ -45,7 +53,7 @@ const read = (text: string, how: TypedReading): Effect.Effect<Option.Option<Sing
  * @param how How it is read.
  * @returns The reason, or none.
  */
-const unreadOf = (text: string, how: TypedReading): Option.Option<Unread> =>
+const unreadOf = (text: string, how: TypedReading): Option.Option<UnreadReason> =>
   Result.getFailure(readTyped(text, how));
 
 /**
@@ -145,7 +153,7 @@ const fieldOf = (value: RecordValue, name: string): Option.Option<Single> =>
  * @param text The box's text.
  * @returns The record.
  */
-const recordOf = (text: string): Effect.Effect<RecordValue, Unread> =>
+const recordOf = (text: string): Effect.Effect<RecordValue, UnreadReason> =>
   Effect.fromResult(readRecord(text, false));
 
 /**
@@ -650,5 +658,80 @@ describe("readRecord", () => {
       Result.getFailure(readRecord("1\u0001", false)),
       Option.some("character"),
     );
+  });
+});
+
+describe("typedResponseOf", () => {
+  it("reads a record box as the record of its text, numbers' fields given only where the text is a number (reading 191)", () => {
+    const declared = { cardinality: "record", identifier: "RESPONSE" } as const;
+    const plain = reading("string", 10, true);
+
+    assert.deepStrictEqual(typedResponseOf(["24 lb"], declared, plain, asTyped), [
+      { texts: ["24 lb"], unread: false },
+      record(field("stringValue", stringOf("24 lb"))),
+    ]);
+    assert.deepStrictEqual(typedResponseOf(["24"], declared, plain, asTyped), [
+      { texts: ["24"], unread: false },
+      numberRecord("24", {
+        floatValue: 24,
+        integerValue: 24n,
+        leftDigits: 2n,
+        ndp: 0n,
+        nsf: 2n,
+        rightDigits: 0n,
+      }),
+    ]);
+    assert.deepStrictEqual(typedResponseOf(["  "], declared, plain, asTyped), [
+      { texts: ["  "], unread: false },
+      record(),
+    ]);
+  });
+
+  it("leaves a whole-number box holding abc unread, its value NULL, and reads its digits in its base", () => {
+    const declared = {
+      baseType: "integer",
+      cardinality: "single",
+      identifier: "RESPONSE",
+    } as const;
+
+    assert.deepStrictEqual(typedResponseOf(["abc"], declared, reading("integer"), asTyped), [
+      { texts: ["abc"], unread: true },
+      { baseType: "integer", cardinality: "single", values: [] },
+    ]);
+    assert.deepStrictEqual(typedResponseOf(["ff"], declared, reading("integer", 16), asTyped), [
+      { texts: ["ff"], unread: false },
+      { baseType: "integer", cardinality: "single", values: [integer(255n)] },
+    ]);
+  });
+
+  it("holds every box's text and reads the answers in the boxes' order, a blank box of plain text no answer (TextFormatEnum)", () => {
+    const declared = {
+      baseType: "string",
+      cardinality: "ordered",
+      identifier: "RESPONSE",
+    } as const;
+    const texts = ["b", "", " \t ", "a"];
+
+    assert.deepStrictEqual(typedResponseOf(texts, declared, reading("string", 10, true), asTyped), [
+      { texts, unread: false },
+      { baseType: "string", cardinality: "ordered", values: [stringOf("b"), stringOf("a")] },
+    ]);
+  });
+
+  it("judges whether a box is an answer by the text it shows, and reads the text it writes", () => {
+    const declared = {
+      baseType: "string",
+      cardinality: "multiple",
+      identifier: "RESPONSE",
+    } as const;
+    const wrapped = {
+      read: (posted: string) => posted.slice(3, -4),
+      write: (text: string) => `<p>${text}</p>`,
+    };
+
+    assert.deepStrictEqual(typedResponseOf(["", "x"], declared, reading("string"), wrapped), [
+      { texts: ["", "x"], unread: false },
+      { baseType: "string", cardinality: "multiple", values: [stringOf("<p>x</p>")] },
+    ]);
   });
 });

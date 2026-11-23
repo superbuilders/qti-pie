@@ -18,7 +18,9 @@
  * `xs:double` as plate reads every one. The QTI database admits or refuses the answers in the
  * statement that grades them, and `refusalMessages` words a refused answer's reasons for its page.
  * `textOfXhtml` reads an `xhtml` Extended Text's value back as the text its box shows, the text the
- * QTI database matches its `pattern-mask` against (reading 244).
+ * QTI database matches its `pattern-mask` against (reading 244). `typedResponseOf` reads a typed
+ * response from its boxes' texts as a Text Entry's and an Extended Text's islands do, by
+ * `readTyped` and `readRecord`, one box's reading, so server code reads typed text as a page does.
  * `restore` reads a record's shown values back, and `solution` gives the item's correct responses
  * as its interactions show them. `assetPaths` names the package files an item body's URL attribute
  * names. `Supports` is the accessibility supports a host enables for one candidate, `<Item>`'s
@@ -75,6 +77,15 @@ export { textOfXhtml } from "#plate/interactions/xhtml-text.ts";
 export { collapseXmlSpace } from "#plate/model/attributes.ts";
 
 export type { CompletionStatus } from "#plate/model/built-ins.ts";
+
+export { asTyped, readRecord, readTyped, typedResponseOf } from "#plate/model/typed-text.ts";
+
+export type {
+  TypedDeclared,
+  TypedReading,
+  UnreadReason,
+  Written,
+} from "#plate/model/typed-text.ts";
 
 export type { ItemRecord, Showing } from "#plate/model/record.ts";
 

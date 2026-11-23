@@ -23,7 +23,8 @@ import { digitsOf } from "#plate/ui/text-entry/digits.ts";
 import { faces, keypadOf, pressed } from "#plate/ui/text-entry/keypad.ts";
 import type { Key } from "#plate/ui/text-entry/keypad.ts";
 import type { textEntryKeys } from "#plate/ui/text-entry/labels.ts";
-import { asTyped, inputModeOf, useBoxes } from "#plate/ui/typed.ts";
+import { asTyped } from "#plate/model/typed-text.ts";
+import { inputModeOf, useBoxes } from "#plate/ui/typed.ts";
 import type { BoxCounts, TypedDeclared, TypedReading } from "#plate/ui/typed.ts";
 
 /**

@@ -27,8 +27,10 @@ import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
-import { asTyped, inputModeOf, useBoxes } from "#plate/ui/typed.ts";
-import type { BoxCounts, TypedDeclared, Written } from "#plate/ui/typed.ts";
+import { asTyped } from "#plate/model/typed-text.ts";
+import type { Written } from "#plate/model/typed-text.ts";
+import { inputModeOf, useBoxes } from "#plate/ui/typed.ts";
+import type { BoxCounts, TypedDeclared } from "#plate/ui/typed.ts";
 import { textOfXhtml, xhtmlOfText } from "#plate/interactions/xhtml-text.ts";
 
 /**

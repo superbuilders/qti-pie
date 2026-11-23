@@ -20,7 +20,8 @@ import type { MathfieldElement } from "mathlive";
 import { useEffect, useEffectEvent, useRef } from "react";
 import { fieldSettings, keyboardLayout, setUpField } from "#plate/math-entry/field.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
-import { asTyped, useBoxes } from "#plate/ui/typed.ts";
+import { asTyped } from "#plate/model/typed-text.ts";
+import { useBoxes } from "#plate/ui/typed.ts";
 import type { BoxCounts, TypedDeclared, TypedReading } from "#plate/ui/typed.ts";
 
 /**
