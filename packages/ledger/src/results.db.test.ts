@@ -1329,14 +1329,10 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
     yield* db.workload.begin.once({
       facts: {
         insert: {
-          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: ESSAY, stage }]),
-          SessionSeed: rowsOf("SessionSeed", [
-            { child, package: PACKAGE, path: ESSAY, seed: SEED, stage },
-          ]),
           StageControl: rowsOf("StageControl", [{ child, stage, ...directControl }]),
         },
       },
-      params: key,
+      params: { child, package: PACKAGE, path: ESSAY, seed: SEED, stage },
     });
     yield* db.workload.facts.once({
       facts: {
@@ -1607,14 +1603,10 @@ const holdTake = (c: TakeCase, child: string, note: (situation: TakeSituation) =
     const taken = yield* db.workload.begin.once({
       facts: {
         insert: {
-          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: TAKE, stage }]),
-          SessionSeed: rowsOf("SessionSeed", [
-            { child, package: PACKAGE, path: TAKE, seed: seedOf(c.seed), stage },
-          ]),
           StageControl: rowsOf("StageControl", [{ child, stage, ...directControl }]),
         },
       },
-      params: { child, n: 0n, package: PACKAGE, path: TAKE },
+      params: { child, package: PACKAGE, path: TAKE, seed: seedOf(c.seed), stage },
     });
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the take writes what its run set`);
 
@@ -1762,14 +1754,10 @@ const holdOperators = (
     yield* db.workload.begin.once({
       facts: {
         insert: {
-          ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: OPERATORS, stage }]),
-          SessionSeed: rowsOf("SessionSeed", [
-            { child, package: PACKAGE, path: OPERATORS, seed: SEED, stage },
-          ]),
           StageControl: rowsOf("StageControl", [{ child, stage, ...directControl }]),
         },
       },
-      params: key,
+      params: { child, package: PACKAGE, path: OPERATORS, seed: SEED, stage },
     });
     yield* db.workload.facts.once({
       facts: {
@@ -1853,16 +1841,12 @@ const holdDrawCase = (c: DrawCase, child: string, note: (situation: DrawSituatio
         yield* db.workload.begin.once({
           facts: {
             insert: {
-              ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path, stage }]),
-              SessionSeed: rowsOf("SessionSeed", [
-                { child, package: PACKAGE, path, seed: SEED, stage },
-              ]),
               StageControl: rowsOf("StageControl", [
                 { child, stage, ...directControl, maxAttempts: BigInt(drawAttempts) },
               ]),
             },
           },
-          params: key,
+          params: { child, package: PACKAGE, path, seed: SEED, stage },
         });
       }
 
@@ -3330,14 +3314,10 @@ const holdShowing = (c: ShowingCase, child: string, note: (situation: ShowingSit
       const begun = yield* db.workload.begin.once({
         facts: {
           insert: {
-            ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: c.path, stage }]),
-            SessionSeed: rowsOf("SessionSeed", [
-              { child, package: PACKAGE, path: c.path, seed: SEED, stage },
-            ]),
             StageControl: rowsOf("StageControl", [{ child, stage, ...c.control }]),
           },
         },
-        params: key,
+        params: { child, package: PACKAGE, path: c.path, seed: SEED, stage },
       });
       assert.strictEqual(begun.kind, "accepted", `${c.name}: the item stage, begun`);
       yield* checkpoint(0);
@@ -3971,6 +3951,93 @@ const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSitu
     }
   });
 
+/**
+ * A guarded take's case: a fresh child's take of the untimed test through the test runtime's own
+ * take bound as an application binds it, its `taken` guarded by the child's unended sittings of the
+ * test (`takeGuarded`), once, or twice.
+ */
+type GuardedTakeCase = Readonly<{ again: boolean; name: string }>;
+
+const guardedTakeCases = [
+  { again: false, name: "a first take" },
+  { again: true, name: "a take, then another of the same test" },
+] as const satisfies readonly GuardedTakeCase[];
+
+const guardedTakeSpace: Gen<GuardedTakeCase> = element(guardedTakeCases);
+
+/**
+ * The situations the guarded take's space must reach.
+ */
+const guardedTakeSituations = [
+  "a first take: every member's item session begins with its start",
+  "a take again: the child's unended sitting guards it, and it writes nothing",
+] as const;
+
+type GuardedTakeSituation = (typeof guardedTakeSituations)[number];
+
+/**
+ * One guarded take: the take writes the sitting's test session, each member's item session, its
+ * template processing's values and the record each begins with in one stratum, reading its
+ * `taken` once, so the guard `taken` states holds for every write of it, though the sitting it
+ * writes makes the guard false: each member's item session holds its start record ("Start of every
+ * session"), its `completionStatus` at least; a second take of the same test, its guard now false,
+ * writes nothing.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdGuardedTake = (
+  c: GuardedTakeCase,
+  child: string,
+  note: (situation: GuardedTakeSituation) => void,
+) =>
+  Effect.gen(function* hold() {
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const take = (stage: bigint) =>
+      db.workload.takeGuarded.once({
+        facts: {},
+        params: { child, package: PACKAGE, path: UNTIMED_TEST, seed: DECISION, stage },
+      });
+    const sessions = Effect.map(
+      db.workload.sessionsOf.once({ facts: {}, params: { child } }),
+      (rows) =>
+        Arr.sort(
+          Arr.fromIterable(rows).map(({ path }) => path),
+          Order.String,
+        ),
+    );
+
+    const first = yield* take(1n);
+    assert.strictEqual(first.kind, "accepted", `${c.name}: the first take`);
+
+    const taken = yield* sessions;
+    assert.deepStrictEqual<unknown>(taken, [OTHER, SHORT], `${c.name}: an item session per member`);
+
+    const started = Arr.sort(
+      Arr.fromIterable(
+        yield* db.workload.startsOf.once({ facts: {}, params: { child, package: PACKAGE } }),
+      )
+        .filter(({ variable }) => variable === "completionStatus")
+        .map(({ path }) => path),
+      Order.String,
+    );
+    assert.deepStrictEqual<unknown>(
+      started,
+      taken,
+      `${c.name}: every member's item session begins with its start, its completionStatus among it`,
+    );
+    note("a first take: every member's item session begins with its start");
+
+    if (c.again) {
+      const again = yield* take(2n);
+      assert.strictEqual(again.kind, "unchanged", `${c.name}: the second take, guarded`);
+      assert.deepStrictEqual<unknown>(yield* sessions, taken, `${c.name}: no item session added`);
+      note("a take again: the child's unended sitting guards it, and it writes nothing");
+    }
+  });
+
 describe.skipIf(Option.isNone(migrations))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
@@ -4431,6 +4498,43 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the showings held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "takes a test's sitting whose taken sittings the application guards, every write of it under the guard read once",
+          (ctx) =>
+            Effect.gen(function* holdEveryGuardedTake() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "a guarded take of the untimed test, once and twice, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<GuardedTakeSituation>(guardedTakeSituations),
+                    generator: guardedTakeSpace,
+                    literal: (c: GuardedTakeCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "the take writes what its taken named when it began: an item session in the initial state per member (§2.2.1), each with its start record (Start of every session); the application's guard decides only whether it takes",
+                    },
+                    suite: "ledger/results/guarded-take",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdGuardedTake(row, `user_ledgerguard${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the guarded takes held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
       },

@@ -15,7 +15,9 @@ import {
  * gradeArgumentsOf's and memberValuesOf's text, are derived from it as before. The ledger states
  * its subject sittings as the `sittings` relation parameter { child, stage } everywhere (the
  * lead's ledger shape, GRADING-SQL's ruling (B)); its heading is `sittingHeading`
- * (`#ledger/sitting-queries.ts`).
+ * (`#ledger/sitting-queries.ts`). The take's builders (TAKEN) state theirs as the item sessions
+ * the take writes in their stratum, the `takenSessions` relation parameter of SessionSeed's
+ * heading, since no read of a stratum sees what it writes.
  *
  * Over the builders TARGETS names:
  *
@@ -44,6 +46,12 @@ const TARGETS = [
   "takeArgumentsOf",
   "takeValuesOf",
 ] as const;
+
+/**
+ * The target builders whose key is the taken sessions, the take's `takenSessions` relation
+ * parameter, not the call's sittings.
+ */
+const TAKEN: ReadonlySet<string> = new Set(["takeArgumentsOf", "takeValuesOf"]);
 
 /**
  * A rule's body: its parameter's name, and the indices of the braces that open and close it.
@@ -226,13 +234,18 @@ const literal = (text: string): string => text.replaceAll(/[\\^$.*+?()[\]{}|/]/g
 
 /**
  * Each key fragment and what it becomes: the graded sitting's (gradeArgumentsOf's,
- * attemptArgumentsOf's, gradeAttemptOf's and the take's), the test run's sitting (testTreeOf's
- * and memberValuesOf's), and a test member's answered key and its rule form (admission's).
+ * attemptArgumentsOf's and gradeAttemptOf's, and the take's taken sessions), the test run's
+ * sitting (testTreeOf's and memberValuesOf's), and a test member's answered key and its rule form
+ * (admission's).
  *
  * @param fragment The generator's fragments.
+ * @param name The builder's name.
  * @returns The fragments' patterns and replacements.
  */
-const keyFragments = (fragment: Fragments): readonly (readonly [RegExp, string])[] => [
+const keyFragments = (
+  fragment: Fragments,
+  name: string,
+): readonly (readonly [RegExp, string])[] => [
   [
     new RegExp(
       `${literal("  /**\n   * The graded sitting: the call's `child` and `stage`")}[\\s\\S]*?\\*/${literal(`
@@ -250,7 +263,7 @@ const keyFragments = (fragment: Fragments): readonly (readonly [RegExp, string])
 `)}`,
       "gu",
     ),
-    fragment("sittings/graded-sitting"),
+    fragment(TAKEN.has(name) ? "sittings/taken-sessions" : "sittings/graded-sitting"),
   ],
   [
     new RegExp(
@@ -358,7 +371,7 @@ const wordPattern = (word: string, flags: string): RegExp => new RegExp(`\\b${wo
 const withSittingsKey = (source: string, name: string, fragment: Fragments): string => {
   let fragments = 0;
   let t = source;
-  for (const [pattern, by] of keyFragments(fragment)) {
+  for (const [pattern, by] of keyFragments(fragment, name)) {
     fragments += matchesOf(t, pattern).length;
     t = t.replaceAll(pattern, () => by);
   }

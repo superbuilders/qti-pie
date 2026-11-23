@@ -37,6 +37,7 @@ const FRAGMENTS = [
   "members/test-tree-and-member-values",
   "sittings/graded-sitting",
   "sittings/sittings-in",
+  "sittings/taken-sessions",
   "take/arguments-head",
   "take/roots",
   "take/runs",

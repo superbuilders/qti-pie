@@ -6,9 +6,10 @@
  *
  * - `take` { taken }: each sitting the application's decision made (`taken`, its key, its test and
  *   its decision's seed), its test session, and an item session "in the initial state for all items
- *   at the start of the test" (§2.2.1) per member with the seed its processing draws under; then
- *   the template processing of each (`#ledger/grade.ts` takeValuesOf). The application binds
- *   `taken` to its query of what its decision wrote, in the stratum after it
+ *   at the start of the test" (§2.2.1) per member with the seed its processing draws under, and
+ *   beside them the template processing of each and the record it begins with (`#ledger/grade.ts`
+ *   takeValuesOf), all in one stratum, so `taken` is read once. The application binds `taken` to
+ *   its query of what its decision wrote, in the stratum after it, its guard in that query
  *   (`ChangeSet.sequence(appDecide, take.bind({ taken: appTaken }))`).
  * - `enterTest` { sittings }: the sitting's next candidate session (§2.2.1), its `k` the count of the
  *   sessions before it, presenting the first member at the start and, on a resumption, the member
@@ -275,24 +276,36 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * The take, in two strata. First, each sitting of `taken` (the rows the application binds it to,
-   * read once in the statement): its test session, and per member of its test an item session in
-   * the initial state (§2.2.1: "item sessions are created in the initial state for all items at the
-   * start of the test"), at its next place, with the seed its template and response processing draw
-   * under (`SessionSeed`, the machine's `processing_seed`) from its decision's seed and the item's
-   * identifier. Then the template processing of each item session it made, as stored
-   * (`#ledger/grade.ts` takeValuesOf), over the same sittings. The take writes what `taken` names:
-   * the application's guard (no unended sitting of the test for the child,
-   * `#ledger/sitting-queries.ts` unendedSittingsOf) is in the query it binds `taken` to, one
-   * evaluation for every member that reads it.
+   * The take, in one stratum, so every write of it reads `taken` once, in one statement: each
+   * sitting of `taken` (the rows the application binds it to), its test session, and per member of
+   * its test an item session in the initial state (§2.2.1: "item sessions are created in the
+   * initial state for all items at the start of the test"), at its next place, with the seed its
+   * template and response processing draw under (`SessionSeed`, the machine's `processing_seed`)
+   * from its decision's seed and the item's identifier; beside them, in the same statement, the
+   * template processing of each and the record each begins with (`#ledger/grade.ts` takeValuesOf),
+   * over the same members ({@link takenMembers}), so nothing the take writes is read back by it.
+   * The application's guard (no unended sitting of the test for the child, `#ledger/results.ts`
+   * UnendedSitting) is in the query it binds `taken` to, and holds for every write of the take.
    */
-  const takenSittings = query(delivery).rule((r) => {
+  const takenMembers = query(delivery).rule((r) => {
     const taken = r.relation("taken", takenHeading);
-    const { child, stage } = v(taken, "takenSitting");
+    const { child, stage, package: pkg, path: test, seed: decision } = v(taken, "takenSitting");
+    const { document } = v(f.TestMember, "takenMember");
+    const { value: identifier } = v(f.ObjectIdentifier, "takenItem");
 
-    return r.match(taken, { child, stage }).find({ child, stage });
+    return r
+      .match(taken, { child, package: pkg, path: test, seed: decision, stage })
+      .match(f.TestMember, { document, package: pkg, path: test })
+      .match(f.ObjectIdentifier, { package: pkg, path: document, value: identifier })
+      .find({
+        child,
+        package: pkg,
+        path: document,
+        seed: Fn.call(processingSeed, { decision, identifier, package: pkg }),
+        stage,
+      });
   });
-  const take = ChangeSet.sequence(
+  const take = ChangeSet.union(
     ChangeSet.empty(delivery)
       .insert(
         f.TestSession,
@@ -308,44 +321,26 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
       .insert(
         f.ItemSession,
         query(delivery).rule((r) => {
-          const taken = r.relation("taken", takenHeading);
-          const { child, stage, package: pkg, path: test } = v(taken, "takenSitting");
-          const { document } = v(f.TestMember, "takenMember");
+          const members = takenMembers.bind({ taken: r.relation("taken", takenHeading) });
+          const { child, stage, package: pkg, path } = v(members, "takenSession");
 
           return r
-            .match(taken, { child, package: pkg, path: test, stage })
-            .match(f.TestMember, { document, package: pkg, path: test })
-            .find({ child, package: pkg, path: document, stage });
+            .match(members, { child, package: pkg, path, stage })
+            .find({ child, package: pkg, path, stage });
         }),
       )
       .insert(
         f.SessionSeed,
         query(delivery).rule((r) => {
-          const taken = r.relation("taken", takenHeading);
-          const {
-            child,
-            stage,
-            package: pkg,
-            path: test,
-            seed: decision,
-          } = v(taken, "seededSitting");
-          const { document } = v(f.TestMember, "seededMember");
-          const { value: identifier } = v(f.ObjectIdentifier, "seededItem");
+          const members = takenMembers.bind({ taken: r.relation("taken", takenHeading) });
+          const { child, stage, package: pkg, path, seed } = v(members, "seededSession");
 
           return r
-            .match(taken, { child, package: pkg, path: test, seed: decision, stage })
-            .match(f.TestMember, { document, package: pkg, path: test })
-            .match(f.ObjectIdentifier, { package: pkg, path: document, value: identifier })
-            .find({
-              child,
-              package: pkg,
-              path: document,
-              seed: Fn.call(processingSeed, { decision, identifier, package: pkg }),
-              stage,
-            });
+            .match(members, { child, package: pkg, path, seed, stage })
+            .find({ child, package: pkg, path, seed, stage });
         }),
       ),
-    takeValuesOf(delivery).bind({ sittings: takenSittings }),
+    takeValuesOf(delivery).bind({ takenSessions: takenMembers }),
   );
 
   /**

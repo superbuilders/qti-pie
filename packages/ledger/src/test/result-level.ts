@@ -16,11 +16,12 @@
  * ledger's own evaluator write (`recordEvaluations`, `evaluationProgramsOf`) and a person's value
  * through its own person's-value write (`evaluate`, `personValueOf`'s `recordValue` over the call's
  * `scorer`), each grading and settling the attempt's sitting in its own transaction; begins every
- * item stage's session as an application's decision does (`begin`: its item session and seed as
- * host rows, then `takeValuesOf` over the session's sitting, in one transaction, so what template
- * processing set and the record it begins with are the machine's), reading both what the take
+ * item stage's session as an application's decision does (`begin`: its item session and seed, the
+ * session the call names, and `takeValuesOf` over it, in one stratum, so what template processing
+ * set and the record it begins with are the machine's), reading both what the take
  * stored and the machine's own run of it (`templateProcessingOf` over `takeArgumentsOf`); takes a
- * test's sitting through the test runtime's own take (`takeSitting`), writes an attempt of a member
+ * test's sitting through the test runtime's own take (`takeSitting`, and `takeGuarded` under the
+ * guard an application states in its `taken`), writes an attempt of a member
  * as host rows (`sittingFacts`), then enters, presents in, saves in, answers in, beacons in (on the
  * database's clock, and at a reading the call gives), pauses (a beacon, then a suspension, in one
  * transaction), suspends and ends it through the test runtime's own programs (`sittingProgramsOf`),
@@ -140,14 +141,17 @@ const {
   Presence,
   PresentTime,
   ProcessedAttempt,
+  SessionSeed,
   SnapshotMultipleIdentifier,
   SnapshotSingleBoolean,
   SnapshotSingleFloat,
   SnapshotSingleIdentifier,
   SnapshotSingleString,
+  StartVariable,
   TestBudget,
   TestSession,
   TestVisit,
+  UnendedSitting,
 } = ResultLevel.relations;
 
 /**
@@ -240,15 +244,42 @@ const firstBudget = ChangeSet.empty(ResultLevel).insert(
 const sessionSitting = sittingOfSessionOf(ResultLevel);
 
 /**
- * An item stage's session, begun as an application's decision begins one (edullm's decideStage):
- * its item session, the seed its processing draws under and the control its stage states, as host
- * rows, then its take (`takeValuesOf`, over the sitting of the session the call names) in the
- * stratum after them, so what its template processing set and the record it begins with are the
- * machine's, in one transaction, as "Start of every session" and "Item stage control" hold.
+ * The item stage's session a call names, by its key, its stage and the seed its processing draws
+ * under, as an application's decision makes one: what {@link begin} writes and takes.
  */
-const begin = ChangeSet.sequence(
-  ChangeSet.empty(ResultLevel).insertAll({ ItemSession: [], SessionSeed: [], StageControl: [] }),
-  takeValuesOf(ResultLevel).bind({ sittings: sessionSitting }),
+const namedSession = query(ResultLevel).rule((r) =>
+  r.find({
+    child: r.param("child", LearnerId),
+    package: r.param("package", ItemSession.fields.package),
+    path: r.param("path", ItemSession.fields.path),
+    seed: r.param("seed", SessionSeed.fields.seed),
+    stage: r.param("stage", ItemSession.fields.stage),
+  }),
+);
+
+/**
+ * An item stage's session, begun as an application's decision begins one (edullm's decideStage),
+ * in one stratum: its item session and the seed its processing draws under ({@link namedSession}),
+ * the control its stage states as host rows, and its take (`takeValuesOf`) over the same session,
+ * so what its template processing set and the record it begins with are the machine's, as "Start
+ * of every session" and "Item stage control" hold.
+ */
+const begin = ChangeSet.union(
+  ChangeSet.empty(ResultLevel)
+    .insert(
+      ItemSession,
+      query(ResultLevel).rule((r) =>
+        r.find({
+          child: r.param("child", LearnerId),
+          package: r.param("package", ItemSession.fields.package),
+          path: r.param("path", ItemSession.fields.path),
+          stage: r.param("stage", ItemSession.fields.stage),
+        }),
+      ),
+    )
+    .insert(SessionSeed, namedSession)
+    .insertAll({ StageControl: [] }),
+  takeValuesOf(ResultLevel).bind({ takenSessions: namedSession }),
 );
 
 /**
@@ -266,6 +297,29 @@ const namedTaken = query(ResultLevel).rule((r) =>
 );
 
 /**
+ * The sitting a call names as {@link namedTaken} does, only where the child holds no unended sitting
+ * of the test (`UnendedSitting`): the guard an application states in the query it binds `taken` to,
+ * as edullm's QTI app (`appTaken`) and metis (`ownTaken`) do, which the sitting the take writes
+ * makes false.
+ */
+const guardedTaken = query(ResultLevel).rule((r) => {
+  const child = r.param("child", takenHeading.child);
+  const pkg = r.param("package", takenHeading.package);
+  const path = r.param("path", takenHeading.path);
+
+  return r
+    .match(DeliveredTest, { package: pkg, path })
+    .where(r.not(UnendedSitting, { child, package: pkg, path }))
+    .find({
+      child,
+      package: pkg,
+      path,
+      seed: r.param("seed", takenHeading.seed),
+      stage: r.param("stage", takenHeading.stage),
+    });
+});
+
+/**
  * The machine's own run of the template processing of the call's `sittings` (`sittingHeading`),
  * over takeArgumentsOf's readers bound to them as the take binds them, the registry's tables
  * unbound as the take passes them: what the take's stored values are held to
@@ -275,12 +329,28 @@ const namedTaken = query(ResultLevel).rule((r) =>
 const takeArguments = takeArgumentsOf(ResultLevel);
 
 /**
+ * The item sessions of the call's `sittings`, each with the seed its processing draws under, as the
+ * take stored them: what the machine's own run of their template processing is given, as the take
+ * gave its run the sessions it wrote.
+ */
+const storedSessions = query(ResultLevel).rule((r) => {
+  const sittings = r.relation("sittings", sittingHeading);
+  const { child, stage } = v(sittings, "storedSitting");
+  const { package: pkg, path, seed } = v(SessionSeed, "storedSeed");
+
+  return r
+    .match(sittings, { child, stage })
+    .match(SessionSeed, { child, package: pkg, path, seed, stage })
+    .find({ child, package: pkg, path, seed, stage });
+});
+
+/**
  * The run's integer values once it ends, by holder, each keyed to the call's sitting by its run key
  * (child and stage, with package and path): the template variable's drawn value among them.
  */
 const takeRunIntegersOf = query(ResultLevel).rule((r) => {
   const sittings = r.relation("sittings", sittingHeading);
-  const sitting = { sittings };
+  const sitting = { takenSessions: storedSessions.bind({ sittings }) };
   const run = Fn.row(templateProcessingOf, {
     bases: takeArguments.bases.bind(sitting),
     booleans: takeArguments.booleans.bind(sitting),
@@ -809,6 +879,24 @@ const savesOf = query(ResultLevel)
   .attach("saves", savedRowsOf(ResultLevel), "array");
 
 /**
+ * The child's item sessions' start records (`StartVariable`), each variable by its session's
+ * sitting and item.
+ */
+const startsOf = query(ResultLevel).rule((r) => {
+  const { stage, path, variable } = v(StartVariable, "start");
+
+  return r
+    .match(StartVariable, {
+      child: r.param("child", LearnerId),
+      package: r.param("package", StartVariable.fields.package),
+      path,
+      stage,
+      variable,
+    })
+    .find({ path, stage, variable });
+});
+
+/**
  * The tests of the call's package this runtime delivers (`DeliveredTest`), by their path.
  */
 const deliveredTestsOf = query(ResultLevel).rule((r) => {
@@ -872,8 +960,10 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       snapshotIdentifierBagsOf,
       snapshotIdentifiersOf,
       snapshotStringsOf,
+      startsOf,
       statusesOf,
       suspendTest: sittingPrograms.suspendTest.bind({ sittings: namedSitting }),
+      takeGuarded: sittingPrograms.take.bind({ taken: guardedTaken }),
       takeRunIntegersOf,
       takeSitting: sittingPrograms.take.bind({ taken: namedTaken }),
       takenHeadersOf,

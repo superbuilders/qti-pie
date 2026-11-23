@@ -359,7 +359,7 @@ export const ledgerLaws = {
   },
   "Start of every session": {
     source:
-      "src/ledger.ts StartVariable: every item session begins with its start, which its take writes in the stratum after its values; the start holds completionStatus, so every session has a header",
+      "src/ledger.ts StartVariable: every item session begins with its start, which its take writes beside its values, in one stratum; the start holds completionStatus, so every session has a header",
   },
   "Start of its session": {
     source:

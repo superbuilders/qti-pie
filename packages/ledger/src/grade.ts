@@ -34239,66 +34239,63 @@ export const memberValuesOf = (delivery: DeliveryLevel) => {
 
 /**
  * The arguments of template processing at the take (QTI 3.0.1 §2.2.1: "item sessions are created in
- * the initial state ... template processing"), each a query over the call's sitting, whose item
- * sessions the take's stratum before wrote: each session's item's template processing, its
- * declarations and its run (its SessionSeed's seed, under the item's templateLabel), and the values
- * the run is given, gradeArgumentsOf's readers over the session's attempts and what its template
- * processing set, of which a session its take just wrote holds none: so the run starts every
- * variable at its declared default and is given no response.
+ * the initial state ... template processing"), each a query over the call's taken sessions, the
+ * item sessions the take writes in the same stratum: each session's item's template processing, its
+ * declarations and its run (its seed, under the item's templateLabel), and the values the run is
+ * given, gradeArgumentsOf's readers over the session's attempts and what its template processing
+ * set, of which the state before the take's stratum holds none: so the run starts every variable at
+ * its declared default and is given no response.
  */
 export const takeArgumentsOf = (delivery: DeliveryLevel) => {
   const fields = delivery.relations;
 
   /**
-   * The graded sittings: the call's `sittings` relation parameter (`#ledger/sitting-queries.ts`
-   * sittingHeading), which a program binds once, to its caller's sittings. Every item session of a
-   * sitting whose earliest attempt its response processing has not run for is graded, all in one
-   * evaluation: an item's stage serves one session (the app's decideStage), a test's one per member
-   * (qti-pie's takeMembers).
+   * The taken sessions: the call's `takenSessions` relation parameter, of SessionSeed's heading,
+   * which a program binds once, to the item sessions it takes in the same stratum, each by its key
+   * with the seed its template and response processing draw under: an item stage's one session (the
+   * app's decideStage), a test's one per member (qti-pie's take). Every read of a stratum sees the
+   * state before it, so the take reads its sessions from the parameter, never from what it writes.
    */
-  const gradedSitting = sittingHeading;
+  const gradedSitting = fields.SessionSeed;
 
   /**
-   * A query over the graded sittings, bound in the rule that reads it to the call's own `sittings`.
+   * A query over the taken sessions, bound in the rule that reads it to the call's own
+   * `takenSessions`.
    */
   const bySession = (r: Rule<DeliveryLevel>) => ({
-    sittings: r.relation("sittings", gradedSitting),
+    takenSessions: r.relation("takenSessions", gradedSitting),
   });
 
   /**
-   * The taken item sessions: each of the call's sitting's, which the take's stratum before wrote
-   * (an item stage's one session, the app's decideStage; a test's one per member, qti-pie's take).
+   * The taken item sessions: the call's `takenSessions`, each by its key and the seed its template
+   * and response processing draw under, the item sessions the take writes in this stratum (an item
+   * stage's one session, the app's decideStage; a test's one per member, qti-pie's take).
    */
   const takenOf = query(delivery).rule((r) => {
-    const sittings = r.relation("sittings", sittingHeading);
-    const { child: sittingChild, stage: sittingStage } = v(sittings, "subjectSitting");
-    const { package: pkg, path, n } = v(fields.ItemSession, "taken");
+    const sessions = r.relation("takenSessions", gradedSitting);
+    const { child, package: pkg, path, seed, stage } = v(sessions, "taken");
 
     return r
-      .match(sittings, { child: sittingChild, stage: sittingStage })
-      .match(fields.ItemSession, {
-        child: sittingChild,
-        n,
-        package: pkg,
-        path,
-        stage: sittingStage,
-      })
-      .find({ child: sittingChild, n, package: pkg, path, stage: sittingStage });
+      .match(sessions, { child, package: pkg, path, seed, stage })
+      .find({ child, package: pkg, path, seed, stage });
   });
   const boundTakenIn = (r: Rule<DeliveryLevel>) => takenOf.bind(bySession(r));
 
   /**
    * The taken sessions' attempts, whose values gradeArgumentsOf's readers give a run, each with its
-   * session's stage, the run key's: a session its take wrote in the stratum before holds none.
+   * session's stage, the run key's: every read of the take's stratum sees the state before it,
+   * which holds no session the take writes, so none.
    */
   const gradableOf = query(delivery).rule((r) => {
     const boundTaken = boundTakenIn(r);
     const taken = boundTaken;
-    const { child, package: pkg, path, n, stage } = v(taken, "taken");
+    const { child, package: pkg, path, stage } = v(taken, "taken");
+    const { n } = v(fields.ItemSession, "session");
     const { at } = v(fields.Attempt, "attempt");
 
     return r
-      .match(taken, { child, n, package: pkg, path, stage })
+      .match(taken, { child, package: pkg, path, stage })
+      .match(fields.ItemSession, { child, n, package: pkg, path, stage })
       .match(fields.Attempt, { at, child, n, package: pkg, path })
       .find({ at, child, n, package: pkg, path, stage });
   });
@@ -34503,19 +34500,18 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
 
   /**
    * Each taken session's run: its key (child, package, path, stage), the seed its template and
-   * response processing draw under (SessionSeed, its take's), and the label template processing's
-   * draws are made under, by the item's identifier (templateLabel).
+   * response processing draw under (its `takenSessions` row's, which its SessionSeed holds), and
+   * the label template processing's draws are made under, by the item's identifier
+   * (templateLabel).
    */
   const runsOf = query(delivery).rule((r) => {
     const boundTaken = boundTakenIn(r);
     const taken = boundTaken;
-    const { child, package: pkg, path, stage } = v(taken, "taken");
-    const { seed } = v(fields.SessionSeed, "seed");
+    const { child, package: pkg, path, seed, stage } = v(taken, "taken");
     const { value: identifier } = v(fields.ObjectIdentifier, "item");
 
     return r
-      .match(taken, { child, package: pkg, path, stage })
-      .match(fields.SessionSeed, { child, package: pkg, path, seed, stage })
+      .match(taken, { child, package: pkg, path, seed, stage })
       .match(fields.ObjectIdentifier, { package: pkg, path, value: identifier })
       .find({
         child,
@@ -40192,46 +40188,51 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
 };
 
 /**
- * Template processing at the take, in a stratum after the one that writes the taken item sessions
- * (decideStage's, qti-pie's take's): the machine's one run of every taken session's item's template
- * processing (`templateProcessingOf` over takeArgumentsOf), and what it set, as the run reports it,
- * an entry only where its value is not identical to the one the run began with: each template
- * variable's value (kind `template`, `qti-set-template-value`), each response's correct response
- * (kind `correct`, `qti-set-correct-response`) and each response's and outcome's default (kind
- * `default`, `qti-set-default-value`), each row by the ledger's laws on ItemSessionValue
- * (`settable`). A value set to NULL over a non-NULL one is its header with no value row. Nothing
- * declared is copied: a declared value is the content's, and response processing layers the
- * session's set values over it. Each value is in the sidecar of its cardinality and base type. A
- * record has no session sidecar, so nothing of a record is written.
+ * Template processing at the take, in the stratum that writes the taken item sessions
+ * (decideStage's, qti-pie's take's), over the call's `takenSessions`: the machine's one run of
+ * every taken session's item's template processing (`templateProcessingOf` over takeArgumentsOf),
+ * and what it set, as the run reports it, an entry only where its value is not identical to the one
+ * the run began with: each template variable's value (kind `template`, `qti-set-template-value`),
+ * each response's correct response (kind `correct`, `qti-set-correct-response`) and each response's
+ * and outcome's default (kind `default`, `qti-set-default-value`), each row by the ledger's laws on
+ * ItemSessionValue (`settable`). A value set to NULL over a non-NULL one is its header with no
+ * value row. Nothing declared is copied: a declared value is the content's, and response processing
+ * layers the session's set values over it. Each value is in the sidecar of its cardinality and base
+ * type. A record has no session sidecar, so nothing of a record is written. Beside them, in the
+ * same stratum, the record each session begins with (the Start family): the machine's run of its
+ * start, given what the template run set as the take stores it, since no read of the stratum sees
+ * what it writes.
  */
 export const takeValuesOf = (delivery: DeliveryLevel) => {
   const fields = delivery.relations;
 
   /**
-   * The graded sittings: the call's `sittings` relation parameter (`#ledger/sitting-queries.ts`
-   * sittingHeading), which a program binds once, to its caller's sittings. Every item session of a
-   * sitting whose earliest attempt its response processing has not run for is graded, all in one
-   * evaluation: an item's stage serves one session (the app's decideStage), a test's one per member
-   * (qti-pie's takeMembers).
+   * The taken sessions: the call's `takenSessions` relation parameter, of SessionSeed's heading,
+   * which a program binds once, to the item sessions it takes in the same stratum, each by its key
+   * with the seed its template and response processing draw under: an item stage's one session (the
+   * app's decideStage), a test's one per member (qti-pie's take). Every read of a stratum sees the
+   * state before it, so the take reads its sessions from the parameter, never from what it writes.
    */
-  const gradedSitting = sittingHeading;
+  const gradedSitting = fields.SessionSeed;
 
   /**
-   * A query over the graded sittings, bound in the rule that reads it to the call's own `sittings`.
+   * A query over the taken sessions, bound in the rule that reads it to the call's own
+   * `takenSessions`.
    */
   const bySession = (r: Rule<DeliveryLevel>) => ({
-    sittings: r.relation("sittings", gradedSitting),
+    takenSessions: r.relation("takenSessions", gradedSitting),
   });
 
   /**
-   * The arguments of the take's run, bound to the call's sitting.
+   * The arguments of the take's run, bound to the call's taken sessions.
    */
   const args = takeArgumentsOf(delivery);
   const boundTakenIn = (r: Rule<DeliveryLevel>) => args.taken.bind(bySession(r));
 
   /**
    * The machine's run of the taken sessions' template processing: one call, every argument a query
-   * over the sitting's key, so every insert below reads one evaluation of it.
+   * over the taken sessions, so every insert below and the start's readers read one evaluation of
+   * it.
    */
   const runIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(templateProcessingOf, {
@@ -45540,3170 +45541,678 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * Each value the session's template processing set, held as the rule that set it says, with its
-   * kind and cardinality.
+   * Each value the template run set, held as the rule that set it says, with its kind and
+   * cardinality.
    */
   const startVarsOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable } = v(fields.ItemSessionValue, "startSetValue");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "startSetDeclared");
-      const { token: card } = v(fields.CardinalityToken, "startSetCard");
-      const { token: kind } = v(fields.VariableKindToken, "startSetKind");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValue, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          variable,
-        })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "value"),
-          identifier: Type.cast(variable, DocVar.fields.identifier),
-          kind,
-          package: pkg,
-          path,
-          stage,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
+        .find({ card, child, holds, identifier, kind, package: pkg, path, stage });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable } = v(fields.ItemSessionValue, "startSetValue");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "startSetDeclared");
-      const { token: card } = v(fields.CardinalityToken, "startSetCard");
-      const { token: kind } = v(fields.VariableKindToken, "startSetKind");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValue, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          variable,
-        })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocVar.fields.identifier),
-          kind,
-          package: pkg,
-          path,
-          stage,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
+        .find({ card, child, holds, identifier, kind, package: pkg, path, stage });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable } = v(fields.ItemSessionValue, "startSetValue");
-      const { cardinality, declarationKind } = v(fields.ItemSessionVariable, "startSetDeclared");
-      const { token: card } = v(fields.CardinalityToken, "startSetCard");
-      const { token: kind } = v(fields.VariableKindToken, "startSetKind");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValue, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          variable,
-        })
-        .match(fields.ItemSessionVariable, {
-          cardinality,
-          declarationKind,
-          identifier: variable,
-          package: pkg,
-          path,
-        })
-        .match(fields.CardinalityToken, { cardinality, token: card })
-        .match(fields.VariableKindToken, { declarationKind, token: kind })
-        .find({
-          card,
-          child,
-          holds: Type.literal(DocVar.fields.holds, "default"),
-          identifier: Type.cast(variable, DocVar.fields.identifier),
-          kind,
-          package: pkg,
-          path,
-          stage,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
+        .find({ card, child, holds, identifier, kind, package: pkg, path, stage });
     });
 
   /**
-   * The taken session's values that cross as `doc_texts`: what its template processing set.
+   * The template run's values that cross as `doc_texts`, of what it set.
    */
   const startTextsOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { base, place, value } = v(run.texts, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleIdentifier, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.texts, {
+          base,
           child,
-          kind: "template",
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           stage,
           value,
-          variable,
         })
-        .find({
-          base: Type.literal(DocText.fields.base, "identifier"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
+        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { base, place, value } = v(run.texts, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleIdentifier, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.texts, {
+          base,
           child,
-          kind: "correct",
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           stage,
           value,
-          variable,
         })
-        .find({
-          base: Type.literal(DocText.fields.base, "identifier"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
+        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleIdentifier, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { base, place, value } = v(run.texts, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleIdentifier, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.texts, {
+          base,
           child,
-          kind: "default",
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           stage,
           value,
-          variable,
         })
-        .find({
-          base: Type.literal(DocText.fields.base, "identifier"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleIdentifier,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleIdentifier, {
-          child,
-          count,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "identifier"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleIdentifier,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleIdentifier, {
-          child,
-          count,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "identifier"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleIdentifier,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleIdentifier, {
-          child,
-          count,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "identifier"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(
-        fields.ItemSessionValueOrderedIdentifier,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedIdentifier, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "identifier"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(
-        fields.ItemSessionValueOrderedIdentifier,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedIdentifier, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "identifier"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(
-        fields.ItemSessionValueOrderedIdentifier,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedIdentifier, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "identifier"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleString, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleString, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "string"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleString, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleString, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "string"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleString, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleString, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "string"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleString, {
-          child,
-          count,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "string"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleString, {
-          child,
-          count,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "string"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(fields.ItemSessionValueMultipleString, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleString, {
-          child,
-          count,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "string"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedString, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "string"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedString, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "string"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedString, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedString, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "string"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleUri, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleUri, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "uri"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleUri, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleUri, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "uri"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleUri, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleUri, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "uri"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleUri, {
-          child,
-          count,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "uri"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleUri, {
-          child,
-          count,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "uri"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(fields.ItemSessionValueMultipleUri, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleUri, {
-          child,
-          count,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "uri"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedUri, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "uri"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedUri, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "uri"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedUri, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedUri, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "uri"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
+        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
-   * The taken session's values that cross as `doc_integers`: what its template processing set.
+   * The template run's values that cross as `doc_integers`, of what it set.
    */
   const startIntegersOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleInteger, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, value } = v(run.integers, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleInteger, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.integers, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
+        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleInteger, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, value } = v(run.integers, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleInteger, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.integers, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
+        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleInteger, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, value } = v(run.integers, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleInteger, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleInteger,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleInteger, {
-          child,
-          count,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleInteger,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleInteger, {
-          child,
-          count,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleInteger,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleInteger, {
-          child,
-          count,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedInteger, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedInteger, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedInteger, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedInteger, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.integers, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
+        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
-   * The taken session's values that cross as `doc_floats`: what its template processing set.
+   * The template run's values that cross as `doc_floats`, of what it set.
    */
   const startFloatsOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleFloat, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { base, place, value } = v(run.floats, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFloat, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.floats, {
+          base,
           child,
-          kind: "template",
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           stage,
           value,
-          variable,
         })
-        .find({
-          base: Type.literal(DocText.fields.base, "float"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
+        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleFloat, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { base, place, value } = v(run.floats, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFloat, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.floats, {
+          base,
           child,
-          kind: "correct",
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           stage,
           value,
-          variable,
         })
-        .find({
-          base: Type.literal(DocText.fields.base, "float"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
+        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleFloat, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { base, place, value } = v(run.floats, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFloat, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.floats, {
+          base,
           child,
-          kind: "default",
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           stage,
           value,
-          variable,
         })
-        .find({
-          base: Type.literal(DocText.fields.base, "float"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFloat, {
-          child,
-          count,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "float"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFloat, {
-          child,
-          count,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "float"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(fields.ItemSessionValueMultipleFloat, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFloat, {
-          child,
-          count,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "float"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFloat, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "float"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFloat, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "float"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedFloat, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFloat, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "float"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleDuration, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleDuration, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "duration"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleDuration, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleDuration, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "duration"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleDuration, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleDuration, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "duration"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleDuration,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleDuration, {
-          child,
-          count,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "duration"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleDuration,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleDuration, {
-          child,
-          count,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "duration"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleDuration,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleDuration, {
-          child,
-          count,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          base: Type.literal(DocText.fields.base, "duration"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(
-        fields.ItemSessionValueOrderedDuration,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedDuration, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "duration"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(
-        fields.ItemSessionValueOrderedDuration,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedDuration, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "duration"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(
-        fields.ItemSessionValueOrderedDuration,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedDuration, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          base: Type.literal(DocText.fields.base, "duration"),
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
+        .find({ base, child, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
-   * The taken session's values that cross as `doc_booleans`: what its template processing set.
+   * The template run's values that cross as `doc_booleans`, of what it set.
    */
   const startBooleansOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, value } = v(run.booleans, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleBoolean, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.booleans, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
+        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, value } = v(run.booleans, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleBoolean, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.booleans, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
+        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value } = v(fields.ItemSessionValueSingleBoolean, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, value } = v(run.booleans, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleBoolean, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleBoolean,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleBoolean, {
-          child,
-          count,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleBoolean,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleBoolean, {
-          child,
-          count,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, count } = v(
-        fields.ItemSessionValueMultipleBoolean,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleBoolean, {
-          child,
-          count,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedBoolean, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedBoolean, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, value, place } = v(fields.ItemSessionValueOrderedBoolean, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedBoolean, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          value,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.booleans, { child, holds, identifier, package: pkg, path, place, stage, value })
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
+        .find({ child, holds, identifier, package: pkg, path, place, stage, value });
     });
 
   /**
-   * The taken session's values that cross as `doc_pairs`: what its template processing set.
+   * The template run's values that cross as `doc_pairs`, of what it set.
    */
   const startPairsOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, least, greatest } = v(run.pairs, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSinglePair, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.pairs, {
           child,
           greatest,
-          kind: "template",
+          holds,
+          identifier,
           least,
           package: pkg,
           path,
+          place,
           stage,
-          variable,
         })
-        .find({
-          child,
-          greatest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          least,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
+        .find({ child, greatest, holds, identifier, least, package: pkg, path, place, stage });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, least, greatest } = v(run.pairs, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSinglePair, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.pairs, {
           child,
           greatest,
-          kind: "correct",
+          holds,
+          identifier,
           least,
           package: pkg,
           path,
+          place,
           stage,
-          variable,
         })
-        .find({
-          child,
-          greatest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          least,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
+        .find({ child, greatest, holds, identifier, least, package: pkg, path, place, stage });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, least, greatest } = v(fields.ItemSessionValueSinglePair, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, least, greatest } = v(run.pairs, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSinglePair, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.pairs, {
           child,
           greatest,
-          kind: "default",
+          holds,
+          identifier,
           least,
           package: pkg,
           path,
+          place,
           stage,
-          variable,
         })
-        .find({
-          child,
-          greatest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          least,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, least, greatest, count } = v(
-        fields.ItemSessionValueMultiplePair,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultiplePair, {
-          child,
-          count,
-          greatest,
-          kind: "template",
-          least,
-          package: pkg,
-          path,
-          stage,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          greatest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          least,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, least, greatest, count } = v(
-        fields.ItemSessionValueMultiplePair,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultiplePair, {
-          child,
-          count,
-          greatest,
-          kind: "correct",
-          least,
-          package: pkg,
-          path,
-          stage,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          greatest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          least,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, least, greatest, count } = v(
-        fields.ItemSessionValueMultiplePair,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultiplePair, {
-          child,
-          count,
-          greatest,
-          kind: "default",
-          least,
-          package: pkg,
-          path,
-          stage,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          greatest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          least,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, least, greatest, place } = v(
-        fields.ItemSessionValueOrderedPair,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedPair, {
-          child,
-          greatest,
-          kind: "template",
-          least,
-          package: pkg,
-          path,
-          place,
-          stage,
-          variable,
-        })
-        .find({
-          child,
-          greatest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          least,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, least, greatest, place } = v(
-        fields.ItemSessionValueOrderedPair,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedPair, {
-          child,
-          greatest,
-          kind: "correct",
-          least,
-          package: pkg,
-          path,
-          place,
-          stage,
-          variable,
-        })
-        .find({
-          child,
-          greatest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          least,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, least, greatest, place } = v(
-        fields.ItemSessionValueOrderedPair,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedPair, {
-          child,
-          greatest,
-          kind: "default",
-          least,
-          package: pkg,
-          path,
-          place,
-          stage,
-          variable,
-        })
-        .find({
-          child,
-          greatest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          least,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
+        .find({ child, greatest, holds, identifier, least, package: pkg, path, place, stage });
     });
 
   /**
-   * The taken session's values that cross as `doc_directed_pairs`: what its template processing
-   * set.
+   * The template run's values that cross as `doc_directed_pairs`, of what it set.
    */
   const startDirectedPairsOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, source, target } = v(
-        fields.ItemSessionValueSingleDirectedPair,
-        "startHeldValue",
-      );
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, source, target } = v(run.directed_pairs, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleDirectedPair, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.directed_pairs, {
           child,
-          kind: "template",
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           source,
           stage,
           target,
-          variable,
         })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          source,
-          stage,
-          target,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
+        .find({ child, holds, identifier, package: pkg, path, place, source, stage, target });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, source, target } = v(
-        fields.ItemSessionValueSingleDirectedPair,
-        "startHeldValue",
-      );
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, source, target } = v(run.directed_pairs, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleDirectedPair, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.directed_pairs, {
           child,
-          kind: "correct",
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           source,
           stage,
           target,
-          variable,
         })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          source,
-          stage,
-          target,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
+        .find({ child, holds, identifier, package: pkg, path, place, source, stage, target });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, source, target } = v(
-        fields.ItemSessionValueSingleDirectedPair,
-        "startHeldValue",
-      );
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, source, target } = v(run.directed_pairs, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleDirectedPair, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.directed_pairs, {
           child,
-          kind: "default",
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           source,
           stage,
           target,
-          variable,
         })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          source,
-          stage,
-          target,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, source, target, count } = v(
-        fields.ItemSessionValueMultipleDirectedPair,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleDirectedPair, {
-          child,
-          count,
-          kind: "template",
-          package: pkg,
-          path,
-          source,
-          stage,
-          target,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          source,
-          stage,
-          target,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, source, target, count } = v(
-        fields.ItemSessionValueMultipleDirectedPair,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleDirectedPair, {
-          child,
-          count,
-          kind: "correct",
-          package: pkg,
-          path,
-          source,
-          stage,
-          target,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          source,
-          stage,
-          target,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, source, target, count } = v(
-        fields.ItemSessionValueMultipleDirectedPair,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleDirectedPair, {
-          child,
-          count,
-          kind: "default",
-          package: pkg,
-          path,
-          source,
-          stage,
-          target,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          source,
-          stage,
-          target,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, source, target, place } = v(
-        fields.ItemSessionValueOrderedDirectedPair,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedDirectedPair, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          place,
-          source,
-          stage,
-          target,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          source,
-          stage,
-          target,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, source, target, place } = v(
-        fields.ItemSessionValueOrderedDirectedPair,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedDirectedPair, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          place,
-          source,
-          stage,
-          target,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          source,
-          stage,
-          target,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, source, target, place } = v(
-        fields.ItemSessionValueOrderedDirectedPair,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedDirectedPair, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          place,
-          source,
-          stage,
-          target,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          source,
-          stage,
-          target,
-        });
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
+        .find({ child, holds, identifier, package: pkg, path, place, source, stage, target });
     });
 
   /**
-   * The taken session's values that cross as `doc_points`: what its template processing set.
+   * The template run's values that cross as `doc_points`, of what it set.
    */
   const startPointsOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, x, y } = v(run.points, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSinglePoint, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          variable,
-          x,
-          y,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          x,
-          y,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.points, { child, holds, identifier, package: pkg, path, place, stage, x, y })
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
+        .find({ child, holds, identifier, package: pkg, path, place, stage, x, y });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, x, y } = v(run.points, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSinglePoint, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          variable,
-          x,
-          y,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          x,
-          y,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.points, { child, holds, identifier, package: pkg, path, place, stage, x, y })
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
+        .find({ child, holds, identifier, package: pkg, path, place, stage, x, y });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, x, y } = v(fields.ItemSessionValueSinglePoint, "startHeldValue");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, x, y } = v(run.points, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSinglePoint, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          variable,
-          x,
-          y,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-          x,
-          y,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultiplePoint, {
-          child,
-          count,
-          kind: "template",
-          package: pkg,
-          path,
-          stage,
-          variable,
-          x,
-          y,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          x,
-          y,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultiplePoint, {
-          child,
-          count,
-          kind: "correct",
-          package: pkg,
-          path,
-          stage,
-          variable,
-          x,
-          y,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          x,
-          y,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, x, y, count } = v(fields.ItemSessionValueMultiplePoint, "startHeldValue");
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultiplePoint, {
-          child,
-          count,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          variable,
-          x,
-          y,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          x,
-          y,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedPoint, {
-          child,
-          kind: "template",
-          package: pkg,
-          path,
-          place,
-          stage,
-          variable,
-          x,
-          y,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          x,
-          y,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedPoint, {
-          child,
-          kind: "correct",
-          package: pkg,
-          path,
-          place,
-          stage,
-          variable,
-          x,
-          y,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          x,
-          y,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, x, y, place } = v(fields.ItemSessionValueOrderedPoint, "startHeldValue");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedPoint, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          place,
-          stage,
-          variable,
-          x,
-          y,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-          x,
-          y,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.points, { child, holds, identifier, package: pkg, path, place, stage, x, y })
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
+        .find({ child, holds, identifier, package: pkg, path, place, stage, x, y });
     });
 
   /**
-   * The taken session's values that cross as `doc_files`: what its template processing set.
+   * The template run's values that cross as `doc_files`, of what it set.
    */
   const startFilesOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type } = v(
-        fields.ItemSessionValueSingleFile,
-        "startHeldValue",
-      );
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, digest, content_type: type } = v(run.files, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.files, {
           child,
+          content_type: type,
           digest,
-          kind: "template",
-          name,
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           stage,
-          type,
-          variable,
         })
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
         .find({
           child,
           content_type: type,
           digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type } = v(
-        fields.ItemSessionValueSingleFile,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type } = v(
-        fields.ItemSessionValueSingleFile,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
+          holds,
+          identifier,
           package: pkg,
           path,
           place,
@@ -48711,37 +46220,39 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, digest, content_type: type } = v(run.files, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.files, {
           child,
-          count,
+          content_type: type,
           digest,
-          kind: "correct",
-          name,
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           stage,
-          type,
-          variable,
         })
-        .match(copy, { place })
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
         .find({
           child,
           content_type: type,
           digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
+          holds,
+          identifier,
           package: pkg,
           path,
           place,
@@ -48749,142 +46260,39 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
         });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, digest, content_type: type } = v(run.files, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.files, {
           child,
-          count,
+          content_type: type,
           digest,
-          kind: "default",
-          name,
+          holds,
+          identifier,
           package: pkg,
           path,
+          place,
           stage,
-          type,
-          variable,
         })
-        .match(copy, { place })
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
         .find({
           child,
           content_type: type,
           digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          content_type: type,
-          digest,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
+          holds,
+          identifier,
           package: pkg,
           path,
           place,
@@ -48893,329 +46301,77 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
     });
 
   /**
-   * The taken session's values that cross as `doc_file_names`: what its template processing set.
+   * The template run's values that cross as `doc_file_names`, of what it set.
    */
   const startFileNamesOf = query(delivery)
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type } = v(
-        fields.ItemSessionValueSingleFile,
-        "startHeldValue",
-      );
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, name } = v(run.file_names, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.file_names, { child, holds, identifier, name, package: pkg, path, place, stage })
+        .where(r.ne(card, "record"), r.eq(holds, "value"), r.eq(kind, "template"))
+        .find({ child, holds, identifier, name, package: pkg, path, place, stage });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type } = v(
-        fields.ItemSessionValueSingleFile,
-        "startHeldValue",
-      );
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, name } = v(run.file_names, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.file_names, { child, holds, identifier, name, package: pkg, path, place, stage })
+        .where(r.ne(card, "record"), r.eq(holds, "correct"), r.eq(kind, "response"))
+        .find({ child, holds, identifier, name, package: pkg, path, place, stage });
     })
     .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type } = v(
-        fields.ItemSessionValueSingleFile,
-        "startHeldValue",
-      );
+      const run = runIn(r);
+      const {
+        card,
+        child,
+        holds,
+        identifier,
+        kind,
+        package: pkg,
+        path,
+        stage,
+      } = v(run.vars, "startSet");
+      const { place, name } = v(run.file_names, "startSetValue");
 
       return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueSingleFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          name,
-          package: pkg,
-          path,
-          place: Type.literal(DocText.fields.place, 0n),
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, count } = v(
-        fields.ItemSessionValueMultipleFile,
-        "startHeldValue",
-      );
-      const copy = Fn.rows(copies, { count });
-      const { place } = v(copy, "startCopy");
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueMultipleFile, {
-          child,
-          count,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          stage,
-          type,
-          variable,
-        })
-        .match(copy, { place })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "template",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "value"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "correct",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "correct"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
-    })
-    .rule((r) => {
-      const boundTaken = boundTakenIn(r);
-      const taken = boundTaken;
-      const { child, package: pkg, path, stage } = v(taken, "taken");
-      const { variable, digest, name, type, place } = v(
-        fields.ItemSessionValueOrderedFile,
-        "startHeldValue",
-      );
-
-      return r
-        .match(taken, { child, package: pkg, path, stage })
-        .match(fields.ItemSessionValueOrderedFile, {
-          child,
-          digest,
-          kind: "default",
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-          type,
-          variable,
-        })
-        .find({
-          child,
-          holds: Type.literal(DocText.fields.holds, "default"),
-          identifier: Type.cast(variable, DocText.fields.identifier),
-          name,
-          package: pkg,
-          path,
-          place,
-          stage,
-        });
+        .match(run.vars, { card, child, holds, identifier, kind, package: pkg, path, stage })
+        .match(run.file_names, { child, holds, identifier, name, package: pkg, path, place, stage })
+        .where(r.ne(card, "record"), r.eq(holds, "default"), r.in(kind, ["response", "outcome"]))
+        .find({ child, holds, identifier, name, package: pkg, path, place, stage });
     });
 
   /**
-   * The machine's run of each taken session's start, in the stratum after what the take stored,
-   * which it is given as the session's own: response processing with no program, so its state is
-   * the one `response_state` gives unrun, each outcome at its default in force, `completionStatus`
-   * at `unknown`, each template variable at its set or declared value and each response NULL. One
-   * call, every argument a query over the sitting's key, so every insert below reads one evaluation
-   * of it.
+   * The machine's run of each taken session's start, given what the template run set, as the take
+   * stores it, as the session's own: response processing with no program, so its state is the one
+   * `response_state` gives unrun, each outcome at its default in force, `completionStatus` at
+   * `unknown`, each template variable at its set or declared value and each response NULL. One
+   * call, every argument a query over the taken sessions, so every insert below reads one
+   * evaluation of it.
    */
   const startRunIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(responseProcessingOf, {
@@ -51700,20 +48856,23 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       }),
     );
 
-  return ChangeSet.sequence(
+  return ChangeSet.union(
     ChangeSet.union(
+      ChangeSet.union(set, ChangeSet.union(templateSingles, correctSingles)),
       ChangeSet.union(
-        ChangeSet.union(set, templateSingles),
-        ChangeSet.union(correctSingles, ChangeSet.union(defaultSingles, templateMultiples)),
-      ),
-      ChangeSet.union(
+        ChangeSet.union(defaultSingles, templateMultiples),
         ChangeSet.union(correctMultiples, defaultMultiples),
-        ChangeSet.union(templateOrdereds, ChangeSet.union(correctOrdereds, defaultOrdereds)),
       ),
     ),
     ChangeSet.union(
-      ChangeSet.union(startHeaders, startSingles),
-      ChangeSet.union(startMultiples, ChangeSet.union(startOrdereds, startRecords)),
+      ChangeSet.union(
+        ChangeSet.union(templateOrdereds, correctOrdereds),
+        ChangeSet.union(defaultOrdereds, startHeaders),
+      ),
+      ChangeSet.union(
+        ChangeSet.union(startSingles, startMultiples),
+        ChangeSet.union(startOrdereds, startRecords),
+      ),
     ),
   );
 };

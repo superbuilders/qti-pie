@@ -1,15 +1,13 @@
 /** Each taken session's run: its key (child, package, path, stage), the seed its template and response processing draw
- * under (SessionSeed, its take's), and the label template processing's draws are made under, by the item's identifier
- * (templateLabel). */
+ * under (its `takenSessions` row's, which its SessionSeed holds), and the label template processing's draws are made
+ * under, by the item's identifier (templateLabel). */
 const runsOf = (session: GradedSession) =>
 	query(Installed).rule((r) => {
 		const taken = takenOf(session).bind(bySession(session))
-		const { child, package: pkg, path, stage } = v(taken, "taken")
-		const { seed } = v(fields.SessionSeed, "seed")
+		const { child, package: pkg, path, seed, stage } = v(taken, "taken")
 		const { value: identifier } = v(fields.ObjectIdentifier, "item")
 		return r
-			.match(taken, { child, package: pkg, path, stage })
-			.match(fields.SessionSeed, { child, stage, package: pkg, path, seed })
+			.match(taken, { child, package: pkg, path, seed, stage })
 			.match(fields.ObjectIdentifier, { package: pkg, path, value: identifier })
 			.find({ child, package: pkg, path, stage, seed: Fn.call(seedStreamKey, { seed }), label: Fn.call(templateLabel, { identifier }) })
 	})

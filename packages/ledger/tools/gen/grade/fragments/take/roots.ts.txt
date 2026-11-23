@@ -1,22 +1,27 @@
-/** The taken item sessions: each of the call's sitting's, which the take's stratum before wrote (an item stage's
- * one session, the app's decideStage; a test's one per member, qti-pie's take). */
+/** The taken item sessions: the call's `takenSessions`, each by its key and the seed its template and response processing
+ * draw under, the item sessions the take writes in this stratum (an item stage's one session, the app's decideStage; a
+ * test's one per member, qti-pie's take). */
 const takenOf = (session: GradedSession) =>
 	query(Installed).rule((r) => {
-		const { package: pkg, path, n } = v(fields.ItemSession, "taken")
+		const sessions = r.relation("takenSessions", gradedSitting)
+		const { child, package: pkg, path, seed, stage } = v(sessions, "taken")
 		return r
-			.match(fields.ItemSession, { child: session.child, package: pkg, path, n, stage: session.stage })
-			.find({ child: session.child, package: pkg, path, n, stage: session.stage })
+			.match(sessions, { child, package: pkg, path, seed, stage })
+			.find({ child, package: pkg, path, seed, stage })
 	})
 
 /** The taken sessions' attempts, whose values gradeArgumentsOf's readers give a run, each with its session's stage, the
- * run key's: a session its take wrote in the stratum before holds none. */
+ * run key's: every read of the take's stratum sees the state before it, which holds no session the take writes, so
+ * none. */
 const gradableOf = (session: GradedSession) =>
 	query(Installed).rule((r) => {
 		const taken = takenOf(session).bind(bySession(session))
-		const { child, package: pkg, path, n, stage } = v(taken, "taken")
+		const { child, package: pkg, path, stage } = v(taken, "taken")
+		const { n } = v(fields.ItemSession, "session")
 		const { at } = v(fields.Attempt, "attempt")
 		return r
-			.match(taken, { child, package: pkg, path, n, stage })
+			.match(taken, { child, package: pkg, path, stage })
+			.match(fields.ItemSession, { child, package: pkg, path, n, stage })
 			.match(fields.Attempt, { child, package: pkg, path, n, at })
 			.find({ child, package: pkg, path, n, stage, at })
 	})

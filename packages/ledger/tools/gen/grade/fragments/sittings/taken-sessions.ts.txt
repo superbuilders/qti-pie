@@ -1,0 +1,17 @@
+  /**
+   * The taken sessions: the call's `takenSessions` relation parameter, of SessionSeed's heading,
+   * which a program binds once, to the item sessions it takes in the same stratum, each by its key
+   * with the seed its template and response processing draw under: an item stage's one session (the
+   * app's decideStage), a test's one per member (qti-pie's take). Every read of a stratum sees the
+   * state before it, so the take reads its sessions from the parameter, never from what it writes.
+   */
+  const gradedSitting = fields.SessionSeed;
+  type GradedSession = typeof gradedSitting;
+
+  /**
+   * A query over the taken sessions, bound in the rule that reads it to the call's own
+   * `takenSessions`.
+   */
+  const bySession = (r: Rule<DeliveryLevel>) => ({
+    takenSessions: r.relation("takenSessions", gradedSitting),
+  });

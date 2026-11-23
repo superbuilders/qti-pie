@@ -139,8 +139,8 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  *   it as a stage's instant is.
  * - **StartVariable**: the record an item session begins with (COMPILE-AT-PUBLISH S), each variable
  *   that is no context as the machine's run of the session with no program leaves it, which the
- *   take stores once, in the stratum after the session's values, so a read of the session's start
- *   is a read by its key: each outcome at its default in force (a numeric single with none at 0),
+ *   take stores once, beside the session's values, so a read of the session's start is a read by
+ *   its key: each outcome at its default in force (a numeric single with none at 0),
  *   `completionStatus` at `unknown`, each template variable at its set or declared value, and each
  *   response NULL. Its value in the sidecar of its declared base type and cardinality,
  *   **Start**`<Single|Multiple|Ordered><BaseType>`, and a record's fields in **StartRecord**, each
@@ -1639,8 +1639,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
 
   /**
    * A start value's key's fields: its item session's by its stage, as a session value's, since the
-   * take that stores the session's values stores its start in the stratum after them, and the
-   * variable.
+   * take that stores the session's values stores its start beside them, and the variable.
    */
   const startValue = {
     child: LearnerId,
@@ -1660,8 +1659,8 @@ export const ledgerOf = (qti: RegistryLevel) => {
   /**
    * A variable of the record an item session begins with (COMPILE-AT-PUBLISH S): every variable
    * that is no context of the machine's run of the session with no program, which its take runs
-   * once, in the stratum after the session's values (`#ledger/grade.ts` takeValuesOf), whose value
-   * rows its sidecars hold, inserted with it; a NULL one has its header and no value row.
+   * once, beside the session's values, in their stratum (`#ledger/grade.ts` takeValuesOf), whose
+   * value rows its sidecars hold, inserted with it; a NULL one has its header and no value row.
    */
   const StartVariable = named(
     "Start variable once",
