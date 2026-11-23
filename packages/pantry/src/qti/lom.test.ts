@@ -12,7 +12,7 @@
  * (`policyLaws` of `#pantry/test/oracle-laws.ts`).
  */
 import { Sha256 } from "@bjornpagen/grizzle";
-import type { CheckVerdict, EvaluatedRow, Unevaluated } from "@bjornpagen/grizzle";
+import type { CheckVerdict, EvaluatedRow, Unevaluated } from "@bjornpagen/grizzle/compile";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
 import { element } from "@bjornpagen/testing/gen";

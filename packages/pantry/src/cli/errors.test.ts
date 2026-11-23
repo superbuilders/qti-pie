@@ -1,5 +1,6 @@
-import { CompileError, OpenError, TokenRefused } from "@bjornpagen/grizzle";
-import type { CallError } from "@bjornpagen/grizzle";
+import { CompileError } from "@bjornpagen/grizzle";
+import { OpenError, TokenRefused } from "@bjornpagen/grizzle/runtime";
+import type { CallError } from "@bjornpagen/grizzle/runtime";
 import { assert, describe, it } from "@effect/vitest";
 import { Config, ConfigProvider, Effect, Option, Result } from "effect";
 import {

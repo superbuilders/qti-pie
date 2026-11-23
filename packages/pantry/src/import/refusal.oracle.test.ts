@@ -13,7 +13,6 @@ import {
   generated,
   key,
   law as declaring,
-  lawsByStatement,
   lexical,
   Logic,
   Monoid,
@@ -32,6 +31,7 @@ import {
   tree,
   Type,
 } from "@bjornpagen/grizzle";
+import { lawsByStatement } from "@bjornpagen/grizzle/compile";
 import type { Law, LawSide, RegexText, StatedLaw } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";

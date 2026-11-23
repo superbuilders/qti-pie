@@ -1,6 +1,7 @@
 import { NodeServices } from "@effect/platform-node";
 import { assert, describe, it, layer } from "@effect/vitest";
-import { CredentialError, OpenError, TokenRefused } from "@bjornpagen/grizzle";
+import { CredentialError } from "@bjornpagen/grizzle";
+import { OpenError, TokenRefused } from "@bjornpagen/grizzle/runtime";
 import { Cause, Effect, Exit, PlatformError } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { NotADirectory } from "#pantry/cli/args.ts";

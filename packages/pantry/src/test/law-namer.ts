@@ -6,7 +6,8 @@
  * (`constraintNamesOf`). Each compiles `Qti`'s law model, which takes seconds, so production never
  * runs it: a refusal is named by its laws' entries alone.
  */
-import { constraintNamesOf, lawsByStatement, lawsOf, sameLaw } from "@bjornpagen/grizzle";
+import { sameLaw } from "@bjornpagen/grizzle";
+import { constraintNamesOf, lawsByStatement, lawsOf } from "@bjornpagen/grizzle/compile";
 import type { AnySchema, Law, StatedLaw, Statement } from "@bjornpagen/grizzle";
 import { Array as Arr, Function as Fn, Match, Option, Schema } from "effect";
 import { attributeLawsByName } from "#pantry/qti/attributes.ts";

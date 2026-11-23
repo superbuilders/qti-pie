@@ -4,15 +4,15 @@
  * judges a refused write's rows by. A test compiles a schema's evaluator once, where its module
  * loads, and holds a row it builds to a check of it.
  */
-import { rowEvaluator } from "@bjornpagen/grizzle";
+import { rowEvaluator } from "@bjornpagen/grizzle/compile";
+import type { AnySchema } from "@bjornpagen/grizzle";
 import type {
-  AnySchema,
   CheckVerdict,
   DomainRefused,
   RowEvaluator,
   Unevaluated,
   ValueRefused,
-} from "@bjornpagen/grizzle";
+} from "@bjornpagen/grizzle/compile";
 import { assert } from "@effect/vitest";
 import { Option, Result } from "effect";
 

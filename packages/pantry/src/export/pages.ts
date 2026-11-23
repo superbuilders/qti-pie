@@ -20,7 +20,7 @@
  * same document.
  */
 import { Effect, Option, Result, Schema, Stream } from "effect";
-import type { RowKey, Window } from "@bjornpagen/grizzle";
+import type { RowKey, Window } from "@bjornpagen/grizzle/runtime";
 import { readDocument } from "#pantry/model/assemble.ts";
 import type { AssembleError } from "#pantry/model/assemble.ts";
 import type {

@@ -6,7 +6,7 @@ import { notesOnly } from "@bjornpagen/testing/sense";
 import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Effect, Formatter, Option, Result, Stream } from "effect";
-import type { Window } from "@bjornpagen/grizzle";
+import type { Window } from "@bjornpagen/grizzle/runtime";
 import { RowKey } from "@bjornpagen/grizzle/client";
 import {
   DocumentRowCount,

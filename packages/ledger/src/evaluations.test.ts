@@ -1,5 +1,6 @@
-import type { CheckVerdict, Unevaluated } from "@bjornpagen/grizzle";
-import { rowEvaluator, Sha256 } from "@bjornpagen/grizzle";
+import type { CheckVerdict, Unevaluated } from "@bjornpagen/grizzle/compile";
+import { Sha256 } from "@bjornpagen/grizzle";
+import { rowEvaluator } from "@bjornpagen/grizzle/compile";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
 import { element, int, map, oneOf } from "@bjornpagen/testing/gen";

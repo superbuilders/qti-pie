@@ -17,7 +17,8 @@
  * Each case also logs how long its apply takes: the author login's `insertWrite` member, compiled
  * once by `grizzle generate` into the login's served file, applied to the package's facts.
  */
-import type { CallError, Law } from "@bjornpagen/grizzle";
+import type { Law } from "@bjornpagen/grizzle";
+import type { CallError } from "@bjornpagen/grizzle/runtime";
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Formatter, Layer, Option, Result } from "effect";

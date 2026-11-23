@@ -13,8 +13,7 @@
  * digest. No tree is walked and no query recurses.
  */
 import { Db } from "@bjornpagen/grizzle/runtime";
-import type { CallError } from "@bjornpagen/grizzle";
-import type { DbLayer, OpenError } from "@bjornpagen/grizzle/runtime";
+import type { DbLayer, OpenError, CallError } from "@bjornpagen/grizzle/runtime";
 import { Array as Arr, Effect, FileSystem, Order, Path, Schema, Stream } from "effect";
 import type { PlatformError } from "effect";
 import { AuthorLogin } from "#pantry/db/served.ts";

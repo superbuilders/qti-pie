@@ -85,7 +85,8 @@
  * 7.19.1); and the end submits, unvalidated, every presented member whose attempt is in progress,
  * and none never presented (Tables 7.19.6, 5.115).
  */
-import { factsDecoder, Sha256 } from "@bjornpagen/grizzle";
+import { Sha256 } from "@bjornpagen/grizzle";
+import { factsDecoder } from "@bjornpagen/grizzle/compile";
 import type { BrokenLaws } from "@bjornpagen/grizzle";
 import { Db, DbLayer, LiveSource, served } from "@bjornpagen/grizzle/runtime";
 import { exhaust } from "@bjornpagen/testing/explore";

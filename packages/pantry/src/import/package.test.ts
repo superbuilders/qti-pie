@@ -10,8 +10,8 @@
  * schema or the oracle, never of the package.
  */
 import { randomUUID } from "node:crypto";
-import { Db } from "@bjornpagen/grizzle";
-import type { CallError } from "@bjornpagen/grizzle";
+import { Db } from "@bjornpagen/grizzle/runtime";
+import type { CallError } from "@bjornpagen/grizzle/runtime";
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
 import { Effect, Layer, Ref, Result } from "effect";

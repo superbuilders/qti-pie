@@ -20,7 +20,8 @@ import {
   role,
   schema,
 } from "@bjornpagen/grizzle";
-import type { Addition, RelationOf, RowSource } from "@bjornpagen/grizzle";
+import type { Addition, RelationOf } from "@bjornpagen/grizzle";
+import type { RowSource } from "@bjornpagen/grizzle/compile";
 import { NodeServices } from "@effect/platform-node";
 import { assert, describe, it, layer } from "@effect/vitest";
 import { drawn as drawnCase, exhaust, explore } from "@bjornpagen/testing/explore";

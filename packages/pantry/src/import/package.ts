@@ -28,7 +28,7 @@
  * Bind message through a carrier, a temporary table of the write's own (README, "Sizes"; grizzle
  * `164aeb06`), so no transport bound splits the write.
  */
-import type { CallError, MemberHandle } from "@bjornpagen/grizzle";
+import type { CallError, MemberHandle } from "@bjornpagen/grizzle/runtime";
 import { Context, Duration, Effect } from "effect";
 import { importRowsOf } from "#pantry/import/program.ts";
 import type { QtiPackage } from "#pantry/import/read.ts";

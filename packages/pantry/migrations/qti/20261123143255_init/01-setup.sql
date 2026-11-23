@@ -1,10 +1,3 @@
-SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
-DO $$
-BEGIN
-  EXECUTE "pg_catalog"."format"('ALTER DATABASE %I SET default_transaction_isolation = %L'::"pg_catalog"."text", "pg_catalog"."current_database"(), 'serializable'::"pg_catalog"."text");
-END
-$$;
-
 CREATE SCHEMA "qti";
 
 CREATE SCHEMA "qti_queries";
@@ -3007,6 +3000,18 @@ END
 $$;
 
 REVOKE EXECUTE ON FUNCTION "qti"."__refuse"("pg_catalog"."text", "pg_catalog"."text", "pg_catalog"."text") FROM PUBLIC;
+
+CREATE OR REPLACE FUNCTION "qti"."__borrow"("ids" bigint[], "exclusive" boolean[]) RETURNS "pg_catalog"."void"
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = "pg_catalog", "pg_temp"
+AS $$
+DECLARE
+  "at" integer;
+BEGIN
+  FOR "at" IN SELECT DISTINCT "r1"."c1" FROM "pg_catalog"."generate_subscripts"("ids", 1) AS "r1"("c1") ORDER BY "r1"."c1" LOOP IF ("exclusive")["at"] THEN PERFORM "pg_catalog"."pg_advisory_xact_lock"(("ids")["at"]); ELSE PERFORM "pg_catalog"."pg_advisory_xact_lock_shared"(("ids")["at"]); END IF; END LOOP;
+END
+$$;
+
+REVOKE EXECUTE ON FUNCTION "qti"."__borrow"(bigint[], boolean[]) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION "qti"."__require_serializable"() RETURNS "pg_catalog"."trigger"
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = "pg_catalog", "pg_temp"

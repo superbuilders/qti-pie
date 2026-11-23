@@ -3,7 +3,7 @@
  * exit code each kind ends the process with, and {@link describeFailure}, which names the kind of
  * any failure a run ends with.
  */
-import type { CallError, CallErrorKind } from "@bjornpagen/grizzle";
+import type { CallError, CallErrorKind } from "@bjornpagen/grizzle/runtime";
 import { Match, Option, Predicate, Schema } from "effect";
 import type { Effect } from "effect";
 import { CliError } from "effect/cli";

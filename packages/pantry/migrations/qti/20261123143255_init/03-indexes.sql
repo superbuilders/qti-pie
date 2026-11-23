@@ -2,9 +2,9 @@ CREATE INDEX "__assembled_catalog_ix_package_path_owner_yng35odexo" ON "qti"."as
 
 CREATE INDEX "__attribute_ix_package_a_4_p_2_u_7_pv_6_l_path_start_2cajllfvyt" ON "qti"."attribute" USING btree ("__package_a4p2u7pv6l", "path", "start", "name");
 
-CREATE INDEX "__attribute_ix_package_name_kind_start_path_brs3pod6d3" ON "qti"."attribute" USING btree ("package", "name", "kind", "start", "path");
+CREATE INDEX "__attribute_ix_package_kind_name_start_path_jmvc4xtkis" ON "qti"."attribute" USING btree ("package", "kind", "name", "start", "path");
 
-CREATE INDEX "__attribute_ix_package_name_kind_value_digest_path_paomtlzykh" ON "qti"."attribute" USING btree ("package", "name", "kind", "value_digest", "path");
+CREATE INDEX "__attribute_ix_package_name_path_start_2urjynczwy" ON "qti"."attribute" USING btree ("package", "name", "path", "start");
 
 CREATE INDEX "__attribute_ix_package_path_name_kind_value_digest_nuvl7i75vd" ON "qti"."attribute" USING btree ("package", "path", "name", "kind", "value_digest");
 
@@ -46,13 +46,15 @@ CREATE INDEX "__fragment_scope_ix_package_document_feedbacks_txlrykzdtc" ON "qti
 
 CREATE INDEX "__fragment_template_ref_ix_package_path_start_w5snz3je32" ON "qti"."fragment_template_ref" USING btree ("package", "path", "start", "attribute", "kind", "identifier");
 
+CREATE INDEX "__idref_ix_package_name_path_nielih3bso" ON "qti"."idref" USING btree ("package", "name", "path");
+
 CREATE INDEX "__idref_ix_package_path_name_ckzbix4lpw" ON "qti"."idref" USING btree ("package", "path", "name");
 
 CREATE INDEX "__idref_ix_package_path_token_digest_32nufrmpv6" ON "qti"."idref" USING btree ("package", "path", "token_digest");
 
 CREATE INDEX "__idref_target_ix_package_path_assembled_4j2motbov2" ON "qti"."idref_target" USING btree ("package", "path", "assembled");
 
-CREATE INDEX "__instance_ix_assembly_assembly_kind_start_package_2mmaoku3za" ON "qti"."instance" USING btree ("assembly", "assembly_kind", "start", "package");
+CREATE INDEX "__instance_ix_assembly_assembly_kind_package_start_gnufbb5gu4" ON "qti"."instance" USING btree ("assembly", "assembly_kind", "package", "start");
 
 CREATE INDEX "__instance_ix_package_assembly_assembly_kind_end_6c3k3mjz3l" ON "qti"."instance" USING btree ("package", "assembly", "assembly_kind", "end", "document");
 
@@ -68,7 +70,9 @@ CREATE INDEX "__instance_ix_package_assembly_assembly_kind_site_65ivnxs6hw" ON "
 
 CREATE INDEX "__instance_ix_package_assembly_document_start_ggh4saptf3" ON "qti"."instance" USING btree ("package", "assembly", "document", "start");
 
-CREATE INDEX "__instance_ix_package_assembly_kind_document_hk3aaztrly" ON "qti"."instance" USING btree ("package", "assembly_kind", "document", "assembly", "parent", "site_document", "site");
+CREATE INDEX "__instance_ix_package_assembly_kind_assembly_zz7dcr5yl2" ON "qti"."instance" USING btree ("package", "assembly_kind", "assembly", "document", "parent", "site_document", "site");
+
+CREATE INDEX "__instance_ix_package_assembly_kind_document_apug2ak2ps" ON "qti"."instance" USING btree ("package", "assembly_kind", "document", "assembly", "start");
 
 CREATE INDEX "__instance_ix_package_document_ids_idref_targets_3kuzxyrfyq" ON "qti"."instance" USING btree ("package", "document", "ids", "idref_targets", "choices", "hottexts");
 
@@ -126,9 +130,9 @@ CREATE INDEX "__node_ix_package_path_parent_at_3js7ucei5d" ON "qti"."node" USING
 
 CREATE INDEX "__node_ix_package_path_parent_elements_eiswbbzaxd" ON "qti"."node" USING btree ("package", "path", "parent", "elements");
 
-CREATE INDEX "__node_ix_package_path_parent_kind_kind_parent_h6snizktuj" ON "qti"."node" USING btree ("package", "path", "parent_kind", "kind", "parent");
+CREATE INDEX "__node_ix_package_path_parent_parent_kind_p6opm4cre4" ON "qti"."node" USING btree ("package", "path", "parent", "parent_kind");
 
-CREATE INDEX "__node_ix_package_path_parent_kind_parent_d4cgzkeo4u" ON "qti"."node" USING btree ("package", "path", "parent_kind", "parent");
+CREATE INDEX "__node_ix_package_path_parent_kind_kind_parent_h6snizktuj" ON "qti"."node" USING btree ("package", "path", "parent_kind", "kind", "parent");
 
 CREATE INDEX "__node_ix_package_start_kind_path_wfqsgvcv6x" ON "qti"."node" USING btree ("package", "start", "kind", "path");
 
@@ -172,9 +176,9 @@ CREATE INDEX "__placed_variable_ref_ix_package_assembly_resolution_ymsbodsibl" O
 
 CREATE INDEX "__placed_variable_ref_ix_package_assembly_root_kind_ox6jmeuv4f" ON "qti"."placed_variable_ref" USING btree ("package", "assembly", "root_kind");
 
-CREATE INDEX "__placed_variable_ref_ix_package_attribute_path_sbpjabnnsc" ON "qti"."placed_variable_ref" USING btree ("package", "attribute", "path", "start", "resolution", "assembly");
+CREATE INDEX "__placed_variable_ref_ix_package_attribute_3vpsdcsq4l" ON "qti"."placed_variable_ref" USING btree ("package", "attribute", "resolution", "path", "start", "assembly");
 
-CREATE INDEX "__placed_variable_ref_ix_package_resolution_k27xmttnhm" ON "qti"."placed_variable_ref" USING btree ("package", "resolution", "attribute");
+CREATE INDEX "__placed_variable_ref_ix_package_resolution_assembly_zzk4vby5a7" ON "qti"."placed_variable_ref" USING btree ("package", "resolution", "assembly");
 
 CREATE INDEX "__reference_path_ix_package_kind_name_path_target_xuquekdgd7" ON "qti"."reference_path" USING btree ("package", "kind", "name", "path", "target");
 
@@ -182,7 +186,7 @@ CREATE INDEX "__reference_path_ix_package_target_path_start_37so7ufnoh" ON "qti"
 
 CREATE INDEX "__resource_href_ix_package_path_scope_start_rkpqugj43q" ON "qti"."resource_href" USING btree ("package", "path", "scope", "start");
 
-CREATE INDEX "__resource_href_path_ix_package_target_path_wsfnthvwiy" ON "qti"."resource_href_path" USING btree ("package", "target", "path");
+CREATE INDEX "__resource_href_path_ix_package_target_w6il6mi33e" ON "qti"."resource_href_path" USING btree ("package", "target");
 
 CREATE INDEX "__share_fragment_ix_package_path_assembled_start_njqql36dxw" ON "qti"."share_fragment" USING btree ("package", "path", "assembled", "start");
 
@@ -198,13 +202,15 @@ CREATE INDEX "__site_path_ix_package_path_entry_kind_start_qbgtz4urvv" ON "qti".
 
 CREATE INDEX "__site_target_ix_package_target_splices_ufrlh7idlc" ON "qti"."site_target" USING btree ("package", "target", "splices");
 
+CREATE INDEX "__table_scope_ix_package_path_table_p6mmwy6mjs" ON "qti"."table_scope" USING btree ("package", "path", "table");
+
 CREATE INDEX "__text_idref_ix_package_path_token_digest_6rnu6d6nqb" ON "qti"."text_idref" USING btree ("package", "path", "token_digest");
 
 CREATE INDEX "__text_reference_path_ix_package_target_zlcnodi5ns" ON "qti"."text_reference_path" USING btree ("package", "target");
 
-CREATE INDEX "__variable_ref_ix_package_identifier_path_start_253xsoczom" ON "qti"."variable_ref" USING btree ("package", "identifier", "path", "start");
-
 CREATE INDEX "__variable_ref_ix_package_path_attribute_identifier_fhzai5nn5j" ON "qti"."variable_ref" USING btree ("package", "path", "attribute", "identifier");
+
+CREATE INDEX "__variable_ref_ix_package_path_identifier_start_xf557pdhpw" ON "qti"."variable_ref" USING btree ("package", "path", "identifier", "start");
 
 CREATE INDEX "__variable_ref_ix_package_path_root_kind_merm4oeh73" ON "qti"."variable_ref" USING btree ("package", "path", "root_kind");
 

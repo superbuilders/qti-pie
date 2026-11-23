@@ -15,7 +15,7 @@ import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
 import { element } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
-import type { EvaluatedRow } from "@bjornpagen/grizzle";
+import type { EvaluatedRow } from "@bjornpagen/grizzle/compile";
 import { Duration, Effect, Formatter, Result } from "effect";
 import { readProgram } from "#pantry/import/program.ts";
 import { readEntries } from "#pantry/package/read.ts";

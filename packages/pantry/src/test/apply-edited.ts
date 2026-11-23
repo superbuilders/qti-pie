@@ -6,8 +6,9 @@
  * ({@link packageStored}), never by a count of every stored package, so it holds beside another
  * file's imports.
  */
-import { Db } from "@bjornpagen/grizzle";
-import type { CallError, Law, WriteOutcome } from "@bjornpagen/grizzle";
+import { Db } from "@bjornpagen/grizzle/runtime";
+import type { Law } from "@bjornpagen/grizzle";
+import type { CallError, WriteOutcome } from "@bjornpagen/grizzle/runtime";
 import { Duration, Effect } from "effect";
 import { AuthorLogin } from "#pantry/db/served.ts";
 import { readProgram } from "#pantry/import/program.ts";

@@ -15,7 +15,7 @@
  * the last ones they owed, the expression lookups' with the lookups themselves (R7), so any held
  * key fails, named with what holds it.
  */
-import { lawsOf } from "@bjornpagen/grizzle";
+import { lawsOf } from "@bjornpagen/grizzle/compile";
 import type { Law, LawSide } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { Array as Arr, Equal } from "effect";

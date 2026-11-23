@@ -27,7 +27,7 @@
  * empty text as zero. The search must catch each.
  */
 import { check, Decimal, lexicalForm, Logic, pg, schema, Text, Type } from "@bjornpagen/grizzle";
-import type { EvaluatedRow } from "@bjornpagen/grizzle";
+import type { EvaluatedRow } from "@bjornpagen/grizzle/compile";
 import { assert, describe, it } from "@effect/vitest";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";

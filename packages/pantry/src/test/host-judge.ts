@@ -27,17 +27,10 @@
  * of the preview's rows by their drawing: a counted member whose owner the write does not insert
  * is the preview's refusal.
  */
-import { Bits, codecText, insertPreview } from "@bjornpagen/grizzle";
-import type {
-  EvaluatedRow,
-  Law,
-  LawSide,
-  Pred,
-  PreviewRows,
-  RelationOf,
-  RowSource,
-  StatedLaw,
-} from "@bjornpagen/grizzle";
+import { Bits } from "@bjornpagen/grizzle";
+import { codecText, insertPreview } from "@bjornpagen/grizzle/compile";
+import type { Law, LawSide, Pred, PreviewRows, RelationOf, StatedLaw } from "@bjornpagen/grizzle";
+import type { EvaluatedRow, RowSource } from "@bjornpagen/grizzle/compile";
 import { assert } from "@effect/vitest";
 import { Array as Arr, Formatter, Function as Fn, Option, pipe, Predicate, Result } from "effect";
 import { AttributeSlot, Flag } from "#pantry/grammar/install.ts";
