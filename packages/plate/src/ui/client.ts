@@ -1,7 +1,8 @@
 /**
  * Plate's client entry: what a host's client components use to hold an item's responses and the
  * options a test's cross-out has eliminated, to hear of
- * a Portable Custom Interaction that fails and to remember a test's read-aloud across its items,
+ * a Portable Custom Interaction that fails, to remember a test's read-aloud across its items and to
+ * post a sitting's presence beacon,
  * and the interactions' islands with their props and labels types, which the server entry renders.
  * Every module it re-exports is a client module, or holds types and pure data only.
  *
@@ -54,6 +55,14 @@ export type { PlacementLabels } from "#plate/ui/placement/labels.ts";
 export { PciFailures } from "#plate/ui/portable-custom/failures.tsx";
 
 export type { PciFailure } from "#plate/ui/portable-custom/failures.tsx";
+
+export {
+  presenceBeaconPeriodMillis,
+  presenceIdleMillis,
+  usePresenceBeacon,
+} from "#plate/ui/presence/beacon.ts";
+
+export type { PresenceBeacon } from "#plate/ui/presence/beacon.ts";
 
 export { ReadAloudSession } from "#plate/ui/read-aloud/session.tsx";
 
