@@ -88,15 +88,7 @@ export const grader = {
 export const rubricUse = "ext:criteria";
 
 /**
- * The application's grace the composition states (`SittingPolicy`), a minute: past the latency of
- * any call of the suite, so a response given at its deadline arrives within it, and half of what a
- * late-arriving case's budget falls short by.
- */
-export const suiteGraceMicros = 60_000_000n;
-
-/**
- * The delivery level over a registry with {@link grader} and {@link rubricUse}, under
- * {@link suiteGraceMicros}.
+ * The delivery level over a registry with {@link grader} and {@link rubricUse}.
  */
 export const ResultLevel = deliveryOf(
   ledgerOf(
@@ -108,7 +100,6 @@ export const ResultLevel = deliveryOf(
       tables: [],
     }).Registry,
   ),
-  { graceMicros: suiteGraceMicros },
 );
 
 const {

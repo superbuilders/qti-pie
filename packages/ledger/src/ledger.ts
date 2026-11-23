@@ -649,13 +649,21 @@ export const ledgerOf = (qti: RegistryLevel) => {
     "Snapshot instant",
     relation("DefaultSubmission", snapshotFields, snapshotKey),
   );
+  /**
+   * A response given and not submitted, every one kept: the latest is what a session's responses
+   * are now (what the end submits and a reopened item restores), and the ones before it are
+   * evidence of how the child worked, which dropping cannot undo. A relation of the current save
+   * alone was rejected (2026-11-22): its case was row counts, and load is grizzle's and disk never
+   * a concern.
+   */
   const Save = named("Snapshot instant", relation("Save", snapshotFields, snapshotKey));
   /**
    * A sitting's response snapshot with `given`, the browser's reading of the database's clock when
    * the candidate gave it, in microseconds since the Unix epoch, at or before the snapshot's own
-   * instant ("Given before"): the reading a timed sitting's bounded grace accepts a response by
-   * (`#sitting-programs.ts`), which the database records beside its own instant and never orders
-   * by. A sensor reading, so a bound, never a clock.
+   * instant ("Given before"): a response the candidate gave carries it,
+   * and the end's attempts none (`#sitting-programs.ts`); the database records it beside its own
+   * instant and never orders by it, nor admits a response by it: the database's stamp is the
+   * clock (`#delivery.ts` inFlightGraceMicros). A sensor reading, so a bound, never a clock.
    */
   const SnapshotGiven = named(
     "Snapshot instant",

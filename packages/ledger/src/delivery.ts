@@ -31,8 +31,9 @@
  * - The laws of a sitting's responses: every response snapshot of a sitting's item session, a save or
  *   an attempt, lies inside one of its candidate sessions ("During each attempt the candidate
  *   interacts with the item through one or more candidate sessions", §2.2.1), and every response
- *   the candidate gave in a timed one was given within its time and arrived within the
- *   application's grace past it, unless the test allows late submission (Table 7.40.3). Each is the
+ *   the candidate gave in a timed one arrived, by the database's stamp, within its time and the
+ *   in-flight grace past it ({@link inFlightGraceMicros}), unless the test allows late submission
+ *   (Table 7.40.3). The browser's reading of when it was given decides nothing. Each is the
  *   sitting's state as a law, so a write outside it is refused, naming it, whoever writes.
  *
  * Instants are microseconds on the database's clock; a duration is the difference of two instants
@@ -99,25 +100,37 @@ const undeliveredKinds = [
 export const longestMaxTime = 1e12;
 
 /**
- * What an application decides about a sitting's responses beside QTI, which its installation's
- * delivery level states as a constant of its laws: how long after a timed sitting's deadline a
- * response the browser gave before it may still arrive, in microseconds. allow-late-submission
- * refuses "a candidate's response that is beyond the max-time" (Table 7.40.3); a response given
- * within it and still in flight is no such response, and the grace bounds its flight. Required,
- * each application stating its own with its evidence: 0n accepts nothing that arrives after the
- * deadline.
+ * InFlightGrace: how long after a timed candidate session's deadline a response may still arrive,
+ * by the database's stamp, in microseconds, ten seconds. The database is the clock: what arrives by
+ * the deadline and this grace is admitted, the latest save winning, and what arrives after it is
+ * refused, so the end submits the latest save admitted (`#ledger/finish.ts`); the browser's reading
+ * `given` is a sensor bound ("Given before") and admits nothing. allow-late-submission refuses "a
+ * candidate's response that is beyond the max-time" (Table 7.40.3); a response the candidate made
+ * within it and still in flight is no such response, and the grace bounds its flight. AlphaTest
+ * stamped a drill's final submit on its server a mean of 1.12 s after the limit, on 24,266
+ * clock-stopped drills in 60 days: 10.1 % within 0 s, 72.3 % 1 s, 15.1 % 2 s, 2.5 % 3 to 10 s, and
+ * 92 more past 10 s (research/14 §3.6, fastmath-evidence/overshoot.result.txt), so a database that
+ * took no grace would refuse the last answer of most drills.
+ *
+ * @limitKind published
+ * @owner AlphaTest's backend (trilogy-group/beyond-masterytrack-be 3a2119e9, app/backend/utils/cqpm.ts)
+ * @unit microseconds
+ * @scope each response of a timed candidate session whose test allows no late submission, arriving after its deadline
+ * @constraint compile-time constant
+ * @source https://github.com/trilogy-group/beyond-masterytrack-be/blob/3a2119e98419c5e04a9371bc8e0d9ee3c89a9a32/app/backend/utils/cqpm.ts#L146
+ * @quote export const CQPM_WINDOW_GRACE_SECONDS = 10;
+ * @verified 2026-11-22
  */
-export type SittingPolicy = Readonly<{ graceMicros: bigint }>;
+export const inFlightGraceMicros = 10_000_000n;
 
 /**
- * The delivery level over the ledger, under an application's grace.
+ * The delivery level over the ledger.
  *
  * @param ledger The Ledger level, the installation's composition of qti-pie's levels below this
  *   one.
- * @param policy The application's grace ({@link SittingPolicy}), a constant of "Response in time".
  * @returns The Delivery level.
  */
-export const deliveryOf = (ledger: LedgerLevel, policy: SittingPolicy) => {
+export const deliveryOf = (ledger: LedgerLevel) => {
   const {
     Attribute,
     DeliverableTest,
@@ -635,33 +648,32 @@ export const deliveryOf = (ledger: LedgerLevel, policy: SittingPolicy) => {
   /**
    * Each response the candidate gave in a timed candidate session of a sitting whose test allows no
    * late submission (Table 7.40.3, its default false): its snapshot inside that session ({@link
-   * SessionSnapshot}), with `ran`, the time from the session's beginning to the browser's reading
-   * `given`, and `arrived`, to the database's stamp less the application's grace ({@link
-   * SittingPolicy}), beside the time the session began with. The end's attempts, which the browser
-   * gave nothing of, hold no `given` and are none of these.
+   * SessionSnapshot}), with `arrived`, the time from the session's beginning to the database's
+   * stamp less the in-flight grace ({@link inFlightGraceMicros}), beside the time the session began
+   * with. A response the candidate gave carries the browser's reading `given`, which marks it as
+   * theirs and decides nothing; the end's attempts, which the browser gave nothing of, hold none
+   * and are none of these.
    */
   const TimedResponse = derived(
     "TimedResponse",
     query(ledger).rule((r) => {
       const { child, stage, package: pkg, path, n, at, k, began } = v(sessionSnapshots, "timed");
-      const { given } = v(SnapshotGiven, "timedGiven");
       const { remaining } = v(TestBudget, "timedBudget");
       const { package: testPackage, path: test } = v(TestSession, "timedSitting");
 
       return r
         .match(sessionSnapshots, { at, began, child, k, n, package: pkg, path, stage })
-        .match(SnapshotGiven, { at, child, given, n, package: pkg, path })
+        .match(SnapshotGiven, { at, child, n, package: pkg, path })
         .match(TestBudget, { child, k, remaining, stage })
         .match(TestSession, { child, package: testPackage, path: test, stage })
         .where(r.not(lateTests, { package: testPackage, path: test }))
         .find({
-          arrived: Num.sub(Num.sub(Type.base(at), policy.graceMicros), Type.base(began)),
+          arrived: Num.sub(Num.sub(Type.base(at), inFlightGraceMicros), Type.base(began)),
           at,
           child,
           n,
           package: pkg,
           path,
-          ran: Num.sub(given, Type.base(began)),
           remaining,
           stage,
         });
@@ -889,16 +901,13 @@ export const deliveryOf = (ledger: LedgerLevel, policy: SittingPolicy) => {
       ),
     ),
     /**
-     * Response in time: a timed session's response was given within its time and arrived within the
-     * grace past it.
+     * Response in time: a timed session's response arrived, by the database's stamp, within its
+     * time and the in-flight grace past it.
      */
     named(
       "Response in time",
       check("Response_in_time", TimedResponse, (t) =>
-        t.and(
-          t.le(Num.numeric(t.ran), Type.base(t.remaining)),
-          t.le(Num.numeric(t.arrived), Type.base(t.remaining)),
-        ),
+        t.le(Num.numeric(t.arrived), Type.base(t.remaining)),
       ),
     ),
     ...testLaws.laws,

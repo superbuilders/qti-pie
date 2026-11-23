@@ -37,9 +37,9 @@
  * the statement, never passed. A move of a sitting's candidate sessions (entering, presenting,
  * suspending, ending) whose sitting is not in the state it needs writes nothing and answers
  * `unchanged`: a second tab, a double start. A response is the delivery level's to judge: one
- * outside a candidate session, or past its time and the application's grace, is refused, naming
- * "Inside a candidate session" or "Response in time" (`#delivery.ts`), whoever writes it. Each
- * program reads back what it wrote, and `standing`, each of its sittings' standing after it
+ * outside a candidate session, or arriving past its time and the in-flight grace, is refused,
+ * naming "Inside a candidate session" or "Response in time" (`#delivery.ts`), whoever writes it.
+ * Each program reads back what it wrote, and `standing`, each of its sittings' standing after it
  * (`#ledger/sitting-queries.ts` sittingStandingOf), so a caller maps an `unchanged` outcome in the
  * call's own transaction.
  *
@@ -53,7 +53,9 @@
  * (`ChangeSet.bind`), its query run inside each statement with no read before it.
  *
  * Instants are microseconds on the database's clock, which stamps every row these programs write;
- * `given` is the browser's reading, recorded beside a response and never ordered by.
+ * `given` is the browser's reading, recorded beside a response, never ordered by and never
+ * admitting one: what arrives by a timed session's deadline and the in-flight grace, by the
+ * database's stamp, is admitted, the latest save winning.
  */
 import { ChangeSet, Fn, Logic, Num, pg, query, Type, v } from "@bjornpagen/grizzle";
 import { memberPositions } from "@qti-pie/pantry/qti/positions.ts";
@@ -72,7 +74,7 @@ export type DeliveryLevel = ReturnType<typeof deliveryOf>;
  * The test runtime's builders over a delivery level.
  *
  * @param delivery The delivery level, the installation's composition of qti-pie's levels, whose
- *   laws judge every response these programs write (`#delivery.ts`, under the application's grace).
+ *   laws judge every response these programs write (`#delivery.ts`).
  * @returns The queries and ChangeSets of a sitting.
  */
 export const sittingProgramsOf = (delivery: DeliveryLevel) => {
@@ -146,7 +148,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
    * values of the response variables are fixed" (§2.2.1); an unlimited member (`UnlimitedMember`,
    * its item ref's `max-attempts` 0: "A value of 0 indicates no limit", Table 7.19.1) takes one
    * after each. Its sitting's state is the delivery level's laws': a response lies inside a
-   * candidate session, and a timed one's within its time and the application's grace
+   * candidate session, and a timed one's arrives within its time and the in-flight grace
    * (`#delivery.ts`), each refused, naming it, where it does not.
    */
   const responseTarget = query(delivery)

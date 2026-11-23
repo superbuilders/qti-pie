@@ -63,11 +63,13 @@
  * own programs, over a sitting written as host rows), held to their table
  * ({@link responseExpectedOf}): a save lies inside a candidate session, so one before the sitting's
  * first, after its suspension or after its end is refused by "Inside a candidate session" (QTI
- * 3.0.1 §2.2.1); and a save in a timed one is given within its time and arrives within the
- * application's grace past it, so one given past its budget, or arriving past the grace, is refused
- * by "Response in time", unless the test allows late submission (Table 7.40.3,
- * `allow-late-submission`). Every program reads back its sitting's standing, which the table holds
- * after each move.
+ * 3.0.1 §2.2.1); and a save in a timed one arrives, by the database's stamp, within its time and
+ * the in-flight grace past it, so one arriving past the grace is refused by "Response in time",
+ * unless the test allows late submission (Table 7.40.3, `allow-late-submission`), whatever the
+ * browser's reading of when it was given says. Every program reads back its sitting's standing,
+ * which the table holds after each move. And the latest save admitted is what the end submits: a
+ * save superseding an in-time one 1.5 s past the deadline is submitted, and one 11 s past it is
+ * refused, so the in-time one is ({@link supersedeExpectedOf}).
  *
  * And a test's item-session controls (`presentItem`, `saveTestItem`, `answerTestItem`, and
  * `finishTest`, the end with its finish), held to their table ({@link controlsExpectedOf}):
@@ -94,6 +96,7 @@ import { importRowsOf } from "@qti-pie/pantry/import/program.ts";
 import { readPackage } from "@qti-pie/pantry/import/read.ts";
 import {
   Array as Arr,
+  Clock,
   Config,
   Context,
   Duration,
@@ -111,7 +114,8 @@ import { DeclineReason } from "#ledger/evaluations.ts";
 import { operatorTagPrefix } from "#ledger/registry/operators.ts";
 import { responseParamsOf } from "#ledger/served-values.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
-import { grader, ResultLevel, rubricUse, suiteGraceMicros } from "#ledger/test/result-level.ts";
+import { inFlightGraceMicros } from "#ledger/delivery.ts";
+import { grader, ResultLevel, rubricUse } from "#ledger/test/result-level.ts";
 
 /**
  * The run's migrations folder, where `grizzle generate` wrote the suite's served login; none
@@ -1830,10 +1834,11 @@ const holdDrawCase = (c: DrawCase, child: string, note: (situation: DrawSituatio
 type When = "unstarted" | "open" | "suspended" | "ended";
 
 /**
- * A response case's timing: an untimed sitting; or a timed one, its save given at its session's
- * beginning (in time), at its deadline and still in flight (arriving within the grace), a
- * microsecond past its deadline, or within a budget the grace falls short of, so arriving past it;
- * or a microsecond past its deadline where the test allows late submission.
+ * A response case's timing: an untimed sitting; or a timed one, its save at its session's beginning
+ * (in time), arriving just past a deadline at its beginning (in flight, within the grace), with a
+ * browser's reading a microsecond past that deadline (which decides nothing), or arriving twice
+ * the grace past a deadline before its beginning; or a microsecond past its deadline where the test
+ * allows late submission.
  */
 type Timing = "untimed" | "inTime" | "inFlight" | "givenLate" | "arrivedLate" | "lateAllowed";
 
@@ -1845,8 +1850,8 @@ type ResponseCase = Readonly<{ name: string; when: When; timing: Timing }>;
  */
 const timings = {
   arrivedLate: {
-    given: -2n * suiteGraceMicros,
-    remaining: Option.some(-2n * suiteGraceMicros),
+    given: -2n * inFlightGraceMicros,
+    remaining: Option.some(-2n * inFlightGraceMicros),
     test: TIMED_TEST,
   },
   givenLate: { given: 1n, remaining: Option.some(0n), test: TIMED_TEST },
@@ -1910,10 +1915,12 @@ type ResponseExpected =
  * The responses' table. A save outside the sitting's candidate sessions is refused by "Inside a
  * candidate session", whose target is `SessionSnapshot` (§2.2.1: "During each attempt the candidate
  * interacts with the item through one or more candidate sessions"), whatever its timing. In the
- * open one, a save given past its timed session's budget, or arriving past the application's grace
- * after it, is refused by "Response in time", unless the test allows late submission (Table 7.40.3:
- * "The allow-late-submission attribute regulates whether a candidate's response that is beyond the
- * max-time should still be accepted"). Every other save is accepted.
+ * open one, a save arriving, by the database's stamp, past its timed session's deadline and the
+ * in-flight grace is refused by "Response in time", unless the test allows late submission (Table
+ * 7.40.3: "The allow-late-submission attribute regulates whether a candidate's response that is
+ * beyond the max-time should still be accepted"); the browser's reading `given` decides nothing, so
+ * a save it reads past the deadline that arrives within the grace is accepted. Every other save is
+ * accepted.
  *
  * @param c - The case.
  */
@@ -1922,7 +1929,7 @@ const responseExpectedOf = (c: ResponseCase): ResponseExpected => {
     return { kind: "refused", law: "SessionSnapshot" };
   }
 
-  return c.timing === "givenLate" || c.timing === "arrivedLate"
+  return c.timing === "arrivedLate"
     ? { kind: "refused", law: "Response_in_time" }
     : { kind: "accepted" };
 };
@@ -1933,6 +1940,7 @@ const responseExpectedOf = (c: ResponseCase): ResponseExpected => {
 const responseSituations = [
   "accepted in the open session",
   "accepted past its deadline: late submission allowed",
+  "accepted though the browser read it past its deadline: the database's stamp decides",
   "refused: Inside a candidate session",
   "refused: Response in time",
   "standing: open",
@@ -2088,11 +2096,13 @@ const holdResponse = (
       { kind: "accepted", standing: ["open"] },
       `${c.name}: the save, the sitting still open after it`,
     );
-    note(
-      c.timing === "lateAllowed"
-        ? "accepted past its deadline: late submission allowed"
-        : "accepted in the open session",
-    );
+    if (c.timing === "lateAllowed") {
+      note("accepted past its deadline: late submission allowed");
+    } else if (c.timing === "givenLate") {
+      note("accepted though the browser read it past its deadline: the database's stamp decides");
+    } else {
+      note("accepted in the open session");
+    }
   });
 
 /**
@@ -2523,6 +2533,181 @@ const holdControls = (
     );
   });
 
+/**
+ * A supersede case: a timed sitting's member saved in time, then saved again the case's offset past
+ * its deadline, by the database's stamp.
+ */
+type SupersedeCase = Readonly<{ name: string; pastMicros: bigint }>;
+
+/**
+ * The budget a supersede case's candidate session begins with, two seconds: the first save lands
+ * well within it, and the case waits out the rest in real time, since the database is the clock.
+ */
+const supersedeBudgetMicros = 2_000_000n;
+
+/**
+ * Every supersede case: the later save 1.5 s past the deadline, within the in-flight grace, and 11
+ * s past it, beyond the grace.
+ */
+const supersedeCases = [
+  { name: "the later save 1.5 s past the deadline", pastMicros: 1_500_000n },
+  { name: "the later save 11 s past the deadline", pastMicros: 11_000_000n },
+] as const satisfies readonly SupersedeCase[];
+
+const supersedeSpace: Gen<SupersedeCase> = element(supersedeCases);
+
+/**
+ * The two saves' texts: the in-time one, and the later one that would supersede it.
+ */
+const supersedeTexts = { first: "12", later: "125" } as const;
+
+/**
+ * The supersede table: the database is the clock. A save that arrives by its session's deadline and
+ * the in-flight grace past it ({@link inFlightGraceMicros}) is admitted, the latest winning; one
+ * that arrives after it is refused by "Response in time"; and the end submits the latest save
+ * admitted (the close, `#ledger/finish.ts`). The browser's reading `given`, every save's its
+ * session's beginning here, decides nothing.
+ *
+ * @param c - The case.
+ */
+const supersedeExpectedOf = (c: SupersedeCase) =>
+  c.pastMicros <= inFlightGraceMicros
+    ? ({ later: "accepted", submitted: supersedeTexts.later } as const)
+    : ({ later: "refused", submitted: supersedeTexts.first } as const);
+
+/**
+ * The situations the supersede space must reach.
+ */
+const supersedeSituations = [
+  "a later save within the grace supersedes the in-time one",
+  "a later save past the grace is refused, and the in-time one is submitted",
+] as const;
+
+type SupersedeSituation = (typeof supersedeSituations)[number];
+
+/**
+ * One supersede case: a fresh child's sitting of the timed test, written as host rows as a take
+ * writes it, entered with the case's budget, which presents {@link MEMBER}; its save of the first
+ * text at once; then, once the database's clock is the case's offset past the deadline, its save of
+ * the later text, held to the table; then the end with its finish, and the member's one attempt
+ * held to submit the text the table says.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdSupersede = (
+  c: SupersedeCase,
+  child: string,
+  note: (situation: SupersedeSituation) => void,
+) =>
+  Effect.gen(function* hold() {
+    const want = supersedeExpectedOf(c);
+    note(
+      want.later === "accepted"
+        ? "a later save within the grace supersedes the in-time one"
+        : "a later save past the grace is refused, and the in-time one is submitted",
+    );
+
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const sitting = { child, stage: 1n };
+    const members = [SHORT, OTHER] as const;
+    const taken = yield* db.workload.sittingFacts.once({
+      facts: {
+        insert: {
+          Attempt: rowsOf("Attempt", []),
+          ItemSession: rowsOf(
+            "ItemSession",
+            members.map((path) => ({ ...sitting, package: PACKAGE, path })),
+          ),
+          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
+          SessionSeed: rowsOf(
+            "SessionSeed",
+            members.map((path) => ({ ...sitting, package: PACKAGE, path, seed: SEED })),
+          ),
+          TestSession: rowsOf("TestSession", [{ ...sitting, package: PACKAGE, path: TIMED_TEST }]),
+        },
+      },
+      params: {},
+    });
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as a take writes it`);
+
+    const entered = yield* db.workload.enterTimedTest.once({
+      facts: {},
+      params: { ...sitting, remaining: supersedeBudgetMicros },
+    });
+    assert.strictEqual(entered.kind, "accepted", `${c.name}: the timed entry`);
+
+    const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
+    const saveOf = (text: string) =>
+      Effect.gen(function* saveText() {
+        const values = yield* responseParamsOf({
+          RESPONSE: {
+            baseType: "string",
+            cardinality: "single",
+            values: [{ baseType: "string", value: text }],
+          },
+        });
+
+        return yield* Effect.result(
+          db.workload.saveTestItem.once({
+            facts: {},
+            params: { ...sitting, given: began, item: MEMBER, ...values },
+          }),
+        );
+      });
+    const first = yield* saveOf(supersedeTexts.first);
+    assert.isTrue(
+      Result.isSuccess(first) && first.success.kind === "accepted",
+      `${c.name}: the in-time save, got ${Formatter.format(first)}`,
+    );
+
+    const now = yield* Clock.currentTimeMillis;
+    const due = Number((began + supersedeBudgetMicros + c.pastMicros) / 1000n);
+    yield* Effect.sleep(Duration.millis(Math.max(0, due - now)));
+
+    const later = yield* saveOf(supersedeTexts.later);
+    if (want.later === "accepted") {
+      assert.isTrue(
+        Result.isSuccess(later) && later.success.kind === "accepted",
+        `${c.name}: the later save admitted, got ${Formatter.format(later)}`,
+      );
+    } else {
+      assert.isTrue(
+        Result.isFailure(later) &&
+          later.failure.kind === "refused" &&
+          Formatter.format(refusedLawsOf(later.failure.refused)).includes("Response_in_time"),
+        `${c.name}: the later save refused by Response_in_time, got ${Formatter.format(later)}`,
+      );
+    }
+
+    const ended = yield* db.workload.finishTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(ended.kind, "accepted", `${c.name}: the end and its finish`);
+
+    const attempts = Arr.fromIterable(
+      yield* db.workload.attemptsOf.once({ facts: {}, params: { child } }),
+    ).filter((row) => row.package === PACKAGE && row.path === SHORT);
+    const strings = Arr.fromIterable(
+      yield* db.workload.snapshotStringsOf.once({ facts: {}, params: { child } }),
+    );
+    assert.deepStrictEqual<unknown>(
+      attempts.map((row) =>
+        strings
+          .filter(
+            (value) =>
+              value.path === SHORT &&
+              value.n === row.n &&
+              value.at === row.at &&
+              value.variable === "RESPONSE",
+          )
+          .map((value) => value.value),
+      ),
+      [[want.submitted]],
+      `${c.name}: the end submits the latest save admitted`,
+    );
+  });
+
 describe.skipIf(Option.isNone(migrations))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
@@ -2699,7 +2884,7 @@ describe.skipIf(Option.isNone(migrations))(
                     literal: (c: ResponseCase) => c.name,
                     oracle: {
                       kind: "specification",
-                      name: "responseExpectedOf: inside a candidate session (QTI 3.0.1 §2.2.1), in time and within the composition's grace unless the test allows late submission (Table 7.40.3)",
+                      name: "responseExpectedOf: inside a candidate session (QTI 3.0.1 §2.2.1), arriving, by the database's stamp, within its time and the in-flight grace unless the test allows late submission (Table 7.40.3)",
                     },
                     suite: "ledger/results/responses",
                   },
@@ -2715,6 +2900,43 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the responses held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "submits the latest save admitted by the database's clock, a later one within the in-flight grace and none past it",
+          (ctx) =>
+            Effect.gen(function* holdEverySupersedeCase() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "an in-time save, then a later one within and past the in-flight grace, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<SupersedeSituation>(supersedeSituations),
+                    generator: supersedeSpace,
+                    literal: (c: SupersedeCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "supersedeExpectedOf: the database is the clock; what arrives by the deadline and the in-flight grace is admitted, the latest save winning, and the end submits it (Table 7.40.3, §2.2.4)",
+                    },
+                    suite: "ledger/results/supersede",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdSupersede(row, `user_ledgersup${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the supersedes held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
 
