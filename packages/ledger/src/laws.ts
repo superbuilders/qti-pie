@@ -189,6 +189,14 @@ export const ledgerLaws = {
   "Linear never back": {
     source: `${info}#Main2p8p2 (§2.8.2: 'Once the candidate moves on they are not permitted to return'): a linear part's later presentation is never of an item ref before the earlier's (src/delivery.ts LinearPresentations)`,
   },
+  "Maximum of a demand": {
+    source:
+      "src/ledger.ts ApplicationMaximum: 'the maximum of an application the attempt's run demanded', a fact of the run, beside its demand",
+  },
+  "Maximum of a human demand": {
+    source:
+      "src/ledger.ts HumanDemandMaximum: 'the least of the maxima of the group's applications the run reached', beside the human demand",
+  },
   "Members only": {
     source:
       "src/test-laws.ts: 'every item session of a sitting's stage is of a member of its test', since a delivered test selects nothing",
@@ -241,6 +249,13 @@ export const ledgerLaws = {
   "One human demand a group": {
     source:
       "src/ledger.ts HumanDemand: one demand per rubric group and attempt, its key the attempt's and the group's: a run asks a person for a group once, and the person's value answers it",
+  },
+  "One maximum a demand": {
+    source:
+      "src/ledger.ts ApplicationMaximum: one maximum per demanded application and attempt, its key the demand's",
+  },
+  "One maximum a human demand": {
+    source: "src/ledger.ts HumanDemandMaximum: one maximum per human demand, its key the demand's",
   },
   "One seed a session": {
     source:

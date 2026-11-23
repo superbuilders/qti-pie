@@ -213,6 +213,11 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  *   person is asked for a group exactly when the processing can go no further without one, and
  *   never while an application it reached is still in flight. A run that demands a person writes no
  *   outcome; the person's value answers it, and the run after it grades the attempt.
+ * - **ApplicationMaximum** and **HumanDemandMaximum**: the maximum of each application the run
+ *   demanded, its `maximum` operand as the grader evaluated it, the default in force; and the least
+ *   of them over a group the run asked a person for. Facts of the run, which only the grade write
+ *   stores, so the default in force has one implementation, the grader's, and the laws that bound a
+ *   reply and a person's value read no content. No row is NULL.
  * - **HumanOperatorValue** and **HumanOperatorFeedback**: the value a person recorded for a rubric
  *   group the attempt's run asked a person for (HumanDemand), which the grader reads in place of
  *   each of the group's draws: by the attempt's key, the rubric block's `id` and the instant it was
@@ -2018,6 +2023,34 @@ export const ledgerOf = (qti: RegistryLevel) => {
   );
 
   /**
+   * The maximum of an application the attempt's run demanded: its `maximum` operand, a
+   * `qti-default`, as the grader evaluated it when it reached the application, the default in force
+   * (the session's template-set default, else the declared one); no row is NULL. What the
+   * evaluator's request carries and a reply is bounded by.
+   */
+  const ApplicationMaximum = named(
+    "One maximum a demand",
+    relation(
+      "ApplicationMaximum",
+      { ...snapshotFields, maximum: QtiFloat, operator: natural },
+      demandKey,
+    ),
+  );
+
+  /**
+   * The maximum a person's value of a rubric group the attempt's run asked a person for may take:
+   * the least of the maxima of the group's applications the run reached; no row is NULL.
+   */
+  const HumanDemandMaximum = named(
+    "One maximum a human demand",
+    relation(
+      "HumanDemandMaximum",
+      { ...snapshotFields, maximum: QtiFloat, rubric: RubricName },
+      humanDemandKey,
+    ),
+  );
+
+  /**
    * A human value's key's fields: its attempt's, the rubric group, and the instant it was recorded.
    */
   const humanKey = [...snapshotKey, "rubric", "asserted"] as const;
@@ -2811,6 +2844,8 @@ export const ledgerOf = (qti: RegistryLevel) => {
       OperatorFeedback,
       OperatorDecline,
       HumanDemand,
+      ApplicationMaximum,
+      HumanDemandMaximum,
       HumanOperatorValue,
       HumanOperatorFeedback,
       sittings.tables.TestSession,
@@ -4682,6 +4717,14 @@ export const ledgerOf = (qti: RegistryLevel) => {
           on(HumanDemand, "package", "path", "rubric"),
           on(RubricGrader, "package", "path", "rubric"),
         ),
+      ),
+      named(
+        "Maximum of a demand",
+        contained(on(ApplicationMaximum, ...demandKey), on(ApplicationDemand, ...demandKey)),
+      ),
+      named(
+        "Maximum of a human demand",
+        contained(on(HumanDemandMaximum, ...humanDemandKey), on(HumanDemand, ...humanDemandKey)),
       ),
       named(
         "Value of a human demand",

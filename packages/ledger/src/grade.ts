@@ -29259,7 +29259,9 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
  */
 export const gradeAttemptTables = [
   "ApplicationDemand",
+  "ApplicationMaximum",
   "HumanDemand",
+  "HumanDemandMaximum",
   "ProcessedAttempt",
   "SnapshotSingleIdentifier",
   "SnapshotSingleBoolean",
@@ -32288,9 +32290,49 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       .find({ at, child, n, package: pkg, path, rubric });
   });
 
+  /**
+   * The maximum of each application the run demanded (ApplicationMaximum): its `maximum` operand as
+   * the run evaluated it, the default in force, which the evaluator's request carries and a reply
+   * is bounded by. A NULL one has no row.
+   */
+  const demandMaximaOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const run = runIn(r);
+    const out = run;
+    const attempt = boundGradable;
+    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+    const { start, maximum } = v(out.demand_maxima, "demandMaximum");
+
+    return r
+      .match(attempt, { at, child, n, package: pkg, path, stage })
+      .match(out.demand_maxima, { child, maximum, package: pkg, path, stage, start })
+      .find({ at, child, maximum, n, operator: start, package: pkg, path });
+  });
+
+  /**
+   * The maximum a person's value of each group the run asked a person for may take
+   * (HumanDemandMaximum): the least of its reached applications' maxima. A group whose every one is
+   * NULL has no row.
+   */
+  const humanDemandMaximaOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const run = runIn(r);
+    const out = run;
+    const attempt = boundGradable;
+    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+    const { rubric, maximum } = v(out.human_demand_maxima, "humanDemandMaximum");
+
+    return r
+      .match(attempt, { at, child, n, package: pkg, path, stage })
+      .match(out.human_demand_maxima, { child, maximum, package: pkg, path, rubric, stage })
+      .find({ at, child, maximum, n, package: pkg, path, rubric });
+  });
+
   const processed = ChangeSet.empty(delivery)
     .insert(fields.ApplicationDemand, demandedOf)
     .insert(fields.HumanDemand, humanDemandedOf)
+    .insert(fields.ApplicationMaximum, demandMaximaOf)
+    .insert(fields.HumanDemandMaximum, humanDemandMaximaOf)
     .insert(fields.ProcessedAttempt, statusesOf);
 
   return ChangeSet.union(

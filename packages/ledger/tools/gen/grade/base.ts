@@ -847,7 +847,7 @@ export const baseStage = (fragment: Fragments): string => {
     fragment("base/latest-readers"),
   );
   const tables = [
-    '/** Every relation the grading statement writes, by name: what a role that composes it inserts into. */\nexport const gradeAttemptTables = [\n\t"ApplicationDemand",\n\t"HumanDemand",\n\t"ProcessedAttempt",\n',
+    '/** Every relation the grading statement writes, by name: what a role that composes it inserts into. */\nexport const gradeAttemptTables = [\n\t"ApplicationDemand",\n\t"ApplicationMaximum",\n\t"HumanDemand",\n\t"HumanDemandMaximum",\n\t"ProcessedAttempt",\n',
     ...CARDINALITIES.flatMap((cardinality) =>
       TYPES.map((t) => `\t"Snapshot${cardinality}${t}",\n`),
     ),

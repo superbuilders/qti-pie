@@ -56,10 +56,40 @@ const humanDemandedOf = (session: GradedSession) =>
 			.find({ child, package: pkg, path, n, at, rubric })
 	})
 
+/** The maximum of each application the run demanded (ApplicationMaximum): its `maximum` operand as the run evaluated it,
+ * the default in force, which the evaluator's request carries and a reply is bounded by. A NULL one has no row. */
+const demandMaximaOf = (session: GradedSession) =>
+	query(Learner).rule((r) => {
+		const out = runOf(session)
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const { start, maximum } = v(out.demand_maxima, "demandMaximum")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(out.demand_maxima, { child, package: pkg, path, stage, start, maximum })
+			.find({ child, package: pkg, path, n, at, operator: start, maximum })
+	})
+
+/** The maximum a person's value of each group the run asked a person for may take (HumanDemandMaximum): the least of its
+ * reached applications' maxima. A group whose every one is NULL has no row. */
+const humanDemandMaximaOf = (session: GradedSession) =>
+	query(Learner).rule((r) => {
+		const out = runOf(session)
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const { rubric, maximum } = v(out.human_demand_maxima, "humanDemandMaximum")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(out.human_demand_maxima, { child, package: pkg, path, stage, rubric, maximum })
+			.find({ child, package: pkg, path, n, at, rubric, maximum })
+	})
+
 const processed = (session: GradedSession) =>
 	ChangeSet.empty(Learner)
 		.insert(mine.ApplicationDemand, demandedOf(session))
 		.insert(mine.HumanDemand, humanDemandedOf(session))
+		.insert(mine.ApplicationMaximum, demandMaximaOf(session))
+		.insert(mine.HumanDemandMaximum, humanDemandMaximaOf(session))
 		.insert(mine.ProcessedAttempt, statusesOf(session))
 
 	return ChangeSet.union(

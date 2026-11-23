@@ -1440,7 +1440,18 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
     const waitingRows = yield* db.workload.applicationsOf.once(atChild);
     const maximaRows = yield* db.workload.maximaOf.once(atChild);
     const maxima = Arr.fromIterable(maximaRows);
-    const operators = Arr.sort(Arr.dedupe(maxima.map((row) => row.operator)), Order.BigInt);
+    const essayDrawRows = yield* db.workload.drawsOf.once({
+      facts: {},
+      params: { package: PACKAGE },
+    });
+    const operators = Arr.sort(
+      Arr.dedupe(
+        Arr.fromIterable(essayDrawRows)
+          .filter((row) => row.path === ESSAY)
+          .map((row) => row.operator),
+      ),
+      Order.BigInt,
+    );
     assert.strictEqual(
       Arr.fromIterable(waitingRows).length,
       !blankOf(c) && !c.history ? essayDraws : 0,

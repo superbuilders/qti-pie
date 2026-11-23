@@ -9,12 +9,12 @@
  *   (`ApplicationDemand`, what the grader's run reached with a response), with the response's text,
  *   the rubric group its `rubric` operand names (`RubricApplication`) and the grader version in
  *   force for its class (`InForceGrader`).
- * - **ApplicationMaximum** `(child, package, path, n, at, operator) → maximum`: the value its
- *   `maximum` operand, a `qti-default`, takes in the attempt's item session: "This expression looks
- *   up the declaration of an itemVariable and returns the associated defaultValue or NULL if no
- *   default value was declared" (ASI Table 5.42), the default in force being what the session's
- *   template processing set (`qti-set-default-value`, Table 6.51.4) where it set one, else the
- *   declared one. No row is NULL.
+ * - The maximum, the value its `maximum` operand, a `qti-default`, takes in the attempt's item
+ *   session ("This expression looks up the declaration of an itemVariable and returns the
+ *   associated defaultValue or NULL if no default value was declared", ASI Table 5.42), is no
+ *   derivation here: the grader evaluates it when its run demands the application, and the grade
+ *   stores it (`ApplicationMaximum`, the ledger's), so the default in force has one
+ *   implementation.
  * - **ApplicationDraw** `(package, path, operator) → draw`: its `draw` operand, a literal of the
  *   content, its `qti-base-value`'s text as written, which pantry's value domain holds to the
  *   integer lexical space; a `qti-null` draw has no row, NULL.
@@ -24,13 +24,15 @@
  * has its operands' row.
  *
  * Laws: **Reply within maximum** and **Human within maximum**: a machine's reply (`OperatorReply`)
- * and a person's value (`HumanOperatorValue`, for every application of its rubric group) never
- * exceed the application's maximum, where it has one (`rubric-score`'s contract: "`score` is in [0,
- * maximum]. A reply outside that range is a decline, never clamped"), refused at the write. A
- * Ledger law cannot state them: each reads a join of the content, the session's values and the
- * answer, and a level states a law over a join as a rule over a query of the level above.
+ * never exceeds its application's maximum (`ApplicationMaximum`), and a person's value
+ * (`HumanOperatorValue`) never the least maximum of its group's applications the run reached
+ * (`HumanDemandMaximum`), where they have one (`rubric-score`'s contract: "`score` is in [0,
+ * maximum]. A reply outside that range is a decline, never clamped"), refused at the write. Each
+ * reads stored facts of the attempt alone, never the content, so no publish judges them. A Ledger
+ * law cannot state them: each reads a join of two of its relations, and a level states a law over
+ * a join as a rule over a query of the level above.
  */
-import { check, derived, doubleText, Logic, query, Text, v } from "@bjornpagen/grizzle";
+import { check, derived, query, v } from "@bjornpagen/grizzle";
 import type { LedgerLevel } from "#ledger/delivery.ts";
 import { named } from "#ledger/laws.ts";
 
@@ -82,132 +84,6 @@ export const applicationOperandsOf = (ledger: LedgerLevel) => {
 };
 
 /**
- * Each recorded application's `maximum` operand at an attempt's item session, as a plain query: the
- * default in force of the outcome its `qti-default` names (`ApplicationDefault`, at the rank
- * `OperatorOperand` gives the class's `maximum`).
- *
- * @param ledger - The ledger level.
- * @returns The query.
- */
-export const applicationMaximaOf = (ledger: LedgerLevel) => {
-  const {
-    ApplicationDefault,
-    Attempt,
-    DeclarationName,
-    ItemSession,
-    ItemSessionValueSingleFloat,
-    Node,
-    OperatorOperand,
-    RecordedApplication,
-  } = ledger.relations;
-
-  /**
-   * Each attempt's recorded application with the outcome its `maximum` operand reads, and its item
-   * session's stage.
-   */
-  const maximumOperands = query(ledger).rule((r) => {
-    const { child, package: pkg, path, n, at } = v(Attempt, "maximumAttempt");
-    const { stage } = v(ItemSession, "maximumSession");
-    const { start: operator, class: operatorClass } = v(RecordedApplication, "maximumApplication");
-    const { rank } = v(OperatorOperand, "maximumSlot");
-    const { identifier } = v(ApplicationDefault, "maximumDefault");
-
-    return r
-      .match(Attempt, { at, child, n, package: pkg, path })
-      .match(ItemSession, { child, n, package: pkg, path, stage })
-      .match(RecordedApplication, { class: operatorClass, package: pkg, path, start: operator })
-      .match(OperatorOperand, { class: operatorClass, operand: "maximum", rank })
-      .match(ApplicationDefault, { identifier, operator, package: pkg, path, rank })
-      .find({ at, child, identifier, n, operator, package: pkg, path, stage });
-  });
-
-  return query(ledger)
-    .rule((r) => {
-      const {
-        child,
-        package: pkg,
-        path,
-        n,
-        at,
-        operator,
-        stage,
-        identifier,
-      } = v(maximumOperands, "set");
-      const { value: maximum } = v(ItemSessionValueSingleFloat, "setDefault");
-
-      return r
-        .match(maximumOperands, { at, child, identifier, n, operator, package: pkg, path, stage })
-        .match(ItemSessionValueSingleFloat, {
-          child,
-          kind: "default",
-          package: pkg,
-          path,
-          stage,
-          value: maximum,
-          variable: identifier,
-        })
-        .find({ at, child, maximum, n, operator, package: pkg, path });
-    })
-    .rule((r) => {
-      const {
-        child,
-        package: pkg,
-        path,
-        n,
-        at,
-        operator,
-        stage,
-        identifier,
-      } = v(maximumOperands, "declared");
-      const { start: declaration } = v(DeclarationName, "declaration");
-      const { start: set } = v(Node, "defaultSet");
-      const { stringValue: lexical } = v(Node, "defaultValue");
-
-      return r
-        .match(maximumOperands, { at, child, identifier, n, operator, package: pkg, path, stage })
-        .match(DeclarationName, {
-          declarationKind: "qti-outcome-declaration",
-          identifier,
-          package: pkg,
-          path,
-          start: declaration,
-        })
-        .match(Node, {
-          kind: "qti-default-value",
-          package: pkg,
-          parent: declaration,
-          path,
-          start: set,
-        })
-        .match(Node, { kind: "qti-value", package: pkg, parent: set, path, stringValue: lexical })
-        .where(
-          r.not(ItemSessionValueSingleFloat, {
-            child,
-            kind: "default",
-            package: pkg,
-            path,
-            stage,
-            variable: identifier,
-          }),
-          Text.matches(Text.collapse(lexical), doubleText),
-        )
-        .find({
-          at,
-          child,
-          maximum: Logic.when(
-            Text.matches(Text.collapse(lexical), doubleText),
-            (form) => Text.parseDouble(form),
-            Number.NaN,
-          ),
-          n,
-          operator,
-          package: pkg,
-          path,
-        });
-    });
-};
-
-/**
  * The Delivery level's relations and laws of a recorded application's operands over the ledger
  * `ledger`.
  *
@@ -217,17 +93,15 @@ export const applicationMaximaOf = (ledger: LedgerLevel) => {
 export const applicationOperandRelationsOf = (ledger: LedgerLevel) => {
   const {
     ApplicationLiteral,
+    ApplicationMaximum,
+    HumanDemandMaximum,
     HumanOperatorValue,
     OperatorOperand,
     OperatorReply,
     RecordedApplication,
-    RubricApplication,
   } = ledger.relations;
-  const maxima = applicationMaximaOf(ledger);
 
   const ApplicationOperands = derived("ApplicationOperands", applicationOperandsOf(ledger));
-
-  const ApplicationMaximum = derived("ApplicationMaximum", maxima);
 
   const ApplicationDraw = derived(
     "ApplicationDraw",
@@ -265,17 +139,18 @@ export const applicationOperandRelationsOf = (ledger: LedgerLevel) => {
         evaluated,
         score,
       } = v(OperatorReply, "reply");
-      const { maximum } = v(maxima, "replyMaximum");
+      const { maximum } = v(ApplicationMaximum, "replyMaximum");
 
       return r
         .match(OperatorReply, { at, child, evaluated, n, operator, package: pkg, path, score })
-        .match(maxima, { at, child, maximum, n, operator, package: pkg, path })
+        .match(ApplicationMaximum, { at, child, maximum, n, operator, package: pkg, path })
         .find({ at, child, evaluated, maximum, n, operator, package: pkg, path, score });
     }),
   );
 
   /**
-   * Each person's value beside the maximum of each application of its rubric group at the attempt.
+   * Each person's value beside its group's maximum at the attempt, the least of its reached
+   * applications'.
    */
   const HumanValueBound = derived(
     "HumanValueBound",
@@ -290,14 +165,12 @@ export const applicationOperandRelationsOf = (ledger: LedgerLevel) => {
         asserted,
         score,
       } = v(HumanOperatorValue, "person");
-      const { start: operator } = v(RubricApplication, "personApplication");
-      const { maximum } = v(maxima, "personMaximum");
+      const { maximum } = v(HumanDemandMaximum, "personMaximum");
 
       return r
         .match(HumanOperatorValue, { asserted, at, child, n, package: pkg, path, rubric, score })
-        .match(RubricApplication, { package: pkg, path, rubric, start: operator })
-        .match(maxima, { at, child, maximum, n, operator, package: pkg, path })
-        .find({ asserted, at, child, maximum, n, operator, package: pkg, path, rubric, score });
+        .match(HumanDemandMaximum, { at, child, maximum, n, package: pkg, path, rubric })
+        .find({ asserted, at, child, maximum, n, package: pkg, path, rubric, score });
     }),
   );
 
@@ -312,12 +185,6 @@ export const applicationOperandRelationsOf = (ledger: LedgerLevel) => {
         check("Human_within_maximum", HumanValueBound, (b) => b.le(b.score, b.maximum)),
       ),
     ],
-    relations: [
-      ApplicationOperands,
-      ApplicationMaximum,
-      ApplicationDraw,
-      ReplyBound,
-      HumanValueBound,
-    ],
+    relations: [ApplicationOperands, ApplicationDraw, ReplyBound, HumanValueBound],
   } as const;
 };
