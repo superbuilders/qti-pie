@@ -141,7 +141,7 @@ import { DeclineReason } from "#ledger/evaluations.ts";
 import { operatorTagPrefix } from "#ledger/registry/operators.ts";
 import { reviewShowsOf, sessionFactsOf } from "#ledger/served-item.ts";
 import type { ReviewShows, SessionControl } from "#ledger/served-item.ts";
-import { responseParamsOf } from "#ledger/served-values.ts";
+import { responseParamsOf, responsesOfRows } from "#ledger/served-values.ts";
 import { Reading } from "#ledger/sittings.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 import { inFlightGraceMicros, presenceGraceMicros } from "#ledger/delivery.ts";
@@ -2197,6 +2197,24 @@ type ControlMove =
 
 type ControlsCase = Readonly<{ name: string; moves: readonly ControlMove[] }>;
 
+/**
+ * The document of each item ref a controls case acts on, its item session's path.
+ */
+const controlPaths = {
+  [DRAFT_REF]: DRAFT_MIN,
+  [ESSAY_REF]: ESSAY_MIN,
+  [MEMBER_REF]: MEMBER_MIN,
+} as const satisfies Record<ControlRef, string>;
+
+/**
+ * The declarations a controls item's save is read back by: its one text response, `RESPONSE`.
+ */
+const textDeclarations = {
+  outcomes: new Map(),
+  records: new Map(),
+  responses: new Map([["RESPONSE", { baseType: "string", cardinality: "single" }] as const]),
+} as const;
+
 const present = (ref: ControlRef): ControlMove => ({ kind: "present", ref });
 
 const save = (ref: ControlRef, text: ControlText): ControlMove => ({ kind: "save", ref, text });
@@ -2519,13 +2537,14 @@ const holdControls = (
         assert.strictEqual(presented.kind, want, what);
         assert.strictEqual(yield* attemptCount, before, `${what}: submits nothing`);
       } else {
-        const values = yield* responseParamsOf({
+        const responses = {
           RESPONSE: {
             baseType: "string",
             cardinality: "single",
             values: [{ baseType: "string", value: controlTexts[move.text] }],
           },
-        });
+        } as const;
+        const values = yield* responseParamsOf(responses);
         const params = { ...sitting, given: began, item: move.ref, ...values };
         const outcome =
           move.kind === "save"
@@ -2535,6 +2554,22 @@ const holdControls = (
                 params: { ...params, next: [] },
               });
         assert.strictEqual(outcome.kind, want, what);
+        if (move.kind === "save" && want === "accepted") {
+          const sittings = Arr.fromIterable(
+            yield* db.workload.savesOf.once({ facts: {}, params: { child } }),
+          );
+          const latest = Option.getOrThrow(
+            Arr.findFirst(
+              sittings.flatMap(({ saves }) => Arr.fromIterable(saves)),
+              ({ path }) => path === controlPaths[move.ref],
+            ),
+          );
+          assert.deepStrictEqual<unknown>(
+            yield* responsesOfRows(textDeclarations, latest),
+            responses,
+            `${what}: its latest save reads back as it was saved (savedRowsOf)`,
+          );
+        }
       }
     }
 
