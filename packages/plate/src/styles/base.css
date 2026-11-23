@@ -1909,6 +1909,41 @@
   /* == graphic gap match == */
 
   /*
+   * A Graphic Gap Match's bank beside its stage wherever the item is wide enough for the bank at
+   * its narrowest, its widest chip, and the stage at its size side by side, so a chip and the box
+   * it goes in stand on one screen and a drag never crosses a scroll, as AlphaTest's bank stood
+   * beside its picture; where it is not, the bank above the stage, as wide as the item (edullm-bd,
+   * 2026-11-22, from PLAYER-PARITY's _f9fa8d6c, whose model began at y=755 of 900 under a bank as
+   * wide as the item). Beside the stage the bank takes the room the stage leaves. The list of
+   * hotspots and the latest refusal stand under both, each on a line of its own.
+   */
+  [data-slot="plate-graphic-gap-match"] > [data-slot="plate-placement"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    column-gap: var(--plate-gap);
+  }
+
+  [data-slot="plate-graphic-gap-match"]
+    > [data-slot="plate-placement"]
+    > [data-slot="plate-placement-dock"] {
+    flex: 1 1 auto;
+    inline-size: min-content;
+  }
+
+  [data-slot="plate-graphic-gap-match"]
+    > [data-slot="plate-placement"]
+    > [data-slot="plate-graphic"] {
+    flex: 0 1 auto;
+  }
+
+  [data-slot="plate-graphic-gap-match"]
+    > [data-slot="plate-placement"]
+    > :not([data-slot="plate-placement-dock"], [data-slot="plate-graphic"]) {
+    flex-basis: 100%;
+  }
+
+  /*
    * A Graphic Gap Match: each hotspot on the stage is a placement target, an SVG group inside its
    * mark, so a drag over it shows on its ring: one that takes the held choice, `data-over`, as
    * heavy as a pick's; one that would refuse it, `data-refuses`, its ink dotted, so either shows by
