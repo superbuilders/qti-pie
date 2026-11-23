@@ -28821,11 +28821,11 @@
 			"fa90810d9401bf0a81bfec203c004cd0f8847433ed32c3733b3f55991eea413d": "3cd53cc0df2c42f1b44a53e1d672bc47fed1067e25cfaf7059cdd1021552f469"
 		}
 	},
-	"fingerprint": "d5f43f5589987be3b29f5149429c397a4f9b30d7fb219faebb60d0452a719abf",
+	"fingerprint": "fde826b67ae476e312a3f60e6af8f9b62213f3214db40d8d5f6b48cb288dab09",
 	"format": 8,
 	"levels": [
 		{
-			"fingerprint": "7446ac5428a443b26a0115b9a31869cc62a6c6c89730b0528ad7d6bfb092ade5",
+			"fingerprint": "8618cb6e728652ea0f732b5e884d7b7e1ad850e17955ba171a470a7d35bb81ec",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"AssembledCatalog"},"law":"__assembled_catalog_check_e_1_derived_aq344tuo32"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"AssembledCatalog","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"owner","kind":"field"}]},"kind":"contained","to":{"relation":"CatalogId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__assembled_catalog_in_catalog_id_pkcxplbjvp"},
@@ -29387,13 +29387,13 @@
 			"schema": "qti"
 		},
 		{
-			"fingerprint": "c59d48ff9512bd7342513729fcec87ad1834e8b71bd4411d3f96344498672f20",
+			"fingerprint": "ad89a28c09e9915435f418bb2454f266b7400fecf996fdc91e8eab51362b0c92",
 			"laws": [],
 			"name": "QtiViews",
 			"schema": "qti_views"
 		},
 		{
-			"fingerprint": "a96af0c6d1bb36e5457dcecadec8b27592b363a53fe373c880b87d75e982f95e",
+			"fingerprint": "5d96b0f7904b696b7feba9c446bb56fa86e0e1c69157899741c0c8bd6bf44b78",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"AnchoredId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"id","kind":"field"}]}},"law":"__anchored_id_key_package_assembly_anchor_id_6pj7hyldv5"},
 				{"described":{"entry":{"kind":"declared","name":"Test name key","source":"reading 86: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_AssessmentSection.Attr_identifier (§4.2.1: 'The identifier of the section or item reference must be unique within the test and must not be the identifier of any testPart'), §5.159.1 and §7.5.3 ('A test may refer to the same section multiple times within a test. Note however that each reference must have a unique identifier'), read over the assembled test (reading 5): the test document and every document its section refs and includes place; a section document placed twice is one document and names nothing twice: no two written test parts, sections, section refs or item refs of one test's assembly share an identifier (overlay-queries/tests.ts AssembledName)"},"kind":"key","side":{"relation":"AnchoredName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__anchored_name_key_package_assembly_anchor_l25sk7zs37"},

@@ -76,6 +76,7 @@ import {
   sha256,
   str,
   Text,
+  unit,
 } from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import {
@@ -125,6 +126,17 @@ export const Package = law(
   entryOf("Package key"),
   relation("Package", { name: PackageName }, ["name"]),
 );
+
+/**
+ * The package as a unit (grizzle's README, "Units"): every stored relation of a package's content
+ * leads its key with `package`, a {@link PackageName}, so each sits under it, at this level and in
+ * every level above that keys its rows by a package first. A publish writes one package's rows, so
+ * it holds that package alone, exclusively; a call that reads a package it does not write holds it
+ * shared; and calls of different packages never meet. A package's rows are one index range of each
+ * relation, and every law over them stays inside one package (spec reading 115: an include that
+ * resolves outside the package is stored as written and never fetched).
+ */
+export const PackageUnit = unit("Package", { package: PackageName });
 
 /**
  * What an entry is: a `document`, which the import shreds and the database holds as its tree alone

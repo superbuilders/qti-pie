@@ -7,7 +7,7 @@
  */
 import type { Statement } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
-import { Formatter, Option } from "effect";
+import { Array as Arr, Formatter, Option, Result } from "effect";
 import { checkNameOf, lawNameOf, lawNames } from "#pantry/import/refusal.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
 import { Qti } from "#pantry/qti/schema.ts";
@@ -36,7 +36,16 @@ describe("the laws each module names where it states them", () => {
       }
     }
 
-    const statements = statementLawsOf(Qti);
+    // A unit states no law, only the key its rows sit under (grizzle's README, "Units"), so no
+    // group names it; every other statement of Qti states one at least.
+    const [statements, lawless] = Arr.partition(statementLawsOf(Qti), (entry) =>
+      Arr.isReadonlyArrayNonEmpty(entry.laws) ? Result.succeed(entry) : Result.fail(entry),
+    );
+    assert.deepStrictEqual(
+      lawless.map(({ statement }) => statement.kind),
+      ["unit"],
+      "the statements of Qti that state no law",
+    );
     assert.strictEqual(groups.size, statements.length, "a group holds a statement Qti does not");
     for (const { laws, statement } of statements) {
       const names = groups.get(statement) ?? [];

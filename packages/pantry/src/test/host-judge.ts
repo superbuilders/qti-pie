@@ -442,7 +442,8 @@ const judgedOf = (statement: QtiStatement, laws: readonly Law[]): readonly Judge
     case "counted":
     case "fold":
     case "ordered":
-    case "tree": {
+    case "tree":
+    case "unit": {
       return [];
     }
     default: {

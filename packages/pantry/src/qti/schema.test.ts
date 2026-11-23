@@ -53,6 +53,7 @@ const composedLaws: readonly (readonly [string, readonly Statement[]])[] = [
   ["src/qti/chardata.ts chardataLaws", chardataLaws],
   ["src/qti/attributes.ts attributeLaws", attributeLaws],
   ["src/qti/package.ts packageLaws", packageLaws],
+  ["src/qti/package.ts PackageUnit, the unit every package's rows sit under", [pkg.PackageUnit]],
   ["src/qti/identity.ts identityLaws", identityLaws],
   ["src/qti/tests.ts testLaws", testLaws],
   ["src/qti/mapping.ts mappingLaws", mappingLaws],
