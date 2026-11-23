@@ -485,3 +485,14 @@ export const rootOf = (
 export const classRootOf = (context: Pick<IslandContext, "className">): ClassRoot => ({
   className: Option.getOrUndefined(context.className),
 });
+
+/**
+ * Give a Gap Match's or a Graphic Gap Match's bank its caption where the host asks for one
+ * (`bankCaption`): AlphaTest's "DRAG & DROP THE ANSWER", the island's and the review's alike.
+ *
+ * @param context What the shell knows: the host's `bankCaption` and the locale.
+ * @returns The caption, or undefined where the host asks for none.
+ */
+export const bankCaptionOf = (
+  context: Pick<IslandContext, "bankCaption" | "locale">,
+): string | undefined => (context.bankCaption ? message(context.locale, "bankCaption") : undefined);

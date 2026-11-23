@@ -41,7 +41,10 @@
  * A Choice whose host asks for it (`picksInstruction`) writes `picksInstructionOne` under its
  * prompt where the child picks one, `picksInstructionMany` where more, and `picksInstructionReview`
  * in a review, AlphaTest's player's words. An option a host has eliminated, a test's cross-out, is
- * described by `picksEliminated`.
+ * described by `picksEliminated`. A Gap Match's and a Graphic Gap Match's bank whose host asks for
+ * it (`bankCaption`) is captioned `bankCaption`, AlphaTest's player's words over its bank, written
+ * in capitals as it wrote them (mastery-track-player 941a86a, `GapMatchInteraction.tsx` lines 1277
+ * and 1512).
  *
  * Match, Gap Match and Order refuse a response past their own limits with the `match…`,
  * `gapMatch…` and `order…` keys that name a choice, a gap or a pair by its identifier (`{choice}`,
@@ -57,6 +60,7 @@ export const coreMessages = {
   atMost: "Select at most {n}.",
   atMostOneString: "Enter at most 1 answer.",
   atMostStrings: "Enter at most {n} answers.",
+  bankCaption: "DRAG & DROP THE ANSWER",
   choiceLimit: "You can choose up to {n}. Take one back to choose another.",
   choiceOf: "Choice {n} of {count}",
   feedbackWhy: "Why",

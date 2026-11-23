@@ -143,6 +143,11 @@ export interface IslandContext {
    * many options to pick.
    */
   readonly picksInstruction: boolean;
+  /**
+   * The configuration's `bankCaption`: whether a Gap Match's and a Graphic Gap Match's bank writes
+   * the caption that tells a child to drag a choice into place.
+   */
+  readonly bankCaption: boolean;
 }
 
 /**

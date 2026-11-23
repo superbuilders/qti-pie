@@ -135,6 +135,7 @@ const answers: Answers = {
  * @returns What the page may know of the render.
  */
 const islandContextOf = (context: IslandContext): IslandContext => ({
+  bankCaption: context.bankCaption,
   body: context.body,
   className: context.className,
   content: context.content,

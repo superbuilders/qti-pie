@@ -53,6 +53,11 @@ import { useResponse } from "#plate/ui/responses.tsx";
  */
 export interface GapMatchProps extends Authored<NameAttributes> {
   /**
+   * The words over the bank where the host asks for them (`bankCaption`), AlphaTest's "DRAG & DROP
+   * THE ANSWER"; undefined for none.
+   */
+  readonly caption: string | undefined;
+  /**
    * The interaction's block content, server-rendered, with a {@link Gap} for each `qti-gap` shown,
    * in place, and nothing for a gap its template hides (5.55.3). It holds no interactive element
    * but its gaps.
@@ -168,7 +173,8 @@ const boardOf = (
  * @returns The Gap Match, its placements bound to the response.
  */
 export const GapMatch = (props: GapMatchProps) => {
-  const { children, gapTexts, gaps, labels, maxAssociations, name, naming, prompt, root } = props;
+  const { caption, children, gapTexts, gaps, labels, maxAssociations, name, naming, prompt, root } =
+    props;
   const [texts, set] = useResponse(name);
   const board = useMemo(
     () => boardOf(gapTexts, gaps, maxAssociations),
@@ -195,7 +201,7 @@ export const GapMatch = (props: GapMatchProps) => {
             set(textsOf(next));
           }}
         >
-          <PlacementBank>
+          <PlacementBank caption={caption}>
             {gapTexts.map((gapText) =>
               spokenBeside(
                 <PlacementChip

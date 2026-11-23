@@ -22,6 +22,7 @@ const refused = [
   { field: "hotspotList", input: { hotspotList: "hidden", seed: "" } },
   { field: "hotspotList", input: { hotspotList: false, seed: "" } },
   { field: "picksInstruction", input: { picksInstruction: "true", seed: "" } },
+  { field: "bankCaption", input: { bankCaption: "true", seed: "" } },
   { field: "textEntryKeypad", input: { seed: "", textEntryKeypad: "onscreen" } },
   { field: "textEntryKeypad", input: { seed: "", textEntryKeypad: true } },
   { field: "maxAttempts", input: { maxAttempts: 1, seed: "" } },
@@ -119,6 +120,7 @@ describe("configure", () => {
     Effect.gen(function* everyDefault() {
       assert.deepStrictEqual(yield* configure({ seed: "7" }), {
         assets: new Map(),
+        bankCaption: false,
         headingLevel: 2,
         hotspotList: "shown",
         hotspotPicks: "ring",

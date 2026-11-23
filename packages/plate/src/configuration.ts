@@ -150,6 +150,8 @@ export type TextEntryKeypad = (typeof textEntryKeypads)[number];
  * `picksInstruction` is whether every Choice of the item writes the line AlphaTest's player wrote
  * under its prompt, "Select your answer:" for one pick, "Select all that apply:" for more, and
  * "Your Answer:" in a review, `false` by default; it is words alone, changing no response.
+ * `bankCaption` is whether every Gap Match's and Graphic Gap Match's bank writes the caption
+ * AlphaTest's player wrote over it, "DRAG & DROP THE ANSWER", `false` by default; words alone too.
  * `assets` maps each file an item's package URLs may name, by its path from the package root, to
  * its address, the URL `<Item>` writes in its place, or to `null` for a file the host withholds,
  * which `<Item>` writes no URL for and renders the item without: `<Item>` resolves each package URL
@@ -169,6 +171,7 @@ export type TextEntryKeypad = (typeof textEntryKeypads)[number];
  */
 export const ConfigurationSchema = Schema.Struct({
   assets: Assets.pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+  bankCaption: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   headingLevel: Schema.Int.check(Schema.isBetween({ maximum: 6, minimum: 2 })).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(2)),
   ),
@@ -205,6 +208,8 @@ type Field = keyof Configuration;
 const allowedValues: Readonly<Record<Field, string>> = {
   assets:
     'an array of [path, address] entries: each path a file\'s path from the package root, such as "items/media/a.png", in one entry only, and each address a URL with no whitespace that neither starts nor ends with a comma, such as "https://cdn.example/sha256/9f86…", or null for a file the host withholds',
+  bankCaption:
+    "true or false, whether every Gap Match's and Graphic Gap Match's bank writes the caption that tells a child to drag",
   headingLevel: "an integer from 2 to 6",
   hotspotList: `how a Hotspot shows its list of areas: ${hotspotLists.map((value) => `"${value}"`).join(" or ")}`,
   hotspotPicks: `how a Hotspot shows a picked area: ${hotspotPicks.map((value) => `"${value}"`).join(" or ")}`,

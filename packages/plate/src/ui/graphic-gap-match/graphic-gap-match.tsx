@@ -131,6 +131,11 @@ export interface GraphicGapHotspot extends StageArea, Spoken {
  */
 export interface GraphicGapMatchProps extends Authored<NameAttributes> {
   /**
+   * The words over the bank where the host asks for them (`bankCaption`), AlphaTest's "DRAG & DROP
+   * THE ANSWER"; undefined for none.
+   */
+  readonly caption: string | undefined;
+  /**
    * The gap texts and gap images, in display order, the server's: each one chip in the bank, in
    * each row that holds it, and on the image. A gap image's `label` is its `object-label`, else
    * its image's alternative text, else plate's "Choice n of count" (WCAG 1.1.1). A `matchMax` other
@@ -399,6 +404,7 @@ const StagePlotPins = (props: StagePlot) => {
  */
 export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
   const {
+    caption,
     floor,
     gapChoices,
     hotspots,
@@ -458,7 +464,7 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
           set(textsOf(next));
         }}
       >
-        <PlacementBank>
+        <PlacementBank caption={caption}>
           {gapChoices.map((choice) =>
             spokenBeside(
               <PlacementChip

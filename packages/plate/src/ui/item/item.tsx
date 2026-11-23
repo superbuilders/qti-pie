@@ -292,6 +292,7 @@ export const Item = (props: ItemProps): ReactNode => {
     return nodesOf(nodes, walk);
   };
   const shared = {
+    bankCaption: configuration.bankCaption,
     body: redacted.body,
     content,
     instance,

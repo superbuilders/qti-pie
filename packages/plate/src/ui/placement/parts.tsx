@@ -42,6 +42,7 @@ import { createParts } from "@ui-sdk/react/primitive";
 import type { PartProps } from "@ui-sdk/react/primitive";
 import { createContext, use, useMemo } from "react";
 import { adapted } from "#plate/ui/adapted.ts";
+import { BankCaption } from "#plate/ui/placement/caption.tsx";
 import { PlacementPartOutside, TargetLabelInBank } from "#plate/ui/defects.ts";
 import { bank } from "#plate/placement/machine.ts";
 import type { Bank, Spot } from "#plate/placement/machine.ts";
@@ -117,24 +118,32 @@ export const PlacementRoot = (
 
 /**
  * Render the bank, where chips start and where a drop or a tap returns a placed chip, inside its
- * dock.
+ * dock, under its caption where it has one.
  *
- * The dock, `plate-placement-dock`, is a plain `div` around the bank and nothing else, the box a
- * theme pins to the screen while the child answers: a sticky box can style what is inside it by
- * whether it is stuck (`container-type: scroll-state`), never itself, so with the bank as the
- * sticky box a theme could not cap the pinned tray only while it is pinned. The bank stays the
- * chips' parent, the tray and the place a drop lands in; the dock takes no press and no drop.
+ * The dock, `plate-placement-dock`, is a plain `div` around the bank and its caption and nothing
+ * else, the box a theme pins to the screen while the child answers: a sticky box can style what is
+ * inside it by whether it is stuck (`container-type: scroll-state`), never itself, so with the bank
+ * as the sticky box a theme could not cap the pinned tray only while it is pinned. The bank stays
+ * the chips' parent, the tray and the place a drop lands in; the dock takes no press and no drop.
  *
- * @param props The bank `div`'s props.
+ * @param props.caption The words over the bank ({@link BankCaption}), undefined for none.
+ * @param props The bank `div`'s other props.
  * @returns The bank in its dock.
  */
-export const PlacementBank = (props: WithId<PartProps<"div">>) => (
-  <div data-slot="plate-placement-dock">
-    <StandingContext value={bank}>
-      <parts.Bank {...props} />
-    </StandingContext>
-  </div>
-);
+export const PlacementBank = (
+  props: { readonly caption?: string | undefined } & WithId<PartProps<"div">>,
+) => {
+  const { caption, ...rest } = props;
+
+  return (
+    <div data-slot="plate-placement-dock">
+      <BankCaption caption={caption} />
+      <StandingContext value={bank}>
+        <parts.Bank {...rest} />
+      </StandingContext>
+    </div>
+  );
+};
 
 /**
  * Render a target, a sequence's position, or a half of a box, named as its {@link TargetName} says:

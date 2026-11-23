@@ -31,7 +31,14 @@ import {
   pairsByTarget,
 } from "#plate/ui/item/interactions/chips.tsx";
 import { limitOf } from "#plate/placement/limit.ts";
-import { groupNameOf, labelsOf, promptAt, rootOf } from "#plate/ui/item/interactions/labels.ts";
+import {
+  bankCaptionOf,
+  groupNameOf,
+  labelsOf,
+  promptAt,
+  rootOf,
+} from "#plate/ui/item/interactions/labels.ts";
+import { BankCaption } from "#plate/ui/placement/caption.tsx";
 import { markingOf } from "#plate/ui/item/interactions/marks.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import { fillLabel } from "#plate/ui/labels.ts";
@@ -82,6 +89,7 @@ export const island = (
 
   return (
     <GapMatch
+      caption={bankCaptionOf(context)}
       gapTexts={node.choices.map((choice, index) =>
         associableOf(choice, { count: node.choices.length, n: index + 1 }, "phrasing", context),
       )}
@@ -173,6 +181,7 @@ export const review = (
       <PromptPart prompt={prompt} />
       <div data-slot="plate-placement">
         <div data-slot="plate-placement-dock">
+          <BankCaption caption={bankCaptionOf(context)} />
           <div data-slot="plate-placement-bank">
             {node.choices.map((choice) =>
               bankChipPart(
