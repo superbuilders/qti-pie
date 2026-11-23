@@ -180,7 +180,6 @@ const tokens = new Map([
   ["doc_directed_pair.identifier", "QtiIdentifier"],
   ["doc_point.identifier", "QtiIdentifier"],
   ["doc_file.identifier", "QtiIdentifier"],
-  ["doc_file_name.identifier", "QtiIdentifier"],
   ["doc_field_text.identifier", "QtiIdentifier"],
   ["doc_field_integer.identifier", "QtiIdentifier"],
   ["doc_field_float.identifier", "QtiIdentifier"],
@@ -189,7 +188,6 @@ const tokens = new Map([
   ["doc_field_directed_pair.identifier", "QtiIdentifier"],
   ["doc_field_point.identifier", "QtiIdentifier"],
   ["doc_field_file.identifier", "QtiIdentifier"],
-  ["doc_field_file_name.identifier", "QtiIdentifier"],
   ["mark_text.identifier", "QtiIdentifier"],
   ["mark_integer.identifier", "QtiIdentifier"],
   ["mark_float.identifier", "QtiIdentifier"],
@@ -215,6 +213,10 @@ const tokens = new Map([
   ["in_member_field_text.value", "someText"],
   ["doc_text.value", "someText"],
   ["doc_field_text.value", "someText"],
+  // A file's name: every file the machine holds is a stored row's, and a stored file is named (FileName).
+  ["doc_file.name", "someText"],
+  ["doc_field_file.name", "someText"],
+  ["mark_file.name", "someText"],
   ["mark_text.value", "someText"],
 ]);
 

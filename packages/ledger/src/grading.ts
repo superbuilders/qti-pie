@@ -846,6 +846,7 @@ export const BagRow = rows({
   n: QtiInteger,
   t: anyText,
   u: anyText,
+  w: anyText,
 });
 
 export const Dyadic = rows({
@@ -911,11 +912,6 @@ export const OutFile = rows({
   content_type: anyText,
   digest: sha256,
   identifier: anyText,
-  place: pg.integer,
-});
-
-export const OutFileName = rows({
-  identifier: anyText,
   name: anyText,
   place: pg.integer,
 });
@@ -972,11 +968,6 @@ export const OutFieldFile = rows({
   digest: sha256,
   field: anyText,
   identifier: anyText,
-});
-
-export const OutFieldFileName = rows({
-  field: anyText,
-  identifier: anyText,
   name: anyText,
 });
 
@@ -986,14 +977,12 @@ export const OutValues = rows({
   drawn: pg.integer,
   field_booleans: OutFieldBoolean,
   field_directed_pairs: OutFieldDirectedPair,
-  field_file_names: OutFieldFileName,
   field_files: OutFieldFile,
   field_floats: OutFieldFloat,
   field_integers: OutFieldInteger,
   field_pairs: OutFieldPair,
   field_points: OutFieldPoint,
   field_texts: OutFieldText,
-  file_names: OutFileName,
   files: OutFile,
   floats: OutFloat,
   flow: Flow,
@@ -1073,12 +1062,6 @@ export const InFile = rows({
   digest: sha256,
   holds: Holds,
   identifier: anyText,
-  place: pg.integer,
-});
-
-export const InFileName = rows({
-  holds: Holds,
-  identifier: anyText,
   name: anyText,
   place: pg.integer,
 });
@@ -1143,12 +1126,6 @@ export const InFieldFile = rows({
   field: anyText,
   holds: Holds,
   identifier: anyText,
-});
-
-export const InFieldFileName = rows({
-  field: anyText,
-  holds: Holds,
-  identifier: anyText,
   name: anyText,
 });
 
@@ -1158,14 +1135,12 @@ export const InValues = rows({
   directed_pairs: InDirectedPair,
   field_booleans: InFieldBoolean,
   field_directed_pairs: InFieldDirectedPair,
-  field_file_names: InFieldFileName,
   field_files: InFieldFile,
   field_floats: InFieldFloat,
   field_integers: InFieldInteger,
   field_pairs: InFieldPair,
   field_points: InFieldPoint,
   field_texts: InFieldText,
-  file_names: InFileName,
   files: InFile,
   floats: InFloat,
   integers: InInteger,
@@ -1255,13 +1230,6 @@ export const InMemberFile = rows({
   digest: sha256,
   holds: Holds,
   identifier: anyText,
-  place: pg.integer,
-  ref: anyText,
-});
-
-export const InMemberFileName = rows({
-  holds: Holds,
-  identifier: anyText,
   name: anyText,
   place: pg.integer,
   ref: anyText,
@@ -1334,13 +1302,6 @@ export const InMemberFieldFile = rows({
   field: anyText,
   holds: Holds,
   identifier: anyText,
-  ref: anyText,
-});
-
-export const InMemberFieldFileName = rows({
-  field: anyText,
-  holds: Holds,
-  identifier: anyText,
   name: anyText,
   ref: anyText,
 });
@@ -1351,14 +1312,12 @@ export const InMembers = rows({
   directed_pairs: InMemberDirectedPair,
   field_booleans: InMemberFieldBoolean,
   field_directed_pairs: InMemberFieldDirectedPair,
-  field_file_names: InMemberFieldFileName,
   field_files: InMemberFieldFile,
   field_floats: InMemberFieldFloat,
   field_integers: InMemberFieldInteger,
   field_pairs: InMemberFieldPair,
   field_points: InMemberFieldPoint,
   field_texts: InMemberFieldText,
-  file_names: InMemberFileName,
   files: InMemberFile,
   floats: InMemberFloat,
   integers: InMemberInteger,
@@ -1419,10 +1378,20 @@ export const PatternProgram = rows({
 
 export const DocumentRun = rows({
   child: LearnerId,
+  defaulted: pg.boolean,
   label: anyText,
   package: anyText,
   path: anyText,
   seed: anyText,
+  stage: pg.bigint,
+});
+
+export const DocGiven = rows({
+  child: LearnerId,
+  holds: Holds,
+  identifier: anyText,
+  package: anyText,
+  path: anyText,
   stage: pg.bigint,
 });
 
@@ -1449,6 +1418,7 @@ export const DocBase = rows({
 export const DocText = rows({
   base: BaseType,
   child: LearnerId,
+  count: pg.bigint,
   holds: Holds,
   identifier: QtiIdentifier,
   package: anyText,
@@ -1460,6 +1430,7 @@ export const DocText = rows({
 
 export const DocInteger = rows({
   child: LearnerId,
+  count: pg.bigint,
   holds: Holds,
   identifier: QtiIdentifier,
   package: anyText,
@@ -1472,6 +1443,7 @@ export const DocInteger = rows({
 export const DocFloat = rows({
   base: BaseType,
   child: LearnerId,
+  count: pg.bigint,
   holds: Holds,
   identifier: QtiIdentifier,
   package: anyText,
@@ -1483,6 +1455,7 @@ export const DocFloat = rows({
 
 export const DocBoolean = rows({
   child: LearnerId,
+  count: pg.bigint,
   holds: Holds,
   identifier: QtiIdentifier,
   package: anyText,
@@ -1494,6 +1467,7 @@ export const DocBoolean = rows({
 
 export const DocPair = rows({
   child: LearnerId,
+  count: pg.bigint,
   greatest: anyText,
   holds: Holds,
   identifier: QtiIdentifier,
@@ -1506,6 +1480,7 @@ export const DocPair = rows({
 
 export const DocDirectedPair = rows({
   child: LearnerId,
+  count: pg.bigint,
   holds: Holds,
   identifier: QtiIdentifier,
   package: anyText,
@@ -1518,6 +1493,7 @@ export const DocDirectedPair = rows({
 
 export const DocPoint = rows({
   child: LearnerId,
+  count: pg.bigint,
   holds: Holds,
   identifier: QtiIdentifier,
   package: anyText,
@@ -1531,20 +1507,11 @@ export const DocPoint = rows({
 export const DocFile = rows({
   child: LearnerId,
   content_type: anyText,
+  count: pg.bigint,
   digest: sha256,
   holds: Holds,
   identifier: QtiIdentifier,
-  package: anyText,
-  path: anyText,
-  place: natural,
-  stage: pg.bigint,
-});
-
-export const DocFileName = rows({
-  child: LearnerId,
-  holds: Holds,
-  identifier: QtiIdentifier,
-  name: anyText,
+  name: someText,
   package: anyText,
   path: anyText,
   place: natural,
@@ -1640,17 +1607,7 @@ export const DocFieldFile = rows({
   field: anyText,
   holds: Holds,
   identifier: QtiIdentifier,
-  package: anyText,
-  path: anyText,
-  stage: pg.bigint,
-});
-
-export const DocFieldFileName = rows({
-  child: LearnerId,
-  field: anyText,
-  holds: Holds,
-  identifier: QtiIdentifier,
-  name: anyText,
+  name: someText,
   package: anyText,
   path: anyText,
   stage: pg.bigint,
@@ -1708,14 +1665,12 @@ export const DocValues = rows({
   ends: DocEnd,
   field_booleans: DocFieldBoolean,
   field_directed_pairs: DocFieldDirectedPair,
-  field_file_names: DocFieldFileName,
   field_files: DocFieldFile,
   field_floats: DocFieldFloat,
   field_integers: DocFieldInteger,
   field_pairs: DocFieldPair,
   field_points: DocFieldPoint,
   field_texts: DocFieldText,
-  file_names: DocFileName,
   files: DocFile,
   floats: DocFloat,
   human_demand_maxima: DocHumanDemandMaximum,
@@ -1781,6 +1736,13 @@ export const DocHumanFeedback = rows({
 export const VarKind = rows({
   identifier: anyText,
   kind: VariableKind,
+});
+
+export const VarType = rows({
+  base: BaseType,
+  card: Cardinality,
+  identifier: anyText,
+  kind: anyText,
 });
 
 export const TestMember = rows({
@@ -1932,6 +1894,7 @@ export const MarkFile = rows({
   digest: sha256,
   identifier: QtiIdentifier,
   mark: AnswerMark,
+  name: someText,
   package: anyText,
   path: anyText,
   place: natural,
@@ -9546,7 +9509,7 @@ export const sFile = fn("sFile", {
   args: { content_type: anyText, digest: sha256, filename: anyText },
   body: fn.body`
 begin
-  if digest is null or content_type is null then raise exception 'no file single of % %', digest, content_type; end if;
+  if digest is null or content_type is null or filename is null then raise exception 'no file single of % % %', digest, content_type, filename; end if;
   return row(null, 'file', digest, null, null, null, null, null, content_type, filename)::${Single};
 end `,
   calls: [],
@@ -9756,7 +9719,7 @@ export const same = fn("same", {
     when 'identifier' then a.t = b.t
     when 'string' then a.t = b.t
     when 'uri' then a.t = b.t
-    when 'file' then a.d = b.d end
+    when 'file' then a.d = b.d and a.u = b.u and a.w is not distinct from b.w end
 `,
   calls: [],
   language: "sql",
@@ -9767,7 +9730,7 @@ export const same = fn("same", {
 
 export const bag = fn("bag", {
   args: { v: Single },
-  body: fn.body` select s.b, s.base, s.d, s.f, s.m, s.n, s.t, case when s.base = 'file' then null else s.u end from unnest(v) s `,
+  body: fn.body` select s.b, s.base, s.d, s.f, s.m, s.n, s.t, s.u, s.w from unnest(v) s `,
   calls: [],
   language: "sql",
   nullInput: "called",
@@ -10350,7 +10313,7 @@ export const distinctSingles = fn("distinctSingles", {
   args: { v: Single },
   body: fn.body`
   select unfielded(s => v[d.k])
-  from (select k, row_number() over (partition by (v[k]).base, (v[k]).d, (v[k]).t, case when (v[k]).base = 'file' then null else (v[k]).u end,
+  from (select k, row_number() over (partition by (v[k]).base, (v[k]).d, (v[k]).t, (v[k]).u, (v[k]).w,
           (v[k]).n, (v[k]).m, (v[k]).f, (v[k]).b order by k) as first
         from generate_subscripts(v, 1) k) d
   where d.first = 1 or (v[d.k]).f = 'NaN'
@@ -14364,15 +14327,13 @@ export const outcomesOf = fn("outcomesOf", {
     st.drawn,
     array(select row((x).field, identifier, (x).b)::${OutFieldBoolean} from s where card = 'record' and (x).base = 'boolean' order by identifier, (x).field),
     array(select row((x).field, identifier, (x).t, (x).u)::${OutFieldDirectedPair} from s where card = 'record' and (x).base = 'directedPair' order by identifier, (x).field),
-    array(select row((x).field, identifier, (x).w)::${OutFieldFileName} from s where card = 'record' and (x).base = 'file' and (x).w is not null order by identifier, (x).field),
-    array(select row((x).u, (x).d, (x).field, identifier)::${OutFieldFile} from s where card = 'record' and (x).base = 'file' order by identifier, (x).field),
+    array(select row((x).u, (x).d, (x).field, identifier, (x).w)::${OutFieldFile} from s where card = 'record' and (x).base = 'file' order by identifier, (x).field),
     array(select row((x).base, (x).field, identifier, (x).f)::${OutFieldFloat} from s where card = 'record' and (x).base in ('float', 'duration') order by identifier, (x).field),
     array(select row((x).field, identifier, (x).n)::${OutFieldInteger} from s where card = 'record' and (x).base = 'integer' order by identifier, (x).field),
     array(select row((x).field, (x).u, identifier, (x).t)::${OutFieldPair} from s where card = 'record' and (x).base = 'pair' order by identifier, (x).field),
     array(select row((x).field, identifier, (x).n, (x).m)::${OutFieldPoint} from s where card = 'record' and (x).base = 'point' order by identifier, (x).field),
     array(select row((x).base, (x).field, identifier, (x).t)::${OutFieldText} from s where card = 'record' and (x).base in ('identifier', 'string', 'uri') order by identifier, (x).field),
-    array(select row(identifier, (x).w, place)::${OutFileName} from s where card <> 'record' and (x).base = 'file' and (x).w is not null order by identifier, place),
-    array(select row((x).u, (x).d, identifier, place)::${OutFile} from s where card <> 'record' and (x).base = 'file' order by identifier, place),
+    array(select row((x).u, (x).d, identifier, (x).w, place)::${OutFile} from s where card <> 'record' and (x).base = 'file' order by identifier, place),
     array(select row((x).base, identifier, place, (x).f)::${OutFloat} from s where card <> 'record' and (x).base in ('float', 'duration') order by identifier, place),
     st.flow,
     array(select row(identifier, place, (x).n)::${OutInteger} from s where card <> 'record' and (x).base = 'integer' order by identifier, place),
@@ -14405,8 +14366,7 @@ export const varsIn = fn("varsIn", {
     union all
     select v.identifier, v.place, s_point(x => v.x, y => v.y) as x from unnest(i.points) v where v.holds = h
     union all
-    select v.identifier, v.place, s_file(digest => v.digest, content_type => v.content_type, filename => (select f.name from unnest(i.file_names) f
-      where f.holds = h and f.identifier = v.identifier and f.place = v.place)) from unnest(i.files) v where v.holds = h
+    select v.identifier, v.place, s_file(digest => v.digest, content_type => v.content_type, filename => v.name) from unnest(i.files) v where v.holds = h
   ), fielded as (
     select v.identifier, v.field, s_text(base => v.base, t => v.value) as x from unnest(i.field_texts) v where v.holds = h
     union all
@@ -14422,8 +14382,7 @@ export const varsIn = fn("varsIn", {
     union all
     select v.identifier, v.field, s_point(x => v.x, y => v.y) as x from unnest(i.field_points) v where v.holds = h
     union all
-    select v.identifier, v.field, s_file(digest => v.digest, content_type => v.content_type, filename => (select f.name from unnest(i.field_file_names) f
-      where f.holds = h and f.identifier = v.identifier and f.field = v.field)) from unnest(i.field_files) v where v.holds = h
+    select v.identifier, v.field, s_file(digest => v.digest, content_type => v.content_type, filename => v.name) from unnest(i.field_files) v where v.holds = h
   )
   select (select b.base from unnest(i.bases) b where b.identifier = d.identifier), d.card, d.identifier,
     case when d.card = 'record'
@@ -14456,8 +14415,7 @@ export const memberVarsOf = fn("memberVarsOf", {
     union all
     select v.ref, v.identifier, v.place, s_point(x => v.x, y => v.y) as x from unnest(m.points) v where v.holds = h
     union all
-    select v.ref, v.identifier, v.place, s_file(digest => v.digest, content_type => v.content_type, filename => (select f.name from unnest(m.file_names) f
-      where f.ref = v.ref and f.holds = h and f.identifier = v.identifier and f.place = v.place)) from unnest(m.files) v where v.holds = h
+    select v.ref, v.identifier, v.place, s_file(digest => v.digest, content_type => v.content_type, filename => v.name) from unnest(m.files) v where v.holds = h
   ), fielded as (
     select v.ref, v.identifier, v.field, s_text(base => v.base, t => v.value) as x from unnest(m.field_texts) v where v.holds = h
     union all
@@ -14473,8 +14431,7 @@ export const memberVarsOf = fn("memberVarsOf", {
     union all
     select v.ref, v.identifier, v.field, s_point(x => v.x, y => v.y) as x from unnest(m.field_points) v where v.holds = h
     union all
-    select v.ref, v.identifier, v.field, s_file(digest => v.digest, content_type => v.content_type, filename => (select f.name from unnest(m.field_file_names) f
-      where f.ref = v.ref and f.holds = h and f.identifier = v.identifier and f.field = v.field)) from unnest(m.field_files) v where v.holds = h
+    select v.ref, v.identifier, v.field, s_file(digest => v.digest, content_type => v.content_type, filename => v.name) from unnest(m.field_files) v where v.holds = h
   )
   select (select b.base from unnest(m.bases) b where b.ref = d.ref and b.identifier = d.identifier), d.card, d.identifier, d.kind,
     d.ref, case when d.card = 'record'
@@ -14931,22 +14888,45 @@ export const overridden = fn("overridden", {
   volatility: "immutable",
 });
 
+export const varTypes = fn("varTypes", {
+  args: { attributes: DocumentAttribute, declarations: DeclarationNode },
+  body: fn.body`
+  with a as (
+    select y.start, max(y.value) filter (where y.name = 'identifier') as identifier, max(y.value) filter (where y.name = 'base-type') as base_type,
+      max(y.value) filter (where y.name = 'cardinality') as cardinality
+    from unnest(attributes) y group by y.start
+  )
+  select trim_xml(t => a.base_type), trim_xml(t => a.cardinality), trim_xml(t => a.identifier), case d.kind when 'qti-response-declaration' then 'response'
+      when 'qti-outcome-declaration' then 'outcome' when 'qti-template-declaration' then 'template' when 'qti-context-declaration' then 'context' end
+  from unnest(declarations) d join a on a.start = d.start
+  where d.kind in ('qti-response-declaration', 'qti-outcome-declaration', 'qti-template-declaration', 'qti-context-declaration')
+  union all select b.base, b.card, b.identifier, 'response' from builtin_responses() b
+  union all select b.base, b.card, b.identifier, 'outcome' from builtin_outcomes() b
+  union all select q.base, q.card, q.identifier, 'context' from (select (qti_context()).*) q
+`,
+  calls: [trimXml, qtiContext, builtinResponses, builtinOutcomes],
+  language: "sql",
+  nullInput: "called",
+  returns: VarType,
+  volatility: "immutable",
+});
+
 export const valuesOf = fn("valuesOf", {
   args: {
-    bases: DocBase,
     booleans: DocBoolean,
     child: LearnerId,
+    declaration_attributes: DocumentAttribute,
+    declarations: DeclarationNode,
+    defaulted: pg.boolean,
     directed_pairs: DocDirectedPair,
     field_booleans: DocFieldBoolean,
     field_directed_pairs: DocFieldDirectedPair,
-    field_file_names: DocFieldFileName,
     field_files: DocFieldFile,
     field_floats: DocFieldFloat,
     field_integers: DocFieldInteger,
     field_pairs: DocFieldPair,
     field_points: DocFieldPoint,
     field_texts: DocFieldText,
-    file_names: DocFileName,
     files: DocFile,
     floats: DocFloat,
     integers: DocInteger,
@@ -14956,33 +14936,46 @@ export const valuesOf = fn("valuesOf", {
     points: DocPoint,
     stage: pg.bigint,
     texts: DocText,
-    vars: DocVar,
+    vars: DocGiven,
   },
   body: fn.body`
+  with t as (select x.* from var_types(attributes => declaration_attributes, declarations => declarations) x),
+  given as (
+    select x.holds, x.identifier from unnest(vars) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)
+    union select 'value', t.identifier from t where not defaulted and t.kind = 'response' and t.identifier not in (select b.identifier from builtin_responses() b)
+    union select 'value', 'numAttempts' where exists (select 1 from unnest(integers) x
+      where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage) and x.holds = 'value' and x.identifier = 'numAttempts')
+  )
   select row(
-    array(select row(x.base, x.identifier)::${InBase} from unnest(bases) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.place, x.value)::${InBoolean} from unnest(booleans) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.place, x.source, x.target)::${InDirectedPair} from unnest(directed_pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(t.base, t.identifier)::${InBase} from t where t.base is not null),
+    array(select row(x.holds, x.identifier, x.at + c, x.value)::${InBoolean} from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.value rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(booleans) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.holds, x.identifier, x.at + c, x.source, x.target)::${InDirectedPair} from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.source, y.target rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(directed_pairs) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
     array(select row(x.field, x.holds, x.identifier, x.value)::${InFieldBoolean} from unnest(field_booleans) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.field, x.holds, x.identifier, x.source, x.target)::${InFieldDirectedPair} from unnest(field_directed_pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.field, x.holds, x.identifier, x.name)::${InFieldFileName} from unnest(field_file_names) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.content_type, x.digest, x.field, x.holds, x.identifier)::${InFieldFile} from unnest(field_files) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
+    array(select row(x.content_type, x.digest, x.field, x.holds, x.identifier, x.name)::${InFieldFile} from unnest(field_files) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.base, x.field, x.holds, x.identifier, x.value)::${InFieldFloat} from unnest(field_floats) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.field, x.holds, x.identifier, x.value)::${InFieldInteger} from unnest(field_integers) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.field, x.greatest, x.holds, x.identifier, x.least)::${InFieldPair} from unnest(field_pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.field, x.holds, x.identifier, x.x, x.y)::${InFieldPoint} from unnest(field_points) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
     array(select row(x.base, x.field, x.holds, x.identifier, x.value)::${InFieldText} from unnest(field_texts) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.name, x.place)::${InFileName} from unnest(file_names) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.content_type, x.digest, x.holds, x.identifier, x.place)::${InFile} from unnest(files) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.base, x.holds, x.identifier, x.place, x.value)::${InFloat} from unnest(floats) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.place, x.value)::${InInteger} from unnest(integers) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.greatest, x.holds, x.identifier, x.least, x.place)::${InPair} from unnest(pairs) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.holds, x.identifier, x.place, x.x, x.y)::${InPoint} from unnest(points) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.base, x.holds, x.identifier, x.place, x.value)::${InText} from unnest(texts) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)),
-    array(select row(x.card, x.holds, x.identifier)::${InVar} from unnest(vars) x where (x.child, x.package, x.path, x.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage))
+    array(select row(x.content_type, x.digest, x.holds, x.identifier, x.name, x.at + c)::${InFile} from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.digest, y.content_type, y.name rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(files) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.base, x.holds, x.identifier, x.at + c, x.value)::${InFloat} from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.base, y.value rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(floats) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.holds, x.identifier, x.at + c, x.value)::${InInteger} from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.value rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(integers) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.greatest, x.holds, x.identifier, x.least, x.at + c)::${InPair} from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.least, y.greatest rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(pairs) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.holds, x.identifier, x.at + c, x.x, x.y)::${InPoint} from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.x, y.y rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(points) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(x.base, x.holds, x.identifier, x.at + c, x.value)::${InText} from (select y.*, (sum(y.count) over (partition by y.holds, y.identifier order by y.place, y.base, y.value rows between unbounded preceding and current row) - y.count)::integer as at
+      from unnest(texts) y where (y.child, y.package, y.path, y.stage) = (values_of.child, values_of.package, values_of.path, values_of.stage)) x, generate_series(0, x.count - 1) c),
+    array(select row(t.card, g.holds, g.identifier)::${InVar} from given g left join t on t.identifier = g.identifier)
   )::${InValues}
 `,
-  calls: [],
+  calls: [builtinResponses, varTypes],
   language: "sql",
   nullInput: "called",
   returns: row(InValues),
@@ -15029,27 +15022,25 @@ export const docValuesOf = fn("docValuesOf", {
   select row(
     array(select d.b from (select distinct row(v.base, (run).child, v.identifier, (run).package, (run).path, (run).stage)::${DocBase} as b from v where v.card <> 'record') d
       order by (d.b).identifier),
-    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).b)::${DocBoolean} from s where card <> 'record' and (x).base = 'boolean'),
+    array(select row((run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).b)::${DocBoolean} from s where card <> 'record' and (x).base = 'boolean'),
     '{}'::${DocDemandMaximum}[], '{}'::${DocDemand}[],
-    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (x).t, (run).stage, (x).u)::${DocDirectedPair} from s where card <> 'record' and (x).base = 'directedPair'),
+    array(select row((run).child, 1, holds, identifier, (run).package, (run).path, place, (x).t, (run).stage, (x).u)::${DocDirectedPair} from s where card <> 'record' and (x).base = 'directedPair'),
     array[row((run).child, st.drawn, st.flow, (run).package, (run).path, (run).stage)::${DocEnd}],
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).b)::${DocFieldBoolean} from s where card = 'record' and (x).base = 'boolean'),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (x).t, (run).stage, (x).u)::${DocFieldDirectedPair} from s where card = 'record' and (x).base = 'directedPair'),
-    array(select row((run).child, (x).field, holds, identifier, (x).w, (run).package, (run).path, (run).stage)::${DocFieldFileName} from s where card = 'record' and (x).base = 'file' and (x).w is not null),
-    array(select row((run).child, (x).u, (x).d, (x).field, holds, identifier, (run).package, (run).path, (run).stage)::${DocFieldFile} from s where card = 'record' and (x).base = 'file'),
+    array(select row((run).child, (x).u, (x).d, (x).field, holds, identifier, (x).w, (run).package, (run).path, (run).stage)::${DocFieldFile} from s where card = 'record' and (x).base = 'file'),
     array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).f)::${DocFieldFloat} from s where card = 'record' and (x).base in ('float', 'duration')),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n)::${DocFieldInteger} from s where card = 'record' and (x).base = 'integer'),
     array(select row((run).child, (x).field, (x).u, holds, identifier, (x).t, (run).package, (run).path, (run).stage)::${DocFieldPair} from s where card = 'record' and (x).base = 'pair'),
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).n, (x).m)::${DocFieldPoint} from s where card = 'record' and (x).base = 'point'),
     array(select row((x).base, (run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).t)::${DocFieldText} from s where card = 'record' and (x).base in ('identifier', 'string', 'uri')),
-    array(select row((run).child, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::${DocFileName} from s where card <> 'record' and (x).base = 'file' and (x).w is not null),
-    array(select row((run).child, (x).u, (x).d, holds, identifier, (run).package, (run).path, place, (run).stage)::${DocFile} from s where card <> 'record' and (x).base = 'file'),
-    array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::${DocFloat} from s where card <> 'record' and (x).base in ('float', 'duration')),
+    array(select row((run).child, (x).u, 1, (x).d, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::${DocFile} from s where card <> 'record' and (x).base = 'file'),
+    array(select row((x).base, (run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::${DocFloat} from s where card <> 'record' and (x).base in ('float', 'duration')),
     '{}'::${DocHumanDemandMaximum}[], '{}'::${DocHumanDemand}[],
-    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::${DocInteger} from s where card <> 'record' and (x).base = 'integer'),
-    array(select row((run).child, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::${DocPair} from s where card <> 'record' and (x).base = 'pair'),
-    array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n, (x).m)::${DocPoint} from s where card <> 'record' and (x).base = 'point'),
-    array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).t)::${DocText} from s where card <> 'record' and (x).base in ('identifier', 'string', 'uri')),
+    array(select row((run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::${DocInteger} from s where card <> 'record' and (x).base = 'integer'),
+    array(select row((run).child, 1, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::${DocPair} from s where card <> 'record' and (x).base = 'pair'),
+    array(select row((run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n, (x).m)::${DocPoint} from s where card <> 'record' and (x).base = 'point'),
+    array(select row((x).base, (run).child, 1, holds, identifier, (run).package, (run).path, place, (run).stage, (x).t)::${DocText} from s where card <> 'record' and (x).base in ('identifier', 'string', 'uri')),
     array(select row(v.card, (run).child, v.holds, v.identifier, (select k.kind from unnest(kinds) k where k.identifier = v.identifier), (run).package, (run).path, (run).stage)::${DocVar} from v)
   )::${DocValues}
 `,
@@ -15064,9 +15055,9 @@ export const docValuesJoined = fn("docValuesJoined", {
   args: { a: row(DocValues), b: row(DocValues) },
   body: fn.body`
   select row(a.bases || b.bases, a.booleans || b.booleans, a.demand_maxima || b.demand_maxima, a.demands || b.demands, a.directed_pairs || b.directed_pairs, a.ends || b.ends, a.field_booleans || b.field_booleans,
-    a.field_directed_pairs || b.field_directed_pairs, a.field_file_names || b.field_file_names, a.field_files || b.field_files, a.field_floats || b.field_floats, a.field_integers || b.field_integers,
+    a.field_directed_pairs || b.field_directed_pairs, a.field_files || b.field_files, a.field_floats || b.field_floats, a.field_integers || b.field_integers,
     a.field_pairs || b.field_pairs, a.field_points || b.field_points, a.field_texts || b.field_texts,
-    a.file_names || b.file_names, a.files || b.files, a.floats || b.floats, a.human_demand_maxima || b.human_demand_maxima, a.human_demands || b.human_demands,
+    a.files || b.files, a.floats || b.floats, a.human_demand_maxima || b.human_demand_maxima, a.human_demands || b.human_demands,
     a.integers || b.integers, a.pairs || b.pairs, a.points || b.points,
     a.texts || b.texts, a.vars || b.vars)::${DocValues}
 `,
@@ -15081,8 +15072,8 @@ export const noDocValues = fn("noDocValues", {
   args: {},
   body: fn.body`
   select row('{}'::${DocBase}[], '{}'::${DocBoolean}[], '{}'::${DocDemandMaximum}[], '{}'::${DocDemand}[], '{}'::${DocDirectedPair}[], '{}'::${DocEnd}[], '{}'::${DocFieldBoolean}[], '{}'::${DocFieldDirectedPair}[],
-    '{}'::${DocFieldFileName}[], '{}'::${DocFieldFile}[], '{}'::${DocFieldFloat}[], '{}'::${DocFieldInteger}[], '{}'::${DocFieldPair}[],
-    '{}'::${DocFieldPoint}[], '{}'::${DocFieldText}[], '{}'::${DocFileName}[], '{}'::${DocFile}[],
+    '{}'::${DocFieldFile}[], '{}'::${DocFieldFloat}[], '{}'::${DocFieldInteger}[], '{}'::${DocFieldPair}[],
+    '{}'::${DocFieldPoint}[], '{}'::${DocFieldText}[], '{}'::${DocFile}[],
     '{}'::${DocFloat}[], '{}'::${DocHumanDemandMaximum}[], '{}'::${DocHumanDemand}[], '{}'::${DocInteger}[], '{}'::${DocPair}[], '{}'::${DocPoint}[],
     '{}'::${DocText}[], '{}'::${DocVar}[])::${DocValues}
 `,
@@ -15328,7 +15319,6 @@ end `,
 
 export const responseProcessingOf = fn("responseProcessingOf", {
   args: {
-    bases: DocBase,
     booleans: DocBoolean,
     compiled: CompiledPattern,
     declaration_attributes: DocumentAttribute,
@@ -15338,14 +15328,12 @@ export const responseProcessingOf = fn("responseProcessingOf", {
     evaluations: DocEvaluation,
     field_booleans: DocFieldBoolean,
     field_directed_pairs: DocFieldDirectedPair,
-    field_file_names: DocFieldFileName,
     field_files: DocFieldFile,
     field_floats: DocFieldFloat,
     field_integers: DocFieldInteger,
     field_pairs: DocFieldPair,
     field_points: DocFieldPoint,
     field_texts: DocFieldText,
-    file_names: DocFileName,
     files: DocFile,
     floats: DocFloat,
     human_feedbacks: DocHumanFeedback,
@@ -15363,7 +15351,7 @@ export const responseProcessingOf = fn("responseProcessingOf", {
     table_entries: TableEntry,
     table_values: TableValue,
     texts: DocText,
-    vars: DocVar,
+    vars: DocGiven,
   },
   body: fn.body`
 declare r ${DocumentRun}; pn ${ProgramNode}[]; dn ${DeclarationNode}[]; da ${DocumentAttribute}[]; dt ${DocumentText}[];
@@ -15385,9 +15373,9 @@ begin
         humans => array(select x from humans_of(run => r, humans => humans, human_feedbacks => human_feedbacks) x),
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
       declarations => dn, attributes => da, texts => dt,
-      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
-        file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
-        field_files => field_files, field_file_names => field_file_names),
+      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, declarations => dn, declaration_attributes => da, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
+        field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
+        field_files => field_files),
       seed => r.seed, label => r.label);
     result := doc_values_joined(a => result, b => response_values_of(run => r, st => st, nodes => pn, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k)));
   end loop;
@@ -15415,7 +15403,6 @@ end `,
 
 export const templateProcessingOf = fn("templateProcessingOf", {
   args: {
-    bases: DocBase,
     booleans: DocBoolean,
     compiled: CompiledPattern,
     declaration_attributes: DocumentAttribute,
@@ -15424,14 +15411,12 @@ export const templateProcessingOf = fn("templateProcessingOf", {
     directed_pairs: DocDirectedPair,
     field_booleans: DocFieldBoolean,
     field_directed_pairs: DocFieldDirectedPair,
-    field_file_names: DocFieldFileName,
     field_files: DocFieldFile,
     field_floats: DocFieldFloat,
     field_integers: DocFieldInteger,
     field_pairs: DocFieldPair,
     field_points: DocFieldPoint,
     field_texts: DocFieldText,
-    file_names: DocFileName,
     files: DocFile,
     floats: DocFloat,
     integers: DocInteger,
@@ -15447,7 +15432,7 @@ export const templateProcessingOf = fn("templateProcessingOf", {
     table_entries: TableEntry,
     table_values: TableValue,
     texts: DocText,
-    vars: DocVar,
+    vars: DocGiven,
   },
   body: fn.body`
 declare r ${DocumentRun}; pn ${ProgramNode}[]; dn ${DeclarationNode}[]; da ${DocumentAttribute}[]; dt ${DocumentText}[];
@@ -15467,9 +15452,9 @@ begin
         table_entries => table_entries, table_values => table_values, evaluated => '{}', humans => '{}',
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
       declarations => dn, attributes => da, texts => dt,
-      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
-        file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
-        field_files => field_files, field_file_names => field_file_names),
+      given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, declarations => dn, declaration_attributes => da, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
+        field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs, field_points => field_points,
+        field_files => field_files),
       seed => r.seed, label => r.label);
     result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k), delta => true));
   end loop;
@@ -15600,7 +15585,6 @@ export const memberState = fn("memberState", {
 
 export const testOutcomeProcessingOf = fn("testOutcomeProcessingOf", {
   args: {
-    bases: DocBase,
     booleans: DocBoolean,
     compiled: CompiledPattern,
     declaration_attributes: DocumentAttribute,
@@ -15609,14 +15593,12 @@ export const testOutcomeProcessingOf = fn("testOutcomeProcessingOf", {
     directed_pairs: DocDirectedPair,
     field_booleans: DocFieldBoolean,
     field_directed_pairs: DocFieldDirectedPair,
-    field_file_names: DocFieldFileName,
     field_files: DocFieldFile,
     field_floats: DocFieldFloat,
     field_integers: DocFieldInteger,
     field_pairs: DocFieldPair,
     field_points: DocFieldPoint,
     field_texts: DocFieldText,
-    file_names: DocFileName,
     files: DocFile,
     floats: DocFloat,
     integers: DocInteger,
@@ -15633,7 +15615,7 @@ export const testOutcomeProcessingOf = fn("testOutcomeProcessingOf", {
     ref_weights: TestRefWeight,
     runs: DocumentRun,
     texts: DocText,
-    vars: DocVar,
+    vars: DocGiven,
   },
   body: fn.body`
 declare r ${DocumentRun}; m ${TestMember}; pn ${ProgramNode}[]; dn ${DeclarationNode}[]; da ${DocumentAttribute}[]; dt ${DocumentText}[];
@@ -15646,9 +15628,9 @@ begin
       dn := array(select x from unnest(declarations) x where x.package = m.package and x.path = m.item);
       da := array(select x from unnest(declaration_attributes) x where x.package = m.package and x.path = m.item);
       dt := array(select x from unnest(declaration_texts) x where x.package = m.package and x.path = m.item);
-      given := values_of(child => r.child, package => m.package, path => m.item, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points,
-        files => files, file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs,
-        field_points => field_points, field_files => field_files, field_file_names => field_file_names);
+      given := values_of(child => r.child, package => m.package, path => m.item, stage => r.stage, vars => vars, declarations => dn, declaration_attributes => da, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points,
+        files => files, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs,
+        field_points => field_points, field_files => field_files);
       kinds := array(select k from var_kinds(declarations => dn, attributes => da) k);
       -- Every declared response, NULL unless start_of gives it: a member never attempted keeps its responses NULL, "the
       -- default value is never used" (Table 5.115); start_of gives the default in force once numAttempts > 0.
@@ -15662,9 +15644,9 @@ begin
     dn := array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path);
     da := array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path);
     dt := array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path);
-    given := values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points,
-      files => files, file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs,
-      field_points => field_points, field_files => field_files, field_file_names => field_file_names);
+    given := values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, declarations => dn, declaration_attributes => da, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points,
+      files => files, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs, field_directed_pairs => field_directed_pairs,
+      field_points => field_points, field_files => field_files);
     pn := array(select x from unnest(programs) x where x.package = r.package and x.path = r.path);
     inp := inputs_of(declarations => dn, attributes => da, texts => dt);
     inp.members := array(select row(x.place, x.ref)::${Member} from unnest(members) x where x.package = r.package and x.path = r.path);
@@ -15687,9 +15669,11 @@ begin
         compiled => array(select x from unnest(compiled) x where x.package = r.package)), inp => inp, outcomes => outcomes,
       contexts => array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-context-declaration', holder => 'qti-default-value') y order by y.identifier),
       bound => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
-        where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier and z.kind = 'context')),
+        where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier
+          and (select v.kind from var_kinds(declarations => dn, attributes => da) v where v.identifier = z.identifier) = 'context')),
       builtins => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
-        where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier and z.kind = 'response'))
+        where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier
+          and (select v.kind from var_kinds(declarations => dn, attributes => da) v where v.identifier = z.identifier) = 'response'))
         || qti_context(),
       seed => r.seed, label => r.label);
     end if;
@@ -15731,11 +15715,11 @@ export const bagMarks = fn("bagMarks", {
   ), c as (
     select k, correct[k] as x, case when card = 'ordered' then k - 1 else 0 end::bigint as place from generate_subscripts(correct, 1) k
   ), gn as (
-    select g.*, row_number() over (partition by g.place, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b order by g.k) as nth,
+    select g.*, row_number() over (partition by g.place, b.base, b.d, b.t, b.u, b.w, b.n, b.m, b.f, b.b order by g.k) as nth,
       (select count(*) from c where c.place = g.place and same(a => c.x, b => g.x)) as held
     from g, lateral bag(v => array[g.x]) b
   ), cn as (
-    select c.*, row_number() over (partition by c.place, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b order by c.k) as nth,
+    select c.*, row_number() over (partition by c.place, b.base, b.d, b.t, b.u, b.w, b.n, b.m, b.f, b.b order by c.k) as nth,
       (select count(*) from c o where o.place = c.place and same(a => o.x, b => c.x)) as held,
       (select count(*) from g where g.place = c.place and same(a => g.x, b => c.x)) as taken
     from c, lateral bag(v => array[c.x]) b
@@ -15746,7 +15730,7 @@ export const bagMarks = fn("bagMarks", {
   )
   select count(*), id, m.mark, m.place, (array_agg(m.x order by m.k))[1]
   from m, lateral bag(v => array[m.x]) b
-  group by m.place, m.mark, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b
+  group by m.place, m.mark, b.base, b.d, b.t, b.u, b.w, b.n, b.m, b.f, b.b
 `,
   calls: [same, bag],
   language: "sql",
@@ -15789,13 +15773,11 @@ export const areaMarks = fn("areaMarks", {
 export const attemptMarksOf = fn("attemptMarksOf", {
   args: {
     area_bound: DocumentResponse,
-    bases: DocBase,
     booleans: DocBoolean,
     declaration_attributes: DocumentAttribute,
     declaration_texts: DocumentText,
     declarations: DeclarationNode,
     directed_pairs: DocDirectedPair,
-    file_names: DocFileName,
     files: DocFile,
     floats: DocFloat,
     integers: DocInteger,
@@ -15803,13 +15785,13 @@ export const attemptMarksOf = fn("attemptMarksOf", {
     points: DocPoint,
     runs: DocumentRun,
     texts: DocText,
-    vars: DocVar,
+    vars: DocGiven,
   },
   body: fn.body`
   with parts as (
     select r.child, r.package, r.path, r.stage, t.ds, t.das, t.dts, inputs_of(declarations => t.ds, attributes => t.das, texts => t.dts) as inp,
-      values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
-        file_names => file_names, field_texts => '{}', field_integers => '{}', field_floats => '{}', field_booleans => '{}', field_pairs => '{}', field_directed_pairs => '{}', field_points => '{}', field_files => '{}', field_file_names => '{}') as iv
+      values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, declarations => t.ds, declaration_attributes => t.das, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
+        field_texts => '{}', field_integers => '{}', field_floats => '{}', field_booleans => '{}', field_pairs => '{}', field_directed_pairs => '{}', field_points => '{}', field_files => '{}') as iv
     from unnest(runs) r cross join lateral (select
       array(select d from unnest(declarations) d where (d.package, d.path) = (r.package, r.path)) as ds,
       array(select a from unnest(declaration_attributes) a where (a.package, a.path) = (r.package, r.path)) as das,
@@ -15836,7 +15818,7 @@ export const attemptMarksOf = fn("attemptMarksOf", {
       from m where (m.value).base = 'boolean'),
     array(select row(m.child, m.copies, m.identifier, m.mark, m.package, m.path, m.place, (m.value).t, m.stage, (m.value).u)::${MarkDirectedPair}
       from m where (m.value).base = 'directedPair'),
-    array(select row(m.child, (m.value).u, m.copies, (m.value).d, m.identifier, m.mark, m.package, m.path, m.place, m.stage)::${MarkFile}
+    array(select row(m.child, (m.value).u, m.copies, (m.value).d, m.identifier, m.mark, (m.value).w, m.package, m.path, m.place, m.stage)::${MarkFile}
       from m where (m.value).base = 'file'),
     array(select row((m.value).base, m.child, m.copies, m.identifier, m.mark, m.package, m.path, m.place, m.stage, (m.value).f)::${MarkFloat}
       from m where (m.value).base in ('float', 'duration')),
@@ -16874,7 +16856,6 @@ export const admissionOne = fn("admissionOne", {
 
 export const admissionOf = fn("admissionOf", {
   args: {
-    bases: DocBase,
     body: BodyNode,
     body_attributes: BodyAttribute,
     booleans: DocBoolean,
@@ -16884,14 +16865,12 @@ export const admissionOf = fn("admissionOf", {
     directed_pairs: DocDirectedPair,
     field_booleans: DocFieldBoolean,
     field_directed_pairs: DocFieldDirectedPair,
-    field_file_names: DocFieldFileName,
     field_files: DocFieldFile,
     field_floats: DocFieldFloat,
     field_integers: DocFieldInteger,
     field_pairs: DocFieldPair,
     field_points: DocFieldPoint,
     field_texts: DocFieldText,
-    file_names: DocFileName,
     files: DocFile,
     floats: DocFloat,
     integers: DocInteger,
@@ -16899,23 +16878,26 @@ export const admissionOf = fn("admissionOf", {
     points: DocPoint,
     runs: AdmissionRun,
     texts: DocText,
-    vars: DocVar,
+    vars: DocGiven,
   },
   body: fn.body`
   with one as (
     select admission_one(run => r,
       body => array(select b from unnest(body) b where b.package = r.package and b.path = r.path),
       attributes => array(select a from unnest(body_attributes) a where a.package = r.package and a.path = r.path),
-      responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select x.identifier from unnest(vars) x
-        where (x.child, x.package, x.path, x.stage) = (r.child, r.package, r.path, r.stage) and x.holds = 'value' and x.kind = 'response') order by v.identifier),
+      responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select k.identifier from var_kinds(
+        declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
+        attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path)) k where k.kind = 'response') order by v.identifier),
       held => array(select v from start_of(
         declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
         attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path),
         texts => array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path),
         given => g.given) v order by v.identifier)) as x
-    from unnest(runs) r cross join lateral (select values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs,
-      directed_pairs => directed_pairs, points => points, files => files, file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs,
-      field_directed_pairs => field_directed_pairs, field_points => field_points, field_files => field_files, field_file_names => field_file_names) as given) g
+    from unnest(runs) r cross join lateral (select values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, defaulted => false,
+      declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
+      declaration_attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path), texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs,
+      directed_pairs => directed_pairs, points => points, files => files, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs,
+      field_directed_pairs => field_directed_pairs, field_points => field_points, field_files => field_files) as given) g
   )
   select row(
     array(select r from one, unnest((one.x).counts) r),
@@ -16925,7 +16907,7 @@ export const admissionOf = fn("admissionOf", {
     array(select r from one, unnest((one.x).words) r)
   )::${Admission}
 `,
-  calls: [varsIn, valuesOf, startOf, admissionOne],
+  calls: [varsIn, varKinds, valuesOf, startOf, admissionOne],
   language: "sql",
   nullInput: "called",
   returns: row(Admission),
@@ -17144,6 +17126,7 @@ export const gradingFunctions = [
   builtinOutcomes,
   varKinds,
   overridden,
+  varTypes,
   valuesOf,
   heldIdentical,
   docValuesOf,

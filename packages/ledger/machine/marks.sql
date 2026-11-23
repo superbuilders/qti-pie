@@ -68,7 +68,7 @@ create type p3.mark_point as (child text collate pg_catalog.pg_c_utf8, copies bi
   x numeric(825, 0), y numeric(825, 0));
 create type p3.mark_file as (child text collate pg_catalog.pg_c_utf8, content_type text collate pg_catalog.pg_c_utf8,
   copies bigint, digest bytea, identifier text collate pg_catalog.pg_c_utf8,
-  mark text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8,
+  mark text collate pg_catalog.pg_c_utf8, name text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8,
   path text collate pg_catalog.pg_c_utf8, place bigint, stage bigint);
 -- Every mark of a call's attempts, by base type: a field of rows alone, so a statement reads each as a source (FNNEST,
 -- Compute.rowOf).
@@ -92,11 +92,11 @@ language sql immutable as $$
   ), c as (
     select k, correct[k] as x, case when card = 'ordered' then k - 1 else 0 end::bigint as place from generate_subscripts(correct, 1) k
   ), gn as (
-    select g.*, row_number() over (partition by g.place, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b order by g.k) as nth,
+    select g.*, row_number() over (partition by g.place, b.base, b.d, b.t, b.u, b.w, b.n, b.m, b.f, b.b order by g.k) as nth,
       (select count(*) from c where c.place = g.place and same(a => c.x, b => g.x)) as held
     from g, lateral bag(v => array[g.x]) b
   ), cn as (
-    select c.*, row_number() over (partition by c.place, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b order by c.k) as nth,
+    select c.*, row_number() over (partition by c.place, b.base, b.d, b.t, b.u, b.w, b.n, b.m, b.f, b.b order by c.k) as nth,
       (select count(*) from c o where o.place = c.place and same(a => o.x, b => c.x)) as held,
       (select count(*) from g where g.place = c.place and same(a => g.x, b => c.x)) as taken
     from c, lateral bag(v => array[c.x]) b
@@ -107,7 +107,7 @@ language sql immutable as $$
   )
   select count(*), id, m.mark, m.place, (array_agg(m.x order by m.k))[1]
   from m, lateral bag(v => array[m.x]) b
-  group by m.place, m.mark, b.base, b.d, b.t, b.u, b.n, b.m, b.f, b.b
+  group by m.place, m.mark, b.base, b.d, b.t, b.u, b.w, b.n, b.m, b.f, b.b
 $$;
 
 -- The marks of one point response by area (Decision 6): each distinct point, least first, in its area (point_area);
@@ -143,15 +143,15 @@ $$;
 -- by the run's key; and by area, the responses `area_bound` names whose declaration holds an area mapping, read with the
 -- declarations by the run's document. The one reshape into the boundary's headings, by base type, each mark keyed by
 -- its run.
-create function p3.attempt_marks_of(area_bound p3.document_response[], bases p3.doc_base[],
+create function p3.attempt_marks_of(area_bound p3.document_response[],
   booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
-  directed_pairs p3.doc_directed_pair[], file_names p3.doc_file_name[], files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[],
-  pairs p3.doc_pair[], points p3.doc_point[], runs p3.document_run[], texts p3.doc_text[], vars p3.doc_var[])
+  directed_pairs p3.doc_directed_pair[], files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[],
+  pairs p3.doc_pair[], points p3.doc_point[], runs p3.document_run[], texts p3.doc_text[], vars p3.doc_given[])
 returns p3.mark_values language sql immutable as $$
   with parts as (
     select r.child, r.package, r.path, r.stage, t.ds, t.das, t.dts, inputs_of(declarations => t.ds, attributes => t.das, texts => t.dts) as inp,
-      values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
-        file_names => file_names, field_texts => '{}', field_integers => '{}', field_floats => '{}', field_booleans => '{}', field_pairs => '{}', field_directed_pairs => '{}', field_points => '{}', field_files => '{}', field_file_names => '{}') as iv
+      values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, declarations => t.ds, declaration_attributes => t.das, defaulted => r.defaulted, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
+        field_texts => '{}', field_integers => '{}', field_floats => '{}', field_booleans => '{}', field_pairs => '{}', field_directed_pairs => '{}', field_points => '{}', field_files => '{}') as iv
     from unnest(runs) r cross join lateral (select
       array(select d from unnest(declarations) d where (d.package, d.path) = (r.package, r.path)) as ds,
       array(select a from unnest(declaration_attributes) a where (a.package, a.path) = (r.package, r.path)) as das,
@@ -178,7 +178,7 @@ returns p3.mark_values language sql immutable as $$
       from m where (m.value).base = 'boolean'),
     array(select row(m.child, m.copies, m.identifier, m.mark, m.package, m.path, m.place, (m.value).t, m.stage, (m.value).u)::mark_directed_pair
       from m where (m.value).base = 'directedPair'),
-    array(select row(m.child, (m.value).u, m.copies, (m.value).d, m.identifier, m.mark, m.package, m.path, m.place, m.stage)::mark_file
+    array(select row(m.child, (m.value).u, m.copies, (m.value).d, m.identifier, m.mark, (m.value).w, m.package, m.path, m.place, m.stage)::mark_file
       from m where (m.value).base = 'file'),
     array(select row((m.value).base, m.child, m.copies, m.identifier, m.mark, m.package, m.path, m.place, m.stage, (m.value).f)::mark_float
       from m where (m.value).base in ('float', 'duration')),
