@@ -46,21 +46,34 @@ create function p3.float_ref_of(t text) returns p3.float_ref language sql immuta
   select case when trim_xml(t => t) ~ '^([+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?|-?INF|NaN)$'
     then row((parse(base => 'float', lexical => trim_xml(t => t))).f, null)::float_ref else row(null, trim_xml(t => t))::float_ref end
 $$;
--- An area from QTI's shape and coords (HTML's image-map rules): its kind, or nowhere where too few coordinates, a
--- radius of zero or less or fewer than three vertices hold no point; and its coordinates as written.
-create function p3.area_of(coords text, kind text) returns p3.area language plpgsql immutable as $$
-declare c float8[] := case when coords is null or trim_xml(t => coords) = '' then '{}'
-  else regexp_split_to_array(trim_xml(t => coords), '[ \t\n\r]*,[ \t\n\r]*')::float8[] end;
-  cs coord[] := array(select row(x, o::int)::coord from unnest(c) with ordinality u(x, o));
+-- An area's coordinates as written (HTML's image-map rules), each numbered from 1: QTI's coords less XML white space
+-- at either end, split at its commas; none where it is empty or NULL. The walk's stored qti-inside coordinates
+-- (packages/ledger/src/walks.ts, WalkAreaCoord) are its rows.
+create function p3.coords_of(coords text) returns setof p3.coord language sql immutable as $$
+  select row(x, o::int)::coord from unnest(case when trim_xml(t => coords) = '' then '{}'::float8[]
+    else regexp_split_to_array(trim_xml(t => coords), '[ \t\n\r]*,[ \t\n\r]*')::float8[] end) with ordinality u(x, o)
+$$;
+-- An area's kind from QTI's shape and coords (HTML's image-map rules): the shape's, or nowhere where too few
+-- coordinates, a radius of zero or less or fewer than three vertices hold no point; a default shape reads no
+-- coordinate. The walk's stored qti-inside kind (WalkArea) is its value.
+create function p3.area_kind_of(coords text, kind text) returns text language plpgsql immutable as $$
+declare c float8[];
 begin
+  if trim_xml(t => kind) = 'default' then return 'everywhere'; end if;
+  c := array(select x.c from coords_of(coords => coords) x order by x.place);
   case trim_xml(t => kind)
-  when 'default' then return row('{}', 'everywhere')::area;
-  when 'rect' then return row(cs, case when cardinality(c) < 4 then 'nowhere' else 'rect' end)::area;
-  when 'circle' then return row(cs, case when cardinality(c) < 3 or c[3] <= 0 then 'nowhere' else 'circle' end)::area;
-  when 'ellipse' then return row(cs, case when cardinality(c) < 4 or c[3] <= 0 or c[4] <= 0 then 'nowhere' else 'ellipse' end)::area;
-  when 'poly' then return row(cs, case when cardinality(c) / 2 < 3 then 'nowhere' else 'poly' end)::area;
+  when 'rect' then return case when cardinality(c) < 4 then 'nowhere' else 'rect' end;
+  when 'circle' then return case when cardinality(c) < 3 or c[3] <= 0 then 'nowhere' else 'circle' end;
+  when 'ellipse' then return case when cardinality(c) < 4 or c[3] <= 0 or c[4] <= 0 then 'nowhere' else 'ellipse' end;
+  when 'poly' then return case when cardinality(c) / 2 < 3 then 'nowhere' else 'poly' end;
   end case;
 end $$;
+-- An area from QTI's shape and coords: its coordinates as written, none for a default shape, and its kind.
+create function p3.area_of(coords text, kind text) returns p3.area language sql immutable as $$
+  select row(case when trim_xml(t => kind) = 'default' then '{}'
+      else array(select x from coords_of(coords => coords) x order by x.place) end,
+    area_kind_of(coords => coords, kind => kind))::area
+$$;
 
 -- The registered class a qti-custom-operator binds (the registry's OP-1 and OP-2): its definition URI is a roster class's,
 -- tag:superbuilders.school,2026:qti/custom-operator/<class>, and its class agrees, each as written less XML white space at

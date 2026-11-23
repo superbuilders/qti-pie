@@ -22,7 +22,7 @@ import { named } from "#ledger/laws.ts";
  * @constraint QTI's integer is unbounded and plate bounds the integers it computes at 1,000,000 bits; a wider integer
  *   than the grader's, about 2,740 bits, is refused where the ledger is written, a stated limit of this representation
  */
-const integerDigits = 825;
+export const integerDigits = 825;
 
 /**
  * QTI's integer, exact: plate holds every integer as a `bigint` at any size (its reading 45: QTI

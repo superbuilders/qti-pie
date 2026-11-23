@@ -60,6 +60,7 @@ import {
   gradingFunctions,
   ProgramNode,
   processingKinds,
+  Single,
   TableBinding,
   TableEntry,
 } from "#ledger/grading.ts";
@@ -72,6 +73,10 @@ import { SittingStanding, sittingTablesOf } from "#ledger/sittings.ts";
 import {
   templateAttributes,
   templateElements,
+  templateEquals,
+  templateIdents,
+  templateLiteralFloats,
+  templateLiteralTexts,
   templateNodes,
   templateTexts,
 } from "#ledger/standard-templates.ts";
@@ -2637,6 +2642,61 @@ export const ledgerOf = (qti: RegistryLevel) => {
     templateTexts,
   );
   /**
+   * The walk's facts of the templates' parameters (`#ledger/walks.ts`, which holds a package's):
+   * each element that names a variable, by its `identifier` (**TemplateIdent**), each equal's mode
+   * and bounds (**TemplateEqual**), and each base value, of a text base type
+   * (**TemplateLiteralText**) or a float (**TemplateLiteralFloat**), as the walk reads one. The
+   * generator refuses a template that writes any other parameter.
+   */
+  const TemplateIdent = closed.relation(
+    "TemplateIdent",
+    {
+      element: closedId(TemplateElement),
+      identifier: anyText,
+      start: natural,
+      template: closedId(PublishedTemplate),
+    },
+    ["element"],
+    templateIdents,
+  );
+  const TemplateEqual = closed.relation(
+    "TemplateEqual",
+    {
+      element: closedId(TemplateElement),
+      lowerIn: pg.boolean,
+      mode: anyText,
+      start: natural,
+      template: closedId(PublishedTemplate),
+      upperIn: pg.boolean,
+    },
+    ["element"],
+    templateEquals,
+  );
+  const TemplateLiteralText = closed.relation(
+    "TemplateLiteralText",
+    {
+      base: Single.fields.base,
+      element: closedId(TemplateElement),
+      start: natural,
+      template: closedId(PublishedTemplate),
+      value: Literal.fields.text,
+    },
+    ["element"],
+    templateLiteralTexts,
+  );
+  const TemplateLiteralFloat = closed.relation(
+    "TemplateLiteralFloat",
+    {
+      base: Single.fields.base,
+      element: closedId(TemplateElement),
+      start: natural,
+      template: closedId(PublishedTemplate),
+      value: QtiFloat,
+    },
+    ["element"],
+    templateLiteralFloats,
+  );
+  /**
    * Each `template` URI that names a published template, by its form: pantry's `urisOf`, each
    * template's four, under either prefix with or without `.xml`, in the order it gives them.
    */
@@ -2694,6 +2754,10 @@ export const ledgerOf = (qti: RegistryLevel) => {
       TemplateNode,
       TemplateAttribute,
       TemplateText,
+      TemplateIdent,
+      TemplateEqual,
+      TemplateLiteralText,
+      TemplateLiteralFloat,
       TemplateUriForm,
       PublishedTemplateUri,
       ItemSessionValue,

@@ -14551,23 +14551,49 @@ export const floatRefOf = fn("floatRefOf", {
   volatility: "immutable",
 });
 
+export const coordsOf = fn("coordsOf", {
+  args: { coords: anyText },
+  body: fn.body`
+  select row(x, o::int)::${Coord} from unnest(case when trim_xml(t => coords) = '' then '{}'::float8[]
+    else regexp_split_to_array(trim_xml(t => coords), '[ \\t\\n\\r]*,[ \\t\\n\\r]*')::float8[] end) with ordinality u(x, o)
+`,
+  calls: [trimXml],
+  language: "sql",
+  nullInput: "called",
+  returns: Coord,
+  volatility: "immutable",
+});
+
+export const areaKindOf = fn("areaKindOf", {
+  args: { coords: anyText, kind: anyText },
+  body: fn.body`
+declare c float8[];
+begin
+  if trim_xml(t => kind) = 'default' then return 'everywhere'; end if;
+  c := array(select x.c from coords_of(coords => coords) x order by x.place);
+  case trim_xml(t => kind)
+  when 'rect' then return case when cardinality(c) < 4 then 'nowhere' else 'rect' end;
+  when 'circle' then return case when cardinality(c) < 3 or c[3] <= 0 then 'nowhere' else 'circle' end;
+  when 'ellipse' then return case when cardinality(c) < 4 or c[3] <= 0 or c[4] <= 0 then 'nowhere' else 'ellipse' end;
+  when 'poly' then return case when cardinality(c) / 2 < 3 then 'nowhere' else 'poly' end;
+  end case;
+end `,
+  calls: [trimXml, coordsOf],
+  language: "plpgsql",
+  nullInput: "called",
+  returns: AreaKind,
+  volatility: "immutable",
+});
+
 export const areaOf = fn("areaOf", {
   args: { coords: anyText, kind: anyText },
   body: fn.body`
-declare c float8[] := case when coords is null or trim_xml(t => coords) = '' then '{}'
-  else regexp_split_to_array(trim_xml(t => coords), '[ \\t\\n\\r]*,[ \\t\\n\\r]*')::float8[] end;
-  cs ${Coord}[] := array(select row(x, o::int)::${Coord} from unnest(c) with ordinality u(x, o));
-begin
-  case trim_xml(t => kind)
-  when 'default' then return row('{}', 'everywhere')::${Area};
-  when 'rect' then return row(cs, case when cardinality(c) < 4 then 'nowhere' else 'rect' end)::${Area};
-  when 'circle' then return row(cs, case when cardinality(c) < 3 or c[3] <= 0 then 'nowhere' else 'circle' end)::${Area};
-  when 'ellipse' then return row(cs, case when cardinality(c) < 4 or c[3] <= 0 or c[4] <= 0 then 'nowhere' else 'ellipse' end)::${Area};
-  when 'poly' then return row(cs, case when cardinality(c) / 2 < 3 then 'nowhere' else 'poly' end)::${Area};
-  end case;
-end `,
-  calls: [trimXml],
-  language: "plpgsql",
+  select row(case when trim_xml(t => kind) = 'default' then '{}'
+      else array(select x from coords_of(coords => coords) x order by x.place) end,
+    area_kind_of(coords => coords, kind => kind))::${Area}
+`,
+  calls: [trimXml, coordsOf, areaKindOf],
+  language: "sql",
   nullInput: "called",
   returns: row(Area),
   volatility: "immutable",
@@ -17117,6 +17143,8 @@ export const gradingFunctions = [
   xsBoolean,
   intRefOf,
   floatRefOf,
+  coordsOf,
+  areaKindOf,
   areaOf,
   customClassOf,
   patternProgramOf,

@@ -706,6 +706,7 @@ const fieldOf = (heading: string, field: string, sql: string): string => {
  * Text parameters that hold a closed vocabulary's token, by function and parameter.
  */
 const paramTokens = new Map([
+  ["area_kind_of", "AreaKind"],
   ["bag_marks.card", "Cardinality"],
   ["bound_order.mode", "ToleranceMode"],
   ["bound_order.side", "BoundSide"],

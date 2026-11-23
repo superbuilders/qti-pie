@@ -5,9 +5,10 @@
  * the positions pantry's import gives them (`readProgram`, as it reads a package's document), from
  * the template documents in `qti-rptemplates/`, which this module is generated from
  * (`tools/gen/templates.ts`): the ledger's closed `TemplateNode`, `TemplateAttribute` and
- * `TemplateText` (`#ledger/ledger.ts`). An attribute's value is its lexical form, which every white
- * space facet leaves as it is in these documents (the generator holds that of each). The
- * documents:
+ * `TemplateText` (`#ledger/ledger.ts`), and the walk's facts of their parameters, `TemplateIdent`,
+ * `TemplateEqual`, `TemplateLiteralText` and `TemplateLiteralFloat`, each as the walk holds a
+ * package's (`#ledger/walks.ts`). An attribute's value is its lexical form, which every white space
+ * facet leaves as it is in these documents (the generator holds that of each). The documents:
  *
  * - `match_correct.xml`: SHA-256 `x4iTYCXxINUxTSxp7g90+YHOTBMuO5kI9BYCUaUt2Fc=`
  * - `map_response.xml`: SHA-256 `aaUoJTUGqE9mC1pzrqgMwJnM60j1fy0Up5ml4aXG5yg=`
@@ -1057,4 +1058,187 @@ export const templateTexts = [
   { element: "CC2_map_response.16", start: 16n, template: "CC2_map_response", text: "0.0" },
   { element: "CC2_map_response.43", start: 43n, template: "CC2_map_response", text: "correct" },
   { element: "CC2_map_response.52", start: 52n, template: "CC2_map_response", text: "incorrect" },
+] as const;
+
+/**
+ * Each element of a template's processing subtree that names a variable, by its element: its
+ * `identifier`, as `WalkIdent` holds a package's (`#ledger/walks.ts`).
+ */
+export const templateIdents = [
+  { element: "match_correct.9", identifier: "RESPONSE", start: 9n, template: "match_correct" },
+  { element: "match_correct.11", identifier: "RESPONSE", start: 11n, template: "match_correct" },
+  { element: "match_correct.14", identifier: "SCORE", start: 14n, template: "match_correct" },
+  { element: "match_correct.23", identifier: "SCORE", start: 23n, template: "match_correct" },
+  { element: "map_response.9", identifier: "RESPONSE", start: 9n, template: "map_response" },
+  { element: "map_response.12", identifier: "SCORE", start: 12n, template: "map_response" },
+  { element: "map_response.21", identifier: "SCORE", start: 21n, template: "map_response" },
+  { element: "map_response.23", identifier: "RESPONSE", start: 23n, template: "map_response" },
+  {
+    element: "map_response_point.9",
+    identifier: "RESPONSE",
+    start: 9n,
+    template: "map_response_point",
+  },
+  {
+    element: "map_response_point.12",
+    identifier: "SCORE",
+    start: 12n,
+    template: "map_response_point",
+  },
+  {
+    element: "map_response_point.21",
+    identifier: "SCORE",
+    start: 21n,
+    template: "map_response_point",
+  },
+  {
+    element: "map_response_point.23",
+    identifier: "RESPONSE",
+    start: 23n,
+    template: "map_response_point",
+  },
+  { element: "CC2_match.9", identifier: "RESPONSE", start: 9n, template: "CC2_match" },
+  { element: "CC2_match.11", identifier: "RESPONSE", start: 11n, template: "CC2_match" },
+  { element: "CC2_match.14", identifier: "SCORE", start: 14n, template: "CC2_match" },
+  { element: "CC2_match.23", identifier: "SCORE", start: 23n, template: "CC2_match" },
+  {
+    element: "CC2_match_basic.11",
+    identifier: "RESPONSE",
+    start: 11n,
+    template: "CC2_match_basic",
+  },
+  {
+    element: "CC2_match_basic.13",
+    identifier: "RESPONSE",
+    start: 13n,
+    template: "CC2_match_basic",
+  },
+  { element: "CC2_match_basic.16", identifier: "SCORE", start: 16n, template: "CC2_match_basic" },
+  {
+    element: "CC2_match_basic.18",
+    identifier: "MAXSCORE",
+    start: 18n,
+    template: "CC2_match_basic",
+  },
+  {
+    element: "CC2_match_basic.21",
+    identifier: "FEEDBACKBASIC",
+    start: 21n,
+    template: "CC2_match_basic",
+  },
+  {
+    element: "CC2_match_basic.30",
+    identifier: "FEEDBACKBASIC",
+    start: 30n,
+    template: "CC2_match_basic",
+  },
+  {
+    element: "CC2_map_response.11",
+    identifier: "RESPONSE",
+    start: 11n,
+    template: "CC2_map_response",
+  },
+  { element: "CC2_map_response.14", identifier: "SCORE", start: 14n, template: "CC2_map_response" },
+  { element: "CC2_map_response.23", identifier: "SCORE", start: 23n, template: "CC2_map_response" },
+  {
+    element: "CC2_map_response.25",
+    identifier: "RESPONSE",
+    start: 25n,
+    template: "CC2_map_response",
+  },
+  {
+    element: "CC2_map_response.36",
+    identifier: "MAXSCORE",
+    start: 36n,
+    template: "CC2_map_response",
+  },
+  { element: "CC2_map_response.38", identifier: "SCORE", start: 38n, template: "CC2_map_response" },
+  {
+    element: "CC2_map_response.41",
+    identifier: "FEEDBACK",
+    start: 41n,
+    template: "CC2_map_response",
+  },
+  {
+    element: "CC2_map_response.50",
+    identifier: "FEEDBACK",
+    start: 50n,
+    template: "CC2_map_response",
+  },
+] as const;
+
+/**
+ * Each equal of a template's processing subtree, by its element: its tolerance mode and whether
+ * each bound is inside, as `WalkEqual` holds a package's.
+ */
+export const templateEquals = [
+  {
+    element: "CC2_map_response.34",
+    lowerIn: true,
+    mode: "exact",
+    start: 34n,
+    template: "CC2_map_response",
+    upperIn: true,
+  },
+] as const;
+
+/**
+ * Each base value of a text base type of a template's processing subtree, by its element: its base
+ * and value, as `WalkLiteralText` holds a package's.
+ */
+export const templateLiteralTexts = [
+  {
+    base: "identifier",
+    element: "CC2_match_basic.23",
+    start: 23n,
+    template: "CC2_match_basic",
+    value: "correct",
+  },
+  {
+    base: "identifier",
+    element: "CC2_match_basic.32",
+    start: 32n,
+    template: "CC2_match_basic",
+    value: "incorrect",
+  },
+  {
+    base: "identifier",
+    element: "CC2_map_response.43",
+    start: 43n,
+    template: "CC2_map_response",
+    value: "correct",
+  },
+  {
+    base: "identifier",
+    element: "CC2_map_response.52",
+    start: 52n,
+    template: "CC2_map_response",
+    value: "incorrect",
+  },
+] as const;
+
+/**
+ * Each float base value of a template's processing subtree, by its element: its base and double, as
+ * `WalkLiteralFloat` holds a package's.
+ */
+export const templateLiteralFloats = [
+  { base: "float", element: "match_correct.16", start: 16n, template: "match_correct", value: 1 },
+  { base: "float", element: "match_correct.25", start: 25n, template: "match_correct", value: 0 },
+  { base: "float", element: "map_response.14", start: 14n, template: "map_response", value: 0 },
+  {
+    base: "float",
+    element: "map_response_point.14",
+    start: 14n,
+    template: "map_response_point",
+    value: 0,
+  },
+  { base: "float", element: "CC2_match.16", start: 16n, template: "CC2_match", value: 1 },
+  { base: "float", element: "CC2_match.25", start: 25n, template: "CC2_match", value: 0 },
+  {
+    base: "float",
+    element: "CC2_map_response.16",
+    start: 16n,
+    template: "CC2_map_response",
+    value: 0,
+  },
 ] as const;

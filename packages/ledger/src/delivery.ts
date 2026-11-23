@@ -78,6 +78,7 @@ import { sessionAttemptsOf } from "#ledger/session-attempts.ts";
 import { sessionControlsOf } from "#ledger/session-control.ts";
 import { clockTop, Moment } from "#ledger/sittings.ts";
 import { testLawsOf } from "#ledger/test-laws.ts";
+import { walksOf } from "#ledger/walks.ts";
 
 /**
  * The Ledger level the delivery level extends.
@@ -1168,6 +1169,12 @@ export const deliveryOf = (ledger: LedgerLevel) => {
    */
   const programs = responseProgramsOf(ledger);
 
+  /**
+   * The walk of every processing program a package holds, by the document that holds it
+   * (COMPILE-AT-PUBLISH C2, the walk).
+   */
+  const walks = walksOf(ledger);
+
   const deliveryRelations = [
     DeliveredTest,
     ItemDuration,
@@ -1190,6 +1197,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ...assertions.relations,
     ...servable.relations,
     ...programs.relations,
+    ...walks.relations,
     ...creditRelationsOf(ledger, assertions),
     ...results.relations,
     ...sessionAttemptsOf(ledger),

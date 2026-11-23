@@ -61,8 +61,9 @@ const formKinds = [
  *   score's machine is, and each recorded class's grader in force; the rubric uses; the seed tables
  *   the primitives read, each entry with its place, and which table each class reads in each role;
  *   and why an element is outside the profile.
- * - **`Registry`** (`registry`): views over pantry's content, refusing nothing, `RecordedApplication`
- *   stored (grizzle's `derived.stored`, kept at COMMIT at every package a transaction writes):
+ * - **`Registry`** (`registry`): views over pantry's content, refusing nothing, `BoundOperator` and
+ *   `RecordedApplication` stored (grizzle's `derived.stored`, kept at COMMIT at every package a
+ *   transaction writes):
  *
  *   - `OutsideProfile`: each element that puts its document outside this deployment's profile, with
  *     why, which the grader's gradable relation reads, so an item is served for credit only within
@@ -1019,11 +1020,12 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
 
   /**
    * Each bound operator, by its place ({@link boundOperators}): what the grader dispatches on, the
-   * operator's class, whose arm evaluates it, and how its value arises. An operator of a document
-   * outside the profile is bound too; the grader serves no such item for credit ({@link
+   * operator's class, whose arm evaluates it, and how its value arises; a program's walk reads its
+   * custom operators' classes here by key (`#ledger/walks.ts`), so it is stored. An operator of a
+   * document outside the profile is bound too; the grader serves no such item for credit ({@link
    * OutsideProfile}).
    */
-  const BoundOperator = derived("BoundOperator", boundOperators);
+  const BoundOperator = derived.stored("BoundOperator", boundOperators);
 
   /**
    * Each application of a recorded class in an item, by its package, its item's document (`path`,

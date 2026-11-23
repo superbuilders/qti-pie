@@ -7,6 +7,7 @@ import { nonElementKinds } from "@qti-pie/pantry/grammar/install.ts";
 import { publishedTemplates } from "@qti-pie/pantry/qti/templates.ts";
 import { Effect } from "effect";
 import type { Generator } from "#tools/gen/generator.ts";
+import { gradedAttributes } from "#ledger/grading.ts";
 import { must } from "#tools/gen/grade/text.ts";
 
 /**
@@ -55,6 +56,21 @@ const textOf = (value: string): string => JSON.stringify(value);
 const naturalOf = (value: bigint): string => `${String(value)}n`;
 
 /**
+ * A float base value's text as the walk reads it, XML Schema's `xs:double` lexical space less its
+ * infinities and NaN, which no template writes: the generator states the double and refuses any
+ * other text, so a template's walk is the one `#ledger/walks.ts` gives a package's.
+ */
+const decimalDouble = /^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$/u;
+
+/**
+ * A text collapsed, XML Schema's whiteSpace collapse.
+ *
+ * @param text The text.
+ * @returns Its runs of white space one space, none at either end.
+ */
+const collapsed = (text: string): string => text.replaceAll(/[\t\n\r ]+/gu, " ").trim();
+
+/**
  * A row's text in the generated module: its fields in code-point order, each its literal.
  *
  * @param row Each field's literal.
@@ -89,6 +105,10 @@ const moduleText = async (): Promise<string> => {
   const nodes: string[] = [];
   const attributes: string[] = [];
   const texts: string[] = [];
+  const idents: string[] = [];
+  const equals: string[] = [];
+  const literalTexts: string[] = [];
+  const literalFloats: string[] = [];
   const digests: string[] = [];
   for (const template of publishedTemplates) {
     const file = `${template}.xml`;
@@ -132,6 +152,58 @@ const moduleText = async (): Promise<string> => {
         }),
       );
     }
+    // The walk's facts of a template's parameters, the attributes the grader reads (`#ledger/walks.ts`): each element
+    // that names a variable, by its `identifier` (QTI writes one only on such an element); each equal's mode and bounds, QTI's defaults where it writes none;
+    // and each base value's base type, which its literal below reads. A template that wrote any other parameter would
+    // need its walk fact, so the generator refuses one. Every value here is its lexical form (`normalized` above), so
+    // trim_xml leaves it as it is.
+    const kindOf = new Map(elements.map(({ kind, start }) => [start, kind] as const));
+    const graded = rows.attributes.filter(
+      ({ name, start }) => within(start) && gradedAttributes.some((read) => read === name),
+    );
+    const equalParameters = new Set([
+      "include-lower-bound",
+      "include-upper-bound",
+      "tolerance-mode",
+    ]);
+    for (const attribute of graded) {
+      const kind = kindOf.get(attribute.start) ?? "";
+      if (attribute.name === "identifier") {
+        idents.push(
+          rowText({
+            element: textOf(elementOf(attribute.start)),
+            identifier: textOf(attribute.lexical),
+            start: naturalOf(attribute.start),
+            template: textOf(template),
+          }),
+        );
+      } else {
+        must(
+          (attribute.name === "base-type" && kind === "qti-base-value") ||
+            (kind === "qti-equal" && equalParameters.has(attribute.name)),
+          `${file}: a walk fact of ${kind}'s ${attribute.name}`,
+        );
+      }
+    }
+    for (const equal of elements.filter(({ kind }) => kind === "qti-equal")) {
+      const written = (name: string): string | undefined =>
+        graded.find((a) => a.start === equal.start && a.name === name)?.lexical;
+      const bound = (name: string): string => {
+        const value = written(name);
+
+        return value === undefined || value === "true" || value === "1" ? "true" : "false";
+      };
+      equals.push(
+        rowText({
+          element: textOf(elementOf(equal.start)),
+          lowerIn: bound("include-lower-bound"),
+          mode: textOf(written("tolerance-mode") ?? "exact"),
+          start: naturalOf(equal.start),
+          template: textOf(template),
+          upperIn: bound("include-upper-bound"),
+        }),
+      );
+    }
     for (const literal of [...literals.values()].filter(
       (row) => row.path === file && within(row.start),
     )) {
@@ -143,6 +215,32 @@ const moduleText = async (): Promise<string> => {
           text: textOf(literal.text),
         }),
       );
+
+      const at = {
+        base: textOf(literal.baseType),
+        element: textOf(elementOf(literal.start)),
+        start: naturalOf(literal.start),
+        template: textOf(template),
+      };
+      if (literal.baseType === "identifier" || literal.baseType === "uri") {
+        must(
+          collapsed(literal.text) !== "",
+          `${file}: ${literal.baseType} base value at ${String(literal.start)} is no NULL`,
+        );
+        literalTexts.push(rowText({ ...at, value: textOf(collapsed(literal.text)) }));
+      } else if (literal.baseType === "string") {
+        must(
+          literal.text !== "",
+          `${file}: string base value at ${String(literal.start)} is no NULL`,
+        );
+        literalTexts.push(rowText({ ...at, value: textOf(literal.text) }));
+      } else {
+        must(
+          literal.baseType === "float" && decimalDouble.test(collapsed(literal.text)),
+          `${file}: a walk fact of a ${literal.baseType} base value "${literal.text}"`,
+        );
+        literalFloats.push(rowText({ ...at, value: String(Number(collapsed(literal.text))) }));
+      }
     }
     const read = bytes.get(template);
     must(read !== undefined, `${file}'s bytes`);
@@ -166,8 +264,10 @@ const moduleText = async (): Promise<string> => {
  * positions pantry's import gives them (\`readProgram\`, as it reads a package's document), from the
  * template documents in \`qti-rptemplates/\`, which this module is generated from
  * (\`tools/gen/templates.ts\`): the ledger's closed \`TemplateNode\`, \`TemplateAttribute\` and
- * \`TemplateText\` (\`#ledger/ledger.ts\`). An attribute's value is its lexical form, which every white
- * space facet leaves as it is in these documents (the generator holds that of each). The documents:
+ * \`TemplateText\` (\`#ledger/ledger.ts\`), and the walk's facts of their parameters, \`TemplateIdent\`,
+ * \`TemplateEqual\`, \`TemplateLiteralText\` and \`TemplateLiteralFloat\`, each as the walk holds a package's
+ * (\`#ledger/walks.ts\`). An attribute's value is its lexical form, which every white space facet
+ * leaves as it is in these documents (the generator holds that of each). The documents:
  *
 ${digests.join("\n")}
  */
@@ -193,6 +293,30 @@ export const templateAttributes = [${attributes.join(",\n")}] as const;
  * Each base value of a template's processing subtree, its text, by its element.
  */
 export const templateTexts = [${texts.join(",\n")}] as const;
+
+/**
+ * Each element of a template's processing subtree that names a variable, by its element: its
+ * \`identifier\`, as \`WalkIdent\` holds a package's (\`#ledger/walks.ts\`).
+ */
+export const templateIdents = [${idents.join(",\n")}] as const;
+
+/**
+ * Each equal of a template's processing subtree, by its element: its tolerance mode and whether each
+ * bound is inside, as \`WalkEqual\` holds a package's.
+ */
+export const templateEquals = [${equals.join(",\n")}] as const;
+
+/**
+ * Each base value of a text base type of a template's processing subtree, by its element: its base
+ * and value, as \`WalkLiteralText\` holds a package's.
+ */
+export const templateLiteralTexts = [${literalTexts.join(",\n")}] as const;
+
+/**
+ * Each float base value of a template's processing subtree, by its element: its base and double, as
+ * \`WalkLiteralFloat\` holds a package's.
+ */
+export const templateLiteralFloats = [${literalFloats.join(",\n")}] as const;
 `;
 };
 
