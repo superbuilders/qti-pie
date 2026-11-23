@@ -280,9 +280,21 @@ const headerRule = ([kind, holds, kinds]: SetKind): string => {
 /**
  * The start run's arguments that hold no rows, each by its machine name, its heading and a literal
  * row of it, which `r.or()` never matches: the start runs no program (`response_state`: "No
- * program, no run: the values stand as they start").
+ * program, no run: the values stand as they start"), so it reaches no application and has no
+ * evaluation to read.
  */
 const START_EMPTIES = [
+  [
+    "evaluations",
+    "DocEvaluation",
+    [
+      ["child", '"x"'],
+      ["package", '""'],
+      ["path", '""'],
+      ["stage", "0n"],
+      ["start", "0n"],
+    ],
+  ],
   [
     "programs",
     "ProgramNode",

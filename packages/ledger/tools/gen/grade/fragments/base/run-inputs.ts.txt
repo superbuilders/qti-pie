@@ -1,4 +1,18 @@
 
+/** Each application of the graded attempt that has its evaluation (OperatorEvaluation), replied or declined, by the run
+ * key, at the start of the application's operator: what the machine reads as evaluated, so it demands no application
+ * twice and a declined one's value is NULL. */
+const evaluationsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const { operator } = v(fields.OperatorEvaluation, "evaluation")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(fields.OperatorEvaluation, { child, package: pkg, path, n, at, operator })
+			.find({ child, package: pkg, path, stage, start: operator })
+	})
+
 /** Each reply a machine gave an application of the graded attempt (OperatorReply), by the run key, at the start of the
  * application's operator: the score `rubric-score` reads, as the machine's `score` field. A decline, or a request with no
  * reply yet, gives none, and the gradable gate holds a pending one back. */

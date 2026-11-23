@@ -24,8 +24,25 @@ const statusesOf = (session: GradedSession) =>
 			.find({ child, package: pkg, path, n, at, completionStatus: status })
 	})
 
+/** What the run demanded of the attempt (ApplicationDemand): each recorded application it reached with a response and
+ * could not evaluate. A run that demands returns its demands alone, no value and no end, so none of the outcomes above
+ * is written for it and the attempt waits for its evaluations; a later run, once they are recorded, grades it or
+ * demands what only their values let the processing reach. */
+const demandedOf = (session: GradedSession) =>
+	query(Learner).rule((r) => {
+		const out = runOf(session)
+		const attempt = gradableOf(session).bind(bySession(session))
+		const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt")
+		const { start } = v(out.demands, "demand")
+		return r
+			.match(attempt, { child, package: pkg, path, n, stage, at })
+			.match(out.demands, { child, package: pkg, path, stage, start })
+			.find({ child, package: pkg, path, n, at, operator: start })
+	})
+
 const processed = (session: GradedSession) =>
 	ChangeSet.empty(Learner)
+		.insert(mine.ApplicationDemand, demandedOf(session))
 		.insert(mine.ProcessedAttempt, statusesOf(session))
 
 	return ChangeSet.union(

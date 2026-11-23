@@ -67,6 +67,7 @@ import {
   CompiledPattern,
   copies,
   DocBase,
+  DocEvaluation,
   DocReplyFloat,
   DocReplyText,
   DocText,
@@ -1355,6 +1356,23 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       .match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
       .match(fields.BaseTypeToken, { baseType, token: base })
       .find({ base, child, identifier, package: pkg, path, stage });
+  });
+
+  /**
+   * Each application of the graded attempt that has its evaluation (OperatorEvaluation), replied or
+   * declined, by the run key, at the start of the application's operator: what the machine reads as
+   * evaluated, so it demands no application twice and a declined one's value is NULL.
+   */
+  const evaluationsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const attempt = boundGradable;
+    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+    const { operator } = v(fields.OperatorEvaluation, "evaluation");
+
+    return r
+      .match(attempt, { at, child, n, package: pkg, path, stage })
+      .match(fields.OperatorEvaluation, { at, child, n, operator, package: pkg, path })
+      .find({ child, package: pkg, path, stage, start: operator });
   });
 
   /**
@@ -8522,6 +8540,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     declaration_texts: declarationTextsOf,
     declarations: declarationNodesOf,
     directed_pairs: directedPairsOf,
+    evaluations: evaluationsOf,
     field_booleans: fieldBooleansOf,
     field_directed_pairs: fieldDirectedPairsOf,
     field_file_names: fieldFileNamesOf,
@@ -29146,6 +29165,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
  * Every relation the grading statement writes, by name: what a role that composes it inserts into.
  */
 export const gradeAttemptTables = [
+  "ApplicationDemand",
   "ProcessedAttempt",
   "SnapshotSingleIdentifier",
   "SnapshotSingleBoolean",
@@ -29273,6 +29293,7 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       declaration_texts: args.declaration_texts.bind(bySession(r)),
       declarations: args.declarations.bind(bySession(r)),
       directed_pairs: args.directed_pairs.bind(bySession(r)),
+      evaluations: args.evaluations.bind(bySession(r)),
       field_booleans: args.field_booleans.bind(bySession(r)),
       field_directed_pairs: args.field_directed_pairs.bind(bySession(r)),
       field_file_names: args.field_file_names.bind(bySession(r)),
@@ -32129,7 +32150,30 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       .find({ at, child, completionStatus: status, n, package: pkg, path });
   });
 
-  const processed = ChangeSet.empty(delivery).insert(fields.ProcessedAttempt, statusesOf);
+  /**
+   * What the run demanded of the attempt (ApplicationDemand): each recorded application it reached
+   * with a response and could not evaluate. A run that demands returns its demands alone, no value
+   * and no end, so none of the outcomes above is written for it and the attempt waits for its
+   * evaluations; a later run, once they are recorded, grades it or demands what only their values
+   * let the processing reach.
+   */
+  const demandedOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const run = runIn(r);
+    const out = run;
+    const attempt = boundGradable;
+    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+    const { start } = v(out.demands, "demand");
+
+    return r
+      .match(attempt, { at, child, n, package: pkg, path, stage })
+      .match(out.demands, { child, package: pkg, path, stage, start })
+      .find({ at, child, n, operator: start, package: pkg, path });
+  });
+
+  const processed = ChangeSet.empty(delivery)
+    .insert(fields.ApplicationDemand, demandedOf)
+    .insert(fields.ProcessedAttempt, statusesOf);
 
   return ChangeSet.union(
     ChangeSet.union(processed, gradedSingles),
@@ -34862,6 +34906,23 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       .match(fields.ItemSessionVariable, { baseType, identifier, package: pkg, path })
       .match(fields.BaseTypeToken, { baseType, token: base })
       .find({ base, child, identifier, package: pkg, path, stage });
+  });
+
+  /**
+   * Each application of the graded attempt that has its evaluation (OperatorEvaluation), replied or
+   * declined, by the run key, at the start of the application's operator: what the machine reads as
+   * evaluated, so it demands no application twice and a declined one's value is NULL.
+   */
+  const evaluationsOf = query(delivery).rule((r) => {
+    const boundGradable = boundGradableIn(r);
+    const attempt = boundGradable;
+    const { child, package: pkg, path, n, stage, at } = v(attempt, "attempt");
+    const { operator } = v(fields.OperatorEvaluation, "evaluation");
+
+    return r
+      .match(attempt, { at, child, n, package: pkg, path, stage })
+      .match(fields.OperatorEvaluation, { at, child, n, operator, package: pkg, path })
+      .find({ child, package: pkg, path, stage, start: operator });
   });
 
   /**
@@ -40268,6 +40329,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     declaration_texts: declarationTextsOf,
     declarations: declarationNodesOf,
     directed_pairs: directedPairsOf,
+    evaluations: evaluationsOf,
     field_booleans: fieldBooleansOf,
     field_directed_pairs: fieldDirectedPairsOf,
     field_file_names: fieldFileNamesOf,
@@ -45607,6 +45669,15 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
   /**
    * The start run's arguments that hold no rows.
    */
+  const noEvaluations = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      child: Type.literal(DocEvaluation.fields.child, "x"),
+      package: Type.literal(DocEvaluation.fields.package, ""),
+      path: Type.literal(DocEvaluation.fields.path, ""),
+      stage: Type.literal(DocEvaluation.fields.stage, 0n),
+      start: Type.literal(DocEvaluation.fields.start, 0n),
+    }),
+  );
   const noPrograms = query(delivery).rule((r) =>
     r.where(r.or()).find({
       end: Type.literal(ProgramNode.fields.end, 0n),
@@ -46501,6 +46572,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       declaration_texts: args.declaration_texts.bind(bySession(r)),
       declarations: args.declarations.bind(bySession(r)),
       directed_pairs: startDirectedPairsOf.bind(bySession(r)),
+      evaluations: noEvaluations,
       field_booleans: args.field_booleans.bind(bySession(r)),
       field_directed_pairs: args.field_directed_pairs.bind(bySession(r)),
       field_file_names: args.field_file_names.bind(bySession(r)),

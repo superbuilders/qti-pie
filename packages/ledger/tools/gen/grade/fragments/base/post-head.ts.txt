@@ -22,6 +22,7 @@
 			booleans: args.booleans.bind(bySession(session)),
 			pairs: args.pairs.bind(bySession(session)),
 			directed_pairs: args.directed_pairs.bind(bySession(session)),
+			evaluations: args.evaluations.bind(bySession(session)),
 			points: args.points.bind(bySession(session)),
 			files: args.files.bind(bySession(session)),
 			file_names: args.file_names.bind(bySession(session)),

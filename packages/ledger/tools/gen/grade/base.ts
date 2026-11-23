@@ -448,6 +448,13 @@ export const RUN_INPUTS = [
 ] as const;
 
 /**
+ * Response processing's own run input beside {@link RUN_INPUTS}: the attempt's evaluated
+ * applications, which the grader reads so that it demands none twice. Template processing demands
+ * nothing, so the take passes none.
+ */
+export const RESPONSE_INPUTS = [["evaluations", "evaluationsOf", "attempts"]] as const;
+
+/**
  * A readers' return with the run inputs' readers beside the documents' values.
  *
  * @param readersReturn The readers' return.
@@ -460,7 +467,9 @@ export const withRunInputs = (readersReturn: string): string => {
   return replaceAll(
     readersReturn,
     end,
-    RUN_INPUTS.map(([arg, reader]) => `\t\t${arg}: ${reader}(gradedSitting),\n`).join("") + end,
+    [...RESPONSE_INPUTS, ...RUN_INPUTS]
+      .map(([arg, reader]) => `\t\t${arg}: ${reader}(gradedSitting),\n`)
+      .join("") + end,
   );
 };
 
@@ -833,7 +842,7 @@ export const baseStage = (fragment: Fragments): string => {
     fragment("base/latest-readers"),
   );
   const tables = [
-    '/** Every relation the grading statement writes, by name: what a role that composes it inserts into. */\nexport const gradeAttemptTables = [\n\t"ProcessedAttempt",\n',
+    '/** Every relation the grading statement writes, by name: what a role that composes it inserts into. */\nexport const gradeAttemptTables = [\n\t"ApplicationDemand",\n\t"ProcessedAttempt",\n',
     ...CARDINALITIES.flatMap((cardinality) =>
       TYPES.map((t) => `\t"Snapshot${cardinality}${t}",\n`),
     ),
