@@ -183,6 +183,12 @@ const TAKE = "items/take.xml";
 
 const OPERATORS = "items/operators.xml";
 
+const PATTERNS = "items/patterns.xml";
+
+const PATTERNS_LOCATED = "items/patterns-located.xml";
+
+const PATTERNS_TEMPLATE = "items/rptemplates/patterns.xml";
+
 const SHORT = "items/short.xml";
 
 const OTHER = "items/other.xml";
@@ -411,6 +417,49 @@ const pointWhen = (condition: string) =>
 const operatorsXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="${asi}" identifier="operators" title="operators" adaptive="false" time-dependent="false" xml:lang="en">
 <qti-response-declaration identifier="MATH" cardinality="single" base-type="string"/><qti-response-declaration identifier="PHRASE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>2</qti-value></qti-default-value></qti-outcome-declaration><qti-item-body><p><qti-text-entry-interaction response-identifier="MATH"/></p><p><qti-text-entry-interaction response-identifier="PHRASE"/></p></qti-item-body><qti-response-processing>${pointWhen(`<qti-match>${customOperator("math-canonical", '<qti-variable identifier="MATH"/><qti-base-value base-type="boolean">false</qti-base-value>')}${customOperator("math-canonical", `<qti-base-value base-type="string">${MATH_KEY}</qti-base-value><qti-base-value base-type="boolean">false</qti-base-value>`)}</qti-match>`)}${pointWhen(`<qti-lte>${customOperator("phrase-distance", `<qti-variable identifier="PHRASE"/><qti-multiple><qti-base-value base-type="string">${PHRASE_KEY}</qti-base-value></qti-multiple><qti-multiple><qti-base-value base-type="string">the</qti-base-value></qti-multiple>`)}<qti-base-value base-type="integer">0</qti-base-value></qti-lte>`)}</qti-response-processing>
+</qti-assessment-item>`;
+
+/**
+ * A point to OUTCOME where RESPONSE matches a qti-pattern-match's `pattern` (QTI 3.0.1 §5.104.1:
+ * "The syntax for the regular expression language is as defined in Appendix F of [XSCHEMA, 01]").
+ *
+ * @param outcome - The outcome the point sets.
+ * @param pattern - The pattern as written.
+ * @returns The rule's markup.
+ */
+const patternPoint = (outcome: string, pattern: string) =>
+  `<qti-response-condition><qti-response-if><qti-pattern-match pattern="${pattern}"><qti-variable identifier="RESPONSE"/></qti-pattern-match><qti-set-outcome-value identifier="${outcome}"><qti-base-value base-type="float">1</qti-base-value></qti-set-outcome-value></qti-response-if></qti-response-condition>`;
+
+/**
+ * A pattern is a StringOrVariableRef (QTI 3.0.1 §9.3.4: "The type used for attributes of string
+ * type that may be replaced with the value of a template or outcome variable of base type string
+ * and single cardinality. If a string appears to be a reference to a template or outcome variable
+ * but there is no variable with the given name it should be treated simply as string value"). The
+ * patterns item: DECLARED's point by `{PAT}`, PAT a declared outcome holding `[0-9]+`, so a run
+ * matches RESPONSE against PAT's value; UNDECLARED's by `{NOPE}`, which names no variable, so it
+ * is the string `{NOPE}`, no Appendix F expression (a `{` opens no count), which matches nothing:
+ * the condition is NULL and no point is set.
+ */
+const patternsXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="${asi}" identifier="patterns" title="patterns" adaptive="false" time-dependent="false" xml:lang="en">
+<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="PAT" cardinality="single" base-type="string"><qti-default-value><qti-value>[0-9]+</qti-value></qti-default-value></qti-outcome-declaration><qti-outcome-declaration identifier="DECLARED" cardinality="single" base-type="float"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration><qti-outcome-declaration identifier="UNDECLARED" cardinality="single" base-type="float"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration><qti-item-body><p><qti-text-entry-interaction response-identifier="RESPONSE"/></p></qti-item-body><qti-response-processing>${patternPoint("DECLARED", "{PAT}")}${patternPoint("UNDECLARED", "{NOPE}")}</qti-response-processing>
+</qti-assessment-item>`;
+
+/**
+ * The located template the located patterns item runs (QTI 3.0.1 §4.6.2, template-location): its
+ * `{PAT}` names a variable of the item that runs it, which declares PAT, so a run matches RESPONSE
+ * against the item's PAT (§4.6.1: the rules obtained from the template are used instead of the
+ * item's own).
+ */
+const patternsTemplateXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-response-processing xmlns="${asi}">${patternPoint("SCORE", "{PAT}")}</qti-response-processing>`;
+
+/**
+ * The located patterns item: PAT `[a-z]+`, its response processing the located template's.
+ */
+const patternsLocatedXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="${asi}" identifier="patterns-located" title="patterns-located" adaptive="false" time-dependent="false" xml:lang="en">
+<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="PAT" cardinality="single" base-type="string"><qti-default-value><qti-value>[a-z]+</qti-value></qti-default-value></qti-outcome-declaration><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>0</qti-value></qti-default-value></qti-outcome-declaration><qti-item-body><p><qti-text-entry-interaction response-identifier="RESPONSE"/></p></qti-item-body><qti-response-processing template-location="rptemplates/patterns.xml"/>
 </qti-assessment-item>`;
 
 /**
@@ -694,7 +743,7 @@ const itemResource = (path: string) =>
   `<resource identifier="${path.replace("items/", "").replace(".xml", "")}" type="imsqti_item_xmlv3p0" href="${path}"><file href="${path}"/></resource>`;
 
 const manifest = `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="wave" type="imsqti_item_xmlv3p0" href="${WAVE}"><file href="${WAVE}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}${testResource(LINEAR_TEST, ["short", "other"])}${testResource(LINEAR_TOGETHER_TEST, ["short", "other"])}${[BOUNDED_A, BOUNDED_B].map(itemResource).join("")}${testResource(OUTCOME_BOUNDS_TEST, [BOUNDED_A_REF, BOUNDED_B_REF])}</resources></manifest>`;
+<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="wave" type="imsqti_item_xmlv3p0" href="${WAVE}"><file href="${WAVE}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="patterns" type="imsqti_item_xmlv3p0" href="${PATTERNS}"><file href="${PATTERNS}"/></resource><resource identifier="patterns-located" type="imsqti_item_xmlv3p0" href="${PATTERNS_LOCATED}"><file href="${PATTERNS_LOCATED}"/><dependency identifierref="patterns-template"/></resource><resource identifier="patterns-template" type="imsqti_rptemplate_xmlv3p0" href="${PATTERNS_TEMPLATE}"><file href="${PATTERNS_TEMPLATE}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}${testResource(LINEAR_TEST, ["short", "other"])}${testResource(LINEAR_TOGETHER_TEST, ["short", "other"])}${[BOUNDED_A, BOUNDED_B].map(itemResource).join("")}${testResource(OUTCOME_BOUNDS_TEST, [BOUNDED_A_REF, BOUNDED_B_REF])}</resources></manifest>`;
 
 /**
  * The response every answered case gives.
@@ -1354,6 +1403,10 @@ const published = Effect.gen(function* publish() {
   yield* fs.writeFileString(`${dir}/${WAVE}`, waveXml);
   yield* fs.writeFileString(`${dir}/${TAKE}`, takeXml);
   yield* fs.writeFileString(`${dir}/${OPERATORS}`, operatorsXml);
+  yield* fs.makeDirectory(`${dir}/items/rptemplates`, { recursive: true });
+  yield* fs.writeFileString(`${dir}/${PATTERNS}`, patternsXml);
+  yield* fs.writeFileString(`${dir}/${PATTERNS_LOCATED}`, patternsLocatedXml);
+  yield* fs.writeFileString(`${dir}/${PATTERNS_TEMPLATE}`, patternsTemplateXml);
   for (const adaptive of [true, false]) {
     yield* fs.writeFileString(`${dir}/${drawPathOf(adaptive)}`, drawXmlOf(adaptive));
   }
@@ -1974,6 +2027,138 @@ const holdOperators = (
       },
       { credit: want.credit, floats: want.floats, status: ["final"] },
       `${c.name}: graded through the ledger's own grading, its operators given the registry's tables`,
+    );
+  });
+
+/**
+ * A patterns case: a fresh child's attempt of the patterns item or the located patterns item, its
+ * RESPONSE digits or letters.
+ */
+type PatternsCase = Readonly<{
+  answer: "digits" | "letters";
+  item: "item" | "located";
+  name: string;
+}>;
+
+/**
+ * What each case answers.
+ */
+const patternAnswers = { digits: "42", letters: "abc" } as const;
+
+/**
+ * Every patterns case: each item with each answer.
+ */
+const patternsSpace: Gen<PatternsCase> = (source) => {
+  const item = source.draw(element(["item", "located"] as const));
+  const answer = source.draw(element(["digits", "letters"] as const));
+
+  return { answer, item, name: `patterns ${item} ${answer}` };
+};
+
+/**
+ * The patterns table (QTI 3.0.1 §9.3.4, §5.104.1): on the patterns item, DECLARED's point where
+ * RESPONSE is in PAT's `[0-9]+`, the digits, and never UNDECLARED's, whose `{NOPE}` is no pattern;
+ * on the located item, SCORE's point where RESPONSE is in the item's PAT, `[a-z]+`, the letters.
+ *
+ * @param c - The case.
+ * @returns The float outcomes in force, by name.
+ */
+const patternsExpectedOf = (c: PatternsCase) =>
+  c.item === "item"
+    ? [
+        ["DECLARED", c.answer === "digits" ? 1 : 0],
+        ["UNDECLARED", 0],
+      ]
+    : [["SCORE", c.answer === "letters" ? 1 : 0]];
+
+/**
+ * The situations the patterns space must reach.
+ */
+const patternsSituations = [
+  "a braced pattern names an item's declared variable: matched",
+  "a braced pattern names an item's declared variable: unmatched",
+  "a braced pattern names no variable: a string, no pattern",
+  "a located template's braced pattern names its item's variable: matched",
+  "a located template's braced pattern names its item's variable: unmatched",
+] as const;
+
+type PatternsSituation = (typeof patternsSituations)[number];
+
+/**
+ * One patterns case: a fresh child's session of the case's item and its attempt with RESPONSE, as
+ * host rows, graded as the write that records an attempt grades it (`grade`); then its status and
+ * float outcomes in force, held to the table.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdPatterns = (
+  c: PatternsCase,
+  child: string,
+  note: (situation: PatternsSituation) => void,
+) =>
+  Effect.gen(function* hold() {
+    const matched = c.item === "item" ? c.answer === "digits" : c.answer === "letters";
+    if (c.item === "item") {
+      note(
+        matched
+          ? "a braced pattern names an item's declared variable: matched"
+          : "a braced pattern names an item's declared variable: unmatched",
+      );
+      note("a braced pattern names no variable: a string, no pattern");
+    } else {
+      note(
+        matched
+          ? "a located template's braced pattern names its item's variable: matched"
+          : "a located template's braced pattern names its item's variable: unmatched",
+      );
+    }
+
+    const path = c.item === "item" ? PATTERNS : PATTERNS_LOCATED;
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const key = { child, n: 0n, package: PACKAGE, path };
+    const stage = 1n;
+    yield* db.workload.begin.once({
+      facts: {
+        insert: {
+          StageControl: rowsOf("StageControl", [{ child, stage, ...directControl }]),
+        },
+      },
+      params: { child, package: PACKAGE, path, seed: SEED, stage },
+    });
+    yield* db.workload.facts.once({
+      facts: {
+        insert: {
+          Attempt: rowsOf("Attempt", [key]),
+          ProcessedAttempt: rowsOf("ProcessedAttempt", []),
+          ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
+          SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
+          SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
+          SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
+          SnapshotSingleString: rowsOf("SnapshotSingleString", [
+            { ...key, value: patternAnswers[c.answer], variable: "RESPONSE" },
+          ]),
+        },
+      },
+      params: {},
+    });
+    yield* db.workload.grade.once({ facts: {}, params: key });
+
+    const atChild = { facts: {}, params: { child } };
+    const statusRows = yield* db.workload.statusesOf.once(atChild);
+    const floatRows = yield* db.workload.floatsOf.once(atChild);
+    assert.deepStrictEqual<unknown>(
+      {
+        floats: Arr.sort(
+          Arr.fromIterable(floatRows).map((row) => [row.variable, row.value] as const),
+          Order.mapInput(Order.String, (row: readonly [string, number]) => row[0]),
+        ),
+        status: Arr.fromIterable(statusRows).map((row) => row.status),
+      },
+      { floats: patternsExpectedOf(c), status: ["final"] },
+      `${c.name}: a braced pattern read by the run's own declarations, through the ledger's own grading`,
     );
   });
 
@@ -5341,6 +5526,43 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the operators item held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "grades a braced pattern by the run's own declarations: an item's, a located template's, and a name declared nowhere",
+          (ctx) =>
+            Effect.gen(function* holdEveryPatternsCase() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "each patterns item with each answer, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<PatternsSituation>(patternsSituations),
+                    generator: patternsSpace,
+                    literal: (c: PatternsCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "patternsExpectedOf: QTI 3.0.1 §9.3.4's StringOrVariableRef, a braced name a declared variable's value, else the string itself, §5.104.1's Appendix F match",
+                    },
+                    suite: "ledger/results/patterns",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdPatterns(row, `user_ledgerpat${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the patterns items held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
 
