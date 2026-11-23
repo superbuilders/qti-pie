@@ -89,9 +89,9 @@
     /*
      * The tallest a graphic interaction's picture is drawn, its width following its proportions:
      * the screen's height, so the whole picture stands on one screen. A host whose page puts its
-     * parts round the stage gives it what that leaves. The stage is drawn as wide as its container
-     * and this budget allow, and never so small that an area is under 44 px across, which outranks
-     * the budget.
+     * parts round the stage gives it what that leaves. The stage is drawn at its author's size, and
+     * smaller only where its container or this budget is, never larger; and never so small that an
+     * area is under 44 px across, which outranks both.
      */
     --plate-stage-block-size: 100svh;
 
@@ -1507,14 +1507,19 @@
    * Its size comes from two spacers the stage writes with SVG attributes, never a `style`. The
    * floor spacer, a zero-height `svg` whose `width` is the floor width, is rigid, so it holds the
    * stage's one column at its floor: the width at which its smallest area is 44 px across. The fit
-   * spacer, an `svg` whose `viewBox` gives it the image's proportions, is set at the height budget
-   * (`--plate-stage-block-size`), so its width is the widest the image may be drawn under it; it
-   * sits in a box that clips, a scroll container, which a grid gives an automatic minimum of 0, so
-   * it only sets how wide the column may grow. The column, `fit-content(100%)`, is then the fit
-   * width where the item has room for it, the item's width where it has not, and never narrower
-   * than the floor: the picture as large as the item and the budget allow, above or below its
-   * author's size, its areas 44 px targets at the least. This rests on grid alone, not on how a
-   * browser counts a percentage `max-width` on a replaced element (CSS Sizing's open issue 6348).
+   * spacer, an `svg` whose `viewBox` gives it the image's proportions and whose `width` and
+   * `height` are its author's size, stands at that size, shrunk to the height budget
+   * (`--plate-stage-block-size`) where it is taller, so its width is the widest the image is drawn:
+   * its author's width, or less where the budget is shorter; it sits in a box that clips, a scroll
+   * container, which a grid gives an automatic minimum of 0, so it only sets how wide the column may
+   * grow. The column, `fit-content(100%)`, is then the fit width where the item has room for it,
+   * the item's width where it has not, and never narrower than the floor: the picture at its
+   * author's size where the item and the budget allow it, smaller where they do not, never larger,
+   * as an image in the body is never drawn past its own size; but for the floor, its areas 44 px
+   * targets at the least, which outranks the author's size as it outranks the budget (edullm-bd,
+   * 2026-11-22: PLAYER-PARITY found _f9fa8d6c's 478 by 325 model drawn 662 by 450, filling the
+   * budget). This rests on grid alone, not on how a browser counts a percentage `max-width` on a
+   * replaced element (CSS Sizing's open issue 6348).
    *
    * Past the floor the stage scrolls sideways inside its own region, and the page never does
    * (1.4.10), so the region is a focus stop with a two-toned ring. Its padding leaves room for a
@@ -1675,8 +1680,8 @@
 
   /*
    * The spacers: the floor rigid and of no height whatever a host sets on an `svg`; the fit one at
-   * the budget's height and the width its proportions give that, never wider than the column it
-   * sizes, in a box of no height that clips it.
+   * its author's size, its `width` and `height`, shrunk at its proportions to the budget's height
+   * and the column it sizes where either is smaller, in a box of no height that clips it.
    */
   [data-slot="plate-graphic-floor"] {
     display: block;
@@ -1693,7 +1698,8 @@
   [data-slot="plate-graphic-fit"] > svg {
     display: block;
     inline-size: auto;
-    block-size: var(--plate-stage-block-size);
+    block-size: auto;
+    max-block-size: var(--plate-stage-block-size);
     max-inline-size: 100%;
   }
 

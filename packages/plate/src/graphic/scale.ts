@@ -13,11 +13,11 @@
  * `#plate/graphic/geometry.ts`): a pointer anywhere in that circle is on the area. The stage
  * scales the image, its overlay and every area together, by one factor, so QTI's coordinates stay
  * in the image's authored pixels, the overlay's `viewBox`; the smallest area's diameter, in those
- * pixels, decides the least factor, `floor`. Above it the stylesheet draws the stage as large as
- * its container's width and the host's height budget allow, the image's proportions kept (the
- * stage's sizing, `#plate/ui/graphic/frame.tsx`), above or below the author's own size, and the
- * stage's own region scrolls across where the container is narrower than the floor, the page never
- * (spec-readings reading 184).
+ * pixels, decides the least factor, `floor`. Above it the stylesheet draws the stage at the
+ * author's own size where its container's width and the host's height budget allow, smaller where
+ * they do not and never larger, the image's proportions kept (the stage's sizing,
+ * `#plate/ui/graphic/frame.tsx`), and the stage's own region scrolls across where the container is
+ * narrower than the floor, the page never (spec-readings reading 184).
  *
  * @module
  * @see https://www.w3.org/TR/WCAG22/#target-size-enhanced

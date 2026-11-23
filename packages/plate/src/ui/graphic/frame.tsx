@@ -27,13 +27,13 @@
  * Every number travels as an SVG attribute, never a `style`, which a page whose policy has no
  * `unsafe-inline` drops. The stylesheet lays the root out as one column at most as wide as its
  * container (`fit-content(100%)`): the floor spacer holds the column's least width, and the fit
- * one, in a box that clips, its greatest, so the column is the floor width, or the container's
- * width up to the width the height budget gives the image, whichever is greater, on first paint;
- * and the image fills the column, its overlay scaling with it and its pins standing where they
- * belong on it. The image is drawn as large as its container and the budget allow, above or below
- * its author's size, and never so small that an area is under 44 px across
- * (`#plate/graphic/scale.ts`). The two spacers stand only where the image's size is known, and
- * the image keeps its own size until then, within the container and the budget.
+ * one, in a box that clips, its greatest, so the column is the greater of the floor width and the
+ * least of the container's width, the image's author's width and the width the height budget gives
+ * it, on first paint; and the image fills the column, its overlay scaling with it and its pins
+ * standing where they belong on it. The image is drawn at its author's size where its container and
+ * the budget allow, smaller where they do not, never larger, and never so small that an area is
+ * under 44 px across (`#plate/graphic/scale.ts`). The two spacers stand only where the image's size
+ * is known, and the image keeps its own size until then, within the container and the budget.
  *
  * @module
  * @see https://www.w3.org/TR/WCAG22/#reflow
@@ -247,8 +247,9 @@ export const scrollsAtReflow = (floor: number): boolean =>
 /**
  * Render the stage's two sizing spacers: `plate-graphic-floor`, a zero-height `svg` whose `width`
  * attribute is the stage's floor width, and `plate-graphic-fit`, holding an `svg` whose `viewBox`
- * is the image's authored pixels, so its proportions are the image's and the stylesheet gives it
- * the height budget's height.
+ * is the image's authored pixels and whose `width` and `height` are its author's size, so it stands
+ * at that size, its proportions the image's, and the stylesheet only shrinks it to the height
+ * budget and the item's width, never draws it larger.
  *
  * @param props.floor The stage's floor width, in CSS px (`floorWidthOf`).
  * @param props.size The image's authored size.
@@ -270,7 +271,9 @@ export const StageSpacers = (props: { readonly floor: number; readonly size: Ima
         <svg
           aria-hidden="true"
           focusable="false"
+          height={size.height}
           viewBox={`0 0 ${String(size.width)} ${String(size.height)}`}
+          width={size.width}
         />
       </span>
     </>

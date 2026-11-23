@@ -4190,18 +4190,20 @@ C2: the oracle's own reader.)
      on the image once the areas listed before it take the points they share, since the first listed holds a shared
      point (5.67) and an overlap counts toward neither target (WCAG 2.2, 2.5.8's note on targets) (`tapDiameterOf`,
      `#plate/ui/graphic/geometry.ts`; `#plate/ui/graphic/scale.ts`). The stage renders at the larger of `W·44/d` and the
-     smaller of the container's width and `B·W/H`, `W` and `H` the authored width and height and `B` the host's height
-     budget for the picture (`--plate-stage-block-size`, the screen's height in base). So every area is at least 44 px
-     across, 2.5.5's size, without leaning on 2.5.8's exception for an equivalent control; the picture is otherwise as
-     large as its room and the budget allow, above or below the author's own size, since the author's size fixes the
-     coordinate space and not the size shown; and the 44 px floor outranks the budget. Where the container is narrower
+     smallest of `W`, the container's width and `B·W/H`, `W` and `H` the authored width and height and `B` the host's
+     height budget for the picture (`--plate-stage-block-size`, the screen's height in base). So every area is at least
+     44 px across, 2.5.5's size, without leaning on 2.5.8's exception for an equivalent control; the picture is
+     otherwise at the author's own size where its room and the budget allow, and smaller where they do not, never
+     larger, as an image in the body is never drawn past its own size; and the 44 px floor outranks both the budget and
+     the author's size. Where the container is narrower
      than the floor, the stage's own region scrolls across, keyboard reachable, and the page never does (1.4.10
      Reflow). A mark that must read at one size, a badge, a point's marker, a placed choice, is drawn in CSS px pinned
      to its point by percentages of the image, so it needs no measure of the stage. An area that holds no point is no
      target. This binds plate alone: pantry renders nothing. This is not a case of documents in conflict. (Decided
      2026-11-14 by the operator: "small hotspot images must be fully compliant against accessibility standards. that
      is a hard constraint." The floor's move from `W·max(1, 24/d)` to `W·44/d` and the budget: 2026-11-18, PLATE-LIMITS
-     #4.)
+     #4. Never larger than `W`: 2026-11-22, edullm-bd from metis's PLAYER-PARITY, whose 478 by 325 area model drew
+     662 by 450 by filling the budget, where AlphaTest drew it at its own size.)
 
 185. **A media interaction's count of plays is a number of times, so a negative count is no response.** The
      information model says the media interaction "allows the number of times the media object was experienced to be
