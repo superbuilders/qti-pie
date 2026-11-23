@@ -8,15 +8,17 @@
  *   limit of what it delivers: IMPL-TESTS' DeliverableTest (no section ref, include under a
  *   section, with-replacement or adaptive selection, or item ref naming no item of the package),
  *   and beyond it a test of one part, which neither selects, orders, branches nor conditions, and
- *   controls item sessions only as `#ledger/member-controls.ts` reads them (an item ref of an
- *   individual part may set `validate-responses` true and `max-attempts` 0 on its own control;
- *   nothing else of item session control moves from QTI's defaults), holds no test rubric, test
- *   feedback, stylesheet or template default, times only the whole test with `max-time` (no
- *   `min-time`), and refers to no adaptive item and no item with template processing (whose
- *   template values the take would draw: §2.7.3, "Template processing consists of one or more
- *   TemplateRules that are followed by the cloning engine or delivery system in order to assign
- *   values to the template variables"). Every other valid test is content pantry admits and this
- *   runtime does not open: "Delivered shape" holds every sitting to DeliveredTest's clauses at
+ *   controls item sessions only as `#ledger/member-controls.ts` reads them (each setting inherited
+ *   from the nearest scope that writes it, its part, its sections, its item ref; show-feedback and
+ *   show-solution at any scope, what a served item shows of them `#ledger/session-control.ts`'s; an
+ *   item ref of an individual part may set `validate-responses` true and `max-attempts` 0 on its
+ *   own control; allow-comment stays false, allow-skipping true and max-attempts at most 1), holds
+ *   no test rubric, test feedback, stylesheet or template default, times only the whole test with
+ *   `max-time` (no `min-time`), and refers to no adaptive item and no item with template processing
+ *   (whose template values the take would draw: §2.7.3, "Template processing consists of one or
+ *   more TemplateRules that are followed by the cloning engine or delivery system in order to
+ *   assign values to the template variables"). Every other valid test is content pantry admits and
+ *   this runtime does not open: "Delivered shape" holds every sitting to DeliveredTest's clauses at
  *   every write, so no test is ever delivered half to its rules. Each construct it leaves out has
  *   no form in AlphaTest's 2,825 served tests (`qti-port/registry/tests.md`, T-ABSENT and
  *   T-FORM-01; 0 of 2,825 refused, QP-CONVERTER's count), and each is lifted by the runtime that
@@ -27,7 +29,10 @@
  *   7.40.3), nothing of the sitting follows its end, its end falls in an open candidate session,
  *   every presentation falls in its candidate session, and a linear part's presentations never go
  *   back (§2.8.2). A sitting's first budget, its applied limit with what the application grants the
- *   learner, and its item-session settings are the application's level's, above this one.
+ *   learner, is the application's level's, above this one.
+ * - Each item session's control and whether it takes another attempt (`#ledger/session-control.ts`):
+ *   a member's from its test, an item stage's from the `StageControl` the application's decision
+ *   states, the one statement of what a served item takes and shows.
  * - The laws of a sitting's responses: every response snapshot of a sitting's item session, a save or
  *   an attempt, lies inside one of its candidate sessions ("During each attempt the candidate
  *   interacts with the item through one or more candidate sessions", §2.2.1), and every response
@@ -61,6 +66,7 @@ import { applicationOperandRelationsOf } from "#ledger/operands.ts";
 import { resultRelationsOf } from "#ledger/results.ts";
 import { servableOf } from "#ledger/servable.ts";
 import { sessionAttemptsOf } from "#ledger/session-attempts.ts";
+import { sessionControlsOf } from "#ledger/session-control.ts";
 import { testLawsOf } from "#ledger/test-laws.ts";
 
 /**
@@ -203,10 +209,16 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   const LateTest = derived("LateTest", lateTests);
 
   /**
-   * The item refs whose own item-session-control a delivered test admits, and the two settings they
-   * may move (`#ledger/member-controls.ts`).
+   * Each member's item-session control in force, by the nearest scope, and the item refs whose own
+   * item-session-control a delivered test admits (`#ledger/member-controls.ts`).
    */
   const controls = memberControlsOf(ledger);
+
+  /**
+   * Each item session's control, a member's from its test and an item stage's from its stage, and
+   * whether it takes another attempt (`#ledger/session-control.ts`).
+   */
+  const sessionControls = sessionControlsOf(ledger, controls);
 
   /**
    * Each validated member, by its test and item ref: an answer to it is admitted under
@@ -316,16 +328,6 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     })
     .rule((r) => {
       const { package: pkg, path } = v(TestRoot, "undeliveredTest");
-      const { parentKind } = v(Node, "undeliveredControl");
-
-      return r
-        .match(TestRoot, { package: pkg, path })
-        .match(Node, { kind: "qti-item-session-control", package: pkg, parentKind, path })
-        .where(r.ne(parentKind, "qti-test-part"), r.ne(parentKind, "qti-assessment-item-ref"))
-        .find({ package: pkg, path });
-    })
-    .rule((r) => {
-      const { package: pkg, path } = v(TestRoot, "undeliveredTest");
       const { parent: ref } = v(Node, "undeliveredRefControl");
 
       return r
@@ -350,12 +352,10 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     })
     .rule((r) => {
       const { package: pkg, path } = v(TestRoot, "undeliveredTest");
-      const { setting } = v(SessionControl, "undeliveredSetting");
 
       return r
         .match(TestRoot, { package: pkg, path })
-        .match(SessionControl, { package: pkg, path, setting, value: true })
-        .where(r.in(setting, ["allow-comment", "show-feedback", "show-solution"]))
+        .match(SessionControl, { package: pkg, path, setting: "allow-comment", value: true })
         .find({ package: pkg, path });
     })
     .rule((r) => {
@@ -960,6 +960,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ...creditRelationsOf(ledger, assertions),
     ...results.relations,
     ...sessionAttemptsOf(ledger),
+    ...sessionControls.relations,
     ...operands.relations,
   ] as const;
   const deliveryLaws = [
@@ -1012,6 +1013,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ...assertions.laws,
     ...servable.laws,
     ...results.laws,
+    ...sessionControls.laws,
     ...operands.laws,
   ] as const;
 

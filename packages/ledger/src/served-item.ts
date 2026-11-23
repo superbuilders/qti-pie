@@ -10,8 +10,12 @@
  * Nothing here grades: the database's statements judge and score an answer, and a review shows what
  * they wrote ({@link reviewOf}). Nothing here decodes an answer either: a page posts its responses
  * typed, and the application decodes the post once at its boundary with plate's `PostedResponses`
- * (`@qti-pie/plate/codec`), reading nothing first. The values an answer or a take writes, and those
- * the reads give back, cross to plate through `#ledger/served-values.ts`.
+ * (`@qti-pie/plate/codec`), reading nothing first. Nothing here decides what an item session takes
+ * either: the database derives the control it is delivered under and whether it takes another
+ * attempt (`#ledger/session-control.ts`), and every page of it shows what that derives, QTI 3.0.1's
+ * rule ({@link showingOf}, {@link reviewShowsOf}), so a host passes it through and decides nothing.
+ * The values an answer or a take writes, and those the reads give back, cross to plate through
+ * `#ledger/served-values.ts`.
  *
  * @module
  */
@@ -64,17 +68,13 @@ export interface Host {
 }
 
 /**
- * What a review shows of an item, three switches, each independent of the others, which the
- * application derives from what it delivers under:
+ * What a review shows of an item, three switches, each independent of the others, which
+ * {@link reviewShowsOf} derives from the item session's control and state:
  *
  * - `feedback`, QTI's show-feedback: the item's modal and integrated feedback, as the outcomes the
- *   database's response processing set show it (information model 7.19.2); edullm's QTI app shows
- *   it always between attempts and, once the item session closes, where its stage does (7.19.1);
+ *   database's response processing set show it (information model 7.19.2);
  * - `marks`: the database's marks on the candidate's own answers, each right or wrong, and the
- *   verdict its credit says. QTI's show-feedback and show-solution govern the item's feedback and
- *   its solution, not these, so they are the delivery's own policy: edullm's QTI app shows them
- *   exactly where it shows feedback, and metis's review shows them alone, the item's feedback
- *   hidden;
+ *   verdict its credit says;
  * - `solution`, QTI's show-solution: the correct response, each part the candidate did not give
  *   marked missed beside the answers marked right or wrong, so it marks the answers whatever
  *   `marks` says, and `marks` adds the verdict.
@@ -86,6 +86,122 @@ export interface ReviewShows {
   readonly marks: boolean;
   readonly solution: boolean;
 }
+
+/**
+ * The item-session control an item session is delivered under, as the database derives it
+ * (`#ledger/session-control.ts` ItemSessionControl): a test member's its test's, by the nearest
+ * scope, an item stage's the one the application's decision states. `maxAttempts` is QTI's
+ * `max-attempts`, 0 no limit; `showFeedback` and `showSolution` are QTI's show-feedback and
+ * show-solution, which govern the feedback and the solution once the session closes (information
+ * model Tables 7.19.1 to 7.19.3).
+ */
+export interface SessionControl {
+  readonly maxAttempts: bigint;
+  readonly showFeedback: boolean;
+  readonly showSolution: boolean;
+}
+
+/**
+ * An item session's state, as the database derives it: `attempts`, the attempts QTI's
+ * `numAttempts` counts; `left`, the attempts its max-attempts leaves it, none under max-attempts 0
+ * and for an adaptive item, whose attempts its completion status limits; and `closed`, whether it
+ * takes no further attempt (`ItemSessionOpen`): its last attempt made, an adaptive item completed,
+ * or its sitting ended. A host draws "try again" or "done" from it, never by itself.
+ */
+export interface Session {
+  readonly attempts: bigint;
+  readonly closed: boolean;
+  readonly left: Option.Option<bigint>;
+}
+
+/**
+ * What the database states of an item session as it is served: the control it is delivered under
+ * and its state, both derived from its facts ({@link sessionFactsOf}).
+ */
+export interface SessionFacts {
+  readonly control: SessionControl;
+  readonly session: Session;
+}
+
+/**
+ * An item session's control as a read carries it, `#ledger/session-control.ts`
+ * `sessionControlOf`'s row: the control, `open`, some exactly where the session takes another
+ * attempt, `counted`, its counted attempts, one row where it has one, and `left`, one row where its
+ * max-attempts leaves it a number of attempts.
+ */
+export interface SessionRow extends SessionControl {
+  readonly counted: readonly { readonly attempts: bigint }[];
+  readonly left: readonly { readonly left: bigint }[];
+  readonly open: Option.Option<unknown>;
+}
+
+/**
+ * Read an item session's control and state from the read that carries them, its one row. The rows
+ * are the database's own, and every item session has its control ("Item stage control"), so none
+ * is a defect.
+ *
+ * @param rows The session's control, `sessionControlOf`'s attachment.
+ * @returns The session's facts.
+ */
+export const sessionFactsOf = (rows: readonly SessionRow[]) =>
+  Effect.map(
+    Effect.orDie(Effect.fromOption(Option.fromUndefinedOr(rows[0]))),
+    (row): SessionFacts => ({
+      control: {
+        maxAttempts: row.maxAttempts,
+        showFeedback: row.showFeedback,
+        showSolution: row.showSolution,
+      },
+      session: {
+        attempts: Option.match(Option.fromUndefinedOr(row.counted[0]), {
+          onNone: () => 0n,
+          onSome: ({ attempts }) => attempts,
+        }),
+        closed: Option.isNone(row.open),
+        left: Option.map(Option.fromUndefinedOr(row.left[0]), ({ left }) => left),
+      },
+    }),
+  );
+
+/**
+ * Tell whether an item session's page shows the feedback its record's outcomes select: while the
+ * session is open, as between attempts and before the first, always, "A value of max-attempts
+ * greater than 1, by definition, indicates that any applicable feedback must be shown"; once it
+ * closed, where its show-feedback is true.
+ *
+ * @param facts The item session's control and state.
+ * @returns Whether its feedback shows.
+ * @see QTI 3.0.1 information model Table 7.19.1: "once the maximum number of allowed attempts have
+ *   been used (or for adaptive items, completion-status has been set to completed) whether or not
+ *   feedback is shown is controlled by the show-feedback constraint"; Table 7.19.2: "This
+ *   constraint affects the visibility of feedback after the end of the last attempt".
+ */
+const feedbackShows = ({ control, session }: SessionFacts): boolean =>
+  !session.closed || control.showFeedback;
+
+/**
+ * Give what a review of an item session shows: its feedback where {@link feedbackShows}; its marks
+ * and verdict where its feedback shows or the session closed, since QTI's show-feedback and
+ * show-solution govern the item's feedback and its solution, not the marks on the candidate's own
+ * answers (edullm-bd, 2026-11-23: a test that leaves show-feedback at its default still shows the
+ * child's marks after the last attempt); and its solution once the session closed, where its
+ * show-solution is true.
+ *
+ * @param facts The item session's control and state.
+ * @returns What the review shows.
+ * @see QTI 3.0.1 information model Table 7.19.3, show-solution: "This constraint controls whether
+ *   or not the system may provide the candidate with a way of entering the solution state. The
+ *   default is 'false'".
+ */
+export const reviewShowsOf = (facts: SessionFacts): ReviewShows => {
+  const feedback = feedbackShows(facts);
+
+  return {
+    feedback,
+    marks: feedback || facts.session.closed,
+    solution: facts.session.closed && facts.control.showSolution,
+  };
+};
 
 /**
  * The item refused the answer as posted, as more choices than it allows, or, where the stage
@@ -108,6 +224,25 @@ export type ServedItem = Pick<ItemProps, "configuration" | "instance" | "item"> 
   readonly stimuli: readonly AcceptedStimulus[];
   readonly supports: Supports;
 };
+
+/**
+ * An item session's item, opened ({@link openSessionItem}): the served item, with the control the
+ * session is delivered under and its state as the database read them, which every page of it
+ * shows by.
+ */
+export type SessionItem = ServedItem & SessionFacts;
+
+/**
+ * `<Item>`'s props for a page of an item session, with the session's state they were drawn under,
+ * which the host draws its way on from.
+ */
+export type SessionProps = ItemProps & { readonly session: Session };
+
+/**
+ * `<Item>`'s props for a review of an item session's attempt, with the session's state after it and
+ * what the review shows ({@link reviewShowsOf}).
+ */
+export type Review = SessionProps & { readonly shows: ReviewShows };
 
 /**
  * Give the supports an item session enables for its candidate, from whether it reads aloud (the
@@ -491,15 +626,17 @@ export const openServedItem = (
  *
  * @param rows The item's read.
  * @param session What the database states of the item session.
+ * @param session.control Its control and state, as a read attaches them ({@link sessionFactsOf}).
  * @param session.readAloud Whether it reads aloud, which enables its supports (`supportsOf`).
  * @param session.seed The seed its decision drew.
  * @param session.start Its start, as a read attaches it: one row, so none is a defect.
  * @param host The application's addresses.
- * @returns The served item and the record its first attempt starts from.
+ * @returns The session's item and the record its first attempt starts from.
  */
 export const openSessionItem = Effect.fn("qti.item.session.open")(function* openSessionItem(
   rows: ItemRows,
   session: {
+    readonly control: readonly SessionRow[];
     readonly readAloud: boolean;
     readonly seed: string;
     readonly start: readonly StartRows[];
@@ -507,11 +644,12 @@ export const openSessionItem = Effect.fn("qti.item.session.open")(function* open
   host: Host,
 ) {
   const shuffle = shuffleSeed(session.seed, { identifier: rows.identifier, package: rows.package });
-  const served = yield* openServedItem(rows, shuffle, { readAloud: session.readAloud }, host);
+  const opened = yield* openServedItem(rows, shuffle, { readAloud: session.readAloud }, host);
+  const facts = yield* sessionFactsOf(session.control);
   const start = yield* Effect.orDie(Effect.fromOption(Option.fromUndefinedOr(session.start[0])));
-  const begun = yield* begunOfRows(served.item.item, start);
+  const begun = yield* begunOfRows(opened.item.item, start);
 
-  return { begun, served };
+  return { begun, served: { ...opened, ...facts } satisfies SessionItem };
 });
 
 /**
@@ -521,15 +659,18 @@ export const openSessionItem = Effect.fn("qti.item.session.open")(function* open
 const unrecorded: Showing = { showFeedback: false };
 
 /**
- * Give what an item is shown by while the child answers it, and in its solution: the record the
- * attempt starts from, whose outcomes show its feedback, a hint's among them, since edullm's QTI
- * app shows an item's feedback between attempts ({@link ReviewShows}' `feedback`), so the page the
- * child answers and the responses it starts from and posts all read the same.
+ * Give what an item session's page is shown by while the child answers it, and in its solution:
+ * the record the attempt starts from, whose outcomes show its feedback, a hint's among them, where
+ * the session's feedback shows ({@link feedbackShows}: while it is open, and once it closed under
+ * show-feedback true), and else the record with no feedback, so the page the child answers, the
+ * entries it starts from and the responses it posts all read the same.
  *
+ * @param facts The item session's control and state.
  * @param record The database's record.
  * @returns What the page is shown by.
  */
-const answered = (record: ItemRecord): Showing => ({ record, showFeedback: true });
+export const showingOf = (facts: SessionFacts, record: ItemRecord): Showing =>
+  feedbackShows(facts) ? { record, showFeedback: true } : { record, showFeedback: false };
 
 /**
  * Lay values over an attempt's start: each response the start holds, at the value given where one
@@ -556,26 +697,27 @@ const laidOver = (start: Responses, values: Responses): Responses =>
  * response of the item at `false`, the one whose press ends the attempt posting `true`. Every
  * attempt starts so, as a reload does: no draft is kept, and an End Attempt's press, a hint's, is
  * how its attempt ended, no response to carry into the next. A host starts its `<Responses>` from
- * plate's `heldOf` of these.
+ * plate's `heldOf` of these. The page shows them under the session's control ({@link showingOf}),
+ * as {@link answeringOf} shows the item, so the responses it starts from are those it shows.
  *
- * @param served The served item.
+ * @param served The session's item.
  * @param record The database's record the attempt starts from.
  * @returns The responses.
  */
-export const startingOf = (served: ServedItem, record: ItemRecord): Responses =>
-  startingResponses(served.item, answered(record));
+export const startingOf = (served: SessionItem, record: ItemRecord): Responses =>
+  startingResponses(served.item, showingOf(served, record));
 
 /**
  * Give the responses an attempt resumes from: a save's values laid over its start
  * ({@link startingOf}), so a default the child cleared stays cleared, and a response the save does
  * not hold, one the page shows only now, starts as a fresh attempt's does.
  *
- * @param served The served item.
+ * @param served The session's item.
  * @param record The database's record the attempt starts from.
  * @param saved The save's responses, the database's (`responsesOfRows`).
  * @returns The responses.
  */
-export const resumedOf = (served: ServedItem, record: ItemRecord, saved: Responses): Responses =>
+export const resumedOf = (served: SessionItem, record: ItemRecord, saved: Responses): Responses =>
   laidOver(startingOf(served, record), saved);
 
 /**
@@ -583,25 +725,25 @@ export const resumedOf = (served: ServedItem, record: ItemRecord, saved: Respons
  * responses in force, those its template processing set among them, laid over the attempt's start
  * ({@link startingOf}): a response with no correct response stays at its start.
  *
- * @param served The served item.
+ * @param served The session's item.
  * @param record The database's record of the item session.
  * @returns The responses.
  */
-export const correctOf = (served: ServedItem, record: ItemRecord): Responses =>
+export const correctOf = (served: SessionItem, record: ItemRecord): Responses =>
   laidOver(startingOf(served, record), solution(served.item, record));
 
 /**
- * Give the item in plate's solution mode, as `record` shows it: every interaction as server markup
- * showing the item's correct responses in force, the record's, those its template processing set
- * among them, and its template values.
+ * Give the item in plate's solution mode, as `record` shows it under the session's control
+ * ({@link showingOf}): every interaction as server markup showing the item's correct responses in
+ * force, the record's, those its template processing set among them, and its template values.
  *
- * @param served The served item.
+ * @param served The session's item.
  * @param record The database's record of the item session.
  * @returns `<Item>`'s props.
  */
-export const solutionOf = (served: ServedItem, record: ItemRecord): ItemProps => ({
+export const solutionOf = (served: SessionItem, record: ItemRecord): SessionProps => ({
   ...served,
-  ...answered(record),
+  ...showingOf(served, record),
   mode: "solution",
   values: solution(served.item, record),
 });
@@ -617,29 +759,35 @@ export const asksNothing = ({ item }: ServedItem): boolean =>
   shownResponses(item, unrecorded).length === 0;
 
 /**
- * Give the item in plate's answering mode, as `record` shows it: each interaction its island,
- * holding no correct response, which reads and writes the responses the host's `<Responses>` holds,
- * and each Portable Custom Interaction run by the host facts `pciFactsOf` gives for the item's
- * rows. Only this mode reads the PCI facts: plate's review and solution show a PCI's response as
- * text, with no frame, so neither a review nor a solution reads a configuration file.
+ * Give the item in plate's answering mode, as `record` shows it under the session's control
+ * ({@link showingOf}): each interaction its island, holding no correct response, which reads and
+ * writes the responses the host's `<Responses>` holds, and each Portable Custom Interaction run by
+ * the host facts `pciFactsOf` gives for the item's rows. Only this mode reads the PCI facts:
+ * plate's review and solution show a PCI's response as text, with no frame, so neither a review nor
+ * a solution reads a configuration file.
  *
- * @param served The served item.
+ * @param served The session's item.
  * @param rows The item's read.
  * @param record The database's record the next attempt starts from: the item session's start record
  *   before the first, else its record of the last attempt, whose outcomes show its feedback, a
  *   hint's among them, between attempts.
  * @param host The application's addresses.
- * @returns `<Item>`'s props.
+ * @returns `<Item>`'s props, with the session's state.
  */
 export const answeringOf = Effect.fn("qti.item.answering")(function* answeringOf(
-  served: ServedItem,
+  served: SessionItem,
   rows: ItemRows,
   record: ItemRecord,
   host: Host,
 ) {
   const facts = yield* pciFactsOf(host, served.item, rows);
 
-  return { ...served, ...answered(record), host: facts, mode: "answering" } satisfies ItemProps;
+  return {
+    ...served,
+    ...showingOf(served, record),
+    host: facts,
+    mode: "answering",
+  } satisfies SessionProps;
 });
 
 /**
@@ -672,23 +820,24 @@ const gradedOf = (shows: ReviewShows, judged: Judged): Graded => {
 };
 
 /**
- * Give the item as the child answered it, in plate's review mode: every interaction as server
- * markup showing the responses the attempt ended with, the database's record of it, as plate's
- * `restore` shows each, through its interaction's own reading of a stored value, with what the
- * database judged of it where the review shows marks or the solution ({@link gradedOf}). Where the
- * review shows feedback, the item's feedback follows the outcomes the database's response
- * processing set. Where it hides it, no feedback shows (plate's `showFeedback` `false`), and the
- * item as `begun`, its record before the first attempt, shows the rest, its template values kept,
- * so nothing says how the answer did; the marks and the verdict, where it shows them, are the
- * review's own.
+ * Give the item as the child answered it, in plate's review mode, as the item session's control and
+ * its state after the attempt show it ({@link reviewShowsOf}): every interaction as server markup
+ * showing the responses the attempt ended with, the database's record of it, as plate's `restore`
+ * shows each, through its interaction's own reading of a stored value, with what the database
+ * judged of it where the review shows marks or the solution ({@link gradedOf}). Where the review
+ * shows feedback, the item's feedback follows the outcomes the database's response processing set.
+ * Where it hides it, no feedback shows (plate's `showFeedback` `false`), and the item as `begun`,
+ * its record before the first attempt, shows the rest, its template values kept, so nothing says
+ * how the answer did; the marks and the verdict, where it shows them, are the review's own.
  *
  * @param served The served item.
  * @param records The item session's records.
  * @param records.begun Its record before the first attempt.
  * @param records.after The database's record of the reviewed attempt (`recordOfRows`).
- * @param shows What the review shows.
  * @param judged What the database judged of the attempt (`judgedOfRows`).
- * @returns `<Item>`'s props.
+ * @param facts The item session's control and its state after the attempt, as the write that
+ *   recorded it reads them back ({@link sessionFactsOf}).
+ * @returns `<Item>`'s props, with the session's state and what the review shows.
  * @see QTI 3.0.1 information model 7.19.2: "feedback is not shown. This includes both Modal Feedback and Integrated
  *   Feedback even if the candidate has access to the review state"; 7.19.3: its absence "is defined to be the version
  *   of the qti-item-body displayed to the candidate at the start of each attempt".
@@ -696,14 +845,20 @@ const gradedOf = (shows: ReviewShows, judged: Judged): Graded => {
 export const reviewOf = (
   served: ServedItem,
   records: { readonly after: ItemRecord; readonly begun: ItemRecord },
-  shows: ReviewShows,
   judged: Judged,
-): ItemProps => ({
-  ...served,
-  graded: gradedOf(shows, judged),
-  mode: "review",
-  ...(shows.feedback
-    ? { record: records.after, showFeedback: true }
-    : { record: records.begun, showFeedback: false }),
-  values: restore(served.item, records.after).values,
-});
+  facts: SessionFacts,
+): Review => {
+  const shows = reviewShowsOf(facts);
+
+  return {
+    ...served,
+    graded: gradedOf(shows, judged),
+    mode: "review",
+    ...(shows.feedback
+      ? { record: records.after, showFeedback: true }
+      : { record: records.begun, showFeedback: false }),
+    session: facts.session,
+    shows,
+    values: restore(served.item, records.after).values,
+  };
+};

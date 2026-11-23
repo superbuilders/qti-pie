@@ -117,6 +117,8 @@ import {
 } from "effect";
 import { DeclineReason } from "#ledger/evaluations.ts";
 import { operatorTagPrefix } from "#ledger/registry/operators.ts";
+import { reviewShowsOf, sessionFactsOf } from "#ledger/served-item.ts";
+import type { ReviewShows, SessionControl } from "#ledger/served-item.ts";
 import { responseParamsOf } from "#ledger/served-values.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 import { inFlightGraceMicros } from "#ledger/delivery.ts";
@@ -176,6 +178,12 @@ const SIMULTANEOUS_VALIDATED_TEST = "simultaneous-validated.xml";
 const SIMULTANEOUS_UNLIMITED_TEST = "simultaneous-unlimited.xml";
 
 const PART_VALIDATED_TEST = "part-validated.xml";
+
+/**
+ * The test of inherited item-session controls ({@link showingTestXml}), its members' settings
+ * stated at its part, its sections and its item refs.
+ */
+const SHOWING_TEST = "showing.xml";
 
 /**
  * The item ref a test names its first member by, the one its start presents, and that item's own
@@ -467,6 +475,21 @@ const controlTests = [
 ] as const;
 
 /**
+ * The test of inherited item-session controls: one individual, nonlinear part, whose own control
+ * states max-attempts 1 and show-solution true; in it an outer section, whose control states
+ * show-feedback true, holding {@link MEMBER}, whose own control states show-feedback and
+ * show-solution false, then {@link SAVED}, under no control of its own, then an inner section,
+ * whose control states show-feedback false, holding {@link MEMBER_REF}, under none, and
+ * {@link DRAFT_REF}, whose own states max-attempts 0. Each setting in force is the nearest scope's
+ * that writes it (§7.19), so MEMBER is shown by its own, SAVED by the outer section's feedback and
+ * the part's solution, MEMBER_REF by the inner section's feedback over the outer's, and DRAFT_REF
+ * takes an attempt after each.
+ */
+const showingTestXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-test xmlns="${asi}" identifier="showing" title="showing"><qti-test-part identifier="part" navigation-mode="nonlinear" submission-mode="individual"><qti-item-session-control max-attempts="1" show-solution="true"/><qti-assessment-section identifier="outer" title="outer" visible="true"><qti-item-session-control show-feedback="true"/>${refXml(MEMBER, SHORT, '<qti-item-session-control show-feedback="false" show-solution="false"/>')}${refXml(SAVED, OTHER, "")}<qti-assessment-section identifier="inner" title="inner" visible="true"><qti-item-session-control show-feedback="false"/>${refXml(MEMBER_REF, MEMBER_MIN, "")}${refXml(DRAFT_REF, DRAFT_MIN, '<qti-item-session-control max-attempts="0"/>')}</qti-assessment-section></qti-assessment-section></qti-test-part>
+</qti-assessment-test>`;
+
+/**
  * A test of one individual, nonlinear part of two text entries, {@link MEMBER} and {@link SAVED},
  * under the time limits `limits` states, none where it is empty.
  *
@@ -499,7 +522,7 @@ const itemResource = (path: string) =>
   `<resource identifier="${path.replace("items/", "").replace(".xml", "")}" type="imsqti_item_xmlv3p0" href="${path}"><file href="${path}"/></resource>`;
 
 const manifest = `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}</resources></manifest>`;
+<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}</resources></manifest>`;
 
 /**
  * The response every answered case gives.
@@ -1165,7 +1188,7 @@ const published = Effect.gen(function* publish() {
   for (const { path, ref } of controlsMembers.filter((member) => member.path !== OTHER)) {
     yield* fs.writeFileString(`${dir}/${path}`, minimumXml(ref));
   }
-  for (const [path, xml] of [...tests, ...controlTests]) {
+  for (const [path, xml] of [...tests, ...controlTests, [SHOWING_TEST, showingTestXml]]) {
     yield* fs.writeFileString(`${dir}/${path}`, xml);
   }
 
@@ -1203,6 +1226,17 @@ const seedOf = (name: string) => Sha256.ofBytes(new TextEncoder().encode(name));
  * The seed every case's item session draws under, which nothing the table reads depends on.
  */
 const SEED = seedOf("result-suite");
+
+/**
+ * The control an item stage of the suite is delivered under where its case states none: edullm's
+ * `direct` policy's, one attempt, its feedback once closed, no solution and no validation.
+ */
+const directControl = {
+  maxAttempts: 1n,
+  showFeedback: true,
+  showSolution: false,
+  validateResponses: false,
+} as const;
 
 /**
  * The decision seed of every sitting the suite takes through the test runtime's take, from which
@@ -1273,6 +1307,7 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
           SessionSeed: rowsOf("SessionSeed", [
             { child, package: PACKAGE, path: ESSAY, seed: SEED, stage },
           ]),
+          StageControl: rowsOf("StageControl", [{ child, stage, ...directControl }]),
         },
       },
       params: key,
@@ -1550,6 +1585,7 @@ const holdTake = (c: TakeCase, child: string, note: (situation: TakeSituation) =
           SessionSeed: rowsOf("SessionSeed", [
             { child, package: PACKAGE, path: TAKE, seed: seedOf(c.seed), stage },
           ]),
+          StageControl: rowsOf("StageControl", [{ child, stage, ...directControl }]),
         },
       },
       params: { child, n: 0n, package: PACKAGE, path: TAKE },
@@ -1704,6 +1740,7 @@ const holdOperators = (
           SessionSeed: rowsOf("SessionSeed", [
             { child, package: PACKAGE, path: OPERATORS, seed: SEED, stage },
           ]),
+          StageControl: rowsOf("StageControl", [{ child, stage, ...directControl }]),
         },
       },
       params: key,
@@ -1793,6 +1830,9 @@ const holdDrawCase = (c: DrawCase, child: string, note: (situation: DrawSituatio
               ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path, stage }]),
               SessionSeed: rowsOf("SessionSeed", [
                 { child, package: PACKAGE, path, seed: SEED, stage },
+              ]),
+              StageControl: rowsOf("StageControl", [
+                { child, stage, ...directControl, maxAttempts: BigInt(drawAttempts) },
               ]),
             },
           },
@@ -2865,6 +2905,469 @@ const holdPresence = (
     }
   });
 
+/**
+ * An item session's control and state, as the showing table states them for one session at one
+ * checkpoint: the control it is delivered under, its attempts, whether it is closed, and the
+ * attempts its max-attempts leaves it, none under 0 and for an adaptive item.
+ */
+type SessionWant = Readonly<{
+  control: SessionControl;
+  attempts: bigint;
+  closed: boolean;
+  left: Option.Option<bigint>;
+}>;
+
+/**
+ * A showing case: an item stage of one item, its control stated by its decision and its attempts,
+ * each ending as the draw family's do (an item that is no draw item takes host-row attempts with no
+ * response); or a sitting of a test, taken, then its members answered (`answered`), or its first
+ * member attempted and the sitting ended (`ended`). Each lists what its item sessions are, by item,
+ * at each checkpoint: after the begin or the take, then after each attempt or move.
+ */
+type ShowingCase =
+  | Readonly<{
+      kind: "stage";
+      name: string;
+      path: string;
+      control: SessionControl & Readonly<{ validateResponses: boolean }>;
+      endings: readonly Ending[];
+      checkpoints: readonly (readonly (readonly [string, SessionWant])[])[];
+      situations: readonly ShowingSituation[];
+    }>
+  | Readonly<{
+      kind: "sitting";
+      name: string;
+      test: string;
+      moves: "answered" | "ended";
+      checkpoints: readonly (readonly (readonly [string, SessionWant])[])[];
+      situations: readonly ShowingSituation[];
+    }>;
+
+/**
+ * The situations the showing space must reach.
+ */
+const showingSituations = [
+  "an item stage under its decision's control",
+  "a setting from the item ref's own control",
+  "a setting from the section that holds it",
+  "the inner section's setting over the outer's",
+  "a setting from the part",
+  "QTI's defaults where no scope writes one",
+  "feedback shown while attempts remain",
+  "feedback hidden once closed under show-feedback false",
+  "feedback shown once closed under show-feedback true",
+  "the solution once closed under show-solution true",
+  "marks after the last attempt with feedback hidden",
+  "max-attempts 3 open until its third",
+  "max-attempts 0 open after an attempt",
+  "an adaptive item open until completed",
+  "the end closes every member",
+] as const;
+
+type ShowingSituation = (typeof showingSituations)[number];
+
+/**
+ * A session's want: limited, its left what its max-attempts leaves after `attempts`.
+ */
+const limited = (control: SessionControl, attempts: bigint, closed: boolean): SessionWant => ({
+  attempts,
+  closed,
+  control,
+  left: Option.some(control.maxAttempts - attempts),
+});
+
+/**
+ * A session's want with no left: under max-attempts 0, or of an adaptive item.
+ */
+const unlimited = (control: SessionControl, attempts: bigint, closed: boolean): SessionWant => ({
+  attempts,
+  closed,
+  control,
+  left: Option.none(),
+});
+
+/**
+ * The controls the showing test's members are delivered under, each the nearest scope's
+ * ({@link showingTestXml}), and a member's under no control.
+ */
+const showingControls = {
+  draft: { maxAttempts: 0n, showFeedback: false, showSolution: true },
+  member: { maxAttempts: 1n, showFeedback: false, showSolution: false },
+  memberMin: { maxAttempts: 1n, showFeedback: false, showSolution: true },
+  none: { maxAttempts: 1n, showFeedback: false, showSolution: false },
+  saved: { maxAttempts: 1n, showFeedback: true, showSolution: true },
+} as const satisfies Record<string, SessionControl>;
+
+/**
+ * The stage controls the showing cases state, each as an application's decision states one.
+ */
+const stageControls = {
+  adaptive: { maxAttempts: 1n, showFeedback: false, showSolution: true, validateResponses: false },
+  direct: directControl,
+  hidden: { maxAttempts: 1n, showFeedback: false, showSolution: true, validateResponses: false },
+  three: { maxAttempts: 3n, showFeedback: false, showSolution: false, validateResponses: false },
+} as const;
+
+/**
+ * The control part of a stage control.
+ */
+const controlOf = ({
+  maxAttempts,
+  showFeedback,
+  showSolution,
+}: SessionControl): SessionControl => ({
+  maxAttempts,
+  showFeedback,
+  showSolution,
+});
+
+/**
+ * The showing table: every case, with what each of its item sessions is at each checkpoint,
+ * written from QTI 3.0.1's rule (information model §7.19 and Table 7.19.1), not the code.
+ */
+const showingCases = [
+  {
+    checkpoints: [
+      [[SHORT, limited(controlOf(stageControls.direct), 0n, false)]],
+      [[SHORT, limited(controlOf(stageControls.direct), 1n, true)]],
+    ],
+    control: stageControls.direct,
+    endings: ["drawn"],
+    kind: "stage",
+    name: "an item stage under direct's control, one attempt",
+    path: SHORT,
+    situations: [
+      "an item stage under its decision's control",
+      "feedback shown while attempts remain",
+      "feedback shown once closed under show-feedback true",
+    ],
+  },
+  {
+    checkpoints: [
+      [[SHORT, limited(controlOf(stageControls.hidden), 0n, false)]],
+      [[SHORT, limited(controlOf(stageControls.hidden), 1n, true)]],
+    ],
+    control: stageControls.hidden,
+    endings: ["drawn"],
+    kind: "stage",
+    name: "an item stage hiding its feedback, its solution once closed",
+    path: SHORT,
+    situations: [
+      "an item stage under its decision's control",
+      "feedback hidden once closed under show-feedback false",
+      "the solution once closed under show-solution true",
+      "marks after the last attempt with feedback hidden",
+    ],
+  },
+  {
+    checkpoints: [0n, 1n, 2n, 3n].map((attempts) => [
+      [SHORT, limited(controlOf(stageControls.three), attempts, attempts === 3n)],
+    ]),
+    control: stageControls.three,
+    endings: ["drawn", "drawn", "drawn"],
+    kind: "stage",
+    name: "an item stage of max-attempts 3",
+    path: SHORT,
+    situations: [
+      "an item stage under its decision's control",
+      "max-attempts 3 open until its third",
+      "feedback shown while attempts remain",
+      "feedback hidden once closed under show-feedback false",
+    ],
+  },
+  {
+    checkpoints: [
+      [[drawPathOf(true), unlimited(controlOf(stageControls.adaptive), 0n, false)]],
+      [[drawPathOf(true), unlimited(controlOf(stageControls.adaptive), 1n, false)]],
+      [[drawPathOf(true), unlimited(controlOf(stageControls.adaptive), 2n, true)]],
+    ],
+    control: stageControls.adaptive,
+    endings: ["drawn", "right"],
+    kind: "stage",
+    name: "an adaptive item stage, open past its max-attempts until completed",
+    path: drawPathOf(true),
+    situations: [
+      "an item stage under its decision's control",
+      "an adaptive item open until completed",
+      "the solution once closed under show-solution true",
+    ],
+  },
+  {
+    checkpoints: [
+      [
+        [SHORT, limited(showingControls.member, 0n, false)],
+        [OTHER, limited(showingControls.saved, 0n, false)],
+        [MEMBER_MIN, limited(showingControls.memberMin, 0n, false)],
+        [DRAFT_MIN, unlimited(showingControls.draft, 0n, false)],
+      ],
+      [
+        [SHORT, limited(showingControls.member, 1n, true)],
+        [OTHER, limited(showingControls.saved, 0n, false)],
+        [MEMBER_MIN, limited(showingControls.memberMin, 0n, false)],
+        [DRAFT_MIN, unlimited(showingControls.draft, 0n, false)],
+      ],
+      [
+        [SHORT, limited(showingControls.member, 1n, true)],
+        [OTHER, limited(showingControls.saved, 0n, false)],
+        [MEMBER_MIN, limited(showingControls.memberMin, 0n, false)],
+        [DRAFT_MIN, unlimited(showingControls.draft, 1n, false)],
+      ],
+    ],
+    kind: "sitting",
+    moves: "answered",
+    name: "a test's members under the nearest scope's settings, answered",
+    situations: [
+      "a setting from the item ref's own control",
+      "a setting from the section that holds it",
+      "the inner section's setting over the outer's",
+      "a setting from the part",
+      "max-attempts 0 open after an attempt",
+      "feedback hidden once closed under show-feedback false",
+      "marks after the last attempt with feedback hidden",
+    ],
+    test: SHOWING_TEST,
+  },
+  {
+    checkpoints: [
+      [
+        [SHORT, limited(showingControls.member, 0n, false)],
+        [OTHER, limited(showingControls.saved, 0n, false)],
+        [MEMBER_MIN, limited(showingControls.memberMin, 0n, false)],
+        [DRAFT_MIN, unlimited(showingControls.draft, 0n, false)],
+      ],
+      [
+        [SHORT, limited(showingControls.member, 1n, true)],
+        [OTHER, limited(showingControls.saved, 0n, true)],
+        [MEMBER_MIN, limited(showingControls.memberMin, 0n, true)],
+        [DRAFT_MIN, unlimited(showingControls.draft, 0n, true)],
+      ],
+    ],
+    kind: "sitting",
+    moves: "ended",
+    name: "a test's members after its end",
+    situations: [
+      "the end closes every member",
+      "feedback shown once closed under show-feedback true",
+      "the solution once closed under show-solution true",
+    ],
+    test: SHOWING_TEST,
+  },
+  {
+    checkpoints: [
+      [
+        [SHORT, limited(showingControls.none, 0n, false)],
+        [OTHER, limited(showingControls.none, 0n, false)],
+      ],
+      [
+        [SHORT, limited(showingControls.none, 1n, true)],
+        [OTHER, limited(showingControls.none, 0n, false)],
+      ],
+    ],
+    kind: "sitting",
+    moves: "answered",
+    name: "a test under no control, answered, as metis's converted tests are",
+    situations: [
+      "QTI's defaults where no scope writes one",
+      "marks after the last attempt with feedback hidden",
+      "feedback shown while attempts remain",
+    ],
+    test: UNTIMED_TEST,
+  },
+] as const satisfies readonly ShowingCase[];
+
+const showingSpace: Gen<ShowingCase> = element(showingCases);
+
+/**
+ * What a review of a session shows by the rule (§1 of BL-FINISH's Showing note): feedback while it
+ * is open, else where its show-feedback is true; marks where feedback shows or it closed; the
+ * solution once closed, where its show-solution is true.
+ *
+ * @param want - The session's want.
+ * @returns What its review shows.
+ */
+const showsOfWant = ({ closed, control }: SessionWant): ReviewShows => {
+  const feedback = !closed || control.showFeedback;
+
+  return { feedback, marks: feedback || closed, solution: closed && control.showSolution };
+};
+
+/**
+ * Each item session's pairs in the order of its item's path.
+ *
+ * @param pairs - Each pair, by its item's path.
+ * @returns The pairs, by path.
+ */
+const byPath = <A>(pairs: readonly (readonly [string, A])[]) =>
+  Arr.sort(
+    pairs,
+    Order.mapInput(Order.String, ([path]: readonly [string, A]) => path),
+  );
+
+/**
+ * One showing case: a fresh child's item stage, begun with its decision's control and attempted,
+ * or its sitting, taken by the test runtime's own take and moved as the case says; after the begin
+ * or the take and after each attempt or move, every item session of the child is read as every
+ * application reads it (`sessionsOf`, the ledger's `sessionControlOf`), and its control, its
+ * attempts, whether it is closed, its attempts left and what its review shows
+ * (`sessionFactsOf`, `reviewShowsOf`) are held to the table.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdShowing = (c: ShowingCase, child: string, note: (situation: ShowingSituation) => void) =>
+  Effect.gen(function* hold() {
+    for (const situation of c.situations) {
+      note(situation);
+    }
+
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const stage = 1n;
+    const sitting = { child, stage };
+    const checkpoint = (k: number) =>
+      Effect.gen(function* read() {
+        const rows = Arr.fromIterable(
+          yield* db.workload.sessionsOf.once({ facts: {}, params: { child } }),
+        );
+        const got = yield* Effect.all(
+          rows.map((row) =>
+            sessionFactsOf(row.control).pipe(Effect.map((facts) => [row.path, facts] as const)),
+          ),
+        );
+        const want = c.checkpoints[k] ?? [];
+        assert.deepStrictEqual<unknown>(
+          byPath(got).map(([path, facts]) => [
+            path,
+            {
+              attempts: facts.session.attempts,
+              closed: facts.session.closed,
+              control: facts.control,
+              left: facts.session.left,
+              shows: reviewShowsOf(facts),
+            },
+          ]),
+          byPath(want).map(([path, session]) => [
+            path,
+            { ...session, shows: showsOfWant(session) },
+          ]),
+          `${c.name}, at checkpoint ${String(k)}: every item session's control, state and review`,
+        );
+      });
+
+    if (c.kind === "stage") {
+      const key = { child, n: 0n, package: PACKAGE, path: c.path };
+      const begun = yield* db.workload.begin.once({
+        facts: {
+          insert: {
+            ItemSession: rowsOf("ItemSession", [{ child, package: PACKAGE, path: c.path, stage }]),
+            SessionSeed: rowsOf("SessionSeed", [
+              { child, package: PACKAGE, path: c.path, seed: SEED, stage },
+            ]),
+            StageControl: rowsOf("StageControl", [{ child, stage, ...c.control }]),
+          },
+        },
+        params: key,
+      });
+      assert.strictEqual(begun.kind, "accepted", `${c.name}: the item stage, begun`);
+      yield* checkpoint(0);
+
+      for (const [k, ending] of c.endings.entries()) {
+        const draws = c.path === drawPathOf(true);
+        const { drawn, ticked } = responsesOf(ending);
+        yield* db.workload.facts.once({
+          facts: {
+            insert: {
+              Attempt: rowsOf("Attempt", [key]),
+              ProcessedAttempt: rowsOf("ProcessedAttempt", []),
+              ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
+              SnapshotMultipleIdentifier: rowsOf(
+                "SnapshotMultipleIdentifier",
+                draws
+                  ? ticked.map((value) => ({ ...key, count: 1n, value, variable: "RESPONSE" }))
+                  : [],
+              ),
+              SnapshotSingleBoolean: rowsOf(
+                "SnapshotSingleBoolean",
+                draws ? [{ ...key, value: drawn, variable: "DRAWN" }] : [],
+              ),
+              SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
+              SnapshotSingleString: rowsOf("SnapshotSingleString", []),
+            },
+          },
+          params: {},
+        });
+
+        if (draws) {
+          yield* db.workload.grade.once({ facts: {}, params: key });
+        }
+
+        yield* checkpoint(k + 1);
+      }
+
+      return;
+    }
+
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: PACKAGE, path: c.test, seed: DECISION },
+    });
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
+    yield* checkpoint(0);
+
+    const entered = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(entered.kind, "accepted", `${c.name}: the entry`);
+
+    const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
+    const values = yield* responseParamsOf({
+      RESPONSE: {
+        baseType: "string",
+        cardinality: "single",
+        values: [{ baseType: "string", value: controlTexts.long }],
+      },
+    });
+    const answerMember = (item: string) =>
+      Effect.gen(function* answered() {
+        const outcome = yield* db.workload.answerTestItem.once({
+          facts: {},
+          params: { ...sitting, given: began, item, next: [], ...values },
+        });
+        assert.strictEqual(outcome.kind, "accepted", `${c.name}: the answer of ${item}`);
+      });
+
+    if (c.moves === "ended") {
+      const attempt = { child, n: 0n, package: PACKAGE, path: SHORT };
+      const attempted = yield* db.workload.sittingFacts.once({
+        facts: {
+          insert: {
+            Attempt: rowsOf("Attempt", [attempt]),
+            ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...attempt, kind: "attempt" }]),
+          },
+        },
+        params: {},
+      });
+      assert.strictEqual(attempted.kind, "accepted", `${c.name}: the first member's attempt`);
+
+      const ended = yield* db.workload.endTest.once({ facts: {}, params: sitting });
+      assert.strictEqual(ended.kind, "accepted", `${c.name}: the end`);
+      yield* checkpoint(1);
+
+      return;
+    }
+
+    yield* answerMember(MEMBER);
+    yield* checkpoint(1);
+    if (c.test === SHOWING_TEST) {
+      const presented = yield* db.workload.presentItem.once({
+        facts: {},
+        params: { ...sitting, item: DRAFT_REF },
+      });
+      assert.strictEqual(presented.kind, "accepted", `${c.name}: the presentation of ${DRAFT_REF}`);
+      yield* answerMember(DRAFT_REF);
+      yield* checkpoint(2);
+    }
+  });
+
 describe.skipIf(Option.isNone(migrations))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
@@ -3194,6 +3697,58 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the controls held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "derives each item session's control from its stage or the nearest scope of its test, and what it takes and shows from its state",
+          (ctx) =>
+            Effect.gen(function* holdEveryShowingCase() {
+              yield* Effect.scoped(published);
+
+              const { suite } = yield* SuiteLogin;
+              const db = yield* Db.open(suite.roles.result_runner, {});
+              const delivered = new Set(
+                Arr.fromIterable(
+                  yield* db.workload.deliveredTestsOf.once({
+                    facts: {},
+                    params: { package: PACKAGE },
+                  }),
+                ).map((row) => row.path),
+              );
+              assert.isTrue(
+                delivered.has(SHOWING_TEST),
+                "show-feedback and show-solution at a part, a section and an item ref delivered",
+              );
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "each item stage's control and attempts, and each test's members under its scopes, answered and ended, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<ShowingSituation>(showingSituations),
+                    generator: showingSpace,
+                    literal: (c: ShowingCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "the showing table: each setting the nearest scope's, else QTI's default (§7.19); open while attempts remain, closed at the last, at completion or at the end (Table 7.19.1); feedback while open, else show-feedback; marks once feedback shows or closed; the solution once closed under show-solution (Tables 7.19.2, 7.19.3)",
+                    },
+                    suite: "ledger/results/showing",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdShowing(row, `user_ledgershow${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the showings held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
       },

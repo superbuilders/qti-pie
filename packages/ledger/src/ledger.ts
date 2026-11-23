@@ -150,6 +150,14 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  *   session's sitting (`stage`) and item, which its take computes in the database from the take's
  *   seed (the SQL grader's `processingSeed`); every item session holds one (ItemSession ⊆
  *   SessionSeed).
+ * - **StageControl**: the item-session control an item stage, a sitting that delivers its items as no
+ *   test's members, is delivered under (QTI 3.0.1 §7.19, ItemSessionControl): `maxAttempts`, at
+ *   least one ("Some attempt"), whether feedback shows once the session closes (`showFeedback`),
+ *   whether the solution does (`showSolution`), and whether responses are validated
+ *   (`validateResponses`). An item stage has no test whose scopes state them, so the application's
+ *   decision states them, writing this beside the stage's item sessions, and the ledger derives
+ *   what each session takes and shows from it (`#ledger/session-control.ts`); a test sitting holds
+ *   none, its members' controls being its test's.
  * - **ResponseSnapshot**: the response and outcome values an item session held at an instant, the one
  *   header of its values, of a kind (`SnapshotKind`): an **Attempt**, its arm, or a **Save**, the
  *   response values pending or suspended, no response processing run. An attempt whose response
@@ -216,9 +224,16 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  */
 /**
  * The relations of a learner's item sessions, by name, for a role's insert list: a take's item
- * sessions and their seeds, and the snapshots and attempts a candidate's responses write.
+ * sessions and their seeds, the control an item stage's decision states beside them
+ * (`StageControl`), and the snapshots and attempts a candidate's responses write.
  */
-export const sessionTables = ["ItemSession", "SessionSeed", "ResponseSnapshot", "Attempt"] as const;
+export const sessionTables = [
+  "ItemSession",
+  "SessionSeed",
+  "StageControl",
+  "ResponseSnapshot",
+  "Attempt",
+] as const;
 
 /**
  * The relations of an item session's context values, by name, for a role's insert list: what an
@@ -699,6 +714,26 @@ export const ledgerOf = (qti: RegistryLevel) => {
       "SessionSeed",
       { child: LearnerId, package: PackageName, path: ItemPath, seed: sha256, stage: pg.bigint },
       ["child", "stage", "package", "path"],
+    ),
+  );
+  /**
+   * The item-session control an application's decision states for an item stage, by the stage: its
+   * `max-attempts`, at least one, and its `show-feedback`, `show-solution` and `validate-responses`
+   * (QTI 3.0.1 Tables 7.19.1, 7.19.2, 7.19.3, 7.19.7), every one stated, none defaulted.
+   */
+  const StageControl = named(
+    "One control a stage",
+    relation(
+      "StageControl",
+      {
+        child: LearnerId,
+        maxAttempts: natural,
+        showFeedback: pg.boolean,
+        showSolution: pg.boolean,
+        stage: pg.bigint,
+        validateResponses: pg.boolean,
+      },
+      ["child", "stage"],
     ),
   );
   const ResponseSnapshot = named(
@@ -2526,6 +2561,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       AdmissionCode,
       ItemSession,
       SessionSeed,
+      StageControl,
       ProgramNodeKind,
       DeclarationNodeKind,
       GradedAttributeName,
@@ -2759,6 +2795,10 @@ export const ledgerOf = (qti: RegistryLevel) => {
        */
       unit("Learner", { child: LearnerId }),
       named("Item session key", key(on(ItemSession, "child", "stage", "package", "path"))),
+      named(
+        "Some attempt",
+        check("Some_attempt", StageControl, (c) => c.ge(c.maxAttempts, 1n)),
+      ),
       named(
         "Session seed",
         contained(

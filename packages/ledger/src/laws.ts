@@ -167,6 +167,10 @@ export const ledgerLaws = {
     source:
       "src/ledger.ts ItemSession: 'its place `n` among the learner's sessions of that item, which the database stamps one past the greatest (grizzle's `place`), so the places run gapless from 0'",
   },
+  "Item stage control": {
+    source:
+      "src/session-control.ts ItemStageSession: every item session of a stage no test sitting holds is delivered under its stage's control, the one the application's decision writes beside it (src/ledger.ts StageControl)",
+  },
   "Key text bound": {
     source:
       "src/ledger.ts IdentifierValue, UriValue, FileName, FileType: each key text at most the UTF-8 bytes its kind holds (pantry's src/qti/limits.ts identifierBytes, uriBytes, nameMaxBytes, src/qti/media.ts mediaTypeBytes), so every key's entry fits PostgreSQL's B-tree budget; a stated limit of the representation, not a law of the specification",
@@ -219,6 +223,9 @@ export const ledgerLaws = {
   "One context value": {
     source:
       "src/ledger.ts SessionContext: the value the delivery engine bound for one of a sitting's test context declarations, 'written once by the application that binds it', one a declaration",
+  },
+  "One control a stage": {
+    source: `${info}#DataCharacteristic_ItemSessionControl (§7.19, ItemSessionControl): 'src/ledger.ts StageControl: the item-session control an application's decision states for an item stage', one a stage`,
   },
   "One end a sitting": {
     source: `${info}#DataCharacteristic_TestPart.Attr_submission-mode (Table 5.159.5: 'all submitted together at the end'): 'TestEnd is that end', one a sitting (src/sittings.ts)`,
@@ -313,6 +320,9 @@ export const ledgerLaws = {
   "Single value": {
     source: `${info}#Enumerated_CardinalityEnum (§8.17, CardinalityEnum: 'single' - 'a cardinality of single i.e. a single value'): a single variable's sidecar holds one row a variable, its value (src/ledger.ts: 'a single value')`,
   },
+  "Sitting control from its test": {
+    source: `${info}#DataCharacteristic_ItemSessionControl (§7.19: 'a setting at qti-test-part level affects all items in that part unless the setting is overridden at the qti-assessment-section level or ultimately at the individual qti-assessment-item-ref'): a test sitting holds no stage control, its members' controls are its test's (src/session-control.ts SittingStageControl)`,
+  },
   "Sitting order": {
     source:
       "src/delivery.ts SittingOrder: 'Two instants of a sitting, by what they are: `earlier` must come before `later`, or be the same instant where `strict` is false'",
@@ -328,6 +338,9 @@ export const ledgerLaws = {
   "Snapshot of its session": {
     source:
       "src/ledger.ts ResponseSnapshot: 'the response and outcome values an item session held at an instant'",
+  },
+  "Some attempt": {
+    source: `${info}#DataCharacteristic_ItemSessionControl.Attr_max-attempts (Table 7.19.1, 'Normally this is 1'): a stage's control allows at least one attempt, so every item session of the stage can close (src/ledger.ts StageControl)`,
   },
   "Some occurrence": {
     source: `${info}#Enumerated_CardinalityEnum (§8.17, CardinalityEnum: 'multiple' - 'containers may contain multiple occurrences of the same value'): 'a multiple's distinct values, each with how many times it occurs' (src/ledger.ts), at least once`,

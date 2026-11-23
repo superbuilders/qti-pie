@@ -1,8 +1,8 @@
 /**
  * An item session's attempts as QTI counts them, derived and never stored, at the Delivery level
  * over the ledger: which attempts the built-in `numAttempts` counts, and which adaptive item
- * sessions are complete. Whether a session takes another attempt is the application's (its stage's
- * `max-attempts`, a level above), which reads these two.
+ * sessions are complete. Whether a session takes another attempt reads these two, under the control
+ * it is delivered under (`#ledger/session-control.ts`).
  *
  * - **CountedAttempt**: each attempt `numAttempts` counts. "All Delivery Engines must maintain the
  *   value of numAttempts. This is a single integer that records the number of attempts at each item
@@ -106,6 +106,26 @@ export const countedAttemptsOf = (ledger: LedgerLevel) => {
 };
 
 /**
+ * Each item session of an adaptive item one of whose attempts' response processing set
+ * `completionStatus` to `completed` (the ledger's `ProcessedAttempt`), as a plain query.
+ *
+ * @param ledger - The ledger level.
+ * @returns The query.
+ */
+export const completedSessionsOf = (ledger: LedgerLevel) => {
+  const { ItemMode, ProcessedAttempt } = ledger.relations;
+
+  return query(ledger).rule((r) => {
+    const { child, package: pkg, path, n } = v(ProcessedAttempt, "completing");
+
+    return r
+      .match(ProcessedAttempt, { child, completionStatus: "completed", n, package: pkg, path })
+      .match(ItemMode, { adaptive: true, package: pkg, path })
+      .find({ child, n, package: pkg, path });
+  });
+};
+
+/**
  * The Delivery level's relations of an item session's attempts over the ledger `ledger`, for the
  * level to spread.
  *
@@ -113,8 +133,6 @@ export const countedAttemptsOf = (ledger: LedgerLevel) => {
  * @returns The derived relations.
  */
 export const sessionAttemptsOf = (ledger: LedgerLevel) => {
-  const { ItemMode, ProcessedAttempt } = ledger.relations;
-
   /**
    * Each attempt the built-in `numAttempts` counts: every attempt but those ended through a hint
    * that counts none.
@@ -125,17 +143,7 @@ export const sessionAttemptsOf = (ledger: LedgerLevel) => {
    * Each item session of an adaptive item one of whose attempts' response processing set
    * `completionStatus` to `completed` (the ledger's `ProcessedAttempt`).
    */
-  const CompletedSession = derived(
-    "CompletedSession",
-    query(ledger).rule((r) => {
-      const { child, package: pkg, path, n } = v(ProcessedAttempt, "completing");
-
-      return r
-        .match(ProcessedAttempt, { child, completionStatus: "completed", n, package: pkg, path })
-        .match(ItemMode, { adaptive: true, package: pkg, path })
-        .find({ child, n, package: pkg, path });
-    }),
-  );
+  const CompletedSession = derived("CompletedSession", completedSessionsOf(ledger));
 
   return [CountedAttempt, CompletedSession] as const;
 };

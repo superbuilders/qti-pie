@@ -29,7 +29,8 @@
  * (`finishTest`, `finishTestOf` sequenced after `endTest`, as every application ends a sitting);
  * and reads the Delivery relations the suite holds to its table, the tests it delivers, each
  * attempt's completion status and outcomes as its response processing wrote them, each
- * attempt's string values, and its candidate sessions' budgets, one child's at a time.
+ * attempt's string values, its candidate sessions' budgets, and each item session's control and
+ * state as every application reads them (`sessionControlOf`), one child's at a time.
  *
  * @module
  */
@@ -69,6 +70,7 @@ import { ledgerOf, sessionTables } from "#ledger/ledger.ts";
 import type { GraderVersion } from "#ledger/registry/contract.ts";
 import { registryOf } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
+import { sessionControlOf } from "#ledger/session-control.ts";
 import { sittingProgramsOf, sittingTables } from "#ledger/sitting-programs.ts";
 import { sittingHeading, sittingOfSessionOf, takenHeading } from "#ledger/sitting-queries.ts";
 import { settleTables } from "#ledger/test-run-writes.ts";
@@ -121,6 +123,7 @@ const {
   DeliveredTest,
   HumanOperatorValue,
   ItemDuration,
+  ItemSession,
   ItemSessionStatus,
   ItemSessionValue,
   ItemSessionValueSingleIdentifier,
@@ -229,13 +232,13 @@ const sessionSitting = sittingOfSessionOf(ResultLevel);
 
 /**
  * An item stage's session, begun as an application's decision begins one (edullm's decideStage):
- * its item session and the seed its processing draws under, as host rows, then its take
- * (`takeValuesOf`, over the sitting of the session the call names) in the stratum after them, so
- * what its template processing set and the record it begins with are the machine's, in one
- * transaction, as "Start of every session" holds.
+ * its item session, the seed its processing draws under and the control its stage states, as host
+ * rows, then its take (`takeValuesOf`, over the sitting of the session the call names) in the
+ * stratum after them, so what its template processing set and the record it begins with are the
+ * machine's, in one transaction, as "Start of every session" and "Item stage control" hold.
  */
 const begin = ChangeSet.sequence(
-  ChangeSet.empty(ResultLevel).insertAll({ ItemSession: [], SessionSeed: [] }),
+  ChangeSet.empty(ResultLevel).insertAll({ ItemSession: [], SessionSeed: [], StageControl: [] }),
   takeValuesOf(ResultLevel).bind({ sittings: sessionSitting }),
 );
 
@@ -727,6 +730,20 @@ const budgetsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The child's item sessions, each with its control and its state as every application reads them
+ * (`sessionControlOf`, the read an application attaches under its own read of a session).
+ */
+const sessionsOf = query(ResultLevel)
+  .rule((r) => {
+    const { package: pkg, path, n, stage } = v(ItemSession, "served");
+
+    return r
+      .match(ItemSession, { child: r.param("child", LearnerId), n, package: pkg, path, stage })
+      .find({ child: r.param("child", LearnerId), n, package: pkg, path, stage });
+  })
+  .attach("control", sessionControlOf(ResultLevel), "array");
+
+/**
  * The tests of the call's package this runtime delivers (`DeliveredTest`), by their path.
  */
 const deliveredTestsOf = query(ResultLevel).rule((r) => {
@@ -774,6 +791,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
       recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),
       saveTestItem: sittingPrograms.saveTestItem.bind({ sittings: namedSitting }),
+      sessionsOf,
       sittingFacts,
       snapshotBooleansOf,
       snapshotFloatsOf,
