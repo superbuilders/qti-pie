@@ -76,6 +76,7 @@ import { registryOf } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
 import { sessionControlOf } from "#ledger/session-control.ts";
 import { presenceTables, sittingProgramsOf, sittingTables } from "#ledger/sitting-programs.ts";
+import { savedRowsOf } from "#ledger/saved-rows.ts";
 import { sittingHeading, sittingOfSessionOf, takenHeading } from "#ledger/sitting-queries.ts";
 import { settleTables } from "#ledger/test-run-writes.ts";
 
@@ -794,6 +795,20 @@ const sessionsOf = query(ResultLevel)
   .attach("control", sessionControlOf(ResultLevel), "array");
 
 /**
+ * The child's sittings, each with the latest save of each of its item sessions and every value it
+ * holds (`savedRowsOf`, the read an application attaches under its own read of a sitting).
+ */
+const savesOf = query(ResultLevel)
+  .rule((r) => {
+    const { stage } = v(TestSession, "savedSitting");
+
+    return r
+      .match(TestSession, { child: r.param("child", LearnerId), stage })
+      .find({ child: r.param("child", LearnerId), stage });
+  })
+  .attach("saves", savedRowsOf(ResultLevel), "array");
+
+/**
  * The tests of the call's package this runtime delivers (`DeliveredTest`), by their path.
  */
 const deliveredTestsOf = query(ResultLevel).rule((r) => {
@@ -849,6 +864,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
       recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),
       saveTestItem: sittingPrograms.saveTestItem.bind({ sittings: namedSitting }),
+      savesOf,
       sessionsOf,
       sittingFacts,
       snapshotBooleansOf,
