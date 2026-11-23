@@ -82,16 +82,17 @@ begin
   return row('single', case when matched then hit else tb.dflt end)::val;
 end $$;
 
--- An expression's value, the recorded applications its subtree demanded and the draw stream's position after it: node i
--- of the walk, read with its parameters and its children by its place (walk_node), its variable by its places in the
--- run's variables (its slot), the run's variables, correct responses and defaults, its inputs (the one element of inps)
--- and its walk each handed on by pointer, never copied.
+-- An expression's value, the recorded applications its subtree demanded and reached and the draw stream's position
+-- after it: node i of the walk, read with its parameters and its children by its place (walk_node), its variable by its
+-- places in the run's variables (its slot), the run's variables, correct responses and defaults, its inputs (the one
+-- element of inps) and its walk each handed on by pointer, never copied.
 create function p3.evaluated(correct p3.var[], defaults p3.var[], drawn int, i int, inps p3.inputs[], label text, seed text,
   slots p3.slot[], vars p3.var[], walk p3.walk_node[]) returns p3.evaluation language plpgsql immutable as $$
 declare
   nd walk_node := walk[i];
   ks int[] := '{}'; kc child;
   k int; r evaluation; dr drawing; v val; a val; b val; ops val[] := '{}'; mem numbers; demanded application[] := '{}';
+  reached reached_application[] := '{}';
   f float8; n numeric; x numeric; y numeric; lo numeric; hi numeric; step numeric; idx numeric;
   acc single[];
   eq p_equal; rd p_round; tx p_text; pt p_pattern; fr p_frange; rg p_range; ar area; an p_any_n; trues int; falses int; nulls int;
@@ -113,16 +114,16 @@ begin
     if cardinality(nd.customs) = 0 then v := v_null();
     else
       foreach k in array ks loop
-        r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; ops := ops || row(r.card, r.vals)::val;
+        r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; ops := ops || row(r.card, r.vals)::val;
       end loop;
       r := custom_value(operator_class => (nd.customs[1]).class, ops => ops, inp => inps[1], drawn => drawn, start => nd.start);
-      demanded := demanded || r.demanded; v := row(r.card, r.vals)::val;
+      demanded := demanded || r.demanded; reached := reached || r.reached; v := row(r.card, r.vals)::val;
     end if;
   -- Logic, three-valued.
   when 'qti-is-null' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; v := v_bool(b => cardinality(r.vals) = 0);
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; v := v_bool(b => cardinality(r.vals) = 0);
   when 'qti-not' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
     v := v_bool(b => not truth(v => row(r.card, r.vals)::val));
   when 'qti-and', 'qti-or', 'qti-any-n' then
     trues := 0; falses := 0; nulls := 0;
@@ -132,7 +133,7 @@ begin
       lo := resolve_int(vars => vars, r => an.min); hi := resolve_int(vars => vars, r => an.max);
     end if;
     foreach k in array ks loop
-      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded;
+      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
       case truth(v => row(r.card, r.vals)::val) when true then trues := trues + 1; when false then falses := falses + 1; else nulls := nulls + 1; end case;
     end loop;
     v := case nd.kind
@@ -145,17 +146,17 @@ begin
         when trues >= lo and trues + nulls <= hi then true end) end;
   -- Containers.
   when 'qti-match' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     v := v_bool(b => case when is_null(v => a) or is_null(v => b) then null else matches(a => a, b => b) end);
   when 'qti-member' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     v := v_bool(b => case when is_null(v => a) or is_null(v => b) then null
       else exists (select 1 from generate_subscripts(b.vals, 1) ix where same(a => unfielded(s => b.vals[ix]), b => a.vals[1])) end);
   when 'qti-contains' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     v := v_bool(b => case when is_null(v => a) or is_null(v => b) then null
       when a.card = 'ordered' then exists (
         select 1 from generate_series(0, cardinality(a.vals) - cardinality(b.vals)) o
@@ -164,23 +165,23 @@ begin
   when 'qti-multiple', 'qti-ordered' then
     acc := '{}';
     foreach k in array ks loop
-      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; acc := acc || r.vals;
+      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; acc := acc || r.vals;
     end loop;
     v := row(case nd.kind when 'qti-multiple' then 'multiple' when 'qti-ordered' then 'ordered' end, acc)::val;
   when 'qti-delete' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     v := row(b.card, case when is_null(v => a) then '{}'::single[]
       else array(select b.vals[pos] from generate_subscripts(b.vals, 1) pos where not matches(a => a, b => v_single(s => b.vals[pos])) order by pos) end)::val;
   when 'qti-index' then
     idx := resolve_int(vars => vars, r => (nd.ints[1]).value);
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
     v := case when idx is null or idx < 1 or idx > cardinality(r.vals) then v_null() else v_single(s => r.vals[idx::int]) end;
   when 'qti-container-size' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
     v := v_single(s => s_int(n => cardinality(r.vals)));
   when 'qti-random' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
     if cardinality(r.vals) = 0 then v := v_null();
     else dr := draw_below(seed => seed, label => label, drawn => drawn, count => cardinality(r.vals)); drawn := dr.drawn; v := v_single(s => r.vals[dr.result::int + 1]); end if;
   when 'qti-repeat' then
@@ -190,18 +191,18 @@ begin
     if n > 2147483647 then raise exception 'a repeat of % copies passes what the grader counts; the grade aborts', n using errcode = 'program_limit_exceeded'; end if;
     for k in 1 .. n loop
       foreach cnt in array ks loop
-        r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => cnt); drawn := r.drawn; demanded := demanded || r.demanded; acc := acc || r.vals;
+        r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => cnt); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; acc := acc || r.vals;
       end loop;
     end loop;
     v := row('ordered', acc)::val;
   when 'qti-field-value' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
     v := row('single', array(select unfielded(s => r.vals[ix]) from generate_subscripts(r.vals, 1) ix
       where (r.vals[ix]).field = (nd.fields[1]).field order by ix))::val;
   -- Arithmetic.
   when 'qti-sum', 'qti-product', 'qti-subtract', 'qti-min', 'qti-max' then
     foreach k in array ks loop
-      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; ops := ops || row(r.card, r.vals)::val;
+      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; ops := ops || row(r.card, r.vals)::val;
     end loop;
     mem := (select m from members_of(vs => ops) m);
     if mem.integers is null or (nd.kind = 'qti-subtract' and exists (select 1 from unnest(ops) o where o.card <> 'single')) then v := v_null();
@@ -240,8 +241,8 @@ begin
       v := v_single(s => s_float(base => 'float', f => f));
     end if;
   when 'qti-divide' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     a := numbered(v => a); b := numbered(v => b);
     if is_null(v => a) or is_null(v => b) or number(s => b.vals[1]) = 0 then v := v_null();
     -- An integer past the double range divides exactly, the quotient carried to a thousand places (never an infinity's
@@ -252,8 +253,8 @@ begin
       v := case when f in ('Infinity', '-Infinity', 'NaN') then v_null() else v_single(s => s_float(base => 'float', f => f)) end;
     end if;
   when 'qti-integer-divide', 'qti-integer-modulus' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     x := integer_of(v => a); y := integer_of(v => b);
     if x is null or y is null or y = 0 then v := v_null();
     -- integer-divide and integer-modulus round the quotient toward negative infinity (plate's floored division),
@@ -262,7 +263,7 @@ begin
       v := v_single(s => s_int(n => case nd.kind when 'qti-integer-divide' then n when 'qti-integer-modulus' then x - n * y end)); end if;
   when 'qti-gcd', 'qti-lcm' then
     foreach k in array ks loop
-      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; ops := ops || row(r.card, r.vals)::val;
+      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; ops := ops || row(r.card, r.vals)::val;
     end loop;
     mem := (select m from members_of(vs => ops) m);
     if mem.integers is null or not mem.integers then v := v_null();
@@ -271,8 +272,8 @@ begin
       when 'qti-lcm' then case when exists (select 1 from unnest(mem.vals) z where z.n = 0) then v_single(s => s_int(n => 0)) else bounded(n => lcm_of(z => mem.vals)) end end;
     end if;
   when 'qti-power' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     a := numbered(v => a); b := numbered(v => b);
     if is_null(v => a) or is_null(v => b) then v := v_null();
     -- An integer past the double range raises exactly, to a thousand places (SV-EXPR-01); a negative base to a
@@ -287,13 +288,13 @@ begin
       v := case when f in ('Infinity', '-Infinity', 'NaN') then v_null() else v_single(s => s_float(base => 'float', f => f)) end;
     end if;
   when 'qti-round', 'qti-truncate' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := numbered(v => row(r.card, r.vals)::val);
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := numbered(v => row(r.card, r.vals)::val);
     x := case when is_null(v => a) then null when (a.vals[1]).base = 'integer' then (a.vals[1]).n
       when (a.vals[1]).f not in ('Infinity', '-Infinity', 'NaN') then exact(f => (a.vals[1]).f) end;
     v := case when x is null then v_null()
       else v_single(s => s_int(n => case nd.kind when 'qti-round' then floor(x + 0.5) when 'qti-truncate' then trunc(x) end)) end;
   when 'qti-integer-to-float' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; x := integer_of(v => row(r.card, r.vals)::val);
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; x := integer_of(v => row(r.card, r.vals)::val);
     v := case when x is null then v_null() else v_single(s => s_float(base => 'float', f => ieee(x => x))) end;
   when 'qti-math-constant' then
     -- JavaScript's Math.PI and Math.E, the doubles nearest π and e, read from their shortest decimals: no libm.
@@ -301,18 +302,18 @@ begin
       when 'pi' then 3.141592653589793::float8 when 'e' then 2.718281828459045::float8 end));
   when 'qti-math-operator' then
     foreach k in array ks loop
-      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; ops := ops || row(r.card, r.vals)::val;
+      r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => k); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; ops := ops || row(r.card, r.vals)::val;
     end loop;
     v := math_value(op => (nd.maths[1]).op, ops => ops);
   when 'qti-stats-operator' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
     mem := case when r.card = 'single' then null else (select m from members_of(vs => array[row(r.card, r.vals)::val]) m) end;
     v := case when mem.integers is null then v_null()
       else stat_value(op => (nd.stats[1]).op, members => mem.vals) end;
   -- Comparison.
   when 'qti-gt', 'qti-lt', 'qti-gte', 'qti-lte' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     if is_null(v => a) or is_null(v => b) then v := v_bool(b => null);
     else
       a := numbered(v => a); b := numbered(v => b);
@@ -323,8 +324,8 @@ begin
   -- duration-lt and duration-gte (plate's comparingDurations): the seconds compared exactly as the doubles they are, a
   -- NaN neither shorter nor as long as anything; NULL when either is NULL; an operand that is no single duration, false.
   when 'qti-duration-lt', 'qti-duration-gte' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     if is_null(v => a) or is_null(v => b) then v := v_bool(b => null);
     else
       t0 := case when a.card = 'single' and cardinality(a.vals) = 1 and (a.vals[1]).base = 'duration' then (a.vals[1]).f end;
@@ -335,28 +336,28 @@ begin
   when 'qti-equal' then
     eq := nd.equals[1];
     t0 := resolve_float(vars => vars, r => eq.t0); t1 := resolve_float(vars => vars, r => eq.t1);
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     v := case when is_null(v => a) or is_null(v => b) then v_bool(b => null)
       else equal_value(eq => eq, x => numbered(v => a), y => numbered(v => b), t0 => t0, t1 => t1) end;
   when 'qti-equal-rounded' then
     rd := nd.rounds[1];
     n := resolve_int(vars => vars, r => rd.figures);
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     x := rounded(v => numbered(v => a), mode => rd.mode, figures => n); y := rounded(v => numbered(v => b), mode => rd.mode, figures => n);
     v := v_bool(b => case when x is null or y is null then null else x = y end);
   when 'qti-round-to' then
     rd := nd.rounds[1];
     n := resolve_int(vars => vars, r => rd.figures);
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
     x := rounded(v => numbered(v => row(r.card, r.vals)::val), mode => rd.mode, figures => n);
     v := case when x is null then v_null() else v_single(s => s_float(base => 'float', f => ieee(x => x))) end;
   -- Text.
   when 'qti-string-match', 'qti-substring' then
     tx := nd.texts[1];
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; a := row(r.card, r.vals)::val;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; b := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; a := row(r.card, r.vals)::val;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[2]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached; b := row(r.card, r.vals)::val;
     v := case when is_null(v => a) or is_null(v => b) then v_bool(b => null)
       else v_bool(b => text_holds(kind => nd.kind, p => tx, one => (a.vals[1]).t, other => (b.vals[1]).t)) end;
   -- pattern-match: the pattern resolved first, a variable's single string compiled as XML Schema's Appendix F, then
@@ -370,7 +371,7 @@ begin
       compiled := case when a.card = 'single' and cardinality(a.vals) = 1 and (a.vals[1]).base = 'string'
         then xsd_compile(p => (a.vals[1]).t) end;
     end if;
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
     v := v_bool(b => case when r.card = 'single' and cardinality(r.vals) = 1 and (r.vals[1]).base = 'string'
       then xsd_run(program => compiled, v => (r.vals[1]).t) end);
   -- Mapping and areas.
@@ -381,7 +382,7 @@ begin
     a := value_at(id => (nd.idents[1]).identifier, places => (slots[i]).vars, vars => vars);
     v := v_single(s => s_float(base => 'float', f => mapped_points(inp => inps[1], id => (nd.idents[1]).identifier, v => a)));
   when 'qti-inside' then
-    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded;
+    r := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label, drawn => drawn, i => ks[1]); drawn := r.drawn; demanded := demanded || r.demanded; reached := reached || r.reached;
     ar := (nd.areas[1]).area;
     v := v_bool(b => case when cardinality(r.vals) = 0 then null
       else exists (select 1 from unnest(r.vals) s where s.base = 'point' and holds(a => ar, x => ieee(x => s.n), y => ieee(x => s.m))) end);
@@ -411,7 +412,7 @@ begin
   when 'qti-outcome-minimum', 'qti-outcome-maximum' then v := outcome_bounds(kind => nd.kind, nd => nd, inp => inps[1]);
   when 'qti-test-variables' then v := test_variables(nd => nd, inp => inps[1]);
   end case;
-  return row(v.card, demanded, drawn, v.vals)::evaluation;
+  return row(v.card, demanded, drawn, reached, v.vals)::evaluation;
 end $$;
 
 -- The rules that are node i's element children from the from-th on, in order, until the run exits or restarts: each a
@@ -422,7 +423,7 @@ end $$;
 create function p3.run_rules(from_kid int, i int, inp p3.inputs, st p3.run_state, walk p3.walk_node[]) returns p3.run_state language plpgsql immutable as $$
 declare
   vars var[] := st.vars; correct var[] := st.correct; defaults var[] := st.defaults; drawn int := st.drawn; flow text := st.flow;
-  demanded application[] := st.demanded;
+  demanded application[] := st.demanded; reached reached_application[] := st.reached;
   slots slot[] := (slots_of(walk => walk, vars => st.vars, correct => st.correct, defaults => st.defaults)).nodes;
   inps inputs[] := array[inp];
   frame_node int[] := array[i]; frame_next int[] := array[from_kid]; top int := 1;
@@ -434,16 +435,16 @@ begin
     nd := walk[k]; id := ident(nd => nd); first := (nd.kids[1]).i;
     case nd.kind
     when 'qti-set-outcome-value', 'qti-set-template-value', 'qti-lookup-outcome-value' then
-      rr := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => st.seed, label => st.label, drawn => drawn, i => first); drawn := rr.drawn; demanded := demanded || rr.demanded;
+      rr := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => st.seed, label => st.label, drawn => drawn, i => first); drawn := rr.drawn; demanded := demanded || rr.demanded; reached := reached || rr.reached;
       x := case when nd.kind = 'qti-lookup-outcome-value' then looked_up(inp => inp, id => id, x => row(rr.card, rr.vals)::val) else row(rr.card, rr.vals)::val end;
       if cardinality((slots[k]).vars) = 0 then raise exception 'undeclared variable %', id; end if;
       foreach pl in array (slots[k]).vars loop vars[pl.i] := set_to(v => vars[pl.i], x => x); end loop;
     when 'qti-set-correct-response' then
-      rr := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => st.seed, label => st.label, drawn => drawn, i => first); drawn := rr.drawn; demanded := demanded || rr.demanded;
+      rr := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => st.seed, label => st.label, drawn => drawn, i => first); drawn := rr.drawn; demanded := demanded || rr.demanded; reached := reached || rr.reached;
       if cardinality((slots[k]).correct) = 0 then raise exception 'undeclared variable %', id; end if;
       foreach pl in array (slots[k]).correct loop correct[pl.i] := set_to(v => correct[pl.i], x => row(rr.card, rr.vals)::val); end loop;
     when 'qti-set-default-value' then
-      rr := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => st.seed, label => st.label, drawn => drawn, i => first); drawn := rr.drawn; demanded := demanded || rr.demanded;
+      rr := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => st.seed, label => st.label, drawn => drawn, i => first); drawn := rr.drawn; demanded := demanded || rr.demanded; reached := reached || rr.reached;
       if cardinality((slots[k]).defaults) = 0 then raise exception 'undeclared variable %', id; end if;
       foreach pl in array (slots[k]).defaults loop defaults[pl.i] := set_to(v => defaults[pl.i], x => row(rr.card, rr.vals)::val); end loop;
     when 'qti-response-condition', 'qti-template-condition', 'qti-outcome-condition' then
@@ -452,7 +453,7 @@ begin
         case (walk[b]).kind
         when 'qti-response-if', 'qti-response-else-if', 'qti-template-if', 'qti-template-else-if', 'qti-outcome-if', 'qti-outcome-else-if' then
           rr := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => st.seed, label => st.label, drawn => drawn,
-            i => ((walk[b]).kids[1]).i); drawn := rr.drawn; demanded := demanded || rr.demanded;
+            i => ((walk[b]).kids[1]).i); drawn := rr.drawn; demanded := demanded || rr.demanded; reached := reached || rr.reached;
           -- The branch's rules from its second child, after the condition.
           if coalesce(truth(v => row(rr.card, rr.vals)::val), false) then top := top + 1; frame_node[top] := b; frame_next[top] := 2; exit; end if;
         when 'qti-response-else', 'qti-template-else', 'qti-outcome-else' then
@@ -464,7 +465,7 @@ begin
     -- 6.32.5), as qti-exit-response ends response processing.
     when 'qti-exit-response', 'qti-exit-template', 'qti-exit-test' then flow := 'exit';
     when 'qti-template-constraint' then
-      rr := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => st.seed, label => st.label, drawn => drawn, i => first); drawn := rr.drawn; demanded := demanded || rr.demanded;
+      rr := evaluated(walk => walk, inps => inps, slots => slots, vars => vars, correct => correct, defaults => defaults, seed => st.seed, label => st.label, drawn => drawn, i => first); drawn := rr.drawn; demanded := demanded || rr.demanded; reached := reached || rr.reached;
       if not coalesce(truth(v => row(rr.card, rr.vals)::val), false) then
         if st.spent then vars := st.declared; correct := st.declared_correct; defaults := st.declared_defaults;
         else flow := 'restart'; end if;
@@ -472,13 +473,14 @@ begin
     end case;
     exit when flow <> 'run';
   end loop;
-  return row(correct, st.declared, st.declared_correct, st.declared_defaults, defaults, demanded, drawn, flow, st.label, st.seed, st.spent, vars)::run_state;
+  return row(correct, st.declared, st.declared_correct, st.declared_defaults, defaults, demanded, drawn, flow, st.label, reached, st.seed, st.spent,
+    vars)::run_state;
 end $$;
 
 -- Response processing: the rules in order, from the variables, correct responses and defaults the attempt starts from.
 create function p3.response_processing(correct p3.var[], defaults p3.var[], inp p3.inputs, label text, prog p3.program, seed text, vars p3.var[])
 returns p3.run_state language sql immutable as $$
-  select run_rules(walk => (walk_of(prog => prog)).nodes, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, seed, false, vars)::run_state)
+  select run_rules(walk => (walk_of(prog => prog)).nodes, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, '{}', seed, false, vars)::run_state)
 $$;
 -- Template processing: the rules from the declared state, restarted from it while a constraint fails, the restarts
 -- sharing one budget of 100 and the stream never reset.
@@ -487,7 +489,7 @@ returns p3.run_state language plpgsql immutable as $$
 declare state run_state; restarts int := 0; drawn int := 0; walk walk_node[] := (walk_of(prog => prog)).nodes;
 begin
   loop
-    state := run_rules(walk => walk, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, '{}', drawn, 'run', label, seed, restarts >= 100, vars)::run_state);
+    state := run_rules(walk => walk, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, '{}', drawn, 'run', label, '{}', seed, restarts >= 100, vars)::run_state);
     exit when state.flow <> 'restart';
     restarts := restarts + 1; drawn := state.drawn;
   end loop;

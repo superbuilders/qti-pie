@@ -103,6 +103,14 @@ create type p3.reply as (field text collate pg_catalog.pg_c_utf8, start integer,
 -- evaluator has evaluated, replied or declined (the inputs' `evaluated`), or one a run reached with a response and could
 -- not evaluate, its request (the run's `demanded`).
 create type p3.application as (start integer);
+-- A person's value of a rubric group of the attempt (the ledger's HumanOperatorValue in force, and its
+-- HumanOperatorFeedback at the same instant): the group's rubric, the score, and the feedback, NULL where the person gave
+-- none. Every application of the group takes it, as a reply's record, in place of its draws' evaluations.
+create type p3.human_value as (feedback text collate pg_catalog.pg_c_utf8, rubric text collate pg_catalog.pg_c_utf8, score float8);
+-- A recorded application a run reached whose group no person has valued: its operator element's place, its rubric
+-- operand's text, and whether it is evaluated with no reply (a decline). A group whose every reached application
+-- declined is a person's to score.
+create type p3.reached_application as (declined boolean, rubric text collate pg_catalog.pg_c_utf8, start integer);
 
 create type p3.program as (any_ns p3.p_any_n[], areas p3.p_area[], bases p3.p_base[], categories p3.p_category[],
   constants p3.p_constant[], customs p3.p_custom[], equals p3.p_equal[], fields p3.p_field[], filters p3.p_filter[], franges p3.p_frange[],
@@ -154,7 +162,7 @@ create type p3.member_var as (base text collate pg_catalog.pg_c_utf8, card text 
   vals p3.single[]);
 create type p3.member_bound as (bound text collate pg_catalog.pg_c_utf8, identifier text collate pg_catalog.pg_c_utf8,
   ref text collate pg_catalog.pg_c_utf8, value float8);
-create type p3.inputs as (area_entries p3.area_entry[], area_mappings p3.mapping[], bindings p3.table_binding[], evaluated p3.application[], interp_entries p3.interp_entry[],
+create type p3.inputs as (area_entries p3.area_entry[], area_mappings p3.mapping[], bindings p3.table_binding[], evaluated p3.application[], humans p3.human_value[], interp_entries p3.interp_entry[],
   lookups p3.lookup_table[], map_entries p3.map_entry[], mappings p3.mapping[],
   match_entries p3.match_entry[], member_bounds p3.member_bound[], member_correct p3.member_var[], member_defaults p3.member_var[],
   member_vars p3.member_var[], members p3.member[], ref_categories p3.ref_category[], ref_mappings p3.ref_mapping[],
@@ -162,14 +170,16 @@ create type p3.inputs as (area_entries p3.area_entry[], area_mappings p3.mapping
   table_values p3.table_value[]);
 
 -- The machine's state: the variables, the correct responses and defaults in force (template processing may set
--- either), the recorded applications the run demanded, the draw stream's key, label and position, how the run goes on
--- (exit, restart or run), whether the template restarts are spent, and the declared state a spent constraint resets to.
+-- either), the recorded applications the run demanded and those it reached, the draw stream's key, label and position,
+-- how the run goes on (exit, restart or run), whether the template restarts are spent, and the declared state a spent
+-- constraint resets to.
 create type p3.run_state as (correct p3.var[], declared p3.var[], declared_correct p3.var[], declared_defaults p3.var[],
   defaults p3.var[], demanded p3.application[], drawn integer, flow text collate pg_catalog.pg_c_utf8, label text collate pg_catalog.pg_c_utf8,
-  seed text collate pg_catalog.pg_c_utf8, spent boolean, vars p3.var[]);
--- An expression's result: the facts of the state an expression changes, the recorded applications its subtree demanded
--- and the draw stream's position after it, and its value.
-create type p3.evaluation as (card text collate pg_catalog.pg_c_utf8, demanded p3.application[], drawn integer, vals p3.single[]);
+  reached p3.reached_application[], seed text collate pg_catalog.pg_c_utf8, spent boolean, vars p3.var[]);
+-- An expression's result: the facts of the state an expression changes, the recorded applications its subtree demanded,
+-- the draw stream's position after it and the recorded applications its subtree reached, and its value.
+create type p3.evaluation as (card text collate pg_catalog.pg_c_utf8, demanded p3.application[], drawn integer, reached p3.reached_application[],
+  vals p3.single[]);
 -- A draw's result: the stream's position after it and the whole number drawn.
 create type p3.drawing as (drawn integer, result numeric(825, 0));
 -- The numbers of an operation's operands (plate's membersOf): all integers, or all integers and floats read as floats.

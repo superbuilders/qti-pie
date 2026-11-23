@@ -234,7 +234,7 @@ returns p3.inputs language sql immutable as $$
       from entry where entry.hk = 'qti-area-mapping'),
     (select coalesce(array_agg(row(header.dflt, header.id, header.lower, header.upper)::mapping), '{}') from header where header.hk = 'qti-area-mapping'),
     -- The registry's rows, and an attempt's evaluated applications and replies, are the flat entry's to add (with_registry).
-    '{}'::table_binding[], '{}'::application[],
+    '{}'::table_binding[], '{}'::application[], '{}'::human_value[],
     (select coalesce(array_agg(row(xs_boolean(t => entry.include_boundary, dflt => true), entry.id, entry.place,
         (parse(base => 'float', lexical => trim_xml(t => entry.source_value))).f,
         array_remove(array[xml_single(base => entry.base, txt => entry.target_value)], null))::interp_entry), '{}') from entry where entry.hk = 'qti-interpolation-table'),
@@ -404,6 +404,7 @@ returns p3.doc_values language sql immutable as $$
     array(select row((run).child, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::doc_file_name from s where card <> 'record' and (x).base = 'file' and (x).w is not null),
     array(select row((run).child, (x).u, (x).d, holds, identifier, (run).package, (run).path, place, (run).stage)::doc_file from s where card <> 'record' and (x).base = 'file'),
     array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::doc_float from s where card <> 'record' and (x).base in ('float', 'duration')),
+    '{}'::doc_human_demand[],
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::doc_integer from s where card <> 'record' and (x).base = 'integer'),
     array(select row((run).child, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::doc_pair from s where card <> 'record' and (x).base = 'pair'),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n, (x).m)::doc_point from s where card <> 'record' and (x).base = 'point'),
@@ -416,7 +417,7 @@ create function p3.doc_values_joined(a p3.doc_values, b p3.doc_values) returns p
   select row(a.bases || b.bases, a.booleans || b.booleans, a.demands || b.demands, a.directed_pairs || b.directed_pairs, a.ends || b.ends, a.field_booleans || b.field_booleans,
     a.field_directed_pairs || b.field_directed_pairs, a.field_file_names || b.field_file_names, a.field_files || b.field_files, a.field_floats || b.field_floats, a.field_integers || b.field_integers,
     a.field_pairs || b.field_pairs, a.field_points || b.field_points, a.field_texts || b.field_texts,
-    a.file_names || b.file_names, a.files || b.files, a.floats || b.floats,
+    a.file_names || b.file_names, a.files || b.files, a.floats || b.floats, a.human_demands || b.human_demands,
     a.integers || b.integers, a.pairs || b.pairs, a.points || b.points,
     a.texts || b.texts, a.vars || b.vars)::doc_values
 $$;
@@ -425,7 +426,7 @@ create function p3.no_doc_values() returns p3.doc_values language sql immutable 
   select row('{}'::doc_base[], '{}'::doc_boolean[], '{}'::doc_demand[], '{}'::doc_directed_pair[], '{}'::doc_end[], '{}'::doc_field_boolean[], '{}'::doc_field_directed_pair[],
     '{}'::doc_field_file_name[], '{}'::doc_field_file[], '{}'::doc_field_float[], '{}'::doc_field_integer[], '{}'::doc_field_pair[],
     '{}'::doc_field_point[], '{}'::doc_field_text[], '{}'::doc_file_name[], '{}'::doc_file[],
-    '{}'::doc_float[], '{}'::doc_integer[], '{}'::doc_pair[], '{}'::doc_point[],
+    '{}'::doc_float[], '{}'::doc_human_demand[], '{}'::doc_integer[], '{}'::doc_pair[], '{}'::doc_point[],
     '{}'::doc_text[], '{}'::doc_var[])::doc_values
 $$;
 
@@ -497,7 +498,7 @@ declare
   defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
 begin
   if prog is null then
-    return row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, seed, false, vars)::run_state;
+    return row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, '{}', seed, false, vars)::run_state;
   end if;
   return response_processing(prog => prog, inp => inp, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label);
 end $$;
@@ -516,7 +517,7 @@ declare
   defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
 begin
   if prog is null then
-    return row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, seed, false, vars)::run_state;
+    return row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, '{}', seed, false, vars)::run_state;
   end if;
   return template_processing(prog => prog, inp => inp, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label);
 end $$;
@@ -541,41 +542,56 @@ returns setof p3.application language sql immutable as $$
   select width_bucket(e.start, (select o.starts from o)) from unnest(evaluations) e
   where (e.child, e.package, e.path, e.stage) = ((run).child, (run).package, (run).path, (run).stage)
 $$;
+-- A run's persons' values as the machine reads them: each rubric group of its attempt a person valued, with the
+-- person's feedback where they gave one.
+create function p3.humans_of(human_feedbacks p3.doc_human_feedback[], humans p3.doc_human[], run p3.document_run)
+returns setof p3.human_value language sql immutable as $$
+  select f.feedback, h.rubric, h.score from unnest(humans) h
+    left join unnest(human_feedbacks) f on (f.child, f.package, f.path, f.stage, f.rubric) = (h.child, h.package, h.path, h.stage, h.rubric)
+  where (h.child, h.package, h.path, h.stage) = ((run).child, (run).package, (run).path, (run).stage)
+$$;
 -- The inputs with the registry's tables (its bindings, entries and map values, as the statement passes the Registry
 -- level's RegistryBinding, RegistryEntry and RegistryValue) and an attempt's recorded evaluations (the applications
--- evaluated, and their replies), as a test's run adds its test's fields: the rows the custom operators read.
-create function p3.with_registry(evaluated p3.application[], inp p3.inputs, replies p3.reply[], table_bindings p3.table_binding[],
-  table_entries p3.table_entry[], table_values p3.table_value[])
+-- evaluated, and their replies) and persons' values, as a test's run adds its test's fields: the rows the custom
+-- operators read.
+create function p3.with_registry(evaluated p3.application[], humans p3.human_value[], inp p3.inputs, replies p3.reply[],
+  table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[])
 returns p3.inputs language plpgsql immutable as $$
 begin
   inp.bindings := table_bindings; inp.table_entries := table_entries; inp.table_values := table_values; inp.evaluated := evaluated;
-  inp.replies := replies;
+  inp.humans := humans; inp.replies := replies;
   return inp;
 end $$;
 -- One response processing run's result: where it demanded a recorded application (one it reached with a response and
 -- could not evaluate, rubric-score's request), its demands alone, each once, by its operator element's start in the
--- stored tree, so nothing of its attempt is written and the attempt waits for their evaluations; else its values
--- (doc_values_of, each variable as it stands).
+-- stored tree, so nothing of its attempt is written and the attempt waits for their evaluations; else, where some rubric
+-- group's every application it reached declined and no person has valued the group (a valued group's applications are
+-- never reached: they take the person's value), its human demands alone, each group once, so the attempt waits for a
+-- person; else its values (doc_values_of, each variable as it stands).
 create function p3.response_values_of(kinds p3.var_kind[], nodes p3.program_node[], run p3.document_run, st p3.run_state)
 returns p3.doc_values language plpgsql immutable as $$
 declare result doc_values := no_doc_values(); starts bigint[];
 begin
-  if cardinality(st.demanded) = 0 then return doc_values_of(delta => false, kinds => kinds, run => run, st => st); end if;
   starts := array(select x.start from unnest(nodes) x order by x.start);
   result.demands := array(select distinct row((run).child, (run).package, (run).path, (run).stage, starts[d.start])::doc_demand from unnest(st.demanded) d);
-  return result;
+  if cardinality(result.demands) > 0 then return result; end if;
+  result.human_demands := array(select row((run).child, (run).package, (run).path, a.rubric, (run).stage)::doc_human_demand
+    from unnest(st.reached) a group by a.rubric having bool_and(a.declined));
+  if cardinality(result.human_demands) > 0 then return result; end if;
+  return doc_values_of(delta => false, kinds => kinds, run => run, st => st);
 end $$;
 
 -- The flat entry of response processing: every run a call names, each by itself, its program (none where its document
 -- has no processing program) and inputs read from its document's tree, and its run from its own values and recorded
--- evaluations (the applications evaluated, and their replies), by its key, in one call; the registry's rows the same for
--- every run. A run that demanded a recorded application gives its demands alone (response_values_of).
+-- evaluations (the applications evaluated, and their replies) and persons' values, by its key, in one call; the
+-- registry's rows the same for every run. A run that demanded a recorded application gives its demands alone, and one
+-- that asks a person its human demands alone (response_values_of).
 create function p3.response_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
   declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
   directed_pairs p3.doc_directed_pair[], evaluations p3.doc_evaluation[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
   field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
   field_texts p3.doc_field_text[], file_names p3.doc_file_name[], files p3.doc_file[], floats p3.doc_float[],
-  integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[],
+  human_feedbacks p3.doc_human_feedback[], humans p3.doc_human[], integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[],
   program_attributes p3.document_attribute[], program_texts p3.document_text[], programs p3.program_node[],
   reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[], runs p3.document_run[],
   table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[],
@@ -597,6 +613,7 @@ begin
       inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values,
         evaluated => array(select x from evaluated_of(run => r, nodes => pn, evaluations => evaluations) x),
+        humans => array(select x from humans_of(run => r, humans => humans, human_feedbacks => human_feedbacks) x),
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
       declarations => dn, attributes => da, texts => dt,
       given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,
@@ -636,7 +653,7 @@ begin
         texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
         compiled => array(select x from unnest(compiled) x where x.package = r.package)) end,
       inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
-        table_entries => table_entries, table_values => table_values, evaluated => '{}',
+        table_entries => table_entries, table_values => table_values, evaluated => '{}', humans => '{}',
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
       declarations => dn, attributes => da, texts => dt,
       given => values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs, directed_pairs => directed_pairs, points => points, files => files,

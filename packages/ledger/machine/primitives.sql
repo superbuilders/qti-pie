@@ -1307,6 +1307,7 @@ $$;
 create function p3.custom_value(drawn integer, inp p3.inputs, operator_class text, ops p3.val[], start integer) returns p3.evaluation language plpgsql immutable as $$
 declare t text := case when cardinality((ops[1]).vals) = 0 then null else ((ops[1]).vals[1]).t end;
   q quantity; nr near; f float8; d integer; acc single[]; v val; demanded application[] := '{}';
+  reached reached_application[] := '{}'; h human_value; evaluated boolean;
 begin
   if cardinality((ops[1]).vals) = 0 then v := v_null();
   else
@@ -1345,19 +1346,26 @@ begin
         operation => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'operation-words') w), stop_words => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'stop-words') w),
         verbs => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'verbs') w));
       v := row('single', case when d is null then '{}'::single[] else array[s_int(n => d)] end)::val;
-    -- rubric-score (spec/custom-operators.md §3.3-§5), the one place a recorded application is recognized: where the
-    -- attempt's evaluator has evaluated it (the inputs' `evaluated`, the ledger's OperatorEvaluation), its recorded
-    -- reply, read from the inputs (the ledger's OperatorReply rows for the attempt, keyed by the operator's start), NULL
-    -- for a decline, which has none; where it has not, its request: the run demands it, and its value is NULL until a
-    -- later run reads its evaluation. A NULL response makes no request (above).
+    -- rubric-score (spec/custom-operators.md §3.3-§5), the one place a recorded application is recognized. Where a
+    -- person has valued its group (the inputs' `humans`, by its rubric operand's text), that value, as a reply's record:
+    -- every application of the group takes it, in place of its draws. Else it is reached, declined where it is evaluated
+    -- with no reply; where the attempt's evaluator has evaluated it (the inputs' `evaluated`, the ledger's
+    -- OperatorEvaluation), its recorded reply, read from the inputs (the ledger's OperatorReply rows for the attempt,
+    -- keyed by the operator's start), NULL for a decline, which has none; where it has not, its request: the run demands
+    -- it, and its value is NULL until a later run reads its evaluation. A NULL response makes no request (above).
     when 'rubric-score' then
-      if exists (select from unnest(inp.evaluated) e where e.start = custom_value.start) then
-        acc := array(select s_field(s => r.value, field => r.field) from unnest(inp.replies) r where r.start = custom_value.start order by r.field);
-        v := case when cardinality(acc) = 0 then v_null() else row('record', acc)::val end;
+      h := (select x from unnest(inp.humans) x where x.rubric = ((ops[2]).vals[1]).t);
+      if h.rubric is not null then
+        v := row('record', case when h.feedback is null then '{}'::single[] else array[s_field(s => s_text(base => 'string', t => h.feedback), field => 'feedback')] end
+          || array[s_field(s => s_float(base => 'float', f => h.score), field => 'score')])::val;
       else
-        demanded := array[row(custom_value.start)::application]; v := v_null();
+        evaluated := exists (select from unnest(inp.evaluated) e where e.start = custom_value.start);
+        acc := array(select s_field(s => r.value, field => r.field) from unnest(inp.replies) r where r.start = custom_value.start order by r.field);
+        reached := array[row(evaluated and cardinality(acc) = 0, ((ops[2]).vals[1]).t, custom_value.start)::reached_application];
+        if not evaluated then demanded := array[row(custom_value.start)::application]; end if;
+        v := case when cardinality(acc) = 0 then v_null() else row('record', acc)::val end;
       end if;
     end case;
   end if;
-  return row(v.card, demanded, drawn, v.vals)::evaluation;
+  return row(v.card, demanded, drawn, reached, v.vals)::evaluation;
 end $$;
