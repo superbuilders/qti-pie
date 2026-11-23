@@ -52,11 +52,14 @@ import {
   contract,
   instant,
   key,
+  mutable,
   natural,
+  Num,
   on,
   pg,
   pred,
   relation,
+  span,
 } from "@bjornpagen/grizzle";
 import { LearnerId } from "#ledger/keys.ts";
 import { named } from "#ledger/laws.ts";
@@ -71,6 +74,42 @@ import type { RegistryLevel } from "#ledger/registry/levels.ts";
  * microseconds, and its difference with an instant.
  */
 export const Micros = named("Micros", contract("Micros", pg.numeric(20, 0)));
+
+/**
+ * The top of the database's clock as a presence window holds it, in microseconds since the Unix
+ * epoch: 2^62, about the year 148,000, so a reading, the microsecond past it and the grace past
+ * that are each a bigint.
+ *
+ * @limitKind derived
+ * @owner grizzle's presence window (its README, "A window a put extends", at grizzle 5afbe5096)
+ * @unit microseconds since the Unix epoch
+ * @scope each end of a presence window ({@link Moment}) and each reading ({@link Reading})
+ * @derivation PostgreSQL's bigint holds below 2^63; half of that leaves a reading's next
+ *   microsecond and any grace a bigint
+ * @from PostgreSQL's bigint range
+ */
+export const clockTop = 2n ** 62n;
+
+/**
+ * An end of a presence window: an instant on the database's clock in microseconds since the Unix
+ * epoch, from 0 to {@link clockTop}, never a stored `instant`, which no span holds. A window's end
+ * is one past its last reading, so the top is an end and no reading. It and a stamped instant
+ * compare as readings of one clock (`Type.base` of the instant), never as one clock's order.
+ */
+export const Moment = named(
+  "Presence moment",
+  contract("Moment", pg.bigint, (t) => Num.within(t, 0n, clockTop)),
+);
+
+/**
+ * A reading of the database's clock in microseconds since the Unix epoch, the instant a call's
+ * transaction began (`clocked(…, { now: "micros" })`, `transaction_timestamp()`): one below
+ * {@link Moment}'s top, so the microsecond past it is a window's end with no guard.
+ */
+export const Reading = named(
+  "Presence reading",
+  contract("Reading", pg.bigint, (t) => Num.within(t, 0n, clockTop - 1n)),
+);
 
 /**
  * A sitting's standing, in the order a sitting moves through them (§2.2.1, the item session's
@@ -104,9 +143,19 @@ export const SittingStanding = closed.ordered("SittingStanding", [
  * - **TestPresented** `(child, stage, at) → k, package, path`: from `at` on, in candidate session
  *   `k`, the candidate is shown the item whose document is `path`.
  * - **TestEnd** `(child, stage) → at, k`: the sitting's end, in candidate session `k`.
- * - **TestBeacon** `(child, stage, at) → k`: at `at`, in candidate session `k`, the candidate was
- *   there: an application's presence beacon, which the session's time is charged up to (H10), no
- *   moment of the sitting's clock, so it ends no presentation's span.
+ * - **Presence** `(child, stage, during)`: the candidate was there from `during`'s first beacon to
+ *   its last, one window of an application's presence beacons, `[first, last + 1 µs)` on the
+ *   database's clock ({@link Moment}), half-open, so a window of one beacon is one microsecond,
+ *   never empty, and credits nothing: a window credits its width less 1 µs. No two windows of a
+ *   sitting overlap: its key is `(child, stage, during WITHOUT OVERLAPS)`. A beacon puts the hull
+ *   of its reading and every window within the grace of it, displacing them
+ *   (`#ledger/sitting-programs.ts` beaconTest): it grows the latest window or opens one, so a
+ *   sitting holds one row a stretch of presence, never one a beacon. The one open relation of the
+ *   ledger, `mutable(Presence)`, changed only under its child's exclusive borrow (the Learner
+ *   unit); a window is no moment of the sitting's clock, so it ends no presentation's span, and no
+ *   QTI duration reads it: presence is the application's measure of time, a session's time is
+ *   charged up to its last sign (H10), and an item's duration stays its presentations'
+ *   (`#ledger/delivery.ts` ItemDuration).
  * - **SittingFinal** `(child, stage, at)`: the sitting's outcomes are final, at the instant they
  *   became so; one per sitting, and only of an ended one.
  *
@@ -164,9 +213,9 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     "One end a sitting",
     relation("TestEnd", { ...sitting, at: instant, k: natural }, ["child", "stage"]),
   );
-  const TestBeacon = named(
-    "Beacon instant",
-    relation("TestBeacon", { ...sitting, at: instant, k: natural }, ["child", "stage", "at"]),
+  const Presence = named(
+    "Presence window",
+    relation("Presence", { ...sitting, during: span(Moment) }, ["child", "stage", "during"]),
   );
   /**
    * A sitting whose outcomes are final, stored at the instant the write that made it so stamps (a
@@ -188,8 +237,8 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     );
 
   const tables = {
+    Presence,
     SittingFinal,
-    TestBeacon,
     TestBudget,
     TestEnd,
     TestMoment,
@@ -234,9 +283,10 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
       contained(on(TestEnd, "child", "stage", "k"), on(TestVisit, "child", "stage", "k")),
     ),
     named(
-      "Beacon of a visit",
-      contained(on(TestBeacon, "child", "stage", "k"), on(TestVisit, "child", "stage", "k")),
+      "Presence of its test session",
+      contained(on(Presence, "child", "stage"), on(TestSession, "child", "stage")),
     ),
+    mutable(Presence),
     named("Final key", key(on(SittingFinal, "child", "stage"))),
     named(
       "Final after the end",

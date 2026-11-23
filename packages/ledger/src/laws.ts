@@ -45,17 +45,9 @@ export const ledgerLaws = {
     source:
       "src/ledger.ts Snapshot<Multiple><Float|Duration>: 'A multiple of float or duration keys each distinct value by its identity image, `bits`, grizzle's `Num.floatBits` of the value (its IEEE 754 bits, every NaN one), which the law BagImage holds it to'",
   },
-  "Beacon instant": {
-    source:
-      "src/sittings.ts TestBeacon: 'at `at`, in candidate session `k`, the candidate was there', one beacon an instant of the sitting, stamped by the insert that adds it",
-  },
-  "Beacon of a visit": {
-    source:
-      "src/sittings.ts TestBeacon: an application's presence beacon is of a candidate session of the sitting",
-  },
   "Budget chain": {
     source:
-      "src/delivery.ts BudgetChain: each later candidate session's budget is what its sitting's previous candidate session left it, charged up to its last sign of presence (src/sittings.ts TestBudget, the time a candidate session begins with; TestBeacon)",
+      "src/delivery.ts BudgetChain: each later candidate session's budget is what its sitting's previous candidate session left it, charged up to its last sign of presence (src/sittings.ts TestBudget, the time a candidate session begins with; Presence)",
   },
   "Budget of a visit": {
     source:
@@ -245,6 +237,22 @@ export const ledgerLaws = {
   },
   "Ordered gapless": {
     source: `${info}#Enumerated_CardinalityEnum (§8.17, CardinalityEnum: 'ordered' - '[A,B,C] is equivalent to a similar one with value [C,B,A] whereas these two values would be considered distinct for containers with cardinality ordered'): 'an ordered's values at their places from 0, gapless' (src/ledger.ts)`,
+  },
+  "Presence moment": {
+    source:
+      "src/sittings.ts Moment: 'An end of a presence window: an instant on the database's clock in microseconds since the Unix epoch, from 0 to clockTop'",
+  },
+  "Presence of its test session": {
+    source:
+      "src/sittings.ts Presence: a window of presence is of a sitting's test session (TestSession)",
+  },
+  "Presence reading": {
+    source:
+      "src/sittings.ts Reading: 'A reading of the database's clock in microseconds since the Unix epoch, the instant a call's transaction began', one below Moment' top",
+  },
+  "Presence window": {
+    source:
+      "src/sittings.ts Presence: 'No two windows of a sitting overlap: its key is `(child, stage, during WITHOUT OVERLAPS)`', one row a stretch of presence (the owner's presence design, 2026-11-23, option (ii))",
   },
   "Presented in a visit": {
     source:

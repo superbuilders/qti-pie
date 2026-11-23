@@ -25,12 +25,14 @@
  *   0), and the member `next` names presented where it names one, each only where the member's
  *   response admission, under its item ref's validate-responses, gives no reason
  *   (`#ledger/grade.ts` memberAnswerAdmissionOf, over `sittings` and `item`).
- * - `beaconTest` { sittings }: the open candidate session's presence beacon, the application's sign
- *   that its candidate is there, which the session's time is charged up to (`#delivery.ts`, H10).
+ * - `beaconTest` { sittings, now }: the open candidate session's presence beacon at `now`, the
+ *   database's clock (served `clocked(…, { now: "micros" })`), the application's sign that its
+ *   candidate is there: one put of the sitting's presence window, grown or opened (`Presence`),
+ *   which the session's time is charged up to (`#delivery.ts`, H10) and time credit is read from.
  * - `suspendTest`, `endTest` { sittings }: the open candidate session suspended; the sitting's part
- *   ended. A pause the candidate makes is `beaconTest` and `suspendTest` in one statement, charged
- *   to the pause; an application that finds a session abandoned suspends it alone, charged to its
- *   last sign of presence.
+ *   ended. A pause the candidate makes is `beaconTest`, then `suspendTest`, in one transaction,
+ *   charged to the pause; an application that finds a session abandoned suspends it alone, charged
+ *   to its last sign of presence.
  *
  * `sittings` is the relation parameter every builder but the take reads
  * (`#ledger/sitting-queries.ts` sittingHeading), which the application binds once per program to
@@ -61,8 +63,9 @@
  * admitting one: what arrives by a timed session's deadline and the in-flight grace, by the
  * database's stamp, is admitted, the latest save winning.
  */
-import { ChangeSet, Fn, Logic, Num, pg, query, Type, v } from "@bjornpagen/grizzle";
+import { ChangeSet, Fn, Logic, Num, pg, query, Range, Type, v } from "@bjornpagen/grizzle";
 import { memberPositions } from "@qti-pie/pantry/qti/positions.ts";
+import { presenceGraceMicros } from "#ledger/delivery.ts";
 import type { deliveryOf } from "#ledger/delivery.ts";
 import { memberAnswerAdmissionOf, takeValuesOf } from "#ledger/grade.ts";
 import { processingSeed } from "#ledger/grading.ts";
@@ -73,12 +76,13 @@ import {
   sittingStandingOf,
   takenHeading,
 } from "#ledger/sitting-queries.ts";
+import { Moment, Reading } from "#ledger/sittings.ts";
 
 /**
  * The relations the test runtime's programs write of a sitting beside its item sessions, by name,
  * for a role's insert list: its test session, its moments, candidate sessions, suspensions,
- * budgets, presentations, presence beacons and end, a save's rows and its snapshot's given reading,
- * and the close's `DefaultSubmission` of a presented member with no save.
+ * budgets, presentations and end, a save's rows and its snapshot's given reading, and the close's
+ * `DefaultSubmission` of a presented member with no save.
  */
 export const sittingTables = [
   "TestSession",
@@ -88,11 +92,16 @@ export const sittingTables = [
   "TestBudget",
   "TestPresented",
   "TestEnd",
-  "TestBeacon",
   "Save",
   "SnapshotGiven",
   "DefaultSubmission",
 ] as const;
+
+/**
+ * The relation the presence beacon puts, by name, for a role's write list: `Presence`, the
+ * ledger's one open relation, whose window a beacon's put displaces (`beaconTest`).
+ */
+export const presenceTables = ["Presence"] as const;
 
 /**
  * The delivery level the builders write over.
@@ -498,7 +507,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
    * The open candidate session's suspension, AlphaTest's pause, or an application's close of a
    * session it found abandoned: charged up to the session's last sign of presence, and refused
    * where that ran past its deadline and the test allows no late submission ("Suspended in time").
-   * A pause the candidate makes unions `beaconTest` in its statement, so it is charged to the
+   * A pause the candidate makes sequences `beaconTest` before it, so it is charged to the
    * pause.
    */
   const suspendTest = ChangeSet.empty(delivery)
@@ -532,28 +541,97 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
     .read("standing", () => standing);
 
   /**
-   * The open candidate session's presence beacon: the application's sign that its candidate is
-   * there, at the database's instant, which a session's time is charged up to (`#delivery.ts`'s
-   * presence signs, H10). It is no moment of the sitting's clock, so it ends no presentation's
-   * span; a sitting with no open candidate session writes nothing and reads back `unchanged`.
+   * What a beacon at `now`, the database's clock as the call reads it, joins into one window, each
+   * by its ends, half-open in microseconds: its reading, `[now, now + 1 µs)`, and every window of
+   * its sitting within the grace of it on either side (`presenceGraceMicros`). Only an open
+   * candidate session's sitting has any.
+   */
+  const beaconNear = query(delivery)
+    .rule((r) => {
+      const open = openVisit.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { child, stage } = v(open, "beaconReading");
+      const now = Type.base(r.param("now", Reading));
+
+      return r.match(open, { child, stage }).find({
+        child,
+        end: Type.cast(Num.add(now, 1n), Moment),
+        stage,
+        start: Type.cast(now, Moment),
+      });
+    })
+    .rule((r) => {
+      const open = openVisit.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { child, stage } = v(open, "beaconNearWindow");
+      const { during } = v(f.Presence, "nearWindow");
+      const now = Type.base(r.param("now", Reading));
+      const start = Range.lower(during, Moment);
+      const end = Range.upper(during, Moment);
+
+      return r
+        .match(open, { child, stage })
+        .match(f.Presence, { child, during, stage })
+        .where(
+          r.gt(Num.add(Type.base(end), presenceGraceMicros), now),
+          r.lt(Type.base(start), Num.add(now, 1n + presenceGraceMicros)),
+        )
+        .find({ child, end, stage, start });
+    });
+
+  /**
+   * The window a beacon puts, by its sitting: the hull of what it joins ({@link beaconNear}), from
+   * the least start to the greatest end.
+   */
+  const beaconHull = query(delivery).rule((r) => {
+    const near = beaconNear.bind({
+      now: r.param("now", Reading),
+      sittings: r.relation("sittings", sittingHeading),
+    });
+    const { child, stage, start, end } = v(near, "hullOf");
+
+    return r
+      .match(near, { child, end, stage, start })
+      .find({ child, end: r.max(end), stage, start: r.min(start) });
+  });
+
+  /**
+   * The open candidate session's presence beacon at `now`, the database's clock as the call reads
+   * it (an application serves it `clocked(…, { now: "micros" })`): the application's sign that its
+   * candidate is there, which a session's time is charged up to (`#delivery.ts`'s presence signs,
+   * H10) and every application's time credit is read from (`#delivery.ts` PresentTime). One put of
+   * the sitting's window (`Presence`), the hull of its reading and every window within the grace of
+   * it ({@link beaconHull}), which displaces each window it covers: with its readings in order, it
+   * grows the latest window to `now` where that window's last beacon is within the grace, and
+   * opens `[now, now + 1 µs)` otherwise, so a sitting holds one row a stretch of presence, never
+   * one a beacon; with a reading out of order (a call's clock is read at its BEGIN, before its
+   * borrow), it still keeps every reading inside a window and none overlapping. A window is no
+   * moment of the sitting's clock, so it ends no presentation's span; a sitting with no open
+   * candidate session writes nothing and reads back `unchanged`.
    */
   const beaconTest = ChangeSet.empty(delivery)
-    .insert(
-      f.TestBeacon,
+    .put(
+      f.Presence,
       query(delivery).rule((r) => {
-        const open = openVisit.bind({ sittings: r.relation("sittings", sittingHeading) });
-        const { child, stage, k } = v(open, "present");
-
-        return r.match(open, { child, k, stage }).find({ child, k, stage });
-      }),
-    )
-    .read("beacon", (delta) =>
-      query(delivery).rule((r) => {
-        const { child, stage, k, at } = v(delta.added(f.TestBeacon), "beaconed");
+        const hull = beaconHull.bind({
+          now: r.param("now", Reading),
+          sittings: r.relation("sittings", sittingHeading),
+        });
+        const { child, stage, start, end } = v(hull, "beaconWindow");
 
         return r
-          .match(delta.added(f.TestBeacon), { at, child, k, stage })
-          .find({ at, child, k, stage });
+          .match(hull, { child, end, stage, start })
+          .find({ child, during: r.span(start, end), stage });
+      }),
+    )
+    .read("presence", (delta) =>
+      query(delivery).rule((r) => {
+        const { child, stage, during } = v(delta.added(f.Presence), "beaconed");
+
+        return r.match(delta.added(f.Presence), { child, during, stage }).find({
+          child,
+          end: Range.upper(during, Moment),
+          stage,
+          start: Range.lower(during, Moment),
+        });
       }),
     )
     .read("standing", () => standing);

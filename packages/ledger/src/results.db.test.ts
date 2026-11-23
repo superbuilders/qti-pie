@@ -75,6 +75,16 @@
  * to its last beacon, even across its deadline, and one whose last sign is past its deadline is
  * refused its suspension ({@link presenceExpectedOf}).
  *
+ * And a sitting's presence windows (`beaconTest`, served on the database's clock and at a reading
+ * the call gives), held to their table ({@link windowExpected}): a beacon within 3 s of the
+ * sitting's latest window grows it, one past the grace opens a window of its own, a window
+ * overlapping another is refused by Presence's key and one from its end admitted, half-open, and
+ * a question visit is credited from the first beacon to the last, cut at a suspension and never
+ * charged a closed tab's tail (`PresentTime`, `LastPresence`). And any run of up to twelve
+ * beacons, in order or not, across a UTC midnight or not, leaves the windows, the visit's present
+ * time by day and the last beacon a serial reference gives ({@link windowsOfReadings},
+ * {@link creditByDayOf}).
+ *
  * And a test's item-session controls (`presentItem`, `saveTestItem`, `answerTestItem`, and
  * `finishTest`, the end with its finish), held to their table ({@link controlsExpectedOf}):
  * validate-responses and max-attempts 0 are delivered on an individual part's item ref alone ("only
@@ -89,10 +99,22 @@ import { Sha256 } from "@bjornpagen/grizzle";
 import { factsDecoder } from "@bjornpagen/grizzle/compile";
 import type { BrokenLaws } from "@bjornpagen/grizzle";
 import { Db, DbLayer, LiveSource, served } from "@bjornpagen/grizzle/runtime";
-import { exhaust } from "@bjornpagen/testing/explore";
-import { requiredInSpace } from "@bjornpagen/testing/features";
+import { drawn as drawnBy, exhaust, explore } from "@bjornpagen/testing/explore";
+import { required, requiredInSpace } from "@bjornpagen/testing/features";
 import type { Gen } from "@bjornpagen/testing/gen";
-import { boolean, element, int, map, oneOf, option } from "@bjornpagen/testing/gen";
+import {
+  array,
+  boolean,
+  constant,
+  element,
+  int,
+  map,
+  oneOf,
+  option,
+  shuffled,
+} from "@bjornpagen/testing/gen";
+import { notesOnly } from "@bjornpagen/testing/sense";
+import { completeShrink } from "@bjornpagen/testing/shrink";
 import { searched } from "@bjornpagen/testing/vitest";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, layer } from "@effect/vitest";
@@ -120,8 +142,9 @@ import { operatorTagPrefix } from "#ledger/registry/operators.ts";
 import { reviewShowsOf, sessionFactsOf } from "#ledger/served-item.ts";
 import type { ReviewShows, SessionControl } from "#ledger/served-item.ts";
 import { responseParamsOf } from "#ledger/served-values.ts";
+import { Reading } from "#ledger/sittings.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
-import { inFlightGraceMicros } from "#ledger/delivery.ts";
+import { inFlightGraceMicros, presenceGraceMicros } from "#ledger/delivery.ts";
 import { grader, ResultLevel, rubricUse } from "#ledger/test/result-level.ts";
 
 /**
@@ -2726,7 +2749,7 @@ const holdSupersede = (
  * A presence case: how a timed sitting's first candidate session ends, and the budget it begins
  * with.
  *
- * - `pause`: the candidate pauses, a beacon and a suspension in one statement, then resumes.
+ * - `pause`: the candidate pauses, a beacon, then a suspension, in one transaction, then resumes.
  * - `lapse`: a beacon, then two seconds of no sign (a closed tab), then the application suspends the
  *   session it finds abandoned, and the candidate resumes.
  * - `lapsePastDeadline`: the same with a one-second budget, so the deadline passes while the tab is
@@ -2796,6 +2819,15 @@ const presenceSituations = [
 type PresenceSituation = (typeof presenceSituations)[number];
 
 /**
+ * The last beacon of the window a beacon put, read back: one microsecond before the window's end,
+ * since a window is `[first, last + 1 µs)`.
+ *
+ * @param reads - The beacon's read-backs.
+ */
+const lastBeaconOf = (reads: Readonly<{ presence: Iterable<Readonly<{ end: bigint }>> }>) =>
+  Option.getOrThrow(Arr.head(Arr.fromIterable(reads.presence))).end - 1n;
+
+/**
  * One presence case: a fresh child's sitting of the timed test, taken by the test runtime's own
  * take (`takeSitting`), entered with the case's budget; then its ending, held to the table; and,
  * where the suspension is accepted, a resumption, whose budget is held to the first budget less the
@@ -2836,7 +2868,7 @@ const holdPresence = (
         const paused = yield* db.workload.pauseTest.once({ facts: {}, params: sitting });
         assert.strictEqual(paused.kind, "accepted", `${c.name}: the pause`);
 
-        return Option.some(Option.getOrThrow(Arr.head(Arr.fromIterable(paused.reads.beacon))).at);
+        return Option.some(lastBeaconOf(paused.reads));
       }
 
       if (c.ending === "presentPastDeadline") {
@@ -2846,7 +2878,7 @@ const holdPresence = (
       const beaconed = yield* db.workload.beaconTest.once({ facts: {}, params: sitting });
       assert.strictEqual(beaconed.kind, "accepted", `${c.name}: the beacon`);
 
-      const beacon = Option.getOrThrow(Arr.head(Arr.fromIterable(beaconed.reads.beacon))).at;
+      const beacon = lastBeaconOf(beaconed.reads);
       yield* Effect.sleep(Duration.millis(absenceMillis));
 
       const suspended = yield* Effect.result(
@@ -3368,6 +3400,539 @@ const holdShowing = (c: ShowingCase, child: string, note: (situation: ShowingSit
     }
   });
 
+/**
+ * A fresh child's sitting of the untimed test, taken by the test runtime's own take
+ * (`takeSitting`), and entered: its member {@link MEMBER} on screen from the instant its first
+ * candidate session began, the entry's, which the case reads back.
+ *
+ * @param name - The case's name, for its assertions.
+ * @param child - The run's fresh child.
+ */
+const enteredSitting = (name: string, child: string) =>
+  Effect.gen(function* enter() {
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const sitting = { child, stage: 1n };
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: PACKAGE, path: UNTIMED_TEST, seed: DECISION },
+    });
+    assert.strictEqual(taken.kind, "accepted", `${name}: the sitting, as the take writes it`);
+
+    const entered = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(entered.kind, "accepted", `${name}: the entry`);
+
+    return {
+      began: Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at,
+      db,
+      sitting,
+    } as const;
+  });
+
+/**
+ * A presence window by its ends, half-open in microseconds on the database's clock: `[first, last
+ *
+ * - 1 µs)`.
+ */
+type Window = readonly [start: bigint, end: bigint];
+
+/**
+ * What a sitting's presence reads say after a case: its windows, by their start; the present time
+ * of each question visit with any, by the visit's instant, summed over its UTC days; and its last
+ * beacon.
+ */
+type PresenceReads = Readonly<{
+  credits: readonly (readonly [at: bigint, micros: bigint])[];
+  last: bigint;
+  windows: readonly Window[];
+}>;
+
+/**
+ * A sitting's presence reads, through the suite's readers of `Presence`, `PresentTime` and
+ * `LastPresence`, one child's at a time.
+ *
+ * @param child - The case's child.
+ */
+const presenceReadsOf = (child: string) =>
+  Effect.gen(function* read() {
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const windows = Arr.fromIterable(
+      yield* db.workload.windowsOf.once({ facts: {}, params: { child } }),
+    )
+      .map((row): Window => [row.from, row.to])
+      .toSorted(([a], [b]) => (a < b ? -1 : 1));
+    const credits = new Map<bigint, bigint>();
+    for (const row of yield* db.workload.presentTimesOf.once({ facts: {}, params: { child } })) {
+      credits.set(row.at, (credits.get(row.at) ?? 0n) + BigInt(row.micros.toString()));
+    }
+    const last = Option.getOrThrow(
+      Arr.head(
+        Arr.fromIterable(yield* db.workload.lastPresencesOf.once({ facts: {}, params: { child } })),
+      ),
+    ).at;
+
+    return {
+      credits: [...credits.entries()].toSorted(([a], [b]) => (a < b ? -1 : 1)),
+      last,
+      windows,
+    } satisfies PresenceReads;
+  });
+
+/**
+ * A presence-window case: how its beacons go on a fresh child's untimed sitting, entered, its first
+ * member on screen from the entry.
+ *
+ * - `grows`: two beacons 1.5 s apart, within the grace, at readings the case gives.
+ * - `graceJoins`: two beacons exactly the grace apart.
+ * - `opensPastGrace`: two beacons the grace and a microsecond apart.
+ * - `overlapRefused`: a window, then a window written as host rows inside it, and one just past it.
+ * - `pause`: a beacon, a pause (a beacon, then a suspension, in one transaction), a resumption and a
+ *   beacon, on the database's clock, each at once after the one before.
+ * - `tail`: a beacon, another a second later, then two seconds of no sign (a closed tab) and the
+ *   application's suspension of the session it finds abandoned, on the database's clock.
+ */
+type WindowCase = Readonly<{
+  beacons: "grows" | "graceJoins" | "opensPastGrace" | "overlapRefused" | "pause" | "tail";
+  name: string;
+}>;
+
+/**
+ * Every presence-window case.
+ */
+const windowCases = [
+  { beacons: "grows", name: "two beacons within the grace grow one window" },
+  { beacons: "graceJoins", name: "two beacons exactly the grace apart share one window" },
+  { beacons: "opensPastGrace", name: "a beacon past the grace opens a window of its own" },
+  { beacons: "overlapRefused", name: "a window overlapping another is refused by the key" },
+  { beacons: "pause", name: "a window across a pause credits nothing of the suspension" },
+  { beacons: "tail", name: "a closed tab's time after the last beacon credits nothing" },
+] as const satisfies readonly WindowCase[];
+
+const windowSpace: Gen<WindowCase> = element(windowCases);
+
+/**
+ * What a presence-window case's reads must say: beacons at readings the case gives, and the
+ * windows, the visit's present time and the last beacon they leave; a window overlapping another,
+ * and one adjacent; or a pause or a closed tab on the database's clock, which the case reads back.
+ */
+type WindowExpected =
+  | Readonly<{
+      credit: bigint;
+      kind: "readings";
+      last: bigint;
+      reaches: WindowSituation;
+      readings: readonly bigint[];
+      windows: readonly Window[];
+    }>
+  | Readonly<{ adjacent: Window; inside: Window; kind: "overlap"; readings: readonly bigint[] }>
+  | Readonly<{ kind: "pause" }>
+  | Readonly<{ kind: "tail" }>;
+
+/**
+ * The presence-window table, each case's beacons at microseconds after the sitting's entry and
+ * what its reads must say, by the owner's presence design (2026-11-23): a beacon within 3 s of the
+ * sitting's latest window grows it, any other opens one; a window is `[first, last + 1 µs)` and
+ * credits from its first beacon to its last; no two windows of a sitting overlap; time credit is
+ * cut at a suspension, and ends at the last beacon, never at what follows it.
+ */
+const windowExpected = {
+  graceJoins: {
+    credit: 3_000_000n,
+    kind: "readings",
+    last: 3_500_000n,
+    reaches: "a gap of exactly the grace joins",
+    readings: [500_000n, 3_500_000n],
+    windows: [[500_000n, 3_500_001n]],
+  },
+  grows: {
+    credit: 1_500_000n,
+    kind: "readings",
+    last: 2_000_000n,
+    reaches: "a window grown within the grace",
+    readings: [500_000n, 2_000_000n],
+    windows: [[500_000n, 2_000_001n]],
+  },
+  opensPastGrace: {
+    credit: 0n,
+    kind: "readings",
+    last: 3_500_001n,
+    reaches: "a gap past the grace opens a window",
+    readings: [500_000n, 3_500_001n],
+    windows: [
+      [500_000n, 500_001n],
+      [3_500_001n, 3_500_002n],
+    ],
+  },
+  overlapRefused: {
+    adjacent: [2_000_001n, 2_000_002n],
+    inside: [1_000_000n, 1_000_001n],
+    kind: "overlap",
+    readings: [500_000n, 2_000_000n],
+  },
+  pause: { kind: "pause" },
+  tail: { kind: "tail" },
+} as const satisfies Readonly<Record<WindowCase["beacons"], WindowExpected>>;
+
+/**
+ * The situations the presence-window space must reach.
+ */
+const windowSituations = [
+  "a window grown within the grace",
+  "a gap of exactly the grace joins",
+  "a gap past the grace opens a window",
+  "an overlapping window refused, an adjacent one admitted",
+  "a pause's suspended time credited to nothing",
+  "a closed tab's tail credited to nothing",
+] as const;
+
+type WindowSituation = (typeof windowSituations)[number];
+
+/**
+ * How long the tail case waits between its two beacons, and after its last before the suspension.
+ */
+const tailGapMillis = 1000;
+
+const tailAbsenceMillis = 2000;
+
+/**
+ * One presence-window case, held to {@link windowExpected}.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdWindow = (c: WindowCase, child: string, note: (situation: WindowSituation) => void) =>
+  Effect.gen(function* hold() {
+    const want = windowExpected[c.beacons];
+    const { db, sitting, began } = yield* enteredSitting(c.name, child);
+    const at = (reading: bigint) =>
+      db.workload.beaconAt.once({
+        facts: {},
+        params: { ...sitting, now: Reading(began + reading) },
+      });
+
+    if (want.kind === "readings") {
+      for (const reading of want.readings) {
+        const beaconed = yield* at(reading);
+        assert.strictEqual(
+          beaconed.kind,
+          "accepted",
+          `${c.name}: the beacon at ${String(reading)}`,
+        );
+      }
+
+      assert.deepStrictEqual<unknown>(
+        yield* presenceReadsOf(child),
+        {
+          credits: want.credit === 0n ? [] : [[began, want.credit]],
+          last: began + want.last,
+          windows: want.windows.map(([start, end]) => [began + start, began + end]),
+        },
+        `${c.name}: the windows, the visit's present time and the last beacon`,
+      );
+      note(want.reaches);
+
+      return;
+    }
+
+    if (want.kind === "overlap") {
+      for (const reading of want.readings) {
+        const beaconed = yield* at(reading);
+        assert.strictEqual(
+          beaconed.kind,
+          "accepted",
+          `${c.name}: the beacon at ${String(reading)}`,
+        );
+      }
+
+      const windowAt = ([start, end]: Window) =>
+        Effect.result(
+          db.workload.windowFacts.once({
+            facts: {
+              insert: {
+                Presence: rowsOf("Presence", [
+                  { ...sitting, during: { end: began + end, start: began + start } },
+                ]),
+              },
+            },
+            params: {},
+          }),
+        );
+      const inside = yield* windowAt(want.inside);
+      assert.isTrue(
+        Result.isFailure(inside) &&
+          inside.failure.kind === "refused" &&
+          refusedLawsOf(inside.failure.refused).some(
+            (refusal) => refusal.law.kind === "primaryKey" && refusal.law.relation === "Presence",
+          ),
+        `${c.name}: the window inside another refused by Presence's key, got ${Formatter.format(inside)}`,
+      );
+
+      const adjacent = yield* windowAt(want.adjacent);
+      assert.isTrue(
+        Result.isSuccess(adjacent) && adjacent.success.kind === "accepted",
+        `${c.name}: the window from the other's end admitted, half-open, got ${Formatter.format(adjacent)}`,
+      );
+      note("an overlapping window refused, an adjacent one admitted");
+
+      return;
+    }
+
+    if (want.kind === "pause") {
+      const opened = yield* db.workload.beaconTest.once({ facts: {}, params: sitting });
+      const first = lastBeaconOf(opened.reads);
+      const paused = yield* db.workload.pauseTest.once({ facts: {}, params: sitting });
+      assert.strictEqual(paused.kind, "accepted", `${c.name}: the pause`);
+
+      const pausedAt = lastBeaconOf(paused.reads);
+      const resumed = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+      assert.strictEqual(resumed.kind, "accepted", `${c.name}: the resumption`);
+
+      const resumedAt = Option.getOrThrow(Arr.head(Arr.fromIterable(resumed.reads.entered))).at;
+      const after = yield* db.workload.beaconTest.once({ facts: {}, params: sitting });
+      const last = lastBeaconOf(after.reads);
+
+      assert.deepStrictEqual<unknown>(
+        yield* presenceReadsOf(child),
+        {
+          credits: [
+            [began, pausedAt - first],
+            [resumedAt, last - resumedAt],
+          ],
+          last,
+          windows: [[first, last + 1n]],
+        },
+        `${c.name}: one window across the pause, its credit each visit's part of it, the suspension's none`,
+      );
+      note("a pause's suspended time credited to nothing");
+
+      return;
+    }
+
+    const opened = yield* db.workload.beaconTest.once({ facts: {}, params: sitting });
+    const first = lastBeaconOf(opened.reads);
+    yield* Effect.sleep(Duration.millis(tailGapMillis));
+
+    const second = lastBeaconOf(
+      (yield* db.workload.beaconTest.once({ facts: {}, params: sitting })).reads,
+    );
+    yield* Effect.sleep(Duration.millis(tailAbsenceMillis));
+
+    const suspended = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(suspended.kind, "accepted", `${c.name}: the application's suspension`);
+
+    assert.deepStrictEqual<unknown>(
+      yield* presenceReadsOf(child),
+      { credits: [[began, second - first]], last: second, windows: [[first, second + 1n]] },
+      `${c.name}: the visit credited from the first beacon to the last, none of the tail`,
+    );
+    note("a closed tab's tail credited to nothing");
+  });
+
+/**
+ * The grace on the database's clock, in microseconds, as the suite reads it.
+ */
+const grace = presenceGraceMicros;
+
+/**
+ * The microseconds of one UTC day.
+ */
+const dayMicros = 86_400_000_000n;
+
+/**
+ * The windows a sitting's beacons at these readings leave, by the presence rule stated apart from
+ * the put, for readings sent in any order: the readings sorted, each run of them whose gaps are
+ * each within the grace one window, `[first, last + 1 µs)`.
+ *
+ * @param readings - The beacons' readings.
+ */
+const windowsOfReadings = (readings: readonly bigint[]): readonly Window[] => {
+  const sorted = [...new Set(readings)].toSorted((a, b) => (a < b ? -1 : 1));
+  const runs: [bigint, bigint][] = [];
+  for (const reading of sorted) {
+    const run = runs.at(-1);
+    if (run !== undefined && reading - run[1] <= grace) {
+      run[1] = reading;
+    } else {
+      runs.push([reading, reading]);
+    }
+  }
+
+  return runs.map(([first, last]): Window => [first, last + 1n]);
+};
+
+/**
+ * The sum of microseconds.
+ *
+ * @param parts - The microseconds to add.
+ */
+const sumOf = (parts: Iterable<bigint>) => {
+  let sum = 0n;
+  for (const part of parts) {
+    sum += part;
+  }
+
+  return sum;
+};
+
+/**
+ * A window's credit from `at` on, by UTC day: from its first beacon to its last, each day's part.
+ *
+ * @param windows - The sitting's windows.
+ * @param at - The presentation on screen throughout, from its instant.
+ */
+const creditByDayOf = (windows: readonly Window[], at: bigint) => {
+  const days = new Map<bigint, bigint>();
+  for (const [start, end] of windows) {
+    let from = start < at ? at : start;
+    const to = end - 1n;
+    while (from < to) {
+      const day = from / dayMicros;
+      const dayEnd = (day + 1n) * dayMicros;
+      const part = (to < dayEnd ? to : dayEnd) - from;
+      days.set(day, (days.get(day) ?? 0n) + part);
+      from = dayEnd;
+    }
+  }
+
+  return days;
+};
+
+/**
+ * A run of a sitting's beacons: the gaps in microseconds between its consecutive beacons by time,
+ * the order they are sent in (each the place of a beacon by time), and whether they straddle a UTC
+ * midnight.
+ */
+type BeaconRun = Readonly<{ gaps: readonly number[]; midnight: boolean; order: readonly number[] }>;
+
+/**
+ * A gap between two beacons: within the grace, the grace exactly, a microsecond past it, or far
+ * past it.
+ */
+const gapOf: Gen<number> = oneOf([
+  int(0, Number(grace) - 1),
+  constant(Number(grace)),
+  constant(Number(grace) + 1),
+  int(Number(grace) + 1, 60_000_000),
+]);
+
+/**
+ * A run of up to twelve beacons, sent in order or in a drawn order.
+ */
+const beaconRuns: Gen<BeaconRun> = (source) => {
+  const gaps = array(gapOf, { max: 11, min: 0 })(source);
+  const places = Arr.makeBy(gaps.length + 1, (place) => place);
+  const order = boolean(source)
+    ? shuffled(places, { max: places.length, min: places.length })(source)
+    : places;
+
+  return { gaps, midnight: boolean(source), order };
+};
+
+/**
+ * The situations the beacon runs must reach.
+ */
+const beaconSituations = [
+  "a window grown",
+  "a gap of exactly the grace joins",
+  "a gap past the grace opens a window",
+  "a beacon out of order",
+  "a beacon joins two windows",
+  "a window across a UTC midnight",
+  "a lone beacon credits nothing",
+] as const;
+
+type BeaconSituation = (typeof beaconSituations)[number];
+
+/**
+ * One run of beacons, sent at the readings it draws through the beacon served at a reading the
+ * call gives, on a fresh child's entered sitting, and held to the serial reference: the windows
+ * {@link windowsOfReadings} gives, the on-screen visit's present time by day
+ * {@link creditByDayOf} gives, and the greatest reading as its last beacon.
+ *
+ * @param run - The run.
+ * @param child - The case's fresh child.
+ * @param note - Records the situations the run reaches.
+ */
+const holdBeacons = (run: BeaconRun, child: string, note: (situation: BeaconSituation) => void) =>
+  Effect.gen(function* hold() {
+    const { db, sitting, began } = yield* enteredSitting("a run of beacons", child);
+    const offsets = [0n];
+    for (const gap of run.gaps) {
+      offsets.push((offsets.at(-1) ?? 0n) + BigInt(gap));
+    }
+
+    const span = offsets.at(-1) ?? 0n;
+    const base = run.midnight ? (began / dayMicros + 2n) * dayMicros - span / 2n : began;
+    const readings = offsets.map((offset) => base + offset);
+
+    for (const place of run.order) {
+      const reading = Arr.getUnsafe(readings, place);
+      const sent = readings.filter((_, at) => run.order.indexOf(at) <= run.order.indexOf(place));
+      const before = windowsOfReadings(sent.filter((other) => other !== reading)).length;
+      const beaconed = yield* db.workload.beaconAt.once({
+        facts: {},
+        params: { ...sitting, now: Reading(reading) },
+      });
+      assert.include(["accepted", "unchanged"], beaconed.kind, `the beacon at ${String(reading)}`);
+      if (windowsOfReadings(sent).length < before) {
+        note("a beacon joins two windows");
+      }
+    }
+
+    const sorted = readings.toSorted((a, b) => (a < b ? -1 : 1));
+    const expected = windowsOfReadings(readings);
+    const credit = creditByDayOf(expected, began);
+    const reads = yield* presenceReadsOf(child);
+    assert.deepStrictEqual<unknown>(
+      reads.windows,
+      expected,
+      "the windows, against the serial reference",
+    );
+    assert.deepStrictEqual<unknown>(
+      reads.credits,
+      credit.size === 0 ? [] : [[began, sumOf(credit.values())]],
+      "the on-screen visit's present time, against the serial reference",
+    );
+    assert.strictEqual(reads.last, sorted.at(-1), "the last beacon, the greatest reading");
+
+    const days = Arr.fromIterable(
+      yield* db.workload.presentTimesOf.once({ facts: {}, params: { child } }),
+    )
+      .map((row) => [row.day, BigInt(row.micros.toString())] as const)
+      .toSorted(([a], [b]) => (a < b ? -1 : 1));
+    assert.deepStrictEqual<unknown>(
+      days,
+      [...credit.entries()].toSorted(([a], [b]) => (a < b ? -1 : 1)),
+      "the present time by UTC day, against the serial reference",
+    );
+
+    if (expected.some(([start, end]) => end - start > 1n)) {
+      note("a window grown");
+    }
+
+    if (sorted.some((reading, at) => at > 0 && reading - Arr.getUnsafe(sorted, at - 1) === grace)) {
+      note("a gap of exactly the grace joins");
+    }
+
+    if (expected.length > 1) {
+      note("a gap past the grace opens a window");
+    }
+
+    if (run.order.some((place, at) => place !== at)) {
+      note("a beacon out of order");
+    }
+
+    if (credit.size > 1) {
+      note("a window across a UTC midnight");
+    }
+
+    if (expected.some(([start, end]) => end - start === 1n)) {
+      note("a lone beacon credits nothing");
+    }
+  });
+
 describe.skipIf(Option.isNone(migrations))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
@@ -3634,6 +4199,85 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the presences held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "keeps one presence window a stretch of beacons, refuses an overlap, and credits each visit from the first beacon to the last",
+          (ctx) =>
+            Effect.gen(function* holdEveryWindowCase() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "beacons within, at and past the grace, an overlapping window, a pause and a closed tab, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<WindowSituation>(windowSituations),
+                    generator: windowSpace,
+                    literal: (c: WindowCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "windowExpected: the owner's presence design (2026-11-23), a window grown within 3 s, `[first, last + 1 µs)`, no two overlapping, credit cut at a suspension and ending at the last beacon",
+                    },
+                    suite: "ledger/results/windows",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdWindow(row, `user_ledgerwin${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the windows held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "puts the windows the serial reference gives for any run of beacons, in any order, and credits them by UTC day",
+          (ctx) =>
+            Effect.gen(function* holdEveryBeaconRun() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              yield* searched(
+                ctx,
+                explore(
+                  {
+                    caseHang: Duration.minutes(2),
+                    coverage: required<BeaconSituation>(beaconSituations, {
+                      cases: 128,
+                      sense: notesOnly,
+                    }),
+                    draw: drawnBy(beaconRuns),
+                    kept: [],
+                    literal: (run) => JSON.stringify(run),
+                    oracle: {
+                      kind: "second-implementation",
+                      name: "windowsOfReadings and creditByDayOf: the readings sorted, each run whose gaps are within the grace one window, credited first beacon to last and split at UTC midnights",
+                    },
+                    runs: 64,
+                    shrink: completeShrink,
+                    steerEvery: 16,
+                    suite: "ledger/results/beacons",
+                  },
+                  (run, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdBeacons(run, `user_ledgerrun${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
             }).pipe(Effect.orDie),
         );
 

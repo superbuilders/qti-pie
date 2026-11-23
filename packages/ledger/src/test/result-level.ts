@@ -21,25 +21,28 @@
  * processing set and the record it begins with are the machine's), reading both what the take
  * stored and the machine's own run of it (`templateProcessingOf` over `takeArgumentsOf`); takes a
  * test's sitting through the test runtime's own take (`takeSitting`), writes an attempt of a member
- * as host rows (`sittingFacts`), then enters, presents in, saves in,
- * answers in, beacons in, pauses (a beacon and a suspension in one statement), suspends and ends it
- * through the test runtime's own programs (`sittingProgramsOf`),
- * each over the sitting the call names, a timed entry with the first budget the call gives, as an
- * application's level writes it from its applied limit, and an end followed by the finish
- * (`finishTest`, `finishTestOf` sequenced after `endTest`, as every application ends a sitting);
- * and reads the Delivery relations the suite holds to its table, the tests it delivers, each
- * attempt's completion status and outcomes as its response processing wrote them, each
- * attempt's string values, its candidate sessions' budgets, and each item session's control and
- * state as every application reads them (`sessionControlOf`), one child's at a time.
+ * as host rows (`sittingFacts`), then enters, presents in, saves in, answers in, beacons in (on the
+ * database's clock, and at a reading the call gives), pauses (a beacon, then a suspension, in one
+ * transaction), suspends and ends it through the test runtime's own programs (`sittingProgramsOf`),
+ * writes a presence window as host rows, each over the sitting the call names, a timed entry with
+ * the first budget the call gives, as an application's level writes it from its applied limit, and
+ * an end followed by the finish (`finishTest`, `finishTestOf` sequenced after `endTest`, as every
+ * application ends a sitting); and reads the Delivery relations the suite holds to its table, the
+ * tests it delivers, each attempt's completion status and outcomes as its response processing wrote
+ * them, each attempt's string values, its candidate sessions' budgets, each item session's control
+ * and state as every application reads them (`sessionControlOf`), and its presence windows,
+ * present time and last beacons, one child's at a time.
  *
  * @module
  */
 import {
   ChangeSet,
+  clocked,
   Fn,
   login,
   pg,
   query,
+  Range,
   role,
   Type,
   v,
@@ -67,11 +70,12 @@ import {
 import { templateProcessingOf } from "#ledger/grading.ts";
 import { LearnerId } from "#ledger/keys.ts";
 import { ledgerOf, sessionTables } from "#ledger/ledger.ts";
+import { Moment } from "#ledger/sittings.ts";
 import type { GraderVersion } from "#ledger/registry/contract.ts";
 import { registryOf } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
 import { sessionControlOf } from "#ledger/session-control.ts";
-import { sittingProgramsOf, sittingTables } from "#ledger/sitting-programs.ts";
+import { presenceTables, sittingProgramsOf, sittingTables } from "#ledger/sitting-programs.ts";
 import { sittingHeading, sittingOfSessionOf, takenHeading } from "#ledger/sitting-queries.ts";
 import { settleTables } from "#ledger/test-run-writes.ts";
 
@@ -128,9 +132,12 @@ const {
   ItemSessionValue,
   ItemSessionValueSingleIdentifier,
   ItemSessionValueSingleInteger,
+  LastPresence,
   OutcomeInForceSingleFloat,
   Package,
   PendingApplication,
+  Presence,
+  PresentTime,
   ProcessedAttempt,
   SnapshotMultipleIdentifier,
   SnapshotSingleBoolean,
@@ -176,6 +183,7 @@ const Suite = role(ResultLevel, "result_runner", wholeEntriesOf(ResultLevel), {
     ...gradeAttemptTables,
     ...settleTables,
     ...sittingTables,
+    ...presenceTables,
   ],
 });
 
@@ -719,6 +727,48 @@ const durationsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The child's sittings' presence windows (`Presence`), each by its sitting and its ends, half-open
+ * in microseconds on the database's clock.
+ */
+const windowsOf = query(ResultLevel).rule((r) => {
+  const { stage, during } = v(Presence, "window");
+
+  return r.match(Presence, { child: r.param("child", LearnerId), during, stage }).find({
+    from: Range.lower(during, Moment),
+    stage,
+    to: Range.upper(during, Moment),
+  });
+});
+
+/**
+ * The child's present time (`PresentTime`), each by its sitting, its question visit's instant
+ * read as microseconds, and its UTC day.
+ */
+const presentTimesOf = query(ResultLevel).rule((r) => {
+  const { stage, at, day, micros, path } = v(PresentTime, "presentTime");
+
+  return r
+    .match(PresentTime, { at, child: r.param("child", LearnerId), day, micros, path, stage })
+    .find({ at: Type.base(at), day, micros, path, stage });
+});
+
+/**
+ * The child's sittings' last beacons (`LastPresence`).
+ */
+const lastPresencesOf = query(ResultLevel).rule((r) => {
+  const { stage, at } = v(LastPresence, "lastPresence");
+
+  return r
+    .match(LastPresence, { at, child: r.param("child", LearnerId), stage })
+    .find({ at, stage });
+});
+
+/**
+ * A presence window as host rows, written as no beacon writes one: the overlap its key refuses.
+ */
+const windowFacts = ChangeSet.empty(ResultLevel).insert(Presence, []);
+
+/**
  * The child's sittings' candidate session budgets (`TestBudget`), each by its sitting and place.
  */
 const budgetsOf = query(ResultLevel).rule((r) => {
@@ -762,7 +812,10 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       applicationsOf,
       attemptsOf,
       awaitingOf,
-      beaconTest: sittingPrograms.beaconTest.bind({ sittings: namedSitting }),
+      beaconAt: sittingPrograms.beaconTest.bind({ sittings: namedSitting }),
+      beaconTest: clocked(sittingPrograms.beaconTest.bind({ sittings: namedSitting }), {
+        now: "micros",
+      }),
       begin,
       budgetsOf,
       completionsOf,
@@ -782,12 +835,17 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       }),
       floatsOf,
       grade: gradeAttemptOf(ResultLevel).bind({ sittings: sessionSitting }),
+      lastPresencesOf,
       maximaOf,
       operandsOf,
-      pauseTest: ChangeSet.union(sittingPrograms.beaconTest, sittingPrograms.suspendTest).bind({
-        sittings: namedSitting,
-      }),
+      pauseTest: clocked(
+        ChangeSet.sequence(sittingPrograms.beaconTest, sittingPrograms.suspendTest).bind({
+          sittings: namedSitting,
+        }),
+        { now: "micros" },
+      ),
       presentItem: sittingPrograms.presentItem.bind({ sittings: namedSitting }),
+      presentTimesOf,
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
       recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),
       saveTestItem: sittingPrograms.saveTestItem.bind({ sittings: namedSitting }),
@@ -805,6 +863,8 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       takenHeadersOf,
       takenIdentifiersOf,
       takenIntegersOf,
+      windowFacts,
+      windowsOf,
     }),
   ],
 });

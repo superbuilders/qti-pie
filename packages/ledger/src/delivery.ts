@@ -40,6 +40,11 @@
  *   in-flight grace past it ({@link inFlightGraceMicros}), unless the test allows late submission
  *   (Table 7.40.3). The browser's reading of when it was given decides nothing. Each is the
  *   sitting's state as a law, so a write outside it is refused, naming it, whoever writes.
+ * - The readers of a sitting's presence, which store nothing (`Presence`, its windows of an
+ *   application's beacons): **PresentTime**, the time the candidate was there in each question
+ *   visit by UTC day, every application's time credit, and **LastPresence**, each sitting's last
+ *   beacon, which an application reads absence from by its own threshold. Presence is no QTI
+ *   duration: ItemDuration stays its presentations' (§2.2.2.2).
  *
  * Instants are microseconds on the database's clock; a duration is the difference of two instants
  * of the sitting's clock, read as the bigint it is (`Type.base`).
@@ -53,12 +58,14 @@ import {
   on,
   pg,
   query,
+  Range,
   schema,
   Type,
   v,
 } from "@bjornpagen/grizzle";
 import { assertionViewsOf } from "#ledger/assertion-views.ts";
 import { creditRelationsOf } from "#ledger/credit-relations.ts";
+import { LearnerId } from "#ledger/keys.ts";
 import { named } from "#ledger/laws.ts";
 import type { ledgerOf } from "#ledger/ledger.ts";
 import { memberControlsOf } from "#ledger/member-controls.ts";
@@ -67,6 +74,7 @@ import { resultRelationsOf } from "#ledger/results.ts";
 import { servableOf } from "#ledger/servable.ts";
 import { sessionAttemptsOf } from "#ledger/session-attempts.ts";
 import { sessionControlsOf } from "#ledger/session-control.ts";
+import { Moment, clockTop } from "#ledger/sittings.ts";
 import { testLawsOf } from "#ledger/test-laws.ts";
 
 /**
@@ -130,6 +138,44 @@ export const longestMaxTime = 1e12;
 export const inFlightGraceMicros = 10_000_000n;
 
 /**
+ * PresenceGrace: how long after a sitting's latest presence window ends a beacon still extends it,
+ * in microseconds on the database's clock, three seconds, three beacon periods: a beacon later than
+ * this opens a window of its own, so the gap between them is credited to nothing. A false split
+ * only undercounts the gap, never overcounts.
+ *
+ * @limitKind published
+ * @owner Bjorn, the owner, in the presence design he approved on 2026-11-23
+ * @unit microseconds
+ * @scope the longest gap, on the database's clock, between a sitting's latest window's last beacon
+ *   and the beacon that extends it
+ * @constraint protocol constant
+ * @source edullm's out/rc-cutover/decisions-for-bjorn.html, items 1 and 2a, approved "1 yes (ii) ·
+ *   2 a yes"; the design is out/rc-cutover/PRESENCE.md, "The write: the beacon"
+ * @quote if the sitting's latest window ended within **3 s**, extend its range to now.
+ * @verified 2026-11-23
+ */
+export const presenceGraceMicros = 3_000_000n;
+
+/**
+ * The microseconds of one UTC day, which has no leap second on the database's clock.
+ */
+const dayMicros = 86_400_000_000n;
+
+/**
+ * The most UTC days one piece of a sitting's presence touches: every piece lies between 0 and the
+ * top of a window's end ({@link clockTop}), so it begins on a day at most this many less one before
+ * the last it touches.
+ *
+ * @limitKind derived
+ * @owner the presence readers (#ledger/delivery.ts PresentTime)
+ * @unit UTC days
+ * @scope the days one piece of presence in one question visit touches
+ * @derivation the whole days below {@link clockTop}, and the one it falls in
+ * @from {@link clockTop}, {@link dayMicros}
+ */
+const pieceDaysMost = clockTop / dayMicros + 1n;
+
+/**
  * The delivery level over the ledger.
  *
  * @param ledger The Ledger level, the installation's composition of qti-pie's levels below this
@@ -149,7 +195,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ResponseSnapshot,
     SessionControl,
     SnapshotGiven,
-    TestBeacon,
+    Presence,
     TestBudget,
     TestEnd,
     TestMember,
@@ -519,16 +565,20 @@ export const deliveryOf = (ledger: LedgerLevel) => {
 
   /**
    * Each sign that a candidate session's candidate was there, by its instant in microseconds on the
-   * database's clock (a sign of the sitting's clock and a response of its item session's, read as
-   * readings of one clock, as {@link sessionSnapshots} compares them): the session's start, an
-   * application's presence beacon in it (`TestBeacon`), a presentation in it, a response snapshot
-   * inside it, a save or an answer, and the sitting's end in it, the candidate's submission or the
-   * close at the deadline while the candidate is there (an application suspends a session it finds
-   * abandoned, never ends it). A session is charged up to its last sign: the time after it, a
-   * closed tab's or a lost connection's, is no time the candidate used (H10), so an application
-   * suspends a session it finds abandoned, and the suspension, stamped when it is written, charges
-   * nothing past the last sign; a pause the candidate makes carries a beacon of its own, in the
-   * pause's statement, and is charged to the pause.
+   * database's clock (a sign of the sitting's clock, a window's and a response of its item
+   * session's, read as readings of one clock, as {@link sessionSnapshots} compares them): the
+   * session's start, an application's presence window in it ({@link Presence}), its last beacon
+   * (one microsecond before its end, a window being `[first, last + 1 µs)`) where the session was
+   * still open then, else the session's suspension or end, a presentation in it, a response
+   * snapshot inside it, a save or an answer, and the sitting's end in it, the candidate's
+   * submission or the close at the deadline while the candidate is there (an application suspends a
+   * session it finds abandoned, never ends it). A window lies in the candidate sessions it
+   * overlaps: it opens and grows only while one is open, and a beacon within the grace of a pause
+   * and a resumption extends the window across them. A session is charged up to its last sign: the
+   * time after it, a closed tab's or a lost connection's, is no time the candidate used (H10), so
+   * an application suspends a session it finds abandoned, and the suspension, stamped when it is
+   * written, charges nothing past the last sign; a pause the candidate makes carries a beacon of
+   * its own, first in the pause's transaction, and is charged to the pause.
    */
   const presenceSigns = query(ledger)
     .rule((r) => {
@@ -539,11 +589,61 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .find({ at: Type.base(at), child, k, stage });
     })
     .rule((r) => {
-      const { child, stage, k, at } = v(TestBeacon, "beaconSign");
+      const { child, stage, k, at: began } = v(TestVisit, "openWindowVisit");
+      const { during } = v(Presence, "openWindow");
+      const last = Type.cast(Num.sub(Type.base(Range.upper(during, Moment)), 1n), pg.bigint);
 
       return r
-        .match(TestBeacon, { at, child, k, stage })
-        .find({ at: Type.base(at), child, k, stage });
+        .match(TestVisit, { at: began, child, k, stage })
+        .match(Presence, { child, during, stage })
+        .where(
+          r.ge(last, Type.base(began)),
+          r.not(TestSuspension, { child, k, stage }),
+          r.not(TestEnd, { child, stage }),
+        )
+        .find({ at: last, child, k, stage });
+    })
+    .rule((r) => {
+      const { child, stage, k, at: began } = v(TestVisit, "suspendedWindowVisit");
+      const { at: suspended } = v(TestSuspension, "windowSuspension");
+      const { during } = v(Presence, "suspendedWindow");
+      const last = Type.cast(Num.sub(Type.base(Range.upper(during, Moment)), 1n), pg.bigint);
+
+      return r
+        .match(TestVisit, { at: began, child, k, stage })
+        .match(TestSuspension, { at: suspended, child, k, stage })
+        .match(Presence, { child, during, stage })
+        .where(
+          r.ge(last, Type.base(began)),
+          r.le(Type.base(Range.lower(during, Moment)), Type.base(suspended)),
+        )
+        .find({
+          at: Logic.least(last, Type.base(suspended)),
+          child,
+          k,
+          stage,
+        });
+    })
+    .rule((r) => {
+      const { child, stage, k, at: began } = v(TestVisit, "endedWindowVisit");
+      const { at: end } = v(TestEnd, "windowEnd");
+      const { during } = v(Presence, "endedWindow");
+      const last = Type.cast(Num.sub(Type.base(Range.upper(during, Moment)), 1n), pg.bigint);
+
+      return r
+        .match(TestVisit, { at: began, child, k, stage })
+        .match(TestEnd, { at: end, child, k, stage })
+        .match(Presence, { child, during, stage })
+        .where(
+          r.ge(last, Type.base(began)),
+          r.le(Type.base(Range.lower(during, Moment)), Type.base(end)),
+        )
+        .find({
+          at: Logic.least(last, Type.base(end)),
+          child,
+          k,
+          stage,
+        });
     })
     .rule((r) => {
       const { child, stage, k, at } = v(TestPresented, "presentedSign");
@@ -567,12 +667,17 @@ export const deliveryOf = (ledger: LedgerLevel) => {
 
   /**
    * Each candidate session's last sign of presence ({@link presenceSigns}): its start where it
-   * holds no later one.
+   * holds no later one. The visit is matched first, so its child, sitting and place are bound
+   * before the greatest is taken, and each reader reads its own sessions' signs by key.
    */
   const lastPresences = query(ledger).rule((r) => {
-    const { child, stage, k, at } = v(presenceSigns, "lastSign");
+    const { child, stage, k } = v(TestVisit, "signedVisit");
+    const { at } = v(presenceSigns, "lastSign");
 
-    return r.match(presenceSigns, { at, child, k, stage }).find({ at: r.max(at), child, k, stage });
+    return r
+      .match(TestVisit, { child, k, stage })
+      .match(presenceSigns, { at, child, k, stage })
+      .find({ at: r.max(at), child, k, stage });
   });
 
   /**
@@ -640,6 +745,156 @@ export const deliveryOf = (ledger: LedgerLevel) => {
             stage,
           });
       }),
+  );
+
+  /**
+   * Each sitting's latest moment: the instant of its last visit, presentation, suspension or end.
+   */
+  const latestMoments = query(ledger).rule((r) => {
+    const { child, stage, at } = v(TestMoment, "latestMoment");
+
+    return r.match(TestMoment, { at, child, stage }).find({ at: r.max(at), child, stage });
+  });
+
+  /**
+   * Each piece of a sitting's presence inside one of its question visits, half-open in microseconds
+   * on the database's clock: a window's credit ({@link Presence}, from its first beacon to its
+   * last, its width less 1 µs) cut to a presentation's span, from the presentation's instant to the
+   * sitting's next moment (the candidate moved, suspended the sitting or its part ended), or, for
+   * the presentation on screen now, the sitting's latest moment, to the window's last beacon. A
+   * suspension's time lies in no presentation's span, so a window a pause and a resumption fall
+   * inside is cut at both.
+   */
+  const presentPieces = query(ledger)
+    .rule((r) => {
+      const { child, stage, at, k, package: pkg, path, end } = v(presentedSpans, "pieceSpan");
+      const { during } = v(Presence, "pieceWindow");
+      const from = Logic.greatest(Type.base(Range.lower(during, Moment)), Type.base(at));
+      const to = Logic.least(
+        Type.cast(Num.sub(Type.base(Range.upper(during, Moment)), 1n), pg.bigint),
+        Type.base(end),
+      );
+
+      return r
+        .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
+        .match(Presence, { child, during, stage })
+        .where(r.lt(from, to))
+        .find({ at, child, from, k, package: pkg, path, stage, to });
+    })
+    .rule((r) => {
+      const { child, stage, at, k, package: pkg, path } = v(TestPresented, "onScreen");
+      const { during } = v(Presence, "onScreenWindow");
+      const from = Logic.greatest(Type.base(Range.lower(during, Moment)), Type.base(at));
+      const to = Type.cast(Num.sub(Type.base(Range.upper(during, Moment)), 1n), pg.bigint);
+
+      return r
+        .match(TestPresented, { at, child, k, package: pkg, path, stage })
+        .match(latestMoments, { at, child, stage })
+        .match(Presence, { child, during, stage })
+        .where(r.lt(from, to))
+        .find({ at, child, from, k, package: pkg, path, stage, to });
+    });
+
+  /**
+   * Each UTC day a piece of presence ({@link presentPieces}) touches, by its place `n` among them
+   * from the day of the piece's first microsecond: that day, and each next day that begins before
+   * the piece ends, never more than {@link pieceDaysMost}.
+   */
+  const presentDays = query(ledger).recursive("PresentDay", {
+    base: [
+      (r) => {
+        const { child, stage, from, to } = v(presentPieces, "firstDay");
+
+        return r
+          .match(presentPieces, { child, from, stage, to })
+          .find({ child, from, n: 0n, stage, to });
+      },
+    ],
+    rec: [
+      (r, self) => {
+        const { child, stage, from, to, n } = v(self, "nextDay");
+        const next = Num.add(n, 1n);
+
+        return r
+          .match(self, { child, from, n, stage, to })
+          .where(
+            r.lt(n, pieceDaysMost - 1n),
+            r.lt(Num.mul(Num.add(Num.div(from, dayMicros), next), dayMicros), to),
+          )
+          .find({ child, from, n: next, stage, to });
+      },
+    ],
+    row: {
+      child: LearnerId,
+      from: pg.bigint,
+      n: pg.bigint,
+      stage: pg.bigint,
+      to: pg.bigint,
+    },
+  });
+
+  /**
+   * PresentTime: the time the candidate was there in each question visit, by UTC day, the reader
+   * every application's time credit is read from (AlphaTest's question time, by day, which metis
+   * rounds to whole seconds and rules over at its own level), stored nowhere. A question visit is a
+   * presentation, by its instant `at`, with its candidate session `k` and its item's document;
+   * `day` is the UTC day as days since 1970-01-01, and `micros` the microseconds of the sitting's
+   * presence inside the visit that day ({@link presentPieces}), cut at the sitting's next moment,
+   * so at a move, a suspension and the end, and for the presentation on screen now running to its
+   * latest window's last beacon. A window credits from its first beacon to its last, its width
+   * less 1 µs, so a window of one beacon credits nothing, and a closed tab's or a lost
+   * connection's time after the last beacon credits nothing. It is no QTI duration, which stays
+   * its presentations' ({@link ItemDuration}).
+   */
+  const PresentTime = derived(
+    "PresentTime",
+    query(ledger).rule((r) => {
+      const { child, stage, at, k, package: pkg, path, from, to } = v(presentPieces, "timePiece");
+      const { n } = v(presentDays, "timeDay");
+      const day = Num.add(Num.div(from, dayMicros), n);
+      const dayStart = Num.mul(day, dayMicros);
+
+      return r
+        .match(presentPieces, { at, child, from, k, package: pkg, path, stage, to })
+        .match(presentDays, { child, from, n, stage, to })
+        .find({
+          at,
+          child,
+          day,
+          k,
+          micros: r.sum(
+            Num.sub(
+              Logic.least(Num.numeric(to), Num.numeric(Num.add(dayStart, dayMicros))),
+              Logic.greatest(Num.numeric(from), Num.numeric(dayStart)),
+            ),
+          ),
+          package: pkg,
+          path,
+          stage,
+        });
+    }),
+  );
+
+  /**
+   * LastPresence: each sitting's last beacon, in microseconds on the database's clock, one before
+   * its latest window's end, which an application reads its candidate's absence from, by its own
+   * threshold: the time since it, never a stored state.
+   */
+  const LastPresence = derived(
+    "LastPresence",
+    query(ledger).rule((r) => {
+      const { child, stage } = v(TestSession, "lastWindowSitting");
+      const { during } = v(Presence, "lastWindow");
+
+      return r
+        .match(TestSession, { child, stage })
+        .match(Presence, { child, during, stage })
+        .find({
+          at: r.max(Num.sub(Type.base(Range.upper(during, Moment)), 1n)),
+          child,
+          stage,
+        });
+    }),
   );
 
   /**
@@ -753,8 +1008,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   /**
    * Two instants of a sitting, by what they are: `earlier` must come before `later`, or be the same
    * instant where `strict` is false. Every pair is of the sitting's one clock, so its order is the
-   * order the calls were committed; a presence beacon, no moment of that clock, lies inside its
-   * candidate session, from its start to its suspension or the end.
+   * order the calls were committed.
    */
   const SittingOrder = derived(
     "SittingOrder",
@@ -846,33 +1100,6 @@ export const deliveryOf = (ledger: LedgerLevel) => {
           .match(TestPresented, { at: earlier, child, stage })
           .match(TestEnd, { at: later, child, stage })
           .find({ child, earlier, later, stage, strict: Type.literal(pg.boolean, true) });
-      })
-      .rule((r) => {
-        const { child, stage, k, at: earlier } = v(TestVisit, "beaconVisit");
-        const { at: later } = v(TestBeacon, "visitBeacon");
-
-        return r
-          .match(TestVisit, { at: earlier, child, k, stage })
-          .match(TestBeacon, { at: later, child, k, stage })
-          .find({ child, earlier, later, stage, strict: Type.literal(pg.boolean, false) });
-      })
-      .rule((r) => {
-        const { child, stage, k, at: earlier } = v(TestBeacon, "suspendedBeacon");
-        const { at: later } = v(TestSuspension, "beaconSuspension");
-
-        return r
-          .match(TestBeacon, { at: earlier, child, k, stage })
-          .match(TestSuspension, { at: later, child, k, stage })
-          .find({ child, earlier, later, stage, strict: Type.literal(pg.boolean, false) });
-      })
-      .rule((r) => {
-        const { child, stage, at: earlier } = v(TestBeacon, "endedBeacon");
-        const { at: later } = v(TestEnd, "beaconEnd");
-
-        return r
-          .match(TestBeacon, { at: earlier, child, stage })
-          .match(TestEnd, { at: later, child, stage })
-          .find({ child, earlier, later, stage, strict: Type.literal(pg.boolean, false) });
       }),
   );
 
@@ -954,6 +1181,8 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     TestSnapshot,
     SessionSnapshot,
     TimedResponse,
+    PresentTime,
+    LastPresence,
     ...testLaws.relations,
     ...assertions.relations,
     ...servable.relations,
