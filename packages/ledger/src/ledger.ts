@@ -214,6 +214,60 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  * Numbers of attempts, whether an item session is open, the order items were served in and every
  * timestamp are derived from these facts and the content, never stored.
  */
+/**
+ * The relations of a learner's item sessions, by name, for a role's insert list: a take's item
+ * sessions and their seeds, and the snapshots and attempts a candidate's responses write.
+ */
+export const sessionTables = ["ItemSession", "SessionSeed", "ResponseSnapshot", "Attempt"] as const;
+
+/**
+ * The relations of an item session's context values, by name, for a role's insert list: what an
+ * application states of the session its processing reads (`SessionContext*`).
+ */
+export const sessionContextTables = [
+  "SessionContextFloat",
+  "SessionContextInteger",
+  "SessionContextBoolean",
+] as const;
+
+/**
+ * The values an assertion sets, by base type, which both a person's and a machine's assertion
+ * write beside its header.
+ */
+const assertedValueTables = [
+  "AssertedSingleIdentifier",
+  "AssertedSingleBoolean",
+  "AssertedSingleInteger",
+  "AssertedSingleFloat",
+  "AssertedSingleString",
+  "AssertedSinglePoint",
+  "AssertedSinglePair",
+  "AssertedSingleDirectedPair",
+  "AssertedSingleDuration",
+  "AssertedSingleUri",
+  "AssertedSingleFile",
+] as const;
+
+/**
+ * The relations a person's assertion of an outcome writes, by name, for a role's insert list: its
+ * header, the person who asserted it, and its value.
+ */
+export const humanAssertionTables = [
+  "OutcomeAssertion",
+  "HumanAssertion",
+  ...assertedValueTables,
+] as const;
+
+/**
+ * The relations a machine's assertion of an outcome writes, by name, for a role's insert list: its
+ * header, the grader version that asserted it, and its value.
+ */
+export const machineAssertionTables = [
+  "OutcomeAssertion",
+  "MachineAssertion",
+  ...assertedValueTables,
+] as const;
+
 export const ledgerOf = (qti: RegistryLevel) => {
   const {
     Attribute,

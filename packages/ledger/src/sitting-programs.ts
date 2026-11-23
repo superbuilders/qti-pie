@@ -70,6 +70,26 @@ import { SnapshotKind } from "#ledger/ledger.ts";
 import { sittingHeading, sittingStandingOf, takenHeading } from "#ledger/sitting-queries.ts";
 
 /**
+ * The relations the test runtime's programs write of a sitting beside its item sessions, by name,
+ * for a role's insert list: its test session, its moments, candidate sessions, suspensions,
+ * budgets, presentations, presence beacons and end, a save's rows and its snapshot's given reading,
+ * and the close's `DefaultSubmission` of a presented member with no save.
+ */
+export const sittingTables = [
+  "TestSession",
+  "TestMoment",
+  "TestVisit",
+  "TestSuspension",
+  "TestBudget",
+  "TestPresented",
+  "TestEnd",
+  "TestBeacon",
+  "Save",
+  "SnapshotGiven",
+  "DefaultSubmission",
+] as const;
+
+/**
  * The delivery level the builders write over.
  */
 export type DeliveryLevel = ReturnType<typeof deliveryOf>;

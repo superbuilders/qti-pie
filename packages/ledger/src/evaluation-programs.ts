@@ -59,6 +59,24 @@ import type { DeliveryLevel } from "#ledger/sitting-programs.ts";
 import { sittingOfSessionOf } from "#ledger/sitting-queries.ts";
 
 /**
+ * The relations the evaluator's write records, by name, for a role's insert list: each
+ * application's evaluation and its reply, feedback or decline (`recordEvaluations`), beside what
+ * its grading and settling write.
+ */
+export const evaluationTables = [
+  "OperatorEvaluation",
+  "OperatorReply",
+  "OperatorFeedback",
+  "OperatorDecline",
+] as const;
+
+/**
+ * The relations a person's value writes, by name, for a role's insert list: the value and its
+ * feedback (`personValueOf`).
+ */
+export const personValueTables = ["HumanOperatorValue", "HumanOperatorFeedback"] as const;
+
+/**
  * The evaluator's write over a delivery level, `recordEvaluations`, and its read-back `awaiting`.
  * `recordEvaluations` is the one program, over the level, which an application puts over the role
  * that runs it with grizzle's `ChangeSet.over(role, recordEvaluations)`, any role over the level

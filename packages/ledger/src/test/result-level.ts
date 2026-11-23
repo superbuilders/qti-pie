@@ -49,7 +49,12 @@ import { PackageName } from "@qti-pie/pantry/qti/limits.ts";
 import { authorWrites, insertWrite } from "@qti-pie/pantry/qti/logins.ts";
 import { QtiLom } from "@qti-pie/pantry/qti/lom.ts";
 import { deliveryOf } from "#ledger/delivery.ts";
-import { evaluationProgramsOf, personValueOf } from "#ledger/evaluation-programs.ts";
+import {
+  evaluationProgramsOf,
+  evaluationTables,
+  personValueOf,
+  personValueTables,
+} from "#ledger/evaluation-programs.ts";
 import { finishTestOf } from "#ledger/finish.ts";
 import {
   gradeAttemptOf,
@@ -60,13 +65,13 @@ import {
 } from "#ledger/grade.ts";
 import { templateProcessingOf } from "#ledger/grading.ts";
 import { LearnerId } from "#ledger/keys.ts";
-import { ledgerOf } from "#ledger/ledger.ts";
+import { ledgerOf, sessionTables } from "#ledger/ledger.ts";
 import type { GraderVersion } from "#ledger/registry/contract.ts";
 import { registryOf } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
-import { sittingProgramsOf } from "#ledger/sitting-programs.ts";
+import { sittingProgramsOf, sittingTables } from "#ledger/sitting-programs.ts";
 import { sittingHeading, sittingOfSessionOf, takenHeading } from "#ledger/sitting-queries.ts";
-import { testOutcomeRunTables } from "#ledger/test-run-writes.ts";
+import { settleTables } from "#ledger/test-run-writes.ts";
 
 /**
  * The grader version of `rubric-score` the composition registers, in force for every item that
@@ -135,19 +140,13 @@ const {
 } = ResultLevel.relations;
 
 /**
- * The session facts a case writes as host rows, each relation once, its rows the call's: an item
- * session with the seed its processing draws under, and an attempt with its response, every instant
- * the insert's own; and, for history, the grading an import carries with it, the attempt's
- * `ProcessedAttempt` and its outcomes, in the same write. A fact that names a stored instant (an
- * evaluation of the attempt, a person's value) is no host row (grizzle's insert stamps every
- * instant it is given none of), so each is written by its own program below.
- */
-const sessionRelations = ["ItemSession", "SessionSeed", "ResponseSnapshot", "Attempt"] as const;
-
-/**
- * The session facts' write: one insert of each relation it names, with no row of its own. An item
- * session is no fact of it: a session begins by {@link begin} or a sitting's take, so the machine
- * writes its start ("Start of every session").
+ * The session facts a case writes as host rows, one insert of each relation it names, with no row
+ * of its own, its rows the call's: an attempt with its response, every instant the insert's own;
+ * and, for history, the grading an import carries with it, the attempt's `ProcessedAttempt` and its
+ * outcomes, in the same write. A fact that names a stored instant (an evaluation of the attempt, a
+ * person's value) is no host row (grizzle's insert stamps every instant it is given none of), so
+ * each is written by its own program below. An item session is no fact of it: a session begins by
+ * {@link begin} or a sitting's take, so the machine writes its start ("Start of every session").
  */
 const facts = ChangeSet.empty(ResultLevel).insertAll({
   Attempt: [],
@@ -160,53 +159,20 @@ const facts = ChangeSet.empty(ResultLevel).insertAll({
 });
 
 /**
- * The relations an evaluation and a person's value write: the evaluation's header and its arms,
- * and the person's value.
- */
-const evaluationRelations = [
-  "OperatorEvaluation",
-  "OperatorReply",
-  "OperatorFeedback",
-  "OperatorDecline",
-  "HumanOperatorValue",
-] as const;
-
-/**
- * What the test runtime's programs write of a sitting beside the session facts: its test session,
- * its candidate sessions, presentations, presence beacons, budgets and end, a save's rows and its
- * snapshot's given reading, and the close's `DefaultSubmission` of a presented member with no save;
- * the value sidecars a save writes are grading's (`gradeAttemptTables`).
- */
-const sittingRelations = [
-  "TestSession",
-  "TestMoment",
-  "TestVisit",
-  "TestSuspension",
-  "TestBudget",
-  "TestPresented",
-  "TestEnd",
-  "TestBeacon",
-  "Save",
-  "SnapshotGiven",
-  "DefaultSubmission",
-] as const;
-
-/**
- * The suite's role: every relation to read, and a package's relations, the session facts, the
- * evaluations and a person's value, the take's values, grading's, what settling a sitting writes
- * (`testOutcomeRunTables` and SittingFinal), and what the test runtime's programs write of a
- * sitting, to write.
+ * The suite's role: every relation to read, and a package's relations, an item session's, the
+ * evaluations and a person's value, the take's values, grading's, what settling a sitting writes,
+ * and what the test runtime's programs write of a sitting, to write.
  */
 const Suite = role(ResultLevel, "result_runner", wholeEntriesOf(ResultLevel), {
   write: [
     ...authorWrites,
-    ...sessionRelations,
-    ...evaluationRelations,
+    ...sessionTables,
+    ...evaluationTables,
+    ...personValueTables,
     ...takeValuesTables,
     ...gradeAttemptTables,
-    ...testOutcomeRunTables,
-    "SittingFinal",
-    ...sittingRelations,
+    ...settleTables,
+    ...sittingTables,
   ],
 });
 

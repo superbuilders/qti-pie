@@ -67,6 +67,12 @@ export const testOutcomeRunTables = [
 ] as const;
 
 /**
+ * The relations settling a sitting writes, by name, for a role's insert list: its test outcome
+ * run's, and the fact that its outcomes are final (`SittingFinal`).
+ */
+export const settleTables = [...testOutcomeRunTables, "SittingFinal"] as const;
+
+/**
  * The writes of one run of the outcome processing of each of the call's sittings, the `sittings`
  * relation parameter, where one is due ({@link dueOf}), at the instant the database stamps the run
  * with. Compose it after every write whose stratum changes an outcome the run reads, in a later
