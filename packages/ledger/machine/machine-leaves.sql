@@ -162,11 +162,12 @@ create function p3.matches(a p3.val, b p3.val) returns boolean language sql immu
 $$;
 
 -- A program as its walk reads it (walk_node): each node in the program's order, with every sidecar's rows whose start is
--- its start, each sidecar's in that sidecar's order; one pass over each array, joined by start.
+-- its start, each sidecar's in that sidecar's order, and its children, the nodes whose parent is its start, by their
+-- places in order; one pass over each array, joined by start.
 create function p3.walk_of(prog p3.program) returns p3.walk language sql immutable as $$
   select row(array(select row(coalesce(an.v, '{}'), coalesce(ar.v, '{}'), coalesce(ba.v, '{}'), coalesce(ca.v, '{}'),
       coalesce(co.v, '{}'), coalesce(cu.v, '{}'), nd."end", coalesce(eq.v, '{}'), coalesce(fi.v, '{}'),
-      coalesce(fl.v, '{}'), coalesce(fr.v, '{}'), coalesce(id.v, '{}'), coalesce(it.v, '{}'), nd.kind,
+      coalesce(fl.v, '{}'), coalesce(fr.v, '{}'), coalesce(id.v, '{}'), coalesce(it.v, '{}'), coalesce(ki.v, '{}'), nd.kind,
       coalesce(li.v, '{}'), coalesce(ma.v, '{}'), nd.parent, coalesce(pa.v, '{}'), coalesce(ra.v, '{}'),
       coalesce(ro.v, '{}'), coalesce(se.v, '{}'), nd.start, coalesce(st.v, '{}'), coalesce(te.v, '{}'),
       coalesce(we.v, '{}'))::walk_node
@@ -213,18 +214,23 @@ create function p3.walk_of(prog p3.program) returns p3.walk language sql immutab
       from (select x, row_number() over () as o from unnest(prog.texts) x) s group by 1) te on te.start = nd.start
     left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
       from (select x, row_number() over () as o from unnest(prog.weights) x) s group by 1) we on we.start = nd.start
+    left join (select x.parent, array_agg(row(x.place::int)::child order by x.place) as v
+      from unnest(prog.nodes) with ordinality as x("end", kind, parent, start, place) group by x.parent) ki on ki.parent = nd.start
     order by nd.place))::walk
 $$;
 
--- The element children of node i, in document order: pre-order intervals, so each step skips a whole subtree.
-create function p3.kids_at(i int, walk p3.walk_node[]) returns setof p3.child language plpgsql immutable as $$
-declare j int := i + 1; base int := (walk[1]).start;
-begin
-  while j <= cardinality(walk) and (walk[j]).start < (walk[i])."end" loop
-    return next row(j)::child;
-    j := (walk[j])."end" - base + 1;
-  end loop;
-end $$;
+-- Each walk node's slot in a run (slot): its identifier's places in the run's variables, correct responses and
+-- defaults, each grouped once by identifier and joined, so a run finds a node's variable by its place.
+create function p3.slots_of(correct p3.var[], defaults p3.var[], vars p3.var[], walk p3.walk_node[]) returns p3.slots language sql immutable as $$
+  with v as (select x.identifier, array_agg(row(x.ordinality::int)::child order by x.ordinality) as at from unnest(vars) with ordinality x group by 1),
+  c as (select x.identifier, array_agg(row(x.ordinality::int)::child order by x.ordinality) as at from unnest(correct) with ordinality x group by 1),
+  d as (select x.identifier, array_agg(row(x.ordinality::int)::child order by x.ordinality) as at from unnest(defaults) with ordinality x group by 1)
+  select row(array(select row(coalesce(c.at, '{}'), coalesce(d.at, '{}'), coalesce(v.at, '{}'))::slot
+    from unnest(walk) with ordinality w
+    left join v on v.identifier = (w.idents[1]).identifier left join c on c.identifier = (w.idents[1]).identifier
+    left join d on d.identifier = (w.idents[1]).identifier
+    order by w.ordinality))::slots
+$$;
 
 -- A variable by identifier. An identifier none declares is a defect: the program's references are resolved at import,
 -- so it raises.
@@ -239,25 +245,22 @@ end $$;
 create function p3.value_of(id text, vars p3.var[]) returns p3.val language sql immutable as $$
   select row(l.card, l.vals)::val from lookup(vars => vars, id => id) l
 $$;
--- The variables with one set to a value: an integer set to a float variable becomes a float (setOutcomeValue).
-create function p3.assign(id text, vars p3.var[], x p3.val) returns setof p3.var language plpgsql immutable as $$
-declare v var; hit boolean := false;
-begin
-  foreach v in array vars loop
-    if v.identifier = id then
-      v.vals := case when v.base = 'float'
-        then array(select case s.base when 'integer' then s_float(base => 'float', f => ieee(x => s.n)) else s end from unnest(x.vals) s)
-        else x.vals end;
-      hit := true;
-    end if;
-    return next v;
-  end loop;
-  if not hit then raise exception 'undeclared variable %', id; end if;
-end $$;
+-- A variable set to a value: an integer set to a float variable becomes a float (setOutcomeValue).
+create function p3.set_to(v p3.var, x p3.val) returns p3.var language sql immutable as $$
+  select row(v.base, v.card, v.identifier, case when v.base = 'float'
+    then array(select case s.base when 'integer' then s_float(base => 'float', f => ieee(x => s.n)) else s end from unnest(x.vals) s)
+    else x.vals end)::var
+$$;
 
 -- A node's identifier parameter.
 create function p3.ident(nd p3.walk_node) returns text language sql immutable as
-$$ select p.identifier from unnest(nd.idents) p $$;
+$$ select (nd.idents[1]).identifier $$;
+-- A variable by its places (its slot): the first's value. An identifier none declares is a defect, as lookup raises it.
+create function p3.value_at(id text, places p3.child[], vars p3.var[]) returns p3.val language plpgsql immutable as $$
+begin
+  if cardinality(places) = 0 then raise exception 'undeclared variable %', id; end if;
+  return row((vars[(places[1]).i]).card, (vars[(places[1]).i]).vals)::val;
+end $$;
 -- An integer attribute's value: its literal, or the single integer its variable holds (plate's referenceInteger,
 -- which raises for a variable no declaration names); NULL where the variable holds none.
 create function p3.resolve_int(r p3.int_ref, vars p3.var[]) returns numeric language sql immutable as $$

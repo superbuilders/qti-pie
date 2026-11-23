@@ -176,7 +176,7 @@ $$;
 create function p3.outcome_bounds(inp p3.inputs, kind text, nd p3.walk_node) returns p3.val language plpgsql immutable as $$
 declare m member; mv member_var; x float8; acc single[] := '{}';
   nm text := ident(nd => nd);
-  w text := (select p.weight from unnest(nd.weights) p);
+  w text := (nd.weights[1]).weight;
   b text := case kind when 'qti-outcome-minimum' then 'minimum' when 'qti-outcome-maximum' then 'maximum' end;
 begin
   for m in select km.* from kept(nd => nd, inp => inp) km order by km.place loop
@@ -214,8 +214,8 @@ end $$;
 create function p3.test_variables(inp p3.inputs, nd p3.walk_node) returns p3.val language plpgsql immutable as $$
 declare m member; mv member_var; acc single[] := '{}'; refs text[] := '{}';
   nm text := ident(nd => nd);
-  w text := (select p.weight from unnest(nd.weights) p);
-  written text := (select p.base from unnest(nd.bases) p);
+  w text := (nd.weights[1]).weight;
+  written text := (nd.bases[1]).base;
   result_base text;
 begin
   if w is not null and written is not null and written <> 'float' then
@@ -282,13 +282,13 @@ end $$;
 --   item variables with base-types integer and float. If the item variable is of any other type the weight is ignored"
 --   (Table 7.47.2, info:83672), each value of a container weighted, NULL staying NULL. The result "has the base-type and
 --   cardinality declared for the variable subject to the type promotion of weighted outcomes" (info:83598).
-create function p3.read_variable(held p3.member_var[], inp p3.inputs, nd p3.walk_node, vars p3.var[]) returns p3.val language plpgsql immutable as $$
-declare id text := ident(nd => nd); w text := (select p.weight from unnest(nd.weights) p); mv member_var;
+create function p3.read_variable(held p3.member_var[], inps p3.inputs[], nd p3.walk_node, places p3.child[], vars p3.var[]) returns p3.val language plpgsql immutable as $$
+declare id text := ident(nd => nd); w text := (nd.weights[1]).weight; mv member_var;
 begin
-  if cardinality(inp.members) = 0 or exists (select 1 from unnest(vars) z where z.identifier = id) then return value_of(vars => vars, id => id); end if;
-  mv := prefixed(inp => inp, held => held, id => id);
+  if cardinality((inps[1]).members) = 0 or cardinality(places) > 0 then return value_at(id => id, places => places, vars => vars); end if;
+  mv := prefixed(inp => inps[1], held => held, id => id);
   if w is null or mv.base not in ('integer', 'float') then return row(mv.card, mv.vals)::val; end if;
-  return row(mv.card, array(select weighted(x => mv.vals[k], w => weight_of(inp => inp, r => mv.ref, w => w)) from generate_subscripts(mv.vals, 1) k order by k))::val;
+  return row(mv.card, array(select weighted(x => mv.vals[k], w => weight_of(inp => inps[1], r => mv.ref, w => w)) from generate_subscripts(mv.vals, 1) k order by k))::val;
 end $$;
 
 -- The run's starting values of the test's outcomes (Table 4.5, OutcomeDeclaration, info:8922): "If no default value is given in the declaration
