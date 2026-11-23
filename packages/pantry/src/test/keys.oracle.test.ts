@@ -339,7 +339,9 @@ describe("the oracle's key-text list", () => {
     // where its column is a stored field of the target's own type read unchanged: a placed
     // reference site's identifier, its `VariableRef.identifier`. A required SSML property's name
     // is held to a written one by their SHA-256s (queries.ts), no copy of a text into a narrower
-    // field. A copy into an entry path holds an entry's path, which
+    // field. A cell's header token names a header of its table, a selection of `TableHeader`
+    // ("Table headers"): the token and the header's `id` are both a matched text, so the copy
+    // narrows no bound. A copy into an entry path holds an entry's path, which
     // `Entry.path` bounds where the import writes its entry, so none is listed: a file's target in
     // the package is an entry path already (`FilePath.target`), so "File exists" narrows no bound.
     // Read by the oracle where its
@@ -359,6 +361,7 @@ describe("the oracle's key-text list", () => {
         ),
       ].toSorted(),
       [
+        "CellToken.token → TableHeader.id",
         "InteractionAttribute.value → BindingName.identifier",
         "InteractionAttribute.value → BoundVariable.identifier",
         "InteractionAttribute.value → Choice.identifier",

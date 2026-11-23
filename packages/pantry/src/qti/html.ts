@@ -50,11 +50,23 @@
  * @see {@link https://html.spec.whatwg.org/multipage/media.html#the-track-element | HTML, the track element}
  * @see {@link https://html.spec.whatwg.org/multipage/tables.html#attr-tdth-headers | HTML, the headers attribute}
  */
-import { check, contained, key, law, mirrors, on, relation, select } from "@bjornpagen/grizzle";
+import {
+  check,
+  contained,
+  Crypto,
+  generated,
+  key,
+  law,
+  mirrors,
+  on,
+  relation,
+  select,
+  sha256,
+} from "@bjornpagen/grizzle";
 import { Attribute, attributesOf, carries } from "#pantry/qti/attributes.ts";
 import { thIdAttributes } from "#pantry/qti/identity.ts";
 import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
-import { Node } from "#pantry/qti/node.ts";
+import { documentStart, Node } from "#pantry/qti/node.ts";
 import {
   listTokens,
   tokenFields,
@@ -134,12 +146,14 @@ export const HeaderToken = law(entryOf("E1 derived"), listTokens("HeaderToken"))
 /**
  * One `th` that carries an ID, keyed by the `th`: its `id`, the ID's value as `IdValue`
  * (`#pantry/qti/names.ts`) holds it (an `xs:ID` collapsed), with `owner` its own position, an
- * attribute ID's binding, so its copy shares the superkey `PlacedId` reads. Its table is its
- * {@link TableScope}'s, which "Table headers" and its key read through a query.
+ * attribute ID's binding, so its copy shares the superkey `PlacedId` reads; and `table`, its
+ * {@link TableScope}'s, which "E1 derived" holds it to, so "DocumentId key" keys a table's headers
+ * by the table itself. The key reads the ID by `idDigest`, its SHA-256, since XML Schema bounds no
+ * `xs:ID` and a key holds no text of any length.
  */
 export const TableHeader = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "TableHeader",
     {
       id: matchedText,
@@ -147,10 +161,20 @@ export const TableHeader = law(
       package: PackageName,
       path: EntryPath,
       start: natural,
+      table: natural,
     },
     ["package", "path", "start"],
+    (h) => ({ idDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(h.id))) }),
   ),
 );
+
+/**
+ * The headers that take part in a table, each `th`'s ID beside its table, by the `th`'s place:
+ * those whose nearest `table` is one, not the document node. "DocumentId key" keys them by table
+ * and ID, and "Table headers" resolves a cell's header tokens among them
+ * (`#pantry/qti/overlay-queries/html.ts`).
+ */
+export const tabledHeaders = select(TableHeader, (h) => h.ne(h.table, documentStart));
 
 /**
  * Every relation this module declares, in one list, as `schema.ts` composes them.
@@ -242,6 +266,9 @@ const headerIds = attributesOf("id", ["th"]);
  *   ("DocumentId key"), which an ID held twice in a document already breaks.
  */
 export const htmlLawsByName = {
+  "DocumentId key": declared("DocumentId key", [
+    key(on(tabledHeaders, "package", "path", "table", "idDigest")),
+  ]),
   "E1 derived": declared("E1 derived", [
     contained(on(TableScope, "package", "path", "start"), on(Node, "package", "path", "start")),
     mirrors(
@@ -263,8 +290,8 @@ export const htmlLawsByName = {
     ),
     check("E1_derived", TableHeader, (h) => h.eq(h.owner, h.start)),
     contained(
-      on(TableHeader, "package", "path", "start"),
-      on(TableScope, "package", "path", "start"),
+      on(TableHeader, "package", "path", "start", "table"),
+      on(TableScope, "package", "path", "start", "table"),
     ),
   ]),
   "Media source src": declared("Media source src", [mediaSourceSrc]),

@@ -156,6 +156,7 @@ export const rowsOf = (view: DocumentView, ids: Place): HtmlRows => {
         id: attributeValueOf(governorOf(cell.kind, cell.governs), "id", id),
         owner: cell.start,
         start: cell.start,
+        table: tableWalkOf(byStart, cell).table,
       });
     }
   }

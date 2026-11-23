@@ -2536,8 +2536,8 @@
 					"__header_token_ordered_cell_headers_tokens_3tzprjqxal",
 					"__header_token_pk_package_path_start_at_mdb2x65phi"
 				],
-				"__rule_cell_token_in_tabled_header_bcb34z62pq": [
-					"__cell_token_in_tabled_header_xvmoeeg5ep"
+				"__rule_cell_token_in_table_header_js2jgiyx2u": [
+					"__cell_token_in_table_header_stglc5l4rs"
 				],
 				"e_1_derived": [
 					"__header_token_check_e_1_derived_eev4n3tlaz"
@@ -5987,8 +5987,8 @@
 				"__rule_attribute_kind_name_in_table_header_gf2xciabir": [
 					"__attribute_kind_name_in_table_header_p6vdjyioud"
 				],
-				"__rule_cell_token_in_tabled_header_bcb34z62pq": [
-					"__cell_token_in_tabled_header_xvmoeeg5ep"
+				"__rule_cell_token_in_table_header_js2jgiyx2u": [
+					"__cell_token_in_table_header_stglc5l4rs"
 				],
 				"__rule_table_header_in_attribute_fpvfxofvbi": [
 					"__table_header_in_attribute_x7nblkbeft"
@@ -5996,11 +5996,11 @@
 				"__rule_table_header_in_id_value_q7yq6pbb7w": [
 					"__table_header_in_id_value_qn6cr2x6jl"
 				],
-				"__rule_tabled_header_key_package_path_table_id_fiyqlhh3f5": [
-					"__tabled_header_key_package_path_table_id_q5gmtyc5dj"
+				"__table_header_fk_package_path_start_table_iy2pcs7mtk": [
+					"__table_header_in_table_scope_slll6dwmxa"
 				],
-				"__table_header_fk_package_path_start_dhca6a32iq": [
-					"__table_header_in_table_scope_ctbztdqize"
+				"__table_header_key_package_path_table_id_digest_hp2zy2cco6": [
+					"__table_header_table_key_package_path_table_id_lhr7u4nmhz"
 				],
 				"__table_header_pk_d7hkmir5zb": [
 					"__table_header_pk_package_path_start_zbjppoisi6"
@@ -6010,8 +6010,8 @@
 				]
 			},
 			"table_scope": {
-				"__rule_cell_token_in_tabled_header_bcb34z62pq": [
-					"__cell_token_in_tabled_header_xvmoeeg5ep"
+				"__rule_cell_token_in_table_header_js2jgiyx2u": [
+					"__cell_token_in_table_header_stglc5l4rs"
 				],
 				"__rule_table_scope_node_check_e_1_derived_viha5bbkvo": [
 					"__table_scope_node_check_e_1_derived_qwjvuw5r3e"
@@ -6019,11 +6019,11 @@
 				"__rule_table_scope_node_in_table_scope_yskykb3dph": [
 					"__table_scope_node_in_table_scope_d4b5isdesz"
 				],
-				"__rule_tabled_header_key_package_path_table_id_fiyqlhh3f5": [
-					"__tabled_header_key_package_path_table_id_q5gmtyc5dj"
-				],
 				"__table_scope_fk_package_path_start_scalw6ieaw": [
 					"__table_scope_in_node_ylb7hrhu4n"
+				],
+				"__table_scope_key_package_path_start_table_k6mhb5efs3": [
+					"__table_scope_pk_package_path_start_7olyorm2bd"
 				],
 				"__table_scope_pk_ujje6dmtif": [
 					"__table_scope_pk_package_path_start_7olyorm2bd"
@@ -15571,7 +15571,7 @@
 								},
 								{
 									"kind": "law",
-									"law": "__cell_token_in_tabled_header_xvmoeeg5ep"
+									"law": "__cell_token_in_table_header_stglc5l4rs"
 								}
 							]
 						}
@@ -27702,6 +27702,67 @@
 				},
 				"table_header": {
 					"indexes": {
+						"__table_header_ix_package_path_table_nl5r7jdshk": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "path",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "table",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__cell_token_in_table_header_stglc5l4rs"
+								}
+							]
+						},
+						"__table_header_key_package_path_table_id_digest_hp2zy2cco6": {
+							"columns": [
+								{
+									"direction": "asc",
+									"holds": {
+										"field": "package",
+										"kind": "term"
+									},
+									"kind": "law",
+									"laws": [
+										"__table_header_table_key_package_path_table_id_lhr7u4nmhz"
+									]
+								},
+								{
+									"direction": "asc",
+									"field": "path",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "table",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "idDigest",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__table_header_table_key_package_path_table_id_lhr7u4nmhz"
+								}
+							]
+						},
 						"__table_header_pk_d7hkmir5zb": {
 							"columns": [
 								{
@@ -27727,19 +27788,15 @@
 								},
 								{
 									"kind": "law",
+									"law": "__table_header_in_table_scope_slll6dwmxa"
+								},
+								{
+									"kind": "law",
 									"law": "__attribute_kind_name_in_table_header_p6vdjyioud"
 								},
 								{
 									"kind": "law",
-									"law": "__cell_token_in_tabled_header_xvmoeeg5ep"
-								},
-								{
-									"kind": "law",
 									"law": "__table_header_in_attribute_x7nblkbeft"
-								},
-								{
-									"kind": "law",
-									"law": "__table_header_in_table_scope_ctbztdqize"
 								},
 								{
 									"kind": "access"
@@ -27747,10 +27804,6 @@
 								{
 									"kind": "law",
 									"law": "__table_header_in_id_value_qn6cr2x6jl"
-								},
-								{
-									"kind": "law",
-									"law": "__tabled_header_key_package_path_table_id_q5gmtyc5dj"
 								}
 							]
 						}
@@ -27759,7 +27812,7 @@
 				},
 				"table_scope": {
 					"indexes": {
-						"__table_scope_ix_package_path_table_p6mmwy6mjs": {
+						"__table_scope_key_package_path_start_table_k6mhb5efs3": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -27773,6 +27826,11 @@
 								},
 								{
 									"direction": "asc",
+									"field": "start",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
 									"field": "table",
 									"kind": "field"
 								}
@@ -27780,7 +27838,11 @@
 							"reasons": [
 								{
 									"kind": "law",
-									"law": "__cell_token_in_tabled_header_xvmoeeg5ep"
+									"law": "__table_scope_pk_package_path_start_7olyorm2bd"
+								},
+								{
+									"kind": "law",
+									"law": "__table_header_in_table_scope_slll6dwmxa"
 								}
 							]
 						},
@@ -27809,7 +27871,7 @@
 								},
 								{
 									"kind": "law",
-									"law": "__cell_token_in_tabled_header_xvmoeeg5ep"
+									"law": "__cell_token_in_table_header_stglc5l4rs"
 								},
 								{
 									"kind": "law",
@@ -27822,10 +27884,6 @@
 								{
 									"kind": "law",
 									"law": "__table_scope_node_in_table_scope_d4b5isdesz"
-								},
-								{
-									"kind": "law",
-									"law": "__tabled_header_key_package_path_table_id_q5gmtyc5dj"
 								},
 								{
 									"kind": "access"
@@ -28906,11 +28964,11 @@
 			"fa90810d9401bf0a81bfec203c004cd0f8847433ed32c3733b3f55991eea413d": "3cd53cc0df2c42f1b44a53e1d672bc47fed1067e25cfaf7059cdd1021552f469"
 		}
 	},
-	"fingerprint": "845a9ccdea58acdd6040714e10988f17022e48b6e3130eec1e45a19c1c9b15aa",
+	"fingerprint": "514ce4023b427340b44534f83ab0cd4b74c3eb6bb220956558e173baadc60392",
 	"format": 8,
 	"levels": [
 		{
-			"fingerprint": "411eda59e2f0b6c4e8cc9ea96074623faae3b238289372ec14a75ca10928fd73",
+			"fingerprint": "4789cbd03ce2d66dd1b7459446f2ca2173d68f1faf6ffd0544f56029123f6806",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"AssembledCatalog"},"law":"__assembled_catalog_check_e_1_derived_aq344tuo32"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"AssembledCatalog","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"owner","kind":"field"}]},"kind":"contained","to":{"relation":"CatalogId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__assembled_catalog_in_catalog_id_pkcxplbjvp"},
@@ -29429,8 +29487,9 @@
 				{"described":{"entry":{"kind":"declared","name":"Test overlay","source":"plan §1.7 O7 and the W5 amendment's C15, C18, under decision S3: each O7 overlay (AssembledDocument, Named, Site) is its element's row, keyed by its node, and holds its attributes' values, collapsed, each an identifier read where it stands (TestIdentifier, C18); AssembledDocument and Named hold no fact of their node or document, which their laws read through Node and Document (a document's root kind its Document's, at its (package, path)), while a Site holds its node's context (nodeContext: its kind, parent and parent's kind, ancestry, children, governor and nearest interaction), the copy routed with Document's context to the RULEREC follow-up; each exists exactly where its element does (Q5.13)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"StimulusRef"},"law":"__stimulus_ref_pk_package_path_start_cnwgdprn2t"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"TableHeader"},"law":"__table_header_check_e_1_derived_3fm52d2sjp"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"TableHeader","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[{"args":[{"args":[{"args":[{"args":[{"args":[{"field":"governor","kind":"field"}],"field":"model","kind":"closedAt","relation":"AttributeModelOf"},{"field":"name","kind":"field"}],"field":"domain","kind":"closedAt","relation":"AttributeGrammar"}],"kind":"closedHas","relation":"ValueIdentity"},{"kind":"compare","left":{"args":[{"args":[{"args":[{"field":"governor","kind":"field"}],"field":"model","kind":"closedAt","relation":"AttributeModelOf"},{"field":"name","kind":"field"}],"field":"domain","kind":"closedAt","relation":"AttributeGrammar"}],"field":"identity","kind":"closedAt","relation":"ValueIdentity"},"op":"eq","right":{"kind":"literal","value":"ID"}}],"kind":"and"},{"args":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-context-declaration"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"identifier"}}],"kind":"and"}],"kind":"or"},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"th"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__table_header_in_attribute_x7nblkbeft"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"TableHeader","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"TableScope","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__table_header_in_table_scope_ctbztdqize"},
+				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"TableHeader","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"table","kind":"field"}]},"kind":"contained","to":{"relation":"TableScope","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"table","kind":"field"}]}},"law":"__table_header_in_table_scope_slll6dwmxa"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"TableHeader"},"law":"__table_header_pk_package_path_start_zbjppoisi6"},
+				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"TableHeader","selection":{"conjuncts":[{"kind":"compare","left":{"field":"table","kind":"field"},"op":"ne","right":{"kind":"literal","value":"~n:0"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"table","kind":"field"},{"field":"idDigest","kind":"field"}]}},"law":"__table_header_table_key_package_path_table_id_lhr7u4nmhz"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"TableScope","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__table_scope_in_node_ylb7hrhu4n"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"TableScope"},"law":"__table_scope_pk_package_path_start_7olyorm2bd"},
 				{"described":{"entry":{"kind":"declared","name":"Template reference","source":"https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_TemplateBlock.Attr_template-identifier (§5.145.1, and §5.155.1, §5.122.1, §5.124.1 and each choice's, as §5.132.3: 'The identifier of a template variable'), a template variable being one a template declaration declares (https://www.imsglobal.org/spec/qti/v3p0/info#Data_TemplateDeclaration, §5.151: 'Template declarations declare item variables that are to be used specifically for the purposes of cloning items') (references.ts ContentReference)"},"kind":"check","name":"Template_reference","relation":"TemplateRef"},"law":"__template_ref_check_template_reference_pmhqtib5xz"},
@@ -29476,13 +29535,13 @@
 			"schema": "qti"
 		},
 		{
-			"fingerprint": "08a2c05bc36df35e53caae6ac53f25485a8ac61cd6c6456569f7d526e7c6716a",
+			"fingerprint": "30cf5040a9a9b237f553e7fd80951a06465715c3799517153703e40bb3206ccb",
 			"laws": [],
 			"name": "QtiViews",
 			"schema": "qti_views"
 		},
 		{
-			"fingerprint": "b7fccac08a3e042aa3e95b527ffb77f91df9b540ce317a2750cb6a550795ff01",
+			"fingerprint": "03ea8dc21cfd9707bed2a035f3e441db3069cc5f08d1af9938e13aff142aeea1",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"AnchoredId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"id","kind":"field"}]}},"law":"__anchored_id_key_package_assembly_anchor_id_6pj7hyldv5"},
 				{"described":{"entry":{"kind":"declared","name":"Test name key","source":"reading 86: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_AssessmentSection.Attr_identifier (§4.2.1: 'The identifier of the section or item reference must be unique within the test and must not be the identifier of any testPart'), §5.159.1 and §7.5.3 ('A test may refer to the same section multiple times within a test. Note however that each reference must have a unique identifier'), read over the assembled test (reading 5): the test document and every document its section refs and includes place; a section document placed twice is one document and names nothing twice: no two written test parts, sections, section refs or item refs of one test's assembly share an identifier (overlay-queries/tests.ts AssembledName)"},"kind":"key","side":{"relation":"AnchoredName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__anchored_name_key_package_assembly_anchor_l25sk7zs37"},
@@ -29513,7 +29572,7 @@
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"CellHeadersForm"},"law":"__cell_headers_form_check_e_1_derived_twgp2stjaz"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"CellLeaf","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ScopeNode","selection":{"conjuncts":[{"kind":"compare","left":{"field":"elementChildren","kind":"field"},"op":"eq","right":{"kind":"literal","value":"~n:0"}},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"m:mtd"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__cell_leaf_in_scope_node_d2nhepnynr"},
 				{"described":{"entry":{"kind":"declared","name":"MathML align first","source":"reading 2: https://www.w3.org/TR/MathML3/chapter3.html#presm.malign.group (MathML 3 §3.5.5.2: 'the first complete element must be an maligngroup element' in a table cell whose alignment groups are checked, a complete element being one with no element children); a cell is judged when it holds a group that stands where §3.5.5.2 lets it (the align placement law), and a group outside a cell or under an maction child that is not selected is not judged (§3.5.5.9)"},"kind":"check","name":"MathML_align_first","relation":"CellLeafNode"},"law":"__cell_leaf_node_check_math_ml_align_first_iz57mce5qu"},
-				{"described":{"entry":{"kind":"declared","name":"Table headers","source":"reading 126: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_TDH.Attr_headers (§5.140.1: \"an unordered set of unique space-separated tokens that are case-sensitive, each of which must have the value of an ID of a 'th' tag taking part in the same table as the 'td' or 'th' tag\"); https://html.spec.whatwg.org/multipage/tables.html#attr-tdth-headers: a cell's headers tokens are unique, and each is the id of a th whose nearest table is the cell's, a cell no table holds taking part in none (html.ts TableScope, TableHeader, tableHeaders)"},"from":{"relation":"CellToken","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"table","kind":"field"},{"field":"token","kind":"field"}]},"kind":"contained","to":{"relation":"TabledHeader","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"table","kind":"field"},{"field":"id","kind":"field"}]}},"law":"__cell_token_in_tabled_header_xvmoeeg5ep"},
+				{"described":{"entry":{"kind":"declared","name":"Table headers","source":"reading 126: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_TDH.Attr_headers (§5.140.1: \"an unordered set of unique space-separated tokens that are case-sensitive, each of which must have the value of an ID of a 'th' tag taking part in the same table as the 'td' or 'th' tag\"); https://html.spec.whatwg.org/multipage/tables.html#attr-tdth-headers: a cell's headers tokens are unique, and each is the id of a th whose nearest table is the cell's, a cell no table holds taking part in none (html.ts TableScope, TableHeader, tableHeaders)"},"from":{"relation":"CellToken","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"table","kind":"field"},{"field":"token","kind":"field"}]},"kind":"contained","to":{"relation":"TableHeader","selection":{"conjuncts":[{"kind":"compare","left":{"field":"table","kind":"field"},"op":"ne","right":{"kind":"literal","value":"~n:0"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"table","kind":"field"},{"field":"id","kind":"field"}]}},"law":"__cell_token_in_table_header_stglc5l4rs"},
 				{"described":{"entry":{"kind":"declared","name":"N8 nearest","source":"plan-qti-pie N8, the nearest interaction (fin.md §15, rule 3)"},"from":{"relation":"ChoiceInteraction","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"interaction","kind":"field"}]},"kind":"contained","to":{"relation":"ChoiceNode","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"nearest","kind":"field"}]}},"law":"__choice_interaction_in_choice_node_4n7pnxbqrb"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"ChoiceNode"},"law":"__choice_node_check_e_1_derived_xj3hw44o3y"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"ChoiceNode","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-associable-hotspot","qti-associate-interaction","qti-choice-interaction","qti-extended-text-interaction","qti-gap-img","qti-gap-match-interaction","qti-gap-text","qti-graphic-associate-interaction","qti-graphic-gap-match-interaction","qti-graphic-order-interaction","qti-hotspot-interaction","qti-hottext-interaction","qti-match-interaction","qti-media-interaction","qti-order-interaction","qti-position-object-interaction","qti-select-point-interaction","qti-simple-associable-choice"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"CountBound","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__choice_node_in_count_bound_vkb53rtjaa"},
@@ -29738,7 +29797,6 @@
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"TableHeader","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"id","kind":"field"},{"field":"owner","kind":"field"}]},"kind":"contained","to":{"relation":"IdValue","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"id","kind":"field"},{"field":"owner","kind":"field"}]}},"law":"__table_header_in_id_value_qn6cr2x6jl"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"TableScopeNode"},"law":"__table_scope_node_check_e_1_derived_qwjvuw5r3e"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"TableScopeNode","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"table"}},{"kind":"compare","left":{"field":"parent","kind":"field"},"op":"ne","right":{"kind":"literal","value":"~n:0"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"parent","kind":"field"},{"field":"table","kind":"field"}]},"kind":"contained","to":{"relation":"TableScope","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"table","kind":"field"}]}},"law":"__table_scope_node_in_table_scope_d4b5isdesz"},
-				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"TabledHeader","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"table","kind":"field"},{"field":"id","kind":"field"}]}},"law":"__tabled_header_key_package_path_table_id_q5gmtyc5dj"},
 				{"described":{"entry":{"kind":"declared","name":"Branch forward","source":"reading 87: https://www.imsglobal.org/spec/qti/v3p0/info#Data_BranchRule (§5.23: 'the test jumps forward to the item, section or part referred to by the target identifier', 'the target must refer to an item or section in the same test-part that has not yet been presented'), §2.8.3.2 ('cycles are not allowed') and §5.98 (the child elements of an invisible section not kept together 'are mixed into the parent's selection prior to shuffling'): a target starts after its source's end, so it is neither the source, nor an ancestor, nor a descendant of it, unless the two are apart and the section nearest above both reorders its children, a shuffling section or one an invisible section not kept together mixes into; fixed is not read, a recorded limit (overlay-queries/tests.ts ForwardBranchRule)"},"from":{"relation":"TargetedBranchRule","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"instance","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ForwardBranchRule","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"instance","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__targeted_branch_rule_in_forward_branch_rule_nde6cyg5if"},
 				{"described":{"entry":{"kind":"declared","name":"Template needs","source":"reading 233: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_ResponseProcessing.Attr_template (§4.6.1, ResponseProcessing's template, normative: 'If a template identifier is given it may be used to locate an externally defined responseProcessing template. The rules obtained from the external template may be used instead of the rules defined within the item itself, though if both are given the internal rules are still preferred'), so an item's qti-response-processing that names a published template (reading 51) and holds no rule of its own runs that template's published rules, which read RESPONSE as a response variable (§6.9.40, qti-variable: 'an itemVariable that has been declared in a corresponding variableDeclaration or is one of the built-in variables'; §6.9.27, qti-correct: 'looks up the declaration of a response variable'; §6.9.47, qti-map-response, and §6.9.46, qti-map-response-point: 'the value of a response variable'), set SCORE and the CC2 templates' FEEDBACK and FEEDBACKBASIC as outcomes (§6.39.4, qti-set-outcome-value: 'sets the value of an outcome variable') and read the CC2 templates' MAXSCORE as a declared variable (§6.9.40), and whose qti-map-response under map_response and CC2_map_response uses RESPONSE's mapping (https://www.imsglobal.org/spec/qti/v3p0/info#AbstractAttribute_ExpressionGroup_qti-map-response, §6.9.47, and §7.22, MapResponse, normative: 'transforms it using the associated mapping, which must have been declared'); reading 198 holds each CC2 template to its own published rules: select(TemplateProcessing, value)(package, path), its template URI one of the template's four (either published prefix, with or without .xml), contained in select(NamedDeclaration, identifier, declarationKind)(package, path) per need, and in MappedResponseDeclaration(package, path) under the mapping templates (queries.ts Template needs)"},"from":{"relation":"TemplateProcessing","selection":{"conjuncts":[{"arg":{"field":"value","kind":"field"},"kind":"in","values":["https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_map_response","https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_map_response.xml","https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response","https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/map_response.xml","https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_map_response","https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_map_response.xml","https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response","https://www.imsglobal.org/question/qti_v3p0/rptemplates/map_response.xml"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]},"kind":"contained","to":{"relation":"MappedResponseDeclaration","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]}},"law":"__template_processing_in_mapped_response_declaration_s6zp76inmz"},
 				{"described":{"entry":{"kind":"declared","name":"Template needs","source":"reading 233: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_ResponseProcessing.Attr_template (§4.6.1, ResponseProcessing's template, normative: 'If a template identifier is given it may be used to locate an externally defined responseProcessing template. The rules obtained from the external template may be used instead of the rules defined within the item itself, though if both are given the internal rules are still preferred'), so an item's qti-response-processing that names a published template (reading 51) and holds no rule of its own runs that template's published rules, which read RESPONSE as a response variable (§6.9.40, qti-variable: 'an itemVariable that has been declared in a corresponding variableDeclaration or is one of the built-in variables'; §6.9.27, qti-correct: 'looks up the declaration of a response variable'; §6.9.47, qti-map-response, and §6.9.46, qti-map-response-point: 'the value of a response variable'), set SCORE and the CC2 templates' FEEDBACK and FEEDBACKBASIC as outcomes (§6.39.4, qti-set-outcome-value: 'sets the value of an outcome variable') and read the CC2 templates' MAXSCORE as a declared variable (§6.9.40), and whose qti-map-response under map_response and CC2_map_response uses RESPONSE's mapping (https://www.imsglobal.org/spec/qti/v3p0/info#AbstractAttribute_ExpressionGroup_qti-map-response, §6.9.47, and §7.22, MapResponse, normative: 'transforms it using the associated mapping, which must have been declared'); reading 198 holds each CC2 template to its own published rules: select(TemplateProcessing, value)(package, path), its template URI one of the template's four (either published prefix, with or without .xml), contained in select(NamedDeclaration, identifier, declarationKind)(package, path) per need, and in MappedResponseDeclaration(package, path) under the mapping templates (queries.ts Template needs)"},"from":{"relation":"TemplateProcessing","selection":{"conjuncts":[{"arg":{"field":"value","kind":"field"},"kind":"in","values":["https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_map_response","https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_map_response.xml","https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_match_basic","https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/CC2_match_basic.xml","https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_map_response","https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_map_response.xml","https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_match_basic","https://www.imsglobal.org/question/qti_v3p0/rptemplates/CC2_match_basic.xml"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]},"kind":"contained","to":{"relation":"NamedDeclaration","selection":{"conjuncts":[{"arg":{"field":"declarationKind","kind":"field"},"kind":"in","values":["qti-outcome-declaration","qti-response-declaration","qti-template-declaration"]},{"kind":"compare","left":{"field":"identifier","kind":"field"},"op":"eq","right":{"kind":"literal","value":"MAXSCORE"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]}},"law":"__template_processing_in_named_declaration_6b3bgqmnu5"},

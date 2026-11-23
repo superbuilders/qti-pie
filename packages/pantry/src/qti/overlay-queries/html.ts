@@ -6,9 +6,15 @@
  * cell's `headers` parse is held to the attribute's lexical form where it stands, which no overlay
  * copies (C18).
  */
-import { check, contained, derived, key, on, query, select, v } from "@bjornpagen/grizzle";
+import { check, contained, derived, on, query, select, v } from "@bjornpagen/grizzle";
 import { QtiBase } from "#pantry/qti/base.ts";
-import { CellHeaders, HeaderToken, TableHeader, TableScope } from "#pantry/qti/html.ts";
+import {
+  CellHeaders,
+  HeaderToken,
+  TableHeader,
+  TableScope,
+  tabledHeaders,
+} from "#pantry/qti/html.ts";
 import { IdValue, listForms, spelledByTokens } from "#pantry/qti/names.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
@@ -46,24 +52,6 @@ const CellToken = derived(
 );
 
 /**
- * The headers that take part in a table, each `th`'s ID value beside its table, by the `th`'s
- * place: those whose nearest `table` is one, not the document node.
- */
-const TabledHeader = derived(
-  "TabledHeader",
-  query(QtiBase).rule((r) => {
-    const { id, package: pkg, path, start } = v(TableHeader, "header");
-    const { table } = v(TableScope, "scope");
-
-    return r
-      .match(TableHeader, { id, package: pkg, path, start })
-      .match(TableScope, { package: pkg, path, start, table })
-      .where(r.ne(table, documentStart))
-      .find({ id, package: pkg, path, start, table });
-  }),
-);
-
-/**
  * Each cell's `headers` parse beside the attribute's lexical form, by the cell's place
  * ({@link listForms}).
  */
@@ -92,9 +80,6 @@ const inheritedScopes = select(TableScopeNode, (s) =>
  *   every token it writes is refused.
  */
 export const htmlOverlayLawsByName = {
-  "DocumentId key": declared("DocumentId key", [
-    key(on(TabledHeader, "package", "path", "table", "id")),
-  ]),
   "E1 derived": declared("E1 derived", [
     check("E1_derived", TableScopeNode, (s) =>
       s.or(
@@ -116,7 +101,7 @@ export const htmlOverlayLawsByName = {
   "Table headers": declared("Table headers", [
     contained(
       on(CellToken, "package", "path", "table", "token"),
-      on(TabledHeader, "package", "path", "table", "id"),
+      on(tabledHeaders, "package", "path", "table", "id"),
     ),
   ]),
 } as const;
@@ -124,12 +109,7 @@ export const htmlOverlayLawsByName = {
 /**
  * The queries of this module, each carrying its own name.
  */
-export const htmlOverlayRelations = [
-  CellHeadersForm,
-  CellToken,
-  TabledHeader,
-  TableScopeNode,
-] as const;
+export const htmlOverlayRelations = [CellHeadersForm, CellToken, TableScopeNode] as const;
 
 /**
  * The rules of this module, {@link htmlOverlayLawsByName} flattened.
