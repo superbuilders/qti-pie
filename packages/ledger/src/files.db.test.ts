@@ -13,12 +13,13 @@
  * when the results suite gains the case end to end.
  *
  * The inputs are the rows a reader hands the machine's entry: a run's file values as `doc_file`
- * rows, each with its name; two distinct files, the same content under a second name, a third
- * file and a repeated value. The oracle is the rule table below, each line read from §8.14 and
- * §2.11.3.28 apart from the machine. The machine is the SQL of `machine/`, the source
- * `src/grading.ts` is generated from, created in a schema of this run's own on the lane's
- * database, in a transaction that rolls back, beside a plant whose `same` compares a file by its
- * digest alone, as main's did before: the table must catch it.
+ * rows, each with its name; two distinct files, the same content under a second name, a third file
+ * and a repeated value; and the program's walk, its nodes and the variable each names
+ * (`WalkIdent`'s rows, `#ledger/walks.ts`), the only parameter the item's processing writes. The
+ * oracle is the rule table below, each line read from §8.14 and §2.11.3.28 apart from the machine.
+ * The machine is the SQL of `machine/`, the source `src/grading.ts` is generated from, created in a
+ * schema of this run's own on the lane's database, in a transaction that rolls back, beside a plant
+ * whose `same` compares a file by its digest alone, as main's did before: the table must catch it.
  *
  * It runs only where a database is handed to it, as pantry's database suites do
  * (`QTI_PIE_PG_DATABASE` and pantry's `QTI_PIE_PG_*`), and is skipped elsewhere.
@@ -314,6 +315,24 @@ const PROGRAM = DOCUMENT.nodes.filter(
 );
 
 /**
+ * The program's walk's variables, as `WalkIdent` stores them (`#ledger/walks.ts`): each element's
+ * `identifier`, `variable-identifier` or `outcome-identifier`. The item's processing writes no
+ * other parameter, so the walk's other relations are empty.
+ */
+const PROGRAM_IDENTS = DOCUMENT.attributes
+  .filter(
+    (attribute) =>
+      ["identifier", "outcome-identifier", "variable-identifier"].includes(attribute.name) &&
+      PROGRAM.some((node) => node.start === attribute.start),
+  )
+  .map(({ package: pkg, path, start, value }) => ({
+    identifier: value,
+    package: pkg,
+    path,
+    start,
+  }));
+
+/**
  * The item's declarations.
  */
 const DECLARATIONS = DOCUMENT.nodes.filter((node) => node.kind.endsWith("-declaration"));
@@ -534,6 +553,32 @@ const filesJson = (source: string): string =>
   `(select coalesce(jsonb_agg(jsonb_build_object('digest', encode(f.digest, 'hex'), 'name', f.name, 'type', f.content_type)), '[]') from ${source})`;
 
 /**
+ * The walk's relations the item's processing writes no row of.
+ */
+const WALK_EMPTY = [
+  "walk_areas",
+  "walk_categories",
+  "walk_coords",
+  "walk_customs",
+  "walk_equals",
+  "walk_filters",
+  "walk_floats",
+  "walk_integers",
+  "walk_literal_booleans",
+  "walk_literal_directed_pairs",
+  "walk_literal_floats",
+  "walk_literal_integers",
+  "walk_literal_pairs",
+  "walk_literal_points",
+  "walk_literal_texts",
+  "walk_names",
+  "walk_patterns",
+  "walk_refs",
+  "walk_rounds",
+  "walk_texts",
+] as const;
+
+/**
  * Every rule's observation of the machine in one schema.
  *
  * @param client - The session's client.
@@ -547,23 +592,21 @@ const observe = (client: Client, schemaName: string) =>
     const declarations = rowsFrom("declaration_node", 1);
     const attributes = rowsFrom("document_attribute", 2);
     const program = rowsFrom("program_node", 3);
-    const programAttributes = rowsFrom("document_attribute", 4);
+    const idents = rowsFrom("doc_walk_ident", 4);
     const none = "'{}'";
+    const walkNone = WALK_EMPTY.map((name) => `${name} => ${none}`).join(", ");
     const run = `array[row('${CHILD}', false, 'label', '${PACKAGE}', '${PATH}', 'seed', 0)::document_run]`;
     const values = (files: string) =>
       `values_of(booleans => ${none}, child => '${CHILD}', declaration_attributes => ${attributes}, declarations => ${declarations}, defaulted => false, directed_pairs => ${none}, field_booleans => ${none}, field_directed_pairs => ${none}, field_files => ${none}, field_floats => ${none}, field_integers => ${none}, field_pairs => ${none}, field_points => ${none}, field_texts => ${none}, files => ${files}, floats => ${none}, integers => ${none}, package => '${PACKAGE}', pairs => ${none}, path => '${PATH}', points => ${none}, stage => 0, texts => ${none}, vars => ${none})`;
-    const result = `response_processing_of(booleans => ${none}, compiled => ${none}, declaration_attributes => ${attributes}, declaration_texts => ${none}, declarations => ${declarations}, directed_pairs => ${none}, evaluations => ${none}, field_booleans => ${none}, field_directed_pairs => ${none}, field_files => ${none}, field_floats => ${none}, field_integers => ${none}, field_pairs => ${none}, field_points => ${none}, field_texts => ${none}, files => ${filesFrom(5)}, floats => ${none}, human_feedbacks => ${none}, humans => ${none}, integers => ${none}, pairs => ${none}, points => ${none}, program_attributes => ${programAttributes}, program_texts => ${none}, programs => ${program}, reply_floats => ${none}, reply_texts => ${none}, runs => ${run}, table_bindings => ${none}, table_entries => ${none}, table_values => ${none}, texts => ${none}, vars => ${none})`;
+    const result = `response_processing_of(booleans => ${none}, declaration_attributes => ${attributes}, declaration_texts => ${none}, declarations => ${declarations}, directed_pairs => ${none}, evaluations => ${none}, field_booleans => ${none}, field_directed_pairs => ${none}, field_files => ${none}, field_floats => ${none}, field_integers => ${none}, field_pairs => ${none}, field_points => ${none}, field_texts => ${none}, files => ${filesFrom(5)}, floats => ${none}, human_feedbacks => ${none}, humans => ${none}, integers => ${none}, pairs => ${none}, points => ${none}, programs => ${program}, reply_floats => ${none}, reply_texts => ${none}, runs => ${run}, table_bindings => ${none}, table_entries => ${none}, table_values => ${none}, texts => ${none}, vars => ${none}, ${walkNone}, walk_idents => ${idents})`;
     const declarationAttributes = DOCUMENT.attributes.filter((attribute) =>
       DECLARATIONS.some((node) => node.start === attribute.start),
-    );
-    const programAttributeRows = DOCUMENT.attributes.filter((attribute) =>
-      PROGRAM.some((node) => node.start === attribute.start),
     );
     const parameters = [
       JSON.stringify(DECLARATIONS),
       JSON.stringify(declarationAttributes),
       JSON.stringify(PROGRAM),
-      JSON.stringify(programAttributeRows),
+      JSON.stringify(PROGRAM_IDENTS),
       JSON.stringify(RUN_FILES),
       JSON.stringify(MULTIPLE_FILES),
     ];

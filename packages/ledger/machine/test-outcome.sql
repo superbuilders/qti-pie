@@ -343,9 +343,9 @@ end $$;
 -- outcomes are reset before each. A test declares no response, so its own correct responses are none. The item
 -- sessions it reads are the inputs' test fields; the draw stream's seed and label are the caller's.
 create function p3.outcome_processing(bound p3.var[], builtins p3.var[], contexts p3.var[], inp p3.inputs, label text,
-  outcomes p3.var[], prog p3.program, seed text)
+  outcomes p3.var[], seed text, walk p3.walk_node[])
 returns p3.run_state language sql immutable as $$
-  select run_rules(walk => (walk_of(prog => prog)).nodes, inp => inp, i => 1, from_kid => 1, st => row(
+  select run_rules(walk => walk, inp => inp, i => 1, from_kid => 1, st => row(
     '{}'::var[], array(select v from unnest(array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins) v order by v.identifier),
     '{}'::var[], array(select v from unnest(outcomes || contexts) v order by v.identifier), array(select v from unnest(outcomes || contexts) v order by v.identifier), '{}', 0, 'run', label, '{}',
     seed,

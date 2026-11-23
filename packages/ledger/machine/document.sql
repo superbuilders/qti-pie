@@ -37,15 +37,6 @@ create function p3.xml_single(base text, txt text) returns p3.single language sq
 $$;
 create function p3.xs_boolean(dflt boolean, t text) returns boolean language sql immutable as
 $$ select case when t is null then dflt else trim_xml(t => t) in ('true', '1') end $$;
--- An IntegerOrVariableRef or FloatOrVariableRef as written: a literal where it reads as one, else a variable's name.
-create function p3.int_ref_of(t text) returns p3.int_ref language sql immutable as $$
-  select case when trim_xml(t => t) ~ '^[+-]?[0-9]+$' then row(trim_xml(t => t)::numeric, null)::int_ref
-    else row(null, trim_xml(t => t))::int_ref end
-$$;
-create function p3.float_ref_of(t text) returns p3.float_ref language sql immutable as $$
-  select case when trim_xml(t => t) ~ '^([+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?|-?INF|NaN)$'
-    then row((parse(base => 'float', lexical => trim_xml(t => t))).f, null)::float_ref else row(null, trim_xml(t => t))::float_ref end
-$$;
 -- An area from QTI's shape and coords (HTML's image-map rules): its kind, or nowhere where too few coordinates, a
 -- radius of zero or less or fewer than three vertices hold no point; and its coordinates as written.
 create function p3.area_of(coords text, kind text) returns p3.area language plpgsql immutable as $$
@@ -62,136 +53,141 @@ begin
   end case;
 end $$;
 
--- The registered class a qti-custom-operator binds (the registry's OP-1 and OP-2): its definition URI is a roster class's,
--- tag:superbuilders.school,2026:qti/custom-operator/<class>, and its class agrees, each as written less XML white space at
--- either end; NULL for any other operator, which the registry does not define and the arm leaves NULL, its operands
--- unevaluated. This list is the registry's CustomOperatorClass roster, in composable-operators.md §2's order, its one
--- source: the ledger's generator reads its token from it.
-create function p3.custom_class_of(definition text, operator_class text) returns text language sql immutable as $$
-  select r.c from (values ('normalize-space'), ('markup-text'), ('when-present'), ('tex-normal'), ('numeral-normal'), ('read-number'), ('tokenize'), ('translate'), ('math-canonical'), ('quantity'), ('unit-near'), ('phrase-distance'), ('rubric-score')) r(c)
-  where trim_xml(t => definition) = 'tag:superbuilders.school,2026:qti/custom-operator/' || r.c and trim_xml(t => operator_class) = r.c
-$$;
-
--- A content pattern's program as a reader hands it to an entry (compiled_pattern) until its package's publication
--- stores it: xsd_compile's, one row, none for a pattern that is no Appendix F expression.
-create function p3.pattern_program_of(pattern text) returns setof p3.pattern_program language sql immutable as $$
-  select row(c.program)::pattern_program from (select xsd_compile(p => pattern) as program) c where c.program is not null
-$$;
-
--- A processing program from its root's subtree: its nodes in document order, numbered densely from 1 as the machine's
--- walk reads them (a node's end the place past its last descendant), whatever places the stored tree gives them, and
--- each kind's parameters parsed into their sidecars, QTI's documented defaults stated here once. `declarations` are the
--- document's, whose names a pattern written {name} may read.
-create function p3.program_of(attributes p3.document_attribute[], compiled p3.compiled_pattern[], declaration_attributes p3.document_attribute[],
-  declarations p3.declaration_node[], nodes p3.program_node[], texts p3.document_text[])
-returns p3.program language sql immutable as $$
-  with o as (select array_agg(x.start order by x.start) as starts from unnest(nodes) x),
-  a as (
-    select y.start as owner_start,
-      max(y.value) filter (where y.name = 'identifier') as identifier,
-      max(y.value) filter (where y.name = 'variable-identifier') as variable_identifier,
-      max(y.value) filter (where y.name = 'outcome-identifier') as outcome_identifier,
-      max(y.value) filter (where y.name = 'base-type') as base_type,
-      max(y.value) filter (where y.name = 'tolerance-mode') as tolerance_mode,
-      max(y.value) filter (where y.name = 'tolerance') as tolerance,
-      max(y.value) filter (where y.name = 'include-lower-bound') as include_lower_bound,
-      max(y.value) filter (where y.name = 'include-upper-bound') as include_upper_bound,
-      max(y.value) filter (where y.name = 'rounding-mode') as rounding_mode,
-      max(y.value) filter (where y.name = 'figures') as figures,
-      max(y.value) filter (where y.name = 'case-sensitive') as case_sensitive,
-      max(y.value) filter (where y.name = 'substring') as substring,
-      max(y.value) filter (where y.name = 'pattern') as pattern,
-      max(y.value) filter (where y.name = 'n') as n,
-      max(y.value) filter (where y.name = 'number-repeats') as number_repeats,
-      max(y.value) filter (where y.name = 'min') as min,
-      max(y.value) filter (where y.name = 'max') as max,
-      max(y.value) filter (where y.name = 'step') as step,
-      max(y.value) filter (where y.name = 'name') as name,
-      max(y.value) filter (where y.name = 'field-identifier') as field_identifier,
-      max(y.value) filter (where y.name = 'shape') as shape,
-      max(y.value) filter (where y.name = 'coords') as coords,
-      max(y.value) filter (where y.name = 'section-identifier') as section_identifier,
-      max(y.value) filter (where y.name = 'include-category') as include_category,
-      max(y.value) filter (where y.name = 'exclude-category') as exclude_category,
-      max(y.value) filter (where y.name = 'weight-identifier') as weight_identifier,
-      max(y.value) filter (where y.name = 'class') as operator_class,
-      max(y.value) filter (where y.name = 'definition') as definition
-    from unnest(attributes) y group by y.start
+-- A program's walk from its stored rows (WalkNode and its sidecars, keyed by the nodes' stored starts in the run's
+-- document): its nodes in document order, each numbered by its place (its start's rank among the program's), its end
+-- the place past its last descendant, its parent's place (0 for the root), its kids the places of the nodes whose
+-- parent it is, and each parameter at its node's place, a node of each kind given its kind's parameters, QTI's
+-- documented defaults applied where its document omits them (the stored rows'): an IntegerOrVariableRef or
+-- FloatOrVariableRef its literal row or its reference row, neither where it has no row; an equal's tolerance token
+-- NULL where the tolerance has no 1 or 2 tokens; a base value's literal its typed row. Every row of the program, its
+-- nodes', its kids' (keyed by the parent's start) and each parameter's, is one tagged row of one grouping by start, so
+-- the walk is read in one pass whatever the rows' counts.
+create function p3.walk_from(areas p3.doc_walk_area[], categories p3.doc_walk_category[], coords p3.doc_walk_coord[], customs p3.doc_walk_custom[], equals p3.doc_walk_equal[], filters p3.doc_walk_filter[], floats p3.doc_walk_float[], idents p3.doc_walk_ident[], integers p3.doc_walk_integer[], literal_booleans p3.doc_walk_literal_boolean[], literal_directed_pairs p3.doc_walk_literal_directed_pair[], literal_floats p3.doc_walk_literal_float[], literal_integers p3.doc_walk_literal_integer[], literal_pairs p3.doc_walk_literal_pair[], literal_points p3.doc_walk_literal_point[], literal_texts p3.doc_walk_literal_text[], names p3.doc_walk_name[], nodes p3.program_node[], package text, path text, patterns p3.doc_walk_pattern[], refs p3.doc_walk_ref[], rounds p3.doc_walk_round[], texts p3.doc_walk_text[]) returns p3.walk language sql immutable as $$
+  with x as (select y.* from unnest(nodes) y where y.package = walk_from.package and y.path = walk_from.path),
+  o as (select array_agg(x.start order by x.start) as starts from x),
+  t as (
+    select x.start, 'node' as tag, x.kind, x."end" as e, x.parent as par, null::int_ref as ir, null::float_ref as fr, null::text as v,
+      null::boolean as b1, null::boolean as b2, null::single as lit, null::float8 as c, null::bigint as o, null::text as v2 from x
+    union all select x.parent, 'kid', null, null, null, null, null, null, null, null, null, null, width_bucket(x.start, (select o.starts from o)), null from x
+    union all select y.start, 'i:' || y.field, null, null, null, row(y.value, null)::int_ref, null, null, null, null, null, null, null, null
+      from unnest(integers) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'f:' || y.field, null, null, null, null, row(y.value, null)::float_ref, null, null, null, null, null, null, null
+      from unnest(floats) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, case when y.field = 'pattern' then 'ref:pattern' when y.field in ('equal.t0', 'equal.t1', 'frange.hi', 'frange.lo')
+        then 'f:' || y.field else 'i:' || y.field end, null, null, null,
+      case when y.field not in ('pattern', 'equal.t0', 'equal.t1', 'frange.hi', 'frange.lo') then row(null, y.ref)::int_ref end,
+      case when y.field in ('equal.t0', 'equal.t1', 'frange.hi', 'frange.lo') then row(null, y.ref)::float_ref end, y.ref, null, null, null, null, null, null
+      from unnest(refs) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'n:' || y.field, null, null, null, null, null, y.value, null, null, null, null, null, null
+      from unnest(names) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'equal', null, null, null, null, null, y.mode, y.lower_in, y.upper_in, null, null, null, null
+      from unnest(equals) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'round', null, null, null, null, null, y.mode, null, null, null, null, null, null
+      from unnest(rounds) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'text', null, null, null, null, null, null, y.case_sensitive, y.substring, null, null, null, null
+      from unnest(texts) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'ident', null, null, null, null, null, y.identifier, null, null, null, null, null, null
+      from unnest(idents) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'custom', null, null, null, null, null, y.class, null, null, null, null, null, null
+      from unnest(customs) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'program', null, null, null, null, null, y.program, null, null, null, null, null, null
+      from unnest(patterns) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'area', null, null, null, null, null, y.kind, null, null, null, null, null, null
+      from unnest(areas) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'coord', null, null, null, null, null, null, null, null, null, y.c, y.place, null
+      from unnest(coords) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'category', null, null, null, null, null, y.category, null, null, null, null, y.place, y.filter
+      from unnest(categories) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'filter', null, null, null, null, null, y.filter, null, null, null, null, null, null
+      from unnest(filters) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'literal', null, null, null, null, null, null, null, null, s_text(base => y.base, t => y.value), null, null, null
+      from unnest(literal_texts) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'literal', null, null, null, null, null, null, null, null, s_int(n => y.value), null, null, null
+      from unnest(literal_integers) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'literal', null, null, null, null, null, null, null, null, s_float(base => y.base, f => y.value), null, null, null
+      from unnest(literal_floats) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'literal', null, null, null, null, null, null, null, null, s_bool(b => y.value), null, null, null
+      from unnest(literal_booleans) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'literal', null, null, null, null, null, null, null, null, s_pair(a => y.least, b => y.greatest), null, null, null
+      from unnest(literal_pairs) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'literal', null, null, null, null, null, null, null, null, s_dpair(a => y.source, b => y.target), null, null, null
+      from unnest(literal_directed_pairs) y where y.package = walk_from.package and y.path = walk_from.path
+    union all select y.start, 'literal', null, null, null, null, null, null, null, null, s_point(x => y.x, y => y.y), null, null, null
+      from unnest(literal_points) y where y.package = walk_from.package and y.path = walk_from.path
   ),
-  n as (
-    select width_bucket(x.start, (select o.starts from o)) as start, width_bucket(x."end" - 1, (select o.starts from o)) + 1 as "end",
-      width_bucket(x.parent, (select o.starts from o)) as parent, x.kind, t.text as txt, a.*
-    from unnest(nodes) x left join unnest(texts) t on t.start = x.start left join a on a.owner_start = x.start
+  g as (
+    select t.start, max(t.kind) filter (where t.tag = 'node') as kind, max(t.e) filter (where t.tag = 'node') as e,
+      max(t.par) filter (where t.tag = 'node') as par, array_agg(row(t.o::int)::child order by t.o) filter (where t.tag = 'kid') as kids,
+      (array_agg(t.ir) filter (where t.tag = 'i:any_n.max'))[1] as amax, (array_agg(t.ir) filter (where t.tag = 'i:any_n.min'))[1] as amin,
+      (array_agg(t.ir) filter (where t.tag = 'i:int.value'))[1] as ival, (array_agg(t.ir) filter (where t.tag = 'i:range.hi'))[1] as rhi,
+      (array_agg(t.ir) filter (where t.tag = 'i:range.lo'))[1] as rlo, (array_agg(t.ir) filter (where t.tag = 'i:range.step'))[1] as rst,
+      (array_agg(t.ir) filter (where t.tag = 'i:round.figures'))[1] as rfi,
+      (array_agg(t.fr) filter (where t.tag = 'f:equal.t0'))[1] as t0, (array_agg(t.fr) filter (where t.tag = 'f:equal.t1'))[1] as t1,
+      (array_agg(t.fr) filter (where t.tag = 'f:frange.hi'))[1] as fhi, (array_agg(t.fr) filter (where t.tag = 'f:frange.lo'))[1] as flo,
+      max(t.v) filter (where t.tag = 'ref:pattern') as pref, max(t.v) filter (where t.tag = 'n:base') as nbase,
+      max(t.v) filter (where t.tag = 'n:constant') as nconstant, max(t.v) filter (where t.tag = 'n:field') as nfield,
+      max(t.v) filter (where t.tag = 'n:math') as nmath, max(t.v) filter (where t.tag = 'n:section') as nsection,
+      max(t.v) filter (where t.tag = 'n:stat') as nstat, max(t.v) filter (where t.tag = 'n:weight') as nweight,
+      bool_or(t.tag = 'equal') as has_equal, max(t.v) filter (where t.tag = 'equal') as eq_mode,
+      bool_or(t.b1) filter (where t.tag = 'equal') as eq_lower, bool_or(t.b2) filter (where t.tag = 'equal') as eq_upper,
+      max(t.v) filter (where t.tag = 'round') as round_mode,
+      bool_or(t.b1) filter (where t.tag = 'text') as case_sensitive, bool_or(t.b2) filter (where t.tag = 'text') as substring,
+      max(t.v) filter (where t.tag = 'ident') as ident, max(t.v) filter (where t.tag = 'custom') as class,
+      max(t.v) filter (where t.tag = 'program') as program, max(t.v) filter (where t.tag = 'area') as area_kind,
+      array_agg(row(t.c, t.o::int)::coord order by t.o) filter (where t.tag = 'coord') as coords,
+      array_agg(t.v order by t.v2 = 'exclude', t.o) filter (where t.tag = 'category') as cat_names,
+      array_agg(t.v2 order by t.v2 = 'exclude', t.o) filter (where t.tag = 'category') as cat_filters,
+      array_agg(t.v order by t.v = 'exclude') filter (where t.tag = 'filter') as filter_names,
+      (array_agg(t.lit) filter (where t.tag = 'literal'))[1] as lit, bool_or(t.tag = 'literal') as has_lit
+    from t group by t.start having bool_or(t.tag = 'node')
   ),
-  declared as (
-    select trim_xml(t => y.value) as identifier from unnest(declarations) d
-    join unnest(declaration_attributes) y on y.start = d.start and y.name = 'identifier'
-    where d.kind in ('qti-response-declaration', 'qti-outcome-declaration', 'qti-template-declaration', 'qti-context-declaration')
+  p as (
+    select g.*, width_bucket(g.start, (select o.starts from o))::int as place, (width_bucket(g.e - 1, (select o.starts from o)) + 1)::int as pe,
+      width_bucket(g.par, (select o.starts from o))::int as pp
+    from g
   )
-  select row(
-    (select coalesce(array_agg(row(int_ref_of(t => n.max), int_ref_of(t => n.min), n.start)::p_any_n), '{}') from n where n.kind = 'qti-any-n'),
-    (select coalesce(array_agg(row(area_of(kind => n.shape, coords => n.coords), n.start)::p_area), '{}') from n where n.kind = 'qti-inside'),
-    -- A base value of the empty string is NULL: it has no literal row.
-    (select coalesce(array_agg(row(trim_xml(t => n.base_type), n.start)::p_base), '{}') from n
-      where n.base_type is not null and n.kind = 'qti-test-variables'),
-    (select coalesce(array_agg(row(c, f.filter, f.start)::p_category), '{}') from (
-      select n.start, 'include' as filter, n.include_category as list, n.kind from n where n.include_category is not null
-      union all select n.start, 'exclude', n.exclude_category, n.kind from n where n.exclude_category is not null) f,
-      lateral unnest(array_remove(regexp_split_to_array(trim_xml(t => f.list), '[ \t\n\r]+'), '')) c
-      where f.kind in ('qti-number-correct', 'qti-number-incorrect', 'qti-number-presented', 'qti-number-responded', 'qti-number-selected',
-        'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables')),
-    (select coalesce(array_agg(row(trim_xml(t => n.name), n.start)::p_constant), '{}') from n where n.kind = 'qti-math-constant'),
-    -- The bound custom operators: each qti-custom-operator whose definition binds a registered class.
-    (select coalesce(array_agg(row(custom_class_of(definition => n.definition, operator_class => n.operator_class), n.start)::p_custom), '{}') from n
-      where n.kind = 'qti-custom-operator' and custom_class_of(definition => n.definition, operator_class => n.operator_class) is not null),
-    (select coalesce(array_agg(row(e.lower_in, e.mode, e.start, e.tok[1], coalesce(e.tok[2], e.tok[1]), e.upper_in)::p_equal), '{}') from (
-      select n.start, coalesce(trim_xml(t => n.tolerance_mode), 'exact') as mode,
-        case when cardinality(z.t) between 1 and 2 then array(select float_ref_of(t => w) from unnest(z.t) w) end as tok,
-        xs_boolean(t => n.include_lower_bound, dflt => true) as lower_in, xs_boolean(t => n.include_upper_bound, dflt => true) as upper_in
-      from n, lateral (select coalesce(array_remove(regexp_split_to_array(n.tolerance, '[ \t\n\r]+'), ''), '{}') as t) z
-      where n.kind = 'qti-equal') e),
-    -- A pattern names a variable as {name} where the document declares one of that name (plate's StringOrRef); else
-    -- it is the pattern itself, its program the package's compiled one (none where it is no Appendix F expression).
-    (select coalesce(array_agg(row(trim_xml(t => n.field_identifier), n.start)::p_field), '{}') from n where n.kind = 'qti-field-value'),
-    (select coalesce(array_agg(row(f.filter, f.start)::p_filter), '{}') from (
-      select n.start, 'include' as filter, n.kind from n where n.include_category is not null
-      union all select n.start, 'exclude', n.kind from n where n.exclude_category is not null) f
-      where f.kind in ('qti-number-correct', 'qti-number-incorrect', 'qti-number-presented', 'qti-number-responded', 'qti-number-selected',
-        'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables')),
-    (select coalesce(array_agg(row(float_ref_of(t => n.max), float_ref_of(t => coalesce(n.min, '0')), n.start)::p_frange), '{}')
-      from n where n.kind = 'qti-random-float'),
-    (select coalesce(array_agg(row(trim_xml(t => case n.kind when 'qti-test-variables' then n.variable_identifier
-        when 'qti-outcome-minimum' then n.outcome_identifier when 'qti-outcome-maximum' then n.outcome_identifier else n.identifier end), n.start)::p_ident), '{}') from n
-      where n.kind in ('qti-variable', 'qti-correct', 'qti-default', 'qti-map-response', 'qti-map-response-point', 'qti-set-outcome-value',
-        'qti-lookup-outcome-value', 'qti-set-template-value', 'qti-set-correct-response', 'qti-set-default-value',
-        'qti-test-variables', 'qti-outcome-minimum', 'qti-outcome-maximum')),
-    (select coalesce(array_agg(row(n.start, int_ref_of(t => case n.kind when 'qti-index' then n.n when 'qti-repeat' then n.number_repeats end))::p_int), '{}')
-      from n where n.kind in ('qti-index', 'qti-repeat')),
-    (select coalesce(array_agg(row(n.start, xml_single(base => trim_xml(t => n.base_type), txt => n.txt))::p_literal), '{}') from n
-      where n.kind = 'qti-base-value' and (xml_single(base => trim_xml(t => n.base_type), txt => n.txt)).base is not null),
-    (select coalesce(array_agg(row(trim_xml(t => n.name), n.start)::p_math), '{}') from n where n.kind = 'qti-math-operator'),
-    (select array_agg(row(n."end", n.kind, n.parent, n.start)::node order by n.start) from n),
-    (select coalesce(array_agg(case when n.pattern ~ '^\{[^}]+\}$'
-          and exists (select 1 from declared d where d.identifier = substr(n.pattern, 2, length(n.pattern) - 2))
-        then row(null, substr(n.pattern, 2, length(n.pattern) - 2), n.start)::p_pattern
-        else row(c.program, null, n.start)::p_pattern end), '{}')
-      from n left join unnest(compiled) c on c.pattern = n.pattern where n.kind = 'qti-pattern-match'),
-    (select coalesce(array_agg(row(int_ref_of(t => n.max), int_ref_of(t => coalesce(n.min, '0')), n.start, int_ref_of(t => coalesce(n.step, '1')))::p_range), '{}')
-      from n where n.kind = 'qti-random-integer'),
-    -- A test-level expression's characteristics (Tables 7.27, 7.28, 7.39) and a weighted qti-variable's (7.47.2).
-    (select coalesce(array_agg(row(int_ref_of(t => n.figures), coalesce(trim_xml(t => n.rounding_mode), 'significantFigures'), n.start)::p_round), '{}') from n
-      where n.kind in ('qti-equal-rounded', 'qti-round-to')),
-    (select coalesce(array_agg(row(trim_xml(t => n.section_identifier), n.start)::p_section), '{}') from n
-      where n.section_identifier is not null and n.kind in ('qti-number-correct', 'qti-number-incorrect', 'qti-number-presented',
-        'qti-number-responded', 'qti-number-selected', 'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables')),
-    (select coalesce(array_agg(row(trim_xml(t => n.name), n.start)::p_stat), '{}') from n where n.kind = 'qti-stats-operator'),
-    (select coalesce(array_agg(row(xs_boolean(t => n.case_sensitive, dflt => true), n.start,
-        n.kind = 'qti-string-match' and xs_boolean(t => n.substring, dflt => false))::p_text), '{}') from n
-      where n.kind in ('qti-string-match', 'qti-substring')),
-    (select coalesce(array_agg(row(n.start, trim_xml(t => n.weight_identifier))::p_weight), '{}') from n
-      where n.weight_identifier is not null and n.kind in ('qti-variable', 'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables'))
-  )::program
+  select row(array(select row(
+      case when p.kind = 'qti-any-n' then array[row(coalesce(p.amax, row(null, null)::int_ref), coalesce(p.amin, row(null, null)::int_ref), p.place)::p_any_n] else '{}' end,
+      case when p.kind = 'qti-inside' then array[row(row(coalesce(p.coords, '{}'), p.area_kind)::area, p.place)::p_area] else '{}' end,
+      case when p.kind = 'qti-test-variables' and p.nbase is not null then array[row(p.nbase, p.place)::p_base] else '{}' end,
+      case when p.kind in ('qti-number-correct', 'qti-number-incorrect', 'qti-number-presented', 'qti-number-responded', 'qti-number-selected',
+          'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables') and p.cat_names is not null
+        then array(select row(cn, cf, p.place)::p_category from unnest(p.cat_names, p.cat_filters) z(cn, cf)) else '{}' end,
+      case when p.kind = 'qti-math-constant' then array[row(p.nconstant, p.place)::p_constant] else '{}' end,
+      case when p.kind = 'qti-custom-operator' and p.class is not null then array[row(p.class, p.place)::p_custom] else '{}' end,
+      p.pe,
+      case when p.kind = 'qti-equal' then array[row(p.eq_lower, p.eq_mode, p.place, p.t0, p.t1, p.eq_upper)::p_equal] else '{}' end,
+      case when p.kind = 'qti-field-value' then array[row(p.nfield, p.place)::p_field] else '{}' end,
+      case when p.kind in ('qti-number-correct', 'qti-number-incorrect', 'qti-number-presented', 'qti-number-responded', 'qti-number-selected',
+          'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables') and p.filter_names is not null
+        then array(select row(z, p.place)::p_filter from unnest(p.filter_names) z) else '{}' end,
+      case when p.kind = 'qti-random-float' then array[row(coalesce(p.fhi, row(null, null)::float_ref), coalesce(p.flo, row(null, null)::float_ref), p.place)::p_frange] else '{}' end,
+      case when p.kind in ('qti-variable', 'qti-correct', 'qti-default', 'qti-map-response', 'qti-map-response-point', 'qti-set-outcome-value',
+          'qti-lookup-outcome-value', 'qti-set-template-value', 'qti-set-correct-response', 'qti-set-default-value',
+          'qti-test-variables', 'qti-outcome-minimum', 'qti-outcome-maximum')
+        then array[row(p.ident, p.place)::p_ident] else '{}' end,
+      case when p.kind in ('qti-index', 'qti-repeat') then array[row(p.place, coalesce(p.ival, row(null, null)::int_ref))::p_int] else '{}' end,
+      coalesce(p.kids, '{}'),
+      p.kind,
+      case when p.kind = 'qti-base-value' and p.has_lit then array[row(p.place, p.lit)::p_literal] else '{}' end,
+      case when p.kind = 'qti-math-operator' then array[row(p.nmath, p.place)::p_math] else '{}' end,
+      p.pp,
+      case when p.kind = 'qti-pattern-match' then array[row(case when p.pref is null then p.program end, p.pref, p.place)::p_pattern] else '{}' end,
+      case when p.kind = 'qti-random-integer'
+        then array[row(coalesce(p.rhi, row(null, null)::int_ref), coalesce(p.rlo, row(null, null)::int_ref), p.place, coalesce(p.rst, row(null, null)::int_ref))::p_range] else '{}' end,
+      case when p.kind in ('qti-equal-rounded', 'qti-round-to') then array[row(coalesce(p.rfi, row(null, null)::int_ref), p.round_mode, p.place)::p_round] else '{}' end,
+      case when p.nsection is not null and p.kind in ('qti-number-correct', 'qti-number-incorrect', 'qti-number-presented',
+          'qti-number-responded', 'qti-number-selected', 'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables')
+        then array[row(p.nsection, p.place)::p_section] else '{}' end,
+      p.place,
+      case when p.kind = 'qti-stats-operator' then array[row(p.nstat, p.place)::p_stat] else '{}' end,
+      case when p.kind in ('qti-string-match', 'qti-substring') then array[row(p.case_sensitive, p.place, p.kind = 'qti-string-match' and p.substring)::p_text] else '{}' end,
+      case when p.nweight is not null and p.kind in ('qti-variable', 'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables')
+        then array[row(p.place, p.nweight)::p_weight] else '{}' end)::walk_node
+    from p order by p.place))::walk
 $$;
+
+
 
 -- A document's mappings, area mappings and lookup tables, typed by the declarations they belong to. A map-key is
 -- ValueDType, xs:normalizedString: its TAB, LF and CR read as spaces, as pantry stores it (SV-VALUE-01).
@@ -524,23 +520,23 @@ $$;
 -- An item's response processing from the variables, correct responses and defaults it starts from. No program, no
 -- run: the values stand as they start.
 create function p3.response_state(attributes p3.document_attribute[], declarations p3.declaration_node[], given p3.in_values,
-  inp p3.inputs, label text, prog p3.program, seed text, texts p3.document_text[])
+  inp p3.inputs, label text, seed text, texts p3.document_text[], walk p3.walk_node[])
 returns p3.run_state language plpgsql immutable as $$
 declare
   vars var[] := array(select x from start_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
   correct var[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
   defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
 begin
-  if prog is null then
+  if walk is null then
     return row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, '{}', seed, false, vars)::run_state;
   end if;
-  return response_processing(prog => prog, inp => inp, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label);
+  return response_processing(walk => walk, inp => inp, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label);
 end $$;
 
 -- An item's template processing at the take: from its template variables and contexts at their declared defaults,
 -- each overridden by a value given held `value`, and QTI_CONTEXT, and its correct responses and defaults in force.
 create function p3.template_state(attributes p3.document_attribute[], declarations p3.declaration_node[], given p3.in_values,
-  inp p3.inputs, label text, prog p3.program, seed text, texts p3.document_text[])
+  inp p3.inputs, label text, seed text, texts p3.document_text[], walk p3.walk_node[])
 returns p3.run_state language plpgsql immutable as $$
 declare
   vars var[] := array(select v from unnest(array(select x from overridden(
@@ -550,14 +546,14 @@ declare
   correct var[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
   defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
 begin
-  if prog is null then
+  if walk is null then
     return row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, '{}', seed, false, vars)::run_state;
   end if;
-  return template_processing(prog => prog, inp => inp, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label);
+  return template_processing(walk => walk, inp => inp, vars => vars, correct => correct, defaults => defaults, seed => seed, label => label);
 end $$;
 
 -- A run's recorded replies as the machine reads them: each keyed by its operator element's place in the program, the
--- stored start numbered as program_of numbers the program's nodes (width_bucket over their stored starts).
+-- stored start numbered as walk_from numbers the program's nodes (width_bucket over their stored starts).
 create function p3.replies_of(nodes p3.program_node[], reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[],
   run p3.document_run)
 returns setof p3.reply language sql immutable as $$
@@ -629,16 +625,25 @@ end $$;
 -- evaluations (the applications evaluated, and their replies) and persons' values, by its key, in one call; the
 -- registry's rows the same for every run. A run that demanded a recorded application gives its demands alone, and one
 -- that asks a person its human demands alone (response_values_of).
-create function p3.response_processing_of(booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
-  declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
-  directed_pairs p3.doc_directed_pair[], evaluations p3.doc_evaluation[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_files p3.doc_field_file[],
-  field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
+create function p3.response_processing_of(booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[],
+  declaration_texts p3.document_text[], declarations p3.declaration_node[], directed_pairs p3.doc_directed_pair[],
+  evaluations p3.doc_evaluation[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[],
+  field_files p3.doc_field_file[], field_floats p3.doc_field_float[],
+  field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
   field_texts p3.doc_field_text[], files p3.doc_file[], floats p3.doc_float[],
-  human_feedbacks p3.doc_human_feedback[], humans p3.doc_human[], integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[],
-  program_attributes p3.document_attribute[], program_texts p3.document_text[], programs p3.program_node[],
+  human_feedbacks p3.doc_human_feedback[], humans p3.doc_human[], integers p3.doc_integer[], pairs p3.doc_pair[],
+  points p3.doc_point[], programs p3.program_node[],
   reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[], runs p3.document_run[],
   table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[],
-  texts p3.doc_text[], vars p3.doc_given[])
+  texts p3.doc_text[], vars p3.doc_given[], walk_areas p3.doc_walk_area[], walk_categories p3.doc_walk_category[],
+  walk_coords p3.doc_walk_coord[], walk_customs p3.doc_walk_custom[], walk_equals p3.doc_walk_equal[],
+  walk_filters p3.doc_walk_filter[], walk_floats p3.doc_walk_float[], walk_idents p3.doc_walk_ident[],
+  walk_integers p3.doc_walk_integer[], walk_literal_booleans p3.doc_walk_literal_boolean[],
+  walk_literal_directed_pairs p3.doc_walk_literal_directed_pair[], walk_literal_floats p3.doc_walk_literal_float[],
+  walk_literal_integers p3.doc_walk_literal_integer[], walk_literal_pairs p3.doc_walk_literal_pair[],
+  walk_literal_points p3.doc_walk_literal_point[], walk_literal_texts p3.doc_walk_literal_text[],
+  walk_names p3.doc_walk_name[], walk_patterns p3.doc_walk_pattern[], walk_refs p3.doc_walk_ref[],
+  walk_rounds p3.doc_walk_round[], walk_texts p3.doc_walk_text[])
 returns p3.doc_values language plpgsql immutable as $$
 declare r document_run; pn program_node[]; dn declaration_node[]; da document_attribute[]; dt document_text[];
   result doc_values := no_doc_values(); st run_state;
@@ -649,10 +654,7 @@ begin
     da := array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path);
     dt := array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path);
     st := response_state(
-      prog => case when cardinality(pn) > 0 then program_of(nodes => pn,
-        attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
-        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
-        compiled => array(select x from unnest(compiled) x where x.package = r.package)) end,
+      walk => case when cardinality(pn) > 0 then (walk_from(package => r.package, path => r.path, nodes => pn, areas => walk_areas, categories => walk_categories, coords => walk_coords, customs => walk_customs, equals => walk_equals, filters => walk_filters, floats => walk_floats, idents => walk_idents, integers => walk_integers, literal_booleans => walk_literal_booleans, literal_directed_pairs => walk_literal_directed_pairs, literal_floats => walk_literal_floats, literal_integers => walk_literal_integers, literal_pairs => walk_literal_pairs, literal_points => walk_literal_points, literal_texts => walk_literal_texts, names => walk_names, patterns => walk_patterns, refs => walk_refs, rounds => walk_rounds, texts => walk_texts)).nodes end,
       inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values,
         evaluated => array(select x from evaluated_of(run => r, nodes => pn, evaluations => evaluations) x),
@@ -671,16 +673,24 @@ end $$;
 -- The flat entry of template processing at the take: as response_processing_of, what each run set given back, its
 -- template values, correct responses and defaults (held `value`, `correct` and `default`) that differ from those it
 -- began with (doc_values_of's `delta`): the session's facts, never the declared values, which are the item's content.
-create function p3.template_processing_of(booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
-  declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
-  directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_files p3.doc_field_file[],
-  field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
+create function p3.template_processing_of(booleans p3.doc_boolean[], declaration_attributes p3.document_attribute[],
+  declaration_texts p3.document_text[], declarations p3.declaration_node[], directed_pairs p3.doc_directed_pair[],
+  field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[],
+  field_files p3.doc_field_file[], field_floats p3.doc_field_float[],
+  field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
   field_texts p3.doc_field_text[], files p3.doc_file[], floats p3.doc_float[],
-  integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[],
-  program_attributes p3.document_attribute[], program_texts p3.document_text[], programs p3.program_node[],
+  integers p3.doc_integer[], pairs p3.doc_pair[], points p3.doc_point[], programs p3.program_node[],
   reply_floats p3.doc_reply_float[], reply_texts p3.doc_reply_text[], runs p3.document_run[],
   table_bindings p3.table_binding[], table_entries p3.table_entry[], table_values p3.table_value[],
-  texts p3.doc_text[], vars p3.doc_given[])
+  texts p3.doc_text[], vars p3.doc_given[], walk_areas p3.doc_walk_area[], walk_categories p3.doc_walk_category[],
+  walk_coords p3.doc_walk_coord[], walk_customs p3.doc_walk_custom[], walk_equals p3.doc_walk_equal[],
+  walk_filters p3.doc_walk_filter[], walk_floats p3.doc_walk_float[], walk_idents p3.doc_walk_ident[],
+  walk_integers p3.doc_walk_integer[], walk_literal_booleans p3.doc_walk_literal_boolean[],
+  walk_literal_directed_pairs p3.doc_walk_literal_directed_pair[], walk_literal_floats p3.doc_walk_literal_float[],
+  walk_literal_integers p3.doc_walk_literal_integer[], walk_literal_pairs p3.doc_walk_literal_pair[],
+  walk_literal_points p3.doc_walk_literal_point[], walk_literal_texts p3.doc_walk_literal_text[],
+  walk_names p3.doc_walk_name[], walk_patterns p3.doc_walk_pattern[], walk_refs p3.doc_walk_ref[],
+  walk_rounds p3.doc_walk_round[], walk_texts p3.doc_walk_text[])
 returns p3.doc_values language plpgsql immutable as $$
 declare r document_run; pn program_node[]; dn declaration_node[]; da document_attribute[]; dt document_text[];
   result doc_values := no_doc_values(); st run_state;
@@ -691,10 +701,7 @@ begin
     da := array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path);
     dt := array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path);
     st := template_state(
-      prog => case when cardinality(pn) > 0 then program_of(nodes => pn,
-        attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
-        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
-        compiled => array(select x from unnest(compiled) x where x.package = r.package)) end,
+      walk => case when cardinality(pn) > 0 then (walk_from(package => r.package, path => r.path, nodes => pn, areas => walk_areas, categories => walk_categories, coords => walk_coords, customs => walk_customs, equals => walk_equals, filters => walk_filters, floats => walk_floats, idents => walk_idents, integers => walk_integers, literal_booleans => walk_literal_booleans, literal_directed_pairs => walk_literal_directed_pairs, literal_floats => walk_literal_floats, literal_integers => walk_literal_integers, literal_pairs => walk_literal_pairs, literal_points => walk_literal_points, literal_texts => walk_literal_texts, names => walk_names, patterns => walk_patterns, refs => walk_refs, rounds => walk_rounds, texts => walk_texts)).nodes end,
       inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values, evaluated => '{}', humans => '{}',
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),

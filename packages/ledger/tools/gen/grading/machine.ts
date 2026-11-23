@@ -9,6 +9,7 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { customOperators } from "#ledger/registry/operators.ts";
 import { ledgerDirectory } from "#tools/gen/tools.ts";
 
 /**
@@ -164,6 +165,17 @@ const tokens = new Map([
   ["member_bound.bound", "BoundKind"],
   ["p_filter.filter", "CategoryFilter"],
   ["p_category.filter", "CategoryFilter"],
+  ["doc_walk_area.kind", "AreaKind"],
+  ["doc_walk_category.filter", "CategoryFilter"],
+  ["doc_walk_custom.class", "CustomOperatorClass"],
+  ["doc_walk_equal.mode", "ToleranceMode"],
+  ["doc_walk_filter.filter", "CategoryFilter"],
+  ["doc_walk_float.field", "WalkNumberField"],
+  ["doc_walk_integer.field", "WalkNumberField"],
+  ["doc_walk_name.field", "WalkNameField"],
+  ["doc_walk_ref.field", "WalkRefField"],
+  ["doc_walk_ref.ref", "QtiIdentifier"],
+  ["doc_walk_round.mode", "RoundingMode"],
   ["program_node.kind", "ProcessingKind"],
   ["declaration_node.kind", "DeclarationPart"],
   ["document_attribute.name", "GradedAttribute"],
@@ -217,6 +229,7 @@ const tokens = new Map([
   ["doc_file.name", "someText"],
   ["doc_field_file.name", "someText"],
   ["mark_file.name", "someText"],
+  ["doc_walk_literal_text.value", "someText"],
   ["mark_text.value", "someText"],
 ]);
 
@@ -228,28 +241,6 @@ const tokens = new Map([
  */
 const quoted = (text: string): string[] =>
   [...text.matchAll(/'(?<word>[\w-]+)'/gu)].map((m) => m.groups?.["word"] ?? "");
-
-/**
- * The registry's CustomOperatorClass roster (composable-operators.md §2, §6 "What else changes"),
- * read from document.sql's p3.custom_class_of, its one source: the classes p3.custom_class_of binds
- * a qti-custom-operator's definition URI to, as its `values` list states them, in §2's order,
- * markup-text and when-present beside normalize-space. The module's token is generated from it; the
- * registry's own roster must equal it.
- *
- * @param documentSql The text of document.sql.
- * @returns The classes.
- */
-const customOperatorClasses = (documentSql: string): string[] => {
-  const at = documentSql.indexOf("create function p3.custom_class_of(");
-  const classList = /\(values (?<list>.*?)\) r\(c\)/su.exec(documentSql.slice(at))?.groups?.[
-    "list"
-  ];
-  if (at === -1 || classList === undefined) {
-    throw new Error("document.sql's custom_class_of states no roster as the generator reads it");
-  }
-
-  return quoted(classList);
-};
 
 /**
  * Admission's rosters, as admission.sql's admission_one states them: the closed roster
@@ -715,7 +706,6 @@ const paramTokens = new Map([
   ["bound_words.table_role", "TableRole"],
   ["counted.kind", "ProcessingKind"],
   ["counts.kind", "ProcessingKind"],
-  ["custom_class_of", "CustomOperatorClass"],
   ["custom_value.operator_class", "CustomOperatorClass"],
   ["declared.holder", "DeclarationPart"],
   ["declared.kind", "DeclarationPart"],
@@ -926,7 +916,7 @@ interface MachineModules {
 export const machineModules = (): MachineModules => {
   const typesSql = typeFiles.map(read).join("\n");
   const fnSql = functionFiles.map(read).join("\n");
-  const CustomOperatorClass = customOperatorClasses(read("document.sql"));
+  const CustomOperatorClass = customOperators.map((operator) => operator.class);
   const gradedAttributes = gradedAttributesOf(read("document.sql"));
   const processingKinds = processingKindsOf(read("machine-eval.sql"));
   const { admittedAttributes, admissionWords, admissionCounts, admissionNumbers } =
@@ -985,7 +975,7 @@ const Holds = str.regex("^(correct|default|value)$")
 /** Which bound of a tolerance band a comparison reads. */
 const BoundSide = str.regex("^(lower|upper)$")
 
-/** The registered custom operators' classes, the Registry level's roster (document.sql's custom_class_of). */
+/** The registered custom operators' classes, the Registry level's roster (src/registry/operators.ts' customOperators). */
 const CustomOperatorClass = str.regex("^(${CustomOperatorClass.toSorted().join("|")})$")
 
 /** The roles a class reads the registry's tables in (tools/gen/grading/machine.ts). */
@@ -1010,6 +1000,20 @@ const BoundKind = str.regex("^(maximum|minimum)$")
 
 /** Which category filter of a test-level expression a category belongs to (Tables 7.39.2 and 7.39.3). */
 const CategoryFilter = str.regex("^(exclude|include)$")
+
+/** Which one-word parameter of an element a walk's name row is (document.sql's walk_from): a test-variables'
+ * base-type, a math constant's, math operator's or stats operator's name, a field-value's field-identifier, and a test
+ * expression's section-identifier and weight-identifier. */
+const WalkNameField = str.regex("^(base|constant|field|math|section|stat|weight)$")
+
+/** Which number-or-variable parameter a walk's integer, float or ref row is: an any-n's max and min, an equal's
+ * tolerance's first and second, a random float's max and min, an index's n or a repeat's number-repeats, a random
+ * integer's max, min and step, and a rounding's figures. */
+const WalkNumberField = str.regex("^(any_n\\\\.max|any_n\\\\.min|equal\\\\.t0|equal\\\\.t1|frange\\\\.hi|frange\\\\.lo|int\\\\.value|range\\\\.hi|range\\\\.lo|range\\\\.step|round\\\\.figures)$")
+
+/** Which parameter a walk's ref row names a variable for: a number-or-variable parameter, or a pattern-match's
+ * pattern where it is {VAR}, a declared variable's identifier in braces. */
+const WalkRefField = str.regex("^(any_n\\\\.max|any_n\\\\.min|equal\\\\.t0|equal\\\\.t1|frange\\\\.hi|frange\\\\.lo|int\\\\.value|pattern|range\\\\.hi|range\\\\.lo|range\\\\.step|round\\\\.figures)$")
 
 /** A review's mark on a part of a response (AttemptMark, marks.sql): right, wrong, or a correct value missed. */
 const AnswerMark = str.regex("^(missed|right|wrong)$")

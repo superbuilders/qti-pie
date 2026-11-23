@@ -478,15 +478,15 @@ begin
 end $$;
 
 -- Response processing: the rules in order, from the variables, correct responses and defaults the attempt starts from.
-create function p3.response_processing(correct p3.var[], defaults p3.var[], inp p3.inputs, label text, prog p3.program, seed text, vars p3.var[])
+create function p3.response_processing(correct p3.var[], defaults p3.var[], inp p3.inputs, label text, seed text, vars p3.var[], walk p3.walk_node[])
 returns p3.run_state language sql immutable as $$
-  select run_rules(walk => (walk_of(prog => prog)).nodes, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, '{}', seed, false, vars)::run_state)
+  select run_rules(walk => walk, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, '{}', 0, 'run', label, '{}', seed, false, vars)::run_state)
 $$;
 -- Template processing: the rules from the declared state, restarted from it while a constraint fails, the restarts
 -- sharing one budget of 100 and the stream never reset.
-create function p3.template_processing(correct p3.var[], defaults p3.var[], inp p3.inputs, label text, prog p3.program, seed text, vars p3.var[])
+create function p3.template_processing(correct p3.var[], defaults p3.var[], inp p3.inputs, label text, seed text, vars p3.var[], walk p3.walk_node[])
 returns p3.run_state language plpgsql immutable as $$
-declare state run_state; restarts int := 0; drawn int := 0; walk walk_node[] := (walk_of(prog => prog)).nodes;
+declare state run_state; restarts int := 0; drawn int := 0;
 begin
   loop
     state := run_rules(walk => walk, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, '{}', drawn, 'run', label, '{}', seed, restarts >= 100, vars)::run_state);

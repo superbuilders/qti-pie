@@ -26,11 +26,34 @@ create type p3.document_attribute as (name text collate pg_catalog.pg_c_utf8, pa
   path text collate pg_catalog.pg_c_utf8, start bigint, value text collate pg_catalog.pg_c_utf8);
 create type p3.document_text as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8,
   start bigint, text text collate pg_catalog.pg_c_utf8);
--- A package's content pattern compiled (xsd_compile's program of a qti-pattern-match's `pattern`, as it is stored), by
--- the package and the pattern's text: a pattern that is no Appendix F expression has none.
-create type p3.compiled_pattern as (package text collate pg_catalog.pg_c_utf8, pattern text collate pg_catalog.pg_c_utf8,
-  program text collate pg_catalog.pg_c_utf8);
-create type p3.pattern_program as (program text collate pg_catalog.pg_c_utf8);
+-- A program as its document's stored walk gives it (walk_from), each row keyed by the node's stored start: a node's
+-- parameters, each where its document states it or QTI documents a default, and none where neither: a number or a
+-- variable's name (field, an IntegerOrVariableRef or FloatOrVariableRef by its parameter: any_n.max, any_n.min,
+-- equal.t0, equal.t1, frange.hi, frange.lo, int.value, range.hi, range.lo, range.step, round.figures, and a pattern's
+-- variable, pattern), a one-word parameter (field: base, constant, field, math, section, stat, weight), a base value's
+-- literal by its base type, an area's kind and coordinates, a category or filter of a test-level expression, a bound
+-- custom operator's class and a pattern's compiled program.
+create type p3.doc_walk_area as (kind text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_walk_category as (category text collate pg_catalog.pg_c_utf8, filter text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, place bigint, start bigint);
+create type p3.doc_walk_coord as (c float8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, place integer, start bigint);
+create type p3.doc_walk_custom as (class text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_walk_equal as (lower_in boolean, mode text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, upper_in boolean);
+create type p3.doc_walk_filter as (filter text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_walk_float as (field text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, value float8);
+create type p3.doc_walk_ident as (identifier text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_walk_integer as (field text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, value numeric(825, 0));
+create type p3.doc_walk_literal_boolean as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, value boolean);
+create type p3.doc_walk_literal_directed_pair as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, source text collate pg_catalog.pg_c_utf8, start bigint, target text collate pg_catalog.pg_c_utf8);
+create type p3.doc_walk_literal_float as (base text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, value float8);
+create type p3.doc_walk_literal_integer as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, value numeric(825, 0));
+create type p3.doc_walk_literal_pair as (greatest text collate pg_catalog.pg_c_utf8, least text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_walk_literal_point as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, x numeric(825, 0), y numeric(825, 0));
+create type p3.doc_walk_literal_text as (base text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, value text collate pg_catalog.pg_c_utf8);
+create type p3.doc_walk_name as (field text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, value text collate pg_catalog.pg_c_utf8);
+create type p3.doc_walk_pattern as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, program text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_walk_ref as (field text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, ref text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_walk_round as (mode text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint);
+create type p3.doc_walk_text as (case_sensitive boolean, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, start bigint, substring boolean);
 -- A run: its key, whose document is its own (package, path), the draw stream's key (an item's seed_stream_key of its
 -- processing seed, a test session's sitting_seed) and label, and whether its attempt was submitted at its responses'
 -- defaults (the ledger's DefaultSubmission, QTI 3.0.1 Table 7.19.6: its responses are given none, so each starts at its
