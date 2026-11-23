@@ -14,512 +14,512 @@ CREATE ROLE :"qti_queries__author_app" LOGIN NOINHERIT;
 
 CREATE ROLE :"__live_lxch3umxkh" LOGIN NOINHERIT;
 
-CREATE SCHEMA "qti_queries__author";
+CREATE SCHEMA "__qti";
 
-CREATE VIEW "qti_queries__author"."assembled_catalog" ("assembly", "id", "id_digest", "owner", "package", "path") AS
+CREATE VIEW "__qti"."assembled_catalog" ("assembly", "id", "id_digest", "owner", "package", "path") AS
 SELECT "r1"."assembly", "r1"."id", "r1"."id_digest", "r1"."owner", "r1"."package", "r1"."path"
 FROM "qti"."assembled_catalog" AS "r1";
 
-CREATE VIEW "qti_queries__author"."assembled_document" ("instances", "package", "path", "sites", "targets") AS
+CREATE VIEW "__qti"."assembled_document" ("instances", "package", "path", "sites", "targets") AS
 SELECT "r1"."instances", "r1"."package", "r1"."path", "r1"."sites", "r1"."targets"
 FROM "qti"."assembled_document" AS "r1";
 
-CREATE VIEW "qti_queries__author"."attribute" ("governor", "governor_name", "idref_text", "idrefs", "kind", "kind_name", "lexical", "name", "name_name", "package", "parent", "path", "prefix", "slot", "start", "idref_text_digest", "lexical_digest", "value", "value_digest") AS
+CREATE VIEW "__qti"."attribute" ("governor", "governor_name", "idref_text", "idrefs", "kind", "kind_name", "lexical", "name", "name_name", "package", "parent", "path", "prefix", "slot", "start", "idref_text_digest", "lexical_digest", "value", "value_digest") AS
 SELECT "r1"."governor", ("qti"."__governor_names_d7jfyla3na"())["r1"."governor" + 1]::"pg_catalog"."text", "r1"."idref_text", "r1"."idrefs", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."lexical", "r1"."name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."name" + 1]::"pg_catalog"."text", "r1"."package", "r1"."parent", "r1"."path", "r1"."prefix", "r1"."slot", "r1"."start", "r1"."idref_text_digest", "r1"."lexical_digest", "r1"."value", "r1"."value_digest"
 FROM "qti"."attribute" AS "r1";
 
-CREATE VIEW "qti_queries__author"."attribute_entity" ("entity", "name", "name_name", "offset", "package", "path", "start") AS
+CREATE VIEW "__qti"."attribute_entity" ("entity", "name", "name_name", "offset", "package", "path", "start") AS
 SELECT "r1"."entity", "r1"."name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."name" + 1]::"pg_catalog"."text", "r1"."offset", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."attribute_entity" AS "r1";
 
-CREATE VIEW "qti_queries__author"."binding_name" ("attribute", "attribute_name", "identifier", "package", "path", "start") AS
+CREATE VIEW "__qti"."binding_name" ("attribute", "attribute_name", "identifier", "package", "path", "start") AS
 SELECT "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."binding_name" AS "r1";
 
-CREATE VIEW "qti_queries__author"."bound_variable" ("adaptive", "attribute", "attribute_name", "identifier", "package", "path", "start") AS
+CREATE VIEW "__qti"."bound_variable" ("adaptive", "attribute", "attribute_name", "identifier", "package", "path", "start") AS
 SELECT "r1"."adaptive", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."bound_variable" AS "r1";
 
-CREATE VIEW "qti_queries__author"."candidate_path" ("at", "package", "path", "start", "target") AS
+CREATE VIEW "__qti"."candidate_path" ("at", "package", "path", "start", "target") AS
 SELECT "r1"."at", "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."candidate_path" AS "r1";
 
-CREATE VIEW "qti_queries__author"."catalog_id" ("id", "owner", "package", "path", "start", "id_digest") AS
+CREATE VIEW "__qti"."catalog_id" ("id", "owner", "package", "path", "start", "id_digest") AS
 SELECT "r1"."id", "r1"."owner", "r1"."package", "r1"."path", "r1"."start", "r1"."id_digest"
 FROM "qti"."catalog_id" AS "r1";
 
-CREATE VIEW "qti_queries__author"."catalog_scope" ("package", "path", "scope", "start") AS
+CREATE VIEW "__qti"."catalog_scope" ("package", "path", "scope", "start") AS
 SELECT "r1"."package", "r1"."path", "r1"."scope", "r1"."start"
 FROM "qti"."catalog_scope" AS "r1";
 
-CREATE VIEW "qti_queries__author"."cell_headers" ("package", "path", "start", "token_text", "tokens", "token_text_digest") AS
+CREATE VIEW "__qti"."cell_headers" ("package", "path", "start", "token_text", "tokens", "token_text_digest") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."token_text", "r1"."tokens", "r1"."token_text_digest"
 FROM "qti"."cell_headers" AS "r1";
 
-CREATE VIEW "qti_queries__author"."cell_leaf" ("at", "cell", "package", "path", "start", "start_after", "start_was") AS
+CREATE VIEW "__qti"."cell_leaf" ("at", "cell", "package", "path", "start", "start_after", "start_was") AS
 SELECT "r1"."at", "r1"."cell", "r1"."package", "r1"."path", "r1"."start", "r1"."start_after", "r1"."start_was"
 FROM "qti"."cell_leaf" AS "r1";
 
-CREATE VIEW "qti_queries__author"."choice" ("identifier", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."choice" ("identifier", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."choice" AS "r1";
 
-CREATE VIEW "qti_queries__author"."choice_interaction" ("interaction", "interaction_path", "package", "path", "start") AS
+CREATE VIEW "__qti"."choice_interaction" ("interaction", "interaction_path", "package", "path", "start") AS
 SELECT "r1"."interaction", "r1"."interaction_path", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."choice_interaction" AS "r1";
 
-CREATE VIEW "qti_queries__author"."cn_attribute" ("lexical", "name", "name_name", "package", "path", "start", "lexical_digest") AS
+CREATE VIEW "__qti"."cn_attribute" ("lexical", "name", "name_name", "package", "path", "start", "lexical_digest") AS
 SELECT "r1"."lexical", "r1"."name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."name" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start", "r1"."lexical_digest"
 FROM "qti"."cn_attribute" AS "r1";
 
-CREATE VIEW "qti_queries__author"."cn_count" ("package", "parts", "path", "start", "type", "type_name", "type_lexical", "type_lexical_digest") AS
+CREATE VIEW "__qti"."cn_count" ("package", "parts", "path", "start", "type", "type_name", "type_lexical", "type_lexical_digest") AS
 SELECT "r1"."package", "r1"."parts", "r1"."path", "r1"."start", "r1"."type", ("qti"."__cn_type_names_wmjelllvhg"())["r1"."type" + 1]::"pg_catalog"."text", "r1"."type_lexical", "r1"."type_lexical_digest"
 FROM "qti"."cn_count" AS "r1";
 
-CREATE VIEW "qti_queries__author"."cn_part_text" ("base", "base_name", "form", "form_name", "package", "part", "part_name", "path", "start", "text", "type", "type_name") AS
+CREATE VIEW "__qti"."cn_part_text" ("base", "base_name", "form", "form_name", "package", "part", "part_name", "path", "start", "text", "type", "type_name") AS
 SELECT "r1"."base", ("qti"."__cn_base_names_2wtzhyubck"())["r1"."base" + 1]::"pg_catalog"."text", "r1"."form", ("qti"."__cn_part_form_names_te7u7jycdu"())["r1"."form" + 1]::"pg_catalog"."text", "r1"."package", "r1"."part", ("qti"."__cn_part_names_6db2fcgfhy"())["r1"."part" + 1]::"pg_catalog"."text", "r1"."path", "r1"."start", "r1"."text", "r1"."type", ("qti"."__cn_type_names_wmjelllvhg"())["r1"."type" + 1]::"pg_catalog"."text"
 FROM "qti"."cn_part_text" AS "r1";
 
-CREATE VIEW "qti_queries__author"."cn_slot" ("form", "form_name", "package", "part", "part_name", "path", "start", "type", "type_name") AS
+CREATE VIEW "__qti"."cn_slot" ("form", "form_name", "package", "part", "part_name", "path", "start", "type", "type_name") AS
 SELECT "r1"."form", ("qti"."__cn_part_form_names_te7u7jycdu"())["r1"."form" + 1]::"pg_catalog"."text", "r1"."package", "r1"."part", ("qti"."__cn_part_names_6db2fcgfhy"())["r1"."part" + 1]::"pg_catalog"."text", "r1"."path", "r1"."start", "r1"."type", ("qti"."__cn_type_names_wmjelllvhg"())["r1"."type" + 1]::"pg_catalog"."text"
 FROM "qti"."cn_slot" AS "r1";
 
-CREATE VIEW "qti_queries__author"."comment" ("package", "path", "start", "value") AS
+CREATE VIEW "__qti"."comment" ("package", "path", "start", "value") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."value"
 FROM "qti"."comment" AS "r1";
 
-CREATE VIEW "qti_queries__author"."context_ref" ("assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."context_ref" ("assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."context_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."count_bound" ("max_name", "max_name_name", "max_written", "min_name", "min_name_name", "min_written", "package", "path", "start") AS
+CREATE VIEW "__qti"."count_bound" ("max_name", "max_name_name", "max_written", "min_name", "min_name_name", "min_written", "package", "path", "start") AS
 SELECT "r1"."max_name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."max_name" + 1]::"pg_catalog"."text", "r1"."max_written", "r1"."min_name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."min_name" + 1]::"pg_catalog"."text", "r1"."min_written", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."count_bound" AS "r1";
 
-CREATE VIEW "qti_queries__author"."data_ssml" ("package", "path", "start") AS
+CREATE VIEW "__qti"."data_ssml" ("package", "path", "start") AS
 SELECT "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."data_ssml" AS "r1";
 
-CREATE VIEW "qti_queries__author"."data_ssml_member" ("at", "member", "package", "path", "start", "member_digest") AS
+CREATE VIEW "__qti"."data_ssml_member" ("at", "member", "package", "path", "start", "member_digest") AS
 SELECT "r1"."at", "r1"."member", "r1"."package", "r1"."path", "r1"."start", "r1"."member_digest"
 FROM "qti"."data_ssml_member" AS "r1";
 
-CREATE VIEW "qti_queries__author"."data_ssml_property" ("at", "member", "member_name", "name", "package", "path", "start", "value", "member_name_digest", "name_digest") AS
+CREATE VIEW "__qti"."data_ssml_property" ("at", "member", "member_name", "name", "package", "path", "start", "value", "member_name_digest", "name_digest") AS
 SELECT "r1"."at", "r1"."member", "r1"."member_name", "r1"."name", "r1"."package", "r1"."path", "r1"."start", "r1"."value", "r1"."member_name_digest", "r1"."name_digest"
 FROM "qti"."data_ssml_property" AS "r1";
 
-CREATE VIEW "qti_queries__author"."doctype" ("package", "path", "start", "value") AS
+CREATE VIEW "__qti"."doctype" ("package", "path", "start", "value") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."value"
 FROM "qti"."doctype" AS "r1";
 
-CREATE VIEW "qti_queries__author"."document" ("assembled", "bindings", "charset", "choices", "context", "context_nearest", "context_nearest_kind", "context_nearest_kind_name", "context_path", "document_type", "document_type_name", "export_charset", "hottexts", "idref_targets", "ids", "node_children", "package", "path", "root_kind", "root_kind_name", "targeted_by") AS
+CREATE VIEW "__qti"."document" ("assembled", "bindings", "charset", "choices", "context", "context_nearest", "context_nearest_kind", "context_nearest_kind_name", "context_path", "document_type", "document_type_name", "export_charset", "hottexts", "idref_targets", "ids", "node_children", "package", "path", "root_kind", "root_kind_name", "targeted_by") AS
 SELECT "r1"."assembled", "r1"."bindings", "r1"."charset", "r1"."choices", "r1"."context", "r1"."context_nearest", "r1"."context_nearest_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."context_nearest_kind" + 1]::"pg_catalog"."text", "r1"."context_path", "r1"."document_type", ("qti"."__document_type_names_ot37qp5org"())["r1"."document_type" + 1]::"pg_catalog"."text", "r1"."export_charset", "r1"."hottexts", "r1"."idref_targets", "r1"."ids", "r1"."node_children", "r1"."package", "r1"."path", "r1"."root_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."root_kind" + 1]::"pg_catalog"."text", "r1"."targeted_by"
 FROM "qti"."document" AS "r1";
 
-CREATE VIEW "qti_queries__author"."document_id" ("admitted", "owner", "package", "path", "start") AS
+CREATE VIEW "__qti"."document_id" ("admitted", "owner", "package", "path", "start") AS
 SELECT "r1"."admitted", "r1"."owner", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."document_id" AS "r1";
 
-CREATE VIEW "qti_queries__author"."element_type" ("governor", "governor_name", "kind", "kind_name", "package", "path", "start", "type", "type_name") AS
+CREATE VIEW "__qti"."element_type" ("governor", "governor_name", "kind", "kind_name", "package", "path", "start", "type", "type_name") AS
 SELECT "r1"."governor", ("qti"."__governor_names_d7jfyla3na"())["r1"."governor" + 1]::"pg_catalog"."text", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start", "r1"."type", ("qti"."__type_name_names_ksmacbo3df"())["r1"."type" + 1]::"pg_catalog"."text"
 FROM "qti"."element_type" AS "r1";
 
-CREATE VIEW "qti_queries__author"."encoding_decl" ("encoding", "package", "path") AS
+CREATE VIEW "__qti"."encoding_decl" ("encoding", "package", "path") AS
 SELECT "r1"."encoding", "r1"."package", "r1"."path"
 FROM "qti"."encoding_decl" AS "r1";
 
-CREATE VIEW "qti_queries__author"."entry" ("kind", "kind_name", "package", "path") AS
+CREATE VIEW "__qti"."entry" ("kind", "kind_name", "package", "path") AS
 SELECT "r1"."kind", ("qti"."__entry_kind_names_km5xejbmwu"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path"
 FROM "qti"."entry" AS "r1";
 
-CREATE VIEW "qti_queries__author"."expression" ("language", "language_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."expression" ("language", "language_name", "package", "path", "start") AS
 SELECT "r1"."language", ("qti"."__language_names_pvmtywwssv"())["r1"."language" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."expression" AS "r1";
 
-CREATE VIEW "qti_queries__author"."feedback_ref" ("assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."feedback_ref" ("assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."feedback_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."file" ("package", "path", "scope", "scope_name", "start") AS
+CREATE VIEW "__qti"."file" ("package", "path", "scope", "scope_name", "start") AS
 SELECT "r1"."package", "r1"."path", "r1"."scope", ("qti"."__href_scope_names_y4pbuo4f5q"())["r1"."scope" + 1]::"pg_catalog"."text", "r1"."start"
 FROM "qti"."file" AS "r1";
 
-CREATE VIEW "qti_queries__author"."file_outside" ("package", "path", "start", "target", "target_digest") AS
+CREATE VIEW "__qti"."file_outside" ("package", "path", "start", "target", "target_digest") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."target", "r1"."target_digest"
 FROM "qti"."file_outside" AS "r1";
 
-CREATE VIEW "qti_queries__author"."file_path" ("package", "path", "start", "target") AS
+CREATE VIEW "__qti"."file_path" ("package", "path", "start", "target") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."file_path" AS "r1";
 
-CREATE VIEW "qti_queries__author"."fragment_context_name" ("attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."fragment_context_name" ("attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."fragment_context_name" AS "r1";
 
-CREATE VIEW "qti_queries__author"."fragment_context_ref" ("assembly", "assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."fragment_context_ref" ("assembly", "assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."assembly", "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."instance", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."fragment_context_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."fragment_feedback_name" ("attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."fragment_feedback_name" ("attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."fragment_feedback_name" AS "r1";
 
-CREATE VIEW "qti_queries__author"."fragment_feedback_ref" ("assembly", "assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."fragment_feedback_ref" ("assembly", "assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."assembly", "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."instance", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."fragment_feedback_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."fragment_printed_name" ("attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."fragment_printed_name" ("attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."fragment_printed_name" AS "r1";
 
-CREATE VIEW "qti_queries__author"."fragment_printed_ref" ("assembly", "assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."fragment_printed_ref" ("assembly", "assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."assembly", "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."instance", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."fragment_printed_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."fragment_scope" ("assembly", "assembly_kind", "assembly_kind_name", "contexts", "document", "feedbacks", "instance", "package", "prints", "templates") AS
+CREATE VIEW "__qti"."fragment_scope" ("assembly", "assembly_kind", "assembly_kind_name", "contexts", "document", "feedbacks", "instance", "package", "prints", "templates") AS
 SELECT "r1"."assembly", "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."contexts", "r1"."document", "r1"."feedbacks", "r1"."instance", "r1"."package", "r1"."prints", "r1"."templates"
 FROM "qti"."fragment_scope" AS "r1";
 
-CREATE VIEW "qti_queries__author"."fragment_template_name" ("attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."fragment_template_name" ("attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."fragment_template_name" AS "r1";
 
-CREATE VIEW "qti_queries__author"."fragment_template_ref" ("assembly", "assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."fragment_template_ref" ("assembly", "assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."assembly", "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."instance", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."fragment_template_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."header_token" ("after", "at", "before", "package", "path", "pieces_after", "pieces_was", "start", "token", "piece", "pieces_after_digest", "pieces_was_digest", "token_digest") AS
+CREATE VIEW "__qti"."header_token" ("after", "at", "before", "package", "path", "pieces_after", "pieces_was", "start", "token", "piece", "pieces_after_digest", "pieces_was_digest", "token_digest") AS
 SELECT "r1"."after", "r1"."at", "r1"."before", "r1"."package", "r1"."path", "r1"."pieces_after", "r1"."pieces_was", "r1"."start", "r1"."token", "r1"."piece", "r1"."pieces_after_digest", "r1"."pieces_was_digest", "r1"."token_digest"
 FROM "qti"."header_token" AS "r1";
 
-CREATE VIEW "qti_queries__author"."hottext" ("identifier", "package", "path", "start") AS
+CREATE VIEW "__qti"."hottext" ("identifier", "package", "path", "start") AS
 SELECT "r1"."identifier", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."hottext" AS "r1";
 
-CREATE VIEW "qti_queries__author"."identity_text" ("package", "path", "start", "token_text", "tokens", "token_text_digest") AS
+CREATE VIEW "__qti"."identity_text" ("package", "path", "start", "token_text", "tokens", "token_text_digest") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."token_text", "r1"."tokens", "r1"."token_text_digest"
 FROM "qti"."identity_text" AS "r1";
 
-CREATE VIEW "qti_queries__author"."idref" ("after", "at", "before", "name", "name_name", "package", "path", "pieces_after", "pieces_was", "start", "token", "piece", "pieces_after_digest", "pieces_was_digest", "token_digest") AS
+CREATE VIEW "__qti"."idref" ("after", "at", "before", "name", "name_name", "package", "path", "pieces_after", "pieces_was", "start", "token", "piece", "pieces_after_digest", "pieces_was_digest", "token_digest") AS
 SELECT "r1"."after", "r1"."at", "r1"."before", "r1"."name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."name" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."pieces_after", "r1"."pieces_was", "r1"."start", "r1"."token", "r1"."piece", "r1"."pieces_after_digest", "r1"."pieces_was_digest", "r1"."token_digest"
 FROM "qti"."idref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."idref_target" ("assembled", "id", "id_digest", "package", "path") AS
+CREATE VIEW "__qti"."idref_target" ("assembled", "id", "id_digest", "package", "path") AS
 SELECT "r1"."assembled", "r1"."id", "r1"."id_digest", "r1"."package", "r1"."path"
 FROM "qti"."idref_target" AS "r1";
 
-CREATE VIEW "qti_queries__author"."inclusion" ("package", "parent_kind", "parent_kind_name", "path", "places", "root", "root_name", "splices", "start") AS
+CREATE VIEW "__qti"."inclusion" ("package", "parent_kind", "parent_kind_name", "path", "places", "root", "root_name", "splices", "start") AS
 SELECT "r1"."package", "r1"."parent_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."parent_kind" + 1]::"pg_catalog"."text", "r1"."path", "r1"."places", "r1"."root", ("qti"."__node_kind_names_ulbko553n7"())["r1"."root" + 1]::"pg_catalog"."text", "r1"."splices", "r1"."start"
 FROM "qti"."inclusion" AS "r1";
 
-CREATE VIEW "qti_queries__author"."instance" ("assembly", "assembly_kind", "assembly_kind_name", "at", "bindings", "children", "choices", "document", "end", "hottexts", "idref_targets", "ids", "package", "parent", "root_kind", "root_kind_name", "site", "site_document", "start") AS
+CREATE VIEW "__qti"."instance" ("assembly", "assembly_kind", "assembly_kind_name", "at", "bindings", "children", "choices", "document", "end", "hottexts", "idref_targets", "ids", "package", "parent", "root_kind", "root_kind_name", "site", "site_document", "start") AS
 SELECT "r1"."assembly", "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."at", "r1"."bindings", "r1"."children", "r1"."choices", "r1"."document", "r1"."end", "r1"."hottexts", "r1"."idref_targets", "r1"."ids", "r1"."package", "r1"."parent", "r1"."root_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."root_kind" + 1]::"pg_catalog"."text", "r1"."site", "r1"."site_document", "r1"."start"
 FROM "qti"."instance" AS "r1";
 
-CREATE VIEW "qti_queries__author"."interaction" ("choices", "module_forms", "package", "path", "start") AS
+CREATE VIEW "__qti"."interaction" ("choices", "module_forms", "package", "path", "start") AS
 SELECT "r1"."choices", "r1"."module_forms", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."interaction" AS "r1";
 
-CREATE VIEW "qti_queries__author"."interaction_attribute" ("kind", "kind_name", "lexical", "name", "name_name", "package", "path", "root_kind", "root_kind_name", "start", "lexical_digest", "value") AS
+CREATE VIEW "__qti"."interaction_attribute" ("kind", "kind_name", "lexical", "name", "name_name", "package", "path", "root_kind", "root_kind_name", "start", "lexical_digest", "value") AS
 SELECT "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."lexical", "r1"."name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."name" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."root_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."root_kind" + 1]::"pg_catalog"."text", "r1"."start", "r1"."lexical_digest", "r1"."value"
 FROM "qti"."interaction_attribute" AS "r1";
 
-CREATE VIEW "qti_queries__author"."item_mode" ("adaptive", "package", "path") AS
+CREATE VIEW "__qti"."item_mode" ("adaptive", "package", "path") AS
 SELECT "r1"."adaptive", "r1"."package", "r1"."path"
 FROM "qti"."item_mode" AS "r1";
 
-CREATE VIEW "qti_queries__author"."item_ref_document" ("package", "path", "start", "target") AS
+CREATE VIEW "__qti"."item_ref_document" ("package", "path", "start", "target") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."item_ref_document" AS "r1";
 
-CREATE VIEW "qti_queries__author"."item_ref_href" ("package", "path", "start", "target") AS
+CREATE VIEW "__qti"."item_ref_href" ("package", "path", "start", "target") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."item_ref_href" AS "r1";
 
-CREATE VIEW "qti_queries__author"."label_use" ("package", "path", "root_kind", "root_kind_name", "start") AS
+CREATE VIEW "__qti"."label_use" ("package", "path", "root_kind", "root_kind_name", "start") AS
 SELECT "r1"."package", "r1"."path", "r1"."root_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."root_kind" + 1]::"pg_catalog"."text", "r1"."start"
 FROM "qti"."label_use" AS "r1";
 
-CREATE VIEW "qti_queries__author"."least_count" ("least", "least_value", "package", "path", "start") AS
+CREATE VIEW "__qti"."least_count" ("least", "least_value", "package", "path", "start") AS
 SELECT "r1"."least", "r1"."least_value", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."least_count" AS "r1";
 
-CREATE VIEW "qti_queries__author"."link_reading" ("assembly", "attribute", "attribute_name", "package", "path", "scope", "scope_instance", "scope_path", "start", "variable") AS
+CREATE VIEW "__qti"."link_reading" ("assembly", "attribute", "attribute_name", "package", "path", "scope", "scope_instance", "scope_path", "start", "variable") AS
 SELECT "r1"."assembly", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."scope", "r1"."scope_instance", "r1"."scope_path", "r1"."start", "r1"."variable"
 FROM "qti"."link_reading" AS "r1";
 
-CREATE VIEW "qti_queries__author"."literal" ("base_type", "base_type_name", "package", "path", "start", "text") AS
+CREATE VIEW "__qti"."literal" ("base_type", "base_type_name", "package", "path", "start", "text") AS
 SELECT "r1"."base_type", ("qti"."__value_base_names_pjzlcpdwvv"())["r1"."base_type" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start", "r1"."text"
 FROM "qti"."literal" AS "r1";
 
-CREATE VIEW "qti_queries__author"."literal_typed" ("package", "path", "start", "text", "type_code", "type_code_name", "base_type", "base_type_name") AS
+CREATE VIEW "__qti"."literal_typed" ("package", "path", "start", "text", "type_code", "type_code_name", "base_type", "base_type_name") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."text", "r1"."type_code", ("qti"."__base_type_names_ok3nu5nck4"())["r1"."type_code" + 1]::"pg_catalog"."text", "r1"."base_type", ("qti"."__value_base_names_pjzlcpdwvv"())["r1"."base_type" + 1]::"pg_catalog"."text"
 FROM "qti"."literal_typed" AS "r1";
 
-CREATE VIEW "qti_queries__author"."lookup_value" ("package", "path", "start", "value") AS
+CREATE VIEW "__qti"."lookup_value" ("package", "path", "start", "value") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."value"
 FROM "qti"."lookup_value" AS "r1";
 
-CREATE VIEW "qti_queries__author"."map_key" ("key", "package", "path", "start") AS
+CREATE VIEW "__qti"."map_key" ("key", "package", "path", "start") AS
 SELECT "r1"."key", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."map_key" AS "r1";
 
-CREATE VIEW "qti_queries__author"."math_action" ("package", "path", "selection_lexical", "selection_written", "start", "selection", "selection_lexical_digest") AS
+CREATE VIEW "__qti"."math_action" ("package", "path", "selection_lexical", "selection_written", "start", "selection", "selection_lexical_digest") AS
 SELECT "r1"."package", "r1"."path", "r1"."selection_lexical", "r1"."selection_written", "r1"."start", "r1"."selection", "r1"."selection_lexical_digest"
 FROM "qti"."math_action" AS "r1";
 
-CREATE VIEW "qti_queries__author"."math_align_group" ("cell", "package", "path", "start") AS
+CREATE VIEW "__qti"."math_align_group" ("cell", "package", "path", "start") AS
 SELECT "r1"."cell", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."math_align_group" AS "r1";
 
-CREATE VIEW "qti_queries__author"."math_align_scope" ("cell", "chosen", "inherited", "inherited_name", "own", "own_name", "package", "passes", "passes_name", "path", "received", "received_name", "start", "state", "state_name") AS
+CREATE VIEW "__qti"."math_align_scope" ("cell", "chosen", "inherited", "inherited_name", "own", "own_name", "package", "passes", "passes_name", "path", "received", "received_name", "start", "state", "state_name") AS
 SELECT "r1"."cell", "r1"."chosen", "r1"."inherited", ("qti"."__align_direction_names_vluq7iazdg"())["r1"."inherited" + 1]::"pg_catalog"."text", "r1"."own", ("qti"."__align_direction_names_vluq7iazdg"())["r1"."own" + 1]::"pg_catalog"."text", "r1"."package", "r1"."passes", ("qti"."__align_state_names_ffk37slxn3"())["r1"."passes" + 1]::"pg_catalog"."text", "r1"."path", "r1"."received", ("qti"."__align_state_names_ffk37slxn3"())["r1"."received" + 1]::"pg_catalog"."text", "r1"."start", "r1"."state", ("qti"."__align_state_names_ffk37slxn3"())["r1"."state" + 1]::"pg_catalog"."text"
 FROM "qti"."math_align_scope" AS "r1";
 
-CREATE VIEW "qti_queries__author"."math_cell" ("groups", "last_start", "leaves", "package", "path", "start") AS
+CREATE VIEW "__qti"."math_cell" ("groups", "last_start", "leaves", "package", "path", "start") AS
 SELECT "r1"."groups", "r1"."last_start", "r1"."leaves", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."math_cell" AS "r1";
 
-CREATE VIEW "qti_queries__author"."math_cn" ("base", "base_name", "base_lexical", "package", "parts", "path", "start", "type", "type_name", "type_lexical", "base_lexical_digest", "type_lexical_digest") AS
+CREATE VIEW "__qti"."math_cn" ("base", "base_name", "base_lexical", "package", "parts", "path", "start", "type", "type_name", "type_lexical", "base_lexical_digest", "type_lexical_digest") AS
 SELECT "r1"."base", ("qti"."__cn_base_names_2wtzhyubck"())["r1"."base" + 1]::"pg_catalog"."text", "r1"."base_lexical", "r1"."package", "r1"."parts", "r1"."path", "r1"."start", "r1"."type", ("qti"."__cn_type_names_wmjelllvhg"())["r1"."type" + 1]::"pg_catalog"."text", "r1"."type_lexical", "r1"."base_lexical_digest", "r1"."type_lexical_digest"
 FROM "qti"."math_cn" AS "r1";
 
-CREATE VIEW "qti_queries__author"."math_rank" ("package", "path", "rank", "start") AS
+CREATE VIEW "__qti"."math_rank" ("package", "path", "rank", "start") AS
 SELECT "r1"."package", "r1"."path", "r1"."rank", "r1"."start"
 FROM "qti"."math_rank" AS "r1";
 
-CREATE VIEW "qti_queries__author"."media" ("digest", "package", "path") AS
+CREATE VIEW "__qti"."media" ("digest", "package", "path") AS
 SELECT "r1"."digest", "r1"."package", "r1"."path"
 FROM "qti"."media" AS "r1";
 
-CREATE VIEW "qti_queries__author"."most_count" ("most", "most_value", "package", "path", "start") AS
+CREATE VIEW "__qti"."most_count" ("most", "most_value", "package", "path", "start") AS
 SELECT "r1"."most", "r1"."most_value", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."most_count" AS "r1";
 
-CREATE VIEW "qti_queries__author"."named" ("identifier", "package", "path", "start") AS
+CREATE VIEW "__qti"."named" ("identifier", "package", "path", "start") AS
 SELECT "r1"."identifier", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."named" AS "r1";
 
-CREATE VIEW "qti_queries__author"."namespace" ("at", "package", "path", "prefix", "start", "uri", "prefix_digest") AS
+CREATE VIEW "__qti"."namespace" ("at", "package", "path", "prefix", "start", "uri", "prefix_digest") AS
 SELECT "r1"."at", "r1"."package", "r1"."path", "r1"."prefix", "r1"."start", "r1"."uri", "r1"."prefix_digest"
 FROM "qti"."namespace" AS "r1";
 
-CREATE VIEW "qti_queries__author"."node" ("ancestry", "at", "attributes", "attrs", "barred_children", "chars", "chars_after", "chars_was", "children", "counted_children", "element_children", "elements", "elements_was", "end", "first", "governor", "governor_name", "kind", "kind_name", "last", "last_state", "last_state_name", "nearest", "nearest_kind", "nearest_kind_name", "nearest_path", "open_attributes", "package", "parent", "parent_ancestry", "parent_governor", "parent_governor_name", "parent_kind", "parent_kind_name", "parent_nearest", "parent_nearest_kind", "parent_nearest_kind_name", "parent_nearest_path", "parent_parent_kind", "parent_parent_kind_name", "path", "prefix", "start", "state", "state_name", "string_value", "was", "was_name", "chars_after_digest", "chars_was_digest", "string_value_digest") AS
+CREATE VIEW "__qti"."node" ("ancestry", "at", "attributes", "attrs", "barred_children", "chars", "chars_after", "chars_was", "children", "counted_children", "element_children", "elements", "elements_was", "end", "first", "governor", "governor_name", "kind", "kind_name", "last", "last_state", "last_state_name", "nearest", "nearest_kind", "nearest_kind_name", "nearest_path", "open_attributes", "package", "parent", "parent_ancestry", "parent_governor", "parent_governor_name", "parent_kind", "parent_kind_name", "parent_nearest", "parent_nearest_kind", "parent_nearest_kind_name", "parent_nearest_path", "parent_parent_kind", "parent_parent_kind_name", "path", "prefix", "start", "state", "state_name", "string_value", "was", "was_name", "chars_after_digest", "chars_was_digest", "string_value_digest") AS
 SELECT "r1"."ancestry", "r1"."at", "r1"."attributes", "r1"."attrs", "r1"."barred_children", "r1"."chars", "r1"."chars_after", "r1"."chars_was", "r1"."children", "r1"."counted_children", "r1"."element_children", "r1"."elements", "r1"."elements_was", "r1"."end", "r1"."first", "r1"."governor", ("qti"."__governor_names_d7jfyla3na"())["r1"."governor" + 1]::"pg_catalog"."text", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."last", "r1"."last_state", ("qti"."__position_names_sglcn7ygpg"())["r1"."last_state" + 1]::"pg_catalog"."text", "r1"."nearest", "r1"."nearest_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."nearest_kind" + 1]::"pg_catalog"."text", "r1"."nearest_path", "r1"."open_attributes", "r1"."package", "r1"."parent", "r1"."parent_ancestry", "r1"."parent_governor", ("qti"."__governor_names_d7jfyla3na"())["r1"."parent_governor" + 1]::"pg_catalog"."text", "r1"."parent_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."parent_kind" + 1]::"pg_catalog"."text", "r1"."parent_nearest", "r1"."parent_nearest_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."parent_nearest_kind" + 1]::"pg_catalog"."text", "r1"."parent_nearest_path", "r1"."parent_parent_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."parent_parent_kind" + 1]::"pg_catalog"."text", "r1"."path", "r1"."prefix", "r1"."start", "r1"."state", ("qti"."__position_names_sglcn7ygpg"())["r1"."state" + 1]::"pg_catalog"."text", "r1"."string_value", "r1"."was", ("qti"."__position_names_sglcn7ygpg"())["r1"."was" + 1]::"pg_catalog"."text", "r1"."chars_after_digest", "r1"."chars_was_digest", "r1"."string_value_digest"
 FROM "qti"."node" AS "r1";
 
-CREATE VIEW "qti_queries__author"."numbered_reading" ("assembly", "attribute", "attribute_name", "number", "package", "path", "scope", "scope_instance", "scope_path", "start", "variable") AS
+CREATE VIEW "__qti"."numbered_reading" ("assembly", "attribute", "attribute_name", "number", "package", "path", "scope", "scope_instance", "scope_path", "start", "variable") AS
 SELECT "r1"."assembly", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."number", "r1"."package", "r1"."path", "r1"."scope", "r1"."scope_instance", "r1"."scope_path", "r1"."start", "r1"."variable"
 FROM "qti"."numbered_reading" AS "r1";
 
-CREATE VIEW "qti_queries__author"."open_attribute" ("at", "class", "class_name", "element_namespace", "governor", "governor_name", "kind", "kind_name", "lexical", "local", "package", "path", "prefix", "slot", "start", "uri", "local_digest", "uri_digest") AS
+CREATE VIEW "__qti"."open_attribute" ("at", "class", "class_name", "element_namespace", "governor", "governor_name", "kind", "kind_name", "lexical", "local", "package", "path", "prefix", "slot", "start", "uri", "local_digest", "uri_digest") AS
 SELECT "r1"."at", "r1"."class", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."class" + 1]::"pg_catalog"."text", "r1"."element_namespace", "r1"."governor", ("qti"."__governor_names_d7jfyla3na"())["r1"."governor" + 1]::"pg_catalog"."text", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."lexical", "r1"."local", "r1"."package", "r1"."path", "r1"."prefix", "r1"."slot", "r1"."start", "r1"."uri", "r1"."local_digest", "r1"."uri_digest"
 FROM "qti"."open_attribute" AS "r1";
 
-CREATE VIEW "qti_queries__author"."open_attribute_entity" ("at", "entity", "offset", "package", "path", "start") AS
+CREATE VIEW "__qti"."open_attribute_entity" ("at", "entity", "offset", "package", "path", "start") AS
 SELECT "r1"."at", "r1"."entity", "r1"."offset", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."open_attribute_entity" AS "r1";
 
-CREATE VIEW "qti_queries__author"."open_element_name" ("local", "namespace", "package", "path", "start", "expanded") AS
+CREATE VIEW "__qti"."open_element_name" ("local", "namespace", "package", "path", "start", "expanded") AS
 SELECT "r1"."local", "r1"."namespace", "r1"."package", "r1"."path", "r1"."start", "r1"."expanded"
 FROM "qti"."open_element_name" AS "r1";
 
-CREATE VIEW "qti_queries__author"."open_element_type" ("package", "path", "start", "type", "type_name") AS
+CREATE VIEW "__qti"."open_element_type" ("package", "path", "start", "type", "type_name") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."type", ("qti"."__type_name_names_ksmacbo3df"())["r1"."type" + 1]::"pg_catalog"."text"
 FROM "qti"."open_element_type" AS "r1";
 
-CREATE VIEW "qti_queries__author"."package" ("package") AS
+CREATE VIEW "__qti"."package" ("package") AS
 SELECT "r1"."package"
 FROM "qti"."package" AS "r1";
 
-CREATE VIEW "qti_queries__author"."pci_module_form" ("element", "package", "path", "start") AS
+CREATE VIEW "__qti"."pci_module_form" ("element", "package", "path", "start") AS
 SELECT "r1"."element", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."pci_module_form" AS "r1";
 
-CREATE VIEW "qti_queries__author"."pi" ("data", "package", "path", "start", "target") AS
+CREATE VIEW "__qti"."pi" ("data", "package", "path", "start", "target") AS
 SELECT "r1"."data", "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."pi" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_binding" ("adaptive", "assembly", "attribute", "attribute_name", "identifier", "instance", "package", "path", "start") AS
+CREATE VIEW "__qti"."placed_binding" ("adaptive", "assembly", "attribute", "attribute_name", "identifier", "instance", "package", "path", "start") AS
 SELECT "r1"."adaptive", "r1"."assembly", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."instance", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."placed_binding" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_choice" ("assembly", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."placed_choice" ("assembly", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."assembly", "r1"."identifier", "r1"."instance", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."placed_choice" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_expression" ("assembly", "base_type", "base_type_name", "cardinality", "cardinality_name", "instance", "package", "path", "start", "base_type_bit", "cardinality_bit") AS
+CREATE VIEW "__qti"."placed_expression" ("assembly", "base_type", "base_type_name", "cardinality", "cardinality_name", "instance", "package", "path", "start", "base_type_bit", "cardinality_bit") AS
 SELECT "r1"."assembly", "r1"."base_type", ("qti"."__value_base_names_pjzlcpdwvv"())["r1"."base_type" + 1]::"pg_catalog"."text", "r1"."cardinality", ("qti"."__value_cardinality_names_wzwznoycgf"())["r1"."cardinality" + 1]::"pg_catalog"."text", "r1"."instance", "r1"."package", "r1"."path", "r1"."start", "r1"."base_type_bit", "r1"."cardinality_bit"
 FROM "qti"."placed_expression" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_hottext" ("assembly", "identifier", "instance", "package", "path", "start") AS
+CREATE VIEW "__qti"."placed_hottext" ("assembly", "identifier", "instance", "package", "path", "start") AS
 SELECT "r1"."assembly", "r1"."identifier", "r1"."instance", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."placed_hottext" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_id" ("assembly", "assembly_kind", "assembly_kind_name", "id", "instance", "owner", "package", "path", "start") AS
+CREATE VIEW "__qti"."placed_id" ("assembly", "assembly_kind", "assembly_kind_name", "id", "instance", "owner", "package", "path", "start") AS
 SELECT "r1"."assembly", "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."id", "r1"."instance", "r1"."owner", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."placed_id" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_idref" ("assembly", "id", "id_digest", "instance", "package", "path") AS
+CREATE VIEW "__qti"."placed_idref" ("assembly", "id", "id_digest", "instance", "package", "path") AS
 SELECT "r1"."assembly", "r1"."id", "r1"."id_digest", "r1"."instance", "r1"."package", "r1"."path"
 FROM "qti"."placed_idref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_math_rank" ("assembly", "instance", "package", "path", "rank", "start") AS
+CREATE VIEW "__qti"."placed_math_rank" ("assembly", "instance", "package", "path", "rank", "start") AS
 SELECT "r1"."assembly", "r1"."instance", "r1"."package", "r1"."path", "r1"."rank", "r1"."start"
 FROM "qti"."placed_math_rank" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_share_target" ("assembly", "assembly_kind", "assembly_kind_name", "id", "id_digest", "instance", "package", "path", "start", "target", "target_instance", "target_start") AS
+CREATE VIEW "__qti"."placed_share_target" ("assembly", "assembly_kind", "assembly_kind_name", "id", "id_digest", "instance", "package", "path", "start", "target", "target_instance", "target_start") AS
 SELECT "r1"."assembly", "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."id", "r1"."id_digest", "r1"."instance", "r1"."package", "r1"."path", "r1"."start", "r1"."target", "r1"."target_instance", "r1"."target_start"
 FROM "qti"."placed_share_target" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_variable_ref" ("assembly", "attribute", "attribute_name", "base_type", "base_type_name", "cardinality", "cardinality_name", "identifier", "instance", "package", "path", "resolution", "resolution_name", "root_kind", "root_kind_name", "start") AS
+CREATE VIEW "__qti"."placed_variable_ref" ("assembly", "attribute", "attribute_name", "base_type", "base_type_name", "cardinality", "cardinality_name", "identifier", "instance", "package", "path", "resolution", "resolution_name", "root_kind", "root_kind_name", "start") AS
 SELECT "r1"."assembly", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."base_type", ("qti"."__value_base_names_pjzlcpdwvv"())["r1"."base_type" + 1]::"pg_catalog"."text", "r1"."cardinality", ("qti"."__value_cardinality_names_wzwznoycgf"())["r1"."cardinality" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."instance", "r1"."package", "r1"."path", "r1"."resolution", ("qti"."__reference_resolution_names_zfbhfhou4v"())["r1"."resolution" + 1]::"pg_catalog"."text", "r1"."root_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."root_kind" + 1]::"pg_catalog"."text", "r1"."start"
 FROM "qti"."placed_variable_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."printed_variable_ref" ("assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."printed_variable_ref" ("assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."printed_variable_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."processing" ("language", "language_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."processing" ("language", "language_name", "package", "path", "start") AS
 SELECT "r1"."language", ("qti"."__language_names_pvmtywwssv"())["r1"."language" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."processing" AS "r1";
 
-CREATE VIEW "qti_queries__author"."reference" ("kind", "kind_name", "lead", "name", "name_name", "package", "params", "path", "scope", "scope_name", "start", "target", "trail") AS
+CREATE VIEW "__qti"."reference" ("kind", "kind_name", "lead", "name", "name_name", "package", "params", "path", "scope", "scope_name", "start", "target", "trail") AS
 SELECT "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."lead", "r1"."name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."name" + 1]::"pg_catalog"."text", "r1"."package", "r1"."params", "r1"."path", "r1"."scope", ("qti"."__href_scope_names_y4pbuo4f5q"())["r1"."scope" + 1]::"pg_catalog"."text", "r1"."start", "r1"."target", "r1"."trail"
 FROM "qti"."reference" AS "r1";
 
-CREATE VIEW "qti_queries__author"."reference_path" ("kind", "kind_name", "name", "name_name", "package", "path", "start", "target") AS
+CREATE VIEW "__qti"."reference_path" ("kind", "kind_name", "name", "name_name", "package", "path", "start", "target") AS
 SELECT "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."name" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."reference_path" AS "r1";
 
-CREATE VIEW "qti_queries__author"."referring_document" ("contexts", "feedbacks", "package", "path", "prints", "templates") AS
+CREATE VIEW "__qti"."referring_document" ("contexts", "feedbacks", "package", "path", "prints", "templates") AS
 SELECT "r1"."contexts", "r1"."feedbacks", "r1"."package", "r1"."path", "r1"."prints", "r1"."templates"
 FROM "qti"."referring_document" AS "r1";
 
-CREATE VIEW "qti_queries__author"."resource_document" ("package", "path", "root_kind", "root_kind_name", "type", "type_name", "document_type", "document_type_name") AS
+CREATE VIEW "__qti"."resource_document" ("package", "path", "root_kind", "root_kind_name", "type", "type_name", "document_type", "document_type_name") AS
 SELECT "r1"."package", "r1"."path", "r1"."root_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."root_kind" + 1]::"pg_catalog"."text", "r1"."type", ("qti"."__resource_type_names_2tbbvn3ion"())["r1"."type" + 1]::"pg_catalog"."text", "r1"."document_type", ("qti"."__document_type_names_ot37qp5org"())["r1"."document_type" + 1]::"pg_catalog"."text"
 FROM "qti"."resource_document" AS "r1";
 
-CREATE VIEW "qti_queries__author"."resource_href" ("package", "path", "scope", "scope_name", "start") AS
+CREATE VIEW "__qti"."resource_href" ("package", "path", "scope", "scope_name", "start") AS
 SELECT "r1"."package", "r1"."path", "r1"."scope", ("qti"."__href_scope_names_y4pbuo4f5q"())["r1"."scope" + 1]::"pg_catalog"."text", "r1"."start"
 FROM "qti"."resource_href" AS "r1";
 
-CREATE VIEW "qti_queries__author"."resource_href_outside" ("package", "path", "start", "target", "target_digest") AS
+CREATE VIEW "__qti"."resource_href_outside" ("package", "path", "start", "target", "target_digest") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."target", "r1"."target_digest"
 FROM "qti"."resource_href_outside" AS "r1";
 
-CREATE VIEW "qti_queries__author"."resource_href_path" ("package", "path", "start", "target") AS
+CREATE VIEW "__qti"."resource_href_path" ("package", "path", "start", "target") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."resource_href_path" AS "r1";
 
-CREATE VIEW "qti_queries__author"."rounding" ("holds", "holds_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."rounding" ("holds", "holds_name", "package", "path", "start") AS
 SELECT "r1"."holds", ("qti"."__rounding_holds_names_6j2zaayymp"())["r1"."holds" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."rounding" AS "r1";
 
-CREATE VIEW "qti_queries__author"."rounding_figures" ("figures_lexical", "package", "path", "start", "figures", "figures_digest", "figures_lexical_digest") AS
+CREATE VIEW "__qti"."rounding_figures" ("figures_lexical", "package", "path", "start", "figures", "figures_digest", "figures_lexical_digest") AS
 SELECT "r1"."figures_lexical", "r1"."package", "r1"."path", "r1"."start", "r1"."figures", "r1"."figures_digest", "r1"."figures_lexical_digest"
 FROM "qti"."rounding_figures" AS "r1";
 
-CREATE VIEW "qti_queries__author"."rounding_mode_figures" ("figures", "mode", "package", "path", "start", "figures_digest") AS
+CREATE VIEW "__qti"."rounding_mode_figures" ("figures", "mode", "package", "path", "start", "figures_digest") AS
 SELECT "r1"."figures", "r1"."mode", "r1"."package", "r1"."path", "r1"."start", "r1"."figures_digest"
 FROM "qti"."rounding_mode_figures" AS "r1";
 
-CREATE VIEW "qti_queries__author"."sd_decl" ("package", "path", "standalone", "standalone_name") AS
+CREATE VIEW "__qti"."sd_decl" ("package", "path", "standalone", "standalone_name") AS
 SELECT "r1"."package", "r1"."path", "r1"."standalone", ("qti"."__xml_standalone_names_psf7bszcug"())["r1"."standalone" + 1]::"pg_catalog"."text"
 FROM "qti"."sd_decl" AS "r1";
 
-CREATE VIEW "qti_queries__author"."share_fragment" ("assembled", "id", "id_digest", "package", "path", "placements", "start") AS
+CREATE VIEW "__qti"."share_fragment" ("assembled", "id", "id_digest", "package", "path", "placements", "start") AS
 SELECT "r1"."assembled", "r1"."id", "r1"."id_digest", "r1"."package", "r1"."path", "r1"."placements", "r1"."start"
 FROM "qti"."share_fragment" AS "r1";
 
-CREATE VIEW "qti_queries__author"."share_target" ("id", "package", "path", "start", "target_start", "id_digest") AS
+CREATE VIEW "__qti"."share_target" ("id", "package", "path", "start", "target_start", "id_digest") AS
 SELECT "r1"."id", "r1"."package", "r1"."path", "r1"."start", "r1"."target_start", "r1"."id_digest"
 FROM "qti"."share_target" AS "r1";
 
-CREATE VIEW "qti_queries__author"."site" ("ancestry", "children", "external", "governor", "governor_name", "kind", "kind_name", "nearest", "nearest_kind", "nearest_kind_name", "nearest_path", "package", "parent", "parent_kind", "parent_kind_name", "path", "start") AS
+CREATE VIEW "__qti"."site" ("ancestry", "children", "external", "governor", "governor_name", "kind", "kind_name", "nearest", "nearest_kind", "nearest_kind_name", "nearest_path", "package", "parent", "parent_kind", "parent_kind_name", "path", "start") AS
 SELECT "r1"."ancestry", "r1"."children", "r1"."external", "r1"."governor", ("qti"."__governor_names_d7jfyla3na"())["r1"."governor" + 1]::"pg_catalog"."text", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."nearest", "r1"."nearest_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."nearest_kind" + 1]::"pg_catalog"."text", "r1"."nearest_path", "r1"."package", "r1"."parent", "r1"."parent_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."parent_kind" + 1]::"pg_catalog"."text", "r1"."path", "r1"."start"
 FROM "qti"."site" AS "r1";
 
-CREATE VIEW "qti_queries__author"."site_path" ("entry", "kind", "kind_name", "package", "path", "start", "target") AS
+CREATE VIEW "__qti"."site_path" ("entry", "kind", "kind_name", "package", "path", "start", "target") AS
 SELECT "r1"."entry", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."site_path" AS "r1";
 
-CREATE VIEW "qti_queries__author"."site_target" ("ancestry", "kind", "kind_name", "nearest", "nearest_kind", "nearest_kind_name", "package", "parent_kind", "parent_kind_name", "path", "places", "splices", "start", "target", "target_nearest", "target_nearest_kind", "target_nearest_kind_name", "target_nearest_path", "target_root", "target_root_name") AS
+CREATE VIEW "__qti"."site_target" ("ancestry", "kind", "kind_name", "nearest", "nearest_kind", "nearest_kind_name", "package", "parent_kind", "parent_kind_name", "path", "places", "splices", "start", "target", "target_nearest", "target_nearest_kind", "target_nearest_kind_name", "target_nearest_path", "target_root", "target_root_name") AS
 SELECT "r1"."ancestry", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."nearest", "r1"."nearest_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."nearest_kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."parent_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."parent_kind" + 1]::"pg_catalog"."text", "r1"."path", "r1"."places", "r1"."splices", "r1"."start", "r1"."target", "r1"."target_nearest", "r1"."target_nearest_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."target_nearest_kind" + 1]::"pg_catalog"."text", "r1"."target_nearest_path", "r1"."target_root", ("qti"."__node_kind_names_ulbko553n7"())["r1"."target_root" + 1]::"pg_catalog"."text"
 FROM "qti"."site_target" AS "r1";
 
-CREATE VIEW "qti_queries__author"."srcset" ("package", "path", "start", "token_text", "tokens", "trail", "token_text_digest") AS
+CREATE VIEW "__qti"."srcset" ("package", "path", "start", "token_text", "tokens", "trail", "token_text_digest") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."token_text", "r1"."tokens", "r1"."trail", "r1"."token_text_digest"
 FROM "qti"."srcset" AS "r1";
 
-CREATE VIEW "qti_queries__author"."srcset_candidate" ("at", "descriptor", "lead", "package", "path", "pieces_after", "pieces_was", "scope", "scope_name", "start", "url", "piece", "pieces_after_digest", "pieces_was_digest") AS
+CREATE VIEW "__qti"."srcset_candidate" ("at", "descriptor", "lead", "package", "path", "pieces_after", "pieces_was", "scope", "scope_name", "start", "url", "piece", "pieces_after_digest", "pieces_was_digest") AS
 SELECT "r1"."at", "r1"."descriptor", "r1"."lead", "r1"."package", "r1"."path", "r1"."pieces_after", "r1"."pieces_was", "r1"."scope", ("qti"."__href_scope_names_y4pbuo4f5q"())["r1"."scope" + 1]::"pg_catalog"."text", "r1"."start", "r1"."url", "r1"."piece", "r1"."pieces_after_digest", "r1"."pieces_was_digest"
 FROM "qti"."srcset_candidate" AS "r1";
 
-CREATE VIEW "qti_queries__author"."ssml_scope" ("fragment", "package", "path", "start") AS
+CREATE VIEW "__qti"."ssml_scope" ("fragment", "package", "path", "start") AS
 SELECT "r1"."fragment", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."ssml_scope" AS "r1";
 
-CREATE VIEW "qti_queries__author"."stimulus_ref" ("identifier", "package", "path", "start") AS
+CREATE VIEW "__qti"."stimulus_ref" ("identifier", "package", "path", "start") AS
 SELECT "r1"."identifier", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."stimulus_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."table_header" ("id", "owner", "package", "path", "start", "table", "id_digest") AS
+CREATE VIEW "__qti"."table_header" ("id", "owner", "package", "path", "start", "table", "id_digest") AS
 SELECT "r1"."id", "r1"."owner", "r1"."package", "r1"."path", "r1"."start", "r1"."table", "r1"."id_digest"
 FROM "qti"."table_header" AS "r1";
 
-CREATE VIEW "qti_queries__author"."table_scope" ("package", "path", "start", "table") AS
+CREATE VIEW "__qti"."table_scope" ("package", "path", "start", "table") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."table"
 FROM "qti"."table_scope" AS "r1";
 
-CREATE VIEW "qti_queries__author"."template_ref" ("assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
+CREATE VIEW "__qti"."template_ref" ("assembly_kind", "assembly_kind_name", "attribute", "attribute_name", "identifier", "kind", "kind_name", "package", "path", "start") AS
 SELECT "r1"."assembly_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."assembly_kind" + 1]::"pg_catalog"."text", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."template_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."text_idref" ("after", "at", "before", "package", "path", "pieces_after", "pieces_was", "start", "token", "piece", "pieces_after_digest", "pieces_was_digest", "token_digest") AS
+CREATE VIEW "__qti"."text_idref" ("after", "at", "before", "package", "path", "pieces_after", "pieces_was", "start", "token", "piece", "pieces_after_digest", "pieces_was_digest", "token_digest") AS
 SELECT "r1"."after", "r1"."at", "r1"."before", "r1"."package", "r1"."path", "r1"."pieces_after", "r1"."pieces_was", "r1"."start", "r1"."token", "r1"."piece", "r1"."pieces_after_digest", "r1"."pieces_was_digest", "r1"."token_digest"
 FROM "qti"."text_idref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."text_reference" ("kind", "kind_name", "lead", "package", "params", "path", "scope", "scope_name", "start", "target", "trail") AS
+CREATE VIEW "__qti"."text_reference" ("kind", "kind_name", "lead", "package", "params", "path", "scope", "scope_name", "start", "target", "trail") AS
 SELECT "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."lead", "r1"."package", "r1"."params", "r1"."path", "r1"."scope", ("qti"."__href_scope_names_y4pbuo4f5q"())["r1"."scope" + 1]::"pg_catalog"."text", "r1"."start", "r1"."target", "r1"."trail"
 FROM "qti"."text_reference" AS "r1";
 
-CREATE VIEW "qti_queries__author"."text_reference_path" ("kind", "kind_name", "package", "path", "start", "target") AS
+CREATE VIEW "__qti"."text_reference_path" ("kind", "kind_name", "package", "path", "start", "target") AS
 SELECT "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start", "r1"."target"
 FROM "qti"."text_reference_path" AS "r1";
 
-CREATE VIEW "qti_queries__author"."tolerance" ("package", "path", "start", "token_text", "tokens", "token_text_digest") AS
+CREATE VIEW "__qti"."tolerance" ("package", "path", "start", "token_text", "tokens", "token_text_digest") AS
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."token_text", "r1"."tokens", "r1"."token_text_digest"
 FROM "qti"."tolerance" AS "r1";
 
-CREATE VIEW "qti_queries__author"."tolerance_token" ("after", "at", "before", "package", "path", "pieces_after", "pieces_was", "start", "token", "piece", "pieces_after_digest", "pieces_was_digest", "token_digest") AS
+CREATE VIEW "__qti"."tolerance_token" ("after", "at", "before", "package", "path", "pieces_after", "pieces_was", "start", "token", "piece", "pieces_after_digest", "pieces_was_digest", "token_digest") AS
 SELECT "r1"."after", "r1"."at", "r1"."before", "r1"."package", "r1"."path", "r1"."pieces_after", "r1"."pieces_was", "r1"."start", "r1"."token", "r1"."piece", "r1"."pieces_after_digest", "r1"."pieces_was_digest", "r1"."token_digest"
 FROM "qti"."tolerance_token" AS "r1";
 
-CREATE VIEW "qti_queries__author"."usage_value" ("base_type_lexical", "package", "path", "start", "text", "base_type_lexical_digest", "text_digest") AS
+CREATE VIEW "__qti"."usage_value" ("base_type_lexical", "package", "path", "start", "text", "base_type_lexical_digest", "text_digest") AS
 SELECT "r1"."base_type_lexical", "r1"."package", "r1"."path", "r1"."start", "r1"."text", "r1"."base_type_lexical_digest", "r1"."text_digest"
 FROM "qti"."usage_value" AS "r1";
 
-CREATE VIEW "qti_queries__author"."usage_value_base_type" ("base_type", "base_type_name", "base_type_lexical", "package", "path", "start", "text", "base_type_lexical_digest", "text_digest") AS
+CREATE VIEW "__qti"."usage_value_base_type" ("base_type", "base_type_name", "base_type_lexical", "package", "path", "start", "text", "base_type_lexical_digest", "text_digest") AS
 SELECT "r1"."base_type", ("qti"."__base_type_names_ok3nu5nck4"())["r1"."base_type" + 1]::"pg_catalog"."text", "r1"."base_type_lexical", "r1"."package", "r1"."path", "r1"."start", "r1"."text", "r1"."base_type_lexical_digest", "r1"."text_digest"
 FROM "qti"."usage_value_base_type" AS "r1";
 
-CREATE VIEW "qti_queries__author"."variable_ref" ("after", "attribute", "attribute_name", "before", "identifier", "language", "language_name", "package", "path", "root_kind", "root_kind_name", "start") AS
+CREATE VIEW "__qti"."variable_ref" ("after", "attribute", "attribute_name", "before", "identifier", "language", "language_name", "package", "path", "root_kind", "root_kind_name", "start") AS
 SELECT "r1"."after", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."before", "r1"."identifier", "r1"."language", ("qti"."__language_names_pvmtywwssv"())["r1"."language" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."root_kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."root_kind" + 1]::"pg_catalog"."text", "r1"."start"
 FROM "qti"."variable_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."xml_decl" ("package", "path", "version") AS
+CREATE VIEW "__qti"."xml_decl" ("package", "path", "version") AS
 SELECT "r1"."package", "r1"."path", "r1"."version"
 FROM "qti"."xml_decl" AS "r1";
 
 GRANT :"qti_queries__author" TO :"qti_queries__author_app" WITH INHERIT FALSE, SET TRUE;
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
-GRANT USAGE ON SCHEMA "qti", "qti_views", "qti_queries", "qti_queries__author" TO :"qti_queries__author";
+GRANT USAGE ON SCHEMA "qti", "qti_views", "qti_queries", "__qti" TO :"qti_queries__author";
 
 GRANT USAGE ON DOMAIN "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__value_base_bits_16_7t6pwwxbsh", "qti"."__value_cardinality_bits_8_mma4mwhphy", "qti"."__domain_gfw43vigph", "qti"."__sha256", "qti"."admission_map", "qti"."align_direction", "qti"."align_state", "qti"."attribute_model", "qti"."attribute_name", "qti"."attribute_slot", "qti"."base_type", "qti"."bound_facet", "qti"."bound_zero", "qti"."built_in", "qti"."cardinality", "qti"."cn_base", "qti"."cn_part", "qti"."cn_part_form", "qti"."cn_type", "qti"."content_model", "qti"."declaration_kind", "qti"."document_type", "qti"."domain_primitive", "qti"."entry_kind", "qti"."flag", "qti"."follow_set", "qti"."governor", "qti"."href_scope", "qti"."identity", "qti"."include_set", "qti"."language", "qti"."node_kind", "qti"."position", "qti"."reference_form", "qti"."reference_resolution", "qti"."reference_spelling", "qti"."resource_type", "qti"."rounding_holds", "qti"."shared_model", "qti"."symbol_set", "qti"."type_name", "qti"."unplaced_cause", "qti"."use", "qti"."value_base", "qti"."value_cardinality", "qti"."value_domain", "qti"."white_space", "qti"."xml_standalone", "qti"."__text_xj3zno7u3h", "qti"."__text_phcitidkqs", "qti"."__text_netnsfkgs7", "qti"."__text_c6iptmtj2x", "qti"."__text_4s4od7s5or", "qti"."__text_iyotu5swho", "qti"."__text_gke7uypkov", "qti"."__text_l7nqeazg5h", "qti"."__text_r2monji6i2", "qti"."__text_k5kwygzatl", "qti"."__text_7dfilirtp3", "qti"."__text_7j6kgluyjp", "qti"."__text_xey6ryorh5", "qti"."__text_lecej62lgl", "qti"."__text_tn2inwix7f", "qti"."__text_23rzixl3a2", "qti"."__text_aqc6inemva", "qti"."__text_nhrekaddjj", "qti"."__text_kgtzfmq7x6", "qti"."__text_zij47sgley", "qti"."__text_gysgx5gkhi", "qti"."__text_tfkvgtjblt", "qti"."__text_b6ykamoeho", "qti"."__text_3dlgl63rv6", "qti"."__text_aezrarw5qb", "qti"."__text_3adwbksayk" TO :"qti_queries__author";
 
-GRANT SELECT ON TABLE "qti_queries__author"."assembled_catalog", "qti_queries__author"."assembled_document", "qti_queries__author"."attribute", "qti_queries__author"."attribute_entity", "qti_queries__author"."binding_name", "qti_queries__author"."bound_variable", "qti_queries__author"."candidate_path", "qti_queries__author"."catalog_id", "qti_queries__author"."catalog_scope", "qti_queries__author"."cell_headers", "qti_queries__author"."cell_leaf", "qti_queries__author"."choice", "qti_queries__author"."choice_interaction", "qti_queries__author"."cn_attribute", "qti_queries__author"."cn_count", "qti_queries__author"."cn_part_text", "qti_queries__author"."cn_slot", "qti_queries__author"."comment", "qti_queries__author"."context_ref", "qti_queries__author"."count_bound", "qti_queries__author"."data_ssml", "qti_queries__author"."data_ssml_member", "qti_queries__author"."data_ssml_property", "qti_queries__author"."doctype", "qti_queries__author"."document", "qti_queries__author"."document_id", "qti_queries__author"."element_type", "qti_queries__author"."encoding_decl", "qti_queries__author"."entry", "qti_queries__author"."expression", "qti_queries__author"."feedback_ref", "qti_queries__author"."file", "qti_queries__author"."file_outside", "qti_queries__author"."file_path", "qti_queries__author"."fragment_context_name", "qti_queries__author"."fragment_context_ref", "qti_queries__author"."fragment_feedback_name", "qti_queries__author"."fragment_feedback_ref", "qti_queries__author"."fragment_printed_name", "qti_queries__author"."fragment_printed_ref", "qti_queries__author"."fragment_scope", "qti_queries__author"."fragment_template_name", "qti_queries__author"."fragment_template_ref", "qti_queries__author"."header_token", "qti_queries__author"."hottext", "qti_queries__author"."identity_text", "qti_queries__author"."idref", "qti_queries__author"."idref_target", "qti_queries__author"."inclusion", "qti_queries__author"."instance", "qti_queries__author"."interaction", "qti_queries__author"."interaction_attribute", "qti_queries__author"."item_mode", "qti_queries__author"."item_ref_document", "qti_queries__author"."item_ref_href", "qti_queries__author"."label_use", "qti_queries__author"."least_count", "qti_queries__author"."link_reading", "qti_queries__author"."literal", "qti_queries__author"."literal_typed", "qti_queries__author"."lookup_value", "qti_queries__author"."map_key", "qti_queries__author"."math_action", "qti_queries__author"."math_align_group", "qti_queries__author"."math_align_scope", "qti_queries__author"."math_cell", "qti_queries__author"."math_cn", "qti_queries__author"."math_rank", "qti_queries__author"."media", "qti_queries__author"."most_count", "qti_queries__author"."named", "qti_queries__author"."namespace", "qti_queries__author"."node", "qti_queries__author"."numbered_reading", "qti_queries__author"."open_attribute", "qti_queries__author"."open_attribute_entity", "qti_queries__author"."open_element_name", "qti_queries__author"."open_element_type", "qti_queries__author"."package", "qti_queries__author"."pci_module_form", "qti_queries__author"."pi", "qti_queries__author"."placed_binding", "qti_queries__author"."placed_choice", "qti_queries__author"."placed_expression", "qti_queries__author"."placed_hottext", "qti_queries__author"."placed_id", "qti_queries__author"."placed_idref", "qti_queries__author"."placed_math_rank", "qti_queries__author"."placed_share_target", "qti_queries__author"."placed_variable_ref", "qti_queries__author"."printed_variable_ref", "qti_queries__author"."processing", "qti_queries__author"."reference", "qti_queries__author"."reference_path", "qti_queries__author"."referring_document", "qti_queries__author"."resource_document", "qti_queries__author"."resource_href", "qti_queries__author"."resource_href_outside", "qti_queries__author"."resource_href_path", "qti_queries__author"."rounding", "qti_queries__author"."rounding_figures", "qti_queries__author"."rounding_mode_figures", "qti_queries__author"."sd_decl", "qti_queries__author"."share_fragment", "qti_queries__author"."share_target", "qti_queries__author"."site", "qti_queries__author"."site_path", "qti_queries__author"."site_target", "qti_queries__author"."srcset", "qti_queries__author"."srcset_candidate", "qti_queries__author"."ssml_scope", "qti_queries__author"."stimulus_ref", "qti_queries__author"."table_header", "qti_queries__author"."table_scope", "qti_queries__author"."template_ref", "qti_queries__author"."text_idref", "qti_queries__author"."text_reference", "qti_queries__author"."text_reference_path", "qti_queries__author"."tolerance", "qti_queries__author"."tolerance_token", "qti_queries__author"."usage_value", "qti_queries__author"."usage_value_base_type", "qti_queries__author"."variable_ref", "qti_queries__author"."xml_decl" TO :"qti_queries__author";
+GRANT SELECT ON TABLE "__qti"."assembled_catalog", "__qti"."assembled_document", "__qti"."attribute", "__qti"."attribute_entity", "__qti"."binding_name", "__qti"."bound_variable", "__qti"."candidate_path", "__qti"."catalog_id", "__qti"."catalog_scope", "__qti"."cell_headers", "__qti"."cell_leaf", "__qti"."choice", "__qti"."choice_interaction", "__qti"."cn_attribute", "__qti"."cn_count", "__qti"."cn_part_text", "__qti"."cn_slot", "__qti"."comment", "__qti"."context_ref", "__qti"."count_bound", "__qti"."data_ssml", "__qti"."data_ssml_member", "__qti"."data_ssml_property", "__qti"."doctype", "__qti"."document", "__qti"."document_id", "__qti"."element_type", "__qti"."encoding_decl", "__qti"."entry", "__qti"."expression", "__qti"."feedback_ref", "__qti"."file", "__qti"."file_outside", "__qti"."file_path", "__qti"."fragment_context_name", "__qti"."fragment_context_ref", "__qti"."fragment_feedback_name", "__qti"."fragment_feedback_ref", "__qti"."fragment_printed_name", "__qti"."fragment_printed_ref", "__qti"."fragment_scope", "__qti"."fragment_template_name", "__qti"."fragment_template_ref", "__qti"."header_token", "__qti"."hottext", "__qti"."identity_text", "__qti"."idref", "__qti"."idref_target", "__qti"."inclusion", "__qti"."instance", "__qti"."interaction", "__qti"."interaction_attribute", "__qti"."item_mode", "__qti"."item_ref_document", "__qti"."item_ref_href", "__qti"."label_use", "__qti"."least_count", "__qti"."link_reading", "__qti"."literal", "__qti"."literal_typed", "__qti"."lookup_value", "__qti"."map_key", "__qti"."math_action", "__qti"."math_align_group", "__qti"."math_align_scope", "__qti"."math_cell", "__qti"."math_cn", "__qti"."math_rank", "__qti"."media", "__qti"."most_count", "__qti"."named", "__qti"."namespace", "__qti"."node", "__qti"."numbered_reading", "__qti"."open_attribute", "__qti"."open_attribute_entity", "__qti"."open_element_name", "__qti"."open_element_type", "__qti"."package", "__qti"."pci_module_form", "__qti"."pi", "__qti"."placed_binding", "__qti"."placed_choice", "__qti"."placed_expression", "__qti"."placed_hottext", "__qti"."placed_id", "__qti"."placed_idref", "__qti"."placed_math_rank", "__qti"."placed_share_target", "__qti"."placed_variable_ref", "__qti"."printed_variable_ref", "__qti"."processing", "__qti"."reference", "__qti"."reference_path", "__qti"."referring_document", "__qti"."resource_document", "__qti"."resource_href", "__qti"."resource_href_outside", "__qti"."resource_href_path", "__qti"."rounding", "__qti"."rounding_figures", "__qti"."rounding_mode_figures", "__qti"."sd_decl", "__qti"."share_fragment", "__qti"."share_target", "__qti"."site", "__qti"."site_path", "__qti"."site_target", "__qti"."srcset", "__qti"."srcset_candidate", "__qti"."ssml_scope", "__qti"."stimulus_ref", "__qti"."table_header", "__qti"."table_scope", "__qti"."template_ref", "__qti"."text_idref", "__qti"."text_reference", "__qti"."text_reference_path", "__qti"."tolerance", "__qti"."tolerance_token", "__qti"."usage_value", "__qti"."usage_value_base_type", "__qti"."variable_ref", "__qti"."xml_decl" TO :"qti_queries__author";
 
 GRANT SELECT, INSERT ON TABLE "qti"."assembled_catalog" TO :"qti_queries__author";
 
@@ -807,9 +807,9 @@ ALTER ROLE :"qti_queries__author_app" SET lc_time = 'C.UTF-8';
 ALTER ROLE :"qti_queries__author_app" SET plan_cache_mode = 'force_generic_plan';
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
-REVOKE ALL ON SCHEMA "qti", "qti_views", "qti_queries", "qti_queries__author" FROM PUBLIC;
+REVOKE ALL ON SCHEMA "qti", "qti_views", "qti_queries", "__qti" FROM PUBLIC;
 
-REVOKE ALL ON TABLE "qti"."assembled_catalog", "qti"."assembled_document", "qti"."attribute", "qti"."attribute_entity", "qti"."binding_name", "qti"."bound_variable", "qti"."candidate_path", "qti"."catalog_id", "qti"."catalog_scope", "qti"."cell_headers", "qti"."cell_leaf", "qti"."choice", "qti"."choice_interaction", "qti"."cn_attribute", "qti"."cn_count", "qti"."cn_part_text", "qti"."cn_slot", "qti"."comment", "qti"."context_ref", "qti"."count_bound", "qti"."data_ssml", "qti"."data_ssml_member", "qti"."data_ssml_property", "qti"."doctype", "qti"."document", "qti"."document_id", "qti"."element_type", "qti"."encoding_decl", "qti"."entry", "qti"."expression", "qti"."feedback_ref", "qti"."file", "qti"."file_outside", "qti"."file_path", "qti"."fragment_context_name", "qti"."fragment_context_ref", "qti"."fragment_feedback_name", "qti"."fragment_feedback_ref", "qti"."fragment_printed_name", "qti"."fragment_printed_ref", "qti"."fragment_scope", "qti"."fragment_template_name", "qti"."fragment_template_ref", "qti"."header_token", "qti"."hottext", "qti"."identity_text", "qti"."idref", "qti"."idref_target", "qti"."inclusion", "qti"."instance", "qti"."interaction", "qti"."interaction_attribute", "qti"."item_mode", "qti"."item_ref_document", "qti"."item_ref_href", "qti"."label_use", "qti"."least_count", "qti"."link_reading", "qti"."literal", "qti"."literal_typed", "qti"."lookup_value", "qti"."map_key", "qti"."math_action", "qti"."math_align_group", "qti"."math_align_scope", "qti"."math_cell", "qti"."math_cn", "qti"."math_rank", "qti"."media", "qti"."most_count", "qti"."named", "qti"."namespace", "qti"."node", "qti"."numbered_reading", "qti"."open_attribute", "qti"."open_attribute_entity", "qti"."open_element_name", "qti"."open_element_type", "qti"."package", "qti"."pci_module_form", "qti"."pi", "qti"."placed_binding", "qti"."placed_choice", "qti"."placed_expression", "qti"."placed_hottext", "qti"."placed_id", "qti"."placed_idref", "qti"."placed_math_rank", "qti"."placed_share_target", "qti"."placed_variable_ref", "qti"."printed_variable_ref", "qti"."processing", "qti"."reference", "qti"."reference_path", "qti"."referring_document", "qti"."resource_document", "qti"."resource_href", "qti"."resource_href_outside", "qti"."resource_href_path", "qti"."rounding", "qti"."rounding_figures", "qti"."rounding_mode_figures", "qti"."sd_decl", "qti"."share_fragment", "qti"."share_target", "qti"."site", "qti"."site_path", "qti"."site_target", "qti"."srcset", "qti"."srcset_candidate", "qti"."ssml_scope", "qti"."stimulus_ref", "qti"."table_header", "qti"."table_scope", "qti"."template_ref", "qti"."text_idref", "qti"."text_reference", "qti"."text_reference_path", "qti"."tolerance", "qti"."tolerance_token", "qti"."usage_value", "qti"."usage_value_base_type", "qti"."variable_ref", "qti"."xml_decl", "qti_queries__author"."assembled_catalog", "qti_queries__author"."assembled_document", "qti_queries__author"."attribute", "qti_queries__author"."attribute_entity", "qti_queries__author"."binding_name", "qti_queries__author"."bound_variable", "qti_queries__author"."candidate_path", "qti_queries__author"."catalog_id", "qti_queries__author"."catalog_scope", "qti_queries__author"."cell_headers", "qti_queries__author"."cell_leaf", "qti_queries__author"."choice", "qti_queries__author"."choice_interaction", "qti_queries__author"."cn_attribute", "qti_queries__author"."cn_count", "qti_queries__author"."cn_part_text", "qti_queries__author"."cn_slot", "qti_queries__author"."comment", "qti_queries__author"."context_ref", "qti_queries__author"."count_bound", "qti_queries__author"."data_ssml", "qti_queries__author"."data_ssml_member", "qti_queries__author"."data_ssml_property", "qti_queries__author"."doctype", "qti_queries__author"."document", "qti_queries__author"."document_id", "qti_queries__author"."element_type", "qti_queries__author"."encoding_decl", "qti_queries__author"."entry", "qti_queries__author"."expression", "qti_queries__author"."feedback_ref", "qti_queries__author"."file", "qti_queries__author"."file_outside", "qti_queries__author"."file_path", "qti_queries__author"."fragment_context_name", "qti_queries__author"."fragment_context_ref", "qti_queries__author"."fragment_feedback_name", "qti_queries__author"."fragment_feedback_ref", "qti_queries__author"."fragment_printed_name", "qti_queries__author"."fragment_printed_ref", "qti_queries__author"."fragment_scope", "qti_queries__author"."fragment_template_name", "qti_queries__author"."fragment_template_ref", "qti_queries__author"."header_token", "qti_queries__author"."hottext", "qti_queries__author"."identity_text", "qti_queries__author"."idref", "qti_queries__author"."idref_target", "qti_queries__author"."inclusion", "qti_queries__author"."instance", "qti_queries__author"."interaction", "qti_queries__author"."interaction_attribute", "qti_queries__author"."item_mode", "qti_queries__author"."item_ref_document", "qti_queries__author"."item_ref_href", "qti_queries__author"."label_use", "qti_queries__author"."least_count", "qti_queries__author"."link_reading", "qti_queries__author"."literal", "qti_queries__author"."literal_typed", "qti_queries__author"."lookup_value", "qti_queries__author"."map_key", "qti_queries__author"."math_action", "qti_queries__author"."math_align_group", "qti_queries__author"."math_align_scope", "qti_queries__author"."math_cell", "qti_queries__author"."math_cn", "qti_queries__author"."math_rank", "qti_queries__author"."media", "qti_queries__author"."most_count", "qti_queries__author"."named", "qti_queries__author"."namespace", "qti_queries__author"."node", "qti_queries__author"."numbered_reading", "qti_queries__author"."open_attribute", "qti_queries__author"."open_attribute_entity", "qti_queries__author"."open_element_name", "qti_queries__author"."open_element_type", "qti_queries__author"."package", "qti_queries__author"."pci_module_form", "qti_queries__author"."pi", "qti_queries__author"."placed_binding", "qti_queries__author"."placed_choice", "qti_queries__author"."placed_expression", "qti_queries__author"."placed_hottext", "qti_queries__author"."placed_id", "qti_queries__author"."placed_idref", "qti_queries__author"."placed_math_rank", "qti_queries__author"."placed_share_target", "qti_queries__author"."placed_variable_ref", "qti_queries__author"."printed_variable_ref", "qti_queries__author"."processing", "qti_queries__author"."reference", "qti_queries__author"."reference_path", "qti_queries__author"."referring_document", "qti_queries__author"."resource_document", "qti_queries__author"."resource_href", "qti_queries__author"."resource_href_outside", "qti_queries__author"."resource_href_path", "qti_queries__author"."rounding", "qti_queries__author"."rounding_figures", "qti_queries__author"."rounding_mode_figures", "qti_queries__author"."sd_decl", "qti_queries__author"."share_fragment", "qti_queries__author"."share_target", "qti_queries__author"."site", "qti_queries__author"."site_path", "qti_queries__author"."site_target", "qti_queries__author"."srcset", "qti_queries__author"."srcset_candidate", "qti_queries__author"."ssml_scope", "qti_queries__author"."stimulus_ref", "qti_queries__author"."table_header", "qti_queries__author"."table_scope", "qti_queries__author"."template_ref", "qti_queries__author"."text_idref", "qti_queries__author"."text_reference", "qti_queries__author"."text_reference_path", "qti_queries__author"."tolerance", "qti_queries__author"."tolerance_token", "qti_queries__author"."usage_value", "qti_queries__author"."usage_value_base_type", "qti_queries__author"."variable_ref", "qti_queries__author"."xml_decl" FROM PUBLIC;
+REVOKE ALL ON TABLE "qti"."assembled_catalog", "qti"."assembled_document", "qti"."attribute", "qti"."attribute_entity", "qti"."binding_name", "qti"."bound_variable", "qti"."candidate_path", "qti"."catalog_id", "qti"."catalog_scope", "qti"."cell_headers", "qti"."cell_leaf", "qti"."choice", "qti"."choice_interaction", "qti"."cn_attribute", "qti"."cn_count", "qti"."cn_part_text", "qti"."cn_slot", "qti"."comment", "qti"."context_ref", "qti"."count_bound", "qti"."data_ssml", "qti"."data_ssml_member", "qti"."data_ssml_property", "qti"."doctype", "qti"."document", "qti"."document_id", "qti"."element_type", "qti"."encoding_decl", "qti"."entry", "qti"."expression", "qti"."feedback_ref", "qti"."file", "qti"."file_outside", "qti"."file_path", "qti"."fragment_context_name", "qti"."fragment_context_ref", "qti"."fragment_feedback_name", "qti"."fragment_feedback_ref", "qti"."fragment_printed_name", "qti"."fragment_printed_ref", "qti"."fragment_scope", "qti"."fragment_template_name", "qti"."fragment_template_ref", "qti"."header_token", "qti"."hottext", "qti"."identity_text", "qti"."idref", "qti"."idref_target", "qti"."inclusion", "qti"."instance", "qti"."interaction", "qti"."interaction_attribute", "qti"."item_mode", "qti"."item_ref_document", "qti"."item_ref_href", "qti"."label_use", "qti"."least_count", "qti"."link_reading", "qti"."literal", "qti"."literal_typed", "qti"."lookup_value", "qti"."map_key", "qti"."math_action", "qti"."math_align_group", "qti"."math_align_scope", "qti"."math_cell", "qti"."math_cn", "qti"."math_rank", "qti"."media", "qti"."most_count", "qti"."named", "qti"."namespace", "qti"."node", "qti"."numbered_reading", "qti"."open_attribute", "qti"."open_attribute_entity", "qti"."open_element_name", "qti"."open_element_type", "qti"."package", "qti"."pci_module_form", "qti"."pi", "qti"."placed_binding", "qti"."placed_choice", "qti"."placed_expression", "qti"."placed_hottext", "qti"."placed_id", "qti"."placed_idref", "qti"."placed_math_rank", "qti"."placed_share_target", "qti"."placed_variable_ref", "qti"."printed_variable_ref", "qti"."processing", "qti"."reference", "qti"."reference_path", "qti"."referring_document", "qti"."resource_document", "qti"."resource_href", "qti"."resource_href_outside", "qti"."resource_href_path", "qti"."rounding", "qti"."rounding_figures", "qti"."rounding_mode_figures", "qti"."sd_decl", "qti"."share_fragment", "qti"."share_target", "qti"."site", "qti"."site_path", "qti"."site_target", "qti"."srcset", "qti"."srcset_candidate", "qti"."ssml_scope", "qti"."stimulus_ref", "qti"."table_header", "qti"."table_scope", "qti"."template_ref", "qti"."text_idref", "qti"."text_reference", "qti"."text_reference_path", "qti"."tolerance", "qti"."tolerance_token", "qti"."usage_value", "qti"."usage_value_base_type", "qti"."variable_ref", "qti"."xml_decl", "__qti"."assembled_catalog", "__qti"."assembled_document", "__qti"."attribute", "__qti"."attribute_entity", "__qti"."binding_name", "__qti"."bound_variable", "__qti"."candidate_path", "__qti"."catalog_id", "__qti"."catalog_scope", "__qti"."cell_headers", "__qti"."cell_leaf", "__qti"."choice", "__qti"."choice_interaction", "__qti"."cn_attribute", "__qti"."cn_count", "__qti"."cn_part_text", "__qti"."cn_slot", "__qti"."comment", "__qti"."context_ref", "__qti"."count_bound", "__qti"."data_ssml", "__qti"."data_ssml_member", "__qti"."data_ssml_property", "__qti"."doctype", "__qti"."document", "__qti"."document_id", "__qti"."element_type", "__qti"."encoding_decl", "__qti"."entry", "__qti"."expression", "__qti"."feedback_ref", "__qti"."file", "__qti"."file_outside", "__qti"."file_path", "__qti"."fragment_context_name", "__qti"."fragment_context_ref", "__qti"."fragment_feedback_name", "__qti"."fragment_feedback_ref", "__qti"."fragment_printed_name", "__qti"."fragment_printed_ref", "__qti"."fragment_scope", "__qti"."fragment_template_name", "__qti"."fragment_template_ref", "__qti"."header_token", "__qti"."hottext", "__qti"."identity_text", "__qti"."idref", "__qti"."idref_target", "__qti"."inclusion", "__qti"."instance", "__qti"."interaction", "__qti"."interaction_attribute", "__qti"."item_mode", "__qti"."item_ref_document", "__qti"."item_ref_href", "__qti"."label_use", "__qti"."least_count", "__qti"."link_reading", "__qti"."literal", "__qti"."literal_typed", "__qti"."lookup_value", "__qti"."map_key", "__qti"."math_action", "__qti"."math_align_group", "__qti"."math_align_scope", "__qti"."math_cell", "__qti"."math_cn", "__qti"."math_rank", "__qti"."media", "__qti"."most_count", "__qti"."named", "__qti"."namespace", "__qti"."node", "__qti"."numbered_reading", "__qti"."open_attribute", "__qti"."open_attribute_entity", "__qti"."open_element_name", "__qti"."open_element_type", "__qti"."package", "__qti"."pci_module_form", "__qti"."pi", "__qti"."placed_binding", "__qti"."placed_choice", "__qti"."placed_expression", "__qti"."placed_hottext", "__qti"."placed_id", "__qti"."placed_idref", "__qti"."placed_math_rank", "__qti"."placed_share_target", "__qti"."placed_variable_ref", "__qti"."printed_variable_ref", "__qti"."processing", "__qti"."reference", "__qti"."reference_path", "__qti"."referring_document", "__qti"."resource_document", "__qti"."resource_href", "__qti"."resource_href_outside", "__qti"."resource_href_path", "__qti"."rounding", "__qti"."rounding_figures", "__qti"."rounding_mode_figures", "__qti"."sd_decl", "__qti"."share_fragment", "__qti"."share_target", "__qti"."site", "__qti"."site_path", "__qti"."site_target", "__qti"."srcset", "__qti"."srcset_candidate", "__qti"."ssml_scope", "__qti"."stimulus_ref", "__qti"."table_header", "__qti"."table_scope", "__qti"."template_ref", "__qti"."text_idref", "__qti"."text_reference", "__qti"."text_reference_path", "__qti"."tolerance", "__qti"."tolerance_token", "__qti"."usage_value", "__qti"."usage_value_base_type", "__qti"."variable_ref", "__qti"."xml_decl" FROM PUBLIC;
 
 REVOKE ALL ON DOMAIN "qti"."__sha256", "qti"."admission_map", "qti"."align_direction", "qti"."align_state", "qti"."attribute_model", "qti"."attribute_name", "qti"."__attribute_name_bits_416_thr6i6sipt", "qti"."attribute_slot", "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."base_type", "qti"."bound_facet", "qti"."bound_zero", "qti"."built_in", "qti"."cardinality", "qti"."cn_base", "qti"."cn_part", "qti"."cn_part_form", "qti"."cn_type", "qti"."content_model", "qti"."declaration_kind", "qti"."document_type", "qti"."domain_primitive", "qti"."entry_kind", "qti"."flag", "qti"."__flag_bits_16_llpdtzgaon", "qti"."follow_set", "qti"."governor", "qti"."href_scope", "qti"."identity", "qti"."include_set", "qti"."language", "qti"."node_kind", "qti"."__node_kind_bits_648_lh43fw4nuo", "qti"."position", "qti"."__position_bits_312_cnr3fptmz4", "qti"."reference_form", "qti"."reference_resolution", "qti"."reference_spelling", "qti"."resource_type", "qti"."rounding_holds", "qti"."shared_model", "qti"."symbol_set", "qti"."type_name", "qti"."unplaced_cause", "qti"."use", "qti"."value_base", "qti"."__value_base_bits_16_7t6pwwxbsh", "qti"."value_cardinality", "qti"."__value_cardinality_bits_8_mma4mwhphy", "qti"."value_domain", "qti"."white_space", "qti"."xml_standalone", "qti"."__text_tn2inwix7f", "qti"."__text_tfkvgtjblt", "qti"."__text_aqc6inemva", "qti"."__text_c6iptmtj2x", "qti"."__text_phcitidkqs", "qti"."__text_xj3zno7u3h", "qti"."__text_r2monji6i2", "qti"."__text_7j6kgluyjp", "qti"."__text_l7nqeazg5h", "qti"."__text_xey6ryorh5", "qti"."__text_7dfilirtp3", "qti"."__text_sac6h6c6eh", "qti"."__text_nhrekaddjj", "qti"."__text_zij47sgley", "qti"."__text_gke7uypkov", "qti"."__text_gysgx5gkhi", "qti"."__text_lecej62lgl", "qti"."__text_iyotu5swho", "qti"."__text_kgtzfmq7x6", "qti"."__text_23rzixl3a2", "qti"."__text_3adwbksayk", "qti"."__text_k5kwygzatl", "qti"."__text_b6ykamoeho", "qti"."__text_4s4od7s5or", "qti"."__text_netnsfkgs7", "qti"."__text_3dlgl63rv6", "qti"."__text_aezrarw5qb", "qti"."__text_iqz277k5xr", "qti"."__text_r2kdc4r77d", "qti"."__text_i4qty2ywff", "qti"."__domain_gfw43vigph", "qti"."__param_package_5kbmtohnug", "qti"."__param_path_bcrdrv5any" FROM PUBLIC;
 
@@ -3690,18 +3690,6 @@ COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_attribute_identifier_fhza
 COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_identifier_start_xf557pdhpw" IS 'btree index VariableRef(package, path, identifier, start)';
 
 COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_root_kind_merm4oeh73" IS 'btree index VariableRef(package, path, rootKind)';
-
-COMMENT ON STATISTICS "qti"."__attribute_stats_package_path_start_uo6glmb56i" IS 'statistics Attribute(package, path, start)';
-
-COMMENT ON STATISTICS "qti"."__attribute_entity_stats_name_package_path_start_7caqvjbetk" IS 'statistics AttributeEntity(name, package, path, start)';
-
-COMMENT ON STATISTICS "qti"."__namespace_stats_package_path_start_gydqlm2xgj" IS 'statistics Namespace(package, path, start)';
-
-COMMENT ON STATISTICS "qti"."__node_stats_package_path_xnpndnqkuf" IS 'statistics Node(package, path)';
-
-COMMENT ON STATISTICS "qti"."__open_attribute_stats_package_path_start_z3huhl5634" IS 'statistics OpenAttribute(package, path, start)';
-
-COMMENT ON STATISTICS "qti"."__open_attribute_entity_stats_at_package_path_start_lyjoz6crlz" IS 'statistics OpenAttributeEntity(at, package, path, start)';
 
 COMMENT ON FUNCTION "qti"."__reader_news_assembled_catalog_z3igbb5mrk"() IS 'the reader of the delta of news of AssembledCatalog';
 

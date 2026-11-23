@@ -38,6 +38,7 @@ export default defineConfig({
   connection: migrationConnectionNow,
   logins: [],
   migrations: "migrations",
+  rolePrefixBytes: 23,
   schemas: [schema("ConnectionProbe", [relation("Probe", { id: natural }, ["id"])], [])],
 });
 `;

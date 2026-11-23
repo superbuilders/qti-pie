@@ -13,5 +13,11 @@ export default defineConfig({
   connection: migrationConnectionNow,
   logins: [AuthorApp],
   migrations: "migrations",
+  /**
+   * The longest role prefix an installation of this config runs under: a test lane's database name,
+   * pantry's rule (src/db/connection.ts), the longest in use edullm_keydigest_pantry. grizzle
+   * refuses a longer one at connect.
+   */
+  rolePrefixBytes: 23,
   schemas: [Qti],
 });
