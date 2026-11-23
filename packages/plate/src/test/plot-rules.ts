@@ -15,7 +15,7 @@
  *
  * @module
  */
-import type { Option } from "effect";
+import { Option } from "effect";
 import type { StageScale, TargetFloor } from "#plate/graphic/scale.ts";
 import type { Figure, PlotChoice, PlotSpot } from "#plate/graphic/plot.ts";
 import type { PlotKind } from "#plate/interactions/plot-roles.ts";
@@ -86,55 +86,80 @@ export const walkLattice = (subject: LatticeSubject): string | undefined => {
  * The caption's choice the bank caption's walk calls: plate's own, or a mutant copy's.
  */
 export interface BankCaptionSubject {
-  readonly bankCaptionKeyOf: (classes: Option.Option<string>, choices: number) => string;
+  readonly bankCaptionKeyOf: (
+    classes: Option.Option<string>,
+    stimulus: boolean,
+  ) => Option.Option<string>;
   readonly some: (value: string) => Option.Option<string>;
   readonly none: Option.Option<string>;
 }
 
 /**
- * The root classes the bank caption's walk reads, each with whether the rule calls the stage a
- * graph: `plate-lattice` as a token, or exactly one plot class as a token, the five plate draws.
+ * What the rule says a bank's caption is, by the stage's kind, AlphaTest's heading over the same
+ * kind: `values`, "VALUES" in an item that references a stimulus and "VALUE" in one that does not,
+ * or a fixed message, or nothing.
  */
-const captionClasses: readonly (readonly [string | undefined, boolean])[] = [
-  [undefined, false],
-  ["", false],
-  ["qti-unselected-hidden", false],
-  ["plate-lattices", false],
-  ["Plate-Lattice", false],
-  ["plate-lattice", true],
-  ["qti-selections-dark	plate-lattice", true],
-  ["plate-number-line-graph", true],
-  ["plate-graph-line", true],
-  ["plate-graph-segment", true],
-  ["plate-box-plot", true],
-  ["plate-dot-plot", true],
-  ["plate-lattice plate-number-line-graph", true],
-  ["plate-graph-line plate-box-plot", false],
-  ["plate-lattice plate-graph-line plate-box-plot", true],
-  ["xplate-dot-plot", false],
+type CaptionRule = "nothing" | "values" | `bankCaption${string}`;
+
+/**
+ * The root classes the bank caption's walk reads, each with its caption by the rule: a picture
+ * (neither `plate-lattice` nor one plot class as a token) says ANSWER; a line or a segment its line
+ * words, named or not; a coordinate plane its grid words; a number line of values its label words
+ * when named and its value words else; every other graph nothing.
+ */
+const captionClasses: readonly (readonly [string | undefined, CaptionRule])[] = [
+  [undefined, "bankCaption"],
+  ["", "bankCaption"],
+  ["qti-unselected-hidden", "bankCaption"],
+  ["plate-lattices", "bankCaption"],
+  ["Plate-Lattice", "bankCaption"],
+  ["xplate-dot-plot", "bankCaption"],
+  ["plate-graph-line plate-box-plot", "bankCaption"],
+  ["plate-named-choices", "bankCaption"],
+  ["plate-lattice", "nothing"],
+  ["qti-selections-dark\tplate-lattice", "nothing"],
+  ["plate-number-line-graph", "nothing"],
+  ["plate-lattice plate-number-line-graph", "nothing"],
+  ["plate-box-plot", "nothing"],
+  ["plate-lattice plate-dot-plot", "nothing"],
+  ["plate-lattice plate-graph-line plate-box-plot", "nothing"],
+  ["plate-lattice plate-number-line-graph plate-named-choices", "nothing"],
+  ["plate-graph-line", "bankCaptionTwoPoints"],
+  ["plate-lattice plate-graph-segment", "bankCaptionTwoPoints"],
+  ["plate-lattice plate-coordinate-plane plate-graph-line", "bankCaptionTwoPoints"],
+  ["plate-lattice plate-graph-line plate-named-choices", "bankCaptionLineNames"],
+  ["plate-coordinate-plane plate-graph-segment plate-named-choices", "bankCaptionLineNames"],
+  ["plate-lattice plate-coordinate-plane", "bankCaptionGridPoints"],
+  ["plate-coordinate-plane", "bankCaptionGridPoints"],
+  ["plate-lattice plate-coordinate-plane plate-named-choices", "bankCaptionPointNames"],
+  ["plate-lattice plate-coordinate-planes", "nothing"],
+  ["plate-lattice plate-number-line", "values"],
+  ["plate-number-line", "values"],
+  ["plate-lattice plate-number-line plate-named-choices", "bankCaptionLabels"],
+  ["plate-lattice plate-number-lines", "nothing"],
 ];
 
 /**
- * Walk the bank caption's cases, every class above with every count of choices from 0 to 4, and
- * give the first disagreement with the rule: a graph's bank says "VALUE" for one choice and
- * "VALUES" for any other count, and a picture's says "ANSWER" (`bankCaptionKeyOf` in
+ * Walk the bank caption's cases, every class above in an item with a stimulus and in one without,
+ * and give the first disagreement with the rule (`bankCaptionKeyOf` in
  * `#plate/interactions/plot-roles.ts`).
  *
  * @param subject The program's modules.
  * @returns The disagreement, undefined where every case agrees.
  */
 export const walkBankCaption = (subject: BankCaptionSubject): string | undefined => {
-  for (const [classes, graph] of captionClasses) {
-    for (let choices = 0; choices <= 4; choices += 1) {
+  for (const [classes, rule] of captionClasses) {
+    for (const stimulus of [false, true]) {
       const said = subject.bankCaptionKeyOf(
         classes === undefined ? subject.none : subject.some(classes),
-        choices,
+        stimulus,
       );
-      const value = choices === 1 ? "bankCaptionValue" : "bankCaptionValues";
-      const rule = graph ? value : "bankCaption";
+      const value = stimulus ? "bankCaptionValues" : "bankCaptionValue";
+      const expected = rule === "values" ? value : rule;
+      const written = Option.getOrElse(said, () => "nothing");
 
-      if (said !== rule) {
-        return `the class ${JSON.stringify(classes)} with ${String(choices)} choices says ${said}`;
+      if (written !== expected) {
+        return `the class ${JSON.stringify(classes)} ${stimulus ? "with" : "without"} a stimulus says ${written}`;
       }
     }
   }

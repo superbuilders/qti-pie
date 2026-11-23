@@ -148,6 +148,12 @@ export interface IslandContext {
    * the caption that tells a child to drag a choice into place.
    */
   readonly bankCaption: boolean;
+  /**
+   * Whether the item references a stimulus, the passage plate shows beside or inside it, which
+   * changes the words AlphaTest's player captioned a number line's bank with (`bankCaptionKeyOf` in
+   * `#plate/interactions/plot-roles.ts`).
+   */
+  readonly stimulus: boolean;
 }
 
 /**

@@ -490,14 +490,17 @@ export const classRootOf = (context: Pick<IslandContext, "className">): ClassRoo
 /**
  * Give a Gap Match's or a Graphic Gap Match's bank its caption where the host asks for one
  * (`bankCaption`), the island's and the review's alike: a Gap Match's AlphaTest's "DRAG & DROP THE
- * ANSWER", and a Graphic Gap Match's by what its choices go on (`bankCaptionKeyOf` in
- * `#plate/interactions/plot-roles.ts`).
+ * ANSWER", and a Graphic Gap Match's the heading AlphaTest wrote over the same kind of stage, none
+ * where it wrote none (`bankCaptionKeyOf` in `#plate/interactions/plot-roles.ts`).
  *
  * @param context What the shell knows: the host's `bankCaption` and the locale.
- * @param key The caption's message.
- * @returns The caption, or undefined where the host asks for none.
+ * @param key The caption's message, none for no caption.
+ * @returns The caption, or undefined where the host asks for none or the stage has none.
  */
 export const bankCaptionOf = (
   context: Pick<IslandContext, "bankCaption" | "locale">,
-  key: BankCaptionKey,
-): string | undefined => (context.bankCaption ? message(context.locale, key) : undefined);
+  key: Option.Option<BankCaptionKey>,
+): string | undefined =>
+  context.bankCaption
+    ? Option.getOrUndefined(key.pipe(Option.map((said) => message(context.locale, said))))
+    : undefined;

@@ -358,6 +358,12 @@ export const rendererClasses = {
    */
   "plate-box-plot": "a box plot drawn from its statistics",
   /**
+   * On a `qti-graphic-gap-match-interaction`: a coordinate plane whose points the child places,
+   * AlphaTest's quadrants (`GraphicGapMatchQuadrants.tsx`), whose bank's caption says to click the
+   * grid (`bankCaptionKeyOf` in `#plate/interactions/plot-roles.ts`).
+   */
+  "plate-coordinate-plane": "a coordinate plane whose points the child places",
+  /**
    * On a `qti-graphic-gap-match-interaction` whose hotspots are a line plot's columns, one over
    * each tick: the choices a column holds stand stacked up from its bottom, each in a step of its
    * height over its `match-max`, as AlphaTest's line plot stacked its Xs up from the axis, and a
@@ -389,6 +395,20 @@ export const rendererClasses = {
    * the owner's Q4).
    */
   "plate-lattice": "a graph whose hotspots tile its plot",
+  /**
+   * On a `qti-graphic-gap-match-interaction`: the choices are names the child picks and then
+   * places, a plane's points, a number line's labels or a graph's lines, as AlphaTest's player
+   * named them, which changes the words its bank's caption says (`bankCaptionKeyOf` in
+   * `#plate/interactions/plot-roles.ts`).
+   */
+  "plate-named-choices": "choices that are names, picked and then placed",
+  /**
+   * On a `qti-graphic-gap-match-interaction`: a number line whose ticks take the values the child
+   * places, AlphaTest's axis-label number line (`GraphicGapMatchInteraction.tsx`,
+   * `NumberLineLabelledPoints.tsx`), whose bank's caption says to drag a value or to click a label
+   * (`bankCaptionKeyOf` in `#plate/interactions/plot-roles.ts`).
+   */
+  "plate-number-line": "a number line whose ticks take values",
   /**
    * On a `qti-graphic-gap-match-interaction`: a number line whose gap texts draw open or closed
    * dots where they are placed (`plate-point-open`, `plate-point-closed`), and the ray the item's

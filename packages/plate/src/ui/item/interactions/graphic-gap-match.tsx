@@ -196,7 +196,7 @@ export const island = (
 
   return (
     <GraphicGapMatch
-      caption={bankCaptionOf(context, bankCaptionKeyOf(context.className, node.choices.length))}
+      caption={bankCaptionOf(context, bankCaptionKeyOf(context.className, context.stimulus))}
       gapChoices={node.choices.map((choice, index) => ({
         ...associableOf(choice, { count: node.choices.length, n: index + 1 }, "phrasing", context),
         ...plotChoiceOf(choice),
@@ -284,10 +284,7 @@ export const review = (
       <div data-slot="plate-placement">
         <div data-slot="plate-placement-dock">
           <BankCaption
-            caption={bankCaptionOf(
-              context,
-              bankCaptionKeyOf(context.className, node.choices.length),
-            )}
+            caption={bankCaptionOf(context, bankCaptionKeyOf(context.className, context.stimulus))}
           />
           <div data-slot="plate-placement-bank">
             {node.choices.map((choice) =>

@@ -12,6 +12,7 @@
  *
  * @module
  */
+import { Option } from "effect";
 import type { ReactNode } from "react";
 import type { GapElement } from "#plate/interactions/gap-match.ts";
 import { countsOf } from "#plate/interactions/counts.ts";
@@ -89,7 +90,7 @@ export const island = (
 
   return (
     <GapMatch
-      caption={bankCaptionOf(context, "bankCaption")}
+      caption={bankCaptionOf(context, Option.some("bankCaption"))}
       gapTexts={node.choices.map((choice, index) =>
         associableOf(choice, { count: node.choices.length, n: index + 1 }, "phrasing", context),
       )}
@@ -181,7 +182,7 @@ export const review = (
       <PromptPart prompt={prompt} />
       <div data-slot="plate-placement">
         <div data-slot="plate-placement-dock">
-          <BankCaption caption={bankCaptionOf(context, "bankCaption")} />
+          <BankCaption caption={bankCaptionOf(context, Option.some("bankCaption"))} />
           <div data-slot="plate-placement-bank">
             {node.choices.map((choice) =>
               bankChipPart(

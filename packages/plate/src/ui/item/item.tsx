@@ -299,6 +299,7 @@ export const Item = (props: ItemProps): ReactNode => {
     locale: configuration.locale,
     picksInstruction: configuration.picksInstruction,
     shows: showsOf(props),
+    stimulus: stimuli.length > 0,
     textEntryKeypad: configuration.textEntryKeypad,
     values: mapOf(props.values),
   };

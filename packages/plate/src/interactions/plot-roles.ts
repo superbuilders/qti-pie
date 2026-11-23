@@ -60,33 +60,72 @@ export const plotKindOf = (classes: Option.Option<string>): PlotKind => {
 
 /**
  * The message a Graphic Gap Match's bank is captioned by where the host asks for a caption
- * (`bankCaption`), as AlphaTest's player captioned the bank it drew, by what the bank's choices go
- * on: a graph, whose root carries `plate-lattice` (its hotspots tiling its plot) or asks for a
- * plot, takes the values a child places on it, `bankCaptionValue`, "DRAG & DROP THE VALUE", for one
- * choice and `bankCaptionValues`, "DRAG & DROP THE VALUES", for more, as AlphaTest's number line
- * said (mastery-track-player 941a86a, `GraphicGapMatchInteraction.tsx` lines 561 and 752, where its
- * one value was named in the plural only beside a passage); a picture takes the answer,
- * `bankCaption`, "DRAG & DROP THE ANSWER", as its gap match said (`GapMatchInteraction.tsx` lines
- * 1277 and 1512) (edullm-bd, 2026-11-22).
+ * (`bankCaption`), the heading AlphaTest's player wrote over the bank it drew for the same kind of
+ * stage, word for word (mastery-track-player 941a86a; edullm-bd, 2026-11-22: "follow AlphaTest
+ * exactly"), the kind read from the root's classes, where a choice named a thing the child picks
+ * and then places (`plate-named-choices`) changed AlphaTest's words:
+ *
+ * - A line or a segment drawn through two places (`plate-graph-line`, `plate-graph-segment`):
+ *   `bankCaptionLineNames`, "CLICK A LINE NAME, THEN CLICK TWO POINTS", for named lines, else
+ *   `bankCaptionTwoPoints`, "CLICK TWO POINTS TO DRAW A LINE" (`GraphicGapMatchLines.tsx` line
+ *   513);
+ * - A coordinate plane (`plate-coordinate-plane`): `bankCaptionPointNames`, "CLICK A POINT NAME, THEN
+ *   CLICK THE GRID", for named points, else `bankCaptionGridPoints`, "CLICK THE GRID TO PLACE
+ *   POINTS" (`GraphicGapMatchQuadrants.tsx` lines 457 and 486);
+ * - A number line whose ticks take values (`plate-number-line`): `bankCaptionLabels`, "CLICK A LABEL,
+ *   THEN CLICK THE SPOT", for named points (`NumberLineLabelledPoints.tsx` line 335), else
+ *   `bankCaptionValues`, "DRAG & DROP THE VALUES", for an item that references a stimulus and
+ *   `bankCaptionValue`, "DRAG & DROP THE VALUE", for one that does not, as AlphaTest's layout
+ *   beside a passage and its full-width layout said, whatever the bank held
+ *   (`GraphicGapMatchInteraction.tsx` lines 561 and 752);
+ * - A picture, whose root carries neither `plate-lattice` nor a plot: `bankCaption`, "DRAG & DROP THE
+ *   ANSWER", as AlphaTest's gap match said (`GapMatchInteraction.tsx` lines 1277 and 1512);
+ * - Any other graph, a box plot, a dot plot, a number line of dots and a ray, or a lattice of no
+ *   kind: none, since AlphaTest wrote no heading over its choices.
  */
-export type BankCaptionKey = "bankCaption" | "bankCaptionValue" | "bankCaptionValues";
+export type BankCaptionKey =
+  | "bankCaption"
+  | "bankCaptionGridPoints"
+  | "bankCaptionLabels"
+  | "bankCaptionLineNames"
+  | "bankCaptionPointNames"
+  | "bankCaptionTwoPoints"
+  | "bankCaptionValue"
+  | "bankCaptionValues";
 
 /**
  * Give the message a Graphic Gap Match's bank is captioned by ({@link BankCaptionKey}).
  *
  * @param classes The class the root carries, none when it carries none.
- * @param choices How many gap choices the bank holds.
- * @returns The caption's message.
+ * @param stimulus Whether the item references a stimulus.
+ * @returns The caption's message, or none for a graph AlphaTest captioned nothing over.
  */
 export const bankCaptionKeyOf = (
   classes: Option.Option<string>,
-  choices: number,
-): BankCaptionKey => {
-  if (floorOf(classes) === "enhanced" && plotKindOf(classes) === "plain") {
-    return "bankCaption";
+  stimulus: boolean,
+): Option.Option<BankCaptionKey> => {
+  const named = carriesRendererClass(classes, "plate-named-choices");
+  const plot = plotKindOf(classes);
+
+  if (plot === "line" || plot === "segment") {
+    return Option.some(named ? "bankCaptionLineNames" : "bankCaptionTwoPoints");
   }
 
-  return choices === 1 ? "bankCaptionValue" : "bankCaptionValues";
+  if (carriesRendererClass(classes, "plate-coordinate-plane")) {
+    return Option.some(named ? "bankCaptionPointNames" : "bankCaptionGridPoints");
+  }
+
+  if (carriesRendererClass(classes, "plate-number-line")) {
+    if (named) {
+      return Option.some("bankCaptionLabels");
+    }
+
+    return Option.some(stimulus ? "bankCaptionValues" : "bankCaptionValue");
+  }
+
+  return floorOf(classes) === "enhanced" && plot === "plain"
+    ? Option.some("bankCaption")
+    : Option.none();
 };
 
 /**

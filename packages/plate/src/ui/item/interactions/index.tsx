@@ -144,6 +144,7 @@ const islandContextOf = (context: IslandContext): IslandContext => ({
   picksInstruction: context.picksInstruction,
   readAloud: context.readAloud,
   spokenPrompt: context.spokenPrompt,
+  stimulus: context.stimulus,
   textEntryKeypad: context.textEntryKeypad,
 });
 

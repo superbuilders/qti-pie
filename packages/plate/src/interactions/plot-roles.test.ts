@@ -14,33 +14,48 @@ import type { Kill } from "#plate/test/kills.ts";
 import { walkBankCaption } from "#plate/test/plot-rules.ts";
 
 /**
- * The caption's kills: a lattice read as a picture, a plot read as a picture, the singular and the
- * plural swapped, and every graph's bank said in the singular.
+ * The caption's kills: a picture's caption on every graph, the named lines read as unnamed, a
+ * named plane read as unnamed, a labelled number line read as one of values, a plane read before a
+ * line, the passage's plural and the full width's singular swapped, and a graph of no kind
+ * captioned.
  */
 const kills: readonly Kill[] = [
   {
     file: "src/interactions/plot-roles.ts",
-    original: 'if (floorOf(classes) === "enhanced" && plotKindOf(classes) === "plain") {',
-    replacement: 'if (plotKindOf(classes) === "plain") {',
-    why: "a lattice's bank captioned as a picture's",
+    original: 'return floorOf(classes) === "enhanced" && plot === "plain"',
+    replacement: "return true",
+    why: "a graph of no kind captioned as a picture",
   },
   {
     file: "src/interactions/plot-roles.ts",
-    original: 'if (floorOf(classes) === "enhanced" && plotKindOf(classes) === "plain") {',
-    replacement: 'if (floorOf(classes) === "enhanced") {',
-    why: "a plot's bank captioned as a picture's",
+    original: 'return Option.some(named ? "bankCaptionLineNames" : "bankCaptionTwoPoints");',
+    replacement: 'return Option.some("bankCaptionTwoPoints");',
+    why: "named lines captioned as unnamed",
   },
   {
     file: "src/interactions/plot-roles.ts",
-    original: 'return choices === 1 ? "bankCaptionValue" : "bankCaptionValues";',
-    replacement: 'return choices === 1 ? "bankCaptionValues" : "bankCaptionValue";',
-    why: "the singular and the plural swapped",
+    original: 'return Option.some(named ? "bankCaptionPointNames" : "bankCaptionGridPoints");',
+    replacement: 'return Option.some("bankCaptionGridPoints");',
+    why: "a named plane captioned as unnamed",
   },
   {
     file: "src/interactions/plot-roles.ts",
-    original: 'return choices === 1 ? "bankCaptionValue" : "bankCaptionValues";',
-    replacement: 'return "bankCaptionValue";',
-    why: "every graph's bank in the singular",
+    original: '    if (named) {\n      return Option.some("bankCaptionLabels");\n    }\n',
+    replacement: "",
+    why: "a labelled number line captioned as one of values",
+  },
+  {
+    file: "src/interactions/plot-roles.ts",
+    original: 'if (plot === "line" || plot === "segment") {',
+    replacement:
+      'if (!carriesRendererClass(classes, "plate-coordinate-plane") && (plot === "line" || plot === "segment")) {',
+    why: "a line on a plane captioned as the plane",
+  },
+  {
+    file: "src/interactions/plot-roles.ts",
+    original: 'return Option.some(stimulus ? "bankCaptionValues" : "bankCaptionValue");',
+    replacement: 'return Option.some(stimulus ? "bankCaptionValue" : "bankCaptionValues");',
+    why: "the passage's plural and the full width's singular swapped",
   },
 ];
 
@@ -56,7 +71,7 @@ const captionScript = [
 ].join("\n");
 
 describe("a Graphic Gap Match's bank caption", () => {
-  it("says VALUE for a graph's one choice, VALUES for its others, and ANSWER for a picture's, over every class and count", () => {
+  it("says AlphaTest's heading for each kind of stage, a line's, a plane's, a number line's, named or not, a picture's ANSWER and nothing for any other graph, over every class, with a stimulus and without", () => {
     assert.isUndefined(
       walkBankCaption({ bankCaptionKeyOf, none: Option.none(), some: Option.some }),
     );
