@@ -10,6 +10,7 @@ import {
   replaceAll,
   replaceFirst,
 } from "#tools/gen/grade/text.ts";
+import { walkedTest } from "#tools/gen/grade/walk.ts";
 
 /**
  * The members stage of grade.ts: the test run's readers, `testTreeOf` and
@@ -162,8 +163,8 @@ const statusText = (status: string): string => `(r) => {
  * The grading module's import as the base stage leaves it, and as the members stage needs it.
  */
 const GRADING_IMPORT = [
-  'import {\n  DocGiven,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocumentRun,\n  patternProgramOf,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
-  'import {\n  DocGiven,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocumentRun,\n  patternProgramOf,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
+  'import {\n  DocGiven,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocumentRun,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
+  'import {\n  DocGiven,\n  DocReplyFloat,\n  DocReplyText,\n  DocText,\n  DocumentRun,\n  responseLabel,\n  responseProcessingOf,\n  seedStreamKey,\n} from "#ledger/grading.ts";',
 ] as const;
 
 /**
@@ -204,7 +205,7 @@ export const membersStage = (src: string, fragment: Fragments, views: string): s
   must(doc !== -1, "gradeArgumentsOf's doc comment");
 
   const withViews = `${src.slice(0, doc)}${valuesInForceText(views)}\n${src.slice(doc)}`;
-  const out = `${withViews.replace(/\n+$/u, "")}\n${fragment("members/test-tree-and-member-values")}${readers.join("")}\n  return { ${ret} } as const;\n};\n`;
+  const out = `${withViews.replace(/\n+$/u, "")}\n${walkedTest(fragment("members/test-tree-and-member-values"))}${readers.join("")}\n  return { ${ret} } as const;\n};\n`;
   const [single, multiple] = GRADING_IMPORT;
   must(count(out, single) === 1, "the grading module's one import");
 

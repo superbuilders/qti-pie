@@ -157,10 +157,10 @@ const writingDefaults = (builder: string, fragment: Fragments): string => {
  * @returns Grade.ts with DefaultSubmission graded from its defaults and written as submitted.
  */
 export const defaultsStage = (source: string, fragment: Fragments): string => {
-  const grading = "  DocText,\n  DocumentAttribute,\n";
+  const grading = "  DocText,\n  DocumentRun,\n";
   must(count(source, grading) === 1, "the grading module's import");
 
-  const text = replaceFirst(source, grading, "  DocText,\n  DocVar,\n  DocumentAttribute,\n");
+  const text = replaceFirst(source, grading, "  DocText,\n  DocVar,\n  DocumentRun,\n");
   const [argsFrom, argsTo] = exportOf(text, "gradeArgumentsOf");
   const args = withDefaultedRuns(text.slice(argsFrom, argsTo));
   const graded = text.slice(0, argsFrom) + args + text.slice(argsTo);

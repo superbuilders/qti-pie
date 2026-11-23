@@ -52,6 +52,8 @@ import {
   Area,
   areaKindOf,
   coordsOf,
+  DocWalkInteger,
+  DocWalkName,
   PEqual,
   PFilter,
   PRound,
@@ -142,23 +144,6 @@ const floatParameters = [
   { field: "frange.hi", kind: "qti-random-float", name: "max" },
   { field: "frange.lo", kind: "qti-random-float", name: "min" },
 ] as const satisfies readonly NumberParameter[];
-
-/**
- * Which one-word parameter a {@link WalkName} row is: a test-variables' `base-type` (`base`), a
- * math constant's or operator's or a stats operator's `name` (`constant`, `math`, `stat`), a
- * field-value's `field-identifier` (`field`), and a test expression's `section-identifier` and
- * `weight-identifier` (`section`, `weight`).
- */
-export const WalkNameField = str.regex("^(base|constant|field|math|section|stat|weight)$");
-
-/**
- * Which number-or-variable parameter a {@link WalkInteger}, {@link WalkFloat} or {@link WalkRef}
- * row is: {@link integerParameters}', {@link floatParameters}', and an equal's `tolerance`'s first
- * and second (`equal.t0`, `equal.t1`).
- */
-export const WalkNumberField = str.regex(
-  "^(any_n\\.max|any_n\\.min|equal\\.t0|equal\\.t1|frange\\.hi|frange\\.lo|int\\.value|range\\.hi|range\\.lo|range\\.step|round\\.figures)$",
-);
 
 /**
  * The attribute a {@link WalkIdent} row's variable is named by.
@@ -528,13 +513,18 @@ export const walksOf = (ledger: LedgerLevel) => {
       const values = written(kinds, name);
       const { package: pkg, path, start, value } = v(values, "name");
 
-      return r
-        .match(values, { package: pkg, path, start, value })
-        .find({ field: Type.literal(WalkNameField, field), package: pkg, path, start, value });
+      return r.match(values, { package: pkg, path, start, value }).find({
+        field: Type.literal(DocWalkName.fields.field, field),
+        package: pkg,
+        path,
+        start,
+        value,
+      });
     };
 
   /**
-   * Each one-word parameter an element writes, by which it is ({@link WalkNameField}).
+   * Each one-word parameter an element writes, by which it is (the machine's roster,
+   * `DocWalkName.field`).
    */
   const WalkName = derived.stored(
     "WalkName",
@@ -721,7 +711,7 @@ export const walksOf = (ledger: LedgerLevel) => {
         .match(toleranceTokens, { at: 0n, package: pkg, path, start, token })
         .where(r.not(toleranceTokens, { at: 2n, package: pkg, path, start }))
         .find({
-          field: Type.literal(WalkNumberField, "equal.t0"),
+          field: Type.literal(DocWalkInteger.fields.field, "equal.t0"),
           package: pkg,
           path,
           start,
@@ -735,7 +725,7 @@ export const walksOf = (ledger: LedgerLevel) => {
         .match(toleranceTokens, { at: 1n, package: pkg, path, start, token })
         .where(r.not(toleranceTokens, { at: 2n, package: pkg, path, start }))
         .find({
-          field: Type.literal(WalkNumberField, "equal.t1"),
+          field: Type.literal(DocWalkInteger.fields.field, "equal.t1"),
           package: pkg,
           path,
           start,
@@ -749,7 +739,7 @@ export const walksOf = (ledger: LedgerLevel) => {
         .match(toleranceTokens, { at: 0n, package: pkg, path, start, token })
         .where(r.not(toleranceTokens, { at: 1n, package: pkg, path, start }))
         .find({
-          field: Type.literal(WalkNumberField, "equal.t1"),
+          field: Type.literal(DocWalkInteger.fields.field, "equal.t1"),
           package: pkg,
           path,
           start,
@@ -797,7 +787,7 @@ export const walksOf = (ledger: LedgerLevel) => {
           ),
         )
         .find({
-          field: Type.literal(WalkNumberField, field),
+          field: Type.literal(DocWalkInteger.fields.field, field),
           package: pkg,
           path,
           start,
@@ -838,7 +828,7 @@ export const walksOf = (ledger: LedgerLevel) => {
       const { package: pkg, path, start } = v(elements, "unset");
 
       return r.match(elements, { package: pkg, path, start }).find({
-        field: Type.literal(WalkNumberField, field),
+        field: Type.literal(DocWalkInteger.fields.field, field),
         package: pkg,
         path,
         start,
@@ -895,7 +885,7 @@ export const walksOf = (ledger: LedgerLevel) => {
           ),
         )
         .find({
-          field: Type.literal(WalkNumberField, field),
+          field: Type.literal(DocWalkInteger.fields.field, field),
           package: pkg,
           path,
           start,
@@ -960,7 +950,7 @@ export const walksOf = (ledger: LedgerLevel) => {
         const { package: pkg, path, start } = v(elements, "unset");
 
         return r.match(elements, { package: pkg, path, start }).find({
-          field: Type.literal(WalkNumberField, "frange.lo"),
+          field: Type.literal(DocWalkInteger.fields.field, "frange.lo"),
           package: pkg,
           path,
           start,
@@ -998,7 +988,7 @@ export const walksOf = (ledger: LedgerLevel) => {
           Num.within(Text.octetLength(value), 0, identifierBytes),
         )
         .find({
-          field: Type.literal(WalkNumberField, field),
+          field: Type.literal(DocWalkInteger.fields.field, field),
           package: pkg,
           path,
           ref: keyedIdentifier(value),

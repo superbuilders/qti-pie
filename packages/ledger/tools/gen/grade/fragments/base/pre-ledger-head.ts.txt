@@ -60,7 +60,7 @@
  * packages/ledger regenerates this file byte for byte, and its `generate:check`, which edullm's
  * gate runs, fails on any edit made here by hand.
  */
-import { ChangeSet, Fn, Num, param, pg, query, Type, v } from "@bjornpagen/grizzle";
+import { ChangeSet, Fn, Num, param, pg, query, Text, Type, v } from "@bjornpagen/grizzle";
 import { BaseType } from "@qti-pie/pantry/grammar/install.ts";
 import type { deliveryOf } from "#ledger/delivery.ts";
 import {
@@ -69,7 +69,6 @@ import {
   DocReplyText,
   DocText,
   DocumentRun,
-  patternProgramOf,
   responseLabel,
   responseProcessingOf,
   seedStreamKey,

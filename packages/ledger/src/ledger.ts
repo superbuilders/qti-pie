@@ -58,6 +58,7 @@ import {
   DocVar,
   gradedAttributes,
   gradingFunctions,
+  PEqual,
   ProgramNode,
   processingKinds,
   Single,
@@ -2664,7 +2665,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
     {
       element: closedId(TemplateElement),
       lowerIn: pg.boolean,
-      mode: anyText,
+      mode: PEqual.fields.mode,
       start: natural,
       template: closedId(PublishedTemplate),
       upperIn: pg.boolean,

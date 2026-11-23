@@ -15,6 +15,7 @@ import {
   must,
   replaceAll,
 } from "#tools/gen/grade/text.ts";
+import { walked, withWalkBinds, withWalkReturns } from "#tools/gen/grade/walk.ts";
 
 /**
  * The base stage of grade.ts: the item's grading statement over the
@@ -796,9 +797,9 @@ export const overDelivery = (text: string): string => {
  * @returns The stage's text.
  */
 export const baseStage = (fragment: Fragments): string => {
-  const body = fragment("base/readers");
+  const body = walked(fragment("base/readers"));
   const sitting = indented(fragment("base/sitting"), "\t");
-  const readersReturn = fragment("base/readers-return");
+  const readersReturn = withWalkReturns(fragment("base/readers-return"));
   const latestFrom = indexOf(body, "/** Each item session of the sitting with an attempt");
   const latestTo = indexOf(body, "/** The subtree the item's response processing runs");
   const latest = replaceAll(
@@ -844,7 +845,7 @@ ${TYPES.map((t) => outcomeMember("Record", t)).join("\n")}`;
     readersReturn,
     tables,
     sitting,
-    fragment("base/post-head"),
+    withWalkBinds(fragment("base/post-head")),
     ...graded,
     records,
     fragment("base/post-tail"),

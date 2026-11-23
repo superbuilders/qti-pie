@@ -60,14 +60,13 @@
  * packages/ledger regenerates this file byte for byte, and its `generate:check`, which edullm's
  * gate runs, fails on any edit made here by hand.
  */
-import { ChangeSet, Fn, Num, param, query, Type, v } from "@bjornpagen/grizzle";
+import { ChangeSet, Fn, Num, param, query, Text, Type, v } from "@bjornpagen/grizzle";
 import type { Rule } from "@bjornpagen/grizzle";
 import { BaseType } from "@qti-pie/pantry/grammar/install.ts";
 import type { deliveryOf } from "#ledger/delivery.ts";
 import {
   admissionOf,
   AdmissionRun,
-  CompiledPattern,
   DocEvaluation,
   DocGiven,
   DocHuman,
@@ -76,10 +75,28 @@ import {
   DocReplyText,
   DocText,
   DocVar,
-  DocumentAttribute,
   DocumentRun,
-  DocumentText,
-  patternProgramOf,
+  DocWalkArea,
+  DocWalkCategory,
+  DocWalkCoord,
+  DocWalkCustom,
+  DocWalkEqual,
+  DocWalkFilter,
+  DocWalkFloat,
+  DocWalkIdent,
+  DocWalkInteger,
+  DocWalkLiteralBoolean,
+  DocWalkLiteralDirectedPair,
+  DocWalkLiteralFloat,
+  DocWalkLiteralInteger,
+  DocWalkLiteralPair,
+  DocWalkLiteralPoint,
+  DocWalkLiteralText,
+  DocWalkName,
+  DocWalkPattern,
+  DocWalkRef,
+  DocWalkRound,
+  DocWalkText,
   ProgramNode,
   responseLabel,
   responseProcessingOf,
@@ -786,8 +803,9 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
   const boundResponseRootsIn = (r: Rule<DeliveryLevel>) => responseRootsOf.bind(bySession(r));
 
   /**
-   * The program's elements, each of a processing kind, by the machine's token: its document's, or
-   * the published template's its processing names (TemplatedProgram, TemplateNode).
+   * The program's elements, each of a processing kind, by the machine's token: its document's
+   * stored walk (WalkNode), or the published template's its processing names (TemplatedProgram,
+   * TemplateNode).
    */
   const programNodesOf = query(delivery)
     .rule((r) => {
@@ -801,23 +819,21 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
         start: first,
         end: last,
       } = v(roots, "root");
-      const { start, end, parent, kind } = v(fields.Node, "node");
-      const { token } = v(fields.ProgramNodeKind, "kind");
+      const { start, end, kind, parent } = v(fields.WalkNode, "walk");
 
       return r
         .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-        .match(fields.Node, { end, kind, package: source, parent, path: document, start })
-        .match(fields.ProgramNodeKind, { kind, token })
+        .match(fields.WalkNode, { end, kind, package: source, parent, path: document, start })
         .where(r.ge(start, first), r.lt(start, last))
-        .find({ end, kind: token, package: pkg, parent, path: item, start });
+        .find({ end, kind, package: pkg, parent, path: item, start });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const graded = boundGradable;
       const { package: pkg, path: item } = v(graded, "graded");
       const { template } = v(fields.TemplatedProgram, "templated");
-      const { start, end, parent, kind } = v(fields.TemplateNode, "node");
-      const { token } = v(fields.ProgramNodeKind, "kind");
+      const { start, end, kind, parent } = v(fields.TemplateNode, "walk");
+      const { token } = v(fields.ProgramNodeKind, "token");
 
       return r
         .match(graded, { package: pkg, path: item })
@@ -828,90 +844,9 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     });
 
   /**
-   * The attributes of the program's elements the machine reads, as pantry's Attribute holds their
-   * values, or as the published template's are (TemplateAttribute).
+   * The walk's walk_areas of each run's program (WalkArea), by the run's document.
    */
-  const programAttributesOf = query(delivery)
-    .rule((r) => {
-      const boundResponseRoots = boundResponseRootsIn(r);
-      const roots = boundResponseRoots;
-      const {
-        package: pkg,
-        path: item,
-        source,
-        document,
-        start: first,
-        end: last,
-      } = v(roots, "root");
-      const { start, name, value } = v(fields.Attribute, "attribute");
-      const { token } = v(fields.GradedAttributeName, "name");
-
-      return r
-        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-        .match(fields.Attribute, { name, package: source, path: document, start, value })
-        .match(fields.GradedAttributeName, { name, token })
-        .where(r.ge(start, first), r.lt(start, last))
-        .find({ name: token, package: pkg, path: item, start, value });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const { template } = v(fields.TemplatedProgram, "templated");
-      const { start, name, value } = v(fields.TemplateAttribute, "attribute");
-      const { token } = v(fields.GradedAttributeName, "name");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
-        .match(fields.TemplateAttribute, { name, start, template, value })
-        .match(fields.GradedAttributeName, { name, token })
-        .find({ name: token, package: pkg, path: item, start, value });
-    });
-
-  /**
-   * Each base value's text in the program (pantry's Literal), or in the published template's
-   * (TemplateText).
-   */
-  const programTextsOf = query(delivery)
-    .rule((r) => {
-      const boundResponseRoots = boundResponseRootsIn(r);
-      const roots = boundResponseRoots;
-      const {
-        package: pkg,
-        path: item,
-        source,
-        document,
-        start: first,
-        end: last,
-      } = v(roots, "root");
-      const { start, text } = v(fields.Literal, "literal");
-
-      return r
-        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-        .match(fields.Literal, { package: source, path: document, start, text })
-        .where(r.ge(start, first), r.lt(start, last))
-        .find({ package: pkg, path: item, start, text });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const { template } = v(fields.TemplatedProgram, "templated");
-      const { start, text } = v(fields.TemplateText, "literal");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
-        .match(fields.TemplateText, { start, template, text })
-        .find({ package: pkg, path: item, start, text });
-    });
-
-  /**
-   * Each content pattern of the program compiled (pattern_program_of), by its package, until the
-   * package's publication stores it: none for a pattern that is no Appendix F expression.
-   */
-  const compiledPatternsOf = query(delivery).rule((r) => {
+  const walkAreasOf = query(delivery).rule((r) => {
     const boundResponseRoots = boundResponseRootsIn(r);
     const roots = boundResponseRoots;
     const {
@@ -922,17 +857,666 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       start: first,
       end: last,
     } = v(roots, "root");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const compiled = Fn.rows(patternProgramOf, { pattern: value });
-    const { program } = v(compiled, "compiled");
+    const { start, kind } = v(fields.WalkArea, "walk");
 
     return r
       .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Attribute, { name, package: source, path: document, start, value })
-      .match(fields.GradedAttributeName, { name, token: "pattern" })
-      .match(compiled, { program })
+      .match(fields.WalkArea, { kind, package: source, path: document, start })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ package: pkg, pattern: value, program });
+      .find({ kind, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_categories of each run's program (WalkCategory), by the run's document.
+   */
+  const walkCategoriesOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, category, filter, at: place } = v(fields.WalkCategory, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkCategory, {
+        at: place,
+        category,
+        filter,
+        package: source,
+        path: document,
+        start,
+      })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ category, filter, package: pkg, path: item, place, start });
+  });
+
+  /**
+   * The walk's walk_coords of each run's program (WalkAreaCoord), by the run's document.
+   */
+  const walkCoordsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, c, place } = v(fields.WalkAreaCoord, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkAreaCoord, { c, package: source, path: document, place, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ c, package: pkg, path: item, place, start });
+  });
+
+  /**
+   * The walk's walk_customs of each run's program (BoundOperator), by the run's document.
+   */
+  const walkCustomsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, class: operatorClass } = v(fields.BoundOperator, "walk");
+    const { token } = v(fields.OperatorClassToken, "token");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.BoundOperator, {
+        class: operatorClass,
+        package: source,
+        path: document,
+        start,
+      })
+      .match(fields.OperatorClassToken, { class: operatorClass, token })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ class: token, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_equals of each run's program (WalkEqual), by the run's document.
+   */
+  const walkEqualsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, lowerIn, mode, upperIn } = v(fields.WalkEqual, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkEqual, {
+          lowerIn,
+          mode,
+          package: source,
+          path: document,
+          start,
+          upperIn,
+        })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ lower_in: lowerIn, mode, package: pkg, path: item, start, upper_in: upperIn });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, lowerIn, mode, upperIn } = v(fields.TemplateEqual, "walk");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateEqual, { lowerIn, mode, start, template, upperIn })
+        .find({ lower_in: lowerIn, mode, package: pkg, path: item, start, upper_in: upperIn });
+    });
+
+  /**
+   * The walk's walk_filters of each run's program (WalkFilter), by the run's document.
+   */
+  const walkFiltersOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, filter } = v(fields.WalkFilter, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkFilter, { filter, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ filter, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_floats of each run's program (WalkFloat), by the run's document.
+   */
+  const walkFloatsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkFloat, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkFloat, { field, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_idents of each run's program (WalkIdent), by the run's document.
+   */
+  const walkIdentsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, identifier } = v(fields.WalkIdent, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkIdent, { identifier, package: source, path: document, start })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ identifier, package: pkg, path: item, start });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, identifier } = v(fields.TemplateIdent, "walk");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateIdent, { identifier, start, template })
+        .find({ identifier, package: pkg, path: item, start });
+    });
+
+  /**
+   * The walk's walk_integers of each run's program (WalkInteger), by the run's document.
+   */
+  const walkIntegersOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkInteger, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkInteger, { field, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_booleans of each run's program (WalkLiteralBoolean), by the run's
+   * document.
+   */
+  const walkLiteralBooleansOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, value } = v(fields.WalkLiteralBoolean, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralBoolean, { package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_directed_pairs of each run's program (WalkLiteralDirectedPair), by the
+   * run's document.
+   */
+  const walkLiteralDirectedPairsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, source: pairSource, target } = v(fields.WalkLiteralDirectedPair, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralDirectedPair, {
+        package: source,
+        path: document,
+        source: pairSource,
+        start,
+        target,
+      })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, source: pairSource, start, target });
+  });
+
+  /**
+   * The walk's walk_literal_floats of each run's program (WalkLiteralFloat), by the run's document.
+   */
+  const walkLiteralFloatsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, base, value } = v(fields.WalkLiteralFloat, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkLiteralFloat, { base, package: source, path: document, start, value })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ base, package: pkg, path: item, start, value });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, base, value } = v(fields.TemplateLiteralFloat, "walk");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateLiteralFloat, { base, start, template, value })
+        .find({ base, package: pkg, path: item, start, value });
+    });
+
+  /**
+   * The walk's walk_literal_integers of each run's program (WalkLiteralInteger), by the run's
+   * document.
+   */
+  const walkLiteralIntegersOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, value } = v(fields.WalkLiteralInteger, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralInteger, { package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_pairs of each run's program (WalkLiteralPair), by the run's document.
+   */
+  const walkLiteralPairsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, greatest, least } = v(fields.WalkLiteralPair, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralPair, { greatest, least, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ greatest, least, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_literal_points of each run's program (WalkLiteralPoint), by the run's document.
+   */
+  const walkLiteralPointsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, x, y } = v(fields.WalkLiteralPoint, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralPoint, { package: source, path: document, start, x, y })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, start, x, y });
+  });
+
+  /**
+   * The walk's walk_literal_texts of each run's program (WalkLiteralText), by the run's document.
+   */
+  const walkLiteralTextsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, base, value } = v(fields.WalkLiteralText, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkLiteralText, { base, package: source, path: document, start, value })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ base, package: pkg, path: item, start, value });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, base, value } = v(fields.TemplateLiteralText, "walk");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateLiteralText, { base, start, template, value })
+        .find({ base, package: pkg, path: item, start, value });
+    });
+
+  /**
+   * The walk's walk_names of each run's program (WalkName), by the run's document.
+   */
+  const walkNamesOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkName, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkName, { field, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_patterns of each run's program (WalkPattern), by the run's document.
+   */
+  const walkPatternsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, program } = v(fields.WalkPattern, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkPattern, { package: source, path: document, program, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, program, start });
+  });
+
+  /**
+   * The walk's walk_refs of each run's program (WalkRef), by the run's document.
+   */
+  const walkRefsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, field, ref } = v(fields.WalkRef, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkRef, { field, package: source, path: document, ref, start })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ field, package: pkg, path: item, ref, start });
+    })
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start } = v(fields.WalkNode, "match");
+      const { value } = v(fields.Attribute, "pattern");
+      const { identifier } = v(fields.ItemVariable, "declared");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkNode, {
+          kind: "qti-pattern-match",
+          package: source,
+          path: document,
+          start,
+        })
+        .match(fields.Attribute, {
+          name: "pattern",
+          package: source,
+          path: document,
+          start,
+          value,
+        })
+        .match(fields.ItemVariable, { identifier, package: pkg, path: item })
+        .where(
+          r.ge(start, first),
+          r.lt(start, last),
+          r.eq(
+            value,
+            Text.concat(
+              Text.concat(Type.literal(DocWalkIdent.fields.identifier, "{"), identifier),
+              "}",
+            ),
+          ),
+        )
+        .find({
+          field: Type.literal(DocWalkRef.fields.field, "pattern"),
+          package: pkg,
+          path: item,
+          ref: identifier,
+          start,
+        });
+    })
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start } = v(fields.WalkNode, "match");
+      const { value } = v(fields.Attribute, "pattern");
+      const { identifier } = v(fields.ItemRecordVariable, "declared");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkNode, {
+          kind: "qti-pattern-match",
+          package: source,
+          path: document,
+          start,
+        })
+        .match(fields.Attribute, {
+          name: "pattern",
+          package: source,
+          path: document,
+          start,
+          value,
+        })
+        .match(fields.ItemRecordVariable, { identifier, package: pkg, path: item })
+        .where(
+          r.ge(start, first),
+          r.lt(start, last),
+          r.eq(
+            value,
+            Text.concat(
+              Text.concat(Type.literal(DocWalkIdent.fields.identifier, "{"), identifier),
+              "}",
+            ),
+          ),
+        )
+        .find({
+          field: Type.literal(DocWalkRef.fields.field, "pattern"),
+          package: pkg,
+          path: item,
+          ref: identifier,
+          start,
+        });
+    });
+
+  /**
+   * The walk's walk_rounds of each run's program (WalkRound), by the run's document.
+   */
+  const walkRoundsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, mode } = v(fields.WalkRound, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkRound, { mode, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ mode, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_texts of each run's program (WalkText), by the run's document.
+   */
+  const walkTextsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, caseSensitive, substring } = v(fields.WalkText, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkText, {
+        caseSensitive,
+        package: source,
+        path: document,
+        start,
+        substring,
+      })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ case_sensitive: caseSensitive, package: pkg, path: item, start, substring });
   });
 
   /**
@@ -7722,7 +8306,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
 
   return {
     booleans: booleansOf,
-    compiled: compiledPatternsOf,
     declaration_attributes: declarationAttributesOf,
     declaration_texts: declarationTextsOf,
     declarations: declarationNodesOf,
@@ -7744,8 +8327,6 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     integers: integersOf,
     pairs: pairsOf,
     points: pointsOf,
-    program_attributes: programAttributesOf,
-    program_texts: programTextsOf,
     programs: programNodesOf,
     reply_floats: replyFloatsOf,
     reply_texts: replyTextsOf,
@@ -7755,6 +8336,27 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
     table_values: tableValuesOf,
     texts: textsOf,
     vars: varsOf,
+    walk_areas: walkAreasOf,
+    walk_categories: walkCategoriesOf,
+    walk_coords: walkCoordsOf,
+    walk_customs: walkCustomsOf,
+    walk_equals: walkEqualsOf,
+    walk_filters: walkFiltersOf,
+    walk_floats: walkFloatsOf,
+    walk_idents: walkIdentsOf,
+    walk_integers: walkIntegersOf,
+    walk_literal_booleans: walkLiteralBooleansOf,
+    walk_literal_directed_pairs: walkLiteralDirectedPairsOf,
+    walk_literal_floats: walkLiteralFloatsOf,
+    walk_literal_integers: walkLiteralIntegersOf,
+    walk_literal_pairs: walkLiteralPairsOf,
+    walk_literal_points: walkLiteralPointsOf,
+    walk_literal_texts: walkLiteralTextsOf,
+    walk_names: walkNamesOf,
+    walk_patterns: walkPatternsOf,
+    walk_refs: walkRefsOf,
+    walk_rounds: walkRoundsOf,
+    walk_texts: walkTextsOf,
   } as const;
 };
 
@@ -21189,8 +21791,9 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
   const boundResponseRootsIn = (r: Rule<DeliveryLevel>) => responseRootsOf.bind(bySession(r));
 
   /**
-   * The program's elements, each of a processing kind, by the machine's token: its document's, or
-   * the published template's its processing names (TemplatedProgram, TemplateNode).
+   * The program's elements, each of a processing kind, by the machine's token: its document's
+   * stored walk (WalkNode), or the published template's its processing names (TemplatedProgram,
+   * TemplateNode).
    */
   const programNodesOf = query(delivery)
     .rule((r) => {
@@ -21204,23 +21807,21 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
         start: first,
         end: last,
       } = v(roots, "root");
-      const { start, end, parent, kind } = v(fields.Node, "node");
-      const { token } = v(fields.ProgramNodeKind, "kind");
+      const { start, end, kind, parent } = v(fields.WalkNode, "walk");
 
       return r
         .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-        .match(fields.Node, { end, kind, package: source, parent, path: document, start })
-        .match(fields.ProgramNodeKind, { kind, token })
+        .match(fields.WalkNode, { end, kind, package: source, parent, path: document, start })
         .where(r.ge(start, first), r.lt(start, last))
-        .find({ end, kind: token, package: pkg, parent, path: item, start });
+        .find({ end, kind, package: pkg, parent, path: item, start });
     })
     .rule((r) => {
       const boundGradable = boundGradableIn(r);
       const graded = boundGradable;
       const { package: pkg, path: item } = v(graded, "graded");
       const { template } = v(fields.TemplatedProgram, "templated");
-      const { start, end, parent, kind } = v(fields.TemplateNode, "node");
-      const { token } = v(fields.ProgramNodeKind, "kind");
+      const { start, end, kind, parent } = v(fields.TemplateNode, "walk");
+      const { token } = v(fields.ProgramNodeKind, "token");
 
       return r
         .match(graded, { package: pkg, path: item })
@@ -21231,90 +21832,9 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     });
 
   /**
-   * The attributes of the program's elements the machine reads, as pantry's Attribute holds their
-   * values, or as the published template's are (TemplateAttribute).
+   * The walk's walk_areas of each run's program (WalkArea), by the run's document.
    */
-  const programAttributesOf = query(delivery)
-    .rule((r) => {
-      const boundResponseRoots = boundResponseRootsIn(r);
-      const roots = boundResponseRoots;
-      const {
-        package: pkg,
-        path: item,
-        source,
-        document,
-        start: first,
-        end: last,
-      } = v(roots, "root");
-      const { start, name, value } = v(fields.Attribute, "attribute");
-      const { token } = v(fields.GradedAttributeName, "name");
-
-      return r
-        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-        .match(fields.Attribute, { name, package: source, path: document, start, value })
-        .match(fields.GradedAttributeName, { name, token })
-        .where(r.ge(start, first), r.lt(start, last))
-        .find({ name: token, package: pkg, path: item, start, value });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const { template } = v(fields.TemplatedProgram, "templated");
-      const { start, name, value } = v(fields.TemplateAttribute, "attribute");
-      const { token } = v(fields.GradedAttributeName, "name");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
-        .match(fields.TemplateAttribute, { name, start, template, value })
-        .match(fields.GradedAttributeName, { name, token })
-        .find({ name: token, package: pkg, path: item, start, value });
-    });
-
-  /**
-   * Each base value's text in the program (pantry's Literal), or in the published template's
-   * (TemplateText).
-   */
-  const programTextsOf = query(delivery)
-    .rule((r) => {
-      const boundResponseRoots = boundResponseRootsIn(r);
-      const roots = boundResponseRoots;
-      const {
-        package: pkg,
-        path: item,
-        source,
-        document,
-        start: first,
-        end: last,
-      } = v(roots, "root");
-      const { start, text } = v(fields.Literal, "literal");
-
-      return r
-        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-        .match(fields.Literal, { package: source, path: document, start, text })
-        .where(r.ge(start, first), r.lt(start, last))
-        .find({ package: pkg, path: item, start, text });
-    })
-    .rule((r) => {
-      const boundGradable = boundGradableIn(r);
-      const graded = boundGradable;
-      const { package: pkg, path: item } = v(graded, "graded");
-      const { template } = v(fields.TemplatedProgram, "templated");
-      const { start, text } = v(fields.TemplateText, "literal");
-
-      return r
-        .match(graded, { package: pkg, path: item })
-        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
-        .match(fields.TemplateText, { start, template, text })
-        .find({ package: pkg, path: item, start, text });
-    });
-
-  /**
-   * Each content pattern of the program compiled (pattern_program_of), by its package, until the
-   * package's publication stores it: none for a pattern that is no Appendix F expression.
-   */
-  const compiledPatternsOf = query(delivery).rule((r) => {
+  const walkAreasOf = query(delivery).rule((r) => {
     const boundResponseRoots = boundResponseRootsIn(r);
     const roots = boundResponseRoots;
     const {
@@ -21325,17 +21845,666 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
       start: first,
       end: last,
     } = v(roots, "root");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const compiled = Fn.rows(patternProgramOf, { pattern: value });
-    const { program } = v(compiled, "compiled");
+    const { start, kind } = v(fields.WalkArea, "walk");
 
     return r
       .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Attribute, { name, package: source, path: document, start, value })
-      .match(fields.GradedAttributeName, { name, token: "pattern" })
-      .match(compiled, { program })
+      .match(fields.WalkArea, { kind, package: source, path: document, start })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ package: pkg, pattern: value, program });
+      .find({ kind, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_categories of each run's program (WalkCategory), by the run's document.
+   */
+  const walkCategoriesOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, category, filter, at: place } = v(fields.WalkCategory, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkCategory, {
+        at: place,
+        category,
+        filter,
+        package: source,
+        path: document,
+        start,
+      })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ category, filter, package: pkg, path: item, place, start });
+  });
+
+  /**
+   * The walk's walk_coords of each run's program (WalkAreaCoord), by the run's document.
+   */
+  const walkCoordsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, c, place } = v(fields.WalkAreaCoord, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkAreaCoord, { c, package: source, path: document, place, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ c, package: pkg, path: item, place, start });
+  });
+
+  /**
+   * The walk's walk_customs of each run's program (BoundOperator), by the run's document.
+   */
+  const walkCustomsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, class: operatorClass } = v(fields.BoundOperator, "walk");
+    const { token } = v(fields.OperatorClassToken, "token");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.BoundOperator, {
+        class: operatorClass,
+        package: source,
+        path: document,
+        start,
+      })
+      .match(fields.OperatorClassToken, { class: operatorClass, token })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ class: token, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_equals of each run's program (WalkEqual), by the run's document.
+   */
+  const walkEqualsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, lowerIn, mode, upperIn } = v(fields.WalkEqual, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkEqual, {
+          lowerIn,
+          mode,
+          package: source,
+          path: document,
+          start,
+          upperIn,
+        })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ lower_in: lowerIn, mode, package: pkg, path: item, start, upper_in: upperIn });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, lowerIn, mode, upperIn } = v(fields.TemplateEqual, "walk");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateEqual, { lowerIn, mode, start, template, upperIn })
+        .find({ lower_in: lowerIn, mode, package: pkg, path: item, start, upper_in: upperIn });
+    });
+
+  /**
+   * The walk's walk_filters of each run's program (WalkFilter), by the run's document.
+   */
+  const walkFiltersOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, filter } = v(fields.WalkFilter, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkFilter, { filter, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ filter, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_floats of each run's program (WalkFloat), by the run's document.
+   */
+  const walkFloatsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkFloat, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkFloat, { field, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_idents of each run's program (WalkIdent), by the run's document.
+   */
+  const walkIdentsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, identifier } = v(fields.WalkIdent, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkIdent, { identifier, package: source, path: document, start })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ identifier, package: pkg, path: item, start });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, identifier } = v(fields.TemplateIdent, "walk");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateIdent, { identifier, start, template })
+        .find({ identifier, package: pkg, path: item, start });
+    });
+
+  /**
+   * The walk's walk_integers of each run's program (WalkInteger), by the run's document.
+   */
+  const walkIntegersOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkInteger, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkInteger, { field, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_booleans of each run's program (WalkLiteralBoolean), by the run's
+   * document.
+   */
+  const walkLiteralBooleansOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, value } = v(fields.WalkLiteralBoolean, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralBoolean, { package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_directed_pairs of each run's program (WalkLiteralDirectedPair), by the
+   * run's document.
+   */
+  const walkLiteralDirectedPairsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, source: pairSource, target } = v(fields.WalkLiteralDirectedPair, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralDirectedPair, {
+        package: source,
+        path: document,
+        source: pairSource,
+        start,
+        target,
+      })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, source: pairSource, start, target });
+  });
+
+  /**
+   * The walk's walk_literal_floats of each run's program (WalkLiteralFloat), by the run's document.
+   */
+  const walkLiteralFloatsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, base, value } = v(fields.WalkLiteralFloat, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkLiteralFloat, { base, package: source, path: document, start, value })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ base, package: pkg, path: item, start, value });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, base, value } = v(fields.TemplateLiteralFloat, "walk");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateLiteralFloat, { base, start, template, value })
+        .find({ base, package: pkg, path: item, start, value });
+    });
+
+  /**
+   * The walk's walk_literal_integers of each run's program (WalkLiteralInteger), by the run's
+   * document.
+   */
+  const walkLiteralIntegersOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, value } = v(fields.WalkLiteralInteger, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralInteger, { package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_pairs of each run's program (WalkLiteralPair), by the run's document.
+   */
+  const walkLiteralPairsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, greatest, least } = v(fields.WalkLiteralPair, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralPair, { greatest, least, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ greatest, least, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_literal_points of each run's program (WalkLiteralPoint), by the run's document.
+   */
+  const walkLiteralPointsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, x, y } = v(fields.WalkLiteralPoint, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralPoint, { package: source, path: document, start, x, y })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, start, x, y });
+  });
+
+  /**
+   * The walk's walk_literal_texts of each run's program (WalkLiteralText), by the run's document.
+   */
+  const walkLiteralTextsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, base, value } = v(fields.WalkLiteralText, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkLiteralText, { base, package: source, path: document, start, value })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ base, package: pkg, path: item, start, value });
+    })
+    .rule((r) => {
+      const boundGradable = boundGradableIn(r);
+      const graded = boundGradable;
+      const { package: pkg, path: item } = v(graded, "graded");
+      const { template } = v(fields.TemplatedProgram, "templated");
+      const { start, base, value } = v(fields.TemplateLiteralText, "walk");
+
+      return r
+        .match(graded, { package: pkg, path: item })
+        .match(fields.TemplatedProgram, { package: pkg, path: item, template })
+        .match(fields.TemplateLiteralText, { base, start, template, value })
+        .find({ base, package: pkg, path: item, start, value });
+    });
+
+  /**
+   * The walk's walk_names of each run's program (WalkName), by the run's document.
+   */
+  const walkNamesOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkName, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkName, { field, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_patterns of each run's program (WalkPattern), by the run's document.
+   */
+  const walkPatternsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, program } = v(fields.WalkPattern, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkPattern, { package: source, path: document, program, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, program, start });
+  });
+
+  /**
+   * The walk's walk_refs of each run's program (WalkRef), by the run's document.
+   */
+  const walkRefsOf = query(delivery)
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, field, ref } = v(fields.WalkRef, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkRef, { field, package: source, path: document, ref, start })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ field, package: pkg, path: item, ref, start });
+    })
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start } = v(fields.WalkNode, "match");
+      const { value } = v(fields.Attribute, "pattern");
+      const { identifier } = v(fields.ItemVariable, "declared");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkNode, {
+          kind: "qti-pattern-match",
+          package: source,
+          path: document,
+          start,
+        })
+        .match(fields.Attribute, {
+          name: "pattern",
+          package: source,
+          path: document,
+          start,
+          value,
+        })
+        .match(fields.ItemVariable, { identifier, package: pkg, path: item })
+        .where(
+          r.ge(start, first),
+          r.lt(start, last),
+          r.eq(
+            value,
+            Text.concat(
+              Text.concat(Type.literal(DocWalkIdent.fields.identifier, "{"), identifier),
+              "}",
+            ),
+          ),
+        )
+        .find({
+          field: Type.literal(DocWalkRef.fields.field, "pattern"),
+          package: pkg,
+          path: item,
+          ref: identifier,
+          start,
+        });
+    })
+    .rule((r) => {
+      const boundResponseRoots = boundResponseRootsIn(r);
+      const roots = boundResponseRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start } = v(fields.WalkNode, "match");
+      const { value } = v(fields.Attribute, "pattern");
+      const { identifier } = v(fields.ItemRecordVariable, "declared");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkNode, {
+          kind: "qti-pattern-match",
+          package: source,
+          path: document,
+          start,
+        })
+        .match(fields.Attribute, {
+          name: "pattern",
+          package: source,
+          path: document,
+          start,
+          value,
+        })
+        .match(fields.ItemRecordVariable, { identifier, package: pkg, path: item })
+        .where(
+          r.ge(start, first),
+          r.lt(start, last),
+          r.eq(
+            value,
+            Text.concat(
+              Text.concat(Type.literal(DocWalkIdent.fields.identifier, "{"), identifier),
+              "}",
+            ),
+          ),
+        )
+        .find({
+          field: Type.literal(DocWalkRef.fields.field, "pattern"),
+          package: pkg,
+          path: item,
+          ref: identifier,
+          start,
+        });
+    });
+
+  /**
+   * The walk's walk_rounds of each run's program (WalkRound), by the run's document.
+   */
+  const walkRoundsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, mode } = v(fields.WalkRound, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkRound, { mode, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ mode, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_texts of each run's program (WalkText), by the run's document.
+   */
+  const walkTextsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, caseSensitive, substring } = v(fields.WalkText, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkText, {
+        caseSensitive,
+        package: source,
+        path: document,
+        start,
+        substring,
+      })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ case_sensitive: caseSensitive, package: pkg, path: item, start, substring });
   });
 
   /**
@@ -26219,7 +27388,6 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
 
   return {
     booleans: booleansOf,
-    compiled: compiledPatternsOf,
     declaration_attributes: declarationAttributesOf,
     declaration_texts: declarationTextsOf,
     declarations: declarationNodesOf,
@@ -26238,12 +27406,31 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
     integers: integersOf,
     pairs: pairsOf,
     points: pointsOf,
-    program_attributes: programAttributesOf,
-    program_texts: programTextsOf,
     programs: programNodesOf,
     runs: runsOf,
     texts: textsOf,
     vars: varsOf,
+    walk_areas: walkAreasOf,
+    walk_categories: walkCategoriesOf,
+    walk_coords: walkCoordsOf,
+    walk_customs: walkCustomsOf,
+    walk_equals: walkEqualsOf,
+    walk_filters: walkFiltersOf,
+    walk_floats: walkFloatsOf,
+    walk_idents: walkIdentsOf,
+    walk_integers: walkIntegersOf,
+    walk_literal_booleans: walkLiteralBooleansOf,
+    walk_literal_directed_pairs: walkLiteralDirectedPairsOf,
+    walk_literal_floats: walkLiteralFloatsOf,
+    walk_literal_integers: walkLiteralIntegersOf,
+    walk_literal_pairs: walkLiteralPairsOf,
+    walk_literal_points: walkLiteralPointsOf,
+    walk_literal_texts: walkLiteralTextsOf,
+    walk_names: walkNamesOf,
+    walk_patterns: walkPatternsOf,
+    walk_refs: walkRefsOf,
+    walk_rounds: walkRoundsOf,
+    walk_texts: walkTextsOf,
   } as const;
 };
 
@@ -26376,7 +27563,6 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
   const runIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(responseProcessingOf, {
       booleans: args.booleans.bind(bySession(r)),
-      compiled: args.compiled.bind(bySession(r)),
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
       declaration_texts: args.declaration_texts.bind(bySession(r)),
       declarations: args.declarations.bind(bySession(r)),
@@ -26397,8 +27583,6 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       integers: args.integers.bind(bySession(r)),
       pairs: args.pairs.bind(bySession(r)),
       points: args.points.bind(bySession(r)),
-      program_attributes: args.program_attributes.bind(bySession(r)),
-      program_texts: args.program_texts.bind(bySession(r)),
       programs: args.programs.bind(bySession(r)),
       reply_floats: args.reply_floats.bind(bySession(r)),
       reply_texts: args.reply_texts.bind(bySession(r)),
@@ -26408,6 +27592,27 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
       table_values: args.table_values,
       texts: args.texts.bind(bySession(r)),
       vars: args.vars.bind(bySession(r)),
+      walk_areas: args.walk_areas.bind(bySession(r)),
+      walk_categories: args.walk_categories.bind(bySession(r)),
+      walk_coords: args.walk_coords.bind(bySession(r)),
+      walk_customs: args.walk_customs.bind(bySession(r)),
+      walk_equals: args.walk_equals.bind(bySession(r)),
+      walk_filters: args.walk_filters.bind(bySession(r)),
+      walk_floats: args.walk_floats.bind(bySession(r)),
+      walk_idents: args.walk_idents.bind(bySession(r)),
+      walk_integers: args.walk_integers.bind(bySession(r)),
+      walk_literal_booleans: args.walk_literal_booleans.bind(bySession(r)),
+      walk_literal_directed_pairs: args.walk_literal_directed_pairs.bind(bySession(r)),
+      walk_literal_floats: args.walk_literal_floats.bind(bySession(r)),
+      walk_literal_integers: args.walk_literal_integers.bind(bySession(r)),
+      walk_literal_pairs: args.walk_literal_pairs.bind(bySession(r)),
+      walk_literal_points: args.walk_literal_points.bind(bySession(r)),
+      walk_literal_texts: args.walk_literal_texts.bind(bySession(r)),
+      walk_names: args.walk_names.bind(bySession(r)),
+      walk_patterns: args.walk_patterns.bind(bySession(r)),
+      walk_refs: args.walk_refs.bind(bySession(r)),
+      walk_rounds: args.walk_rounds.bind(bySession(r)),
+      walk_texts: args.walk_texts.bind(bySession(r)),
     });
 
   /**
@@ -29293,7 +30498,7 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
 
 /**
  * The tree of a sitting's test outcome processing (P4-TEST's run, `#ledger/test-run-call.ts`, the
- * flat test entry's `programs`, `program_attributes`, `program_texts`, `declarations`,
+ * flat test entry's `programs` and walk inputs (`#tools/gen/grade/walk.ts`), `declarations`,
  * `declaration_attributes` and `declaration_texts`), each a query over the call's `child` and
  * `stage` alone, every row keyed by its own document: the subtree of the test document's
  * `qti-outcome-processing` (§5.102), crossed as an item's response processing is, by the
@@ -29373,72 +30578,405 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
   const documentsIn = (r: Rule<DeliveryLevel>) => documentsOf.bind(sittingsIn(r));
 
   /**
-   * The program's elements, each of a processing kind, by the machine's token.
+   * The walk's programs of the test's outcome processing (WalkNode).
    */
-  const programs = query(delivery).rule((r) => {
+  const programNodes = query(delivery).rule((r) => {
     const roots = rootsIn(r);
     const { package: pkg, path, start: first, end: last } = v(roots, "root");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.ProgramNodeKind, "kind");
+    const { start, end, kind, parent } = v(fields.WalkNode, "walk");
 
     return r
       .match(roots, { end: last, package: pkg, path, start: first })
-      .match(fields.Node, { end, kind, package: pkg, parent, path, start })
-      .match(fields.ProgramNodeKind, { kind, token })
+      .match(fields.WalkNode, { end, kind, package: pkg, parent, path, start })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ end, kind: token, package: pkg, parent, path, start });
+      .find({ end, kind, package: pkg, parent, path, start });
   });
 
   /**
-   * The attributes of the program's elements the machine reads.
+   * The walk's walk_areas of the test's outcome processing (WalkArea).
    */
-  const programAttributes = query(delivery).rule((r) => {
+  const walkAreas = query(delivery).rule((r) => {
     const roots = rootsIn(r);
     const { package: pkg, path, start: first, end: last } = v(roots, "root");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+    const { start, kind } = v(fields.WalkArea, "walk");
 
     return r
       .match(roots, { end: last, package: pkg, path, start: first })
-      .match(fields.Attribute, { name, package: pkg, path, start, value })
-      .match(fields.GradedAttributeName, { name, token })
+      .match(fields.WalkArea, { kind, package: pkg, path, start })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ name: token, package: pkg, path, start, value });
+      .find({ kind, package: pkg, path, start });
   });
 
   /**
-   * Each content pattern of the program compiled (pattern_program_of), by its package, until the
-   * package's publication stores it: none for a pattern that is no Appendix F expression.
+   * The walk's walk_categories of the test's outcome processing (WalkCategory).
    */
-  const compiled = query(delivery).rule((r) => {
+  const walkCategories = query(delivery).rule((r) => {
     const roots = rootsIn(r);
     const { package: pkg, path, start: first, end: last } = v(roots, "root");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const patterns = Fn.rows(patternProgramOf, { pattern: value });
-    const { program } = v(patterns, "compiled");
+    const { start, category, filter, at: place } = v(fields.WalkCategory, "walk");
 
     return r
       .match(roots, { end: last, package: pkg, path, start: first })
-      .match(fields.Attribute, { name, package: pkg, path, start, value })
-      .match(fields.GradedAttributeName, { name, token: "pattern" })
-      .match(patterns, { program })
+      .match(fields.WalkCategory, { at: place, category, filter, package: pkg, path, start })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ package: pkg, pattern: value, program });
+      .find({ category, filter, package: pkg, path, place, start });
   });
 
   /**
-   * Each base value's text in the program (pantry's Literal).
+   * The walk's walk_coords of the test's outcome processing (WalkAreaCoord).
    */
-  const programTexts = query(delivery).rule((r) => {
+  const walkCoords = query(delivery).rule((r) => {
     const roots = rootsIn(r);
     const { package: pkg, path, start: first, end: last } = v(roots, "root");
-    const { start, text } = v(fields.Literal, "literal");
+    const { start, c, place } = v(fields.WalkAreaCoord, "walk");
 
     return r
       .match(roots, { end: last, package: pkg, path, start: first })
-      .match(fields.Literal, { package: pkg, path, start, text })
+      .match(fields.WalkAreaCoord, { c, package: pkg, path, place, start })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ package: pkg, path, start, text });
+      .find({ c, package: pkg, path, place, start });
+  });
+
+  /**
+   * The walk's walk_customs of the test's outcome processing (BoundOperator).
+   */
+  const walkCustoms = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, class: operatorClass } = v(fields.BoundOperator, "walk");
+    const { token } = v(fields.OperatorClassToken, "token");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.BoundOperator, { class: operatorClass, package: pkg, path, start })
+      .match(fields.OperatorClassToken, { class: operatorClass, token })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ class: token, package: pkg, path, start });
+  });
+
+  /**
+   * The walk's walk_equals of the test's outcome processing (WalkEqual).
+   */
+  const walkEquals = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, lowerIn, mode, upperIn } = v(fields.WalkEqual, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkEqual, { lowerIn, mode, package: pkg, path, start, upperIn })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ lower_in: lowerIn, mode, package: pkg, path, start, upper_in: upperIn });
+  });
+
+  /**
+   * The walk's walk_filters of the test's outcome processing (WalkFilter).
+   */
+  const walkFilters = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, filter } = v(fields.WalkFilter, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkFilter, { filter, package: pkg, path, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ filter, package: pkg, path, start });
+  });
+
+  /**
+   * The walk's walk_floats of the test's outcome processing (WalkFloat).
+   */
+  const walkFloats = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkFloat, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkFloat, { field, package: pkg, path, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path, start, value });
+  });
+
+  /**
+   * The walk's walk_idents of the test's outcome processing (WalkIdent).
+   */
+  const walkIdents = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, identifier } = v(fields.WalkIdent, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkIdent, { identifier, package: pkg, path, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ identifier, package: pkg, path, start });
+  });
+
+  /**
+   * The walk's walk_integers of the test's outcome processing (WalkInteger).
+   */
+  const walkIntegers = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkInteger, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkInteger, { field, package: pkg, path, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_booleans of the test's outcome processing (WalkLiteralBoolean).
+   */
+  const walkLiteralBooleans = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, value } = v(fields.WalkLiteralBoolean, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkLiteralBoolean, { package: pkg, path, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_directed_pairs of the test's outcome processing
+   * (WalkLiteralDirectedPair).
+   */
+  const walkLiteralDirectedPairs = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, source: pairSource, target } = v(fields.WalkLiteralDirectedPair, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkLiteralDirectedPair, {
+        package: pkg,
+        path,
+        source: pairSource,
+        start,
+        target,
+      })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path, source: pairSource, start, target });
+  });
+
+  /**
+   * The walk's walk_literal_floats of the test's outcome processing (WalkLiteralFloat).
+   */
+  const walkLiteralFloats = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, base, value } = v(fields.WalkLiteralFloat, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkLiteralFloat, { base, package: pkg, path, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ base, package: pkg, path, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_integers of the test's outcome processing (WalkLiteralInteger).
+   */
+  const walkLiteralIntegers = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, value } = v(fields.WalkLiteralInteger, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkLiteralInteger, { package: pkg, path, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_pairs of the test's outcome processing (WalkLiteralPair).
+   */
+  const walkLiteralPairs = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, greatest, least } = v(fields.WalkLiteralPair, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkLiteralPair, { greatest, least, package: pkg, path, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ greatest, least, package: pkg, path, start });
+  });
+
+  /**
+   * The walk's walk_literal_points of the test's outcome processing (WalkLiteralPoint).
+   */
+  const walkLiteralPoints = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, x, y } = v(fields.WalkLiteralPoint, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkLiteralPoint, { package: pkg, path, start, x, y })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path, start, x, y });
+  });
+
+  /**
+   * The walk's walk_literal_texts of the test's outcome processing (WalkLiteralText).
+   */
+  const walkLiteralTexts = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, base, value } = v(fields.WalkLiteralText, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkLiteralText, { base, package: pkg, path, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ base, package: pkg, path, start, value });
+  });
+
+  /**
+   * The walk's walk_names of the test's outcome processing (WalkName).
+   */
+  const walkNames = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkName, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkName, { field, package: pkg, path, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path, start, value });
+  });
+
+  /**
+   * The walk's walk_patterns of the test's outcome processing (WalkPattern).
+   */
+  const walkPatterns = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, program } = v(fields.WalkPattern, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkPattern, { package: pkg, path, program, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path, program, start });
+  });
+
+  /**
+   * The walk's walk_refs of the test's outcome processing (WalkRef).
+   */
+  const walkRefs = query(delivery)
+    .rule((r) => {
+      const roots = rootsIn(r);
+      const { package: pkg, path, start: first, end: last } = v(roots, "root");
+      const { start, field, ref } = v(fields.WalkRef, "walk");
+
+      return r
+        .match(roots, { end: last, package: pkg, path, start: first })
+        .match(fields.WalkRef, { field, package: pkg, path, ref, start })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ field, package: pkg, path, ref, start });
+    })
+    .rule((r) => {
+      const roots = rootsIn(r);
+      const { package: pkg, path, start: first, end: last } = v(roots, "root");
+      const { start } = v(fields.WalkNode, "match");
+      const { value } = v(fields.Attribute, "pattern");
+      const { identifier } = v(fields.ItemVariable, "declared");
+
+      return r
+        .match(roots, { end: last, package: pkg, path, start: first })
+        .match(fields.WalkNode, { kind: "qti-pattern-match", package: pkg, path, start })
+        .match(fields.Attribute, { name: "pattern", package: pkg, path, start, value })
+        .match(fields.ItemVariable, { identifier, package: pkg, path })
+        .where(
+          r.ge(start, first),
+          r.lt(start, last),
+          r.eq(
+            value,
+            Text.concat(
+              Text.concat(Type.literal(DocWalkIdent.fields.identifier, "{"), identifier),
+              "}",
+            ),
+          ),
+        )
+        .find({
+          field: Type.literal(DocWalkRef.fields.field, "pattern"),
+          package: pkg,
+          path,
+          ref: identifier,
+          start,
+        });
+    })
+    .rule((r) => {
+      const roots = rootsIn(r);
+      const { package: pkg, path, start: first, end: last } = v(roots, "root");
+      const { start } = v(fields.WalkNode, "match");
+      const { value } = v(fields.Attribute, "pattern");
+      const { identifier } = v(fields.ItemRecordVariable, "declared");
+
+      return r
+        .match(roots, { end: last, package: pkg, path, start: first })
+        .match(fields.WalkNode, { kind: "qti-pattern-match", package: pkg, path, start })
+        .match(fields.Attribute, { name: "pattern", package: pkg, path, start, value })
+        .match(fields.ItemRecordVariable, { identifier, package: pkg, path })
+        .where(
+          r.ge(start, first),
+          r.lt(start, last),
+          r.eq(
+            value,
+            Text.concat(
+              Text.concat(Type.literal(DocWalkIdent.fields.identifier, "{"), identifier),
+              "}",
+            ),
+          ),
+        )
+        .find({
+          field: Type.literal(DocWalkRef.fields.field, "pattern"),
+          package: pkg,
+          path,
+          ref: identifier,
+          start,
+        });
+    });
+
+  /**
+   * The walk's walk_rounds of the test's outcome processing (WalkRound).
+   */
+  const walkRounds = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, mode } = v(fields.WalkRound, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkRound, { mode, package: pkg, path, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ mode, package: pkg, path, start });
+  });
+
+  /**
+   * The walk's walk_texts of the test's outcome processing (WalkText).
+   */
+  const walkTexts = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, caseSensitive, substring } = v(fields.WalkText, "walk");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.WalkText, { caseSensitive, package: pkg, path, start, substring })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ case_sensitive: caseSensitive, package: pkg, path, start, substring });
   });
 
   /**
@@ -29491,13 +31029,31 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
   });
 
   return {
-    compiled,
     declaration_attributes: declarationAttributes,
     declaration_texts: declarationTexts,
     declarations,
-    program_attributes: programAttributes,
-    program_texts: programTexts,
-    programs,
+    programs: programNodes,
+    walk_areas: walkAreas,
+    walk_categories: walkCategories,
+    walk_coords: walkCoords,
+    walk_customs: walkCustoms,
+    walk_equals: walkEquals,
+    walk_filters: walkFilters,
+    walk_floats: walkFloats,
+    walk_idents: walkIdents,
+    walk_integers: walkIntegers,
+    walk_literal_booleans: walkLiteralBooleans,
+    walk_literal_directed_pairs: walkLiteralDirectedPairs,
+    walk_literal_floats: walkLiteralFloats,
+    walk_literal_integers: walkLiteralIntegers,
+    walk_literal_pairs: walkLiteralPairs,
+    walk_literal_points: walkLiteralPoints,
+    walk_literal_texts: walkLiteralTexts,
+    walk_names: walkNames,
+    walk_patterns: walkPatterns,
+    walk_refs: walkRefs,
+    walk_rounds: walkRounds,
+    walk_texts: walkTexts,
   } as const;
 };
 
@@ -31326,8 +32882,9 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
   const boundTemplateRootsIn = (r: Rule<DeliveryLevel>) => templateRootsOf.bind(bySession(r));
 
   /**
-   * The program's elements, each of a processing kind, by the machine's token: its document's, or
-   * the published template's its processing names (TemplatedProgram, TemplateNode).
+   * The program's elements, each of a processing kind, by the machine's token: its document's
+   * stored walk (WalkNode), or the published template's its processing names (TemplatedProgram,
+   * TemplateNode).
    */
   const programNodesOf = query(delivery).rule((r) => {
     const boundTemplateRoots = boundTemplateRootsIn(r);
@@ -31340,22 +32897,19 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       start: first,
       end: last,
     } = v(roots, "root");
-    const { start, end, parent, kind } = v(fields.Node, "node");
-    const { token } = v(fields.ProgramNodeKind, "kind");
+    const { start, end, kind, parent } = v(fields.WalkNode, "walk");
 
     return r
       .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Node, { end, kind, package: source, parent, path: document, start })
-      .match(fields.ProgramNodeKind, { kind, token })
+      .match(fields.WalkNode, { end, kind, package: source, parent, path: document, start })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ end, kind: token, package: pkg, parent, path: item, start });
+      .find({ end, kind, package: pkg, parent, path: item, start });
   });
 
   /**
-   * The attributes of the program's elements the machine reads, as pantry's Attribute holds their
-   * values, or as the published template's are (TemplateAttribute).
+   * The walk's walk_areas of each run's program (WalkArea), by the run's document.
    */
-  const programAttributesOf = query(delivery).rule((r) => {
+  const walkAreasOf = query(delivery).rule((r) => {
     const boundTemplateRoots = boundTemplateRootsIn(r);
     const roots = boundTemplateRoots;
     const {
@@ -31366,22 +32920,19 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       start: first,
       end: last,
     } = v(roots, "root");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const { token } = v(fields.GradedAttributeName, "name");
+    const { start, kind } = v(fields.WalkArea, "walk");
 
     return r
       .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Attribute, { name, package: source, path: document, start, value })
-      .match(fields.GradedAttributeName, { name, token })
+      .match(fields.WalkArea, { kind, package: source, path: document, start })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ name: token, package: pkg, path: item, start, value });
+      .find({ kind, package: pkg, path: item, start });
   });
 
   /**
-   * Each base value's text in the program (pantry's Literal), or in the published template's
-   * (TemplateText).
+   * The walk's walk_categories of each run's program (WalkCategory), by the run's document.
    */
-  const programTextsOf = query(delivery).rule((r) => {
+  const walkCategoriesOf = query(delivery).rule((r) => {
     const boundTemplateRoots = boundTemplateRootsIn(r);
     const roots = boundTemplateRoots;
     const {
@@ -31392,20 +32943,26 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       start: first,
       end: last,
     } = v(roots, "root");
-    const { start, text } = v(fields.Literal, "literal");
+    const { start, category, filter, at: place } = v(fields.WalkCategory, "walk");
 
     return r
       .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Literal, { package: source, path: document, start, text })
+      .match(fields.WalkCategory, {
+        at: place,
+        category,
+        filter,
+        package: source,
+        path: document,
+        start,
+      })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ package: pkg, path: item, start, text });
+      .find({ category, filter, package: pkg, path: item, place, start });
   });
 
   /**
-   * Each content pattern of the program compiled (pattern_program_of), by its package, until the
-   * package's publication stores it: none for a pattern that is no Appendix F expression.
+   * The walk's walk_coords of each run's program (WalkAreaCoord), by the run's document.
    */
-  const compiledPatternsOf = query(delivery).rule((r) => {
+  const walkCoordsOf = query(delivery).rule((r) => {
     const boundTemplateRoots = boundTemplateRootsIn(r);
     const roots = boundTemplateRoots;
     const {
@@ -31416,17 +32973,550 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       start: first,
       end: last,
     } = v(roots, "root");
-    const { start, name, value } = v(fields.Attribute, "attribute");
-    const compiled = Fn.rows(patternProgramOf, { pattern: value });
-    const { program } = v(compiled, "compiled");
+    const { start, c, place } = v(fields.WalkAreaCoord, "walk");
 
     return r
       .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
-      .match(fields.Attribute, { name, package: source, path: document, start, value })
-      .match(fields.GradedAttributeName, { name, token: "pattern" })
-      .match(compiled, { program })
+      .match(fields.WalkAreaCoord, { c, package: source, path: document, place, start })
       .where(r.ge(start, first), r.lt(start, last))
-      .find({ package: pkg, pattern: value, program });
+      .find({ c, package: pkg, path: item, place, start });
+  });
+
+  /**
+   * The walk's walk_customs of each run's program (BoundOperator), by the run's document.
+   */
+  const walkCustomsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, class: operatorClass } = v(fields.BoundOperator, "walk");
+    const { token } = v(fields.OperatorClassToken, "token");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.BoundOperator, {
+        class: operatorClass,
+        package: source,
+        path: document,
+        start,
+      })
+      .match(fields.OperatorClassToken, { class: operatorClass, token })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ class: token, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_equals of each run's program (WalkEqual), by the run's document.
+   */
+  const walkEqualsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, lowerIn, mode, upperIn } = v(fields.WalkEqual, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkEqual, { lowerIn, mode, package: source, path: document, start, upperIn })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ lower_in: lowerIn, mode, package: pkg, path: item, start, upper_in: upperIn });
+  });
+
+  /**
+   * The walk's walk_filters of each run's program (WalkFilter), by the run's document.
+   */
+  const walkFiltersOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, filter } = v(fields.WalkFilter, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkFilter, { filter, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ filter, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_floats of each run's program (WalkFloat), by the run's document.
+   */
+  const walkFloatsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkFloat, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkFloat, { field, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_idents of each run's program (WalkIdent), by the run's document.
+   */
+  const walkIdentsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, identifier } = v(fields.WalkIdent, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkIdent, { identifier, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ identifier, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_integers of each run's program (WalkInteger), by the run's document.
+   */
+  const walkIntegersOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkInteger, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkInteger, { field, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_booleans of each run's program (WalkLiteralBoolean), by the run's
+   * document.
+   */
+  const walkLiteralBooleansOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, value } = v(fields.WalkLiteralBoolean, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralBoolean, { package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_directed_pairs of each run's program (WalkLiteralDirectedPair), by the
+   * run's document.
+   */
+  const walkLiteralDirectedPairsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, source: pairSource, target } = v(fields.WalkLiteralDirectedPair, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralDirectedPair, {
+        package: source,
+        path: document,
+        source: pairSource,
+        start,
+        target,
+      })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, source: pairSource, start, target });
+  });
+
+  /**
+   * The walk's walk_literal_floats of each run's program (WalkLiteralFloat), by the run's document.
+   */
+  const walkLiteralFloatsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, base, value } = v(fields.WalkLiteralFloat, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralFloat, { base, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ base, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_integers of each run's program (WalkLiteralInteger), by the run's
+   * document.
+   */
+  const walkLiteralIntegersOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, value } = v(fields.WalkLiteralInteger, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralInteger, { package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_literal_pairs of each run's program (WalkLiteralPair), by the run's document.
+   */
+  const walkLiteralPairsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, greatest, least } = v(fields.WalkLiteralPair, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralPair, { greatest, least, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ greatest, least, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_literal_points of each run's program (WalkLiteralPoint), by the run's document.
+   */
+  const walkLiteralPointsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, x, y } = v(fields.WalkLiteralPoint, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralPoint, { package: source, path: document, start, x, y })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, start, x, y });
+  });
+
+  /**
+   * The walk's walk_literal_texts of each run's program (WalkLiteralText), by the run's document.
+   */
+  const walkLiteralTextsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, base, value } = v(fields.WalkLiteralText, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkLiteralText, { base, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ base, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_names of each run's program (WalkName), by the run's document.
+   */
+  const walkNamesOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, field, value } = v(fields.WalkName, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkName, { field, package: source, path: document, start, value })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ field, package: pkg, path: item, start, value });
+  });
+
+  /**
+   * The walk's walk_patterns of each run's program (WalkPattern), by the run's document.
+   */
+  const walkPatternsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, program } = v(fields.WalkPattern, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkPattern, { package: source, path: document, program, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, path: item, program, start });
+  });
+
+  /**
+   * The walk's walk_refs of each run's program (WalkRef), by the run's document.
+   */
+  const walkRefsOf = query(delivery)
+    .rule((r) => {
+      const boundTemplateRoots = boundTemplateRootsIn(r);
+      const roots = boundTemplateRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start, field, ref } = v(fields.WalkRef, "walk");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkRef, { field, package: source, path: document, ref, start })
+        .where(r.ge(start, first), r.lt(start, last))
+        .find({ field, package: pkg, path: item, ref, start });
+    })
+    .rule((r) => {
+      const boundTemplateRoots = boundTemplateRootsIn(r);
+      const roots = boundTemplateRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start } = v(fields.WalkNode, "match");
+      const { value } = v(fields.Attribute, "pattern");
+      const { identifier } = v(fields.ItemVariable, "declared");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkNode, {
+          kind: "qti-pattern-match",
+          package: source,
+          path: document,
+          start,
+        })
+        .match(fields.Attribute, {
+          name: "pattern",
+          package: source,
+          path: document,
+          start,
+          value,
+        })
+        .match(fields.ItemVariable, { identifier, package: pkg, path: item })
+        .where(
+          r.ge(start, first),
+          r.lt(start, last),
+          r.eq(
+            value,
+            Text.concat(
+              Text.concat(Type.literal(DocWalkIdent.fields.identifier, "{"), identifier),
+              "}",
+            ),
+          ),
+        )
+        .find({
+          field: Type.literal(DocWalkRef.fields.field, "pattern"),
+          package: pkg,
+          path: item,
+          ref: identifier,
+          start,
+        });
+    })
+    .rule((r) => {
+      const boundTemplateRoots = boundTemplateRootsIn(r);
+      const roots = boundTemplateRoots;
+      const {
+        package: pkg,
+        path: item,
+        source,
+        document,
+        start: first,
+        end: last,
+      } = v(roots, "root");
+      const { start } = v(fields.WalkNode, "match");
+      const { value } = v(fields.Attribute, "pattern");
+      const { identifier } = v(fields.ItemRecordVariable, "declared");
+
+      return r
+        .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+        .match(fields.WalkNode, {
+          kind: "qti-pattern-match",
+          package: source,
+          path: document,
+          start,
+        })
+        .match(fields.Attribute, {
+          name: "pattern",
+          package: source,
+          path: document,
+          start,
+          value,
+        })
+        .match(fields.ItemRecordVariable, { identifier, package: pkg, path: item })
+        .where(
+          r.ge(start, first),
+          r.lt(start, last),
+          r.eq(
+            value,
+            Text.concat(
+              Text.concat(Type.literal(DocWalkIdent.fields.identifier, "{"), identifier),
+              "}",
+            ),
+          ),
+        )
+        .find({
+          field: Type.literal(DocWalkRef.fields.field, "pattern"),
+          package: pkg,
+          path: item,
+          ref: identifier,
+          start,
+        });
+    });
+
+  /**
+   * The walk's walk_rounds of each run's program (WalkRound), by the run's document.
+   */
+  const walkRoundsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, mode } = v(fields.WalkRound, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkRound, { mode, package: source, path: document, start })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ mode, package: pkg, path: item, start });
+  });
+
+  /**
+   * The walk's walk_texts of each run's program (WalkText), by the run's document.
+   */
+  const walkTextsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, caseSensitive, substring } = v(fields.WalkText, "walk");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.WalkText, {
+        caseSensitive,
+        package: source,
+        path: document,
+        start,
+        substring,
+      })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ case_sensitive: caseSensitive, package: pkg, path: item, start, substring });
   });
 
   /**
@@ -36507,7 +38597,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
 
   return {
     booleans: booleansOf,
-    compiled: compiledPatternsOf,
     declaration_attributes: declarationAttributesOf,
     declaration_texts: declarationTextsOf,
     declarations: declarationNodesOf,
@@ -36528,8 +38617,6 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     integers: integersOf,
     pairs: pairsOf,
     points: pointsOf,
-    program_attributes: programAttributesOf,
-    program_texts: programTextsOf,
     programs: programNodesOf,
     reply_floats: replyFloatsOf,
     reply_texts: replyTextsOf,
@@ -36540,6 +38627,27 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
     taken: takenOf,
     texts: textsOf,
     vars: varsOf,
+    walk_areas: walkAreasOf,
+    walk_categories: walkCategoriesOf,
+    walk_coords: walkCoordsOf,
+    walk_customs: walkCustomsOf,
+    walk_equals: walkEqualsOf,
+    walk_filters: walkFiltersOf,
+    walk_floats: walkFloatsOf,
+    walk_idents: walkIdentsOf,
+    walk_integers: walkIntegersOf,
+    walk_literal_booleans: walkLiteralBooleansOf,
+    walk_literal_directed_pairs: walkLiteralDirectedPairsOf,
+    walk_literal_floats: walkLiteralFloatsOf,
+    walk_literal_integers: walkLiteralIntegersOf,
+    walk_literal_pairs: walkLiteralPairsOf,
+    walk_literal_points: walkLiteralPointsOf,
+    walk_literal_texts: walkLiteralTextsOf,
+    walk_names: walkNamesOf,
+    walk_patterns: walkPatternsOf,
+    walk_refs: walkRefsOf,
+    walk_rounds: walkRoundsOf,
+    walk_texts: walkTextsOf,
   } as const;
 };
 
@@ -36593,7 +38701,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
   const runIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(templateProcessingOf, {
       booleans: args.booleans.bind(bySession(r)),
-      compiled: args.compiled.bind(bySession(r)),
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
       declaration_texts: args.declaration_texts.bind(bySession(r)),
       declarations: args.declarations.bind(bySession(r)),
@@ -36611,8 +38718,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       integers: args.integers.bind(bySession(r)),
       pairs: args.pairs.bind(bySession(r)),
       points: args.points.bind(bySession(r)),
-      program_attributes: args.program_attributes.bind(bySession(r)),
-      program_texts: args.program_texts.bind(bySession(r)),
       programs: args.programs.bind(bySession(r)),
       reply_floats: args.reply_floats.bind(bySession(r)),
       reply_texts: args.reply_texts.bind(bySession(r)),
@@ -36622,6 +38727,27 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       table_values: args.table_values,
       texts: args.texts.bind(bySession(r)),
       vars: args.vars.bind(bySession(r)),
+      walk_areas: args.walk_areas.bind(bySession(r)),
+      walk_categories: args.walk_categories.bind(bySession(r)),
+      walk_coords: args.walk_coords.bind(bySession(r)),
+      walk_customs: args.walk_customs.bind(bySession(r)),
+      walk_equals: args.walk_equals.bind(bySession(r)),
+      walk_filters: args.walk_filters.bind(bySession(r)),
+      walk_floats: args.walk_floats.bind(bySession(r)),
+      walk_idents: args.walk_idents.bind(bySession(r)),
+      walk_integers: args.walk_integers.bind(bySession(r)),
+      walk_literal_booleans: args.walk_literal_booleans.bind(bySession(r)),
+      walk_literal_directed_pairs: args.walk_literal_directed_pairs.bind(bySession(r)),
+      walk_literal_floats: args.walk_literal_floats.bind(bySession(r)),
+      walk_literal_integers: args.walk_literal_integers.bind(bySession(r)),
+      walk_literal_pairs: args.walk_literal_pairs.bind(bySession(r)),
+      walk_literal_points: args.walk_literal_points.bind(bySession(r)),
+      walk_literal_texts: args.walk_literal_texts.bind(bySession(r)),
+      walk_names: args.walk_names.bind(bySession(r)),
+      walk_patterns: args.walk_patterns.bind(bySession(r)),
+      walk_refs: args.walk_refs.bind(bySession(r)),
+      walk_rounds: args.walk_rounds.bind(bySession(r)),
+      walk_texts: args.walk_texts.bind(bySession(r)),
     });
 
   /**
@@ -41798,28 +43924,187 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       start: Type.literal(ProgramNode.fields.start, 0n),
     }),
   );
-  const noProgramAttributes = query(delivery).rule((r) =>
+  const noWalkAreas = query(delivery).rule((r) =>
     r.where(r.or()).find({
-      name: Type.literal(DocumentAttribute.fields.name, "identifier"),
-      package: Type.literal(DocumentAttribute.fields.package, ""),
-      path: Type.literal(DocumentAttribute.fields.path, ""),
-      start: Type.literal(DocumentAttribute.fields.start, 0n),
-      value: Type.literal(DocumentAttribute.fields.value, ""),
+      kind: Type.literal(DocWalkArea.fields.kind, "everywhere"),
+      package: Type.literal(DocWalkArea.fields.package, ""),
+      path: Type.literal(DocWalkArea.fields.path, ""),
+      start: Type.literal(DocWalkArea.fields.start, 0n),
     }),
   );
-  const noProgramTexts = query(delivery).rule((r) =>
+  const noWalkCategories = query(delivery).rule((r) =>
     r.where(r.or()).find({
-      package: Type.literal(DocumentText.fields.package, ""),
-      path: Type.literal(DocumentText.fields.path, ""),
-      start: Type.literal(DocumentText.fields.start, 0n),
-      text: Type.literal(DocumentText.fields.text, ""),
+      category: Type.literal(DocWalkCategory.fields.category, ""),
+      filter: Type.literal(DocWalkCategory.fields.filter, "include"),
+      package: Type.literal(DocWalkCategory.fields.package, ""),
+      path: Type.literal(DocWalkCategory.fields.path, ""),
+      place: Type.literal(DocWalkCategory.fields.place, 0n),
+      start: Type.literal(DocWalkCategory.fields.start, 0n),
     }),
   );
-  const noCompiled = query(delivery).rule((r) =>
+  const noWalkCoords = query(delivery).rule((r) =>
     r.where(r.or()).find({
-      package: Type.literal(CompiledPattern.fields.package, ""),
-      pattern: Type.literal(CompiledPattern.fields.pattern, ""),
-      program: Type.literal(CompiledPattern.fields.program, ""),
+      c: Type.literal(DocWalkCoord.fields.c, 0),
+      package: Type.literal(DocWalkCoord.fields.package, ""),
+      path: Type.literal(DocWalkCoord.fields.path, ""),
+      place: Type.literal(DocWalkCoord.fields.place, 0),
+      start: Type.literal(DocWalkCoord.fields.start, 0n),
+    }),
+  );
+  const noWalkCustoms = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      class: Type.literal(DocWalkCustom.fields.class, "rubric-score"),
+      package: Type.literal(DocWalkCustom.fields.package, ""),
+      path: Type.literal(DocWalkCustom.fields.path, ""),
+      start: Type.literal(DocWalkCustom.fields.start, 0n),
+    }),
+  );
+  const noWalkEquals = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      lower_in: Type.literal(DocWalkEqual.fields.lower_in, true),
+      mode: Type.literal(DocWalkEqual.fields.mode, "exact"),
+      package: Type.literal(DocWalkEqual.fields.package, ""),
+      path: Type.literal(DocWalkEqual.fields.path, ""),
+      start: Type.literal(DocWalkEqual.fields.start, 0n),
+      upper_in: Type.literal(DocWalkEqual.fields.upper_in, true),
+    }),
+  );
+  const noWalkFilters = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      filter: Type.literal(DocWalkFilter.fields.filter, "include"),
+      package: Type.literal(DocWalkFilter.fields.package, ""),
+      path: Type.literal(DocWalkFilter.fields.path, ""),
+      start: Type.literal(DocWalkFilter.fields.start, 0n),
+    }),
+  );
+  const noWalkFloats = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      field: Type.literal(DocWalkFloat.fields.field, "frange.lo"),
+      package: Type.literal(DocWalkFloat.fields.package, ""),
+      path: Type.literal(DocWalkFloat.fields.path, ""),
+      start: Type.literal(DocWalkFloat.fields.start, 0n),
+      value: Type.literal(DocWalkFloat.fields.value, 0),
+    }),
+  );
+  const noWalkIdents = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      identifier: Type.literal(DocWalkIdent.fields.identifier, ""),
+      package: Type.literal(DocWalkIdent.fields.package, ""),
+      path: Type.literal(DocWalkIdent.fields.path, ""),
+      start: Type.literal(DocWalkIdent.fields.start, 0n),
+    }),
+  );
+  const noWalkIntegers = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      field: Type.literal(DocWalkInteger.fields.field, "range.lo"),
+      package: Type.literal(DocWalkInteger.fields.package, ""),
+      path: Type.literal(DocWalkInteger.fields.path, ""),
+      start: Type.literal(DocWalkInteger.fields.start, 0n),
+      value: Type.literal(DocWalkInteger.fields.value, 0n),
+    }),
+  );
+  const noWalkLiteralBooleans = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      package: Type.literal(DocWalkLiteralBoolean.fields.package, ""),
+      path: Type.literal(DocWalkLiteralBoolean.fields.path, ""),
+      start: Type.literal(DocWalkLiteralBoolean.fields.start, 0n),
+      value: Type.literal(DocWalkLiteralBoolean.fields.value, false),
+    }),
+  );
+  const noWalkLiteralDirectedPairs = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      package: Type.literal(DocWalkLiteralDirectedPair.fields.package, ""),
+      path: Type.literal(DocWalkLiteralDirectedPair.fields.path, ""),
+      source: Type.literal(DocWalkLiteralDirectedPair.fields.source, ""),
+      start: Type.literal(DocWalkLiteralDirectedPair.fields.start, 0n),
+      target: Type.literal(DocWalkLiteralDirectedPair.fields.target, ""),
+    }),
+  );
+  const noWalkLiteralFloats = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      base: Type.literal(DocWalkLiteralFloat.fields.base, "float"),
+      package: Type.literal(DocWalkLiteralFloat.fields.package, ""),
+      path: Type.literal(DocWalkLiteralFloat.fields.path, ""),
+      start: Type.literal(DocWalkLiteralFloat.fields.start, 0n),
+      value: Type.literal(DocWalkLiteralFloat.fields.value, 0),
+    }),
+  );
+  const noWalkLiteralIntegers = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      package: Type.literal(DocWalkLiteralInteger.fields.package, ""),
+      path: Type.literal(DocWalkLiteralInteger.fields.path, ""),
+      start: Type.literal(DocWalkLiteralInteger.fields.start, 0n),
+      value: Type.literal(DocWalkLiteralInteger.fields.value, 0n),
+    }),
+  );
+  const noWalkLiteralPairs = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      greatest: Type.literal(DocWalkLiteralPair.fields.greatest, ""),
+      least: Type.literal(DocWalkLiteralPair.fields.least, ""),
+      package: Type.literal(DocWalkLiteralPair.fields.package, ""),
+      path: Type.literal(DocWalkLiteralPair.fields.path, ""),
+      start: Type.literal(DocWalkLiteralPair.fields.start, 0n),
+    }),
+  );
+  const noWalkLiteralPoints = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      package: Type.literal(DocWalkLiteralPoint.fields.package, ""),
+      path: Type.literal(DocWalkLiteralPoint.fields.path, ""),
+      start: Type.literal(DocWalkLiteralPoint.fields.start, 0n),
+      x: Type.literal(DocWalkLiteralPoint.fields.x, 0n),
+      y: Type.literal(DocWalkLiteralPoint.fields.y, 0n),
+    }),
+  );
+  const noWalkLiteralTexts = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      base: Type.literal(DocWalkLiteralText.fields.base, "string"),
+      package: Type.literal(DocWalkLiteralText.fields.package, ""),
+      path: Type.literal(DocWalkLiteralText.fields.path, ""),
+      start: Type.literal(DocWalkLiteralText.fields.start, 0n),
+      value: Type.literal(DocWalkLiteralText.fields.value, "-"),
+    }),
+  );
+  const noWalkNames = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      field: Type.literal(DocWalkName.fields.field, "base"),
+      package: Type.literal(DocWalkName.fields.package, ""),
+      path: Type.literal(DocWalkName.fields.path, ""),
+      start: Type.literal(DocWalkName.fields.start, 0n),
+      value: Type.literal(DocWalkName.fields.value, ""),
+    }),
+  );
+  const noWalkPatterns = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      package: Type.literal(DocWalkPattern.fields.package, ""),
+      path: Type.literal(DocWalkPattern.fields.path, ""),
+      program: Type.literal(DocWalkPattern.fields.program, ""),
+      start: Type.literal(DocWalkPattern.fields.start, 0n),
+    }),
+  );
+  const noWalkRefs = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      field: Type.literal(DocWalkRef.fields.field, "pattern"),
+      package: Type.literal(DocWalkRef.fields.package, ""),
+      path: Type.literal(DocWalkRef.fields.path, ""),
+      ref: Type.literal(DocWalkRef.fields.ref, ""),
+      start: Type.literal(DocWalkRef.fields.start, 0n),
+    }),
+  );
+  const noWalkRounds = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      mode: Type.literal(DocWalkRound.fields.mode, "significantFigures"),
+      package: Type.literal(DocWalkRound.fields.package, ""),
+      path: Type.literal(DocWalkRound.fields.path, ""),
+      start: Type.literal(DocWalkRound.fields.start, 0n),
+    }),
+  );
+  const noWalkTexts = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      case_sensitive: Type.literal(DocWalkText.fields.case_sensitive, true),
+      package: Type.literal(DocWalkText.fields.package, ""),
+      path: Type.literal(DocWalkText.fields.path, ""),
+      start: Type.literal(DocWalkText.fields.start, 0n),
+      substring: Type.literal(DocWalkText.fields.substring, false),
     }),
   );
 
@@ -42798,7 +45083,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
   const startRunIn = (r: Rule<DeliveryLevel>) =>
     Fn.row(responseProcessingOf, {
       booleans: startBooleansOf.bind(bySession(r)),
-      compiled: noCompiled,
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
       declaration_texts: args.declaration_texts.bind(bySession(r)),
       declarations: args.declarations.bind(bySession(r)),
@@ -42819,8 +45103,6 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       integers: startIntegersOf.bind(bySession(r)),
       pairs: startPairsOf.bind(bySession(r)),
       points: startPointsOf.bind(bySession(r)),
-      program_attributes: noProgramAttributes,
-      program_texts: noProgramTexts,
       programs: noPrograms,
       reply_floats: args.reply_floats.bind(bySession(r)),
       reply_texts: args.reply_texts.bind(bySession(r)),
@@ -42830,6 +45112,27 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       table_values: args.table_values,
       texts: startTextsOf.bind(bySession(r)),
       vars: startVarsOf.bind(bySession(r)),
+      walk_areas: noWalkAreas,
+      walk_categories: noWalkCategories,
+      walk_coords: noWalkCoords,
+      walk_customs: noWalkCustoms,
+      walk_equals: noWalkEquals,
+      walk_filters: noWalkFilters,
+      walk_floats: noWalkFloats,
+      walk_idents: noWalkIdents,
+      walk_integers: noWalkIntegers,
+      walk_literal_booleans: noWalkLiteralBooleans,
+      walk_literal_directed_pairs: noWalkLiteralDirectedPairs,
+      walk_literal_floats: noWalkLiteralFloats,
+      walk_literal_integers: noWalkLiteralIntegers,
+      walk_literal_pairs: noWalkLiteralPairs,
+      walk_literal_points: noWalkLiteralPoints,
+      walk_literal_texts: noWalkLiteralTexts,
+      walk_names: noWalkNames,
+      walk_patterns: noWalkPatterns,
+      walk_refs: noWalkRefs,
+      walk_rounds: noWalkRounds,
+      walk_texts: noWalkTexts,
     });
 
   /**

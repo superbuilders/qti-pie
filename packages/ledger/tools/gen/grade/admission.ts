@@ -579,7 +579,7 @@ const END_MARK =
  * Grizzle's import, as the stages before leave it.
  */
 const GRIZZLE_IMPORT =
-  'import { ChangeSet, Fn, Num, param, pg, query, Type, v } from "@bjornpagen/grizzle";\n';
+  'import { ChangeSet, Fn, Num, param, pg, query, Text, Type, v } from "@bjornpagen/grizzle";\n';
 
 /**
  * The admission stage: admission's builders before attemptArgumentsOf (any of a previous stage's

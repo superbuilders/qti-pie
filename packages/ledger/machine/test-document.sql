@@ -1,7 +1,7 @@
 -- The flat entry of a test's outcome processing (QTI 3.0.1 information model, Table 5.102, OutcomeProcessing): what a
 -- fused statement passes a run of a test's outcome processing and reads back, every heading of values alone and no NULL,
 -- P4's document headings (document-types.sql) and six of the test's own content, each keyed by the test's document
--- first. Loads after test-outcome.sql and document.sql, whose readers it composes: program_of, inputs_of, declared,
+-- first. Loads after test-outcome.sql and document.sql, whose readers it composes: walk_from, inputs_of, declared,
 -- var_kinds, values_of, start_of, correct_of, defaults_of and doc_values_of, so the test's program, its lookup tables
 -- and every member's state are read by the same readers an item's response processing is.
 --
@@ -53,16 +53,25 @@ $$;
 
 -- The flat entry of a test's outcome processing: every test session a call names, each by itself, in one call; each
 -- run's result the test's outcome variables after it, held `value`, of kind `outcome`, keyed by the run.
-create function p3.test_outcome_processing_of(booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
-  declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
-  directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_files p3.doc_field_file[],
-  field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
-  field_texts p3.doc_field_text[], files p3.doc_file[], floats p3.doc_float[],
-  integers p3.doc_integer[], member_bounds p3.test_member_bound[], members p3.test_member[],
-  pairs p3.doc_pair[], points p3.doc_point[], program_attributes p3.document_attribute[],
-  program_texts p3.document_text[], programs p3.program_node[], ref_categories p3.test_ref_category[],
-  ref_mappings p3.test_ref_mapping[], ref_sections p3.test_ref_section[], ref_weights p3.test_ref_weight[],
-  runs p3.document_run[], texts p3.doc_text[], vars p3.doc_given[])
+create function p3.test_outcome_processing_of(booleans p3.doc_boolean[],
+  declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[],
+  declarations p3.declaration_node[], directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[],
+  field_directed_pairs p3.doc_field_directed_pair[],
+  field_files p3.doc_field_file[], field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[],
+  field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[], field_texts p3.doc_field_text[],
+  files p3.doc_file[], floats p3.doc_float[], integers p3.doc_integer[],
+  member_bounds p3.test_member_bound[], members p3.test_member[], pairs p3.doc_pair[], points p3.doc_point[],
+  programs p3.program_node[], ref_categories p3.test_ref_category[], ref_mappings p3.test_ref_mapping[],
+  ref_sections p3.test_ref_section[], ref_weights p3.test_ref_weight[], runs p3.document_run[], texts p3.doc_text[],
+  vars p3.doc_given[], walk_areas p3.doc_walk_area[], walk_categories p3.doc_walk_category[],
+  walk_coords p3.doc_walk_coord[], walk_customs p3.doc_walk_custom[], walk_equals p3.doc_walk_equal[],
+  walk_filters p3.doc_walk_filter[], walk_floats p3.doc_walk_float[], walk_idents p3.doc_walk_ident[],
+  walk_integers p3.doc_walk_integer[], walk_literal_booleans p3.doc_walk_literal_boolean[],
+  walk_literal_directed_pairs p3.doc_walk_literal_directed_pair[], walk_literal_floats p3.doc_walk_literal_float[],
+  walk_literal_integers p3.doc_walk_literal_integer[], walk_literal_pairs p3.doc_walk_literal_pair[],
+  walk_literal_points p3.doc_walk_literal_point[], walk_literal_texts p3.doc_walk_literal_text[],
+  walk_names p3.doc_walk_name[], walk_patterns p3.doc_walk_pattern[], walk_refs p3.doc_walk_ref[],
+  walk_rounds p3.doc_walk_round[], walk_texts p3.doc_walk_text[])
 returns p3.doc_values language plpgsql immutable as $$
 declare r document_run; m test_member; pn program_node[]; dn declaration_node[]; da document_attribute[]; dt document_text[];
   given in_values; kinds var_kind[]; mvars member_var[]; mcorrect member_var[]; mdefaults member_var[];
@@ -109,10 +118,7 @@ begin
     if cardinality(pn) = 0 then
       st.vars := array(select i from initial(declared => outcomes) i order by i.identifier); st.flow := 'run'; st.drawn := 0;
     else
-    st := outcome_processing(prog => program_of(nodes => pn,
-        attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
-        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
-        compiled => array(select x from unnest(compiled) x where x.package = r.package)), inp => inp, outcomes => outcomes,
+    st := outcome_processing(walk => (walk_from(package => r.package, path => r.path, nodes => pn, areas => walk_areas, categories => walk_categories, coords => walk_coords, customs => walk_customs, equals => walk_equals, filters => walk_filters, floats => walk_floats, idents => walk_idents, integers => walk_integers, literal_booleans => walk_literal_booleans, literal_directed_pairs => walk_literal_directed_pairs, literal_floats => walk_literal_floats, literal_integers => walk_literal_integers, literal_pairs => walk_literal_pairs, literal_points => walk_literal_points, literal_texts => walk_literal_texts, names => walk_names, patterns => walk_patterns, refs => walk_refs, rounds => walk_rounds, texts => walk_texts)).nodes, inp => inp, outcomes => outcomes,
       contexts => array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-context-declaration', holder => 'qti-default-value') y order by y.identifier),
       bound => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
         where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier

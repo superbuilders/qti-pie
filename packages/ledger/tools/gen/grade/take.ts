@@ -23,6 +23,13 @@ import {
   replaceAll,
   replaceFirst,
 } from "#tools/gen/grade/text.ts";
+import {
+  templateRuleCount,
+  WALK_INPUTS,
+  walkEmpties,
+  walked,
+  withWalkReturns,
+} from "#tools/gen/grade/walk.ts";
 
 /**
  * The take stage of grade.ts: template processing at the take (QTI 3.0.1
@@ -109,7 +116,7 @@ const untemplated = (text: string): string => {
       return "";
     },
   );
-  must(dropped === 3, "the program readers' three template rules");
+  must(dropped === templateRuleCount, "the walk readers' template rules");
 
   return kept;
 };
@@ -122,7 +129,7 @@ const untemplated = (text: string): string => {
  */
 const takeArguments = (fragment: Fragments): string => {
   const rooted = replacedBetween(
-    fragment("base/readers"),
+    walked(fragment("base/readers")),
     "/** Each item session of the sitting with an attempt",
     "/** The subtree the item's response processing runs",
     () => fragment("take/roots"),
@@ -175,7 +182,7 @@ const takeArguments = (fragment: Fragments): string => {
     ...readers,
     withRunInputs(
       replaceAll(
-        fragment("base/readers-return"),
+        withWalkReturns(fragment("base/readers-return")),
         "gradable: gradableOf(gradedSitting)",
         "taken: takenOf(gradedSitting)",
       ),
@@ -310,7 +317,7 @@ const headerRule = ([kind, holds, kinds]: SetKind): string => {
  * program, no run: the values stand as they start"), so it reaches no application and has no
  * evaluation or person's value to read.
  */
-const START_EMPTIES = [
+const SESSION_EMPTIES = [
   [
     "evaluations",
     "DocEvaluation",
@@ -346,49 +353,13 @@ const START_EMPTIES = [
       ["stage", "0n"],
     ],
   ],
-  [
-    "programs",
-    "ProgramNode",
-    [
-      ["end", "0n"],
-      ["kind", '"qti-response-processing"'],
-      ["package", '""'],
-      ["parent", "0n"],
-      ["path", '""'],
-      ["start", "0n"],
-    ],
-  ],
-  [
-    "program_attributes",
-    "DocumentAttribute",
-    [
-      ["name", '"identifier"'],
-      ["package", '""'],
-      ["path", '""'],
-      ["start", "0n"],
-      ["value", '""'],
-    ],
-  ],
-  [
-    "program_texts",
-    "DocumentText",
-    [
-      ["package", '""'],
-      ["path", '""'],
-      ["start", "0n"],
-      ["text", '""'],
-    ],
-  ],
-  [
-    "compiled",
-    "CompiledPattern",
-    [
-      ["package", '""'],
-      ["pattern", '""'],
-      ["program", '""'],
-    ],
-  ],
 ] as const;
+
+/**
+ * Every empty argument of the start run: the session's evaluations and people's values, which a
+ * start has none of, and the walk's inputs, a start running no program.
+ */
+const START_EMPTIES = [...SESSION_EMPTIES, ...walkEmpties()];
 
 /**
  * The value headings the start run is given, each with the base types that cross as it.
@@ -569,12 +540,9 @@ const startOf = (member: string): string => {
  * @returns The write's text and its change sets' names.
  */
 const startWrite = (binds: readonly string[]) => {
-  const programArguments: ReadonlySet<string> = new Set([
-    "programs",
-    "program_attributes",
-    "program_texts",
-    "compiled",
-  ]);
+  const programArguments: ReadonlySet<string> = new Set(
+    WALK_INPUTS.map(({ argument }) => argument),
+  );
   const readers = startReaders();
   const own = new Set(
     readers.binds.map((bind) => /^\t\t(?<arg>\w+):/u.exec(bind)?.groups?.["arg"] ?? ""),
@@ -676,10 +644,7 @@ const takeTables = (): string =>
  * The arguments the take's run binds, in the order it binds them.
  */
 const RUN_ARGUMENTS = [
-  "programs",
-  "program_attributes",
-  "program_texts",
-  "compiled",
+  ...WALK_INPUTS.map(({ argument }) => argument),
   "declarations",
   "declaration_attributes",
   "declaration_texts",
@@ -701,7 +666,7 @@ const RUN_ARGUMENTS = [
   "field_directed_pairs",
   "field_points",
   "field_files",
-] as const;
+];
 
 /**
  * The names, of which there must be one at least.
