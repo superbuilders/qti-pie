@@ -9,12 +9,12 @@
  * @module
  */
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Formatter, Option, Result } from "effect";
+import { Array as Arr, Effect, Formatter, Option, Result } from "effect";
 import { drawn, explore } from "@bjornpagen/testing/explore";
 import { required } from "@bjornpagen/testing/features";
 import { floorSeed, caseSeed, wordsOf } from "@bjornpagen/testing/random";
 import { notesOnly } from "@bjornpagen/testing/sense";
-import { completeShrink } from "@bjornpagen/testing/shrink";
+import { completeShrink, shrink } from "@bjornpagen/testing/shrink";
 import { generate, randomChooser, recorder } from "@bjornpagen/testing/source";
 import { tokenOf } from "@bjornpagen/testing/tape";
 import { searched } from "@bjornpagen/testing/vitest";
@@ -22,8 +22,18 @@ import type { Answer } from "#specimen/answer.ts";
 import type { Content } from "#specimen/description.ts";
 import { floorCases, floorCase } from "#specimen/floor.ts";
 import { opened } from "#specimen/open.ts";
-import { anyQuery, everyCase, page, pairsOf, queryOf, replay, sample } from "#specimen/specimen.ts";
-import type { KindName } from "#specimen/specimen.ts";
+import { kindDimension } from "#specimen/kinds/index.ts";
+import {
+  anyQuery,
+  casesOfKinds,
+  everyCase,
+  page,
+  pairsOf,
+  queryOf,
+  replay,
+  sample,
+} from "#specimen/specimen.ts";
+import type { Case, KindName } from "#specimen/specimen.ts";
 
 /**
  * What a case notes: its kind, its response, and what its stimulus shows.
@@ -158,6 +168,73 @@ describe("a specimen", () => {
       walked.specimens.map((specimen) => specimen.token),
     );
   });
+
+  it("of given kinds draws only those kinds, each case the one the full space draws under its kind", () => {
+    const stream = floorSeed("specimen/cases-of-kinds");
+    const others = kindDimension.values
+      .map(({ value }) => value)
+      .filter((kind) => kind !== "portable-custom");
+    const lists: readonly Arr.NonEmptyReadonlyArray<KindName>[] = [
+      ["portable-custom"],
+      ["slider", "choice"],
+      Arr.isReadonlyArrayNonEmpty(others) ? others : assert.fail("the roster holds another kind"),
+    ];
+
+    // Oracle: the kinds given, and replay's reading of the tape past its kind's choice (a list of
+    // one kind draws none) under the query that fixes that kind.
+    for (const [listed, given] of lists.entries()) {
+      for (let at = 0; at < 40; at += 1) {
+        const generated = generate(
+          recorder(),
+          casesOfKinds(given),
+          randomChooser(wordsOf(caseSeed(stream, listed * 40 + at))),
+        );
+        const { kind } = generated.value.description.interaction;
+        const past = generated.tape.values.subarray(
+          given.length > 1 ? 1 : 0,
+          generated.tape.length,
+        );
+        const replayed = Option.getOrThrow(
+          replay(Result.getOrThrow(queryOf([["kind", kind]])), tokenOf(past, past.length)),
+        );
+
+        assert.include(given, kind);
+        assert.deepStrictEqual(replayed.description, generated.value.description);
+      }
+    }
+  });
+
+  it.effect("of given kinds shrinks a failing case as the full space does past its kind", () =>
+    // Oracle: the full space's own shrink, under the same property, of a case of the same kind.
+    Effect.forEach(
+      ["order", "graphic-gap-match", "extended-text", "portable-custom"] as const,
+      (kind) =>
+        Effect.gen(function* shrinksAlike() {
+          const stream = floorSeed(`specimen/cases-of-kinds/${kind}`);
+          const fails = (held: Case) => Effect.succeed(held.description.interaction.kind === kind);
+          const firstOf = (space: typeof everyCase) =>
+            Option.getOrThrow(
+              Arr.findFirst(
+                Arr.makeBy(2000, (at) =>
+                  generate(recorder(), space, randomChooser(wordsOf(caseSeed(stream, at)))),
+                ),
+                (generated) => generated.value.description.interaction.kind === kind,
+              ),
+            );
+          const fewer = casesOfKinds(["choice", kind]);
+          const full = yield* shrink(everyCase, firstOf(everyCase), fails, completeShrink);
+          const restricted = yield* shrink(fewer, firstOf(fewer), fails, completeShrink);
+
+          assert.strictEqual(full.ended, "minimal");
+          assert.strictEqual(restricted.ended, "minimal");
+          assert.deepStrictEqual(
+            restricted.best.failure.description,
+            full.best.failure.description,
+          );
+        }),
+      { discard: true },
+    ),
+  );
 
   it("draws nothing for a response its interaction does not admit", () => {
     const singlePartial = Result.getOrThrow(

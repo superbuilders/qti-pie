@@ -10,8 +10,7 @@
  *
  * @module
  */
-import { Array as Arr, Option } from "effect";
-import type { Result } from "effect";
+import { Array as Arr, Option, Result } from "effect";
 import { firstBranch, enumerated } from "@bjornpagen/testing/enumerate";
 import type { Branch } from "@bjornpagen/testing/enumerate";
 import { element, map } from "@bjornpagen/testing/gen";
@@ -27,6 +26,7 @@ import type { Listed, Query, Unreadable } from "#specimen/dimension.ts";
 import { described, itemDimensions, unanswered } from "#specimen/description.ts";
 import type { Described, Description } from "#specimen/description.ts";
 import { kindDimension, roster } from "#specimen/kinds/index.ts";
+import type { KindName } from "#specimen/kinds/index.ts";
 import { itemOf } from "#specimen/write.ts";
 import type { Item } from "#specimen/write.ts";
 
@@ -100,15 +100,41 @@ const casesUnder = (held: Query): Gen<Option.Option<Case>> =>
   map(described(held), Option.map(caseOf));
 
 /**
+ * Every case under a query that fixes no response: the description but for its response, then one
+ * of the responses its interaction admits.
+ *
+ * @param held The query.
+ * @returns The space.
+ */
+const casesIn =
+  (held: Query): Space<Case> =>
+  (source) => {
+    const drawn = source.draw(unanswered(held));
+    const answered = source.draw(element(drawn.answers));
+
+    return caseOf({ answered, description: { ...drawn.rest, answer: answered.answer } });
+  };
+
+/**
  * Every case, no dimension fixed: the space a suite over the specimen searches. Its tapes are the
  * tapes {@link replay} reads under {@link anyQuery}.
  */
-export const everyCase: Space<Case> = (source) => {
-  const drawn = source.draw(unanswered(anyQuery));
-  const answered = source.draw(element(drawn.answers));
+export const everyCase: Space<Case> = casesIn(anyQuery);
 
-  return caseOf({ answered, description: { ...drawn.rest, answer: answered.answer } });
-};
+/**
+ * Every case of the given interaction kinds, every other dimension at any value: the kind drawn
+ * first, from `kinds` in their order, then the case {@link everyCase} draws under the query that
+ * fixes that kind. A suite whose system serves only some kinds draws only theirs, its generator
+ * constructing only the cases it serves, and a failing case shrinks as one of {@link everyCase}
+ * does past its kind.
+ *
+ * @param kinds The kinds, each a name of the `kind` dimension.
+ * @returns The space.
+ */
+export const casesOfKinds =
+  (kinds: Arr.NonEmptyReadonlyArray<KindName>): Space<Case> =>
+  (source) =>
+    source.draw(casesIn(Result.getOrThrow(queryOf([[kindKey, source.draw(element(kinds))]]))));
 
 /**
  * A case as the lab holds it: its token under its query, and what it drew, every dimension it
