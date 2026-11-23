@@ -167,6 +167,10 @@ export const ledgerLaws = {
     source:
       "src/ledger.ts IdentifierValue, UriValue, FileName, FileType: each key text at most the UTF-8 bytes its kind holds (pantry's src/qti/limits.ts identifierBytes, uriBytes, nameMaxBytes, src/qti/media.ts mediaTypeBytes), so every key's entry fits PostgreSQL's B-tree budget; a stated limit of the representation, not a law of the specification",
   },
+  "Last beacon": {
+    source:
+      "src/delivery.ts LastBeacon: 'A sitting's last beacon: the last microsecond of a window, one before its end, so never past the last microsecond of the clock's top'",
+  },
   "Learner id": {
     source:
       "src/keys.ts LearnerId: 'an opaque text of one byte or more the application assigns ... of at most learnerIdBytes UTF-8 bytes' (69, edullm's Clerk user ids)",

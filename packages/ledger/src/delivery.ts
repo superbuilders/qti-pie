@@ -52,6 +52,7 @@
 import {
   check,
   contained,
+  contract,
   derived,
   Logic,
   Num,
@@ -160,6 +161,16 @@ export const presenceGraceMicros = 3_000_000n;
  * The microseconds of one UTC day, which has no leap second on the database's clock.
  */
 const dayMicros = 86_400_000_000n;
+
+/**
+ * A sitting's last beacon ({@link LastPresence}): the last microsecond of a window, one before its
+ * end, so never past the last microsecond of the clock's top; its lower end the one before a
+ * window's earliest end ({@link Moment}).
+ */
+const LastBeacon = named(
+  "Last beacon",
+  contract("LastBeacon", pg.bigint, (t) => Num.within(t, -1n, clockTop - 1n)),
+);
 
 /**
  * The most UTC days one piece of a sitting's presence touches: every piece lies between 0 and the
@@ -890,7 +901,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .match(TestSession, { child, stage })
         .match(Presence, { child, during, stage })
         .find({
-          at: r.max(Num.sub(Type.base(Range.upper(during, Moment)), 1n)),
+          at: r.max(Type.cast(Num.sub(Type.base(Range.upper(during, Moment)), 1n), LastBeacon)),
           child,
           stage,
         });
