@@ -141,6 +141,24 @@ const programTextsOf = (session: GradedSession) =>
 			.find({ package: pkg, path: item, start, text })
 	})
 
+/** Each content pattern of the program compiled (pattern_program_of), by its package, until the package's publication
+ * stores it: none for a pattern that is no Appendix F expression. */
+const compiledPatternsOf = (session: GradedSession) =>
+	query(Installed).rule((r) => {
+		const roots = responseRootsOf(session).bind(bySession(session))
+		const { package: pkg, path: item, source, document, start: first, end: last } = v(roots, "root")
+		const { start, name, value } = v(fields.Attribute, "attribute")
+		const compiled = Fn.rows(patternProgramOf, { pattern: value })
+		const { program } = v(compiled, "compiled")
+		return r
+			.match(roots, { package: pkg, path: item, source, document, start: first, end: last })
+			.match(fields.Attribute, { package: source, path: document, start, name, value })
+			.match(fields.GradedAttributeName, { name, token: "pattern" })
+			.match(compiled, { program })
+			.where(r.ge(start, first), r.lt(start, last))
+			.find({ package: pkg, pattern: value, program })
+	})
+
 /** The graded items' declarations' nodes of the kinds the machine reads. */
 const declarationNodesOf = (session: GradedSession) =>
 	query(Installed).rule((r) => {

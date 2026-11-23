@@ -9,6 +9,7 @@
 			programs: args.programs.bind(bySession(session)),
 			program_attributes: args.program_attributes.bind(bySession(session)),
 			program_texts: args.program_texts.bind(bySession(session)),
+			compiled: args.compiled.bind(bySession(session)),
 			declarations: args.declarations.bind(bySession(session)),
 			declaration_attributes: args.declaration_attributes.bind(bySession(session)),
 			declaration_texts: args.declaration_texts.bind(bySession(session)),

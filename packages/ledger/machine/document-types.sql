@@ -26,6 +26,11 @@ create type p3.document_attribute as (name text collate pg_catalog.pg_c_utf8, pa
   path text collate pg_catalog.pg_c_utf8, start bigint, value text collate pg_catalog.pg_c_utf8);
 create type p3.document_text as (package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8,
   start bigint, text text collate pg_catalog.pg_c_utf8);
+-- A package's content pattern compiled (xsd_compile's program of a qti-pattern-match's `pattern`, as it is stored), by
+-- the package and the pattern's text: a pattern that is no Appendix F expression has none.
+create type p3.compiled_pattern as (package text collate pg_catalog.pg_c_utf8, pattern text collate pg_catalog.pg_c_utf8,
+  program text collate pg_catalog.pg_c_utf8);
+create type p3.pattern_program as (program text collate pg_catalog.pg_c_utf8);
 -- A run: its key, whose document is its own (package, path), and the draw stream's key (an item's seed_stream_key of
 -- its processing seed, a test session's sitting_seed) and label.
 create type p3.document_run as (child text collate pg_catalog.pg_c_utf8, label text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, seed text collate pg_catalog.pg_c_utf8, stage bigint);

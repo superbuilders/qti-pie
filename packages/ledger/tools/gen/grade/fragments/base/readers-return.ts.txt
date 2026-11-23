@@ -3,6 +3,7 @@
 		programs: programNodesOf(gradedSitting),
 		program_attributes: programAttributesOf(gradedSitting),
 		program_texts: programTextsOf(gradedSitting),
+		compiled: compiledPatternsOf(gradedSitting),
 		declarations: declarationNodesOf(gradedSitting),
 		declaration_attributes: declarationAttributesOf(gradedSitting),
 		declaration_texts: declarationTextsOf(gradedSitting),

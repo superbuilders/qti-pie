@@ -355,6 +355,7 @@ const takeRunIntegersOf = query(ResultLevel).rule((r) => {
   const run = Fn.row(templateProcessingOf, {
     bases: takeArguments.bases.bind(sitting),
     booleans: takeArguments.booleans.bind(sitting),
+    compiled: takeArguments.compiled.bind(sitting),
     declaration_attributes: takeArguments.declaration_attributes.bind(sitting),
     declaration_texts: takeArguments.declaration_texts.bind(sitting),
     declarations: takeArguments.declarations.bind(sitting),

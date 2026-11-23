@@ -1283,6 +1283,7 @@ export const runOf = (delivery: DeliveryLevel, sitting: ReturnType<typeof dueOf>
     return Fn.row(testOutcomeProcessingOf, {
       bases: bases.bind({ sittings }),
       booleans: booleans.bind({ sittings }),
+      compiled: tree.compiled.bind({ sittings }),
       declaration_attributes: tree.declaration_attributes.bind({ sittings }),
       declaration_texts: tree.declaration_texts.bind({ sittings }),
       declarations: tree.declarations.bind({ sittings }),

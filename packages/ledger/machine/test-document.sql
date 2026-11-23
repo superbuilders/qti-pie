@@ -53,7 +53,7 @@ $$;
 
 -- The flat entry of a test's outcome processing: every test session a call names, each by itself, in one call; each
 -- run's result the test's outcome variables after it, held `value`, of kind `outcome`, keyed by the run.
-create function p3.test_outcome_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[],
+create function p3.test_outcome_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
   declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
   directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
   field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
@@ -111,7 +111,8 @@ begin
     else
     st := outcome_processing(prog => program_of(nodes => pn,
         attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
-        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da), inp => inp, outcomes => outcomes,
+        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
+        compiled => array(select x from unnest(compiled) x where x.package = r.package)), inp => inp, outcomes => outcomes,
       contexts => array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-context-declaration', holder => 'qti-default-value') y),
       bound => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
         where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier and z.kind = 'context')),

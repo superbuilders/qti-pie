@@ -1384,6 +1384,16 @@ export const DocumentText = rows({
   text: anyText,
 });
 
+export const CompiledPattern = rows({
+  package: anyText,
+  pattern: anyText,
+  program: anyText,
+});
+
+export const PatternProgram = rows({
+  program: anyText,
+});
+
 export const DocumentRun = rows({
   child: LearnerId,
   label: anyText,
@@ -14503,9 +14513,22 @@ export const customClassOf = fn("customClassOf", {
   volatility: "immutable",
 });
 
+export const patternProgramOf = fn("patternProgramOf", {
+  args: { pattern: anyText },
+  body: fn.body`
+  select row(c.program)::${PatternProgram} from (select xsd_compile(p => pattern) as program) c where c.program is not null
+`,
+  calls: [xsdCompile],
+  language: "sql",
+  nullInput: "called",
+  returns: PatternProgram,
+  volatility: "immutable",
+});
+
 export const programOf = fn("programOf", {
   args: {
     attributes: DocumentAttribute,
+    compiled: CompiledPattern,
     declaration_attributes: DocumentAttribute,
     declarations: DeclarationNode,
     nodes: ProgramNode,
@@ -14578,7 +14601,7 @@ export const programOf = fn("programOf", {
       from n, lateral (select coalesce(array_remove(regexp_split_to_array(n.tolerance, '[ \\t\\n\\r]+'), ''), '{}') as t) z
       where n.kind = 'qti-equal') e),
     -- A pattern names a variable as {name} where the document declares one of that name (plate's StringOrRef); else
-    -- it is the pattern itself, compiled here once.
+    -- it is the pattern itself, its program the package's compiled one (none where it is no Appendix F expression).
     (select coalesce(array_agg(row(trim_xml(t => n.field_identifier), n.start)::${PField}), '{}') from n where n.kind = 'qti-field-value'),
     (select coalesce(array_agg(row(f.filter, f.start)::${PFilter}), '{}') from (
       select n.start, 'include' as filter, n.kind from n where n.include_category is not null
@@ -14601,8 +14624,8 @@ export const programOf = fn("programOf", {
     (select coalesce(array_agg(case when n.pattern ~ '^\\{[^}]+\\}$'
           and exists (select 1 from declared d where d.identifier = substr(n.pattern, 2, length(n.pattern) - 2))
         then row(null, substr(n.pattern, 2, length(n.pattern) - 2), n.start)::${PPattern}
-        else row(xsd_compile(p => n.pattern), null, n.start)::${PPattern} end), '{}')
-      from n where n.kind = 'qti-pattern-match'),
+        else row(c.program, null, n.start)::${PPattern} end), '{}')
+      from n left join unnest(compiled) c on c.pattern = n.pattern where n.kind = 'qti-pattern-match'),
     (select coalesce(array_agg(row(int_ref_of(t => n.max), int_ref_of(t => coalesce(n.min, '0')), n.start, int_ref_of(t => coalesce(n.step, '1')))::${PRange}), '{}')
       from n where n.kind = 'qti-random-integer'),
     -- A test-level expression's characteristics (Tables 7.27, 7.28, 7.39) and a weighted qti-variable's (7.47.2).
@@ -14619,7 +14642,7 @@ export const programOf = fn("programOf", {
       where n.weight_identifier is not null and n.kind in ('qti-variable', 'qti-outcome-minimum', 'qti-outcome-maximum', 'qti-test-variables'))
   )::${Program}
 `,
-  calls: [xsdCompile, trimXml, xmlSingle, xsBoolean, intRefOf, floatRefOf, areaOf, customClassOf],
+  calls: [trimXml, xmlSingle, xsBoolean, intRefOf, floatRefOf, areaOf, customClassOf],
   language: "sql",
   nullInput: "called",
   returns: row(Program),
@@ -15131,6 +15154,7 @@ export const responseProcessingOf = fn("responseProcessingOf", {
   args: {
     bases: DocBase,
     booleans: DocBoolean,
+    compiled: CompiledPattern,
     declaration_attributes: DocumentAttribute,
     declaration_texts: DocumentText,
     declarations: DeclarationNode,
@@ -15174,7 +15198,8 @@ begin
     st := response_state(
       prog => case when cardinality(pn) > 0 then program_of(nodes => pn,
         attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
-        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da) end,
+        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
+        compiled => array(select x from unnest(compiled) x where x.package = r.package)) end,
       inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values,
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
@@ -15209,6 +15234,7 @@ export const templateProcessingOf = fn("templateProcessingOf", {
   args: {
     bases: DocBase,
     booleans: DocBoolean,
+    compiled: CompiledPattern,
     declaration_attributes: DocumentAttribute,
     declaration_texts: DocumentText,
     declarations: DeclarationNode,
@@ -15252,7 +15278,8 @@ begin
     st := template_state(
       prog => case when cardinality(pn) > 0 then program_of(nodes => pn,
         attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
-        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da) end,
+        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
+        compiled => array(select x from unnest(compiled) x where x.package = r.package)) end,
       inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values,
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
@@ -15392,6 +15419,7 @@ export const testOutcomeProcessingOf = fn("testOutcomeProcessingOf", {
   args: {
     bases: DocBase,
     booleans: DocBoolean,
+    compiled: CompiledPattern,
     declaration_attributes: DocumentAttribute,
     declaration_texts: DocumentText,
     declarations: DeclarationNode,
@@ -15472,7 +15500,8 @@ begin
     else
     st := outcome_processing(prog => program_of(nodes => pn,
         attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
-        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da), inp => inp, outcomes => outcomes,
+        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
+        compiled => array(select x from unnest(compiled) x where x.package = r.package)), inp => inp, outcomes => outcomes,
       contexts => array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-context-declaration', holder => 'qti-default-value') y),
       bound => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
         where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier and z.kind = 'context')),
@@ -16923,6 +16952,7 @@ export const gradingFunctions = [
   floatRefOf,
   areaOf,
   customClassOf,
+  patternProgramOf,
   programOf,
   inputsOf,
   declared,

@@ -67,6 +67,7 @@ import {
   DocReplyText,
   DocText,
   DocVar,
+  patternProgramOf,
   responseLabel,
   responseProcessingOf,
   seedStreamKey,

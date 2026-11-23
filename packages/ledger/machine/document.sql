@@ -72,12 +72,18 @@ create function p3.custom_class_of(definition text, operator_class text) returns
   where trim_xml(t => definition) = 'tag:superbuilders.school,2026:qti/custom-operator/' || r.c and trim_xml(t => operator_class) = r.c
 $$;
 
+-- A content pattern's program as a reader hands it to an entry (compiled_pattern) until its package's publication
+-- stores it: xsd_compile's, one row, none for a pattern that is no Appendix F expression.
+create function p3.pattern_program_of(pattern text) returns setof p3.pattern_program language sql immutable as $$
+  select row(c.program)::pattern_program from (select xsd_compile(p => pattern) as program) c where c.program is not null
+$$;
+
 -- A processing program from its root's subtree: its nodes in document order, numbered densely from 1 as the machine's
 -- walk reads them (a node's end the place past its last descendant), whatever places the stored tree gives them, and
 -- each kind's parameters parsed into their sidecars, QTI's documented defaults stated here once. `declarations` are the
 -- document's, whose names a pattern written {name} may read.
-create function p3.program_of(attributes p3.document_attribute[], declaration_attributes p3.document_attribute[], declarations p3.declaration_node[],
-  nodes p3.program_node[], texts p3.document_text[])
+create function p3.program_of(attributes p3.document_attribute[], compiled p3.compiled_pattern[], declaration_attributes p3.document_attribute[],
+  declarations p3.declaration_node[], nodes p3.program_node[], texts p3.document_text[])
 returns p3.program language sql immutable as $$
   with o as (select array_agg(x.start order by x.start) as starts from unnest(nodes) x),
   a as (
@@ -145,7 +151,7 @@ returns p3.program language sql immutable as $$
       from n, lateral (select coalesce(array_remove(regexp_split_to_array(n.tolerance, '[ \t\n\r]+'), ''), '{}') as t) z
       where n.kind = 'qti-equal') e),
     -- A pattern names a variable as {name} where the document declares one of that name (plate's StringOrRef); else
-    -- it is the pattern itself, compiled here once.
+    -- it is the pattern itself, its program the package's compiled one (none where it is no Appendix F expression).
     (select coalesce(array_agg(row(trim_xml(t => n.field_identifier), n.start)::p_field), '{}') from n where n.kind = 'qti-field-value'),
     (select coalesce(array_agg(row(f.filter, f.start)::p_filter), '{}') from (
       select n.start, 'include' as filter, n.kind from n where n.include_category is not null
@@ -168,8 +174,8 @@ returns p3.program language sql immutable as $$
     (select coalesce(array_agg(case when n.pattern ~ '^\{[^}]+\}$'
           and exists (select 1 from declared d where d.identifier = substr(n.pattern, 2, length(n.pattern) - 2))
         then row(null, substr(n.pattern, 2, length(n.pattern) - 2), n.start)::p_pattern
-        else row(xsd_compile(p => n.pattern), null, n.start)::p_pattern end), '{}')
-      from n where n.kind = 'qti-pattern-match'),
+        else row(c.program, null, n.start)::p_pattern end), '{}')
+      from n left join unnest(compiled) c on c.pattern = n.pattern where n.kind = 'qti-pattern-match'),
     (select coalesce(array_agg(row(int_ref_of(t => n.max), int_ref_of(t => coalesce(n.min, '0')), n.start, int_ref_of(t => coalesce(n.step, '1')))::p_range), '{}')
       from n where n.kind = 'qti-random-integer'),
     -- A test-level expression's characteristics (Tables 7.27, 7.28, 7.39) and a weighted qti-variable's (7.47.2).
@@ -539,7 +545,7 @@ end $$;
 -- The flat entry of response processing: every run a call names, each by itself, its program (none where its document
 -- has no processing program) and inputs read from its document's tree, and its run from its own values and recorded
 -- replies, by its key, in one call; the registry's rows the same for every run.
-create function p3.response_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[],
+create function p3.response_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
   declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
   directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
   field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
@@ -561,7 +567,8 @@ begin
     st := response_state(
       prog => case when cardinality(pn) > 0 then program_of(nodes => pn,
         attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
-        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da) end,
+        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
+        compiled => array(select x from unnest(compiled) x where x.package = r.package)) end,
       inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values,
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),
@@ -578,7 +585,7 @@ end $$;
 -- The flat entry of template processing at the take: as response_processing_of, what each run set given back, its
 -- template values, correct responses and defaults (held `value`, `correct` and `default`) that differ from those it
 -- began with (doc_values_of's `delta`): the session's facts, never the declared values, which are the item's content.
-create function p3.template_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[],
+create function p3.template_processing_of(bases p3.doc_base[], booleans p3.doc_boolean[], compiled p3.compiled_pattern[],
   declaration_attributes p3.document_attribute[], declaration_texts p3.document_text[], declarations p3.declaration_node[],
   directed_pairs p3.doc_directed_pair[], field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
   field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
@@ -600,7 +607,8 @@ begin
     st := template_state(
       prog => case when cardinality(pn) > 0 then program_of(nodes => pn,
         attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
-        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da) end,
+        texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
+        compiled => array(select x from unnest(compiled) x where x.package = r.package)) end,
       inp => with_registry(inp => inputs_of(declarations => dn, attributes => da, texts => dt), table_bindings => table_bindings,
         table_entries => table_entries, table_values => table_values,
         replies => array(select x from replies_of(run => r, nodes => pn, reply_floats => reply_floats, reply_texts => reply_texts) x)),

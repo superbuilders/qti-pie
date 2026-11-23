@@ -316,6 +316,15 @@ const START_EMPTIES = [
       ["text", '""'],
     ],
   ],
+  [
+    "compiled",
+    "CompiledPattern",
+    [
+      ["package", '""'],
+      ["pattern", '""'],
+      ["program", '""'],
+    ],
+  ],
 ] as const;
 
 /**
@@ -514,6 +523,7 @@ const startWrite = (binds: readonly string[]) => {
     "programs",
     "program_attributes",
     "program_texts",
+    "compiled",
   ]);
   const readers = startReaders();
   const own = new Set(
@@ -619,6 +629,7 @@ const RUN_ARGUMENTS = [
   "programs",
   "program_attributes",
   "program_texts",
+  "compiled",
   "declarations",
   "declaration_attributes",
   "declaration_texts",

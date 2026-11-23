@@ -64,6 +64,7 @@ import type { deliveryOf } from "#ledger/delivery.ts";
 import {
   admissionOf,
   AdmissionRun,
+  CompiledPattern,
   copies,
   DocBase,
   DocReplyFloat,
@@ -72,6 +73,7 @@ import {
   DocumentAttribute,
   DocumentText,
   DocVar,
+  patternProgramOf,
   ProgramNode,
   responseLabel,
   responseProcessingOf,
@@ -902,6 +904,34 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
       .match(fields.Literal, { package: source, path: document, start, text })
       .where(r.ge(start, first), r.lt(start, last))
       .find({ package: pkg, path: item, start, text });
+  });
+
+  /**
+   * Each content pattern of the program compiled (pattern_program_of), by its package, until the
+   * package's publication stores it: none for a pattern that is no Appendix F expression.
+   */
+  const compiledPatternsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, name, value } = v(fields.Attribute, "attribute");
+    const compiled = Fn.rows(patternProgramOf, { pattern: value });
+    const { program } = v(compiled, "compiled");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.Attribute, { name, package: source, path: document, start, value })
+      .match(fields.GradedAttributeName, { name, token: "pattern" })
+      .match(compiled, { program })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, pattern: value, program });
   });
 
   /**
@@ -8487,6 +8517,7 @@ export const gradeArgumentsOf = (delivery: DeliveryLevel) => {
   return {
     bases: basesOf,
     booleans: booleansOf,
+    compiled: compiledPatternsOf,
     declaration_attributes: declarationAttributesOf,
     declaration_texts: declarationTextsOf,
     declarations: declarationNodesOf,
@@ -23402,6 +23433,34 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
+   * Each content pattern of the program compiled (pattern_program_of), by its package, until the
+   * package's publication stores it: none for a pattern that is no Appendix F expression.
+   */
+  const compiledPatternsOf = query(delivery).rule((r) => {
+    const boundResponseRoots = boundResponseRootsIn(r);
+    const roots = boundResponseRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, name, value } = v(fields.Attribute, "attribute");
+    const compiled = Fn.rows(patternProgramOf, { pattern: value });
+    const { program } = v(compiled, "compiled");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.Attribute, { name, package: source, path: document, start, value })
+      .match(fields.GradedAttributeName, { name, token: "pattern" })
+      .match(compiled, { program })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, pattern: value, program });
+  });
+
+  /**
    * The graded items' declarations' nodes of the kinds the machine reads.
    */
   const declarationNodesOf = query(delivery).rule((r) => {
@@ -29053,6 +29112,7 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
   return {
     bases: basesOf,
     booleans: booleansOf,
+    compiled: compiledPatternsOf,
     declaration_attributes: declarationAttributesOf,
     declaration_texts: declarationTextsOf,
     declarations: declarationNodesOf,
@@ -29208,6 +29268,7 @@ export const gradeAttemptOf = (delivery: DeliveryLevel) => {
     Fn.row(responseProcessingOf, {
       bases: args.bases.bind(bySession(r)),
       booleans: args.booleans.bind(bySession(r)),
+      compiled: args.compiled.bind(bySession(r)),
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
       declaration_texts: args.declaration_texts.bind(bySession(r)),
       declarations: args.declarations.bind(bySession(r)),
@@ -32192,6 +32253,26 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
   });
 
   /**
+   * Each content pattern of the program compiled (pattern_program_of), by its package, until the
+   * package's publication stores it: none for a pattern that is no Appendix F expression.
+   */
+  const compiled = query(delivery).rule((r) => {
+    const roots = rootsIn(r);
+    const { package: pkg, path, start: first, end: last } = v(roots, "root");
+    const { start, name, value } = v(fields.Attribute, "attribute");
+    const patterns = Fn.rows(patternProgramOf, { pattern: value });
+    const { program } = v(patterns, "compiled");
+
+    return r
+      .match(roots, { end: last, package: pkg, path, start: first })
+      .match(fields.Attribute, { name, package: pkg, path, start, value })
+      .match(fields.GradedAttributeName, { name, token: "pattern" })
+      .match(patterns, { program })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, pattern: value, program });
+  });
+
+  /**
    * Each base value's text in the program (pantry's Literal).
    */
   const programTexts = query(delivery).rule((r) => {
@@ -32256,6 +32337,7 @@ export const testTreeOf = (delivery: DeliveryLevel) => {
   });
 
   return {
+    compiled,
     declaration_attributes: declarationAttributes,
     declaration_texts: declarationTexts,
     declarations,
@@ -34407,6 +34489,34 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
       .match(fields.Literal, { package: source, path: document, start, text })
       .where(r.ge(start, first), r.lt(start, last))
       .find({ package: pkg, path: item, start, text });
+  });
+
+  /**
+   * Each content pattern of the program compiled (pattern_program_of), by its package, until the
+   * package's publication stores it: none for a pattern that is no Appendix F expression.
+   */
+  const compiledPatternsOf = query(delivery).rule((r) => {
+    const boundTemplateRoots = boundTemplateRootsIn(r);
+    const roots = boundTemplateRoots;
+    const {
+      package: pkg,
+      path: item,
+      source,
+      document,
+      start: first,
+      end: last,
+    } = v(roots, "root");
+    const { start, name, value } = v(fields.Attribute, "attribute");
+    const compiled = Fn.rows(patternProgramOf, { pattern: value });
+    const { program } = v(compiled, "compiled");
+
+    return r
+      .match(roots, { document, end: last, package: pkg, path: item, source, start: first })
+      .match(fields.Attribute, { name, package: source, path: document, start, value })
+      .match(fields.GradedAttributeName, { name, token: "pattern" })
+      .match(compiled, { program })
+      .where(r.ge(start, first), r.lt(start, last))
+      .find({ package: pkg, pattern: value, program });
   });
 
   /**
@@ -40153,6 +40263,7 @@ export const takeArgumentsOf = (delivery: DeliveryLevel) => {
   return {
     bases: basesOf,
     booleans: booleansOf,
+    compiled: compiledPatternsOf,
     declaration_attributes: declarationAttributesOf,
     declaration_texts: declarationTextsOf,
     declarations: declarationNodesOf,
@@ -40238,6 +40349,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
     Fn.row(templateProcessingOf, {
       bases: args.bases.bind(bySession(r)),
       booleans: args.booleans.bind(bySession(r)),
+      compiled: args.compiled.bind(bySession(r)),
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
       declaration_texts: args.declaration_texts.bind(bySession(r)),
       declarations: args.declarations.bind(bySession(r)),
@@ -45522,6 +45634,13 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
       text: Type.literal(DocumentText.fields.text, ""),
     }),
   );
+  const noCompiled = query(delivery).rule((r) =>
+    r.where(r.or()).find({
+      package: Type.literal(CompiledPattern.fields.package, ""),
+      pattern: Type.literal(CompiledPattern.fields.pattern, ""),
+      program: Type.literal(CompiledPattern.fields.program, ""),
+    }),
+  );
 
   /**
    * Each declared variable's base type, built-ins included, by the taken session.
@@ -46377,6 +46496,7 @@ export const takeValuesOf = (delivery: DeliveryLevel) => {
     Fn.row(responseProcessingOf, {
       bases: startBasesOf.bind(bySession(r)),
       booleans: startBooleansOf.bind(bySession(r)),
+      compiled: noCompiled,
       declaration_attributes: args.declaration_attributes.bind(bySession(r)),
       declaration_texts: args.declaration_texts.bind(bySession(r)),
       declarations: args.declarations.bind(bySession(r)),
