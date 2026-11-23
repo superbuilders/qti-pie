@@ -376,10 +376,11 @@ const StagePlotPins = (props: StagePlot) => {
  * - The graphic stage's parts, `plate-graphic`, the region named as the root is, and below it: each
  *   hotspot's `plate-graphic-mark`, its two-tone outline, `data-placed` while the hotspot holds a
  *   choice and `data-focus-visible` while its row's control has keyboard focus, holding a `g` that
- *   is the primitive's `plate-placement-target` for the hotspot, with `data-over` and
- *   `data-refuses` while a drag is over it, around the area's hit shape, `plate-graphic-area`; and
- *   in the stage's pins an arrow beside each hotspot whose author's class asks for one,
- *   `plate-graphic-arrow` ({@link HotspotArrows}), and the choices each hotspot holds
+ *   is the primitive's `plate-placement-target` for the hotspot, out of the tab order but taking
+ *   focus where a tap or a drag places a choice on it, so the page never scrolls to the list, with
+ *   `data-over` and `data-refuses` while a drag is over it, around the area's hit shape,
+ *   `plate-graphic-area`; and in the stage's pins an arrow beside each hotspot whose author's class
+ *   asks for one, `plate-graphic-arrow` ({@link HotspotArrows}), and the choices each hotspot holds
  *   (`#plate/ui/graphic-gap-match/placed.tsx`);
  * - `plate-graphic-gap-match-targets`, the list of hotspots below the image, in document order: each
  *   hotspot a `plate-placement-target`, a group named by the hotspot's name through `aria-label`,
@@ -521,6 +522,7 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
                   name={{ by: "aria-label", text: area.label }}
                   render={<g />}
                   spot={{ id: area.identifier, kind: "target" }}
+                  tabIndex={-1}
                 >
                   <DrawnArea area={area} drawing={drawing} />
                 </PlacementTarget>

@@ -12,7 +12,12 @@
  * as its address, as the body writes its URLs; and every other as
  * written, `definitionURL` and `cdbase` among them, which name a definition and which no browser
  * fetches. No `dir` is added: MathML Core's user agent stylesheet already starts every `math` left
- * to right. An `annotation-xml`'s content is written as the body is, through the walk.
+ * to right. An `annotation-xml`'s content is written as the body is, through the walk. An
+ * `annotation`, a formula's source in another notation such as its TeX, which no browser draws and
+ * Chrome's accessibility tree leaves out of `semantics`, is hidden from assistive technology
+ * (`aria-hidden`), so a part read for its visible words, as the placement primitive reads a chip it
+ * announces, reads the formula once: the chip holding 8 says "8", never "88" (edullm-bd,
+ * 2026-11-22, from _f9fa8d6c's placements).
  *
  * Stated limit: React creates an `annotation-xml`'s children in the MathML namespace, where the
  * HTML parser reads the server's HTML of an `annotation-xml` whose `encoding` is HTML's in the HTML
@@ -295,7 +300,11 @@ const childrenOf = (
       case "element": {
         return createElement(
           child.local,
-          { ...propsOf(child.local, child.attributes, walk.walk.addressing), key: index },
+          {
+            "aria-hidden": child.local === "annotation" ? "true" : undefined,
+            ...propsOf(child.local, child.attributes, walk.walk.addressing),
+            key: index,
+          },
           childrenOf(child.children, walk),
         );
       }

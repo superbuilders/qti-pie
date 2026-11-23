@@ -19,7 +19,10 @@
  *
  * A refused step is decided by the machine before any state changes, announced, and shown in the
  * message part. Focus follows a moved chip to where it lands, since the framework renders it as a
- * new element and a browser without `moveBefore` drops focus when it removes the old one. Every
+ * new element and a browser without `moveBefore` drops focus when it removes the old one; but a
+ * chip a pointer places on a target drawn on a picture, a Graphic Gap Match's hotspot on its stage,
+ * leaves focus on that target, where the child is looking, and never scrolls the page, since the
+ * chip itself lands in the list under the picture ({@link landingOf}). Every
  * text comes from the `labels` option, filled with the visible text of the chips and targets.
  *
  * @module
@@ -299,6 +302,36 @@ interface DropArea {
   readonly el: HTMLElement;
   readonly place: Place;
 }
+
+/**
+ * The place under or near a point, and the part's element where the point is on that part, none
+ * where it is only near it.
+ */
+interface Found {
+  readonly el: HTMLElement | undefined;
+  readonly place: Place;
+}
+
+/**
+ * Give the target a pointer placed a chip on where focus stays after the move, in place of the
+ * chip's new element: a target drawn on a picture (an element of SVG's namespace, a Graphic Gap
+ * Match's hotspot on its stage) that takes focus (`tabindex`), the one the move placed the chip in,
+ * whether it was empty or the chip took another's place there.
+ * There the child is looking, and the chip's own new element stands in the list under the picture,
+ * often out of view, so focusing it would scroll the page under the child's finger, which
+ * AlphaTest's player never did (edullm-bd, 2026-11-22, from PLAYER-PARITY's _f9fa8d6c). A move
+ * the keyboard made, through a slot, or onto a target laid out as a box, follows the chip.
+ *
+ * @param on The target part's element the pointer placed the chip on, if any.
+ * @param move The move.
+ * @returns The element focus goes to, or none where it follows the chip.
+ */
+const landingOf = (on: Element | undefined, move: Move): SVGElement | undefined =>
+  on instanceof SVGElement &&
+  on.hasAttribute("tabindex") &&
+  (move.kind === "placed" || move.kind === "swapped")
+    ? on
+    : undefined;
 
 /**
  * A part a release fell on none of, as the release measures it: its place, how far the release is
@@ -838,14 +871,16 @@ export const placement = definePrimitive({
 
     /**
      * Commit a drop: ask the host for the step's placements, mark where focus follows the moved
-     * chip, and announce what happened; or announce the refusal. A host that cancels the change
-     * leaves the chip held.
+     * chip, or give it to the target drawn on a picture the pointer placed it on ({@link
+     * landingOf}), and announce what happened; or announce the refusal. A host that cancels the
+     * change leaves the chip held.
      *
      * @param step The machine's step.
      * @param reason What made the move.
      * @param event The event behind it, if any.
+     * @param on The target part's element the pointer placed the chip on, if any.
      */
-    const commit = (step: Step, reason: PlacementReason, event?: Event) => {
+    const commit = (step: Step, reason: PlacementReason, event?: Event, on?: Element) => {
       if (!step.ok) {
         refused(step.refusal);
 
@@ -861,9 +896,12 @@ export const placement = definePrimitive({
         const inside =
           active === doc?.body || (active instanceof Node && root?.contains(active) === true);
 
-        pending = inside
-          ? { at: move.kind === "returned" ? bank : move.target, chip: move.chip }
-          : undefined;
+        const landing = landingOf(on, move);
+
+        pending =
+          inside && landing === undefined
+            ? { at: move.kind === "returned" ? bank : move.target, chip: move.chip }
+            : undefined;
 
         if (
           !change(
@@ -875,6 +913,10 @@ export const placement = definePrimitive({
           pending = undefined;
 
           return;
+        }
+
+        if (inside && landing !== undefined) {
+          landing.focus({ preventScroll: true });
         }
       }
 
@@ -889,10 +931,10 @@ export const placement = definePrimitive({
      * @param reason What made the move.
      * @param event The event behind it, if any.
      */
-    const dropAt = (to: Place, reason: PlacementReason, event?: Event) => {
+    const dropAt = (to: Place, reason: PlacementReason, event?: Event, on?: Element) => {
       const current = store.get();
 
-      commit(place(current, pickedOf(current), to), reason, event);
+      commit(place(current, pickedOf(current), to), reason, event, on);
     };
 
     /**
@@ -906,9 +948,10 @@ export const placement = definePrimitive({
      *
      * @param x The point's x, in viewport pixels.
      * @param y The point's y, in viewport pixels.
-     * @returns The place, or `null` when none is near.
+     * @returns The place, with the part's element where the point is on it, or `null` when none is
+     *   near.
      */
-    const placeAt = (x: number, y: number): Place | null => {
+    const areaAt = (x: number, y: number): Found | null => {
       const areas: readonly DropArea[] = [
         ...elements<TargetProps>(context, "target").map((part) => ({
           el: part.el,
@@ -921,17 +964,28 @@ export const placement = definePrimitive({
         .find((area) => area !== undefined);
 
       if (under !== undefined) {
-        return under.place;
+        return under;
       }
 
-      return nearMissOf(
+      const near = nearMissOf(
         areas.map((area) => ({
           distance: distanceTo(area.el, x, y),
           drawn: area.el.namespaceURI === svgNamespace,
           place: area.place,
         })),
       );
+
+      return near === null ? null : { el: undefined, place: near };
     };
+
+    /**
+     * Find the place under or near a point ({@link areaAt}).
+     *
+     * @param x The point's x, in viewport pixels.
+     * @param y The point's y, in viewport pixels.
+     * @returns The place, or `null` when none is near.
+     */
+    const placeAt = (x: number, y: number): Place | null => areaAt(x, y)?.place ?? null;
 
     /**
      * Mark the place a drag is over, on its part and on the dragged copy.
@@ -1168,10 +1222,10 @@ export const placement = definePrimitive({
                 return;
               }
 
-              const over = placeAt(end.clientX, end.clientY);
+              const over = areaAt(end.clientX, end.clientY);
 
               if (over !== null) {
-                dropAt(over, "drag", end);
+                dropAt(over.place, "drag", end, over.el);
               }
             },
             onMove: ({ x, y }) => {
@@ -1218,10 +1272,11 @@ export const placement = definePrimitive({
        *
        * @param to The area's place.
        * @param event The click.
+       * @param on The target part's element pressed, where the press was on a target.
        */
-      pressArea: (to: Place, event: Event) => {
+      pressArea: (to: Place, event: Event, on?: Element) => {
         if (store.get().held !== null && missed(event, buttonParts)) {
-          dropAt(to, "item-press", event);
+          dropAt(to, "item-press", event, on);
         }
       },
 
@@ -1418,8 +1473,8 @@ export const placement = definePrimitive({
       },
       bind: (_el, part) => part.api.bindNamed(),
       on: {
-        click: (event, { api, props }) => {
-          api.pressArea(props.spot, event);
+        click: (event, { api, el, props }) => {
+          api.pressArea(props.spot, event, el);
         },
       },
       props: { by: "string", id: "id", spot: "value" },
