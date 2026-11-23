@@ -29,8 +29,8 @@
  */
 import { Data, Option, Result } from "effect";
 import { endedName } from "#plate/instance.ts";
-import { atDefault, isNullResponse } from "#plate/model/values.ts";
-import type { Responses, ResponseValue, Value } from "#plate/model/values.ts";
+import { isNullResponse, isRecordValue } from "#plate/model/values.ts";
+import type { RecordValue, Responses, ResponseValue, Single, Value } from "#plate/model/values.ts";
 
 /**
  * The boxes of one typed response, a Text Entry's `input` or an Extended Text's `textarea`s: each
@@ -181,15 +181,135 @@ export const answerOf = (
 };
 
 /**
- * Report whether two values of a response are the same answer: both NULL, or neither and equal as
- * QTI compares them, a `multiple` as a multiset and a record's fields in any order.
+ * Tell whether two singles are the same entry of a held answer: of one base type, and equal as the
+ * child's answer reads, a `pair` in either order, a `directedPair` in order, a `point` when both
+ * coordinates are, an integer, a float and a duration by value (`===`, so `0` is `-0` and no NaN is
+ * any) and an identifier, a string and a URI by code point. A `file` is the same entry when the
+ * name, size and type plate holds of it are: plate holds no file's octets, so this is no file
+ * identity. QTI 3.0.1's file value is its octets qualified by a content-type and a filename
+ * (information model §8.14, BaseTypeEnum), and whether two files are the same value is the
+ * database's to decide; no island writes a file, so a host's state holds a file response only as
+ * NULL.
+ *
+ * @param left One single.
+ * @param right The other.
+ * @returns Whether they are the same entry.
+ */
+const sameEntry = (left: Single, right: Single): boolean => {
+  if (left.baseType === "file" && right.baseType === "file") {
+    return (
+      left.value.name === right.value.name &&
+      left.value.size === right.value.size &&
+      left.value.type === right.value.type
+    );
+  }
+
+  if (left.baseType === "pair" && right.baseType === "pair") {
+    const [a, b] = left.value;
+    const [c, d] = right.value;
+
+    return (a === c && b === d) || (a === d && b === c);
+  }
+
+  if (left.baseType === "directedPair" && right.baseType === "directedPair") {
+    return left.value[0] === right.value[0] && left.value[1] === right.value[1];
+  }
+
+  if (left.baseType === "point" && right.baseType === "point") {
+    return left.value[0] === right.value[0] && left.value[1] === right.value[1];
+  }
+
+  return left.baseType === right.baseType && left.value === right.value;
+};
+
+/**
+ * Tell whether two equally long lists hold the same entries as multisets, as a `multiple` answer
+ * reads: each entry of one pairs with its own entry of the other, repeats counted.
+ *
+ * @param left One list.
+ * @param right The other, of the same length.
+ * @returns Whether they hold the same entries.
+ */
+const sameBag = (left: readonly Single[], right: readonly Single[]): boolean => {
+  const unpaired = [...right];
+
+  return left.every((single) => {
+    const index = unpaired.findIndex((other) => sameEntry(single, other));
+    if (index === -1) {
+      return false;
+    }
+
+    unpaired.splice(index, 1);
+
+    return true;
+  });
+};
+
+/**
+ * Tell whether two records hold the same fields, in any order, each the same entry
+ * ({@link sameEntry}). A record names each identifier once (`RecordValueSchema`), so a map of one's
+ * fields reads the other's in linear time.
+ *
+ * @param left One record.
+ * @param right The other.
+ * @returns Whether they hold the same fields.
+ */
+const sameFields = (left: RecordValue, right: RecordValue): boolean => {
+  const fields = new Map(left.fields.map((field) => [field.identifier, field.value]));
+
+  return (
+    fields.size === right.fields.length &&
+    right.fields.every(({ identifier, value }) => {
+      const other = fields.get(identifier);
+
+      return other !== undefined && sameEntry(other, value);
+    })
+  );
+};
+
+/**
+ * Tell whether two non-NULL values of a response hold the same entries: of one base type and
+ * cardinality and as many values, a `multiple` as a multiset ({@link sameBag}) and a `single` or
+ * `ordered` in order.
+ *
+ * @param left One value.
+ * @param right The other.
+ * @returns Whether they hold the same entries.
+ */
+const sameValues = (left: Value, right: Value): boolean =>
+  left.baseType === right.baseType &&
+  left.cardinality === right.cardinality &&
+  left.values.length === right.values.length &&
+  (left.cardinality === "multiple"
+    ? sameBag(left.values, right.values)
+    : left.values.every((single, index) => {
+        const other = right.values[index];
+
+        return other !== undefined && sameEntry(single, other);
+      }));
+
+/**
+ * Report whether two values of a response are the same answer as the host holds it: both NULL
+ * ({@link isNullResponse}), or neither and holding the same entries, a value's ({@link sameValues})
+ * or a record's fields in any order ({@link sameFields}). It is the host's test of whether the
+ * child changed a response from its start, never a grade: whether an answer matches a correct
+ * response is the database's (`qti-match`, in its statements).
  *
  * @param left One value.
  * @param right The other.
  * @returns Whether they are the same.
  */
-export const sameResponse = (left: ResponseValue, right: ResponseValue): boolean =>
-  isNullResponse(left) ? isNullResponse(right) : !isNullResponse(right) && atDefault(left, right);
+export const sameResponse = (left: ResponseValue, right: ResponseValue): boolean => {
+  if (isNullResponse(left) || isNullResponse(right)) {
+    return isNullResponse(left) && isNullResponse(right);
+  }
+
+  if (isRecordValue(left) || isRecordValue(right)) {
+    return isRecordValue(left) && isRecordValue(right) && sameFields(left, right);
+  }
+
+  return sameValues(left, right);
+};
 
 /**
  * Report whether two sets of responses are the same answers: the same identifiers, each the same

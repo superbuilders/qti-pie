@@ -40,8 +40,8 @@ export const QtiInteger = named(
 /**
  * QTI's float and duration, an IEEE double as plate holds one: NaN, the infinities and `-0` as
  * themselves. A key compares a double as PostgreSQL's equality does, natively, where `-0` is `0`
- * and every NaN is one, which is how grading compares one too, as plate's `sameSingle` does; a
- * multiple, which holds `-0` and `0` as two values, keys each by its identity image beside it,
- * grizzle's `Num.floatBits` (`#ledger.ts`'s law BagImage).
+ * and every NaN is one, which is how grading compares one too; a multiple, which holds `-0` and `0`
+ * as two values, keys each by its identity image beside it, grizzle's `Num.floatBits`
+ * (`#ledger.ts`'s law BagImage).
  */
 export const QtiFloat = pg["double precision"];

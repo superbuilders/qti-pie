@@ -16,10 +16,11 @@
  */
 import { assert, describe, it } from "@effect/vitest";
 import { Option, Result } from "effect";
-import { answerOf, endedOf, heldOf, sameResponses, savedOf } from "#plate/held.ts";
+import { answerOf, endedOf, heldOf, sameResponse, sameResponses, savedOf } from "#plate/held.ts";
 import type { Held } from "#plate/held.ts";
 import { endedName } from "#plate/instance.ts";
-import type { Responses, Value } from "#plate/model/values.ts";
+import { nullOf } from "#plate/model/values.ts";
+import type { RecordField, RecordValue, Responses, Single, Value } from "#plate/model/values.ts";
 
 /**
  * The instance the page renders the item under.
@@ -146,5 +147,173 @@ describe("heldOf and sameResponses", () => {
     assert.isTrue(sameResponses(start, { ...start }));
     assert.isFalse(sameResponses(start, typed.responses));
     assert.isFalse(sameResponses(start, { HINT: boolean(false) }));
+  });
+});
+
+/**
+ * Construct a value for a test.
+ *
+ * @param baseType The value's base type.
+ * @param cardinality The value's cardinality.
+ * @param values Its values.
+ * @returns The value.
+ */
+const valueOf = (
+  baseType: Value["baseType"],
+  cardinality: Value["cardinality"],
+  values: readonly Single[],
+): Value => ({ baseType, cardinality, values });
+
+/**
+ * Construct identifier singles.
+ *
+ * @param names The identifiers, in order.
+ * @returns One single for each.
+ */
+const identifiers = (...names: readonly string[]): readonly Single[] =>
+  names.map((name) => ({ baseType: "identifier", value: name }));
+
+/**
+ * Construct a single pair or directed pair value.
+ *
+ * @param baseType `pair` or `directedPair`.
+ * @param source The first identifier.
+ * @param destination The second.
+ * @returns The value.
+ */
+const pairOf = (baseType: "pair" | "directedPair", source: string, destination: string): Value =>
+  valueOf(baseType, "single", [{ baseType, value: [source, destination] }]);
+
+/**
+ * Construct a record.
+ *
+ * @param fields Its fields, in order.
+ * @returns The record.
+ */
+const recordOf = (...fields: readonly RecordField[]): RecordValue => ({
+  cardinality: "record",
+  fields,
+});
+
+/**
+ * Construct a record field.
+ *
+ * @param identifier The field's identifier.
+ * @param single Its value.
+ * @returns The field.
+ */
+const field = (identifier: string, single: Single): RecordField => ({ identifier, value: single });
+
+/**
+ * Construct a single point value.
+ *
+ * @param x Its horizontal coordinate.
+ * @param y Its vertical coordinate.
+ * @returns The value.
+ */
+const point = (x: bigint, y: bigint): Value =>
+  valueOf("point", "single", [{ baseType: "point", value: [x, y] }]);
+
+describe("sameResponse", () => {
+  // Oracle: QTI 3.0.1's values (information model, BaseTypeEnum and Cardinality): a `multiple` is an
+  // unordered bag, repeats counted; an `ordered` a sequence; a `pair` unordered and a `directedPair`
+  // ordered; a record's fields named, in no order; and NULL is no value at any cardinality.
+  it("holds a multiple the same as a bag and an ordered as a sequence", () => {
+    const abb = identifiers("A", "B", "B");
+    const bab = identifiers("B", "A", "B");
+
+    assert.isTrue(
+      sameResponse(valueOf("identifier", "multiple", abb), valueOf("identifier", "multiple", bab)),
+    );
+    assert.isFalse(
+      sameResponse(valueOf("identifier", "ordered", abb), valueOf("identifier", "ordered", bab)),
+    );
+    assert.isTrue(
+      sameResponse(valueOf("identifier", "ordered", abb), valueOf("identifier", "ordered", abb)),
+    );
+    assert.isFalse(
+      sameResponse(
+        valueOf("identifier", "multiple", abb),
+        valueOf("identifier", "multiple", identifiers("A", "A", "B")),
+      ),
+    );
+  });
+
+  it("holds a pair the same in either order, a directed pair only in order, a point only at both coordinates", () => {
+    assert.isTrue(sameResponse(pairOf("pair", "A", "B"), pairOf("pair", "B", "A")));
+    assert.isFalse(
+      sameResponse(pairOf("directedPair", "A", "B"), pairOf("directedPair", "B", "A")),
+    );
+    assert.isTrue(sameResponse(pairOf("directedPair", "A", "B"), pairOf("directedPair", "A", "B")));
+    assert.isTrue(sameResponse(point(102n, 113n), point(102n, 113n)));
+    assert.isFalse(sameResponse(point(102n, 113n), point(113n, 102n)));
+    assert.isFalse(sameResponse(point(102n, 113n), point(102n, 114n)));
+  });
+
+  it("holds NULL the same as NULL alone", () => {
+    const a = valueOf("identifier", "single", identifiers("A"));
+
+    assert.isTrue(sameResponse(nullOf("identifier", "single"), nullOf("identifier", "single")));
+    assert.isFalse(sameResponse(a, nullOf("identifier", "single")));
+    assert.isFalse(sameResponse(nullOf("identifier", "single"), a));
+    assert.isTrue(sameResponse(recordOf(), recordOf()));
+  });
+
+  it("holds numbers the same by value and strings by code point, within one base type and cardinality", () => {
+    const integer = (whole: bigint): Value =>
+      valueOf("integer", "single", [{ baseType: "integer", value: whole }]);
+    const float = (number: number): Value =>
+      valueOf("float", "single", [{ baseType: "float", value: number }]);
+    const string = (text: string): Value =>
+      valueOf("string", "single", [{ baseType: "string", value: text }]);
+
+    assert.isTrue(sameResponse(integer(1n), integer(1n)));
+    assert.isTrue(sameResponse(float(0), float(-0)));
+    assert.isFalse(sameResponse(float(Number.NaN), float(Number.NaN)));
+    assert.isFalse(sameResponse(integer(1n), float(1)));
+    assert.isFalse(sameResponse(string("a"), string("A")));
+    assert.isFalse(
+      sameResponse(
+        valueOf("identifier", "single", identifiers("A")),
+        valueOf("identifier", "multiple", identifiers("A")),
+      ),
+    );
+  });
+
+  it("holds a record the same by its fields in any order, and never a record the same as a value", () => {
+    const stringValue = field("stringValue", { baseType: "string", value: "1.5" });
+    const floatValue = field("floatValue", { baseType: "float", value: 1.5 });
+
+    assert.isTrue(
+      sameResponse(recordOf(stringValue, floatValue), recordOf(floatValue, stringValue)),
+    );
+    assert.isTrue(
+      sameResponse(
+        recordOf(field("pair", { baseType: "pair", value: ["A", "B"] })),
+        recordOf(field("pair", { baseType: "pair", value: ["B", "A"] })),
+      ),
+    );
+    assert.isFalse(
+      sameResponse(
+        recordOf(field("integerValue", { baseType: "integer", value: 2n })),
+        recordOf(field("integerValue", { baseType: "float", value: 2 })),
+      ),
+    );
+    assert.isFalse(sameResponse(recordOf(stringValue, floatValue), recordOf(stringValue)));
+    assert.isFalse(sameResponse(recordOf(stringValue), recordOf(stringValue, floatValue)));
+    assert.isFalse(
+      sameResponse(
+        recordOf(stringValue),
+        recordOf(field("stringValue", { baseType: "string", value: "1.50" })),
+      ),
+    );
+    assert.isFalse(sameResponse(recordOf(stringValue), recordOf(floatValue)));
+    assert.isFalse(sameResponse(recordOf(), recordOf(stringValue)));
+    assert.isFalse(
+      sameResponse(
+        recordOf(stringValue),
+        valueOf("string", "single", [{ baseType: "string", value: "1.5" }]),
+      ),
+    );
   });
 });

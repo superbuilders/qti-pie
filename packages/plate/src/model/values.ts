@@ -1,11 +1,14 @@
 /**
  * QTI values and NULL as the value model holds them: a base type, a cardinality and the values,
- * with the lexical parse and format of each base type and the equality `qti-match` uses. A record
- * is its own type, {@link RecordValue}: named fields, each a single, with no base type of its own.
+ * with the lexical parse and format of each base type. A record is its own type,
+ * {@link RecordValue}: named fields, each a single, with no base type of its own. No equality of
+ * QTI values lives here: `qti-match`, `qti-member` and every other comparison a grade rests on are
+ * the database's, and a file's identity (its octets, content-type and filename) needs bytes plate
+ * never holds.
  *
- * The session record and the form encoding both carry a {@link Value}, and a record
- * response's {@link RecordValue} beside it, so this module owns the one value representation, and
- * the one NCName rule.
+ * The session record and a posted body both carry a {@link Value}, and a record response's
+ * {@link RecordValue} beside it, so this module owns the one value representation, and the one
+ * NCName rule.
  *
  * @module
  */
@@ -202,7 +205,7 @@ export interface RecordField {
  *
  * A record has no base type of its own; each field carries its own. A NULL field is no field, and a
  * record with no field is NULL, so there is one spelling of NULL here too. The order of the fields
- * means nothing ({@link sameRecord}). `RecordValueSchema` in `#plate/codec/values.ts` checks these
+ * means nothing. `RecordValueSchema` in `#plate/codec/values.ts` checks these
  * rules at the boundaries.
  *
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Variables
@@ -627,144 +630,6 @@ export const format = (single: Single): string => {
 
   return single.value;
 };
-
-/**
- * Report whether two singles are equal, as {@link match} compares two single values.
- *
- * @param left One single.
- * @param right The other single.
- * @returns Whether they share a base type and are equal: a `pair` in either order, a
- *   `directedPair` in order, a `point` when both coordinates are equal, a `file` when its name,
- *   size and type are each equal, integers, floats and durations by value (`===` compares two
- *   bigints by value) and strings by code point.
- */
-export const sameSingle = (left: Single, right: Single): boolean => {
-  if (left.baseType === "file" && right.baseType === "file") {
-    return (
-      left.value.name === right.value.name &&
-      left.value.size === right.value.size &&
-      left.value.type === right.value.type
-    );
-  }
-
-  if (left.baseType === "pair" && right.baseType === "pair") {
-    const [a, b] = left.value;
-    const [c, d] = right.value;
-
-    return (a === c && b === d) || (a === d && b === c);
-  }
-
-  if (left.baseType === "directedPair" && right.baseType === "directedPair") {
-    return left.value[0] === right.value[0] && left.value[1] === right.value[1];
-  }
-
-  if (left.baseType === "point" && right.baseType === "point") {
-    return left.value[0] === right.value[0] && left.value[1] === right.value[1];
-  }
-
-  return left.baseType === right.baseType && left.value === right.value;
-};
-
-/**
- * Give a record's fields by identifier, in linear time. A record names each identifier once
- * (`RecordValueSchema` refuses one that does not).
- *
- * @param record The record.
- * @returns Each field's value by its identifier.
- */
-const fieldsOf = (record: RecordValue): ReadonlyMap<string, Single> =>
-  new Map(record.fields.map((field) => [field.identifier, field.value]));
-
-/**
- * Report whether two records hold the same fields, in any order.
- *
- * @param left One record.
- * @param right The other record.
- * @returns Whether they name the same set of identifiers and, for each, fields of one base type
- *   that are equal as {@link sameSingle} compares them. Two NULL records name no identifier, so
- *   they are the same; `qti-match`'s NULL rule is its caller's.
- */
-export const sameRecord = (left: RecordValue, right: RecordValue): boolean => {
-  const leftFields = fieldsOf(left);
-  const rightFields = fieldsOf(right);
-
-  return (
-    leftFields.size === rightFields.size &&
-    [...leftFields].every(([identifier, single]) => {
-      const other = rightFields.get(identifier);
-
-      return other !== undefined && sameSingle(single, other);
-    })
-  );
-};
-
-/**
- * Report whether two equally long lists hold the same values as multisets.
- *
- * @param left One list.
- * @param right The other list, of the same length.
- * @returns Whether each value of `left` pairs with its own equal value of `right`.
- */
-const sameMultiset = (left: readonly Single[], right: readonly Single[]): boolean => {
-  const unmatched = [...right];
-
-  return left.every((single) => {
-    const index = unmatched.findIndex((other) => sameSingle(single, other));
-    if (index === -1) {
-      return false;
-    }
-
-    unmatched.splice(index, 1);
-
-    return true;
-  });
-};
-
-/**
- * Report whether two values match, as `qti-match` and `match_correct` compare a response with its
- * correct response.
- *
- * The values must share a base type and a cardinality. `single` compares the one value, `multiple`
- * compares as a multiset (repeats count), and `ordered` as a sequence.
- *
- * @param left One value.
- * @param right The other value.
- * @returns Whether they match; false when either is NULL.
- * @see https://www.imsglobal.org/spec/qti/v3p0/info#OpMatch
- */
-export const match = (left: Value, right: Value): boolean => {
-  if (
-    isNull(left) ||
-    isNull(right) ||
-    left.baseType !== right.baseType ||
-    left.cardinality !== right.cardinality ||
-    left.values.length !== right.values.length
-  ) {
-    return false;
-  }
-
-  return left.cardinality === "multiple"
-    ? sameMultiset(left.values, right.values)
-    : left.values.every((single, index) => {
-        const other = right.values[index];
-
-        return other !== undefined && sameSingle(single, other);
-      });
-};
-
-/**
- * Report whether a response's value is its default, as skipping and Results Reporting's answered
- * status read it: a value that matches it ({@link match}), or a record that holds the same fields
- * in any order ({@link sameRecord}). A value is never a record's default, nor a record a value's.
- *
- * @param value The value given, not NULL.
- * @param fallback The response's default.
- * @returns Whether `value` is `fallback`.
- */
-export const atDefault = (value: ResponseValue, fallback: ResponseValue): boolean =>
-  isRecordValue(value)
-    ? isRecordValue(fallback) && sameRecord(value, fallback)
-    : !isRecordValue(fallback) && match(value, fallback);
 
 /**
  * Give the value a map of values holds by an identifier, read from the map's own keys only.

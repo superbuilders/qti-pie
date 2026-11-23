@@ -26,10 +26,11 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option } from "effect";
 import { interactionsIn } from "#plate/model/interactions.ts";
 import { recordOf } from "#plate/test/records.ts";
-import { format, isNullResponse, isRecordValue, match, nullOf, own } from "#plate/model/values.ts";
+import { format, isNullResponse, isRecordValue, nullOf, own } from "#plate/model/values.ts";
 import type { Responses, ResponseValue, Value } from "#plate/model/values.ts";
 import { redact } from "#plate/redact.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
+import { sameResponse } from "#plate/held.ts";
 import { restore } from "#plate/restore.ts";
 import { startingResponses } from "#plate/starting.ts";
 import { jsonField } from "#plate/test/fixtures.ts";
@@ -361,7 +362,7 @@ const holdsStart = (
 
     if (!isRecordValue(value)) {
       assert.isTrue(
-        match(value, expected) || (value.values.length === 0 && expected.values.length === 0),
+        sameResponse(value, expected),
         `${where}: ${response} starts at ${JSON.stringify(value.values.map(format))}, not ${JSON.stringify(expected.values.map(format))}`,
       );
     }

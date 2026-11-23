@@ -7,12 +7,10 @@ import {
   isNullResponse,
   isRecordValue,
   isXmlText,
-  match,
   nullOf,
   parseElementText,
   parseLexical,
   readIeeeDouble,
-  sameRecord,
 } from "#plate/model/values.ts";
 import type {
   ModelledBaseType,
@@ -47,17 +45,6 @@ const identifiers = (...names: readonly string[]): readonly Single[] =>
   names.map((name) => ({ baseType: "identifier", value: name }));
 
 /**
- * Construct a single pair or directed pair value for a test.
- *
- * @param baseType Which of the two to construct.
- * @param source The first identifier.
- * @param destination The second identifier.
- * @returns The value holding the one pair.
- */
-const pair = (baseType: "pair" | "directedPair", source: string, destination: string): Value =>
-  value(baseType, "single", [{ baseType, value: [source, destination] }]);
-
-/**
  * Construct a record for a test.
  *
  * @param fields Its fields, in written order.
@@ -85,45 +72,12 @@ const field = (identifier: string, single: Single): RecordField => ({ identifier
  */
 const growthTimeoutMs = 60_000;
 
-describe("sameRecord", () => {
-  const stringValue = field("stringValue", { baseType: "string", value: "1.5" });
-  const floatValue = field("floatValue", { baseType: "float", value: 1.5 });
-
-  it("is true for the same fields written in another order", () => {
-    assert.isTrue(sameRecord(record(stringValue, floatValue), record(floatValue, stringValue)));
-    assert.isTrue(
-      sameRecord(
-        record(field("pair", { baseType: "pair", value: ["A", "B"] })),
-        record(field("pair", { baseType: "pair", value: ["B", "A"] })),
-      ),
-    );
-  });
-
-  it("is false for a field of another base type, a missing field, or another value", () => {
-    assert.isFalse(
-      sameRecord(
-        record(field("integerValue", { baseType: "integer", value: 2n })),
-        record(field("integerValue", { baseType: "float", value: 2 })),
-      ),
-    );
-    assert.isFalse(sameRecord(record(stringValue, floatValue), record(stringValue)));
-    assert.isFalse(sameRecord(record(stringValue), record(stringValue, floatValue)));
-    assert.isFalse(
-      sameRecord(
-        record(stringValue),
-        record(field("stringValue", { baseType: "string", value: "1.50" })),
-      ),
-    );
-    assert.isFalse(sameRecord(record(stringValue), record(floatValue)));
-  });
-
-  it("is false for NULL against a record that holds a field, either way round", () => {
-    assert.isFalse(sameRecord(record(), record(stringValue)));
-    assert.isFalse(sameRecord(record(stringValue), record()));
-  });
-});
-
 describe("isNullResponse and isRecordValue", () => {
+  it("isNull holds a value of no values NULL at any cardinality, and one holding a value not", () => {
+    assert.isTrue(isNull(nullOf("string", "multiple")));
+    assert.isFalse(isNull(value("identifier", "single", identifiers("A"))));
+  });
+
   it("take a record with no field as NULL and a record with a field as not", () => {
     const filled = record(field("stringValue", { baseType: "string", value: "a" }));
 
@@ -628,79 +582,5 @@ describe("isModelled", () => {
     for (const baseType of ["record", "any", ""]) {
       assert.isFalse(isModelled(baseType), baseType);
     }
-  });
-});
-
-describe("match", () => {
-  it("compares multiple as a multiset and ordered as a sequence", () => {
-    const abb = identifiers("A", "B", "B");
-    const bab = identifiers("B", "A", "B");
-    assert.isTrue(
-      match(value("identifier", "multiple", abb), value("identifier", "multiple", bab)),
-    );
-    assert.isFalse(match(value("identifier", "ordered", abb), value("identifier", "ordered", bab)));
-    assert.isTrue(match(value("identifier", "ordered", abb), value("identifier", "ordered", abb)));
-    assert.isFalse(
-      match(
-        value("identifier", "multiple", abb),
-        value("identifier", "multiple", identifiers("A", "A", "B")),
-      ),
-    );
-  });
-
-  it("compares a pair in either order and a directedPair in order", () => {
-    assert.isTrue(match(pair("pair", "A", "B"), pair("pair", "B", "A")));
-    assert.isFalse(match(pair("directedPair", "A", "B"), pair("directedPair", "B", "A")));
-    assert.isTrue(match(pair("directedPair", "A", "B"), pair("directedPair", "A", "B")));
-  });
-
-  it("holds two points equal only when both coordinates are", () => {
-    const point = (x: bigint, y: bigint): Value =>
-      value("point", "single", [{ baseType: "point", value: [x, y] }]);
-    assert.isTrue(match(point(102n, 113n), point(102n, 113n)));
-    assert.isFalse(match(point(102n, 113n), point(113n, 102n)));
-    assert.isFalse(match(point(102n, 113n), point(102n, 114n)));
-    assert.isFalse(match(point(102n, 113n), point(101n, 113n)));
-    assert.isTrue(
-      match(
-        value("point", "multiple", [
-          { baseType: "point", value: [1n, 2n] },
-          { baseType: "point", value: [3n, 4n] },
-        ]),
-        value("point", "multiple", [
-          { baseType: "point", value: [3n, 4n] },
-          { baseType: "point", value: [1n, 2n] },
-        ]),
-      ),
-    );
-  });
-
-  it("is false when either value is NULL", () => {
-    const a = value("identifier", "single", identifiers("A"));
-    assert.isFalse(match(nullOf("identifier", "single"), nullOf("identifier", "single")));
-    assert.isFalse(match(a, nullOf("identifier", "single")));
-    assert.isFalse(match(nullOf("identifier", "single"), a));
-    assert.isTrue(isNull(nullOf("string", "multiple")));
-    assert.isFalse(isNull(a));
-  });
-
-  it("compares numbers by value and strings by code point, within one base type", () => {
-    const integer = (whole: bigint): Value =>
-      value("integer", "single", [{ baseType: "integer", value: whole }]);
-    const float = (number: number): Value =>
-      value("float", "single", [{ baseType: "float", value: number }]);
-    const string = (text: string): Value =>
-      value("string", "single", [{ baseType: "string", value: text }]);
-    assert.isTrue(match(integer(1n), integer(1n)));
-    assert.isTrue(match(float(0), float(-0)));
-    assert.isFalse(match(float(Number.NaN), float(Number.NaN)));
-    assert.isFalse(match(integer(1n), float(1)));
-    assert.isFalse(match(string("a"), string("A")));
-    assert.isFalse(
-      match(
-        value("identifier", "single", identifiers("A")),
-        value("identifier", "multiple", identifiers("A")),
-      ),
-    );
   });
 });
