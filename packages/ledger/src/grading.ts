@@ -14225,10 +14225,10 @@ export const outcomeProcessing = fn("outcomeProcessing", {
   },
   body: fn.body`
   select run_rules(walk => (walk_of(prog => prog)).nodes, inp => inp, i => 1, from_kid => 1, st => row(
-    '{}'::${Var}[], array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins,
-    '{}'::${Var}[], outcomes || contexts, outcomes || contexts, 0, 'run', label,
+    '{}'::${Var}[], array(select v from unnest(array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins) v order by v.identifier),
+    '{}'::${Var}[], array(select v from unnest(outcomes || contexts) v order by v.identifier), array(select v from unnest(outcomes || contexts) v order by v.identifier), 0, 'run', label,
     seed,
-    false, array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins)::${RunState})
+    false, array(select v from unnest(array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins) v order by v.identifier))::${RunState})
 `,
   calls: [walkOf, runRules, initial, boundContexts],
   language: "sql",
@@ -14913,7 +14913,8 @@ export const docValuesOf = fn("docValuesOf", {
     select v.holds, v.identifier, v.card, k - 1 as place, v.vals[k] as x from v, generate_subscripts(v.vals, 1) k
   )
   select row(
-    array(select distinct row(v.base, (run).child, v.identifier, (run).package, (run).path, (run).stage)::${DocBase} from v where v.card <> 'record'),
+    array(select d.b from (select distinct row(v.base, (run).child, v.identifier, (run).package, (run).path, (run).stage)::${DocBase} as b from v where v.card <> 'record') d
+      order by (d.b).identifier),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).b)::${DocBoolean} from s where card <> 'record' and (x).base = 'boolean'),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (x).t, (run).stage, (x).u)::${DocDirectedPair} from s where card <> 'record' and (x).base = 'directedPair'),
     array[row((run).child, st.drawn, st.flow, (run).package, (run).path, (run).stage)::${DocEnd}],
@@ -15060,9 +15061,9 @@ export const responseState = fn("responseState", {
   },
   body: fn.body`
 declare
-  vars ${Var}[] := array(select x from start_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
-  correct ${Var}[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
-  defaults ${Var}[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
+  vars ${Var}[] := array(select x from start_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
+  correct ${Var}[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
+  defaults ${Var}[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
 begin
   if prog is null then
     return row(correct, vars, correct, defaults, defaults, 0, 'run', label, seed, false, vars)::${RunState};
@@ -15089,12 +15090,12 @@ export const templateState = fn("templateState", {
   },
   body: fn.body`
 declare
-  vars ${Var}[] := array(select x from overridden(
+  vars ${Var}[] := array(select v from unnest(array(select x from overridden(
     declared => array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-template-declaration', holder => 'qti-default-value') y)
       || array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-context-declaration', holder => 'qti-default-value') y),
-    given => array(select y from vars_in(i => given, h => 'value') y)) x) || qti_context();
-  correct ${Var}[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
-  defaults ${Var}[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
+    given => array(select y from vars_in(i => given, h => 'value') y)) x) || qti_context()) v order by v.identifier);
+  correct ${Var}[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
+  defaults ${Var}[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
 begin
   if prog is null then
     return row(correct, vars, correct, defaults, defaults, 0, 'run', label, seed, false, vars)::${RunState};
@@ -15472,9 +15473,9 @@ begin
       mvars := mvars || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from overridden(
         declared => array(select row(y.base, y.card, y.identifier, '{}'::${Single}[])::${Var}
           from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-response-declaration', holder => 'qti-default-value') y),
-        given => array(select y from start_of(declarations => dn, attributes => da, texts => dt, given => given) y)) x)) s);
-      mcorrect := mcorrect || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from correct_of(declarations => dn, attributes => da, texts => dt, given => given) x)) s);
-      mdefaults := mdefaults || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from defaults_of(declarations => dn, attributes => da, texts => dt, given => given) x)) s);
+        given => array(select y from start_of(declarations => dn, attributes => da, texts => dt, given => given) y)) x order by x.identifier)) s);
+      mcorrect := mcorrect || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from correct_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
+      mdefaults := mdefaults || array(select s from member_state(ref => m.ref, kinds => kinds, vars => array(select x from defaults_of(declarations => dn, attributes => da, texts => dt, given => given) x order by x.identifier)) s);
     end loop;
     dn := array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path);
     da := array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path);
@@ -15491,18 +15492,18 @@ begin
     inp.ref_mappings := array(select row(x.ref, x.source, x.target)::${RefMapping} from unnest(ref_mappings) x where x.package = r.package and x.path = r.path);
     inp.member_vars := mvars; inp.member_correct := mcorrect; inp.member_defaults := mdefaults;
     inp.member_bounds := array(select row(x.bound, x.identifier, x.ref, x.value)::${MemberBound} from unnest(member_bounds) x where x.package = r.package and x.path = r.path);
-    outcomes := array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-outcome-declaration', holder => 'qti-default-value') y);
+    outcomes := array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-outcome-declaration', holder => 'qti-default-value') y order by y.identifier);
     -- The test's own values given: each bound context (kind \`context\`) and each built-in duration (kind \`response\`),
     -- read by their kind as the statement states it; QTI_CONTEXT, the host's NULL record, among the built-ins.
     -- A test with no outcome processing leaves its outcomes as the reset leaves them (Table 5.102).
     if cardinality(pn) = 0 then
-      st.vars := array(select i from initial(declared => outcomes) i); st.flow := 'run'; st.drawn := 0;
+      st.vars := array(select i from initial(declared => outcomes) i order by i.identifier); st.flow := 'run'; st.drawn := 0;
     else
     st := outcome_processing(prog => program_of(nodes => pn,
         attributes => array(select x from unnest(program_attributes) x where x.package = r.package and x.path = r.path),
         texts => array(select x from unnest(program_texts) x where x.package = r.package and x.path = r.path), declarations => dn, declaration_attributes => da,
         compiled => array(select x from unnest(compiled) x where x.package = r.package)), inp => inp, outcomes => outcomes,
-      contexts => array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-context-declaration', holder => 'qti-default-value') y),
+      contexts => array(select y from declared(declarations => dn, attributes => da, texts => dt, kind => 'qti-context-declaration', holder => 'qti-default-value') y order by y.identifier),
       bound => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
         where (z.child, z.package, z.path, z.stage) = (r.child, r.package, r.path, r.stage) and z.holds = 'value' and z.identifier = y.identifier and z.kind = 'context')),
       builtins => array(select y from vars_in(i => given, h => 'value') y where exists (select 1 from unnest(vars) z
@@ -15510,7 +15511,7 @@ begin
         || qti_context(),
       seed => r.seed, label => r.label);
     end if;
-    st.vars := array(select x from unnest(st.vars) x where exists (select 1 from unnest(outcomes) o where o.identifier = x.identifier));
+    st.vars := array(select x from unnest(st.vars) x where exists (select 1 from unnest(outcomes) o where o.identifier = x.identifier) order by x.identifier);
     result := doc_values_joined(a => result, b => doc_values_of(run => r, st => st, kinds => array(select k from var_kinds(declarations => dn, attributes => da) k), delta => false));
   end loop;
   return result;
@@ -16724,12 +16725,12 @@ export const admissionOf = fn("admissionOf", {
       body => array(select b from unnest(body) b where b.package = r.package and b.path = r.path),
       attributes => array(select a from unnest(body_attributes) a where a.package = r.package and a.path = r.path),
       responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select x.identifier from unnest(vars) x
-        where (x.child, x.package, x.path, x.stage) = (r.child, r.package, r.path, r.stage) and x.holds = 'value' and x.kind = 'response')),
+        where (x.child, x.package, x.path, x.stage) = (r.child, r.package, r.path, r.stage) and x.holds = 'value' and x.kind = 'response') order by v.identifier),
       held => array(select v from start_of(
         declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
         attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path),
         texts => array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path),
-        given => g.given) v)) as x
+        given => g.given) v order by v.identifier)) as x
     from unnest(runs) r cross join lateral (select values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs,
       directed_pairs => directed_pairs, points => points, files => files, file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs,
       field_directed_pairs => field_directed_pairs, field_points => field_points, field_files => field_files, field_file_names => field_file_names) as given) g

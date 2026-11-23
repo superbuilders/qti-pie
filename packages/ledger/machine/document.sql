@@ -386,7 +386,8 @@ returns p3.doc_values language sql immutable as $$
     select v.holds, v.identifier, v.card, k - 1 as place, v.vals[k] as x from v, generate_subscripts(v.vals, 1) k
   )
   select row(
-    array(select distinct row(v.base, (run).child, v.identifier, (run).package, (run).path, (run).stage)::doc_base from v where v.card <> 'record'),
+    array(select d.b from (select distinct row(v.base, (run).child, v.identifier, (run).package, (run).path, (run).stage)::doc_base as b from v where v.card <> 'record') d
+      order by (d.b).identifier),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).b)::doc_boolean from s where card <> 'record' and (x).base = 'boolean'),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (x).t, (run).stage, (x).u)::doc_directed_pair from s where card <> 'record' and (x).base = 'directedPair'),
     array[row((run).child, st.drawn, st.flow, (run).package, (run).path, (run).stage)::doc_end],
@@ -490,9 +491,9 @@ create function p3.response_state(attributes p3.document_attribute[], declaratio
   inp p3.inputs, label text, prog p3.program, seed text, texts p3.document_text[])
 returns p3.run_state language plpgsql immutable as $$
 declare
-  vars var[] := array(select x from start_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
-  correct var[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
-  defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
+  vars var[] := array(select x from start_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
+  correct var[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
+  defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
 begin
   if prog is null then
     return row(correct, vars, correct, defaults, defaults, 0, 'run', label, seed, false, vars)::run_state;
@@ -506,12 +507,12 @@ create function p3.template_state(attributes p3.document_attribute[], declaratio
   inp p3.inputs, label text, prog p3.program, seed text, texts p3.document_text[])
 returns p3.run_state language plpgsql immutable as $$
 declare
-  vars var[] := array(select x from overridden(
+  vars var[] := array(select v from unnest(array(select x from overridden(
     declared => array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-template-declaration', holder => 'qti-default-value') y)
       || array(select y from declared(declarations => declarations, attributes => attributes, texts => texts, kind => 'qti-context-declaration', holder => 'qti-default-value') y),
-    given => array(select y from vars_in(i => given, h => 'value') y)) x) || qti_context();
-  correct var[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
-  defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x);
+    given => array(select y from vars_in(i => given, h => 'value') y)) x) || qti_context()) v order by v.identifier);
+  correct var[] := array(select x from correct_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
+  defaults var[] := array(select x from defaults_of(declarations => declarations, attributes => attributes, texts => texts, given => given) x order by x.identifier);
 begin
   if prog is null then
     return row(correct, vars, correct, defaults, defaults, 0, 'run', label, seed, false, vars)::run_state;

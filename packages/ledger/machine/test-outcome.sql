@@ -346,8 +346,8 @@ create function p3.outcome_processing(bound p3.var[], builtins p3.var[], context
   outcomes p3.var[], prog p3.program, seed text)
 returns p3.run_state language sql immutable as $$
   select run_rules(walk => (walk_of(prog => prog)).nodes, inp => inp, i => 1, from_kid => 1, st => row(
-    '{}'::var[], array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins,
-    '{}'::var[], outcomes || contexts, outcomes || contexts, 0, 'run', label,
+    '{}'::var[], array(select v from unnest(array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins) v order by v.identifier),
+    '{}'::var[], array(select v from unnest(outcomes || contexts) v order by v.identifier), array(select v from unnest(outcomes || contexts) v order by v.identifier), 0, 'run', label,
     seed,
-    false, array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins)::run_state)
+    false, array(select v from unnest(array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins) v order by v.identifier))::run_state)
 $$;

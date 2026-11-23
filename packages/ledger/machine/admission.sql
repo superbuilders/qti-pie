@@ -1037,12 +1037,12 @@ returns p3.admission language sql immutable as $$
       body => array(select b from unnest(body) b where b.package = r.package and b.path = r.path),
       attributes => array(select a from unnest(body_attributes) a where a.package = r.package and a.path = r.path),
       responses => array(select v from vars_in(i => g.given, h => 'value') v where v.identifier in (select x.identifier from unnest(vars) x
-        where (x.child, x.package, x.path, x.stage) = (r.child, r.package, r.path, r.stage) and x.holds = 'value' and x.kind = 'response')),
+        where (x.child, x.package, x.path, x.stage) = (r.child, r.package, r.path, r.stage) and x.holds = 'value' and x.kind = 'response') order by v.identifier),
       held => array(select v from start_of(
         declarations => array(select x from unnest(declarations) x where x.package = r.package and x.path = r.path),
         attributes => array(select x from unnest(declaration_attributes) x where x.package = r.package and x.path = r.path),
         texts => array(select x from unnest(declaration_texts) x where x.package = r.package and x.path = r.path),
-        given => g.given) v)) as x
+        given => g.given) v order by v.identifier)) as x
     from unnest(runs) r cross join lateral (select values_of(child => r.child, package => r.package, path => r.path, stage => r.stage, vars => vars, bases => bases, texts => texts, integers => integers, floats => floats, booleans => booleans, pairs => pairs,
       directed_pairs => directed_pairs, points => points, files => files, file_names => file_names, field_texts => field_texts, field_integers => field_integers, field_floats => field_floats, field_booleans => field_booleans, field_pairs => field_pairs,
       field_directed_pairs => field_directed_pairs, field_points => field_points, field_files => field_files, field_file_names => field_file_names) as given) g
