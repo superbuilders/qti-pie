@@ -415,7 +415,11 @@ const choicesOf = (context: Context) =>
       .filter(({ kind }) => choiceKinds.some((choice) => choice === kind))
       .flatMap((node) =>
         Option.toArray(valueAt(context, node, "identifier")).map((identifier) => {
-          const row = { ...placeOf(context, node), identifier } satisfies Addition<typeof Choice>;
+          const row = {
+            ...placeOf(context, node),
+            identifier,
+            kind: node.kind,
+          } satisfies Addition<typeof Choice>;
 
           return [placeKeyOf(row), row] as const;
         }),
@@ -1059,13 +1063,14 @@ export const placedBindingRowsOf = (input: {
     ),
     PlacedChoice: new Map(
       choices.map(
-        ({ placement, row: { identifier, package: pkg, path, start } }) =>
+        ({ placement, row: { identifier, kind, package: pkg, path, start } }) =>
           [
             keyOf([pkg, placement.assembly, placement.start, start]),
             {
               assembly: placement.assembly,
               identifier,
               instance: placement.start,
+              kind,
               package: pkg,
               path,
               start,

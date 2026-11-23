@@ -426,7 +426,8 @@ export const PlacedBinding = law(
  * the assembly: "This identifier must not be used by any other choice", information model
  * §5.132.1, read across the nine choice classes by spec reading 104, so a key over the query
  * `PlacedChoiceOrHottext`, `#pantry/qti/queries.ts`, holds a name to one of them), and a fragment
- * placed twice in one item holds its choices twice.
+ * placed twice in one item holds its choices twice. Its kind is its choice's node's, so "Choice
+ * identifier key" keys an assembly's choices of one kind by the table itself.
  */
 export const PlacedChoice = law(
   entryOf("E1 derived"),
@@ -436,6 +437,7 @@ export const PlacedChoice = law(
       assembly: EntryPath,
       identifier: QtiIdentifier,
       instance: natural,
+      kind: closedId(NodeKind),
       package: PackageName,
       path: EntryPath,
       start: natural,
@@ -478,9 +480,11 @@ const placedBindingFamily = counted(
 );
 
 /**
- * A choice, keyed by its place: its identifier collapsed. Its kind is its node's, and its nearest
- * interaction its {@link ChoiceInteraction}'s, the node's nearest, which the laws read through
- * `Node` (`#pantry/qti/overlay-queries/interaction.ts`). It owns no sequence (C15).
+ * A choice, keyed by its place: its identifier collapsed, and its kind, its node's ("E1 derived"
+ * holds it there), stated beside the identifier so "Choice identifier key" keys a document's
+ * choices of one kind by the table itself. Its nearest interaction is its
+ * {@link ChoiceInteraction}'s, the node's nearest, which the laws read through `Node`
+ * (`#pantry/qti/overlay-queries/interaction.ts`). It owns no sequence (C15).
  */
 export const Choice = law(
   entryOf("E1 derived"),
@@ -488,6 +492,7 @@ export const Choice = law(
     "Choice",
     {
       identifier: QtiIdentifier,
+      kind: closedId(NodeKind),
       package: PackageName,
       path: EntryPath,
       start: natural,
@@ -1551,10 +1556,20 @@ export const interactionLawsByName = {
     key(on(PlacedBinding, "package", "assembly", "identifier")),
   ]),
   "Choice identifier key": declared("Choice identifier key", [
+    key(on(Choice, "package", "path", "kind", "identifier")),
     key(on(Hottext, "package", "path", "identifier")),
+    key(on(PlacedChoice, "package", "assembly", "kind", "identifier")),
     key(on(PlacedHottext, "package", "assembly", "identifier")),
   ]),
   "E1 derived": declared("E1 derived", [
+    contained(
+      on(Choice, "package", "path", "start", "kind"),
+      on(Node, "package", "path", "start", "kind"),
+    ),
+    contained(
+      on(PlacedChoice, "package", "path", "start", "kind"),
+      on(Node, "package", "path", "start", "kind"),
+    ),
     contained(
       on(o3Attributes, "package", "path", "start", "name", "kind", "lexicalDigest"),
       on(InteractionAttribute, "package", "path", "start", "name", "kind", "lexicalDigest"),

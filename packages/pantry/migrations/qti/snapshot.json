@@ -1471,8 +1471,14 @@
 				"__choice_fk_package_path_start_hjjl442vss": [
 					"__choice_in_choice_interaction_mxdrauk5ci"
 				],
+				"__choice_fk_package_path_start_kind_wg4x5yucb4": [
+					"__choice_in_node_4zvplbkbdm"
+				],
 				"__choice_key_package_path_index_choices_nfi2h7amio": [
 					"__choice_counted_document_choices_ozqj7qlh2h"
+				],
+				"__choice_key_package_path_kind_identifier_auoyrne6k5": [
+					"__choice_key_package_path_kind_identifier_vvnhaytagt"
 				],
 				"__choice_key_package_path_predecessor_choices_sgzerm3kdb": [
 					"__choice_counted_document_choices_ozqj7qlh2h"
@@ -1488,9 +1494,6 @@
 				],
 				"__rule_choice_node_in_count_bound_5k7b4rhgov": [
 					"__choice_node_in_count_bound_vkb53rtjaa"
-				],
-				"__rule_choice_node_key_package_path_kind_identifier_d6vrfoayzq": [
-					"__choice_node_key_package_path_kind_identifier_uwrgueqcdt"
 				],
 				"__rule_choice_or_hottext_in_unclaimed_name_47iolnkzoi": [
 					"__choice_or_hottext_in_unclaimed_name_sl45esjqpz"
@@ -3877,9 +3880,6 @@
 				"__rule_choice_node_in_count_bound_5k7b4rhgov": [
 					"__choice_node_in_count_bound_vkb53rtjaa"
 				],
-				"__rule_choice_node_key_package_path_kind_identifier_d6vrfoayzq": [
-					"__choice_node_key_package_path_kind_identifier_uwrgueqcdt"
-				],
 				"__rule_choice_space_name_key_package_path_identifier_onkhp4t7qm": [
 					"__choice_space_name_key_package_path_identifier_3uf7mypygq"
 				],
@@ -4257,9 +4257,6 @@
 				],
 				"__rule_placed_binding_cardinality_node_in_record_groyntuu7d": [
 					"__placed_binding_cardinality_node_in_record_binding_oent2y44el"
-				],
-				"__rule_placed_choice_node_key_package_assembly_kind_zdz7x5mqgr": [
-					"__placed_choice_node_key_package_assembly_kind_d5g3uh5mzp"
 				],
 				"__rule_placed_choice_space_name_key_package_assembly_6cawqvel6v": [
 					"__placed_choice_space_name_key_package_assembly_dujkv6dwyz"
@@ -4916,20 +4913,23 @@
 				"__placed_choice_fk_package_path_start_identifier_7xehyru3mj": [
 					"__placed_choice_in_choice_nsk6b6onok"
 				],
+				"__placed_choice_fk_package_path_start_kind_gph72alaqo": [
+					"__placed_choice_in_node_mr4pdvh6ln"
+				],
 				"__placed_choice_key_package_assembly_instance_5rxktl6n2n": [
 					"__placed_choice_counted_instance_choices_2u77ak32gk"
 				],
 				"__placed_choice_key_package_assembly_instance_index_k3zshn6wrl": [
 					"__placed_choice_counted_instance_choices_2u77ak32gk"
 				],
+				"__placed_choice_key_package_assembly_kind_identifier_qgyuv4g444": [
+					"__placed_choice_key_package_assembly_kind_identifier_xzl4eaopob"
+				],
 				"__placed_choice_pk_dok6mu6xso": [
 					"__placed_choice_pk_package_assembly_instance_start_2mthwgzcbi"
 				],
 				"__rule_choice_or_hottext_in_unclaimed_name_47iolnkzoi": [
 					"__choice_or_hottext_in_unclaimed_name_sl45esjqpz"
-				],
-				"__rule_placed_choice_node_key_package_assembly_kind_zdz7x5mqgr": [
-					"__placed_choice_node_key_package_assembly_kind_d5g3uh5mzp"
 				],
 				"__rule_placed_choice_or_hottext_in_unclaimed_name_khta36los4": [
 					"__placed_choice_or_hottext_in_unclaimed_name_pp4uendsbv"
@@ -11283,6 +11283,36 @@
 								}
 							]
 						},
+						"__choice_key_package_path_kind_identifier_auoyrne6k5": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "path",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "kind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "identifier",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__choice_key_package_path_kind_identifier_vvnhaytagt"
+								}
+							]
+						},
 						"__choice_key_package_path_predecessor_choices_sgzerm3kdb": {
 							"columns": [
 								{
@@ -11373,6 +11403,10 @@
 								},
 								{
 									"kind": "law",
+									"law": "__choice_in_node_4zvplbkbdm"
+								},
+								{
+									"kind": "law",
 									"law": "__choice_in_choice_interaction_mxdrauk5ci"
 								},
 								{
@@ -11390,10 +11424,6 @@
 								{
 									"kind": "law",
 									"law": "__choice_counted_document_choices_ozqj7qlh2h"
-								},
-								{
-									"kind": "law",
-									"law": "__choice_node_key_package_path_kind_identifier_uwrgueqcdt"
 								},
 								{
 									"kind": "law",
@@ -21573,6 +21603,14 @@
 								{
 									"kind": "law",
 									"law": "__math_align_group_in_scope_node_vbyn7eudli"
+								},
+								{
+									"kind": "law",
+									"law": "__choice_in_node_4zvplbkbdm"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_choice_in_node_mr4pdvh6ln"
 								}
 							]
 						},
@@ -21876,10 +21914,6 @@
 								{
 									"kind": "law",
 									"law": "__choice_node_in_count_bound_vkb53rtjaa"
-								},
-								{
-									"kind": "law",
-									"law": "__choice_node_key_package_path_kind_identifier_uwrgueqcdt"
 								},
 								{
 									"kind": "law",
@@ -22308,10 +22342,6 @@
 								{
 									"kind": "law",
 									"law": "__placed_binding_cardinality_node_in_record_binding_oent2y44el"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_choice_node_key_package_assembly_kind_d5g3uh5mzp"
 								},
 								{
 									"kind": "law",
@@ -23717,6 +23747,36 @@
 								}
 							]
 						},
+						"__placed_choice_ix_package_path_start_kind_5miftnmzpk": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "path",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "start",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "kind",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__placed_choice_in_node_mr4pdvh6ln"
+								}
+							]
+						},
 						"__placed_choice_key_package_assembly_instance_5rxktl6n2n": {
 							"columns": [
 								{
@@ -23789,6 +23849,36 @@
 								}
 							]
 						},
+						"__placed_choice_key_package_assembly_kind_identifier_qgyuv4g444": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "assembly",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "kind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "identifier",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__placed_choice_key_package_assembly_kind_identifier_xzl4eaopob"
+								}
+							]
+						},
 						"__placed_choice_pk_dok6mu6xso": {
 							"columns": [
 								{
@@ -23828,10 +23918,6 @@
 								{
 									"kind": "law",
 									"law": "__placed_choice_or_hottext_in_unclaimed_name_pp4uendsbv"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_choice_node_key_package_assembly_kind_d5g3uh5mzp"
 								},
 								{
 									"kind": "law",
@@ -28820,11 +28906,11 @@
 			"fa90810d9401bf0a81bfec203c004cd0f8847433ed32c3733b3f55991eea413d": "3cd53cc0df2c42f1b44a53e1d672bc47fed1067e25cfaf7059cdd1021552f469"
 		}
 	},
-	"fingerprint": "9822be75f66932a85ae55b7b573165b4cb7db70e76e6c713fa60b49e7cc88587",
+	"fingerprint": "845a9ccdea58acdd6040714e10988f17022e48b6e3130eec1e45a19c1c9b15aa",
 	"format": 8,
 	"levels": [
 		{
-			"fingerprint": "c4f03f84f43ddc94978bcd1e773e0f92817c51824149f67d96b2f146a1e44f40",
+			"fingerprint": "411eda59e2f0b6c4e8cc9ea96074623faae3b238289372ec14a75ca10928fd73",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"AssembledCatalog"},"law":"__assembled_catalog_check_e_1_derived_aq344tuo32"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"AssembledCatalog","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"owner","kind":"field"}]},"kind":"contained","to":{"relation":"CatalogId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__assembled_catalog_in_catalog_id_pkcxplbjvp"},
@@ -28900,9 +28986,11 @@
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","cell","at"],"kind":"primaryKey","relation":"CellLeaf"},"law":"__cell_leaf_pk_package_path_cell_at_bpqossnh7h"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"family","member":{"relation":"Choice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]},"order":"counted","slots":{"count":"choices","owner":"Document"}},"law":"__choice_counted_document_choices_ozqj7qlh2h"},
 				{"described":{"entry":{"kind":"declared","name":"N8 nearest","source":"plan-qti-pie N8, the nearest interaction (fin.md §15, rule 3)"},"from":{"relation":"Choice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ChoiceInteraction","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__choice_in_choice_interaction_mxdrauk5ci"},
+				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Choice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"kind","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"kind","kind":"field"}]}},"law":"__choice_in_node_4zvplbkbdm"},
 				{"described":{"entry":{"kind":"declared","name":"N8 nearest","source":"plan-qti-pie N8, the nearest interaction (fin.md §15, rule 3)"},"kind":"family","member":{"relation":"ChoiceInteraction","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"interactionPath","kind":"field"},{"field":"interaction","kind":"field"}]},"order":"counted","slots":{"count":"choices","owner":"Interaction"}},"law":"__choice_interaction_counted_interaction_choices_4jrxvrx3jf"},
 				{"described":{"entry":{"kind":"declared","name":"N8 nearest","source":"plan-qti-pie N8, the nearest interaction (fin.md §15, rule 3)"},"from":{"relation":"ChoiceInteraction","selection":{"conjuncts":[{"kind":"compare","left":{"field":"interactionPath","kind":"field"},"op":"ne","right":{"field":"path","kind":"field"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"interactionPath","kind":"field"},{"field":"interaction","kind":"field"}]},"kind":"contained","to":{"relation":"Document","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"contextPath","kind":"field"},{"field":"contextNearest","kind":"field"}]}},"law":"__choice_interaction_interaction_path_path_in_2evpggrrgw"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"ChoiceInteraction"},"law":"__choice_interaction_pk_package_path_start_acqvahqkgz"},
+				{"described":{"entry":{"kind":"declared","name":"Choice identifier key","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1, and §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1 and §5.131.1: 'This identifier must not be used by any other choice or item variable', five classes naming their own noun) and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Identifier (§7.16: an identifier is 'a logical reference to another object in the item, such as an itemVariable or choice'); reading 104 as amended: each class's sentence bars its own noun ('any other gap', 'text', 'image', 'hotspot', 'hottext choice'), so no two elements of one class share an identifier, and the four classes' 'any other choice' bars every element the information model calls a choice (§6.17 GapChoice, §5.59, §5.65.1), a gap none (§5.57, gaps filled 'from an associated set of choices'), so a simple, inline, hotspot or simple associable choice shares its identifier with no other choice or hottext of its document, whichever interactions hold them, nor with one its assembly places, compared collapsed; a gap and a gap text may share one (interactions.ts key(on(Choice, \"document\", \"kind\", \"identifier\")), key(on(Hottext, \"document\", \"identifier\")) and their placed keys, and queries.ts key(on(ChoiceSpaceName, \"document\", \"identifier\")) and key(on(PlacedChoiceSpaceName, \"assembly\", \"identifier\")))"},"kind":"key","side":{"relation":"Choice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"kind","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__choice_key_package_path_kind_identifier_vvnhaytagt"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"Choice"},"law":"__choice_pk_package_path_start_ynonnosqlf"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"CnAttribute","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"name","kind":"field"},"kind":"in","values":["base","type"]},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:cn"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"}]}},"law":"__cn_attribute_in_attribute_febwmpibnb"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start","name"],"kind":"primaryKey","relation":"CnAttribute"},"law":"__cn_attribute_pk_package_path_start_name_h5thbtcznd"},
@@ -29218,6 +29306,8 @@
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"family","member":{"relation":"PlacedChoice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"instance","kind":"field"}]},"order":"counted","slots":{"count":"choices","owner":"Instance"}},"law":"__placed_choice_counted_instance_choices_2u77ak32gk"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"PlacedChoice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"identifier","kind":"field"}]},"kind":"contained","to":{"relation":"Choice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__placed_choice_in_choice_nsk6b6onok"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"PlacedChoice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"instance","kind":"field"},{"field":"path","kind":"field"}]},"kind":"contained","to":{"relation":"Instance","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"start","kind":"field"},{"field":"document","kind":"field"}]}},"law":"__placed_choice_in_instance_wx2jdl7z2z"},
+				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"PlacedChoice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"kind","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"kind","kind":"field"}]}},"law":"__placed_choice_in_node_mr4pdvh6ln"},
+				{"described":{"entry":{"kind":"declared","name":"Choice identifier key","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1, and §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1 and §5.131.1: 'This identifier must not be used by any other choice or item variable', five classes naming their own noun) and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Identifier (§7.16: an identifier is 'a logical reference to another object in the item, such as an itemVariable or choice'); reading 104 as amended: each class's sentence bars its own noun ('any other gap', 'text', 'image', 'hotspot', 'hottext choice'), so no two elements of one class share an identifier, and the four classes' 'any other choice' bars every element the information model calls a choice (§6.17 GapChoice, §5.59, §5.65.1), a gap none (§5.57, gaps filled 'from an associated set of choices'), so a simple, inline, hotspot or simple associable choice shares its identifier with no other choice or hottext of its document, whichever interactions hold them, nor with one its assembly places, compared collapsed; a gap and a gap text may share one (interactions.ts key(on(Choice, \"document\", \"kind\", \"identifier\")), key(on(Hottext, \"document\", \"identifier\")) and their placed keys, and queries.ts key(on(ChoiceSpaceName, \"document\", \"identifier\")) and key(on(PlacedChoiceSpaceName, \"assembly\", \"identifier\")))"},"kind":"key","side":{"relation":"PlacedChoice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"kind","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__placed_choice_key_package_assembly_kind_identifier_xzl4eaopob"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","assembly","instance","start"],"kind":"primaryKey","relation":"PlacedChoice"},"law":"__placed_choice_pk_package_assembly_instance_start_2mthwgzcbi"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","assembly","instance","path","start"],"kind":"primaryKey","relation":"PlacedExpression"},"law":"__placed_expression_pk_package_assembly_instance_n6n5nnbjro"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"family","member":{"relation":"PlacedHottext","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"instance","kind":"field"}]},"order":"counted","slots":{"count":"hottexts","owner":"Instance"}},"law":"__placed_hottext_counted_instance_hottexts_va7wuob32l"},
@@ -29386,13 +29476,13 @@
 			"schema": "qti"
 		},
 		{
-			"fingerprint": "f8f681979c5969dd00a1a1154848754daba37f0df2b664b43ff45572f22270cc",
+			"fingerprint": "08a2c05bc36df35e53caae6ac53f25485a8ac61cd6c6456569f7d526e7c6716a",
 			"laws": [],
 			"name": "QtiViews",
 			"schema": "qti_views"
 		},
 		{
-			"fingerprint": "d0406d0646615ad8d6f05a4ff9d71071ff6cdebb072becd0fa632aab84241989",
+			"fingerprint": "b7fccac08a3e042aa3e95b527ffb77f91df9b540ce317a2750cb6a550795ff01",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"AnchoredId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"id","kind":"field"}]}},"law":"__anchored_id_key_package_assembly_anchor_id_6pj7hyldv5"},
 				{"described":{"entry":{"kind":"declared","name":"Test name key","source":"reading 86: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_AssessmentSection.Attr_identifier (§4.2.1: 'The identifier of the section or item reference must be unique within the test and must not be the identifier of any testPart'), §5.159.1 and §7.5.3 ('A test may refer to the same section multiple times within a test. Note however that each reference must have a unique identifier'), read over the assembled test (reading 5): the test document and every document its section refs and includes place; a section document placed twice is one document and names nothing twice: no two written test parts, sections, section refs or item refs of one test's assembly share an identifier (overlay-queries/tests.ts AssembledName)"},"kind":"key","side":{"relation":"AnchoredName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__anchored_name_key_package_assembly_anchor_l25sk7zs37"},
@@ -29427,7 +29517,6 @@
 				{"described":{"entry":{"kind":"declared","name":"N8 nearest","source":"plan-qti-pie N8, the nearest interaction (fin.md §15, rule 3)"},"from":{"relation":"ChoiceInteraction","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"interaction","kind":"field"}]},"kind":"contained","to":{"relation":"ChoiceNode","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"nearest","kind":"field"}]}},"law":"__choice_interaction_in_choice_node_4n7pnxbqrb"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"ChoiceNode"},"law":"__choice_node_check_e_1_derived_xj3hw44o3y"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"ChoiceNode","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-associable-hotspot","qti-associate-interaction","qti-choice-interaction","qti-extended-text-interaction","qti-gap-img","qti-gap-match-interaction","qti-gap-text","qti-graphic-associate-interaction","qti-graphic-gap-match-interaction","qti-graphic-order-interaction","qti-hotspot-interaction","qti-hottext-interaction","qti-match-interaction","qti-media-interaction","qti-order-interaction","qti-position-object-interaction","qti-select-point-interaction","qti-simple-associable-choice"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"CountBound","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__choice_node_in_count_bound_vkb53rtjaa"},
-				{"described":{"entry":{"kind":"declared","name":"Choice identifier key","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1, and §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1 and §5.131.1: 'This identifier must not be used by any other choice or item variable', five classes naming their own noun) and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Identifier (§7.16: an identifier is 'a logical reference to another object in the item, such as an itemVariable or choice'); reading 104 as amended: each class's sentence bars its own noun ('any other gap', 'text', 'image', 'hotspot', 'hottext choice'), so no two elements of one class share an identifier, and the four classes' 'any other choice' bars every element the information model calls a choice (§6.17 GapChoice, §5.59, §5.65.1), a gap none (§5.57, gaps filled 'from an associated set of choices'), so a simple, inline, hotspot or simple associable choice shares its identifier with no other choice or hottext of its document, whichever interactions hold them, nor with one its assembly places, compared collapsed; a gap and a gap text may share one (interactions.ts key(on(Choice, \"document\", \"kind\", \"identifier\")), key(on(Hottext, \"document\", \"identifier\")) and their placed keys, and queries.ts key(on(ChoiceSpaceName, \"document\", \"identifier\")) and key(on(PlacedChoiceSpaceName, \"assembly\", \"identifier\")))"},"kind":"key","side":{"relation":"ChoiceNode","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"kind","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__choice_node_key_package_path_kind_identifier_uwrgueqcdt"},
 				{"described":{"entry":{"kind":"declared","name":"Choice not variable","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1 and the other choice classes' identifier: 'This identifier must not be used by any other choice or item variable'), https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Variable (§7.47: a variable is one 'declared in a corresponding variable declaration or is one of the built-in variables'), https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ResponseDeclaration.Attr_identifier (§5.115.1, and §4.5.1 and §5.151.1: 'The identifiers of the built-in session variables are reserved. They are completionStatus, numAttempts and duration') and https://www.imsglobal.org/spec/qti/v3p0/info#Data_ContextDeclaration (§5.34: 'There is one built-in context variable named \"QTI_CONTEXT\" with record cardinality'): no choice or hottext bears the identifier of a declaration of its document, nor in an item that of a built-in variable, compared collapsed (queries.ts ChoiceOrHottext and PlacedChoiceOrHottext in UnclaimedName)"},"from":{"relation":"ChoiceOrHottext","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"}]},"kind":"contained","to":{"relation":"UnclaimedName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__choice_or_hottext_in_unclaimed_name_sl45esjqpz"},
 				{"described":{"entry":{"kind":"declared","name":"Choice identifier key","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1, and §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1 and §5.131.1: 'This identifier must not be used by any other choice or item variable', five classes naming their own noun) and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Identifier (§7.16: an identifier is 'a logical reference to another object in the item, such as an itemVariable or choice'); reading 104 as amended: each class's sentence bars its own noun ('any other gap', 'text', 'image', 'hotspot', 'hottext choice'), so no two elements of one class share an identifier, and the four classes' 'any other choice' bars every element the information model calls a choice (§6.17 GapChoice, §5.59, §5.65.1), a gap none (§5.57, gaps filled 'from an associated set of choices'), so a simple, inline, hotspot or simple associable choice shares its identifier with no other choice or hottext of its document, whichever interactions hold them, nor with one its assembly places, compared collapsed; a gap and a gap text may share one (interactions.ts key(on(Choice, \"document\", \"kind\", \"identifier\")), key(on(Hottext, \"document\", \"identifier\")) and their placed keys, and queries.ts key(on(ChoiceSpaceName, \"document\", \"identifier\")) and key(on(PlacedChoiceSpaceName, \"assembly\", \"identifier\")))"},"kind":"key","side":{"relation":"ChoiceSpaceName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__choice_space_name_key_package_path_identifier_3uf7mypygq"},
 				{"described":{"entry":{"kind":"declared","name":"Context variable reference","source":"https://www.imsglobal.org/spec/qti/v3p0/info#DataAttribute_PortableCustomInteraction_qti-context-variable (§5.106.6: 'This allows an item author to bind a context variable to the PCI instance'), https://www.imsglobal.org/spec/qti/v3p0/info#Data_ContextDeclaration (§5.34: 'Context variables, variables declared by context declarations', and 'There is one built-in context variable named \"QTI_CONTEXT\" with record cardinality') and the Schematron's rule 20Ba (reading 9): a PCI's qti-context-variable names QTI_CONTEXT or a declared context variable (references.ts ContentReference)"},"from":{"relation":"ContextRef","selection":{"conjuncts":[{"args":[{"arg":{"arg":{"field":"identifier","kind":"field"},"kind":"in","values":["QTI_CONTEXT","completionStatus","duration","numAttempts"]},"kind":"not"},{"kind":"compare","left":{"field":"assemblyKind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"qti-assessment-item"}}],"kind":"or"},{"args":[{"arg":{"arg":{"field":"identifier","kind":"field"},"kind":"in","values":["QTI_CONTEXT","completionStatus","duration","numAttempts"]},"kind":"not"},{"kind":"compare","left":{"field":"assemblyKind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"qti-response-processing"}}],"kind":"or"},{"args":[{"arg":{"arg":{"field":"identifier","kind":"field"},"kind":"in","values":["QTI_CONTEXT","duration"]},"kind":"not"},{"kind":"compare","left":{"field":"assemblyKind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"qti-assessment-section"}}],"kind":"or"},{"args":[{"arg":{"arg":{"field":"identifier","kind":"field"},"kind":"in","values":["QTI_CONTEXT","duration"]},"kind":"not"},{"kind":"compare","left":{"field":"assemblyKind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"qti-assessment-test"}}],"kind":"or"}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"},{"field":"kind","kind":"field"},{"field":"attribute","kind":"field"}]},"kind":"contained","to":{"relation":"ReferableName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"},{"field":"kind","kind":"field"},{"field":"attribute","kind":"field"}]}},"law":"__context_ref_in_referable_name_taqjmn7bfk"},
@@ -29546,7 +29635,6 @@
 				{"described":{"entry":{"kind":"declared","name":"Max strings required","source":"https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ExtendedTextInteraction.Attr_max-strings (§5.48.6: 'The max-strings characteristic is required when the interaction is bound to a response variable that is a container'): an extended text interaction bound to a multiple or ordered response writes max-strings, select(BindingCardinalityNode, response-identifier, extended text, multiple or ordered)(node) contained in select(CountBound, maxWritten)(node), a rule over a query (overlay-queries/interaction.ts, Q5.09)"},"from":{"relation":"PlacedBindingCardinalityNode","selection":{"conjuncts":[{"arg":{"field":"cardinality","kind":"field"},"kind":"in","values":["multiple","ordered"]},{"kind":"compare","left":{"field":"attribute","kind":"field"},"op":"eq","right":{"kind":"literal","value":"response-identifier"}},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-extended-text-interaction"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"CountBound","selection":{"conjuncts":[{"kind":"compare","left":{"field":"maxWritten","kind":"field"},"op":"eq","right":{"kind":"literal","value":true}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__placed_binding_cardinality_node_in_count_bound_3wgoyvwqst"},
 				{"described":{"entry":{"kind":"declared","name":"RecordBindingFit","source":"https://www.imsglobal.org/spec/qti/v3p0/info#Data_TextEntryInteraction (§5.162: 'The textEntryInteraction must be bound to a response variable with single or record cardinality only') and https://www.imsglobal.org/spec/qti/v3p0/info#Data_ExtendedTextInteraction (§5.48: 'The qti-extended-text-interaction must be bound to a response variable of single, multiple, ordered or record cardinality'); every other class's binding sentence names no record (§5.30 and BindingFit's others) (expression.ts RecordBindingFit)"},"from":{"relation":"PlacedBindingCardinalityNode","selection":{"conjuncts":[{"arg":{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-custom-interaction","qti-order-interaction","qti-portable-custom-interaction"]},"kind":"not"},{"kind":"compare","left":{"field":"attribute","kind":"field"},"op":"eq","right":{"kind":"literal","value":"response-identifier"}},{"kind":"compare","left":{"field":"cardinality","kind":"field"},"op":"eq","right":{"kind":"literal","value":"record"}}]},"terms":[{"field":"kind","kind":"field"}]},"kind":"contained","to":{"relation":"RecordBindingFit","selection":{"conjuncts":[]},"terms":[{"field":"kind","kind":"field"}]}},"law":"__placed_binding_cardinality_node_in_record_binding_oent2y44el"},
 				{"described":{"entry":{"kind":"declared","name":"Binding declared","source":"reading 75: https://www.imsglobal.org/spec/qti/v3p0/info#Data_ResponseDeclaration (§5.115: 'Response variables are declared by response declarations and bound to interactions in the itemBody'), https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_BasePromptInteraction.Attr_response-identifier (§5.15.7, and §5.18.6, §5.19.6, §5.45.1 and §5.162.1, each of multiplicity [1]: 'The response variable associated with the interaction') and each interaction class's binding sentence, as https://www.imsglobal.org/spec/qti/v3p0/info#Data_ChoiceInteraction (§5.30: 'The ChoiceInteraction must be bound to a response variable with a base-type of identifier and single or multiple cardinality'): an interaction's response-identifier names a response declaration of its item; the text entry interaction's response-identifier is the XSD's IDREF (reading 14), every other interaction's, the extended text interaction's among them, an IdentifierDType this law resolves"},"from":{"relation":"PlacedBinding","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"identifier","kind":"field"}]},"kind":"contained","to":{"relation":"NamedDeclaration","selection":{"conjuncts":[{"kind":"compare","left":{"field":"declarationKind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-response-declaration"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__placed_binding_in_named_declaration_vvi7io6wap"},
-				{"described":{"entry":{"kind":"declared","name":"Choice identifier key","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1, and §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1 and §5.131.1: 'This identifier must not be used by any other choice or item variable', five classes naming their own noun) and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Identifier (§7.16: an identifier is 'a logical reference to another object in the item, such as an itemVariable or choice'); reading 104 as amended: each class's sentence bars its own noun ('any other gap', 'text', 'image', 'hotspot', 'hottext choice'), so no two elements of one class share an identifier, and the four classes' 'any other choice' bars every element the information model calls a choice (§6.17 GapChoice, §5.59, §5.65.1), a gap none (§5.57, gaps filled 'from an associated set of choices'), so a simple, inline, hotspot or simple associable choice shares its identifier with no other choice or hottext of its document, whichever interactions hold them, nor with one its assembly places, compared collapsed; a gap and a gap text may share one (interactions.ts key(on(Choice, \"document\", \"kind\", \"identifier\")), key(on(Hottext, \"document\", \"identifier\")) and their placed keys, and queries.ts key(on(ChoiceSpaceName, \"document\", \"identifier\")) and key(on(PlacedChoiceSpaceName, \"assembly\", \"identifier\")))"},"kind":"key","side":{"relation":"PlacedChoiceNode","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"kind","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__placed_choice_node_key_package_assembly_kind_d5g3uh5mzp"},
 				{"described":{"entry":{"kind":"declared","name":"Choice not variable","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1 and the other choice classes' identifier: 'This identifier must not be used by any other choice or item variable'), https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Variable (§7.47: a variable is one 'declared in a corresponding variable declaration or is one of the built-in variables'), https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ResponseDeclaration.Attr_identifier (§5.115.1, and §4.5.1 and §5.151.1: 'The identifiers of the built-in session variables are reserved. They are completionStatus, numAttempts and duration') and https://www.imsglobal.org/spec/qti/v3p0/info#Data_ContextDeclaration (§5.34: 'There is one built-in context variable named \"QTI_CONTEXT\" with record cardinality'): no choice or hottext bears the identifier of a declaration of its document, nor in an item that of a built-in variable, compared collapsed (queries.ts ChoiceOrHottext and PlacedChoiceOrHottext in UnclaimedName)"},"from":{"relation":"PlacedChoiceOrHottext","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"identifier","kind":"field"}]},"kind":"contained","to":{"relation":"UnclaimedName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__placed_choice_or_hottext_in_unclaimed_name_pp4uendsbv"},
 				{"described":{"entry":{"kind":"declared","name":"Choice identifier key","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1, and §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1 and §5.131.1: 'This identifier must not be used by any other choice or item variable', five classes naming their own noun) and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Identifier (§7.16: an identifier is 'a logical reference to another object in the item, such as an itemVariable or choice'); reading 104 as amended: each class's sentence bars its own noun ('any other gap', 'text', 'image', 'hotspot', 'hottext choice'), so no two elements of one class share an identifier, and the four classes' 'any other choice' bars every element the information model calls a choice (§6.17 GapChoice, §5.59, §5.65.1), a gap none (§5.57, gaps filled 'from an associated set of choices'), so a simple, inline, hotspot or simple associable choice shares its identifier with no other choice or hottext of its document, whichever interactions hold them, nor with one its assembly places, compared collapsed; a gap and a gap text may share one (interactions.ts key(on(Choice, \"document\", \"kind\", \"identifier\")), key(on(Hottext, \"document\", \"identifier\")) and their placed keys, and queries.ts key(on(ChoiceSpaceName, \"document\", \"identifier\")) and key(on(PlacedChoiceSpaceName, \"assembly\", \"identifier\")))"},"kind":"key","side":{"relation":"PlacedChoiceSpaceName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__placed_choice_space_name_key_package_assembly_dujkv6dwyz"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"PlacedExpression","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"instance","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"PlacedExpressionSite","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"instance","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__placed_expression_in_placed_expression_site_zwk2jv5q65"},

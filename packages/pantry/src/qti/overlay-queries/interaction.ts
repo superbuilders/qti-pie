@@ -57,7 +57,6 @@ import {
   minNames,
   MostCount,
   PlacedBinding,
-  PlacedChoice,
 } from "#pantry/qti/interactions.ts";
 import { doublesInOrder } from "#pantry/qti/declarations.ts";
 import { parsedDecimalBytes } from "#pantry/qti/limits.ts";
@@ -110,23 +109,6 @@ const ChoiceNode = derived(
       .match(Choice, { identifier, package: pkg, path, start })
       .match(Node, { kind, nearest, package: pkg, path, start })
       .find({ identifier, kind, nearest, package: pkg, path, start });
-  }),
-);
-
-/**
- * Each choice an instance of an assembly places, beside its node's kind, by the instance and the
- * choice's `start`: its {@link PlacedChoice} row's identifier.
- */
-const PlacedChoiceNode = derived(
-  "PlacedChoiceNode",
-  query(QtiBase).rule((r) => {
-    const { assembly, identifier, instance, package: pkg, path, start } = v(PlacedChoice, "placed");
-    const { kind } = v(Node, "node");
-
-    return r
-      .match(PlacedChoice, { assembly, identifier, instance, package: pkg, path, start })
-      .match(Node, { kind, package: pkg, path, start })
-      .find({ assembly, identifier, instance, kind, package: pkg, start });
   }),
 );
 
@@ -946,10 +928,6 @@ export const interactionOverlayLawsByName = {
     check("Choice_bounds", MostChoiceBound, mostBounds),
     check("Choice_bounds", BoundRange, rangeBounds),
   ]),
-  "Choice identifier key": declared("Choice identifier key", [
-    key(on(ChoiceNode, "package", "path", "kind", "identifier")),
-    key(on(PlacedChoiceNode, "package", "assembly", "kind", "identifier")),
-  ]),
   "E1 derived": declared("E1 derived", [
     check("E1_derived", InteractionNode, (i) => i.in(i.kind, interactionKinds)),
     check("E1_derived", ChoiceNode, (c) => c.in(c.kind, choiceKinds)),
@@ -1197,7 +1175,6 @@ export const interactionOverlayRelations = [
   PatternText,
   PlacedBindingBaseTypeNode,
   PlacedBindingCardinalityNode,
-  PlacedChoiceNode,
   PlacedSingleBindingMost,
   PlacedSingleResponseGap,
   SingleBindingMost,

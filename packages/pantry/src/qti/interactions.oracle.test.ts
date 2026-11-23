@@ -9,7 +9,7 @@
 import type { Law } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Option } from "effect";
+import { Effect, Option, Result } from "effect";
 import { inject } from "vitest";
 import {
   ChoiceBound,
@@ -24,7 +24,7 @@ import type { PackageFile } from "#pantry/package/read.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import { viewedDeclarationsOf } from "#pantry/test/declaration-queries.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
-import { previewRowsOf, judge as judgeRows, judgedLaws } from "#pantry/test/host-judge.ts";
+import { previewOf, judge as judgeRows, judgedLaws } from "#pantry/test/host-judge.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
 import { lawNamesOf } from "#pantry/test/host-law-names.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
@@ -397,6 +397,33 @@ const choiceNameLawsOf = (laws: readonly { readonly law: Law }[]): readonly stri
   [...lawNamesOf(laws)].filter((law) => choiceNameLaws.has(law));
 
 /**
+ * Name the reading-104 laws the schema's laws over the import's rows break. Two of the package's
+ * own choices or hottexts of one key are refused before any SQL, on the key's law, as the write
+ * refuses two rows one stratum adds at one key ("Choice identifier key" keys `Choice` and
+ * `PlacedChoice` themselves, and `Hottext` and `PlacedHottext`); every other law is judged over the
+ * rows the write stores, and must be.
+ *
+ * @param inputs - The import's rows.
+ * @param name - The case, for a failure's words.
+ * @returns Their names among reading 104's two.
+ */
+const hostChoiceNameLawsOf = (inputs: PackageInputs, name: string): readonly string[] => {
+  const previewed = previewOf(inputs);
+  if (Result.isFailure(previewed)) {
+    const refusal = previewed.failure;
+
+    return refusal._tag === "KeyConflict"
+      ? choiceNameLawsOf([refusal])
+      : assert.fail(`${name}: the write refuses the rows before any SQL, ${refusal._tag}`);
+  }
+
+  const host = judgeRows(previewed.success, hostLaws);
+  assert.deepStrictEqual(choiceNameLawsOf(host.skipped), [], `${name}: judged`);
+
+  return choiceNameLawsOf(host.broken);
+};
+
+/**
  * A name of a document, as {@link queryNameLawsOf} compares names: its document's place, its
  * package and path, and the identifier. An assembly is named by its head document's path, so a
  * placed name and a declared one meet at one key.
@@ -567,11 +594,14 @@ describe("qti/interactions.ts, reading 104 by the law oracle", () => {
           ];
           const dir = yield* scopedPackage(new Map(edited.map((file) => [file.path, file.bytes])));
           const program = yield* readProgram(dir, nameOf(dir));
-          const host = judgeRows(previewRowsOf(program.inputs), hostLaws);
-          assert.deepStrictEqual(choiceNameLawsOf(host.skipped), [], `${name}: judged`);
           assert.sameMembers(oracle, [...breaks], `${name}: the oracle`);
           assert.sameMembers(
-            [...new Set([...choiceNameLawsOf(host.broken), ...queryNameLawsOf(program.inputs)])],
+            [
+              ...new Set([
+                ...hostChoiceNameLawsOf(program.inputs, name),
+                ...queryNameLawsOf(program.inputs),
+              ]),
+            ],
             [...breaks],
             `${name}: the rows`,
           );
