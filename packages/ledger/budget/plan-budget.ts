@@ -229,7 +229,9 @@ const entered = (test: string) => (child: string) =>
   withDb((db) => Effect.andThen(take(db, child, test), enter(db, child)));
 
 /**
- * The package, published once through the suite's own `publish`.
+ * The package, published through the suite's own `publish`: accepted the first time, and unchanged
+ * after, since a package's content is closed and its facts are already held, so no read of the
+ * installation's own tables decides whether to.
  */
 const publish = Effect.scoped(
   Effect.gen(function* publishPackage() {
@@ -259,14 +261,8 @@ const program = Effect.gen(function* planBudget() {
   yield* Effect.promise(() => statistics.connect());
   yield* Effect.promise(() => admin.connect());
 
-  const published = yield* Effect.promise(() =>
-    admin.query("SELECT 1 FROM qti.package WHERE name = $1", [choicePackage]),
-  );
-
-  if (published.rowCount === 0) {
-    yield* publish;
-    yield* Effect.logInfo(`published ${choicePackage}`);
-  }
+  yield* publish;
+  yield* Effect.logInfo(`${choicePackage} published, or held already`);
 
   const layer = yield* layerOf;
   const actions: readonly StudentAction<Effect.Services<ReturnType<typeof openDb>>>[] = [
