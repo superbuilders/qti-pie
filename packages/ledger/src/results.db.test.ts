@@ -169,6 +169,8 @@ const PACKAGE = "ledger-result-proof";
 
 const ESSAY = "items/essay.xml";
 
+const WAVE = "items/wave.xml";
+
 const TAKE = "items/take.xml";
 
 const OPERATORS = "items/operators.xml";
@@ -299,6 +301,17 @@ const draw = (n: number) =>
 const essayXml = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="${asi}" identifier="essay" title="essay" adaptive="false" time-dependent="false" xml:lang="en">
 <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>${String(essayMaximum)}</qti-value></qti-default-value></qti-outcome-declaration><qti-outcome-declaration identifier="DRAW_1" cardinality="record" view="author"/><qti-outcome-declaration identifier="DRAW_2" cardinality="record" view="author"/><qti-item-body><qti-rubric-block use="${rubricUse}" view="scorer" id="${RUBRIC}"><qti-content-body><p>Award 2 for a force named with its direction.</p></qti-content-body></qti-rubric-block><qti-extended-text-interaction response-identifier="RESPONSE"/></qti-item-body><qti-response-processing><qti-response-condition><qti-response-if><qti-is-null><qti-custom-operator class="normalize-space" definition="${operatorTagPrefix}normalize-space"><qti-custom-operator class="markup-text" definition="${operatorTagPrefix}markup-text"><qti-variable identifier="RESPONSE"/></qti-custom-operator></qti-custom-operator></qti-is-null><qti-set-outcome-value identifier="SCORE"><qti-base-value base-type="float">0</qti-base-value></qti-set-outcome-value></qti-response-if><qti-response-else>${draw(1)}${draw(2)}<qti-set-outcome-value identifier="SCORE"><qti-max><qti-multiple><qti-field-value field-identifier="score"><qti-variable identifier="DRAW_1"/></qti-field-value><qti-field-value field-identifier="score"><qti-variable identifier="DRAW_2"/></qti-field-value></qti-multiple></qti-max></qti-set-outcome-value></qti-response-else></qti-response-condition></qti-response-processing>
+</qti-assessment-item>`;
+
+/**
+ * The wave: an essay whose second draw only its first draw's reply lets the processing reach, at a
+ * score of 1 or more, SCORE then the second draw's score; under 1, SCORE 0 and the second draw
+ * never reached. The first run demands the first draw alone; the run after its reply demands the
+ * second, a later wave.
+ */
+const waveXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="${asi}" identifier="wave" title="wave" adaptive="false" time-dependent="false" xml:lang="en">
+<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float"/><qti-outcome-declaration identifier="MAXSCORE" cardinality="single" base-type="float"><qti-default-value><qti-value>${String(essayMaximum)}</qti-value></qti-default-value></qti-outcome-declaration><qti-outcome-declaration identifier="DRAW_1" cardinality="record" view="author"/><qti-outcome-declaration identifier="DRAW_2" cardinality="record" view="author"/><qti-item-body><qti-rubric-block use="${rubricUse}" view="scorer" id="${RUBRIC}"><qti-content-body><p>Award 2 for a force named with its direction.</p></qti-content-body></qti-rubric-block><qti-extended-text-interaction response-identifier="RESPONSE"/></qti-item-body><qti-response-processing>${draw(1)}<qti-response-condition><qti-response-if><qti-gte><qti-field-value field-identifier="score"><qti-variable identifier="DRAW_1"/></qti-field-value><qti-base-value base-type="float">1</qti-base-value></qti-gte>${draw(2)}<qti-set-outcome-value identifier="SCORE"><qti-field-value field-identifier="score"><qti-variable identifier="DRAW_2"/></qti-field-value></qti-set-outcome-value></qti-response-if><qti-response-else><qti-set-outcome-value identifier="SCORE"><qti-base-value base-type="float">0</qti-base-value></qti-set-outcome-value></qti-response-else></qti-response-condition></qti-response-processing>
 </qti-assessment-item>`;
 
 /**
@@ -591,7 +604,7 @@ const itemResource = (path: string) =>
   `<resource identifier="${path.replace("items/", "").replace(".xml", "")}" type="imsqti_item_xmlv3p0" href="${path}"><file href="${path}"/></resource>`;
 
 const manifest = `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}</resources></manifest>`;
+<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="wave" type="imsqti_item_xmlv3p0" href="${WAVE}"><file href="${WAVE}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}</resources></manifest>`;
 
 /**
  * The response every answered case gives.
@@ -1248,6 +1261,7 @@ const published = Effect.gen(function* publish() {
   yield* fs.makeDirectory(`${dir}/items`, { recursive: true });
   yield* fs.writeFileString(`${dir}/imsmanifest.xml`, manifest);
   yield* fs.writeFileString(`${dir}/${ESSAY}`, essayXml);
+  yield* fs.writeFileString(`${dir}/${WAVE}`, waveXml);
   yield* fs.writeFileString(`${dir}/${TAKE}`, takeXml);
   yield* fs.writeFileString(`${dir}/${OPERATORS}`, operatorsXml);
   for (const adaptive of [true, false]) {
@@ -1531,7 +1545,9 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
     );
     assert.deepStrictEqual<unknown>(
       Arr.sort(
-        Arr.fromIterable(drawRows).map((row) => row.draw),
+        Arr.fromIterable(drawRows)
+          .filter((row) => row.path === ESSAY)
+          .map((row) => row.draw),
         Order.String,
       ),
       ["1", "2"],
@@ -4393,6 +4409,140 @@ const holdGuardedTake = (
     }
   });
 
+/**
+ * A wave's case: the first draw's reply, under 1 or past it, and the second's, where the first
+ * reaches it.
+ */
+type WaveCase = Readonly<{ name: string; first: number; second: number }>;
+
+/**
+ * Every wave's case: a first reply that reaches the second draw or not, and a second reply.
+ */
+const waveSpace: Gen<WaveCase> = (source) => {
+  const first = source.draw(element([0.5, 1.5] as const));
+  const second = source.draw(element([1, 2] as const));
+
+  return { first, name: `wave ${String(first)} ${String(second)}`, second };
+};
+
+/**
+ * The situations the waves must reach: the second draw demanded in a later wave, and never
+ * requested.
+ */
+const waveSituations = [
+  "the second draw demanded once the first replied 1 or more",
+  "graded 0 by the first reply under 1, the second never requested",
+] as const;
+
+type WaveSituation = (typeof waveSituations)[number];
+
+/**
+ * A wave's case on a fresh child: its attempt, the grade after it, which demands the first draw
+ * alone, the first draw's reply, after which the second is demanded where the first reached it and
+ * the attempt is graded where it did not, and the second's reply, which grades it; each held to the
+ * rule: what waits, the status, and SCORE.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdWave = (c: WaveCase, child: string, note: (situation: WaveSituation) => void) =>
+  Effect.gen(function* hold() {
+    const reaches = c.first >= 1;
+    note(
+      reaches
+        ? "the second draw demanded once the first replied 1 or more"
+        : "graded 0 by the first reply under 1, the second never requested",
+    );
+
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const key = { child, n: 0n, package: PACKAGE, path: WAVE };
+    const stage = 1n;
+    yield* db.workload.begin.once({
+      facts: {
+        insert: {
+          StageControl: rowsOf("StageControl", [{ child, stage, ...directControl }]),
+        },
+      },
+      params: { child, package: PACKAGE, path: WAVE, seed: SEED, stage },
+    });
+    yield* db.workload.facts.once({
+      facts: {
+        insert: {
+          Attempt: rowsOf("Attempt", [key]),
+          ProcessedAttempt: rowsOf("ProcessedAttempt", []),
+          ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
+          SnapshotMultipleIdentifier: rowsOf("SnapshotMultipleIdentifier", []),
+          SnapshotSingleBoolean: rowsOf("SnapshotSingleBoolean", []),
+          SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
+          SnapshotSingleString: rowsOf("SnapshotSingleString", [
+            { ...key, value: RESPONSE, variable: "RESPONSE" },
+          ]),
+        },
+      },
+      params: {},
+    });
+    yield* db.workload.grade.once({ facts: {}, params: key });
+
+    const atChild = { facts: {}, params: { child } };
+    const draws = Arr.fromIterable(
+      yield* db.workload.drawsOf.once({ facts: {}, params: { package: PACKAGE } }),
+    ).filter((row) => row.path === WAVE);
+    const operatorOf = (literal: string) =>
+      Option.getOrThrow(Arr.findFirst(draws, (row) => row.draw === literal)).operator;
+    const first = operatorOf("1");
+    const second = operatorOf("2");
+    const pending = Effect.map(db.workload.applicationsOf.once(atChild), (rows) =>
+      Arr.fromIterable(rows).map((row) => row.operator),
+    );
+    const statuses = Effect.map(db.workload.statusesOf.once(atChild), (rows) =>
+      Arr.fromIterable(rows).map((row) => row.status),
+    );
+    assert.deepStrictEqual(
+      yield* pending,
+      [first],
+      `${c.name}: the run after the attempt demands the first draw alone`,
+    );
+
+    const { at } = Option.getOrThrow(
+      Arr.head(Arr.fromIterable(yield* db.workload.statusesOf.once(atChild))),
+    );
+    const attempt = { at, child, n: 0n, package: PACKAGE, path: WAVE };
+    const reply = (operator: bigint, score: number) =>
+      db.workload.recordEvaluations.once({
+        facts: {},
+        params: {
+          declines: [],
+          feedbacks: [],
+          replies: [
+            { ...attempt, grader: grader.version, operator, request: requestOf(operator), score },
+          ],
+        },
+      });
+    yield* reply(first, c.first);
+    assert.deepStrictEqual(
+      yield* pending,
+      reaches ? [second] : [],
+      `${c.name}: after the first reply, the second draw demanded where the first reached it`,
+    );
+    assert.deepStrictEqual(
+      yield* statuses,
+      [reaches ? "pendingResponseProcessing" : "final"],
+      `${c.name}: the attempt's status after the first reply`,
+    );
+    if (reaches) {
+      yield* reply(second, c.second);
+      assert.deepStrictEqual(yield* pending, [], `${c.name}: nothing waits after the second reply`);
+      assert.deepStrictEqual(yield* statuses, ["final"], `${c.name}: final after the second reply`);
+    }
+
+    const scores = Arr.fromIterable(yield* db.workload.floatsOf.once(atChild))
+      .filter((row) => row.variable === "SCORE")
+      .map((row) => row.value);
+    assert.deepStrictEqual(scores, [reaches ? c.second : 0], `${c.name}: SCORE`);
+  });
+
 describe.skipIf(Option.isNone(migrations))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
@@ -4435,6 +4585,43 @@ describe.skipIf(Option.isNone(migrations))(
               yield* Effect.log(
                 `the essay's result relations held over ${String(exhausted.cases)} cases`,
               );
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "demands a draw only an earlier draw's value reaches in a later wave, and holds each wave",
+          (ctx) =>
+            Effect.gen(function* holdEveryWave() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "every pair of replies of the wave's two draws, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<WaveSituation>(waveSituations),
+                    generator: waveSpace,
+                    literal: (c: WaveCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "the wave's rule: a recorded application is demanded when the run reaches it, so the second draw only after the first's reply reaches it",
+                    },
+                    suite: "ledger/results/wave",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdWave(row, `user_wave${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the waves held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
 
