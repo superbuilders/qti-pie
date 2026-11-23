@@ -134,7 +134,7 @@ export const importPackage = Effect.fn("import.importPackage")(function* importP
   });
 
   const [elapsed, outcome] = yield* wrap(
-    workload.insertWrite.once({ facts: { insert: rows.insert }, params: {} }),
+    workload.insertWrite.once({ facts: { insert: rows.insert }, params: { package: name } }),
   ).pipe(
     Effect.catch((error): Effect.Effect<never, ImportRefused | CallError> =>
       error.kind === "refused" ? nameRefusal(error) : Effect.fail(error),

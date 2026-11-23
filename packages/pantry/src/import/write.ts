@@ -815,3 +815,36 @@ const rowsOfSet = Struct.lambda<RowsOfSet>((set) => [...set.values()]);
  * @returns The facts, one array of rows per relation.
  */
 export const packageFactsOf = (inputs: PackageInputs) => Struct.map(rowsOfSet)(inputs);
+
+/**
+ * The rows of a keyed set, in the order it holds them, each without its `package`, as the publish
+ * takes a relation's facts: a type-level function, so `Struct.map` gives each relation its own row
+ * type.
+ */
+interface WrittenRowsOfSet extends Struct.Lambda {
+  <Row extends { readonly package: unknown }>(
+    set: ReadonlyMap<string, Row>,
+  ): readonly Omit<Row, "package">[];
+  readonly "~lambda.out": this["~lambda.in"] extends ReadonlyMap<string, infer Row>
+    ? readonly Omit<Row, "package">[]
+    : never;
+}
+
+/**
+ * Read a keyed set's rows without their `package` ({@link WrittenRowsOfSet}).
+ */
+const writtenRowsOfSet = Struct.lambda<WrittenRowsOfSet>((set) =>
+  [...set.values()].map(Struct.omit(["package"])),
+);
+
+/**
+ * Read one package's facts as its publish writes them (`insertWrite` of `#pantry/qti/logins.ts`):
+ * {@link packageFactsOf}'s rows, each without its `package`, which the call computes from its one
+ * parameter, the package's name (`db.workload.insertWrite.once({ facts: { insert: facts },
+ * params: { package } })`), so the rows a call writes are one package's by construction, the unit
+ * it holds. A family's members nested under their owner state no `package` of their own.
+ *
+ * @param inputs - The package's inputs.
+ * @returns The facts, one array of rows per relation.
+ */
+export const writtenFactsOf = (inputs: PackageInputs) => Struct.map(writtenRowsOfSet)(inputs);

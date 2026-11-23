@@ -206,27 +206,6 @@
 			"use": "write target"
 		},
 		{
-			"fixed": 3,
-			"keys": [
-				{
-					"dir": "asc",
-					"expr": "package"
-				},
-				{
-					"dir": "asc",
-					"expr": "path"
-				},
-				{
-					"dir": "asc",
-					"expr": "start"
-				}
-			],
-			"method": "btree",
-			"relation": "CellHeaders",
-			"role": "access",
-			"use": "write target"
-		},
-		{
 			"fixed": 4,
 			"keys": [
 				{
@@ -764,27 +743,6 @@
 				}
 			],
 			"method": "btree",
-			"relation": "IdentityText",
-			"role": "access",
-			"use": "write target"
-		},
-		{
-			"fixed": 3,
-			"keys": [
-				{
-					"dir": "asc",
-					"expr": "package"
-				},
-				{
-					"dir": "asc",
-					"expr": "path"
-				},
-				{
-					"dir": "asc",
-					"expr": "start"
-				}
-			],
-			"method": "btree",
 			"relation": "Inclusion",
 			"role": "access",
 			"use": "write target"
@@ -1096,27 +1054,6 @@
 			],
 			"method": "btree",
 			"relation": "MathAlignScope",
-			"role": "access",
-			"use": "write target"
-		},
-		{
-			"fixed": 3,
-			"keys": [
-				{
-					"dir": "asc",
-					"expr": "package"
-				},
-				{
-					"dir": "asc",
-					"expr": "path"
-				},
-				{
-					"dir": "asc",
-					"expr": "start"
-				}
-			],
-			"method": "btree",
-			"relation": "MathCell",
 			"role": "access",
 			"use": "write target"
 		},
@@ -2068,27 +2005,6 @@
 				}
 			],
 			"method": "btree",
-			"relation": "Srcset",
-			"role": "access",
-			"use": "write target"
-		},
-		{
-			"fixed": 3,
-			"keys": [
-				{
-					"dir": "asc",
-					"expr": "package"
-				},
-				{
-					"dir": "asc",
-					"expr": "path"
-				},
-				{
-					"dir": "asc",
-					"expr": "start"
-				}
-			],
-			"method": "btree",
 			"relation": "SsmlScope",
 			"role": "access",
 			"use": "write target"
@@ -2220,27 +2136,6 @@
 			],
 			"method": "btree",
 			"relation": "TextReferencePath",
-			"role": "access",
-			"use": "write target"
-		},
-		{
-			"fixed": 3,
-			"keys": [
-				{
-					"dir": "asc",
-					"expr": "package"
-				},
-				{
-					"dir": "asc",
-					"expr": "path"
-				},
-				{
-					"dir": "asc",
-					"expr": "start"
-				}
-			],
-			"method": "btree",
-			"relation": "Tolerance",
 			"role": "access",
 			"use": "write target"
 		},
@@ -79111,7 +79006,7 @@
 	},
 	"schema": "qti",
 	"schemaName": "Qti",
-	"seal": "acbadd86c53e9cd19a4ba3a8cc2664d97d974d280ea9d53d903336d7d7dfcf3b",
+	"seal": "470e152bfe05e693d3037aabf6747815f274d8055f9fcae6f5278ae4ca5a2e56",
 	"theory": {
 		"laws": {
 			"__anchored_id_key_package_assembly_anchor_id_6pj7hyldv5": {
@@ -91135,27 +91030,6 @@
 					},
 					{
 						"derived": false,
-						"fixed": 3,
-						"keys": [
-							{
-								"dir": "asc",
-								"field": "package"
-							},
-							{
-								"dir": "asc",
-								"field": "path"
-							},
-							{
-								"dir": "asc",
-								"field": "start"
-							}
-						],
-						"method": "btree",
-						"relation": "CellHeaders",
-						"use": "write target"
-					},
-					{
-						"derived": false,
 						"fixed": 4,
 						"keys": [
 							{
@@ -91583,27 +91457,6 @@
 							}
 						],
 						"method": "btree",
-						"relation": "IdentityText",
-						"use": "write target"
-					},
-					{
-						"derived": false,
-						"fixed": 3,
-						"keys": [
-							{
-								"dir": "asc",
-								"field": "package"
-							},
-							{
-								"dir": "asc",
-								"field": "path"
-							},
-							{
-								"dir": "asc",
-								"field": "start"
-							}
-						],
-						"method": "btree",
 						"relation": "Inclusion",
 						"use": "write target"
 					},
@@ -91915,27 +91768,6 @@
 						],
 						"method": "btree",
 						"relation": "MathAlignScope",
-						"use": "write target"
-					},
-					{
-						"derived": false,
-						"fixed": 3,
-						"keys": [
-							{
-								"dir": "asc",
-								"field": "package"
-							},
-							{
-								"dir": "asc",
-								"field": "path"
-							},
-							{
-								"dir": "asc",
-								"field": "start"
-							}
-						],
-						"method": "btree",
-						"relation": "MathCell",
 						"use": "write target"
 					},
 					{
@@ -92672,27 +92504,6 @@
 							}
 						],
 						"method": "btree",
-						"relation": "Srcset",
-						"use": "write target"
-					},
-					{
-						"derived": false,
-						"fixed": 3,
-						"keys": [
-							{
-								"dir": "asc",
-								"field": "package"
-							},
-							{
-								"dir": "asc",
-								"field": "path"
-							},
-							{
-								"dir": "asc",
-								"field": "start"
-							}
-						],
-						"method": "btree",
 						"relation": "SsmlScope",
 						"use": "write target"
 					},
@@ -92824,27 +92635,6 @@
 						],
 						"method": "btree",
 						"relation": "TextReferencePath",
-						"use": "write target"
-					},
-					{
-						"derived": false,
-						"fixed": 3,
-						"keys": [
-							{
-								"dir": "asc",
-								"field": "package"
-							},
-							{
-								"dir": "asc",
-								"field": "path"
-							},
-							{
-								"dir": "asc",
-								"field": "start"
-							}
-						],
-						"method": "btree",
-						"relation": "Tolerance",
 						"use": "write target"
 					},
 					{

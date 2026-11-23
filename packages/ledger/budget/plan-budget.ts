@@ -244,7 +244,13 @@ const publish = Effect.scoped(
     const context = yield* Layer.build(layer());
 
     yield* opened(Effect.provide(openDb(), context), (db) =>
-      accepted("publish", db.workload.publish.once({ facts: { insert: rows.insert }, params: {} })),
+      accepted(
+        "publish",
+        db.workload.publish.once({
+          facts: { insert: rows.insert },
+          params: { package: rows.package },
+        }),
+      ),
     );
   }),
 );

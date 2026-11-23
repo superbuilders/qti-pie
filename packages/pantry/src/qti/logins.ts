@@ -18,10 +18,11 @@
  * it applies the served `insertWrite` member to each package's rows (`importRowsOf` of
  * `#pantry/import/program.ts`; the W5 amendment's C19).
  */
-import { ChangeSet, insertableNamesOf, login, paged, workload } from "@bjornpagen/grizzle";
+import { ChangeSet, insertableNamesOf, login, paged, param, workload } from "@bjornpagen/grizzle";
 import { pipe, Record as Rec, Struct } from "effect";
 import { documentScan, entriesOf } from "#pantry/export/scan.ts";
-import { packageFactsOf } from "#pantry/import/write.ts";
+import { writtenFactsOf } from "#pantry/import/write.ts";
+import { PackageName } from "#pantry/qti/limits.ts";
 import { Author } from "#pantry/qti/roles.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 
@@ -32,7 +33,7 @@ import { Qti } from "#pantry/qti/schema.ts";
  * inserts.
  */
 // GRIZZLE-PENDING: Q2: the rowless ChangeSet builder declares these inserts by relation name with no rows.
-const packageInserts = packageFactsOf(
+const packageInserts = writtenFactsOf(
   pipe(
     Struct.pick(Qti.relations, insertableNamesOf(Qti)),
     Rec.map(() => new Map<string, never>()),
@@ -60,7 +61,9 @@ const packageInserts = packageFactsOf(
  * its own in the same transaction applies the union of this and its own ChangeSet
  * (`ChangeSet.union(insertWrite, its own)`), through a role that inserts {@link authorWrites}.
  */
-export const insertWrite = ChangeSet.empty(Qti).insertAll(packageInserts);
+export const insertWrite = ChangeSet.empty(Qti).insertAllComputed(packageInserts, {
+  package: param("package", PackageName),
+});
 
 /**
  * The relations the author role writes, by name ({@link Author}): every stored relation of `Qti`,

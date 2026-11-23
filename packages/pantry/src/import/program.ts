@@ -28,7 +28,7 @@ import { packageRecordOf } from "#pantry/import/record.ts";
 import type { MediaFile } from "#pantry/import/record.ts";
 import { documentLayer } from "#pantry/import/roster.ts";
 import type { ImportRefused } from "#pantry/import/rules.ts";
-import { documentRowsOf, nodeIdsOf, packageFactsOf, rootInsertOf } from "#pantry/import/write.ts";
+import { documentRowsOf, nodeIdsOf, rootInsertOf, writtenFactsOf } from "#pantry/import/write.ts";
 import type { NodeRoot, PackageInputs, PlacedDocument } from "#pantry/import/write.ts";
 
 /**
@@ -122,7 +122,7 @@ export const programOf = Effect.fn("import.programOf")(function* programOf(
  * stored row names bytes the store lacks; and `package`, the name its `Package` row is keyed by.
  */
 export interface ImportRows {
-  readonly insert: ReturnType<typeof packageFactsOf>;
+  readonly insert: ReturnType<typeof writtenFactsOf>;
   readonly media: readonly MediaFile[];
   readonly package: QtiPackage["name"];
 }
@@ -136,7 +136,11 @@ export interface ImportRows {
  * const rows = yield * importRowsOf(pkg);
  * yield * Effect.forEach(rows.media, ({ bytes, digest }) => store.put(digest, bytes));
  * const outcome =
- *   yield * db.workload.insertWrite.once({ facts: { insert: rows.insert }, params: {} });
+ *   yield *
+ *   db.workload.insertWrite.once({
+ *     facts: { insert: rows.insert },
+ *     params: { package: rows.package },
+ *   });
  * ```
  *
  * It opens no database and judges no law: every law is the database's, and a refusal is grizzle's
@@ -153,7 +157,7 @@ export const importRowsOf = Effect.fn("import.importRowsOf")(function* importRow
   const program = yield* programOf(pkg);
 
   return {
-    insert: packageFactsOf(program.inputs),
+    insert: writtenFactsOf(program.inputs),
     media: program.media,
     package: program.package,
   };

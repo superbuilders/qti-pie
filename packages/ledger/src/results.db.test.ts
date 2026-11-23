@@ -1218,7 +1218,10 @@ const published = Effect.gen(function* publish() {
   const read = yield* readPackage(dir, PACKAGE);
   const rows = yield* importRowsOf(read);
   const db = yield* Db.open(suite.roles.result_runner, {});
-  const outcome = yield* db.workload.publish.once({ facts: { insert: rows.insert }, params: {} });
+  const outcome = yield* db.workload.publish.once({
+    facts: { insert: rows.insert },
+    params: { package: rows.package },
+  });
   assert.include(["accepted", "unchanged"], outcome.kind, `${PACKAGE}: published`);
 });
 

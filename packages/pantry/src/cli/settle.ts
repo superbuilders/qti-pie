@@ -70,7 +70,7 @@ const readBack = (pkg: QtiPackage) =>
         const rows = yield* importRowsOf(pkg);
 
         return yield* db.workload.insertWrite
-          .once({ facts: { insert: rows.insert }, params: {} })
+          .once({ facts: { insert: rows.insert }, params: { package: rows.package } })
           .pipe(
             Effect.as<Held>("this"),
             Effect.catchIf(

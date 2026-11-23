@@ -13,7 +13,7 @@ import { Duration, Effect } from "effect";
 import { AuthorLogin } from "#pantry/db/served.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import { lawsOfRefusal } from "#pantry/import/refusal.ts";
-import { packageFactsOf } from "#pantry/import/write.ts";
+import { writtenFactsOf } from "#pantry/import/write.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
 import type { QtiPackage } from "#pantry/import/read.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
@@ -37,11 +37,15 @@ export const applyEdited = (
   edit: (inputs: PackageInputs) => PackageInputs = (held) => held,
 ) =>
   Effect.gen(function* appliesEdited() {
-    const program = yield* readProgram(dir, nameOf(dir));
+    const name = nameOf(dir);
+    const program = yield* readProgram(dir, name);
     const db = yield* Db.open((yield* AuthorLogin).roles.author, {});
     const [applied, outcome] = yield* Effect.timed(
       db.workload.insertWrite
-        .once({ facts: { insert: packageFactsOf(edit(program.inputs)) }, params: {} })
+        .once({
+          facts: { insert: writtenFactsOf(edit(program.inputs)) },
+          params: { package: name },
+        })
         .pipe(
           Effect.catchIf(
             (error): error is Extract<CallError, { readonly kind: "refused" }> =>
