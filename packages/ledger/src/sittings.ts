@@ -104,6 +104,9 @@ export const SittingStanding = closed.ordered("SittingStanding", [
  * - **TestPresented** `(child, stage, at) → k, package, path`: from `at` on, in candidate session
  *   `k`, the candidate is shown the item whose document is `path`.
  * - **TestEnd** `(child, stage) → at, k`: the sitting's end, in candidate session `k`.
+ * - **TestBeacon** `(child, stage, at) → k`: at `at`, in candidate session `k`, the candidate was
+ *   there: an application's presence beacon, which the session's time is charged up to (H10), no
+ *   moment of the sitting's clock, so it ends no presentation's span.
  * - **SittingFinal** `(child, stage, at)`: the sitting's outcomes are final, at the instant they
  *   became so; one per sitting, and only of an ended one.
  *
@@ -161,6 +164,10 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     "One end a sitting",
     relation("TestEnd", { ...sitting, at: instant, k: natural }, ["child", "stage"]),
   );
+  const TestBeacon = named(
+    "Beacon instant",
+    relation("TestBeacon", { ...sitting, at: instant, k: natural }, ["child", "stage", "at"]),
+  );
   /**
    * A sitting whose outcomes are final, stored at the instant the write that made it so stamps (a
    * clock whose child is the sitting), one row per sitting: the fact the application awaits (den
@@ -182,6 +189,7 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
 
   const tables = {
     SittingFinal,
+    TestBeacon,
     TestBudget,
     TestEnd,
     TestMoment,
@@ -224,6 +232,10 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
     named(
       "End of a visit",
       contained(on(TestEnd, "child", "stage", "k"), on(TestVisit, "child", "stage", "k")),
+    ),
+    named(
+      "Beacon of a visit",
+      contained(on(TestBeacon, "child", "stage", "k"), on(TestVisit, "child", "stage", "k")),
     ),
     named("Final key", key(on(SittingFinal, "child", "stage"))),
     named(

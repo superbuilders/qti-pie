@@ -22,12 +22,12 @@
  *   T-FORM-01; 0 of 2,825 refused, QP-CONVERTER's count), and each is lifted by the runtime that
  *   delivers it.
  * - The laws of a sitting's candidate sessions: each later budget is the time its sitting has left,
- *   no candidate session is suspended past its deadline unless the test allows late submission
- *   (Table 7.40.3), nothing of the sitting follows its end, its end falls in an open candidate
- *   session, every presentation falls in its candidate session, and a linear part's presentations
- *   never go back (§2.8.2). A sitting's first budget, its applied limit with what the application
- *   grants the learner, and its item-session settings are the application's level's, above this
- *   one.
+ *   no candidate session ran, up to its last sign of presence, past its deadline unless the test
+ *   allows late submission (a closed tab's time, after the last sign, is not charged: H10) (Table
+ *   7.40.3), nothing of the sitting follows its end, its end falls in an open candidate session,
+ *   every presentation falls in its candidate session, and a linear part's presentations never go
+ *   back (§2.8.2). A sitting's first budget, its applied limit with what the application grants the
+ *   learner, and its item-session settings are the application's level's, above this one.
  * - The laws of a sitting's responses: every response snapshot of a sitting's item session, a save or
  *   an attempt, lies inside one of its candidate sessions ("During each attempt the candidate
  *   interacts with the item through one or more candidate sessions", §2.2.1), and every response
@@ -143,6 +143,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     ResponseSnapshot,
     SessionControl,
     SnapshotGiven,
+    TestBeacon,
     TestBudget,
     TestEnd,
     TestMember,
@@ -451,135 +452,6 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   });
 
   /**
-   * Each member's built-in `duration`, in microseconds, exactly, its seconds a millionth of it:
-   * "the accumulated time (in seconds) of all Candidate Sessions for all Attempts … the time
-   * between the beginning and the end of the item session minus any time the session was in the
-   * suspended state" (§2.2.2.2), the sum of its presentations' spans on the sitting's one clock,
-   * each ending at the sitting's next moment and, in a timed sitting, never past its candidate
-   * session's deadline. A member's next presentation is stamped in the call that ends its
-   * predecessor's attempt, so a linear part's spans meet with no gap and their sum is the part's
-   * time (research/14 §3.6). Every member has one, read whether or not its item is time dependent
-   * (pantry's spec reading 150; §2.2.2.2's "must not be used" stands in a section the information
-   * model marks not normative, info:4599).
-   */
-  const ItemDuration = derived(
-    "ItemDuration",
-    query(ledger)
-      .rule((r) => {
-        const { child, stage, at, k, package: pkg, path, end } = v(presentedSpans, "timedSpan");
-        const { at: began } = v(TestVisit, "timedSpanVisit");
-        const { remaining } = v(TestBudget, "timedSpanBudget");
-
-        return r
-          .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
-          .match(TestVisit, { at: began, child, k, stage })
-          .match(TestBudget, { child, k, remaining, stage })
-          .find({
-            child,
-            micros: r.sum(
-              Logic.least(
-                Num.numeric(Num.sub(Type.base(end), Type.base(at))),
-                Num.sub(
-                  Num.add(Num.numeric(Type.base(began)), Type.base(remaining)),
-                  Num.numeric(Type.base(at)),
-                ),
-              ),
-            ),
-            package: pkg,
-            path,
-            stage,
-          });
-      })
-      .rule((r) => {
-        const { child, stage, at, k, package: pkg, path, end } = v(presentedSpans, "untimedSpan");
-
-        return r
-          .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
-          .where(r.not(TestBudget, { child, k, stage }))
-          .find({
-            child,
-            micros: r.sum(Num.numeric(Num.sub(Type.base(end), Type.base(at)))),
-            package: pkg,
-            path,
-            stage,
-          });
-      }),
-  );
-
-  /**
-   * The budget each suspended candidate session of a timed sitting leaves its next: the time it
-   * began with, less the time it ran, from its start to its suspension, two instants of the
-   * sitting's one clock. The one statement of a later budget: a resumption's budget is read from
-   * it, and "Budget chain" holds it there.
-   */
-  const nextBudgets = query(ledger).rule((r) => {
-    const { child, stage, k, remaining } = v(TestBudget, "nextBudgetBudget");
-    const { at: began } = v(TestVisit, "nextBudgetVisit");
-    const { at: suspended } = v(TestSuspension, "nextBudgetSuspension");
-
-    return r
-      .match(TestBudget, { child, k, remaining, stage })
-      .match(TestVisit, { at: began, child, k, stage })
-      .match(TestSuspension, { at: suspended, child, k, stage })
-      .find({
-        child,
-        left: Num.sub(
-          Type.base(remaining),
-          Num.numeric(Num.sub(Type.base(suspended), Type.base(began))),
-        ),
-        next: Num.add(Type.base(k), 1n),
-        stage,
-      });
-  });
-
-  const NextBudget = derived("NextBudget", nextBudgets);
-
-  /**
-   * Each later budget beside what its sitting's previous candidate session left it.
-   */
-  const BudgetChain = derived(
-    "BudgetChain",
-    query(ledger).rule((r) => {
-      const { child, stage, k, remaining } = v(TestBudget, "budget");
-      const { next, left } = v(nextBudgets, "before");
-
-      return r
-        .match(TestBudget, { child, k, remaining, stage })
-        .match(nextBudgets, { child, left, next, stage })
-        .where(r.eq(Type.base(k), next))
-        .find({ child, k, left, remaining, stage });
-    }),
-  );
-
-  /**
-   * Each suspended candidate session of a timed sitting whose test allows no late submission, with
-   * the time it ran and the time it began with.
-   */
-  const SuspensionInTime = derived(
-    "SuspensionInTime",
-    query(ledger).rule((r) => {
-      const { child, stage, package: pkg, path } = v(TestSession, "sitting");
-      const { k, remaining } = v(TestBudget, "budget");
-      const { at: began } = v(TestVisit, "visit");
-      const { at: suspended } = v(TestSuspension, "suspension");
-
-      return r
-        .match(TestSession, { child, package: pkg, path, stage })
-        .match(TestBudget, { child, k, remaining, stage })
-        .match(TestVisit, { at: began, child, k, stage })
-        .match(TestSuspension, { at: suspended, child, k, stage })
-        .where(r.not(lateTests, { package: pkg, path }))
-        .find({
-          child,
-          k,
-          ran: Num.sub(Type.base(suspended), Type.base(began)),
-          remaining,
-          stage,
-        });
-    }),
-  );
-
-  /**
    * Each response snapshot of a sitting's item session, with its stage: a save or an attempt, the
    * candidate's or the end's.
    */
@@ -646,6 +518,204 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   const SessionSnapshot = derived("SessionSnapshot", sessionSnapshots);
 
   /**
+   * Each sign that a candidate session's candidate was there, by its instant in microseconds on the
+   * database's clock (a sign of the sitting's clock and a response of its item session's, read as
+   * readings of one clock, as {@link sessionSnapshots} compares them): the session's start, an
+   * application's presence beacon in it (`TestBeacon`), a presentation in it, a response snapshot
+   * inside it, a save or an answer, and the sitting's end in it, the candidate's submission or the
+   * close at the deadline while the candidate is there (an application suspends a session it finds
+   * abandoned, never ends it). A session is charged up to its last sign: the time after it, a
+   * closed tab's or a lost connection's, is no time the candidate used (H10), so an application
+   * suspends a session it finds abandoned, and the suspension, stamped when it is written, charges
+   * nothing past the last sign; a pause the candidate makes carries a beacon of its own, in the
+   * pause's statement, and is charged to the pause.
+   */
+  const presenceSigns = query(ledger)
+    .rule((r) => {
+      const { child, stage, k, at } = v(TestVisit, "visitSign");
+
+      return r
+        .match(TestVisit, { at, child, k, stage })
+        .find({ at: Type.base(at), child, k, stage });
+    })
+    .rule((r) => {
+      const { child, stage, k, at } = v(TestBeacon, "beaconSign");
+
+      return r
+        .match(TestBeacon, { at, child, k, stage })
+        .find({ at: Type.base(at), child, k, stage });
+    })
+    .rule((r) => {
+      const { child, stage, k, at } = v(TestPresented, "presentedSign");
+
+      return r
+        .match(TestPresented, { at, child, k, stage })
+        .find({ at: Type.base(at), child, k, stage });
+    })
+    .rule((r) => {
+      const { child, stage, k, at } = v(sessionSnapshots, "responseSign");
+
+      return r
+        .match(sessionSnapshots, { at, child, k, stage })
+        .find({ at: Type.base(at), child, k, stage });
+    })
+    .rule((r) => {
+      const { child, stage, k, at } = v(TestEnd, "endSign");
+
+      return r.match(TestEnd, { at, child, k, stage }).find({ at: Type.base(at), child, k, stage });
+    });
+
+  /**
+   * Each candidate session's last sign of presence ({@link presenceSigns}): its start where it
+   * holds no later one.
+   */
+  const lastPresences = query(ledger).rule((r) => {
+    const { child, stage, k, at } = v(presenceSigns, "lastSign");
+
+    return r.match(presenceSigns, { at, child, k, stage }).find({ at: r.max(at), child, k, stage });
+  });
+
+  /**
+   * Each member's built-in `duration`, in microseconds, exactly, its seconds a millionth of it:
+   * "the accumulated time (in seconds) of all Candidate Sessions for all Attempts … the time
+   * between the beginning and the end of the item session minus any time the session was in the
+   * suspended state" (§2.2.2.2), the sum of its presentations' spans on the sitting's one clock,
+   * each ending at the sitting's next moment, never past its candidate session's last sign of
+   * presence (a closed tab's time is no time the item was used, H10) and, in a timed sitting, never
+   * past its candidate session's deadline. A member's next presentation is stamped in the call that
+   * ends its predecessor's attempt, so a linear part's spans meet with no gap and their sum is the
+   * part's time (research/14 §3.6). Every member has one, read whether or not its item is time
+   * dependent (pantry's spec reading 150; §2.2.2.2's "must not be used" stands in a section the
+   * information model marks not normative, info:4599).
+   */
+  const ItemDuration = derived(
+    "ItemDuration",
+    query(ledger)
+      .rule((r) => {
+        const { child, stage, at, k, package: pkg, path, end } = v(presentedSpans, "timedSpan");
+        const { at: began } = v(TestVisit, "timedSpanVisit");
+        const { remaining } = v(TestBudget, "timedSpanBudget");
+        const { at: last } = v(lastPresences, "timedSpanPresence");
+
+        return r
+          .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
+          .match(TestVisit, { at: began, child, k, stage })
+          .match(TestBudget, { child, k, remaining, stage })
+          .match(lastPresences, { at: last, child, k, stage })
+          .find({
+            child,
+            micros: r.sum(
+              Logic.least(
+                Num.numeric(Num.sub(Type.base(end), Type.base(at))),
+                Num.sub(
+                  Num.add(Num.numeric(Type.base(began)), Type.base(remaining)),
+                  Num.numeric(Type.base(at)),
+                ),
+                Num.numeric(Num.sub(last, Type.base(at))),
+              ),
+            ),
+            package: pkg,
+            path,
+            stage,
+          });
+      })
+      .rule((r) => {
+        const { child, stage, at, k, package: pkg, path, end } = v(presentedSpans, "untimedSpan");
+        const { at: last } = v(lastPresences, "untimedSpanPresence");
+
+        return r
+          .match(presentedSpans, { at, child, end, k, package: pkg, path, stage })
+          .match(lastPresences, { at: last, child, k, stage })
+          .where(r.not(TestBudget, { child, k, stage }))
+          .find({
+            child,
+            micros: r.sum(
+              Logic.least(
+                Num.numeric(Num.sub(Type.base(end), Type.base(at))),
+                Num.numeric(Num.sub(last, Type.base(at))),
+              ),
+            ),
+            package: pkg,
+            path,
+            stage,
+          });
+      }),
+  );
+
+  /**
+   * The budget each suspended candidate session of a timed sitting leaves its next: the time it
+   * began with, less the time it ran, from its start to its last sign of presence
+   * ({@link lastPresences}), two instants of the database's clock. The one statement of a later
+   * budget: a resumption's budget is read from it, and "Budget chain" holds it there.
+   */
+  const nextBudgets = query(ledger).rule((r) => {
+    const { child, stage, k, remaining } = v(TestBudget, "nextBudgetBudget");
+    const { at: began } = v(TestVisit, "nextBudgetVisit");
+    const { at: last } = v(lastPresences, "nextBudgetPresence");
+
+    return r
+      .match(TestBudget, { child, k, remaining, stage })
+      .match(TestVisit, { at: began, child, k, stage })
+      .match(TestSuspension, { child, k, stage })
+      .match(lastPresences, { at: last, child, k, stage })
+      .find({
+        child,
+        left: Num.sub(Type.base(remaining), Num.numeric(Num.sub(last, Type.base(began)))),
+        next: Num.add(Type.base(k), 1n),
+        stage,
+      });
+  });
+
+  const NextBudget = derived("NextBudget", nextBudgets);
+
+  /**
+   * Each later budget beside what its sitting's previous candidate session left it.
+   */
+  const BudgetChain = derived(
+    "BudgetChain",
+    query(ledger).rule((r) => {
+      const { child, stage, k, remaining } = v(TestBudget, "budget");
+      const { next, left } = v(nextBudgets, "before");
+
+      return r
+        .match(TestBudget, { child, k, remaining, stage })
+        .match(nextBudgets, { child, left, next, stage })
+        .where(r.eq(Type.base(k), next))
+        .find({ child, k, left, remaining, stage });
+    }),
+  );
+
+  /**
+   * Each suspended candidate session of a timed sitting whose test allows no late submission, with
+   * the time it ran, up to its last sign of presence ({@link lastPresences}), and the time it began
+   * with.
+   */
+  const SuspensionInTime = derived(
+    "SuspensionInTime",
+    query(ledger).rule((r) => {
+      const { child, stage, package: pkg, path } = v(TestSession, "sitting");
+      const { k, remaining } = v(TestBudget, "budget");
+      const { at: began } = v(TestVisit, "visit");
+      const { at: last } = v(lastPresences, "presence");
+
+      return r
+        .match(TestSession, { child, package: pkg, path, stage })
+        .match(TestBudget, { child, k, remaining, stage })
+        .match(TestVisit, { at: began, child, k, stage })
+        .match(TestSuspension, { child, k, stage })
+        .match(lastPresences, { at: last, child, k, stage })
+        .where(r.not(lateTests, { package: pkg, path }))
+        .find({
+          child,
+          k,
+          ran: Num.sub(last, Type.base(began)),
+          remaining,
+          stage,
+        });
+    }),
+  );
+
+  /**
    * Each response the candidate gave in a timed candidate session of a sitting whose test allows no
    * late submission (Table 7.40.3, its default false): its snapshot inside that session ({@link
    * SessionSnapshot}), with `arrived`, the time from the session's beginning to the database's
@@ -683,7 +753,8 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   /**
    * Two instants of a sitting, by what they are: `earlier` must come before `later`, or be the same
    * instant where `strict` is false. Every pair is of the sitting's one clock, so its order is the
-   * order the calls were committed.
+   * order the calls were committed; a presence beacon, no moment of that clock, lies inside its
+   * candidate session, from its start to its suspension or the end.
    */
   const SittingOrder = derived(
     "SittingOrder",
@@ -775,6 +846,33 @@ export const deliveryOf = (ledger: LedgerLevel) => {
           .match(TestPresented, { at: earlier, child, stage })
           .match(TestEnd, { at: later, child, stage })
           .find({ child, earlier, later, stage, strict: Type.literal(pg.boolean, true) });
+      })
+      .rule((r) => {
+        const { child, stage, k, at: earlier } = v(TestVisit, "beaconVisit");
+        const { at: later } = v(TestBeacon, "visitBeacon");
+
+        return r
+          .match(TestVisit, { at: earlier, child, k, stage })
+          .match(TestBeacon, { at: later, child, k, stage })
+          .find({ child, earlier, later, stage, strict: Type.literal(pg.boolean, false) });
+      })
+      .rule((r) => {
+        const { child, stage, k, at: earlier } = v(TestBeacon, "suspendedBeacon");
+        const { at: later } = v(TestSuspension, "beaconSuspension");
+
+        return r
+          .match(TestBeacon, { at: earlier, child, k, stage })
+          .match(TestSuspension, { at: later, child, k, stage })
+          .find({ child, earlier, later, stage, strict: Type.literal(pg.boolean, false) });
+      })
+      .rule((r) => {
+        const { child, stage, at: earlier } = v(TestBeacon, "endedBeacon");
+        const { at: later } = v(TestEnd, "beaconEnd");
+
+        return r
+          .match(TestBeacon, { at: earlier, child, stage })
+          .match(TestEnd, { at: later, child, stage })
+          .find({ child, earlier, later, stage, strict: Type.literal(pg.boolean, false) });
       }),
   );
 

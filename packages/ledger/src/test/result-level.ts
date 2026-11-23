@@ -20,13 +20,14 @@
  * reading both what it stored and the machine's own run of it (`templateProcessingOf` over
  * `takeArgumentsOf`); writes a test's sitting as host rows (`sittingFacts`: its test session, its
  * members' item sessions with their seeds, and an attempt), then enters, presents in, saves in,
- * answers in, suspends and ends it through the test runtime's own programs (`sittingProgramsOf`),
+ * answers in, beacons in, pauses (a beacon and a suspension in one statement), suspends and ends it
+ * through the test runtime's own programs (`sittingProgramsOf`),
  * each over the sitting the call names, a timed entry with the first budget the call gives, as an
  * application's level writes it from its applied limit, and an end followed by the finish
  * (`finishTest`, `finishTestOf` sequenced after `endTest`, as every application ends a sitting);
  * and reads the Delivery relations the suite holds to its table, the tests it delivers, each
- * attempt's completion status and outcomes as its response processing wrote them, and each
- * attempt's string values, one child's at a time.
+ * attempt's completion status and outcomes as its response processing wrote them, each
+ * attempt's string values, and its candidate sessions' budgets, one child's at a time.
  *
  * @module
  */
@@ -111,6 +112,7 @@ const {
   AwaitingHumanEvaluation,
   DeliveredTest,
   HumanOperatorValue,
+  ItemDuration,
   ItemSessionStatus,
   ItemSessionValue,
   ItemSessionValueSingleIdentifier,
@@ -209,9 +211,9 @@ const takeRelations = [
 
 /**
  * What the test runtime's programs write of a sitting beside the session facts: its test session,
- * its candidate sessions, presentations, budgets and end, a save's rows and its snapshot's given
- * reading, and the close's `DefaultSubmission` of a presented member with no save; the value
- * sidecars a save writes are grading's (`gradeAttemptTables`).
+ * its candidate sessions, presentations, presence beacons, budgets and end, a save's rows and its
+ * snapshot's given reading, and the close's `DefaultSubmission` of a presented member with no save;
+ * the value sidecars a save writes are grading's (`gradeAttemptTables`).
  */
 const sittingRelations = [
   "TestSession",
@@ -221,6 +223,7 @@ const sittingRelations = [
   "TestBudget",
   "TestPresented",
   "TestEnd",
+  "TestBeacon",
   "Save",
   "SnapshotGiven",
   "DefaultSubmission",
@@ -752,6 +755,29 @@ const snapshotStringsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The child's members' built-in `duration` (`ItemDuration`), in microseconds, each by its sitting
+ * and its item.
+ */
+const durationsOf = query(ResultLevel).rule((r) => {
+  const { stage, package: pkg, path, micros } = v(ItemDuration, "duration");
+
+  return r
+    .match(ItemDuration, { child: r.param("child", LearnerId), micros, package: pkg, path, stage })
+    .find({ micros, package: pkg, path, stage });
+});
+
+/**
+ * The child's sittings' candidate session budgets (`TestBudget`), each by its sitting and place.
+ */
+const budgetsOf = query(ResultLevel).rule((r) => {
+  const { stage, k, remaining } = v(TestBudget, "budgetRow");
+
+  return r
+    .match(TestBudget, { child: r.param("child", LearnerId), k, remaining, stage })
+    .find({ k, remaining, stage });
+});
+
+/**
  * The tests of the call's package this runtime delivers (`DeliveredTest`), by their path.
  */
 const deliveredTestsOf = query(ResultLevel).rule((r) => {
@@ -770,10 +796,13 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       applicationsOf,
       attemptsOf,
       awaitingOf,
+      beaconTest: sittingPrograms.beaconTest.bind({ sittings: namedSitting }),
+      budgetsOf,
       completionsOf,
       creditsOf,
       deliveredTestsOf,
       drawsOf,
+      durationsOf,
       endTest: sittingPrograms.endTest.bind({ sittings: namedSitting }),
       enterTest: sittingPrograms.enterTest.bind({ sittings: namedSitting }),
       enterTimedTest: ChangeSet.union(sittingPrograms.enterTest, firstBudget).bind({
@@ -788,6 +817,9 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       grade: gradeAttemptOf(ResultLevel).bind({ sittings: sessionSitting }),
       maximaOf,
       operandsOf,
+      pauseTest: ChangeSet.union(sittingPrograms.beaconTest, sittingPrograms.suspendTest).bind({
+        sittings: namedSitting,
+      }),
       presentItem: sittingPrograms.presentItem.bind({ sittings: namedSitting }),
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
       recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),

@@ -69,7 +69,11 @@
  * browser's reading of when it was given says. Every program reads back its sitting's standing,
  * which the table holds after each move. And the latest save admitted is what the end submits: a
  * save superseding an in-time one 1.5 s past the deadline is submitted, and one 11 s past it is
- * refused, so the in-time one is ({@link supersedeExpectedOf}).
+ * refused, so the in-time one is ({@link supersedeExpectedOf}). And a candidate session is charged
+ * up to its last sign of presence (its start, a beacon, a presentation, a response), never a closed
+ * tab's time: a pause, which carries a beacon, to the pause, a session suspended after a closed tab
+ * to its last beacon, even across its deadline, and one whose last sign is past its deadline is
+ * refused its suspension ({@link presenceExpectedOf}).
  *
  * And a test's item-session controls (`presentItem`, `saveTestItem`, `answerTestItem`, and
  * `finishTest`, the end with its finish), held to their table ({@link controlsExpectedOf}):
@@ -2708,6 +2712,204 @@ const holdSupersede = (
     );
   });
 
+/**
+ * A presence case: how a timed sitting's first candidate session ends, and the budget it begins
+ * with.
+ *
+ * - `pause`: the candidate pauses, a beacon and a suspension in one statement, then resumes.
+ * - `lapse`: a beacon, then two seconds of no sign (a closed tab), then the application suspends the
+ *   session it finds abandoned, and the candidate resumes.
+ * - `lapsePastDeadline`: the same with a one-second budget, so the deadline passes while the tab is
+ *   closed.
+ * - `presentPastDeadline`: a beacon after a one-second budget ran out, then a suspension.
+ */
+type PresenceCase = Readonly<{
+  name: string;
+  ending: "pause" | "lapse" | "lapsePastDeadline" | "presentPastDeadline";
+}>;
+
+/**
+ * Every presence case.
+ */
+const presenceCases = [
+  { ending: "pause", name: "a pause the candidate makes" },
+  { ending: "lapse", name: "a closed tab, then the application's suspension" },
+  { ending: "lapsePastDeadline", name: "a closed tab past the deadline, then the suspension" },
+  { ending: "presentPastDeadline", name: "a beacon past the deadline, then a suspension" },
+] as const satisfies readonly PresenceCase[];
+
+const presenceSpace: Gen<PresenceCase> = element(presenceCases);
+
+/**
+ * The budgets a presence case begins with: ten minutes, or one second for the cases whose deadline
+ * passes.
+ */
+const presenceBudgetOf = (c: PresenceCase): bigint =>
+  c.ending === "lapsePastDeadline" || c.ending === "presentPastDeadline"
+    ? 1_000_000n
+    : 600_000_000n;
+
+/**
+ * How long a presence case waits in real time after its beacon, before the suspension: two seconds
+ * of no sign for a closed tab; none for a pause, which carries its own; and, for a beacon past the
+ * deadline, a second and a half before the beacon.
+ */
+const absenceMillis = 2000;
+
+/**
+ * The presence table: a candidate session is charged up to its last sign of presence (its start, a
+ * beacon, a presentation, a response): the time after it, a closed tab's, is no time the candidate
+ * used (H10). So a pause, which carries a beacon, is charged to the pause; a session suspended
+ * after a closed tab is charged to its last beacon, and resumes with the rest, even where the
+ * deadline passed while the tab was closed; and a session whose last sign is past its deadline is
+ * refused its suspension by "Suspended in time" (Table 7.40), the test allowing no late
+ * submission.
+ *
+ * @param c - The case.
+ */
+const presenceExpectedOf = (c: PresenceCase) =>
+  c.ending === "presentPastDeadline"
+    ? ({ kind: "refused", law: "Suspended_in_time" } as const)
+    : ({ kind: "charged to the last sign" } as const);
+
+/**
+ * The situations the presence space must reach.
+ */
+const presenceSituations = [
+  "a pause charged to the pause",
+  "a closed tab's time not charged",
+  "a closed tab across the deadline resumes with the rest",
+  "a sign past the deadline refused its suspension",
+  "an item's duration ends at the last sign of presence",
+] as const;
+
+type PresenceSituation = (typeof presenceSituations)[number];
+
+/**
+ * One presence case: a fresh child's sitting of the timed test, written as host rows as a take
+ * writes it, entered with the case's budget; then its ending, held to the table; and, where the
+ * suspension is accepted, a resumption, whose budget is held to the first budget less the time from
+ * the session's start to its last sign of presence, the last beacon's instant, and the member the
+ * start presented, whose built-in `duration` (the CQPM window's part) is held to the same time: a
+ * closed tab's time counts against neither the budget nor a child's rate.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdPresence = (
+  c: PresenceCase,
+  child: string,
+  note: (situation: PresenceSituation) => void,
+) =>
+  Effect.gen(function* hold() {
+    const want = presenceExpectedOf(c);
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const sitting = { child, stage: 1n };
+    const members = [SHORT, OTHER] as const;
+    const taken = yield* db.workload.sittingFacts.once({
+      facts: {
+        insert: {
+          Attempt: rowsOf("Attempt", []),
+          ItemSession: rowsOf(
+            "ItemSession",
+            members.map((path) => ({ ...sitting, package: PACKAGE, path })),
+          ),
+          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
+          SessionSeed: rowsOf(
+            "SessionSeed",
+            members.map((path) => ({ ...sitting, package: PACKAGE, path, seed: SEED })),
+          ),
+          TestSession: rowsOf("TestSession", [{ ...sitting, package: PACKAGE, path: TIMED_TEST }]),
+        },
+      },
+      params: {},
+    });
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as a take writes it`);
+
+    const budget = presenceBudgetOf(c);
+    const entered = yield* db.workload.enterTimedTest.once({
+      facts: {},
+      params: { ...sitting, remaining: budget },
+    });
+    assert.strictEqual(entered.kind, "accepted", `${c.name}: the timed entry`);
+
+    const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
+    const lastSign = yield* Effect.gen(function* end() {
+      if (c.ending === "pause") {
+        const paused = yield* db.workload.pauseTest.once({ facts: {}, params: sitting });
+        assert.strictEqual(paused.kind, "accepted", `${c.name}: the pause`);
+
+        return Option.some(Option.getOrThrow(Arr.head(Arr.fromIterable(paused.reads.beacon))).at);
+      }
+
+      if (c.ending === "presentPastDeadline") {
+        yield* Effect.sleep(Duration.millis(absenceMillis - 500));
+      }
+
+      const beaconed = yield* db.workload.beaconTest.once({ facts: {}, params: sitting });
+      assert.strictEqual(beaconed.kind, "accepted", `${c.name}: the beacon`);
+
+      const beacon = Option.getOrThrow(Arr.head(Arr.fromIterable(beaconed.reads.beacon))).at;
+      yield* Effect.sleep(Duration.millis(absenceMillis));
+
+      const suspended = yield* Effect.result(
+        db.workload.suspendTest.once({ facts: {}, params: sitting }),
+      );
+      if (want.kind === "refused") {
+        assert.isTrue(
+          Result.isFailure(suspended) &&
+            suspended.failure.kind === "refused" &&
+            Formatter.format(refusedLawsOf(suspended.failure.refused)).includes(want.law),
+          `${c.name}: the suspension refused by ${want.law}, got ${Formatter.format(suspended)}`,
+        );
+        note("a sign past the deadline refused its suspension");
+
+        return Option.none<bigint>();
+      }
+
+      assert.isTrue(
+        Result.isSuccess(suspended) && suspended.success.kind === "accepted",
+        `${c.name}: the suspension, got ${Formatter.format(suspended)}`,
+      );
+
+      return Option.some(beacon);
+    });
+    if (Option.isNone(lastSign)) {
+      return;
+    }
+
+    const resumed = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(resumed.kind, "accepted", `${c.name}: the resumption`);
+
+    const budgets = Arr.fromIterable(
+      yield* db.workload.budgetsOf.once({ facts: {}, params: { child } }),
+    );
+    assert.deepStrictEqual<unknown>(
+      budgets.filter((row) => row.k === 1n).map((row) => String(row.remaining)),
+      [String(budget - (lastSign.value - began))],
+      `${c.name}: the resumption's budget, the first less the time to the last sign of presence`,
+    );
+
+    const durations = Arr.fromIterable(
+      yield* db.workload.durationsOf.once({ facts: {}, params: { child } }),
+    ).filter((row) => row.package === PACKAGE && row.path === SHORT);
+    assert.deepStrictEqual<unknown>(
+      durations.map((row) => String(row.micros)),
+      [String(lastSign.value - began)],
+      `${c.name}: the member's duration, from its presentation at the start to the last sign of presence`,
+    );
+    note("an item's duration ends at the last sign of presence");
+    if (c.ending === "pause") {
+      note("a pause charged to the pause");
+    } else if (c.ending === "lapse") {
+      note("a closed tab's time not charged");
+    } else {
+      note("a closed tab across the deadline resumes with the rest");
+    }
+  });
+
 describe.skipIf(Option.isNone(migrations))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
@@ -2937,6 +3139,43 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the supersedes held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "charges a candidate session up to its last sign of presence, never a closed tab's time",
+          (ctx) =>
+            Effect.gen(function* holdEveryPresenceCase() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "a pause, a closed tab before and across the deadline, and a sign past it, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<PresenceSituation>(presenceSituations),
+                    generator: presenceSpace,
+                    literal: (c: PresenceCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "presenceExpectedOf: a candidate session is charged up to its last sign of presence (H10), and one whose last sign is past its deadline is refused its suspension (Table 7.40)",
+                    },
+                    suite: "ledger/results/presence",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdPresence(row, `user_ledgerpres${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the presences held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
 

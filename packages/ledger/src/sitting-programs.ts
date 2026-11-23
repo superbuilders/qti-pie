@@ -25,8 +25,12 @@
  *   0), and the member `next` names presented where it names one, each only where the member's
  *   response admission, under its item ref's validate-responses, gives no reason
  *   (`#ledger/grade.ts` memberAnswerAdmissionOf, over `sittings` and `item`).
+ * - `beaconTest` { sittings }: the open candidate session's presence beacon, the application's sign
+ *   that its candidate is there, which the session's time is charged up to (`#delivery.ts`, H10).
  * - `suspendTest`, `endTest` { sittings }: the open candidate session suspended; the sitting's part
- *   ended.
+ *   ended. A pause the candidate makes is `beaconTest` and `suspendTest` in one statement, charged
+ *   to the pause; an application that finds a session abandoned suspends it alone, charged to its
+ *   last sign of presence.
  *
  * `sittings` is the relation parameter every builder but the take reads
  * (`#ledger/sitting-queries.ts` sittingHeading), which the application binds once per program to
@@ -472,8 +476,11 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
     .read("standing", () => standing);
 
   /**
-   * The open candidate session's suspension, AlphaTest's pause: refused past the deadline where the
-   * test allows no late submission ("Suspended in time").
+   * The open candidate session's suspension, AlphaTest's pause, or an application's close of a
+   * session it found abandoned: charged up to the session's last sign of presence, and refused
+   * where that ran past its deadline and the test allows no late submission ("Suspended in time").
+   * A pause the candidate makes unions `beaconTest` in its statement, so it is charged to the
+   * pause.
    */
   const suspendTest = ChangeSet.empty(delivery)
     .insert(
@@ -501,6 +508,33 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
         return r
           .match(delta.added(f.TestSuspension), { child, k, stage })
           .find({ child, k, stage });
+      }),
+    )
+    .read("standing", () => standing);
+
+  /**
+   * The open candidate session's presence beacon: the application's sign that its candidate is
+   * there, at the database's instant, which a session's time is charged up to (`#delivery.ts`'s
+   * presence signs, H10). It is no moment of the sitting's clock, so it ends no presentation's
+   * span; a sitting with no open candidate session writes nothing and reads back `unchanged`.
+   */
+  const beaconTest = ChangeSet.empty(delivery)
+    .insert(
+      f.TestBeacon,
+      query(delivery).rule((r) => {
+        const open = openVisit.bind({ sittings: r.relation("sittings", sittingHeading) });
+        const { child, stage, k } = v(open, "present");
+
+        return r.match(open, { child, k, stage }).find({ child, k, stage });
+      }),
+    )
+    .read("beacon", (delta) =>
+      query(delivery).rule((r) => {
+        const { child, stage, k, at } = v(delta.added(f.TestBeacon), "beaconed");
+
+        return r
+          .match(delta.added(f.TestBeacon), { at, child, k, stage })
+          .find({ at, child, k, stage });
       }),
     )
     .read("standing", () => standing);
@@ -3622,6 +3656,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
 
   return {
     answerTestItem,
+    beaconTest,
     endTest,
     enterTest,
     memberTarget,

@@ -45,9 +45,17 @@ export const ledgerLaws = {
     source:
       "src/ledger.ts Snapshot<Multiple><Float|Duration>: 'A multiple of float or duration keys each distinct value by its identity image, `bits`, grizzle's `Num.floatBits` of the value (its IEEE 754 bits, every NaN one), which the law BagImage holds it to'",
   },
+  "Beacon instant": {
+    source:
+      "src/sittings.ts TestBeacon: 'at `at`, in candidate session `k`, the candidate was there', one beacon an instant of the sitting, stamped by the insert that adds it",
+  },
+  "Beacon of a visit": {
+    source:
+      "src/sittings.ts TestBeacon: an application's presence beacon is of a candidate session of the sitting",
+  },
   "Budget chain": {
     source:
-      "src/delivery.ts BudgetChain: each later candidate session's budget is what its sitting's previous candidate session left it (src/sittings.ts TestBudget, the time a candidate session begins with)",
+      "src/delivery.ts BudgetChain: each later candidate session's budget is what its sitting's previous candidate session left it, charged up to its last sign of presence (src/sittings.ts TestBudget, the time a candidate session begins with; TestBeacon)",
   },
   "Budget of a visit": {
     source:
@@ -328,7 +336,7 @@ export const ledgerLaws = {
     source: `${info}#DataCharacteristic_TestPart.Attr_submission-mode (Table 5.159.5: 'simultaneous ... all submitted together at the end'): a simultaneous part's attempts exist only with its sitting's end, and its end submits every member the candidate was shown (src/test-laws.ts)`,
   },
   "Suspended in time": {
-    source: `${info}#DerivedCharacteristic_TimeLimits.Attr_max-time (Table 7.40: 'This is the maximum duration, in seconds, allocated to the test'): a suspended candidate session of a timed sitting whose test allows no late submission ran within the time it began with (src/delivery.ts SuspensionInTime)`,
+    source: `${info}#DerivedCharacteristic_TimeLimits.Attr_max-time (Table 7.40: 'This is the maximum duration, in seconds, allocated to the test'): a suspended candidate session of a timed sitting whose test allows no late submission ran, up to its last sign of presence, within the time it began with (src/delivery.ts SuspensionInTime)`,
   },
   "Suspension of a visit": {
     source:
