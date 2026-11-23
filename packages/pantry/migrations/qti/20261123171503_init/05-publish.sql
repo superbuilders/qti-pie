@@ -1,5 +1,5 @@
 CREATE PUBLICATION "__live_lxch3umxkh"
-  FOR TABLE "qti"."attribute" ("package", "path", "start", "name"), "qti"."attribute_entity" ("package", "path", "start", "name", "offset"), "qti"."comment" ("package", "path", "start"), "qti"."doctype" ("package", "path", "start"), "qti"."document" ("package", "path"), "qti"."element_type" ("package", "path", "start"), "qti"."encoding_decl" ("package", "path"), "qti"."entry" ("package", "path"), "qti"."media" ("package", "path"), "qti"."namespace" ("package", "path", "start", "at"), "qti"."node" ("package", "path", "start"), "qti"."open_attribute" ("package", "path", "start", "at"), "qti"."open_attribute_entity" ("package", "path", "start", "at", "offset"), "qti"."open_element_name" ("package", "path", "start"), "qti"."open_element_type" ("package", "path", "start"), "qti"."package" ("name"), "qti"."pi" ("package", "path", "start"), "qti"."sd_decl" ("package", "path"), "qti"."xml_decl" ("package", "path"), "qti"."__ledger"
+  FOR TABLE "qti"."attribute" ("package", "path", "start", "name"), "qti"."attribute_entity" ("package", "path", "start", "name", "offset"), "qti"."comment" ("package", "path", "start"), "qti"."doctype" ("package", "path", "start"), "qti"."document" ("package", "path"), "qti"."element_type" ("package", "path", "start"), "qti"."encoding_decl" ("package", "path"), "qti"."entry" ("package", "path"), "qti"."media" ("package", "path"), "qti"."namespace" ("package", "path", "start", "at"), "qti"."node" ("package", "path", "start"), "qti"."open_attribute" ("package", "path", "start", "at"), "qti"."open_attribute_entity" ("package", "path", "start", "at", "offset"), "qti"."open_element_name" ("package", "path", "start"), "qti"."open_element_type" ("package", "path", "start"), "qti"."package" ("package"), "qti"."pi" ("package", "path", "start"), "qti"."sd_decl" ("package", "path"), "qti"."xml_decl" ("package", "path"), "qti"."__ledger"
   WITH (publish_generated_columns = stored);
 
 SELECT "r1"."c1"::"qti"."__domain_gfw43vigph" AS "value"
@@ -24,8 +24,8 @@ CREATE VIEW "qti_queries__author"."assembled_document" ("instances", "package", 
 SELECT "r1"."instances", "r1"."package", "r1"."path", "r1"."sites", "r1"."targets"
 FROM "qti"."assembled_document" AS "r1";
 
-CREATE VIEW "qti_queries__author"."attribute" ("governor", "governor_name", "idref_text", "idrefs", "kind", "kind_name", "lexical", "name", "name_name", "package", "path", "prefix", "slot", "start", "idref_text_digest", "lexical_digest", "value", "value_digest") AS
-SELECT "r1"."governor", ("qti"."__governor_names_d7jfyla3na"())["r1"."governor" + 1]::"pg_catalog"."text", "r1"."idref_text", "r1"."idrefs", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."lexical", "r1"."name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."name" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."prefix", "r1"."slot", "r1"."start", "r1"."idref_text_digest", "r1"."lexical_digest", "r1"."value", "r1"."value_digest"
+CREATE VIEW "qti_queries__author"."attribute" ("governor", "governor_name", "idref_text", "idrefs", "kind", "kind_name", "lexical", "name", "name_name", "package", "parent", "path", "prefix", "slot", "start", "idref_text_digest", "lexical_digest", "value", "value_digest") AS
+SELECT "r1"."governor", ("qti"."__governor_names_d7jfyla3na"())["r1"."governor" + 1]::"pg_catalog"."text", "r1"."idref_text", "r1"."idrefs", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."lexical", "r1"."name", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."name" + 1]::"pg_catalog"."text", "r1"."package", "r1"."parent", "r1"."path", "r1"."prefix", "r1"."slot", "r1"."start", "r1"."idref_text_digest", "r1"."lexical_digest", "r1"."value", "r1"."value_digest"
 FROM "qti"."attribute" AS "r1";
 
 CREATE VIEW "qti_queries__author"."attribute_entity" ("entity", "name", "name_name", "offset", "package", "path", "start") AS
@@ -60,8 +60,8 @@ CREATE VIEW "qti_queries__author"."cell_leaf" ("at", "cell", "package", "path", 
 SELECT "r1"."at", "r1"."cell", "r1"."package", "r1"."path", "r1"."start", "r1"."start_after", "r1"."start_was"
 FROM "qti"."cell_leaf" AS "r1";
 
-CREATE VIEW "qti_queries__author"."choice" ("identifier", "package", "path", "start") AS
-SELECT "r1"."identifier", "r1"."package", "r1"."path", "r1"."start"
+CREATE VIEW "qti_queries__author"."choice" ("identifier", "kind", "kind_name", "package", "path", "start") AS
+SELECT "r1"."identifier", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."choice" AS "r1";
 
 CREATE VIEW "qti_queries__author"."choice_interaction" ("interaction", "interaction_path", "package", "path", "start") AS
@@ -328,8 +328,8 @@ CREATE VIEW "qti_queries__author"."open_element_type" ("package", "path", "start
 SELECT "r1"."package", "r1"."path", "r1"."start", "r1"."type", ("qti"."__type_name_names_ksmacbo3df"())["r1"."type" + 1]::"pg_catalog"."text"
 FROM "qti"."open_element_type" AS "r1";
 
-CREATE VIEW "qti_queries__author"."package" ("name") AS
-SELECT "r1"."name"
+CREATE VIEW "qti_queries__author"."package" ("package") AS
+SELECT "r1"."package"
 FROM "qti"."package" AS "r1";
 
 CREATE VIEW "qti_queries__author"."pci_module_form" ("element", "package", "path", "start") AS
@@ -344,8 +344,8 @@ CREATE VIEW "qti_queries__author"."placed_binding" ("adaptive", "assembly", "att
 SELECT "r1"."adaptive", "r1"."assembly", "r1"."attribute", ("qti"."__attribute_name_names_q6tmzcty4e"())["r1"."attribute" + 1]::"pg_catalog"."text", "r1"."identifier", "r1"."instance", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."placed_binding" AS "r1";
 
-CREATE VIEW "qti_queries__author"."placed_choice" ("assembly", "identifier", "instance", "package", "path", "start") AS
-SELECT "r1"."assembly", "r1"."identifier", "r1"."instance", "r1"."package", "r1"."path", "r1"."start"
+CREATE VIEW "qti_queries__author"."placed_choice" ("assembly", "identifier", "instance", "kind", "kind_name", "package", "path", "start") AS
+SELECT "r1"."assembly", "r1"."identifier", "r1"."instance", "r1"."kind", ("qti"."__node_kind_names_ulbko553n7"())["r1"."kind" + 1]::"pg_catalog"."text", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."placed_choice" AS "r1";
 
 CREATE VIEW "qti_queries__author"."placed_expression" ("assembly", "base_type", "base_type_name", "cardinality", "cardinality_name", "instance", "package", "path", "start", "base_type_bit", "cardinality_bit") AS
@@ -464,8 +464,8 @@ CREATE VIEW "qti_queries__author"."stimulus_ref" ("identifier", "package", "path
 SELECT "r1"."identifier", "r1"."package", "r1"."path", "r1"."start"
 FROM "qti"."stimulus_ref" AS "r1";
 
-CREATE VIEW "qti_queries__author"."table_header" ("id", "owner", "package", "path", "start") AS
-SELECT "r1"."id", "r1"."owner", "r1"."package", "r1"."path", "r1"."start"
+CREATE VIEW "qti_queries__author"."table_header" ("id", "owner", "package", "path", "start", "table", "id_digest") AS
+SELECT "r1"."id", "r1"."owner", "r1"."package", "r1"."path", "r1"."start", "r1"."table", "r1"."id_digest"
 FROM "qti"."table_header" AS "r1";
 
 CREATE VIEW "qti_queries__author"."table_scope" ("package", "path", "start", "table") AS
@@ -521,259 +521,259 @@ GRANT USAGE ON DOMAIN "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."__fla
 
 GRANT SELECT ON TABLE "qti_queries__author"."assembled_catalog", "qti_queries__author"."assembled_document", "qti_queries__author"."attribute", "qti_queries__author"."attribute_entity", "qti_queries__author"."binding_name", "qti_queries__author"."bound_variable", "qti_queries__author"."candidate_path", "qti_queries__author"."catalog_id", "qti_queries__author"."catalog_scope", "qti_queries__author"."cell_headers", "qti_queries__author"."cell_leaf", "qti_queries__author"."choice", "qti_queries__author"."choice_interaction", "qti_queries__author"."cn_attribute", "qti_queries__author"."cn_count", "qti_queries__author"."cn_part_text", "qti_queries__author"."cn_slot", "qti_queries__author"."comment", "qti_queries__author"."context_ref", "qti_queries__author"."count_bound", "qti_queries__author"."data_ssml", "qti_queries__author"."data_ssml_member", "qti_queries__author"."data_ssml_property", "qti_queries__author"."doctype", "qti_queries__author"."document", "qti_queries__author"."document_id", "qti_queries__author"."element_type", "qti_queries__author"."encoding_decl", "qti_queries__author"."entry", "qti_queries__author"."expression", "qti_queries__author"."feedback_ref", "qti_queries__author"."file", "qti_queries__author"."file_outside", "qti_queries__author"."file_path", "qti_queries__author"."fragment_context_name", "qti_queries__author"."fragment_context_ref", "qti_queries__author"."fragment_feedback_name", "qti_queries__author"."fragment_feedback_ref", "qti_queries__author"."fragment_printed_name", "qti_queries__author"."fragment_printed_ref", "qti_queries__author"."fragment_scope", "qti_queries__author"."fragment_template_name", "qti_queries__author"."fragment_template_ref", "qti_queries__author"."header_token", "qti_queries__author"."hottext", "qti_queries__author"."identity_text", "qti_queries__author"."idref", "qti_queries__author"."idref_target", "qti_queries__author"."inclusion", "qti_queries__author"."instance", "qti_queries__author"."interaction", "qti_queries__author"."interaction_attribute", "qti_queries__author"."item_mode", "qti_queries__author"."item_ref_document", "qti_queries__author"."item_ref_href", "qti_queries__author"."label_use", "qti_queries__author"."least_count", "qti_queries__author"."link_reading", "qti_queries__author"."literal", "qti_queries__author"."literal_typed", "qti_queries__author"."lookup_value", "qti_queries__author"."map_key", "qti_queries__author"."math_action", "qti_queries__author"."math_align_group", "qti_queries__author"."math_align_scope", "qti_queries__author"."math_cell", "qti_queries__author"."math_cn", "qti_queries__author"."math_rank", "qti_queries__author"."media", "qti_queries__author"."most_count", "qti_queries__author"."named", "qti_queries__author"."namespace", "qti_queries__author"."node", "qti_queries__author"."numbered_reading", "qti_queries__author"."open_attribute", "qti_queries__author"."open_attribute_entity", "qti_queries__author"."open_element_name", "qti_queries__author"."open_element_type", "qti_queries__author"."package", "qti_queries__author"."pci_module_form", "qti_queries__author"."pi", "qti_queries__author"."placed_binding", "qti_queries__author"."placed_choice", "qti_queries__author"."placed_expression", "qti_queries__author"."placed_hottext", "qti_queries__author"."placed_id", "qti_queries__author"."placed_idref", "qti_queries__author"."placed_math_rank", "qti_queries__author"."placed_share_target", "qti_queries__author"."placed_variable_ref", "qti_queries__author"."printed_variable_ref", "qti_queries__author"."processing", "qti_queries__author"."reference", "qti_queries__author"."reference_path", "qti_queries__author"."referring_document", "qti_queries__author"."resource_document", "qti_queries__author"."resource_href", "qti_queries__author"."resource_href_outside", "qti_queries__author"."resource_href_path", "qti_queries__author"."rounding", "qti_queries__author"."rounding_figures", "qti_queries__author"."rounding_mode_figures", "qti_queries__author"."sd_decl", "qti_queries__author"."share_fragment", "qti_queries__author"."share_target", "qti_queries__author"."site", "qti_queries__author"."site_path", "qti_queries__author"."site_target", "qti_queries__author"."srcset", "qti_queries__author"."srcset_candidate", "qti_queries__author"."ssml_scope", "qti_queries__author"."stimulus_ref", "qti_queries__author"."table_header", "qti_queries__author"."table_scope", "qti_queries__author"."template_ref", "qti_queries__author"."text_idref", "qti_queries__author"."text_reference", "qti_queries__author"."text_reference_path", "qti_queries__author"."tolerance", "qti_queries__author"."tolerance_token", "qti_queries__author"."usage_value", "qti_queries__author"."usage_value_base_type", "qti_queries__author"."variable_ref", "qti_queries__author"."xml_decl" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."assembled_catalog" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."assembled_catalog" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."assembled_document" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."assembled_document" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."attribute" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."attribute" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."attribute_entity" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."attribute_entity" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."binding_name" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."binding_name" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."bound_variable" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."bound_variable" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."candidate_path" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."candidate_path" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."catalog_id" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."catalog_id" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."catalog_scope" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."catalog_scope" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."cell_headers" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."cell_headers" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."cell_leaf" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."cell_leaf" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."choice" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."choice" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."choice_interaction" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."choice_interaction" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."cn_attribute" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."cn_attribute" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."cn_count" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."cn_count" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."cn_part_text" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."cn_part_text" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."cn_slot" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."cn_slot" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."comment" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."comment" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."context_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."context_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."count_bound" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."count_bound" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."data_ssml" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."data_ssml" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."data_ssml_member" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."data_ssml_member" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."data_ssml_property" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."data_ssml_property" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."doctype" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."doctype" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."document" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."document" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."document_id" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."document_id" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."element_type" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."element_type" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."encoding_decl" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."encoding_decl" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."entry" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."entry" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."expression" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."expression" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."feedback_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."feedback_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."file" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."file" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."file_outside" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."file_outside" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."file_path" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."file_path" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."fragment_context_name" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."fragment_context_name" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."fragment_context_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."fragment_context_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."fragment_feedback_name" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."fragment_feedback_name" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."fragment_feedback_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."fragment_feedback_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."fragment_printed_name" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."fragment_printed_name" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."fragment_printed_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."fragment_printed_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."fragment_scope" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."fragment_scope" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."fragment_template_name" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."fragment_template_name" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."fragment_template_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."fragment_template_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."header_token" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."header_token" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."hottext" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."hottext" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."identity_text" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."identity_text" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."idref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."idref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."idref_target" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."idref_target" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."inclusion" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."inclusion" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."instance" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."instance" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."interaction" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."interaction" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."interaction_attribute" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."interaction_attribute" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."item_mode" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."item_mode" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."item_ref_document" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."item_ref_document" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."item_ref_href" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."item_ref_href" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."label_use" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."label_use" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."least_count" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."least_count" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."link_reading" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."link_reading" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."literal" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."literal" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."literal_typed" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."literal_typed" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."lookup_value" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."lookup_value" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."map_key" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."map_key" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."math_action" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."math_action" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."math_align_group" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."math_align_group" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."math_align_scope" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."math_align_scope" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."math_cell" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."math_cell" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."math_cn" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."math_cn" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."math_rank" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."math_rank" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."media" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."media" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."most_count" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."most_count" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."named" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."named" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."namespace" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."namespace" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."node" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."node" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."numbered_reading" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."numbered_reading" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."open_attribute" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."open_attribute" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."open_attribute_entity" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."open_attribute_entity" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."open_element_name" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."open_element_name" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."open_element_type" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."open_element_type" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."package" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."package" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."pci_module_form" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."pci_module_form" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."pi" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."pi" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."placed_binding" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."placed_binding" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."placed_choice" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."placed_choice" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."placed_expression" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."placed_expression" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."placed_hottext" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."placed_hottext" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."placed_id" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."placed_id" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."placed_idref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."placed_idref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."placed_math_rank" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."placed_math_rank" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."placed_share_target" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."placed_share_target" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."placed_variable_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."placed_variable_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."printed_variable_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."printed_variable_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."processing" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."processing" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."reference" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."reference" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."reference_path" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."reference_path" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."referring_document" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."referring_document" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."resource_document" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."resource_document" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."resource_href" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."resource_href" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."resource_href_outside" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."resource_href_outside" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."resource_href_path" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."resource_href_path" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."rounding" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."rounding" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."rounding_figures" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."rounding_figures" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."rounding_mode_figures" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."rounding_mode_figures" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."sd_decl" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."sd_decl" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."share_fragment" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."share_fragment" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."share_target" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."share_target" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."site" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."site" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."site_path" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."site_path" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."site_target" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."site_target" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."srcset" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."srcset" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."srcset_candidate" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."srcset_candidate" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."ssml_scope" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."ssml_scope" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."stimulus_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."stimulus_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."table_header" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."table_header" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."table_scope" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."table_scope" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."template_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."template_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."text_idref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."text_idref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."text_reference" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."text_reference" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."text_reference_path" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."text_reference_path" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."tolerance" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."tolerance" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."tolerance_token" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."tolerance_token" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."usage_value" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."usage_value" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."usage_value_base_type" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."usage_value_base_type" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."variable_ref" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."variable_ref" TO :"qti_queries__author";
 
-GRANT SELECT, INSERT, DELETE ON TABLE "qti"."xml_decl" TO :"qti_queries__author";
+GRANT SELECT, INSERT ON TABLE "qti"."xml_decl" TO :"qti_queries__author";
 
 GRANT EXECUTE ON FUNCTION "qti"."__refuse"("pg_catalog"."text", "pg_catalog"."text", "pg_catalog"."text") TO :"qti_queries__author";
 
 GRANT EXECUTE ON FUNCTION "qti"."__borrow"(bigint[], boolean[]) TO :"qti_queries__author";
 
-GRANT EXECUTE ON FUNCTION "qti"."__constant_uij2fonltq"(), "qti"."__constant_bkqh2friwv"(), "qti"."__constant_n352p2ccrd"(), "qti"."__constant_7nj7hecpq2"(), "qti"."__constant_25evvcytug"(), "qti"."__constant_sx2lr4try3"(), "qti"."__constant_u7eltifwnk"(), "qti"."__constant_eihc4dooua"(), "qti"."__constant_nhyhb5mvr7"(), "qti"."__constant_ibiapjhixk"(), "qti"."__constant_rqwqzvpydz"(), "qti"."__constant_ved73rklss"(), "qti"."__constant_o42tylpu3f"(), "qti"."__constant_34ylax76r2"(), "qti"."__constant_zivpez3hny"(), "qti"."__constant_6tjsmg7qqf"(), "qti"."__constant_hmibfx5gyk"(), "qti"."__constant_j4ofs3gxv5"(), "qti"."__constant_ncvuf24xxr"(), "qti"."__constant_its5nruomz"(), "qti"."__constant_ykvwltiwpp"(), "qti"."__constant_wuvnkockig"(), "qti"."__constant_pqb7w4p5hy"(), "qti"."__constant_ttedx5vn3k"(), "qti"."__constant_ygahn2lxos"(), "qti"."__constant_6elmo3tsbj"(), "qti"."__constant_zdkkfmabrr"(), "qti"."__constant_wzcsm5lgek"(), "qti"."__constant_sxvrbj5e5g"(), "qti"."__constant_npu4wt2fbp"(), "qti"."__constant_is5wq7ypst"(), "qti"."__constant_jdee42qvkw"(), "qti"."__constant_gnajygigus"(), "qti"."__constant_2dcoyzngxn"(), "qti"."__constant_pyzqarxq6e"(), "qti"."__constant_ddolihfto7"(), "qti"."__constant_mqob2q6eth"(), "qti"."__constant_kzeitfadmd"(), "qti"."__constant_7sx4k5dafp"(), "qti"."__constant_4okg7vcxht"(), "qti"."__constant_llc3ctzcti"(), "qti"."__constant_kwiyfmd5vb"(), "qti"."__constant_tfs6lrbcyd"(), "qti"."__constant_hd6fiuddlw"(), "qti"."__constant_cvrzwozguy"(), "qti"."__constant_ciuqwbhuta"(), "qti"."__constant_whaydjeagy"(), "qti"."__constant_524yb4vb32"(), "qti"."__constant_u6qipu43gw"(), "qti"."__constant_j2u4rcjq6x"(), "qti"."__constant_eufobqzn7j"(), "qti"."__constant_vxtk2vgo73"(), "qti"."__constant_qrpsoa4uqr"(), "qti"."__constant_2xctpszff4"(), "qti"."__constant_ehp27av5sv"(), "qti"."__constant_sj4gtqwjvu"(), "qti"."__constant_inwmcukoes"(), "qti"."__constant_mhzhm7i77c"(), "qti"."__constant_omoipacrlm"(), "qti"."__constant_ypvumnh5zz"(), "qti"."__constant_2p24sg5e4t"(), "qti"."__constant_exnqxdg5si"(), "qti"."__constant_wrlwssqvsp"(), "qti"."__constant_k64cxi3yp3"(), "qti"."__constant_b6ph5734n4"(), "qti"."__constant_5vczbwx7y7"(), "qti"."__constant_oz2fkzit2q"(), "qti"."__constant_5lt3ujp3cm"(), "qti"."__constant_samvsv5x3m"(), "qti"."__constant_ibvgt6pxwh"(), "qti"."__constant_6pgyw625sv"(), "qti"."__constant_ab562yacjn"(), "qti"."__constant_wvtqnkiky3"(), "qti"."__constant_26d5zth2zv"(), "qti"."__constant_6ktdfd4rhr"(), "qti"."__constant_xem42aq3by"(), "qti"."__constant_5pcz6dyjzi"(), "qti"."__constant_3zq77hs2za"(), "qti"."__constant_5w6ioztupb"(), "qti"."__constant_be4fhhavq4"(), "qti"."__constant_bmcetcvghy"(), "qti"."__constant_w4rn4enepj"(), "qti"."__constant_6f44bj6f5z"(), "qti"."__constant_nomzdv3mb7"(), "qti"."__constant_yzav37j3jv"(), "qti"."__constant_przq27rlwm"(), "qti"."__constant_qrfq2g4hkz"(), "qti"."__constant_wvf3myfrte"(), "qti"."__constant_firw67ibkt"(), "qti"."__constant_zm6rziqkms"(), "qti"."__constant_rqidljwzm2"(), "qti"."__constant_5r3at22xvz"(), "qti"."__constant_ellk4zorxq"(), "qti"."__constant_aagz375mdd"(), "qti"."__constant_aprps52eby"(), "qti"."__constant_ahddjwrhv5"(), "qti"."__constant_ea7dd7ctff"(), "qti"."__constant_k3fjlwxuwn"(), "qti"."__constant_wxfnisv4kj"(), "qti"."__constant_zei655nkpr"(), "qti"."__constant_fhvqv42slo"(), "qti"."__constant_xvmgsamjvy"(), "qti"."__constant_ugrf235wgp"(), "qti"."__constant_lliww2nzpo"(), "qti"."__constant_avnlqmggvi"(), "qti"."__constant_g3mzemfbr3"(), "qti"."__constant_qhszlaty7i"(), "qti"."__constant_dqbnkda3gg"(), "qti"."__constant_gf6he576t3"(), "qti"."__constant_zgknnwrg6p"(), "qti"."__constant_hl533zhknx"(), "qti"."__constant_fsmfviu65m"(), "qti"."__constant_on7irbswfh"(), "qti"."__constant_ow4c7w37ca"(), "qti"."__constant_wvuca46fcu"(), "qti"."__constant_7whnbuqq7w"(), "qti"."__constant_vs2arr6h6k"(), "qti"."__constant_ho6c7gpjo3"(), "qti"."__constant_ejkw66w2je"(), "qti"."__constant_u77vjsa3nx"(), "qti"."__constant_sl65lnozn2"(), "qti"."__constant_un3x4skblz"(), "qti"."__constant_otpfpakmgn"(), "qti"."__constant_2ladvjuynk"(), "qti"."__constant_p2xwmlesaa"(), "qti"."__constant_fpzoryswx7"(), "qti"."__constant_fccrluys3c"(), "qti"."__constant_7rkjmglcw6"(), "qti"."__constant_j6uos7o7iw"(), "qti"."__constant_7puc5uc6kh"(), "qti"."__constant_wekhard5xm"(), "qti"."__constant_ajahbtka65"(), "qti"."__constant_6iey4mkmde"(), "qti"."__constant_ab5qkascpx"(), "qti"."__constant_wuqtd2dywh"(), "qti"."__constant_5rhv5nncq2"(), "qti"."__constant_fe4yby2lv5"(), "qti"."__constant_wozychch32"(), "qti"."__constant_kk3tbfzgkz"(), "qti"."__constant_w7hnvtob66"(), "qti"."__constant_ucgcmte27p"(), "qti"."__constant_cmomvytsjq"(), "qti"."__constant_i7ai66pv6h"(), "qti"."__constant_y75rhchi3d"(), "qti"."__constant_uya5skuzlx"(), "qti"."__constant_obvdrq3725"(), "qti"."__constant_sn5ucr2eat"(), "qti"."__constant_taww2a5tgr"(), "qti"."__constant_dtz4lgxf7y"(), "qti"."__constant_sjctib2m6a"(), "qti"."__constant_gqyrbuxeym"(), "qti"."__constant_hygd7nfdcf"(), "qti"."__constant_gg2lrkl4ik"(), "qti"."__constant_4hs7fzokws"(), "qti"."__constant_aiwrmlshlf"(), "qti"."__constant_ab3uwhdr2q"(), "qti"."__constant_tzvpybzw74"(), "qti"."__constant_txeneneu7t"(), "qti"."__constant_ioawzxl5py"(), "qti"."__is_xsd_pattern_p2kcfw56ul"("pg_catalog"."text"), "qti"."__text_digest_2x5x4iwe4m"("pg_catalog"."text"), "qti"."__align_direction_names_vluq7iazdg"(), "qti"."__align_state_names_ffk37slxn3"(), "qti"."__attribute_name_names_q6tmzcty4e"(), "qti"."__base_type_names_ok3nu5nck4"(), "qti"."__cn_base_names_2wtzhyubck"(), "qti"."__cn_part_names_6db2fcgfhy"(), "qti"."__cn_part_form_names_te7u7jycdu"(), "qti"."__cn_type_names_wmjelllvhg"(), "qti"."__document_type_names_ot37qp5org"(), "qti"."__entry_kind_names_km5xejbmwu"(), "qti"."__governor_names_d7jfyla3na"(), "qti"."__href_scope_names_y4pbuo4f5q"(), "qti"."__language_names_pvmtywwssv"(), "qti"."__node_kind_names_ulbko553n7"(), "qti"."__position_names_sglcn7ygpg"(), "qti"."__reference_resolution_names_zfbhfhou4v"(), "qti"."__resource_type_names_2tbbvn3ion"(), "qti"."__rounding_holds_names_6j2zaayymp"(), "qti"."__type_name_names_ksmacbo3df"(), "qti"."__value_base_names_pjzlcpdwvv"(), "qti"."__value_cardinality_names_wzwznoycgf"(), "qti"."__xml_standalone_names_psf7bszcug"(), "qti"."__admission_map_live_xrc2h3fveq"(), "qti"."__align_direction_live_2lezvj35h2"(), "qti"."__align_state_live_lhmmdyh7ap"(), "qti"."__attribute_model_live_4rpyw2wqfh"(), "qti"."__attribute_name_live_mghzolknn3"(), "qti"."__attribute_slot_live_3plwjx3sjc"(), "qti"."__base_type_live_y3pmvhj7zb"(), "qti"."__bound_facet_live_kux6fr53gv"(), "qti"."__bound_zero_live_5rlfzns3wq"(), "qti"."__built_in_live_f6bja7a4kg"(), "qti"."__cardinality_live_qwvqhyiu3t"(), "qti"."__cn_base_live_46ek53retw"(), "qti"."__cn_part_live_d7vk6cnszc"(), "qti"."__cn_part_form_live_hivm5ovjjn"(), "qti"."__cn_type_live_mftnyibli4"(), "qti"."__content_model_live_36z72epzkf"(), "qti"."__declaration_kind_live_uyajfwbwph"(), "qti"."__document_type_live_5oxlw6me3c"(), "qti"."__domain_primitive_live_7z4e7dri7p"(), "qti"."__entry_kind_live_iwotf6s2yf"(), "qti"."__flag_live_skpa5hsl6r"(), "qti"."__follow_set_live_ym66qqil5n"(), "qti"."__governor_live_gktrkb66r6"(), "qti"."__href_scope_live_zgj2x26s76"(), "qti"."__identity_live_z64zgxl2uo"(), "qti"."__include_set_live_mtgrllg3lw"(), "qti"."__language_live_y2rauuuzos"(), "qti"."__node_kind_live_b7rifmc6m4"(), "qti"."__position_live_pi53civw33"(), "qti"."__reference_form_live_sckdmazr47"(), "qti"."__reference_resolution_live_6hzgo5pknw"(), "qti"."__reference_spelling_live_ke2xl66eo4"(), "qti"."__resource_type_live_m5qnrkbzgq"(), "qti"."__rounding_holds_live_7xm6dvdabq"(), "qti"."__shared_model_live_37zbpyitfj"(), "qti"."__symbol_set_live_3wo3lzfzqb"(), "qti"."__type_name_live_dizeay3gzc"(), "qti"."__unplaced_cause_live_7eeinprrjn"(), "qti"."__use_live_qqc6fbn3jc"(), "qti"."__value_base_live_pesuextzp2"(), "qti"."__value_cardinality_live_img3c6yzn6"(), "qti"."__value_domain_live_fpcln73bij"(), "qti"."__white_space_live_ywok3yue3q"(), "qti"."__xml_standalone_live_ql62ubmw6y"(), "qti"."__row_ha5uesvxf5"("qti"."governor", "qti"."__text_tfkvgtjblt"), "qti"."__row_j5e7cdd5yv"("pg_catalog"."text", "qti"."cn_type"), "qti"."__row_ifjiso3sae"("qti"."node_kind", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_fzgnnk5id3"("qti"."node_kind", "qti"."type_name"), "qti"."__row_zmo46cd6nh"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."__domain_gfw43vigph", bigint, bigint), "qti"."__row_mf5tbjlvzq"("qti"."__text_c6iptmtj2x"), "qti"."__row_wpa4xaxg6g"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_7xtkdeeinf"("qti"."__text_3dlgl63rv6", "qti"."__text_3dlgl63rv6", "qti"."__text_r2monji6i2"), "qti"."__row_tpgnuuvn6t"("qti"."__text_tfkvgtjblt", "pg_catalog"."text"), "qti"."__row_nvjvmcz2l5"("pg_catalog"."text", "qti"."href_scope"), "qti"."__row_6re7khxabv"("pg_catalog"."text", "qti"."__text_c6iptmtj2x", "qti"."__text_c6iptmtj2x"), "qti"."__row_rbnmyazhde"("qti"."__text_c6iptmtj2x"), "qti"."__row_uaeh72ufm7"("pg_catalog"."text", "qti"."cn_base", "pg_catalog"."text", "qti"."cn_type"), "qti"."__row_6f23azrfdw"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_xzj6pczrns"("qti"."node_kind", "qti"."node_kind"), "qti"."__row_e6blhtroc2"("qti"."node_kind", "qti"."__domain_gfw43vigph"), "qti"."__row_bzjfc2f4h5"("qti"."__text_k5kwygzatl"), "qti"."__row_6rfxzdle5g"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."__domain_gfw43vigph", bigint, bigint), "qti"."__row_wczkl5jgfh"("qti"."document_type", "qti"."__text_tn2inwix7f"), "qti"."__row_atcormr3u4"("qti"."node_kind", "qti"."node_kind", "qti"."attribute_name", "qti"."__text_r2monji6i2"), "qti"."__row_e5z245apmv"("qti"."node_kind", "qti"."position"), "qti"."__row_76bhwjyl6b"("qti"."governor", "qti"."attribute_name"), "qti"."__row_3k3gj4kfgc"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_sigxbapf7z"("qti"."node_kind", "qti"."governor", "qti"."__text_c6iptmtj2x", "qti"."__text_gke7uypkov", "qti"."__text_gke7uypkov", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__domain_gfw43vigph"), "qti"."__row_h6vjucvz3t"("qti"."__text_kgtzfmq7x6"), "qti"."__row_ha47wb6n3x"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_xkataczrlc"("qti"."__text_nhrekaddjj", "qti"."base_type"), "qti"."__row_cdxyb64h3n"("qti"."base_type"), "qti"."__row_qyxmls2nib"("qti"."governor", "qti"."node_kind", "qti"."type_name"), "qti"."__row_sk5tugqwcr"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_f3arllrhkz"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_ll5avkvuxu"("qti"."node_kind", "qti"."node_kind", "qti"."governor", "qti"."__domain_gfw43vigph", "qti"."__text_tfkvgtjblt", "qti"."__text_tfkvgtjblt", "qti"."__text_c6iptmtj2x"), "qti"."__row_vsmud4oyxc"("qti"."__text_c6iptmtj2x"), "qti"."__row_5g45nfefn7"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_mwacvs3yet"("qti"."cn_part", "qti"."cn_type", "qti"."cn_part_form"), "qti"."__row_nqba7rulo6"("qti"."value_cardinality"), "qti"."__row_agackuopn5"("qti"."__text_netnsfkgs7", "qti"."href_scope", "qti"."__text_b6ykamoeho", "qti"."__domain_gfw43vigph"), "qti"."__row_v4qtibeah3"("pg_catalog"."text", bigint), "qti"."__row_avobhiw5hj"("pg_catalog"."text", "qti"."cn_part_form", "qti"."cn_base"), "qti"."__row_xemajpyaox"("qti"."node_kind", "qti"."__flag_bits_16_llpdtzgaon"), "qti"."__row_cxffogbiju"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."position"), "qti"."__row_xynmxpup7x"("qti"."cn_type", "qti"."__domain_gfw43vigph"), "qti"."__row_v5mox6r536"("qti"."node_kind", "qti"."__text_xj3zno7u3h", "qti"."attribute_name"), "qti"."__row_hmc3tirhdj"("qti"."node_kind", "pg_catalog"."text", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_tulgtjaryp"("qti"."resource_type", "qti"."node_kind"), "qti"."__row_l37o3qzyb2"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_dfvu25q4di"("pg_catalog"."text", "qti"."base_type"), "qti"."__row_qx3rdjvde7"("qti"."__text_c6iptmtj2x", "qti"."node_kind", "qti"."attribute_name"), "qti"."__row_xjnskhk2gh"("qti"."__text_tn2inwix7f"), "qti"."__row_ek5jzsyr3n"("qti"."__text_tfkvgtjblt"), "qti"."__row_e62lbw2mpq"("qti"."__text_tfkvgtjblt"), "qti"."__row_nsihlhzcac"("qti"."__text_c6iptmtj2x"), "qti"."__row_u4q6galdn4"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_oi5loc5v4f"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."position"), "qti"."__row_qjfz5sto5w"("qti"."resource_type"), "qti"."__row_xtuinpowgy"("qti"."base_type", "qti"."__text_tfkvgtjblt"), "qti"."__row_p7ja3xelgj"("qti"."governor", "qti"."attribute_name", "qti"."__domain_gfw43vigph", "pg_catalog"."text", "qti"."__text_c6iptmtj2x", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_gvj4sjfiv5"("qti"."__text_tfkvgtjblt"), "qti"."__row_irvtzupi4u"("qti"."governor", "qti"."__text_tfkvgtjblt"), "qti"."__row_dt2v4eplpv"("qti"."node_kind", "qti"."node_kind", boolean, boolean), "qti"."__row_4bpx7xcjar"("qti"."__text_r2monji6i2", "qti"."node_kind", "qti"."value_base", "qti"."value_cardinality", "qti"."reference_resolution"), "qti"."__row_jovam53rzt"("qti"."value_base"), "qti"."__row_x5xfev4ul5"("qti"."position", "qti"."node_kind"), "qti"."__row_i3ibdsoyj4"("qti"."governor", "qti"."attribute_name", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_djwisegva5"("qti"."governor", "qti"."attribute_name"), "qti"."__row_i5mf4eas2d"("qti"."governor", "qti"."__text_xj3zno7u3h"), "qti"."__row_pqxt7rruix"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_cnipjrlkta"(boolean, "qti"."__text_tfkvgtjblt"), "qti"."__row_fqjmjbfjgp"("qti"."__text_r2monji6i2") TO :"qti_queries__author";
+GRANT EXECUTE ON FUNCTION "qti"."__constant_uij2fonltq"(), "qti"."__constant_bkqh2friwv"(), "qti"."__constant_n352p2ccrd"(), "qti"."__constant_7nj7hecpq2"(), "qti"."__constant_25evvcytug"(), "qti"."__constant_sx2lr4try3"(), "qti"."__constant_u7eltifwnk"(), "qti"."__constant_eihc4dooua"(), "qti"."__constant_nhyhb5mvr7"(), "qti"."__constant_ibiapjhixk"(), "qti"."__constant_rqwqzvpydz"(), "qti"."__constant_ved73rklss"(), "qti"."__constant_o42tylpu3f"(), "qti"."__constant_34ylax76r2"(), "qti"."__constant_zivpez3hny"(), "qti"."__constant_6tjsmg7qqf"(), "qti"."__constant_hmibfx5gyk"(), "qti"."__constant_j4ofs3gxv5"(), "qti"."__constant_ncvuf24xxr"(), "qti"."__constant_its5nruomz"(), "qti"."__constant_ykvwltiwpp"(), "qti"."__constant_wuvnkockig"(), "qti"."__constant_pqb7w4p5hy"(), "qti"."__constant_ttedx5vn3k"(), "qti"."__constant_ygahn2lxos"(), "qti"."__constant_6elmo3tsbj"(), "qti"."__constant_zdkkfmabrr"(), "qti"."__constant_wzcsm5lgek"(), "qti"."__constant_sxvrbj5e5g"(), "qti"."__constant_npu4wt2fbp"(), "qti"."__constant_is5wq7ypst"(), "qti"."__constant_jdee42qvkw"(), "qti"."__constant_gnajygigus"(), "qti"."__constant_2dcoyzngxn"(), "qti"."__constant_pyzqarxq6e"(), "qti"."__constant_ddolihfto7"(), "qti"."__constant_mqob2q6eth"(), "qti"."__constant_kzeitfadmd"(), "qti"."__constant_7sx4k5dafp"(), "qti"."__constant_4okg7vcxht"(), "qti"."__constant_llc3ctzcti"(), "qti"."__constant_kwiyfmd5vb"(), "qti"."__constant_tfs6lrbcyd"(), "qti"."__constant_hd6fiuddlw"(), "qti"."__constant_cvrzwozguy"(), "qti"."__constant_ciuqwbhuta"(), "qti"."__constant_whaydjeagy"(), "qti"."__constant_524yb4vb32"(), "qti"."__constant_u6qipu43gw"(), "qti"."__constant_j2u4rcjq6x"(), "qti"."__constant_eufobqzn7j"(), "qti"."__constant_vxtk2vgo73"(), "qti"."__constant_qrpsoa4uqr"(), "qti"."__constant_2xctpszff4"(), "qti"."__constant_ehp27av5sv"(), "qti"."__constant_sj4gtqwjvu"(), "qti"."__constant_inwmcukoes"(), "qti"."__constant_mhzhm7i77c"(), "qti"."__constant_omoipacrlm"(), "qti"."__constant_ypvumnh5zz"(), "qti"."__constant_2p24sg5e4t"(), "qti"."__constant_exnqxdg5si"(), "qti"."__constant_wrlwssqvsp"(), "qti"."__constant_k64cxi3yp3"(), "qti"."__constant_b6ph5734n4"(), "qti"."__constant_5vczbwx7y7"(), "qti"."__constant_oz2fkzit2q"(), "qti"."__constant_5lt3ujp3cm"(), "qti"."__constant_samvsv5x3m"(), "qti"."__constant_ibvgt6pxwh"(), "qti"."__constant_6pgyw625sv"(), "qti"."__constant_ab562yacjn"(), "qti"."__constant_wvtqnkiky3"(), "qti"."__constant_26d5zth2zv"(), "qti"."__constant_6ktdfd4rhr"(), "qti"."__constant_xem42aq3by"(), "qti"."__constant_5pcz6dyjzi"(), "qti"."__constant_3zq77hs2za"(), "qti"."__constant_5w6ioztupb"(), "qti"."__constant_be4fhhavq4"(), "qti"."__constant_bmcetcvghy"(), "qti"."__constant_w4rn4enepj"(), "qti"."__constant_6f44bj6f5z"(), "qti"."__constant_nomzdv3mb7"(), "qti"."__constant_yzav37j3jv"(), "qti"."__constant_przq27rlwm"(), "qti"."__constant_qrfq2g4hkz"(), "qti"."__constant_wvf3myfrte"(), "qti"."__constant_firw67ibkt"(), "qti"."__constant_zm6rziqkms"(), "qti"."__constant_rqidljwzm2"(), "qti"."__constant_5r3at22xvz"(), "qti"."__constant_ellk4zorxq"(), "qti"."__constant_aagz375mdd"(), "qti"."__constant_aprps52eby"(), "qti"."__constant_ahddjwrhv5"(), "qti"."__constant_ea7dd7ctff"(), "qti"."__constant_k3fjlwxuwn"(), "qti"."__constant_wxfnisv4kj"(), "qti"."__constant_zei655nkpr"(), "qti"."__constant_fhvqv42slo"(), "qti"."__constant_xvmgsamjvy"(), "qti"."__constant_ugrf235wgp"(), "qti"."__constant_lliww2nzpo"(), "qti"."__constant_avnlqmggvi"(), "qti"."__constant_g3mzemfbr3"(), "qti"."__constant_qhszlaty7i"(), "qti"."__constant_dqbnkda3gg"(), "qti"."__constant_gf6he576t3"(), "qti"."__constant_zgknnwrg6p"(), "qti"."__constant_hl533zhknx"(), "qti"."__constant_fsmfviu65m"(), "qti"."__constant_on7irbswfh"(), "qti"."__constant_ow4c7w37ca"(), "qti"."__constant_wvuca46fcu"(), "qti"."__constant_7whnbuqq7w"(), "qti"."__constant_vs2arr6h6k"(), "qti"."__constant_ho6c7gpjo3"(), "qti"."__constant_ejkw66w2je"(), "qti"."__constant_u77vjsa3nx"(), "qti"."__constant_sl65lnozn2"(), "qti"."__constant_un3x4skblz"(), "qti"."__constant_otpfpakmgn"(), "qti"."__constant_2ladvjuynk"(), "qti"."__constant_p2xwmlesaa"(), "qti"."__constant_fpzoryswx7"(), "qti"."__constant_fccrluys3c"(), "qti"."__constant_7rkjmglcw6"(), "qti"."__constant_j6uos7o7iw"(), "qti"."__constant_7puc5uc6kh"(), "qti"."__constant_wekhard5xm"(), "qti"."__constant_ajahbtka65"(), "qti"."__constant_6iey4mkmde"(), "qti"."__constant_ab5qkascpx"(), "qti"."__constant_wuqtd2dywh"(), "qti"."__constant_5rhv5nncq2"(), "qti"."__constant_fe4yby2lv5"(), "qti"."__constant_wozychch32"(), "qti"."__constant_kk3tbfzgkz"(), "qti"."__constant_w7hnvtob66"(), "qti"."__constant_ucgcmte27p"(), "qti"."__constant_cmomvytsjq"(), "qti"."__constant_i7ai66pv6h"(), "qti"."__constant_y75rhchi3d"(), "qti"."__constant_uya5skuzlx"(), "qti"."__constant_obvdrq3725"(), "qti"."__constant_sn5ucr2eat"(), "qti"."__constant_taww2a5tgr"(), "qti"."__constant_dtz4lgxf7y"(), "qti"."__constant_sjctib2m6a"(), "qti"."__constant_gqyrbuxeym"(), "qti"."__constant_hygd7nfdcf"(), "qti"."__constant_gg2lrkl4ik"(), "qti"."__constant_4hs7fzokws"(), "qti"."__constant_aiwrmlshlf"(), "qti"."__constant_ab3uwhdr2q"(), "qti"."__constant_tzvpybzw74"(), "qti"."__constant_txeneneu7t"(), "qti"."__constant_ioawzxl5py"(), "qti"."__is_xsd_pattern_p2kcfw56ul"("pg_catalog"."text"), "qti"."__text_digest_2x5x4iwe4m"("pg_catalog"."text"), "qti"."__align_direction_names_vluq7iazdg"(), "qti"."__align_state_names_ffk37slxn3"(), "qti"."__attribute_name_names_q6tmzcty4e"(), "qti"."__base_type_names_ok3nu5nck4"(), "qti"."__cn_base_names_2wtzhyubck"(), "qti"."__cn_part_names_6db2fcgfhy"(), "qti"."__cn_part_form_names_te7u7jycdu"(), "qti"."__cn_type_names_wmjelllvhg"(), "qti"."__document_type_names_ot37qp5org"(), "qti"."__entry_kind_names_km5xejbmwu"(), "qti"."__governor_names_d7jfyla3na"(), "qti"."__href_scope_names_y4pbuo4f5q"(), "qti"."__language_names_pvmtywwssv"(), "qti"."__node_kind_names_ulbko553n7"(), "qti"."__position_names_sglcn7ygpg"(), "qti"."__reference_resolution_names_zfbhfhou4v"(), "qti"."__resource_type_names_2tbbvn3ion"(), "qti"."__rounding_holds_names_6j2zaayymp"(), "qti"."__type_name_names_ksmacbo3df"(), "qti"."__value_base_names_pjzlcpdwvv"(), "qti"."__value_cardinality_names_wzwznoycgf"(), "qti"."__xml_standalone_names_psf7bszcug"(), "qti"."__admission_map_live_xrc2h3fveq"(), "qti"."__align_direction_live_2lezvj35h2"(), "qti"."__align_state_live_lhmmdyh7ap"(), "qti"."__attribute_model_live_4rpyw2wqfh"(), "qti"."__attribute_name_live_mghzolknn3"(), "qti"."__attribute_slot_live_3plwjx3sjc"(), "qti"."__base_type_live_y3pmvhj7zb"(), "qti"."__bound_facet_live_kux6fr53gv"(), "qti"."__bound_zero_live_5rlfzns3wq"(), "qti"."__built_in_live_f6bja7a4kg"(), "qti"."__cardinality_live_qwvqhyiu3t"(), "qti"."__cn_base_live_46ek53retw"(), "qti"."__cn_part_live_d7vk6cnszc"(), "qti"."__cn_part_form_live_hivm5ovjjn"(), "qti"."__cn_type_live_mftnyibli4"(), "qti"."__content_model_live_36z72epzkf"(), "qti"."__declaration_kind_live_uyajfwbwph"(), "qti"."__document_type_live_5oxlw6me3c"(), "qti"."__domain_primitive_live_7z4e7dri7p"(), "qti"."__entry_kind_live_iwotf6s2yf"(), "qti"."__flag_live_skpa5hsl6r"(), "qti"."__follow_set_live_ym66qqil5n"(), "qti"."__governor_live_gktrkb66r6"(), "qti"."__href_scope_live_zgj2x26s76"(), "qti"."__identity_live_z64zgxl2uo"(), "qti"."__include_set_live_mtgrllg3lw"(), "qti"."__language_live_y2rauuuzos"(), "qti"."__node_kind_live_b7rifmc6m4"(), "qti"."__position_live_pi53civw33"(), "qti"."__reference_form_live_sckdmazr47"(), "qti"."__reference_resolution_live_6hzgo5pknw"(), "qti"."__reference_spelling_live_ke2xl66eo4"(), "qti"."__resource_type_live_m5qnrkbzgq"(), "qti"."__rounding_holds_live_7xm6dvdabq"(), "qti"."__shared_model_live_37zbpyitfj"(), "qti"."__symbol_set_live_3wo3lzfzqb"(), "qti"."__type_name_live_dizeay3gzc"(), "qti"."__unplaced_cause_live_7eeinprrjn"(), "qti"."__use_live_qqc6fbn3jc"(), "qti"."__value_base_live_pesuextzp2"(), "qti"."__value_cardinality_live_img3c6yzn6"(), "qti"."__value_domain_live_fpcln73bij"(), "qti"."__white_space_live_ywok3yue3q"(), "qti"."__xml_standalone_live_ql62ubmw6y"(), "qti"."__row_ha5uesvxf5"("qti"."governor", "qti"."__text_tfkvgtjblt"), "qti"."__row_j5e7cdd5yv"("pg_catalog"."text", "qti"."cn_type"), "qti"."__row_ifjiso3sae"("qti"."node_kind", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_fzgnnk5id3"("qti"."node_kind", "qti"."type_name"), "qti"."__row_zmo46cd6nh"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."__domain_gfw43vigph", bigint, bigint), "qti"."__row_mf5tbjlvzq"("qti"."__text_c6iptmtj2x"), "qti"."__row_wpa4xaxg6g"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_7xtkdeeinf"("qti"."__text_3dlgl63rv6", "qti"."__text_3dlgl63rv6", "qti"."__text_r2monji6i2"), "qti"."__row_tpgnuuvn6t"("qti"."__text_tfkvgtjblt", "pg_catalog"."text"), "qti"."__row_nvjvmcz2l5"("pg_catalog"."text", "qti"."href_scope"), "qti"."__row_6re7khxabv"("pg_catalog"."text", "qti"."__text_c6iptmtj2x", "qti"."__text_c6iptmtj2x"), "qti"."__row_rbnmyazhde"("qti"."__text_c6iptmtj2x"), "qti"."__row_uaeh72ufm7"("pg_catalog"."text", "qti"."cn_base", "pg_catalog"."text", "qti"."cn_type"), "qti"."__row_6f23azrfdw"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_xzj6pczrns"("qti"."node_kind", "qti"."node_kind"), "qti"."__row_e6blhtroc2"("qti"."node_kind", "qti"."__domain_gfw43vigph"), "qti"."__row_bzjfc2f4h5"("qti"."__text_k5kwygzatl"), "qti"."__row_6rfxzdle5g"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."__domain_gfw43vigph", bigint, bigint), "qti"."__row_wczkl5jgfh"("qti"."document_type", "qti"."__text_tn2inwix7f"), "qti"."__row_atcormr3u4"("qti"."node_kind", "qti"."node_kind", "qti"."attribute_name", "qti"."__text_r2monji6i2"), "qti"."__row_e5z245apmv"("qti"."node_kind", "qti"."position"), "qti"."__row_76bhwjyl6b"("qti"."governor", "qti"."attribute_name"), "qti"."__row_3k3gj4kfgc"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_sigxbapf7z"("qti"."node_kind", "qti"."governor", "qti"."__text_c6iptmtj2x", "qti"."__text_gke7uypkov", "qti"."__text_gke7uypkov", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__domain_gfw43vigph"), "qti"."__row_h6vjucvz3t"("qti"."__text_kgtzfmq7x6"), "qti"."__row_ha47wb6n3x"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_xkataczrlc"("qti"."__text_nhrekaddjj", "qti"."base_type"), "qti"."__row_cdxyb64h3n"("qti"."base_type"), "qti"."__row_qyxmls2nib"("qti"."governor", "qti"."node_kind", "qti"."type_name"), "qti"."__row_sk5tugqwcr"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_f3arllrhkz"("qti"."governor", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_ll5avkvuxu"("qti"."node_kind", "qti"."node_kind", "qti"."governor", "qti"."__domain_gfw43vigph", "qti"."__text_tfkvgtjblt", "qti"."__text_tfkvgtjblt", "qti"."__text_c6iptmtj2x"), "qti"."__row_vsmud4oyxc"("qti"."__text_c6iptmtj2x"), "qti"."__row_5g45nfefn7"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_mwacvs3yet"("qti"."cn_part", "qti"."cn_type", "qti"."cn_part_form"), "qti"."__row_nqba7rulo6"("qti"."value_cardinality"), "qti"."__row_agackuopn5"("qti"."__text_netnsfkgs7", "qti"."href_scope", "qti"."__text_b6ykamoeho", "qti"."__domain_gfw43vigph"), "qti"."__row_v4qtibeah3"("pg_catalog"."text", bigint), "qti"."__row_avobhiw5hj"("pg_catalog"."text", "qti"."cn_part_form", "qti"."cn_base"), "qti"."__row_xemajpyaox"("qti"."node_kind", "qti"."__flag_bits_16_llpdtzgaon"), "qti"."__row_cxffogbiju"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."position"), "qti"."__row_xynmxpup7x"("qti"."cn_type", "qti"."__domain_gfw43vigph"), "qti"."__row_v5mox6r536"("qti"."node_kind", "qti"."__text_xj3zno7u3h", "qti"."attribute_name"), "qti"."__row_hmc3tirhdj"("qti"."node_kind", "pg_catalog"."text", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_tulgtjaryp"("qti"."resource_type", "qti"."node_kind"), "qti"."__row_l37o3qzyb2"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_dbnwees6vb"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_dfvu25q4di"("pg_catalog"."text", "qti"."base_type"), "qti"."__row_qx3rdjvde7"("qti"."__text_c6iptmtj2x", "qti"."node_kind", "qti"."attribute_name"), "qti"."__row_xjnskhk2gh"("qti"."__text_tn2inwix7f"), "qti"."__row_ek5jzsyr3n"("qti"."__text_tfkvgtjblt"), "qti"."__row_e62lbw2mpq"("qti"."__text_tfkvgtjblt"), "qti"."__row_nsihlhzcac"("qti"."__text_c6iptmtj2x"), "qti"."__row_u4q6galdn4"("qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."governor"), "qti"."__row_oi5loc5v4f"("qti"."node_kind", "qti"."node_kind", "qti"."position", "qti"."position"), "qti"."__row_qjfz5sto5w"("qti"."resource_type"), "qti"."__row_xtuinpowgy"("qti"."base_type", "qti"."__text_tfkvgtjblt"), "qti"."__row_p7ja3xelgj"("qti"."governor", "qti"."attribute_name", "qti"."__domain_gfw43vigph", "pg_catalog"."text", "qti"."__text_c6iptmtj2x", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_gvj4sjfiv5"("qti"."__text_tfkvgtjblt"), "qti"."__row_irvtzupi4u"("qti"."governor", "qti"."__text_tfkvgtjblt"), "qti"."__row_dt2v4eplpv"("qti"."node_kind", "qti"."node_kind", boolean, boolean), "qti"."__row_4bpx7xcjar"("qti"."__text_r2monji6i2", "qti"."node_kind", "qti"."value_base", "qti"."value_cardinality", "qti"."reference_resolution"), "qti"."__row_jovam53rzt"("qti"."value_base"), "qti"."__row_x5xfev4ul5"("qti"."position", "qti"."node_kind"), "qti"."__row_i3ibdsoyj4"("qti"."governor", "qti"."attribute_name", "qti"."__attribute_slot_bits_112_aecznthxg5"), "qti"."__row_djwisegva5"("qti"."governor", "qti"."attribute_name"), "qti"."__row_i5mf4eas2d"("qti"."governor", "qti"."__text_xj3zno7u3h"), "qti"."__row_pqxt7rruix"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x"), "qti"."__row_cnipjrlkta"(boolean, "qti"."__text_tfkvgtjblt"), "qti"."__row_fqjmjbfjgp"("qti"."__text_r2monji6i2") TO :"qti_queries__author";
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 GRANT TEMPORARY ON DATABASE :"DBNAME" TO :"qti_queries__author";
@@ -811,7 +811,7 @@ REVOKE ALL ON SCHEMA "qti", "qti_views", "qti_queries", "qti_queries__author" FR
 
 REVOKE ALL ON TABLE "qti"."assembled_catalog", "qti"."assembled_document", "qti"."attribute", "qti"."attribute_entity", "qti"."binding_name", "qti"."bound_variable", "qti"."candidate_path", "qti"."catalog_id", "qti"."catalog_scope", "qti"."cell_headers", "qti"."cell_leaf", "qti"."choice", "qti"."choice_interaction", "qti"."cn_attribute", "qti"."cn_count", "qti"."cn_part_text", "qti"."cn_slot", "qti"."comment", "qti"."context_ref", "qti"."count_bound", "qti"."data_ssml", "qti"."data_ssml_member", "qti"."data_ssml_property", "qti"."doctype", "qti"."document", "qti"."document_id", "qti"."element_type", "qti"."encoding_decl", "qti"."entry", "qti"."expression", "qti"."feedback_ref", "qti"."file", "qti"."file_outside", "qti"."file_path", "qti"."fragment_context_name", "qti"."fragment_context_ref", "qti"."fragment_feedback_name", "qti"."fragment_feedback_ref", "qti"."fragment_printed_name", "qti"."fragment_printed_ref", "qti"."fragment_scope", "qti"."fragment_template_name", "qti"."fragment_template_ref", "qti"."header_token", "qti"."hottext", "qti"."identity_text", "qti"."idref", "qti"."idref_target", "qti"."inclusion", "qti"."instance", "qti"."interaction", "qti"."interaction_attribute", "qti"."item_mode", "qti"."item_ref_document", "qti"."item_ref_href", "qti"."label_use", "qti"."least_count", "qti"."link_reading", "qti"."literal", "qti"."literal_typed", "qti"."lookup_value", "qti"."map_key", "qti"."math_action", "qti"."math_align_group", "qti"."math_align_scope", "qti"."math_cell", "qti"."math_cn", "qti"."math_rank", "qti"."media", "qti"."most_count", "qti"."named", "qti"."namespace", "qti"."node", "qti"."numbered_reading", "qti"."open_attribute", "qti"."open_attribute_entity", "qti"."open_element_name", "qti"."open_element_type", "qti"."package", "qti"."pci_module_form", "qti"."pi", "qti"."placed_binding", "qti"."placed_choice", "qti"."placed_expression", "qti"."placed_hottext", "qti"."placed_id", "qti"."placed_idref", "qti"."placed_math_rank", "qti"."placed_share_target", "qti"."placed_variable_ref", "qti"."printed_variable_ref", "qti"."processing", "qti"."reference", "qti"."reference_path", "qti"."referring_document", "qti"."resource_document", "qti"."resource_href", "qti"."resource_href_outside", "qti"."resource_href_path", "qti"."rounding", "qti"."rounding_figures", "qti"."rounding_mode_figures", "qti"."sd_decl", "qti"."share_fragment", "qti"."share_target", "qti"."site", "qti"."site_path", "qti"."site_target", "qti"."srcset", "qti"."srcset_candidate", "qti"."ssml_scope", "qti"."stimulus_ref", "qti"."table_header", "qti"."table_scope", "qti"."template_ref", "qti"."text_idref", "qti"."text_reference", "qti"."text_reference_path", "qti"."tolerance", "qti"."tolerance_token", "qti"."usage_value", "qti"."usage_value_base_type", "qti"."variable_ref", "qti"."xml_decl", "qti_queries__author"."assembled_catalog", "qti_queries__author"."assembled_document", "qti_queries__author"."attribute", "qti_queries__author"."attribute_entity", "qti_queries__author"."binding_name", "qti_queries__author"."bound_variable", "qti_queries__author"."candidate_path", "qti_queries__author"."catalog_id", "qti_queries__author"."catalog_scope", "qti_queries__author"."cell_headers", "qti_queries__author"."cell_leaf", "qti_queries__author"."choice", "qti_queries__author"."choice_interaction", "qti_queries__author"."cn_attribute", "qti_queries__author"."cn_count", "qti_queries__author"."cn_part_text", "qti_queries__author"."cn_slot", "qti_queries__author"."comment", "qti_queries__author"."context_ref", "qti_queries__author"."count_bound", "qti_queries__author"."data_ssml", "qti_queries__author"."data_ssml_member", "qti_queries__author"."data_ssml_property", "qti_queries__author"."doctype", "qti_queries__author"."document", "qti_queries__author"."document_id", "qti_queries__author"."element_type", "qti_queries__author"."encoding_decl", "qti_queries__author"."entry", "qti_queries__author"."expression", "qti_queries__author"."feedback_ref", "qti_queries__author"."file", "qti_queries__author"."file_outside", "qti_queries__author"."file_path", "qti_queries__author"."fragment_context_name", "qti_queries__author"."fragment_context_ref", "qti_queries__author"."fragment_feedback_name", "qti_queries__author"."fragment_feedback_ref", "qti_queries__author"."fragment_printed_name", "qti_queries__author"."fragment_printed_ref", "qti_queries__author"."fragment_scope", "qti_queries__author"."fragment_template_name", "qti_queries__author"."fragment_template_ref", "qti_queries__author"."header_token", "qti_queries__author"."hottext", "qti_queries__author"."identity_text", "qti_queries__author"."idref", "qti_queries__author"."idref_target", "qti_queries__author"."inclusion", "qti_queries__author"."instance", "qti_queries__author"."interaction", "qti_queries__author"."interaction_attribute", "qti_queries__author"."item_mode", "qti_queries__author"."item_ref_document", "qti_queries__author"."item_ref_href", "qti_queries__author"."label_use", "qti_queries__author"."least_count", "qti_queries__author"."link_reading", "qti_queries__author"."literal", "qti_queries__author"."literal_typed", "qti_queries__author"."lookup_value", "qti_queries__author"."map_key", "qti_queries__author"."math_action", "qti_queries__author"."math_align_group", "qti_queries__author"."math_align_scope", "qti_queries__author"."math_cell", "qti_queries__author"."math_cn", "qti_queries__author"."math_rank", "qti_queries__author"."media", "qti_queries__author"."most_count", "qti_queries__author"."named", "qti_queries__author"."namespace", "qti_queries__author"."node", "qti_queries__author"."numbered_reading", "qti_queries__author"."open_attribute", "qti_queries__author"."open_attribute_entity", "qti_queries__author"."open_element_name", "qti_queries__author"."open_element_type", "qti_queries__author"."package", "qti_queries__author"."pci_module_form", "qti_queries__author"."pi", "qti_queries__author"."placed_binding", "qti_queries__author"."placed_choice", "qti_queries__author"."placed_expression", "qti_queries__author"."placed_hottext", "qti_queries__author"."placed_id", "qti_queries__author"."placed_idref", "qti_queries__author"."placed_math_rank", "qti_queries__author"."placed_share_target", "qti_queries__author"."placed_variable_ref", "qti_queries__author"."printed_variable_ref", "qti_queries__author"."processing", "qti_queries__author"."reference", "qti_queries__author"."reference_path", "qti_queries__author"."referring_document", "qti_queries__author"."resource_document", "qti_queries__author"."resource_href", "qti_queries__author"."resource_href_outside", "qti_queries__author"."resource_href_path", "qti_queries__author"."rounding", "qti_queries__author"."rounding_figures", "qti_queries__author"."rounding_mode_figures", "qti_queries__author"."sd_decl", "qti_queries__author"."share_fragment", "qti_queries__author"."share_target", "qti_queries__author"."site", "qti_queries__author"."site_path", "qti_queries__author"."site_target", "qti_queries__author"."srcset", "qti_queries__author"."srcset_candidate", "qti_queries__author"."ssml_scope", "qti_queries__author"."stimulus_ref", "qti_queries__author"."table_header", "qti_queries__author"."table_scope", "qti_queries__author"."template_ref", "qti_queries__author"."text_idref", "qti_queries__author"."text_reference", "qti_queries__author"."text_reference_path", "qti_queries__author"."tolerance", "qti_queries__author"."tolerance_token", "qti_queries__author"."usage_value", "qti_queries__author"."usage_value_base_type", "qti_queries__author"."variable_ref", "qti_queries__author"."xml_decl" FROM PUBLIC;
 
-REVOKE ALL ON DOMAIN "qti"."__sha256", "qti"."admission_map", "qti"."align_direction", "qti"."align_state", "qti"."attribute_model", "qti"."attribute_name", "qti"."__attribute_name_bits_416_thr6i6sipt", "qti"."attribute_slot", "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."base_type", "qti"."bound_facet", "qti"."bound_zero", "qti"."built_in", "qti"."cardinality", "qti"."cn_base", "qti"."cn_part", "qti"."cn_part_form", "qti"."cn_type", "qti"."content_model", "qti"."declaration_kind", "qti"."document_type", "qti"."domain_primitive", "qti"."entry_kind", "qti"."flag", "qti"."__flag_bits_16_llpdtzgaon", "qti"."follow_set", "qti"."governor", "qti"."href_scope", "qti"."identity", "qti"."include_set", "qti"."language", "qti"."node_kind", "qti"."__node_kind_bits_648_lh43fw4nuo", "qti"."position", "qti"."__position_bits_312_cnr3fptmz4", "qti"."reference_form", "qti"."reference_resolution", "qti"."reference_spelling", "qti"."resource_type", "qti"."rounding_holds", "qti"."shared_model", "qti"."symbol_set", "qti"."type_name", "qti"."unplaced_cause", "qti"."use", "qti"."value_base", "qti"."__value_base_bits_16_7t6pwwxbsh", "qti"."value_cardinality", "qti"."__value_cardinality_bits_8_mma4mwhphy", "qti"."value_domain", "qti"."white_space", "qti"."xml_standalone", "qti"."__text_tn2inwix7f", "qti"."__text_tfkvgtjblt", "qti"."__text_aqc6inemva", "qti"."__text_c6iptmtj2x", "qti"."__text_phcitidkqs", "qti"."__text_xj3zno7u3h", "qti"."__text_r2monji6i2", "qti"."__text_7j6kgluyjp", "qti"."__text_l7nqeazg5h", "qti"."__text_xey6ryorh5", "qti"."__text_7dfilirtp3", "qti"."__text_sac6h6c6eh", "qti"."__text_nhrekaddjj", "qti"."__text_zij47sgley", "qti"."__text_gke7uypkov", "qti"."__text_gysgx5gkhi", "qti"."__text_lecej62lgl", "qti"."__text_iyotu5swho", "qti"."__text_kgtzfmq7x6", "qti"."__text_23rzixl3a2", "qti"."__text_3adwbksayk", "qti"."__text_k5kwygzatl", "qti"."__text_b6ykamoeho", "qti"."__text_4s4od7s5or", "qti"."__text_netnsfkgs7", "qti"."__text_3dlgl63rv6", "qti"."__text_aezrarw5qb", "qti"."__text_iqz277k5xr", "qti"."__text_r2kdc4r77d", "qti"."__text_i4qty2ywff", "qti"."__domain_gfw43vigph", "qti"."__param_package_5kbmtohnug", "qti"."__param_path_bcrdrv5any", "qti"."__param_name_egrjlzfiwu" FROM PUBLIC;
+REVOKE ALL ON DOMAIN "qti"."__sha256", "qti"."admission_map", "qti"."align_direction", "qti"."align_state", "qti"."attribute_model", "qti"."attribute_name", "qti"."__attribute_name_bits_416_thr6i6sipt", "qti"."attribute_slot", "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."base_type", "qti"."bound_facet", "qti"."bound_zero", "qti"."built_in", "qti"."cardinality", "qti"."cn_base", "qti"."cn_part", "qti"."cn_part_form", "qti"."cn_type", "qti"."content_model", "qti"."declaration_kind", "qti"."document_type", "qti"."domain_primitive", "qti"."entry_kind", "qti"."flag", "qti"."__flag_bits_16_llpdtzgaon", "qti"."follow_set", "qti"."governor", "qti"."href_scope", "qti"."identity", "qti"."include_set", "qti"."language", "qti"."node_kind", "qti"."__node_kind_bits_648_lh43fw4nuo", "qti"."position", "qti"."__position_bits_312_cnr3fptmz4", "qti"."reference_form", "qti"."reference_resolution", "qti"."reference_spelling", "qti"."resource_type", "qti"."rounding_holds", "qti"."shared_model", "qti"."symbol_set", "qti"."type_name", "qti"."unplaced_cause", "qti"."use", "qti"."value_base", "qti"."__value_base_bits_16_7t6pwwxbsh", "qti"."value_cardinality", "qti"."__value_cardinality_bits_8_mma4mwhphy", "qti"."value_domain", "qti"."white_space", "qti"."xml_standalone", "qti"."__text_tn2inwix7f", "qti"."__text_tfkvgtjblt", "qti"."__text_aqc6inemva", "qti"."__text_c6iptmtj2x", "qti"."__text_phcitidkqs", "qti"."__text_xj3zno7u3h", "qti"."__text_r2monji6i2", "qti"."__text_7j6kgluyjp", "qti"."__text_l7nqeazg5h", "qti"."__text_xey6ryorh5", "qti"."__text_7dfilirtp3", "qti"."__text_sac6h6c6eh", "qti"."__text_nhrekaddjj", "qti"."__text_zij47sgley", "qti"."__text_gke7uypkov", "qti"."__text_gysgx5gkhi", "qti"."__text_lecej62lgl", "qti"."__text_iyotu5swho", "qti"."__text_kgtzfmq7x6", "qti"."__text_23rzixl3a2", "qti"."__text_3adwbksayk", "qti"."__text_k5kwygzatl", "qti"."__text_b6ykamoeho", "qti"."__text_4s4od7s5or", "qti"."__text_netnsfkgs7", "qti"."__text_3dlgl63rv6", "qti"."__text_aezrarw5qb", "qti"."__text_iqz277k5xr", "qti"."__text_r2kdc4r77d", "qti"."__text_i4qty2ywff", "qti"."__domain_gfw43vigph", "qti"."__param_package_5kbmtohnug", "qti"."__param_path_bcrdrv5any" FROM PUBLIC;
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 ALTER DEFAULT PRIVILEGES IN SCHEMA "qti" REVOKE ALL ON TABLES FROM PUBLIC;
@@ -1449,6 +1449,8 @@ COMMENT ON FUNCTION "qti"."__row_hmc3tirhdj"("qti"."node_kind", "pg_catalog"."te
 
 COMMENT ON FUNCTION "qti"."__row_l37o3qzyb2"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x") IS 'row function 8d5a437a07761ea9965ab48f48203d1839580787ce56429da36ce6155a48cdd2';
 
+COMMENT ON FUNCTION "qti"."__row_dbnwees6vb"("qti"."governor", "qti"."attribute_name", "qti"."__text_c6iptmtj2x") IS 'row function 8e18a495175c0cff3a15fc883d69cdb4703826cccb8656286501728971791147';
+
 COMMENT ON FUNCTION "qti"."__row_qx3rdjvde7"("qti"."__text_c6iptmtj2x", "qti"."node_kind", "qti"."attribute_name") IS 'row function a645ed25efbed5b5d762fa5c02f0f45d3988e6486ade7c6406a277c1e6839f14';
 
 COMMENT ON FUNCTION "qti"."__row_nsihlhzcac"("qti"."__text_c6iptmtj2x") IS 'row function ac2d173b3b41edaed726bb1a370020da2ad393b90a55df8a2271d705b079bb8b';
@@ -1502,8 +1504,6 @@ COMMENT ON DOMAIN "qti"."__param_path_bcrdrv5any" IS 'pattern domain of paramete
 COMMENT ON DOMAIN "qti"."__text_23rzixl3a2" IS 'text domain of definition 95eb6c1246a45f38747eda0606a0a691162091d31ec690fa874e11c549549bf6';
 
 COMMENT ON DOMAIN "qti"."__text_aqc6inemva" IS 'text domain of definition 9728da00b6bfe42b1889214d47c25a591495821a78feafc851ec65d6f721baf9';
-
-COMMENT ON DOMAIN "qti"."__param_name_egrjlzfiwu" IS 'pattern domain of parameter name of definition 460405267d99076ae2922762a38a5828fccf2572576b3755591089ddc59fee71';
 
 COMMENT ON DOMAIN "qti"."__param_package_5kbmtohnug" IS 'pattern domain of parameter package of definition 460405267d99076ae2922762a38a5828fccf2572576b3755591089ddc59fee71';
 
@@ -1563,9 +1563,9 @@ COMMENT ON TYPE "qti"."__row_news_assembled_document_4waj2i2okj" IS 'the row typ
 
 COMMENT ON TYPE "qti"."__row_olds_assembled_document_qwbvnwhx3x" IS 'the row type of the delta of olds of AssembledDocument';
 
-COMMENT ON TYPE "qti"."__row_news_attribute_pbboqsmz3q" IS 'the row type of the delta of news of Attribute';
+COMMENT ON TYPE "qti"."__row_news_attribute_xhxeojvr6o" IS 'the row type of the delta of news of Attribute';
 
-COMMENT ON TYPE "qti"."__row_olds_attribute_yvaynl45bq" IS 'the row type of the delta of olds of Attribute';
+COMMENT ON TYPE "qti"."__row_olds_attribute_37t7c3skxz" IS 'the row type of the delta of olds of Attribute';
 
 COMMENT ON TYPE "qti"."__row_news_binding_name_uoz3c2uauk" IS 'the row type of the delta of news of BindingName';
 
@@ -1593,9 +1593,9 @@ COMMENT ON TYPE "qti"."__row_news_cell_leaf_c7nhnilth7" IS 'the row type of the 
 
 COMMENT ON TYPE "qti"."__row_olds_cell_leaf_lij62iyost" IS 'the row type of the delta of olds of CellLeaf';
 
-COMMENT ON TYPE "qti"."__row_news_choice_zghxb55imp" IS 'the row type of the delta of news of Choice';
+COMMENT ON TYPE "qti"."__row_news_choice_kqwz52ilaz" IS 'the row type of the delta of news of Choice';
 
-COMMENT ON TYPE "qti"."__row_olds_choice_mwsw4icjkj" IS 'the row type of the delta of olds of Choice';
+COMMENT ON TYPE "qti"."__row_olds_choice_mae4wmbx54" IS 'the row type of the delta of olds of Choice';
 
 COMMENT ON TYPE "qti"."__row_news_choice_interaction_v3arxpxhuk" IS 'the row type of the delta of news of ChoiceInteraction';
 
@@ -1797,9 +1797,9 @@ COMMENT ON TYPE "qti"."__row_news_placed_binding_5moxgudfs5" IS 'the row type of
 
 COMMENT ON TYPE "qti"."__row_olds_placed_binding_qmiaaunqml" IS 'the row type of the delta of olds of PlacedBinding';
 
-COMMENT ON TYPE "qti"."__row_news_placed_choice_xkiqxyczkk" IS 'the row type of the delta of news of PlacedChoice';
+COMMENT ON TYPE "qti"."__row_news_placed_choice_d4735rljg3" IS 'the row type of the delta of news of PlacedChoice';
 
-COMMENT ON TYPE "qti"."__row_olds_placed_choice_wohi4et65s" IS 'the row type of the delta of olds of PlacedChoice';
+COMMENT ON TYPE "qti"."__row_olds_placed_choice_uqukc4rtgy" IS 'the row type of the delta of olds of PlacedChoice';
 
 COMMENT ON TYPE "qti"."__row_news_placed_expression_ml2o6ofsj2" IS 'the row type of the delta of news of PlacedExpression';
 
@@ -1903,9 +1903,9 @@ COMMENT ON TYPE "qti"."__row_news_stimulus_ref_l24b3sqslb" IS 'the row type of t
 
 COMMENT ON TYPE "qti"."__row_olds_stimulus_ref_36d27ppvxa" IS 'the row type of the delta of olds of StimulusRef';
 
-COMMENT ON TYPE "qti"."__row_news_table_header_5qtlrzvkis" IS 'the row type of the delta of news of TableHeader';
+COMMENT ON TYPE "qti"."__row_news_table_header_5dhoaz3zbc" IS 'the row type of the delta of news of TableHeader';
 
-COMMENT ON TYPE "qti"."__row_olds_table_header_kabrb3hctb" IS 'the row type of the delta of olds of TableHeader';
+COMMENT ON TYPE "qti"."__row_olds_table_header_rvmqzvrhof" IS 'the row type of the delta of olds of TableHeader';
 
 COMMENT ON TYPE "qti"."__row_news_table_scope_qvwb6ga3nv" IS 'the row type of the delta of news of TableScope';
 
@@ -1990,6 +1990,8 @@ COMMENT ON CONSTRAINT "__cell_leaf_key_package_path_cell_at_start_after_6spurwpz
 COMMENT ON CONSTRAINT "__cell_leaf_check_math_cell_leaves_max_fold_luu2g66k3z" ON "qti"."cell_leaf" IS 'check of CellLeaf for law max fold over fin(MathCell, leaves) of CellLeaf(package, path, cell, start, startWas, startAfter) into MathCell(package, path, start, lastStart)';
 
 COMMENT ON CONSTRAINT "__choice_pk_lpz37hc34u" ON "qti"."choice" IS 'primary key of Choice';
+
+COMMENT ON CONSTRAINT "__choice_key_package_path_kind_identifier_auoyrne6k5" ON "qti"."choice" IS 'key Choice(package, path, kind, identifier)';
 
 COMMENT ON CONSTRAINT "__choice_key_package_path_start_identifier_cqceszylta" ON "qti"."choice" IS 'key Choice(package, path, start, identifier)';
 
@@ -2231,6 +2233,8 @@ COMMENT ON CONSTRAINT "__namespace_key_package_path_start_prefix_digest_yfyt5tqg
 
 COMMENT ON CONSTRAINT "__node_pk_3sd4cqvxbf" ON "qti"."node" IS 'primary key of Node';
 
+COMMENT ON CONSTRAINT "__node_key_package_path_start_attributes_governor_pxds7wqnyl" ON "qti"."node" IS 'key Node(package, path, start, attributes, governor, kind, parent)';
+
 COMMENT ON CONSTRAINT "__node_key_package_path_start_parent_ytuzrwhg3t" ON "qti"."node" IS 'key Node(package, path, start, parent)';
 
 COMMENT ON CONSTRAINT "__node_key_package_path_start_string_value_digest_hx6nn5eqk5" ON "qti"."node" IS 'key Node(package, path, start, stringValueDigest)';
@@ -2254,8 +2258,6 @@ COMMENT ON CONSTRAINT "__node_check_node_start_in_node_dqrlgxt5zm" ON "qti"."nod
 COMMENT ON CONSTRAINT "__node_check_node_attributes_or_fold_mleeahtwkj" ON "qti"."node" IS 'check of Node for law or fold over fin(Node, attributes) of Attribute(package, path, start, slot) into Node(package, path, start, attrs)';
 
 COMMENT ON CONSTRAINT "__node_check_node_children_count_fold_hsxqdt3sdl" ON "qti"."node" IS 'check of Node for law count fold over fin(Node, children) of Node(package, path, parent, elementsWas, elements) where Logic.not(Logic.in(kind, ["comment", "doctype", "document", "entityRef", "pi", "text", "ws"])) and Logic.gt(start, 0n) into Node(package, path, start, elementChildren)';
-
-COMMENT ON CONSTRAINT "__node_key_package_path_start_attributes_governor_ygbuqn7z2g" ON "qti"."node" IS 'key Node(package, path, start, attributes, governor, kind)';
 
 COMMENT ON CONSTRAINT "__node_check_node_in_node_z2rpbmauvt" ON "qti"."node" IS 'check of Node for law Node(package, path, start, pred(children), lastState) in Node(package, path, parent, at, state) where Logic.gt(start, 0n)';
 
@@ -2284,6 +2286,8 @@ COMMENT ON CONSTRAINT "__placed_binding_pk_kvet6cuoq5" ON "qti"."placed_binding"
 COMMENT ON CONSTRAINT "__placed_binding_key_package_assembly_identifier_ms3jnkda2n" ON "qti"."placed_binding" IS 'key PlacedBinding(package, assembly, identifier)';
 
 COMMENT ON CONSTRAINT "__placed_choice_pk_dok6mu6xso" ON "qti"."placed_choice" IS 'primary key of PlacedChoice';
+
+COMMENT ON CONSTRAINT "__placed_choice_key_package_assembly_kind_identifier_qgyuv4g444" ON "qti"."placed_choice" IS 'key PlacedChoice(package, assembly, kind, identifier)';
 
 COMMENT ON CONSTRAINT "__placed_expression_pk_22dfh4b4gx" ON "qti"."placed_expression" IS 'primary key of PlacedExpression';
 
@@ -2385,6 +2389,8 @@ COMMENT ON CONSTRAINT "__table_header_pk_d7hkmir5zb" ON "qti"."table_header" IS 
 
 COMMENT ON CONSTRAINT "__table_scope_pk_ujje6dmtif" ON "qti"."table_scope" IS 'primary key of TableScope';
 
+COMMENT ON CONSTRAINT "__table_scope_key_package_path_start_table_k6mhb5efs3" ON "qti"."table_scope" IS 'key TableScope(package, path, start, table)';
+
 COMMENT ON CONSTRAINT "__template_ref_pk_by3fsxvspr" ON "qti"."template_ref" IS 'primary key of TemplateRef';
 
 COMMENT ON CONSTRAINT "__template_ref_key_package_path_start_attribute_kind_whis3c7dsj" ON "qti"."template_ref" IS 'key TemplateRef(package, path, start, attribute, kind, assemblyKind, identifier)';
@@ -2435,6 +2441,8 @@ COMMENT ON COLUMN "qti"."attribute"."__predecessor_attributes_wqkk3l5mnd" IS 'th
 
 COMMENT ON COLUMN "qti"."attribute"."__package_a4p2u7pv6l" IS 'package where Logic.in(kind, ["qti-any-n", "qti-correct", "qti-default", "qti-equal-rounded", "qti-index", "qti-lookup-outcome-value", "qti-map-response", "qti-map-response-point", "qti-pattern-match", "qti-random-float", "qti-random-integer", "qti-repeat", "qti-round-to", "qti-set-correct-response", "qti-set-default-value", "qti-set-outcome-value", "qti-set-template-value", "qti-variable"]) and Logic.or(Logic.and(Logic.or(Logic.not(Text.matches(lexical, Text.pattern(<language 09b97c6fe613e598d9cf5ca30b8c43c11c5473e4a711d4d45e6270278a6683d0>))), Logic.not(Logic.eq(kind, "qti-random-float"))), Text.matches(lexical, Text.pattern(<language dbce2bac939b8d15f3f6b873394359a57b42b74412cfab08f44671682d0447ad>)), Logic.eq(VariableReference.at("spelling", kind, name), "bare")), Logic.and(Text.matches(lexical, Text.pattern(<language 47716b2482bfc820077d0844275d18cfdc3c12bc3eea5af5832ffaf0ed8f0bb2>)), Logic.eq(VariableReference.at("spelling", kind, name), "braced"))) and Logic.eq(Bits.subset(Bits.singleton(name), VariableReference.row(kind)), true)';
 
+COMMENT ON COLUMN "qti"."attribute"."__package_c6ealb2c5z" IS 'package where Logic.in(value, ["1", "true"]) and Logic.eq(kind, "qti-card-entry") and Logic.eq(name, "default")';
+
 COMMENT ON COLUMN "qti"."attribute"."__package_2uyqqvm75y" IS 'package where Logic.or(Logic.and(Logic.in(kind, ["qti-interpolation-table", "qti-match-table"]), Logic.eq(name, "default-value")), Logic.and(Logic.in(kind, ["qti-interpolation-table-entry", "qti-match-table-entry"]), Logic.eq(name, "target-value")))';
 
 COMMENT ON COLUMN "qti"."attribute"."__package_zq4aso5g6f" IS 'package where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier")))';
@@ -2442,6 +2450,12 @@ COMMENT ON COLUMN "qti"."attribute"."__package_zq4aso5g6f" IS 'package where Log
 COMMENT ON COLUMN "qti"."attribute"."__package_tkzla6ex7r" IS 'package where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-name")';
 
 COMMENT ON COLUMN "qti"."attribute"."__package_gw6es3z53z" IS 'package where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-version")';
+
+COMMENT ON COLUMN "qti"."attribute"."__package_ybzlg64bpx" IS 'package where Logic.eq(kind, "qti-card") and Logic.eq(name, "support")';
+
+COMMENT ON COLUMN "qti"."attribute"."__package_vtzt2gplfj" IS 'package where Logic.eq(kind, "qti-variable-mapping") and Logic.eq(name, "target-identifier")';
+
+COMMENT ON COLUMN "qti"."attribute"."__package_cg3657csij" IS 'package where Logic.eq(kind, "qti-weight") and Logic.eq(name, "identifier")';
 
 COMMENT ON COLUMN "qti"."attribute"."__pred_idrefs_2kinxrebfw" IS 'pred(idrefs)';
 
@@ -2765,6 +2779,8 @@ COMMENT ON COLUMN "qti"."srcset_candidate"."__copy_tokens_mhv3zj45jr" IS 'the ow
 
 COMMENT ON COLUMN "qti"."srcset_candidate"."__pred_at_xktcobhsti" IS 'pred(at)';
 
+COMMENT ON COLUMN "qti"."table_header"."__package_ccgb34afwq" IS 'package where Logic.ne(table, 0n)';
+
 COMMENT ON COLUMN "qti"."text_idref"."__copy_tokens_rrsly23qzp" IS 'the owner''s count of the family IdentityText.tokens';
 
 COMMENT ON COLUMN "qti"."text_idref"."__pred_at_xktcobhsti" IS 'pred(at)';
@@ -2781,6 +2797,8 @@ COMMENT ON CONSTRAINT "__attribute_key_package_path_start_index_attributes_7vvrf
 
 COMMENT ON CONSTRAINT "__attribute_key_package_path_start_predecessor_2x7ppgesjy" ON "qti"."attribute" IS 'key Attribute(package, path, start, the predecessor of the index of the family Node.attributes)';
 
+COMMENT ON CONSTRAINT "__attribute_key_package_path_parent_3pbuan3ddy" ON "qti"."attribute" IS 'key Attribute(package where Logic.in(value, ["1", "true"]) and Logic.eq(kind, "qti-card-entry") and Logic.eq(name, "default"), path, parent)';
+
 COMMENT ON CONSTRAINT "__attribute_key_package_path_start_mefsvkm3fq" ON "qti"."attribute" IS 'key Attribute(package where Logic.or(Logic.and(Logic.in(kind, ["qti-interpolation-table", "qti-match-table"]), Logic.eq(name, "default-value")), Logic.and(Logic.in(kind, ["qti-interpolation-table-entry", "qti-match-table-entry"]), Logic.eq(name, "target-value"))), path, start)';
 
 COMMENT ON CONSTRAINT "__attribute_key_package_path_start_54iub2w3d4" ON "qti"."attribute" IS 'key Attribute(package where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))), path, start)';
@@ -2788,6 +2806,12 @@ COMMENT ON CONSTRAINT "__attribute_key_package_path_start_54iub2w3d4" ON "qti"."
 COMMENT ON CONSTRAINT "__attribute_key_package_path_ooxw5d3335" ON "qti"."attribute" IS 'key Attribute(package where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-name"), path)';
 
 COMMENT ON CONSTRAINT "__attribute_key_package_path_pvjib3644a" ON "qti"."attribute" IS 'key Attribute(package where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-version"), path)';
+
+COMMENT ON CONSTRAINT "__attribute_key_package_path_parent_value_digest_uwesnpe757" ON "qti"."attribute" IS 'key Attribute(package where Logic.eq(kind, "qti-card") and Logic.eq(name, "support"), path, parent, valueDigest)';
+
+COMMENT ON CONSTRAINT "__attribute_key_package_path_parent_value_digest_4jxprvi7wt" ON "qti"."attribute" IS 'key Attribute(package where Logic.eq(kind, "qti-variable-mapping") and Logic.eq(name, "target-identifier"), path, parent, valueDigest)';
+
+COMMENT ON CONSTRAINT "__attribute_key_package_path_parent_value_digest_4k3ay3grnz" ON "qti"."attribute" IS 'key Attribute(package where Logic.eq(kind, "qti-weight") and Logic.eq(name, "identifier"), path, parent, valueDigest)';
 
 COMMENT ON CONSTRAINT "__binding_name_key_package_path_index_bindings_r6nggsduso" ON "qti"."binding_name" IS 'key BindingName(package, path, the index of the family Document.bindings)';
 
@@ -2939,6 +2963,8 @@ COMMENT ON CONSTRAINT "__site_target_key_package_target_predecessor_du2dhelnpq" 
 
 COMMENT ON CONSTRAINT "__srcset_candidate_key_package_path_start_pred_at_jpgatxsojn" ON "qti"."srcset_candidate" IS 'key SrcsetCandidate(package, path, start, pred(at))';
 
+COMMENT ON CONSTRAINT "__table_header_key_package_path_table_id_digest_hp2zy2cco6" ON "qti"."table_header" IS 'key TableHeader(package where Logic.ne(table, 0n), path, table, idDigest)';
+
 COMMENT ON CONSTRAINT "__text_idref_key_package_path_start_pred_at_bulfzlj2w4" ON "qti"."text_idref" IS 'key TextIdref(package, path, start, pred(at))';
 
 COMMENT ON CONSTRAINT "__tolerance_token_key_package_path_start_pred_at_mza72eqsyy" ON "qti"."tolerance_token" IS 'key ToleranceToken(package, path, start, pred(at))';
@@ -3035,7 +3061,7 @@ COMMENT ON CONSTRAINT "__assembled_document_fk_package_path_pred_targets_excdxg6
 
 COMMENT ON CONSTRAINT "__attribute_fk_package_path_start_name_pred_idrefs_xpy7rwj32j" ON "qti"."attribute" IS 'foreign key Attribute(package, path, start, name, pred(idrefs), idrefTextDigest) to Idref(package, path, start, name, at, piecesAfterDigest)';
 
-COMMENT ON CONSTRAINT "__attribute_fk_package_path_start_copy_attributes_cjh7663z47" ON "qti"."attribute" IS 'foreign key Attribute(package, path, start, the owner''s count of the family Node.attributes, governor, kind) to Node(package, path, start, attributes, governor, kind)';
+COMMENT ON CONSTRAINT "__attribute_fk_package_path_start_copy_attributes_piufxgjpuc" ON "qti"."attribute" IS 'foreign key Attribute(package, path, start, the owner''s count of the family Node.attributes, governor, kind, parent) to Node(package, path, start, attributes, governor, kind, parent)';
 
 COMMENT ON CONSTRAINT "__attribute_fk_package_path_start_predecessor_kwcw7ok3kp" ON "qti"."attribute" IS 'foreign key Attribute(package, path, start, the predecessor of the index of the family Node.attributes, the accumulator before plane 0 of the fold __node_attributes_or_fold_qjtccpaklg over the family Node.attributes) to Attribute(package, path, start, the index of the family Node.attributes, the accumulator after plane 0 of the fold __node_attributes_or_fold_qjtccpaklg over the family Node.attributes)';
 
@@ -3066,6 +3092,8 @@ COMMENT ON CONSTRAINT "__cell_leaf_fk_package_path_cell_pred_at_start_was_zhwbee
 COMMENT ON CONSTRAINT "__cell_leaf_fk_package_path_start_cell_s2bln45e52" ON "qti"."cell_leaf" IS 'foreign key CellLeaf(package, path, start, cell) to MathAlignScope(package, path, start, cell)';
 
 COMMENT ON CONSTRAINT "__choice_fk_package_path_start_hjjl442vss" ON "qti"."choice" IS 'foreign key Choice(package, path, start) to ChoiceInteraction(package, path, start)';
+
+COMMENT ON CONSTRAINT "__choice_fk_package_path_start_kind_wg4x5yucb4" ON "qti"."choice" IS 'foreign key Choice(package, path, start, kind) to Node(package, path, start, kind)';
 
 COMMENT ON CONSTRAINT "__choice_fk_package_path_copy_choices_qmg62rrt4k" ON "qti"."choice" IS 'foreign key Choice(package, path, the owner''s count of the family Document.choices) to Document(package, path, choices)';
 
@@ -3115,7 +3143,7 @@ COMMENT ON CONSTRAINT "__element_type_fk_package_path_start_kind_governor_uciwkn
 
 COMMENT ON CONSTRAINT "__encoding_decl_fk_package_path_u5grbt7fag" ON "qti"."encoding_decl" IS 'foreign key EncodingDecl(package, path) to XmlDecl(package, path)';
 
-COMMENT ON CONSTRAINT "__entry_fk_package_tzyfqvwqow" ON "qti"."entry" IS 'foreign key Entry(package) to Package(name)';
+COMMENT ON CONSTRAINT "__entry_fk_package_xbbjcsgg4p" ON "qti"."entry" IS 'foreign key Entry(package) to Package(package)';
 
 COMMENT ON CONSTRAINT "__expression_fk_package_path_start_f6hwlqhv67" ON "qti"."expression" IS 'foreign key Expression(package, path, start) to Node(package, path, start)';
 
@@ -3325,6 +3353,8 @@ COMMENT ON CONSTRAINT "__placed_choice_fk_package_assembly_instance_cy5gpuayal" 
 
 COMMENT ON CONSTRAINT "__placed_choice_fk_package_path_start_identifier_7xehyru3mj" ON "qti"."placed_choice" IS 'foreign key PlacedChoice(package, path, start, identifier) to Choice(package, path, start, identifier)';
 
+COMMENT ON CONSTRAINT "__placed_choice_fk_package_path_start_kind_gph72alaqo" ON "qti"."placed_choice" IS 'foreign key PlacedChoice(package, path, start, kind) to Node(package, path, start, kind)';
+
 COMMENT ON CONSTRAINT "__placed_hottext_fk_package_assembly_instance_copy_kcr4ogsb5x" ON "qti"."placed_hottext" IS 'foreign key PlacedHottext(package, assembly, instance, the owner''s count of the family Instance.hottexts, path) to Instance(package, assembly, start, hottexts, document)';
 
 COMMENT ON CONSTRAINT "__placed_hottext_fk_package_assembly_instance_jnsx5y3ord" ON "qti"."placed_hottext" IS 'foreign key PlacedHottext(package, assembly, instance, the predecessor of the index of the family Instance.hottexts) to PlacedHottext(package, assembly, instance, the index of the family Instance.hottexts)';
@@ -3413,7 +3443,7 @@ COMMENT ON CONSTRAINT "__srcset_candidate_fk_package_path_start_pred_at_vspikv6t
 
 COMMENT ON CONSTRAINT "__ssml_scope_fk_package_path_start_ixilycttqs" ON "qti"."ssml_scope" IS 'foreign key SsmlScope(package, path, start) to Node(package, path, start)';
 
-COMMENT ON CONSTRAINT "__table_header_fk_package_path_start_dhca6a32iq" ON "qti"."table_header" IS 'foreign key TableHeader(package, path, start) to TableScope(package, path, start)';
+COMMENT ON CONSTRAINT "__table_header_fk_package_path_start_table_iy2pcs7mtk" ON "qti"."table_header" IS 'foreign key TableHeader(package, path, start, table) to TableScope(package, path, start, table)';
 
 COMMENT ON CONSTRAINT "__table_scope_fk_package_path_start_scalw6ieaw" ON "qti"."table_scope" IS 'foreign key TableScope(package, path, start) to Node(package, path, start)';
 
@@ -3597,6 +3627,8 @@ COMMENT ON INDEX "qti"."__placed_choice_ix_package_assembly_identifier_uhvul24o7
 
 COMMENT ON INDEX "qti"."__placed_choice_ix_package_path_start_identifier_jk6vt35bcx" IS 'btree index PlacedChoice(package, path, start, identifier)';
 
+COMMENT ON INDEX "qti"."__placed_choice_ix_package_path_start_kind_5miftnmzpk" IS 'btree index PlacedChoice(package, path, start, kind)';
+
 COMMENT ON INDEX "qti"."__placed_expression_ix_package_base_type_assembly_qxi577w7ks" IS 'btree index PlacedExpression(package, baseType, assembly, instance, path)';
 
 COMMENT ON INDEX "qti"."__placed_expression_ix_package_path_start_5zxaoolb7y" IS 'btree index PlacedExpression(package, path, start)';
@@ -3647,7 +3679,7 @@ COMMENT ON INDEX "qti"."__site_path_ix_package_path_entry_kind_start_qbgtz4urvv"
 
 COMMENT ON INDEX "qti"."__site_target_ix_package_target_splices_ufrlh7idlc" IS 'btree index SiteTarget(package, target, splices)';
 
-COMMENT ON INDEX "qti"."__table_scope_ix_package_path_table_p6mmwy6mjs" IS 'btree index TableScope(package, path, table)';
+COMMENT ON INDEX "qti"."__table_header_ix_package_path_table_nl5r7jdshk" IS 'btree index TableHeader(package, path, table), id filtered beside it, not indexed: no byte bound fits the entry';
 
 COMMENT ON INDEX "qti"."__text_idref_ix_package_path_token_digest_6rnu6d6nqb" IS 'btree index TextIdref(package, path, tokenDigest)';
 
@@ -3679,9 +3711,9 @@ COMMENT ON FUNCTION "qti"."__reader_news_assembled_document_6uia4xcajl"() IS 'th
 
 COMMENT ON FUNCTION "qti"."__reader_olds_assembled_document_hw6qsevoql"() IS 'the reader of the delta of olds of AssembledDocument';
 
-COMMENT ON FUNCTION "qti"."__reader_news_attribute_f2hqcrdfie"() IS 'the reader of the delta of news of Attribute';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_wov7msmueh"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_attribute_sdnzblo4cy"() IS 'the reader of the delta of olds of Attribute';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_oi2bc5f6qf"() IS 'the reader of the delta of olds of Attribute';
 
 COMMENT ON FUNCTION "qti"."__reader_news_binding_name_gxtl45ye3k"() IS 'the reader of the delta of news of BindingName';
 
@@ -3709,9 +3741,9 @@ COMMENT ON FUNCTION "qti"."__reader_news_cell_leaf_xx7ihsy4yc"() IS 'the reader 
 
 COMMENT ON FUNCTION "qti"."__reader_olds_cell_leaf_sqodrfux43"() IS 'the reader of the delta of olds of CellLeaf';
 
-COMMENT ON FUNCTION "qti"."__reader_news_choice_yaitirnf7w"() IS 'the reader of the delta of news of Choice';
+COMMENT ON FUNCTION "qti"."__reader_news_choice_r2bhewc2aw"() IS 'the reader of the delta of news of Choice';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_choice_en4nz2zypd"() IS 'the reader of the delta of olds of Choice';
+COMMENT ON FUNCTION "qti"."__reader_olds_choice_427cfy7ja5"() IS 'the reader of the delta of olds of Choice';
 
 COMMENT ON FUNCTION "qti"."__reader_news_choice_interaction_ujac7c34hg"() IS 'the reader of the delta of news of ChoiceInteraction';
 
@@ -3913,9 +3945,9 @@ COMMENT ON FUNCTION "qti"."__reader_news_placed_binding_fwob4xa76a"() IS 'the re
 
 COMMENT ON FUNCTION "qti"."__reader_olds_placed_binding_uvb4tsvkcb"() IS 'the reader of the delta of olds of PlacedBinding';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_choice_qscdnboeyh"() IS 'the reader of the delta of news of PlacedChoice';
+COMMENT ON FUNCTION "qti"."__reader_news_placed_choice_yinnsmlrpp"() IS 'the reader of the delta of news of PlacedChoice';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_placed_choice_yiriix7aua"() IS 'the reader of the delta of olds of PlacedChoice';
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_choice_3qxh6zptpd"() IS 'the reader of the delta of olds of PlacedChoice';
 
 COMMENT ON FUNCTION "qti"."__reader_news_placed_expression_ni47p6zzhd"() IS 'the reader of the delta of news of PlacedExpression';
 
@@ -4019,9 +4051,9 @@ COMMENT ON FUNCTION "qti"."__reader_news_stimulus_ref_ifcbds6byo"() IS 'the read
 
 COMMENT ON FUNCTION "qti"."__reader_olds_stimulus_ref_wnn2jyzbyc"() IS 'the reader of the delta of olds of StimulusRef';
 
-COMMENT ON FUNCTION "qti"."__reader_news_table_header_wo4cx2cpcr"() IS 'the reader of the delta of news of TableHeader';
+COMMENT ON FUNCTION "qti"."__reader_news_table_header_fmgvdidlha"() IS 'the reader of the delta of news of TableHeader';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_table_header_dhqyg2krej"() IS 'the reader of the delta of olds of TableHeader';
+COMMENT ON FUNCTION "qti"."__reader_olds_table_header_flhlkrq63c"() IS 'the reader of the delta of olds of TableHeader';
 
 COMMENT ON FUNCTION "qti"."__reader_news_table_scope_7wmcsa3hlg"() IS 'the reader of the delta of news of TableScope';
 
@@ -4365,7 +4397,7 @@ COMMENT ON FUNCTION "qti"."__judge_cell_headers_in_attribute_gpr2rsg5ft"() IS 't
 
 COMMENT ON FUNCTION "qti"."__judge_cell_leaf_in_scope_node_mk36zy4u3d"() IS 'the rule judge''s block of rule CellLeaf(package, path, start) in ScopeNode(package, path, start) where Logic.eq(elementChildren, 0n) and Logic.ne(kind, "m:mtd") over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_cell_token_in_tabled_header_jdl2jwfjls"() IS 'the rule judge''s block of rule CellToken(package, path, table, token) in TabledHeader(package, path, table, id) over its units';
+COMMENT ON FUNCTION "qti"."__judge_cell_token_in_table_header_r63ctqjkv5"() IS 'the rule judge''s block of rule CellToken(package, path, table, token) in TableHeader(package, path, table, id) where Logic.ne(table, 0n) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_choice_interaction_interaction_path_path_in_7yxbrfxbg4"() IS 'the rule judge''s block of rule ChoiceInteraction(package, path, interactionPath, interaction) where Logic.ne(interactionPath, path) in Document(package, path, contextPath, contextNearest) over its units';
 
@@ -4911,12 +4943,6 @@ COMMENT ON FUNCTION "qti"."__judge_anchored_name_key_package_assembly_anchor_tal
 
 COMMENT ON FUNCTION "qti"."__judge_assembled_name_key_package_assembly_by3dc6a57l"() IS 'the rule judge''s block of rule key AssembledName(package, assembly, identifier) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_card_default_key_package_path_card_xry4sljvwm"() IS 'the rule judge''s block of rule key CardDefault(package, path, card) over its units';
-
-COMMENT ON FUNCTION "qti"."__judge_catalog_support_key_package_path_catalog_gwhaujwtyk"() IS 'the rule judge''s block of rule key CatalogSupport(package, path, catalog, support) over its units';
-
-COMMENT ON FUNCTION "qti"."__judge_choice_node_key_package_path_kind_identifier_cfau2c6ydg"() IS 'the rule judge''s block of rule key ChoiceNode(package, path, kind, identifier) over its units';
-
 COMMENT ON FUNCTION "qti"."__judge_choice_space_name_key_package_path_5lmdv7iyyw"() IS 'the rule judge''s block of rule key ChoiceSpaceName(package, path, identifier) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_copied_id_key_package_assembly_id_ex5zbfvdfe"() IS 'the rule judge''s block of rule key CopiedId(package, assembly, id) over its units';
@@ -4935,8 +4961,6 @@ COMMENT ON FUNCTION "qti"."__judge_most_two_argument_pair_key_package_path_fqelb
 
 COMMENT ON FUNCTION "qti"."__judge_named_declaration_key_package_path_yf4gp6tz5k"() IS 'the rule judge''s block of rule key NamedDeclaration(package, path, identifier) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_placed_choice_node_key_package_assembly_kind_id2hbr436o"() IS 'the rule judge''s block of rule key PlacedChoiceNode(package, assembly, kind, identifier) over its units';
-
 COMMENT ON FUNCTION "qti"."__judge_placed_choice_space_name_key_package_wbw7msoi6e"() IS 'the rule judge''s block of rule key PlacedChoiceSpaceName(package, assembly, identifier) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_placed_single_response_gap_key_package_5ednbmrl4c"() IS 'the rule judge''s block of rule key PlacedSingleResponseGap(package, assembly, instance, start) over its units';
@@ -4945,17 +4969,11 @@ COMMENT ON FUNCTION "qti"."__judge_set_field_name_key_package_path_set_fcflnc3ss
 
 COMMENT ON FUNCTION "qti"."__judge_single_response_gap_key_package_path_start_sifun2dm3r"() IS 'the rule judge''s block of rule key SingleResponseGap(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_tabled_header_key_package_path_table_id_lopc6f73jb"() IS 'the rule judge''s block of rule key TabledHeader(package, path, table, id) over its units';
-
 COMMENT ON FUNCTION "qti"."__judge_test_reading_key_package_assembly_path_start_n33nn3cpov"() IS 'the rule judge''s block of rule key TestReading(package, assembly, path, start, attribute) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_trimmed_mark_key_package_path_fragment_value_t7jxdfhmxy"() IS 'the rule judge''s block of rule key TrimmedMark(package, path, fragment, value) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_variable_mapping_key_package_path_ref_target_t5qqr2lc2e"() IS 'the rule judge''s block of rule key VariableMapping(package, path, ref, target) over its units';
-
-COMMENT ON FUNCTION "qti"."__judge_weight_name_key_package_path_ref_identifier_5c7l6hcgi5"() IS 'the rule judge''s block of rule key WeightName(package, path, ref, identifier) over its units';
-
-COMMENT ON FUNCTION "qti"."__judge_assembled_catalog_lguy5ulcpw"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledCatalog and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_assembled_catalog_dbrsealp32"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledCatalog and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_candidate_path_eyks4qxbc5"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of CandidatePath and the relations its rules join it to';
 

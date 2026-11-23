@@ -73017,7 +73017,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_assembled_catalog_dbrsealp32","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"26f1e6639a94c0b548cd394e9ced8f7918ee5e5cbb900d9471d725e45a1c3b4f"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_assembled_catalog_dbrsealp32","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7489d76fd3e99e501b661713e5d5b06bd31a326e4aa8de3278a133100099d48b"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[{"array":true,"kind":"builtin","name":"text"}],"name":"__judge_assembled_catalog_dbrsealp32","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__judge_assembled_catalog_dbrsealp32",
@@ -73025,7 +73025,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_candidate_path_eyks4qxbc5","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"4ead7429df39b8c5dada93ff8f20b31aee7aa61ca7897b3908977307f5b62775"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_candidate_path_eyks4qxbc5","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"03754e59d77c9aa03a64041f0b285ec39d1527334c58ac8b44768d54ead051a1"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[{"array":true,"kind":"builtin","name":"text"}],"name":"__judge_candidate_path_eyks4qxbc5","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__judge_candidate_path_eyks4qxbc5",
@@ -73033,7 +73033,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_data_ssml_member_wamg5k5f5q","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"ef0e22993a7456f188fe4c4aa733f5f771c5faf6b17e0c3bb5a0a99c2823e1cd"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_data_ssml_member_wamg5k5f5q","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"970000e6d9f27d88eef85132c705de650cae1d181348163315a7d30ddd785e1e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[{"array":true,"kind":"builtin","name":"text"}],"name":"__judge_data_ssml_member_wamg5k5f5q","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__judge_data_ssml_member_wamg5k5f5q",
@@ -73041,7 +73041,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_srcset_candidate_ehvwpxx5f5","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"fc1c6d9f709b7b66c38852f82f969be3f1d219889560abae7550a85e1e6f2353"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_srcset_candidate_ehvwpxx5f5","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"0675b804d83b7d430e43cec9786b23e9386c74e96d937e73e1bc6a4c778960ad"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[{"array":true,"kind":"builtin","name":"text"}],"name":"__judge_srcset_candidate_ehvwpxx5f5","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__judge_srcset_candidate_ehvwpxx5f5",
@@ -73049,7 +73049,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_usage_value_base_type_22ijkb6zc4","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"248e9ce3759491bdf5284e57eea16bb7b122c9e3861aba2be9b88db47b7b07df"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__judge_usage_value_base_type_22ijkb6zc4","schema":"qti"},"parallel":"UNSAFE","params":[{"name":"__written","type":{"array":true,"kind":"builtin","name":"text"}}],"returns":"void","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"fee3488df800862326a611d6847e1d01c5047c71840934e4488dc5c137666a78"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[{"array":true,"kind":"builtin","name":"text"}],"name":"__judge_usage_value_base_type_22ijkb6zc4","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__judge_usage_value_base_type_22ijkb6zc4",
@@ -73065,7 +73065,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_assembled_catalog_3z2sfh4yla","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"300c4bde5cedfc93cdc5aebdcff8b804b95b4c68daa706b6e24b65650a52d1df"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_assembled_catalog_3z2sfh4yla","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"291302743e02610eafcf62caeb215ce7ecf3cf31b2d7dba8ab0673f098b6d3b8"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_assembled_catalog_3z2sfh4yla","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_assembled_catalog_3z2sfh4yla",
@@ -73073,7 +73073,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_assembled_document_kywec7er73","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"4316b600370910356843586dc5e8614bd86c08a61154672dbd5671d05d28dc15"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_assembled_document_kywec7er73","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"1f61f9d327e448198334df74789cb03039c50900dd59d7a2c1e145b6e8e15722"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_assembled_document_kywec7er73","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_assembled_document_kywec7er73",
@@ -73081,7 +73081,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_attribute_itmluum5pt","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"6843bc78daf91fa3ef0c23fe1b0cd6d8831ef4d2dd73d72172eeceefe59212bc"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_attribute_itmluum5pt","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"90e0a25f83e4635014f2d12bbe20b0efabfabab70c03f73982e827b7aa7d4197"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_attribute_itmluum5pt","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_attribute_itmluum5pt",
@@ -73089,7 +73089,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_binding_name_wylitlhovp","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"900471ceda0aeff1c9d55ab97da9591c43a1329af9bab96e187ea03b11d43d7a"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_binding_name_wylitlhovp","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"b6f3cb869bc51415dc82a5a85eecec00b4b849c769e59adea0208f2929c1822e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_binding_name_wylitlhovp","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_binding_name_wylitlhovp",
@@ -73097,7 +73097,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_bound_variable_zkpqqr76nb","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"2316c0dccc4019fae97d0339faf6541ea32abac5e08a94b9a9a671667fe3e680"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_bound_variable_zkpqqr76nb","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"1d408cb98c534b9a600dc2450aa2f3715c5aa232bb9aa97ecf057f3ac073c5e4"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_bound_variable_zkpqqr76nb","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_bound_variable_zkpqqr76nb",
@@ -73105,7 +73105,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_candidate_path_wlkrzbwvw3","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"33b3e33dc51a77fc591f1c655c56eec647b1245b7782bb4b93852983c874c8f8"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_candidate_path_wlkrzbwvw3","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e6c4c566366d36095aa4e94f2cd9f9f41b9237ce2cedfaa1db4b041cd81faa22"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_candidate_path_wlkrzbwvw3","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_candidate_path_wlkrzbwvw3",
@@ -73113,7 +73113,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_catalog_id_jfqixfjyar","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5274d25ddbc19a4c9897d7ee16b423eeb7552343b11740bf64dfe9d4e61e86ee"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_catalog_id_jfqixfjyar","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"ddcc1385eef9affb110ac12f394fb3a7b2561fae4441f96343b8d36daf3370b8"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_catalog_id_jfqixfjyar","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_catalog_id_jfqixfjyar",
@@ -73121,7 +73121,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_catalog_scope_vqhsmtulbo","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5bb0f411f94a74476775d8b6fc3fbf65d2b9b2e0eec26df747f807c157f7a3b1"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_catalog_scope_vqhsmtulbo","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7f13a8a166143afcb9f3b022d61a02b22af4b30e1c1cef483ecf01049f3acb45"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_catalog_scope_vqhsmtulbo","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_catalog_scope_vqhsmtulbo",
@@ -73129,7 +73129,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_cell_headers_stlfdiqhwe","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"00f313c1ff3a3bbe68e58248b996d41ceefdd936f1c94ab4d1ed4d9fc6a57516"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_cell_headers_stlfdiqhwe","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e396c6763ba441420d54a9f8da922b3d592ce5b5c6d24f4846497a0a8a84e7bd"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_cell_headers_stlfdiqhwe","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_cell_headers_stlfdiqhwe",
@@ -73137,7 +73137,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_cell_leaf_tpy2oa357u","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"fb83dbc678ae77b6d0234e8cdeda095f9f42a468c78441718faa05bd8f2b7b9c"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_cell_leaf_tpy2oa357u","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"53b99f6066aab1702d29b9e1b06a99908e6fa7037070af77007e02f1d21a442e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_cell_leaf_tpy2oa357u","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_cell_leaf_tpy2oa357u",
@@ -73145,7 +73145,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_choice_neayopxxaf","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"16b76a143f84c06fed18fb86e00bb00fdd54f3cb03f223bec3f6299018a368ab"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_choice_neayopxxaf","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"4fe310b72ef38af4ea99f4e784106d1b179261212ab39adeee53b7ce0a89e14e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_choice_neayopxxaf","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_choice_neayopxxaf",
@@ -73153,7 +73153,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_choice_interaction_67uetkh2me","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"cd81d6f52fcfda111ab65f4060a0397204ee3fb9c6127726a101b430035e8e31"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_choice_interaction_67uetkh2me","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a8e000884f73d458121c504a354b766b8bc9ee5bd775df8e0302a74a405f476e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_choice_interaction_67uetkh2me","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_choice_interaction_67uetkh2me",
@@ -73161,7 +73161,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_cn_attribute_wjtyhps5sc","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"657fb5146aef1dc4e441cd2f221a1ab35cc81288674fa76c9a954051c6ebbcaa"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_cn_attribute_wjtyhps5sc","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e779cf7e2ab4e71a1048ab8fd645a6b433db782233755c40b551b9ce7ae7fa98"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_cn_attribute_wjtyhps5sc","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_cn_attribute_wjtyhps5sc",
@@ -73169,7 +73169,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_cn_count_dpun7ibpty","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5b359ee29bb587ab67ec11b1abd968a9cb582048ab13b2a39b68fd1ee9e9afaa"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_cn_count_dpun7ibpty","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9447fd3fb87f4486af5d4be9abcec1659f44b6d88654a358b8dd798a479ef3f9"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_cn_count_dpun7ibpty","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_cn_count_dpun7ibpty",
@@ -73177,7 +73177,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_comment_3fafsajrz7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"87e31c81396937f47bd41f51f3f683dd82a42690f59d55699ebc0a03175cf7d5"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_comment_3fafsajrz7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"42d85230d0162eee30f06e48e30bd40a833e618eeeaeda996607d1f44c1d4ece"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_comment_3fafsajrz7","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_comment_3fafsajrz7",
@@ -73185,7 +73185,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_context_ref_nebkcb5eus","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"278831a06da266aa65df16a4b7b1fbbcfe46f2122e896a393f5e6b70999d643b"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_context_ref_nebkcb5eus","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e9c4b693aa43653e4525bd7580675000218f1128af8781ec0ff5eb0579afa765"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_context_ref_nebkcb5eus","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_context_ref_nebkcb5eus",
@@ -73193,7 +73193,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_count_bound_o4cqbs6f73","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"3787bdf755c486c1ad779e3a40bec8d351dc97f16e91732519bd710a53fe3324"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_count_bound_o4cqbs6f73","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5cf66a842313afd2a733d8388fadc62bccb22631d897abcdbd4fc6e8116e0a82"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_count_bound_o4cqbs6f73","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_count_bound_o4cqbs6f73",
@@ -73201,7 +73201,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_data_ssml_qzwoa3blrx","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"8af2daf89d1c7c62f5ff5e78f44af0532cbf2571f370f64b187d4357a99f5de7"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_data_ssml_qzwoa3blrx","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7dfd3f3ec6185982a388d2c2c619009570f9d6504f914ded519aa199d0011c4d"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_data_ssml_qzwoa3blrx","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_data_ssml_qzwoa3blrx",
@@ -73209,7 +73209,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_data_ssml_member_e3kaulojj7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f5920170ffd102507fb827e3b736b5ec130a046211fde4d27b3c179a47de2882"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_data_ssml_member_e3kaulojj7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9d0da437d62706b71b2f6f50737d7bd8128eb086b4ebf51c60c518c12fd3b7dc"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_data_ssml_member_e3kaulojj7","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_data_ssml_member_e3kaulojj7",
@@ -73217,7 +73217,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_data_ssml_property_awsueqqn4k","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9405a013e7426e9e9393b630b9bd943bafd6c488254086660a003a8674fb8fdc"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_data_ssml_property_awsueqqn4k","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"eeda138c3ce53da90c61bcb8ba526eb5808847fb4ad3cdddc576b1f0fbcb445f"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_data_ssml_property_awsueqqn4k","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_data_ssml_property_awsueqqn4k",
@@ -73225,7 +73225,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_doctype_zd2y6ytcuj","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"18aefc91dac71b62ee6dfdb221b47d10fe206c59dbd7e5d3150dff59e350ef7a"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_doctype_zd2y6ytcuj","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"d6fbfea4ff4f410067048e27420fc03d1af2a0c4fe881aeac21eb6a8db0378d4"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_doctype_zd2y6ytcuj","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_doctype_zd2y6ytcuj",
@@ -73233,7 +73233,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_document_h46mvgroqo","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"eb5d7003256ee780a1807677e1997a550635b0a113ae1c7c53ea10b229ac47ab"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_document_h46mvgroqo","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"38a0fa5b160b97e4de1226e589f71c05ff89c5831a952819444689589ae1465a"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_document_h46mvgroqo","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_document_h46mvgroqo",
@@ -73241,7 +73241,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_document_id_eulwoph3m7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"0ae33e38cd8e74f9b67c44dc67989db31aafc7e15563b92b6bc82671539d39c3"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_document_id_eulwoph3m7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"440c831cb43b34c84fa4cf8bef8f00164c896c4182b5cc3e5b516ea35e8fc31a"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_document_id_eulwoph3m7","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_document_id_eulwoph3m7",
@@ -73249,7 +73249,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_element_type_6iss5rizj2","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e6c086a85b98e7dea8e25e618b7c78507e2c496ab58648a05d5ab287bb0cfe6d"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_element_type_6iss5rizj2","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"d7cc580f97f78d34135690f263f42073f7b8cf776bb4257710b597f51aabbf67"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_element_type_6iss5rizj2","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_element_type_6iss5rizj2",
@@ -73257,7 +73257,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_entry_bqh2dphmq7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"8307ce8ebee40d29c929c816a1ca6651fb4c04303f3f5da0647e6f36c1b0decd"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_entry_bqh2dphmq7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"db96281fee300a78a7838f224a615db0d40a0bbafaf65103558afad66bfb785a"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_entry_bqh2dphmq7","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_entry_bqh2dphmq7",
@@ -73265,7 +73265,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_expression_3gfbksib72","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5c69924a9290e2a26db618911e3bbcd1d102354b3ce1033045ac8bfc55106ed4"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_expression_3gfbksib72","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"17856770638fc8d29c3d0d4e7607dccbad3e0a01e7117c3eb91fdda030bd3571"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_expression_3gfbksib72","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_expression_3gfbksib72",
@@ -73273,7 +73273,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_feedback_ref_iuekmjyn2k","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"2c345516ec2dae74f8dd89bac65d37cffeda2af29b6766f87e3e761b42666c36"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_feedback_ref_iuekmjyn2k","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"deb416a048c3ba403da5b94e320471734cd972c15ecd8d4a044e6581d179d0cd"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_feedback_ref_iuekmjyn2k","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_feedback_ref_iuekmjyn2k",
@@ -73281,7 +73281,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_file_yjq2w5356h","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"11d03c5eb77cb767936b635f477f20a21f4b43f7c8244fe26010e161c5505c5b"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_file_yjq2w5356h","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"d58c6a2a02020b18871cd8acf32d7574e78f8ac5a915c8bd863c83bc4a58d51f"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_file_yjq2w5356h","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_file_yjq2w5356h",
@@ -73289,7 +73289,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_file_outside_3e7wcs37xq","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f9b26e40b4e7f034395f9e09aa2c43e82a340b0c6b413ec8b48b5784ee12a1fa"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_file_outside_3e7wcs37xq","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"6a3982505c35ff47d7dfa73a335fd2447da2153e72e32362f98de79de1554692"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_file_outside_3e7wcs37xq","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_file_outside_3e7wcs37xq",
@@ -73297,7 +73297,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_file_path_fjyfymzkgk","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"65517dc4957e83b1640ed1f2d87045e22c828badf06d76d3bfd259e7b8bf62b0"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_file_path_fjyfymzkgk","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c6eb5cfa37b57ac988e969b0146bb066b8a4a4ba32e150abdcf3eaca75939409"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_file_path_fjyfymzkgk","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_file_path_fjyfymzkgk",
@@ -73305,7 +73305,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_context_ref_nuuhlshmzu","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"04f072dd2176b583926bbad344d4f613007ae8c86febd592d8e1eb50e9a9d141"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_context_ref_nuuhlshmzu","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"ed996e5086e67cc98de2eb7b8048851620f536cc5e4ee41a89618dd9b843900d"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_fragment_context_ref_nuuhlshmzu","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_fragment_context_ref_nuuhlshmzu",
@@ -73313,7 +73313,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_feedback_ref_imuuftmewc","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"402704a54263bd8051220181a6e137c254025efbfe1004b3bb1e108ffcb7be64"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_feedback_ref_imuuftmewc","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5f251c5dafaea499648a510eaed526ca3ede1f63eb47e940be477a046f29bfd5"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_fragment_feedback_ref_imuuftmewc","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_fragment_feedback_ref_imuuftmewc",
@@ -73321,7 +73321,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_printed_ref_uennexi5y2","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"8816065193f053cfac88fe2dd9a3c38409346237726eacce0abed8be0da553fb"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_printed_ref_uennexi5y2","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"461666d5abe34c6112cb95b3ec416a6d0ea18298e77f6558767de02cb12efc04"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_fragment_printed_ref_uennexi5y2","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_fragment_printed_ref_uennexi5y2",
@@ -73329,7 +73329,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_scope_iknfqtw5zm","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"ca9ba8d22544214bfc6e9209685565b9118985696bef3a2b7cb7771888769d3e"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_scope_iknfqtw5zm","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e14df9d5ba394f233bf7b249046ab584ee9b037d4449e1343b4b539b51f00ce9"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_fragment_scope_iknfqtw5zm","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_fragment_scope_iknfqtw5zm",
@@ -73337,7 +73337,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_template_ref_4a55ciye7u","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"171ac064c79815c50f9e3547325280a54d831fcb1d3102d4bc357ab0c9fd486e"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_fragment_template_ref_4a55ciye7u","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5d1a793f114a7e92ea9754acbec45df27426c746f13b11571fb77622c3dfe5fb"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_fragment_template_ref_4a55ciye7u","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_fragment_template_ref_4a55ciye7u",
@@ -73345,7 +73345,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_header_token_xwforpimq3","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5e52bc6584d1297e08973896a3ee3a5a9e1bf7cccb28798e1a6fc9ad0268c5d9"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_header_token_xwforpimq3","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"4c126bab059f42e9381c86ce8b83ba098ef5ae50da9c74a5fdc2848d9a7949b1"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_header_token_xwforpimq3","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_header_token_xwforpimq3",
@@ -73353,7 +73353,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_hottext_lhjwhvzr4d","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7c2932bec6d03e5157b146e7f3f72e8c76c7a244e1cad7b7b0a4c6eb26cbd20b"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_hottext_lhjwhvzr4d","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"4cb29a58b7e0ab1c011403e12a9b3d0b4f9863c843d16e0a845ec0afbd151d67"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_hottext_lhjwhvzr4d","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_hottext_lhjwhvzr4d",
@@ -73361,7 +73361,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_identity_text_h5x3ut4jpk","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"675fa1220bf190aca1423b71c90d11ccc1adc10c0fe0cd551585695b2321e7cb"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_identity_text_h5x3ut4jpk","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a5d98d9c7b10fa40898bf480858c654dc82a2a7e3af65aebd55996f81924e3f1"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_identity_text_h5x3ut4jpk","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_identity_text_h5x3ut4jpk",
@@ -73369,7 +73369,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_idref_4rhkrmfh4c","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7b5438c939957d5f9ca8b6d405691c2df7b05a7d919b7f0d4985f1cd12992d9a"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_idref_4rhkrmfh4c","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7b5d6b28e8e24619ee79321aa5acf0d7bc5af6bb101197af7ac6a28f0af03414"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_idref_4rhkrmfh4c","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_idref_4rhkrmfh4c",
@@ -73377,7 +73377,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_idref_target_svtn77efc5","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"29c0c77a719fd95ffa87faebc6a6e2344004620bfc91b2d8e5068db52a2b9a5f"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_idref_target_svtn77efc5","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"30416c70b0cdc206955a100264abb0fd12c7776d62667d2b9621bbb12c70077c"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_idref_target_svtn77efc5","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_idref_target_svtn77efc5",
@@ -73385,7 +73385,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_inclusion_56gcj75lja","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"fa4a07914d7a2a8a51c97f9b5d47903791e9d7fb34303b47d53746376cb6bfe3"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_inclusion_56gcj75lja","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"db7be8ee07f0fccba27bd70933ac2fe30fc88c4dfb7053026afa2791bb045f34"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_inclusion_56gcj75lja","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_inclusion_56gcj75lja",
@@ -73393,7 +73393,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_instance_ts6ly2zo5e","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e41417a127429925d474a01514066ab0446662efdea5bb16262ae2691c6636e2"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_instance_ts6ly2zo5e","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"922d3a08f23ced4dedfe50dc871d0544c14f3fbc8734d55eabb7d60c6142db3f"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_instance_ts6ly2zo5e","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_instance_ts6ly2zo5e",
@@ -73401,7 +73401,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_interaction_74aiefebxt","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f7c9cdedf4e7f92cba438646249921c18244e91cdacb28d7653e7c6f9b7779af"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_interaction_74aiefebxt","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9228bb6e88814b6f9d41ab7e35d026d087152a797304fa75ea533ab4d285f34e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_interaction_74aiefebxt","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_interaction_74aiefebxt",
@@ -73409,7 +73409,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_interaction_attribute_wquigysxiz","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"6a4880bff3ab24790fb2f35a0fe9b3a2329fa1798d6517a4d9dc3f4336e89ffd"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_interaction_attribute_wquigysxiz","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"070a74075fae669823dbff6b6f428673ae9e368d3898481528d4ab57960c1cb1"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_interaction_attribute_wquigysxiz","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_interaction_attribute_wquigysxiz",
@@ -73417,7 +73417,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_item_mode_jcqh5xkp3r","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"78c66accc14e6d22d6a505aede444b6cc44e9eeafbecc07b114cfa2aeb3065f0"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_item_mode_jcqh5xkp3r","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5e49c60fa7c3b2b0e8b844242195346140d155e7338ed9203edbc6a715989fb0"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_item_mode_jcqh5xkp3r","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_item_mode_jcqh5xkp3r",
@@ -73425,7 +73425,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_item_ref_document_rlun34ysrf","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9889c35c8d0010bffc51d0675d23b54047a825fc6b02d9599d098b8cd59d441d"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_item_ref_document_rlun34ysrf","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"15201b9bd0e41b46e22af0331f2a8550aaa9b781838023bebfd986615ede9e05"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_item_ref_document_rlun34ysrf","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_item_ref_document_rlun34ysrf",
@@ -73433,7 +73433,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_item_ref_href_njxj66f6sv","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"49c05439d23afaf8b3c4673e6a7fbbbc894fda9a7f78b2729453f469c1c4f22b"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_item_ref_href_njxj66f6sv","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"db07e0999bbd93f622c28c90797b37180579404679051674929398d5afafb54b"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_item_ref_href_njxj66f6sv","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_item_ref_href_njxj66f6sv",
@@ -73441,7 +73441,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_label_use_zaf4tt25o3","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"8c484b050ab174eb0593c6b1f6881d93355b87b3a625121634760531b29e6cb6"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_label_use_zaf4tt25o3","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c0ac689cfed242eb85cf81f5e09d5c43e9743969da6925f20209b96391a43c2b"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_label_use_zaf4tt25o3","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_label_use_zaf4tt25o3",
@@ -73449,7 +73449,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_least_count_aijvroibqn","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7b840336fa0b50261125d29299bb0a9abda31f1f2da4fc0cbe6c551eb80cff00"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_least_count_aijvroibqn","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"5ba2567eda6769e3c11a6d68caa1627923e4f0cb4810d148519cacf9960c5bb6"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_least_count_aijvroibqn","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_least_count_aijvroibqn",
@@ -73457,7 +73457,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_link_reading_pp235xpir4","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c6a13999d5b19a65c0527ab60c6690a45a5bdcc1d50f845adaafb81c93c651c3"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_link_reading_pp235xpir4","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c524e0807078e8395819297e81ccb53c4016c42038ff7c34f7874221d0ba7242"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_link_reading_pp235xpir4","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_link_reading_pp235xpir4",
@@ -73465,7 +73465,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_literal_cmqvxvs66l","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"ad99f079dd272a82de0870568082c6fae5472ae1551d5a63269c98011cd8eab3"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_literal_cmqvxvs66l","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"1384f9afce2834dec38239e8225b66ca4a0210fadea597cc7024fd1bf507df8a"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_literal_cmqvxvs66l","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_literal_cmqvxvs66l",
@@ -73473,7 +73473,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_literal_typed_cv5kr7fm7e","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"58a323571f068fe42f10057e8cbcfc6657fdd96f2a6a7332ba727452cb2fccde"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_literal_typed_cv5kr7fm7e","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a279e73f29118708efb6eaa2d5d4d57ceca8a58cdb85cb4181c639e2ecf9e9e5"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_literal_typed_cv5kr7fm7e","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_literal_typed_cv5kr7fm7e",
@@ -73481,7 +73481,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_lookup_value_f3rrvlw7j7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c6b779b266418dc36b5132ad588964a30129c319a038848e6cf5800fd6d5cb9d"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_lookup_value_f3rrvlw7j7","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"700cab17fbf21c0fe47c1c7d54ab2fe4e48f781679047168b974dd6de755fdd2"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_lookup_value_f3rrvlw7j7","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_lookup_value_f3rrvlw7j7",
@@ -73489,7 +73489,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_map_key_gtfuz4lzxt","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"4c5925a3ca9d7b2baac707d06adf8673bb8ab18db4599b359b0d942777266b87"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_map_key_gtfuz4lzxt","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c92adf26d1b698d1059a4884e2cc958c5e7e16897d24da1ec44f9e5005e9aa29"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_map_key_gtfuz4lzxt","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_map_key_gtfuz4lzxt",
@@ -73497,7 +73497,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_action_jd3vrh7mkp","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"489b1aa8dfa0dfb1504eef6989350e697d7ccdb5248505308183cfe16925a2d2"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_action_jd3vrh7mkp","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9c4e541e2f177b7bb1c23b45c9f29c171802d27debc6c1d137b53a851a0e714f"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_math_action_jd3vrh7mkp","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_math_action_jd3vrh7mkp",
@@ -73505,7 +73505,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_align_group_rm6un5zx6m","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7d84951e865747b44d8d258e1a18a4493ebe1c9820e00ee6adef45923d59f00f"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_align_group_rm6un5zx6m","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"d8d01428513c996118b294661836712b221a0e9eabe8ded7dd44aacd1f294997"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_math_align_group_rm6un5zx6m","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_math_align_group_rm6un5zx6m",
@@ -73513,7 +73513,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_align_scope_drfp7lejeu","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"df9d9734d51fbc985a4d1e166af16e9f5cc6359febb026615aff94aa8bfe2b9e"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_align_scope_drfp7lejeu","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a5ae2038b9442137c7caf4afe1ba788e27bdbed15a07d9ed5bb1e193ac0b8050"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_math_align_scope_drfp7lejeu","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_math_align_scope_drfp7lejeu",
@@ -73521,7 +73521,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_cell_gqufe5xqbw","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c00bf8f15deba5d1bea32e418068463067e0210c5c1c1c35ce66dcc19a24d28d"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_cell_gqufe5xqbw","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"51296fd1edc7ff99e7ac78006f5fe2178383d2ad1bcfb8aca0f2f04b863d39fc"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_math_cell_gqufe5xqbw","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_math_cell_gqufe5xqbw",
@@ -73529,7 +73529,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_cn_szq6ag5xrp","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"ae8504cadc673520f509bf644522e57370f60887d9de065c0c232291806a4ddb"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_cn_szq6ag5xrp","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"34b9f261c7ce8073f682caae5651538854bfe560593f73cd41597f5dda3f36e9"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_math_cn_szq6ag5xrp","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_math_cn_szq6ag5xrp",
@@ -73537,7 +73537,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_rank_pvp6tiwkcl","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c0ade6fc1c2aca539ce957ec423b4d648a1565949ccae2352b5782b1685c5544"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_math_rank_pvp6tiwkcl","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"dcb5c434115e02aeafa1fd4dea420d2f8c5d14f58518a3963cb63393c5ad261b"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_math_rank_pvp6tiwkcl","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_math_rank_pvp6tiwkcl",
@@ -73545,7 +73545,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_media_2hbvlgszbl","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"607e35eae6024eea5efc90250f97b73c304b52598b85788f7cbcbf489f4c4b0c"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_media_2hbvlgszbl","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"2d74aa1b9ce7843a02b45e61a193e9e9661fb8a15efe9862e28167dc1dc253fe"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_media_2hbvlgszbl","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_media_2hbvlgszbl",
@@ -73553,7 +73553,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_most_count_ht5osomlyy","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"389eea3029d7cf7b64715c8704ad0b450b2e0a4915b37b16833f7922f4c77920"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_most_count_ht5osomlyy","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"38cc4f724964ea0630641a931746239a6bdbc8500f6c67530c0e63176bf223cf"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_most_count_ht5osomlyy","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_most_count_ht5osomlyy",
@@ -73561,7 +73561,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_named_c3oe5awrnw","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"96cff22a5aa34c9e5c5e4b2e70e797dd7b1030c0a00a0075b94087cd9d39693b"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_named_c3oe5awrnw","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"0af7f9451585aea85aeb56477ff3001ca549518916b4fabb342ca186a055115e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_named_c3oe5awrnw","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_named_c3oe5awrnw",
@@ -73569,7 +73569,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_node_7sghxk2dxj","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f7f427e941a51436aa2d13e14a488300a0899c16eec01e5231e0e2161a0a0aa8"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_node_7sghxk2dxj","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"ed53b33d72516dcfcaa013be2e519a4506501269d040666d9218b4b75e1295dc"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_node_7sghxk2dxj","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_node_7sghxk2dxj",
@@ -73577,7 +73577,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_numbered_reading_vbr7y4n7ey","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a0c0edb7967ceb37f923ceec40f9da147c1d7411923878fc9d7bc5a804e83cad"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_numbered_reading_vbr7y4n7ey","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"1a7905fb0d7d2fd8fbbb4ce25be8e62675f3473a541c45584bac3ed7e120aaae"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_numbered_reading_vbr7y4n7ey","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_numbered_reading_vbr7y4n7ey",
@@ -73585,7 +73585,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_open_attribute_zpjedimx7c","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"b3f4ab1a9ce978d594d1d3a140074aa2b04932cf050c8ef5f6a4ae3e152b03c8"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_open_attribute_zpjedimx7c","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"3adeed3f8659219fd5ef4ff5ad67bdda259aab6001681187600d7f51f41724f5"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_open_attribute_zpjedimx7c","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_open_attribute_zpjedimx7c",
@@ -73593,7 +73593,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_open_element_name_oaq7r3tjeo","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"6188dd0c2a3b88f2385cb675f7bad4d659b816a7dc06cba3b6384507dda4dcb9"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_open_element_name_oaq7r3tjeo","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"4f70e982c717a0bcbd4a40294f0a02427f263c825b568a0b18b416da0ae42137"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_open_element_name_oaq7r3tjeo","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_open_element_name_oaq7r3tjeo",
@@ -73601,7 +73601,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_open_element_type_pdlvcktpcb","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a28ae1a6ef6e3a08989c7166d99498382a00c982c399b0c58e1d8980d68d8db9"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_open_element_type_pdlvcktpcb","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"b111922e6b708bfedde4f4c4cca965e8b410f2ed959b673320ce3bb296051295"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_open_element_type_pdlvcktpcb","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_open_element_type_pdlvcktpcb",
@@ -73609,7 +73609,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_pci_module_form_rbpjgm5ck4","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"b54f76a7920fb70ad3d4923435a656df9767cffaca024848384ac70697c96a27"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_pci_module_form_rbpjgm5ck4","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"6eaef37001a93125f4e20b3b481dfd3c9703272466a599d502612ba7a11d5a90"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_pci_module_form_rbpjgm5ck4","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_pci_module_form_rbpjgm5ck4",
@@ -73617,7 +73617,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_pi_crqtap7l2j","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"8ec5cd9945b77eb4aa278ef25ba00599cd43c8bcd37e36e15b8c22ddeb5bafed"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_pi_crqtap7l2j","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a9dd604c6a93335b2a26136ac357ee58946deeeeddd322c45d85f0784ace96f0"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_pi_crqtap7l2j","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_pi_crqtap7l2j",
@@ -73625,7 +73625,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_binding_g6nwtylt4r","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a3a6eda940ce8222cd4cef176bf72f3d756d814f5f3390b573464a7a4af6dbe0"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_binding_g6nwtylt4r","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"eead662a32b9f7c5397abff63c7181835f2d04d60c74a7cb55ad31ba6cc42418"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_placed_binding_g6nwtylt4r","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_placed_binding_g6nwtylt4r",
@@ -73633,7 +73633,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_choice_ofja2rvius","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"3578966ece9ecc5694a2d0c2f7bd3973e05d52e530a4cbe3b9ce929fe544918d"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_choice_ofja2rvius","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"b9efb398aec894f9821b1233fc1340c4d4cf08be36dfe2be2a0bf0ab5a4f0c9e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_placed_choice_ofja2rvius","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_placed_choice_ofja2rvius",
@@ -73641,7 +73641,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_expression_aicufbicvo","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"12b7096ae553d29b03dec87f687bb31187e367de6253ebf28d7b536f7f61f9b8"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_expression_aicufbicvo","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"2e23e4e64579dabe3774cf5db4fa6c1e4eae433778419c19847b40cdf398dcdd"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_placed_expression_aicufbicvo","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_placed_expression_aicufbicvo",
@@ -73649,7 +73649,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_hottext_jurjhgnjnv","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"dbfdcde6b4fec759648e673f6b0123c78f942f61f594b8e512c2098f2148a014"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_hottext_jurjhgnjnv","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e3199c5881ca5cc343de1a91b6df711559c76e8ece488b07afdf8bd4acc27309"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_placed_hottext_jurjhgnjnv","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_placed_hottext_jurjhgnjnv",
@@ -73657,7 +73657,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_id_azml2s6wnr","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a6aac16bf5ba3caf53dc73c3ce719e3b0fd825f9a8de2171a54123860648e714"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_id_azml2s6wnr","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"616afb3088e9a9acd3c879f3f4edbd0edcd7e38381d62cede0ad9e36106c97c9"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_placed_id_azml2s6wnr","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_placed_id_azml2s6wnr",
@@ -73665,7 +73665,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_idref_dxsermopm3","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"8f76a023735a98b35266ad4ed370d234ddef1e3428f88a060ea626ec8f25e13f"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_idref_dxsermopm3","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"79a12c93ada4abacf7f9c4e8c1dd4267d8a8d5bfda8458c38593c8b02924deb2"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_placed_idref_dxsermopm3","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_placed_idref_dxsermopm3",
@@ -73673,7 +73673,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_math_rank_xssetn7pti","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"3f54e5fef6d59d91f0f43317d774500f0c0979df7d6cc4fe73a6c53c8e30c2e7"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_math_rank_xssetn7pti","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7418810032647c71941bae7f5a1adc492956a2c24e205ccce34a4c902ad3a839"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_placed_math_rank_xssetn7pti","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_placed_math_rank_xssetn7pti",
@@ -73681,7 +73681,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_share_target_jkejimypix","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"08734d8ad65fe07f6bd0f25565e0b1d8fc5c42d18f7a6ac663f4148d04c70cfe"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_share_target_jkejimypix","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c13ed8d4e40031d4bf434ae7648211ca6287f16d8ea2c75daa3839e5dc06fcb5"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_placed_share_target_jkejimypix","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_placed_share_target_jkejimypix",
@@ -73689,7 +73689,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_variable_ref_c73fg3d4ir","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"64261b1c64fe9e2aa05c27db73f00e17ce61648141e2b883eaba734424204a58"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_placed_variable_ref_c73fg3d4ir","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f9c2618a1836841e33db4380121aa4a7b5b76b287fff23c239ecc991c129a224"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_placed_variable_ref_c73fg3d4ir","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_placed_variable_ref_c73fg3d4ir",
@@ -73697,7 +73697,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_printed_variable_ref_rkvjy5pcp6","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"37196602b8870ed49dd533ae90d4ccc7275acc1694f26d4c165a08f723add260"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_printed_variable_ref_rkvjy5pcp6","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"efc0b24109d9edfdd3d2d8c2cc54f41a30fbb08f9b723ed153a79b26b853b005"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_printed_variable_ref_rkvjy5pcp6","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_printed_variable_ref_rkvjy5pcp6",
@@ -73705,7 +73705,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_processing_jfdg5itrrj","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f0a348fb5f2889986e19cab934eac73c58d304743735e09ec10cfa86982ec08e"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_processing_jfdg5itrrj","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7177f7b96d10eeb680a0bfda69a2b642b98da2183df3c5e28bb78b9b87770c23"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_processing_jfdg5itrrj","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_processing_jfdg5itrrj",
@@ -73713,7 +73713,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_reference_d5rfnwftad","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"56dd4d744cdbc314bcf9857004756a7f66538a59079dec416268b9812bbc34d7"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_reference_d5rfnwftad","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f1182e71d3c1735321b581c0175e236e943f0a8e7616eb024204cfb8558245be"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_reference_d5rfnwftad","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_reference_d5rfnwftad",
@@ -73721,7 +73721,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_reference_path_a7u42lsr4p","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7a66bf9079200aa53c28b7d746c6aafc1347954f76dacd6568af116a8b8022b0"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_reference_path_a7u42lsr4p","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"8b7a494b6139c62674a201ec125c87418c86c9128c04290959bcd020aaca1248"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_reference_path_a7u42lsr4p","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_reference_path_a7u42lsr4p",
@@ -73729,7 +73729,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_resource_document_ycparq66g5","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9ad934d7fa17fde0d1354e98244737ba09571188a34e4aecee2e9f75363e10af"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_resource_document_ycparq66g5","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"02d3984351e69a6522874c517886aeb78e2eb6d41a66baf2ebb7431905d6fa45"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_resource_document_ycparq66g5","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_resource_document_ycparq66g5",
@@ -73737,7 +73737,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_resource_href_a6m5gac7ix","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e746ad669b81f6b4c3a117bea7683a26609163f646744d0c7120d006f35c3639"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_resource_href_a6m5gac7ix","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"11298fb9bb7dd043b8851e31eccaefba219c706e249a453c7fdf3a8cf9c7a0f0"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_resource_href_a6m5gac7ix","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_resource_href_a6m5gac7ix",
@@ -73745,7 +73745,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_resource_href_outside_sflje2hh5z","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c4c5818507b3b8c5db2fd798592c178e16212439c2cda09824a70e1efe658665"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_resource_href_outside_sflje2hh5z","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"76f66c242b34cc166d6c5cf3b9b7c9a0210e2c3776aed1c598e33a65245333d8"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_resource_href_outside_sflje2hh5z","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_resource_href_outside_sflje2hh5z",
@@ -73753,7 +73753,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_resource_href_path_hikvay3rfe","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f1bde74ef0ec9f698ab931265bf0bafd8d41d6ceb23203c59b0d66ef9f14c016"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_resource_href_path_hikvay3rfe","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9108531ba146b0fc5cb52c493be8c53cd19e8f1d0ae5cbfb7fbfc1276465105e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_resource_href_path_hikvay3rfe","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_resource_href_path_hikvay3rfe",
@@ -73761,7 +73761,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_rounding_62zjiurefn","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"ae075d4acc633e7c05738f04db9c87d1f0b00087b298e292a7948253b7f95c90"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_rounding_62zjiurefn","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"af12a4951f5444ae74247adfe0522a0869f36f9c45d541c78518ce6ce4adac92"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_rounding_62zjiurefn","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_rounding_62zjiurefn",
@@ -73769,7 +73769,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_rounding_figures_x67em2nz6x","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f25e6d4da492b52fecbd122e332b68dea5a07f187f0cedbea1adef21cff85546"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_rounding_figures_x67em2nz6x","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a3e59d870b7a6404ee9c70ceb4e4974bd3ca592590f58349941cc7fbde090d3e"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_rounding_figures_x67em2nz6x","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_rounding_figures_x67em2nz6x",
@@ -73777,7 +73777,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_rounding_mode_figures_np5ekmxxtw","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f690ad8987b3722554738ea36c617158640a1b10a2b1aebe5f9fcdb617b3a965"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_rounding_mode_figures_np5ekmxxtw","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"0bf3270069a9451c6b3693c6fe24e4bce74d5a5489bd3cbda3690d74b8a633f8"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_rounding_mode_figures_np5ekmxxtw","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_rounding_mode_figures_np5ekmxxtw",
@@ -73785,7 +73785,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_share_fragment_23yyb62piz","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"cfa408d28d00ad6af0913849f9a410ab6ce7ad8421e7e5770ab7743e7abd84ad"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_share_fragment_23yyb62piz","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f70687c077710c512273936c6deb1411371d7d94f55632934df2521a91ced72f"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_share_fragment_23yyb62piz","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_share_fragment_23yyb62piz",
@@ -73793,7 +73793,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_share_target_xf6egfoz4f","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"60eea13255485c2c5c1b943c9720668d91ddddfb44cddc27b9dcefbc7332bd4f"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_share_target_xf6egfoz4f","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"3f34b40132206e5cbb466f695a4eb015683a92f8c015be54f8a2dbd0276859c4"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_share_target_xf6egfoz4f","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_share_target_xf6egfoz4f",
@@ -73801,7 +73801,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_site_ccrpb262b6","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c509f3d2ffda9cd5dfdf03fb5aba969a2029b77be69a2c44d5f7d9ed9c8ddfea"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_site_ccrpb262b6","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"211727781e37a9985f7a93d7d251fee91754eaa52d8c143e3cc1a9e3746c6392"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_site_ccrpb262b6","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_site_ccrpb262b6",
@@ -73809,7 +73809,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_site_path_lod75hbzio","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9a8691278ddf7a0fbfb811086791b3deb6c1994db7d0e214ba5ffc98117888d6"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_site_path_lod75hbzio","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"85e4b270a966cccdbf87e9e5677b514403abd9c9f2cb401025b207ceba787d25"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_site_path_lod75hbzio","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_site_path_lod75hbzio",
@@ -73817,7 +73817,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_site_target_mykxfkm433","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e0279ba0a00b3bebdf91426efade68bd7f84defd8c10c09d9d409819a17e8bdf"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_site_target_mykxfkm433","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c011aa336a90513abdac2ddfa18bedcb1565da3583d588f7ccb91db5e71b0e8a"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_site_target_mykxfkm433","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_site_target_mykxfkm433",
@@ -73825,7 +73825,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_srcset_i23xwowlg4","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"212f42e3de8b39da3c21b7c7ed14225f75f83bd505329b8e11e4f1e7d79a94be"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_srcset_i23xwowlg4","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"e1254b2da141e6c6e1f68554b62f84942d61d1581001f4c92e89ba55ab2cd5c1"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_srcset_i23xwowlg4","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_srcset_i23xwowlg4",
@@ -73833,7 +73833,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_srcset_candidate_ix5dzebhuu","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"bbb8895e722b730634d177dde1ac5f63de6568c9e648157ab4620fb0206efeee"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_srcset_candidate_ix5dzebhuu","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"ac80fd1d4c931ec208d12016ccd32c926d787e20df1c113e491f55dafb29ec60"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_srcset_candidate_ix5dzebhuu","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_srcset_candidate_ix5dzebhuu",
@@ -73841,7 +73841,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_ssml_scope_bdhavhlbu2","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"0f57261d86656aabd0ae7afe6d926f71774972a502bf2641c95c2de661347ee6"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_ssml_scope_bdhavhlbu2","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"7ab9cf061aceed63768f96deb07e89b36ced1aba7bc4aa8e26b9ac5c9cefa158"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_ssml_scope_bdhavhlbu2","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_ssml_scope_bdhavhlbu2",
@@ -73849,7 +73849,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_stimulus_ref_ebosxnmexe","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"360a6c92243d0f4ca46e628ac63aaf61a71eaa82fd3efb5358731e3c98030a34"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_stimulus_ref_ebosxnmexe","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"de4b28b782f19363609154dfef78ad1a57d79a57c7270932dcd9250af15e8cdd"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_stimulus_ref_ebosxnmexe","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_stimulus_ref_ebosxnmexe",
@@ -73857,7 +73857,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_table_header_tkmxq7wtew","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c776014e99538a0952ac421d0f7ed664a3e33e238ff5c6276cc7ba0a2ea6a9f6"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_table_header_tkmxq7wtew","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"40e7ee6bc0dfeb4f0df7ffa18bf6aa9562ebbb2b6928574bdd9602d8365eb534"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_table_header_tkmxq7wtew","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_table_header_tkmxq7wtew",
@@ -73865,7 +73865,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_table_scope_g7taf63zao","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"a66a26665c8c082d9d0a5806b179f50200483eef1e017bcb46c2213cc8b52629"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_table_scope_g7taf63zao","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"b0d9b23e2a2d04f56d1f66214bc68bcc83f26795809227559dce79e60d339baa"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_table_scope_g7taf63zao","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_table_scope_g7taf63zao",
@@ -73873,7 +73873,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_template_ref_dre62in37w","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"f32ab80de337b45219df0f868c46fa11f462b88f49f1e38e459870d75d96ccdf"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_template_ref_dre62in37w","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"c6f6696ff620fa461074c22cc7298801d77258dfce3f5fd8ac69bf8066363257"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_template_ref_dre62in37w","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_template_ref_dre62in37w",
@@ -73881,7 +73881,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_text_reference_4wyk6zxgqf","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"0201bf13cdf4c84fe3669ebbe6113db134bbfff4bcce3612a4d98f465b1bee0a"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_text_reference_4wyk6zxgqf","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"6d5542d6338a0bee250c0480c9935d0e0bdd0aa3bcda65fd567651cca89c4395"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_text_reference_4wyk6zxgqf","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_text_reference_4wyk6zxgqf",
@@ -73889,7 +73889,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_text_reference_path_znomqpm3dr","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"9669b31c1a4f75cff85334e6d7dd343c84cb417b7b5015a7b7d8dcceb046e1a9"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_text_reference_path_znomqpm3dr","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"6f4f7a6001c0587d046f4da9089a98b8d9761455db715f890bbce8842d658beb"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_text_reference_path_znomqpm3dr","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_text_reference_path_znomqpm3dr",
@@ -73897,7 +73897,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_tolerance_sfo7irkllw","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"fcd247cc16d2c8d97849411ab9f118f74e28946427ce68f995a406f8a067f31b"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_tolerance_sfo7irkllw","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"bdd741edc501616b8c1c61977e98afc743ed0f4c72c5d5ee4c5cb600ef89acf9"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_tolerance_sfo7irkllw","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_tolerance_sfo7irkllw",
@@ -73905,7 +73905,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_usage_value_d4x3vydjzt","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"89017c542bd270e9e2b154f20e8685572cd963e3cce1041f8b723197e3144d6a"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_usage_value_d4x3vydjzt","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"6b0b62b6853c3e2270fdc02931aba1fffcfae0a823ba0477230032e38bb14278"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_usage_value_d4x3vydjzt","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_usage_value_d4x3vydjzt",
@@ -73913,7 +73913,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_usage_value_base_type_a6p2zwmowi","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"3d85e0fe3c50bd2d819e2803298c8abd6e4761a106fb34cf0ec7ca8b4bd5641c"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_usage_value_base_type_a6p2zwmowi","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"8b69e71df5c4a58074bb87c07cc8122bf06417d18c3db213e3271a9bb6584900"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_usage_value_base_type_a6p2zwmowi","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_usage_value_base_type_a6p2zwmowi",
@@ -73921,7 +73921,7 @@
 			},
 			{
 				"ddl": [
-					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_variable_ref_lckeobxqnf","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"39dbec12986975c7ba8fc651432a2e02ecf44cb3ee827d833e2e7881bf77ffe1"},
+					{"header":{"kind":"createFunction","language":"plpgsql","name":{"name":"__capture_variable_ref_lckeobxqnf","schema":"qti"},"parallel":"UNSAFE","params":[],"returns":"trigger","security":"DEFINER","volatility":"VOLATILE"},"kind":"recordedFunction","source":"8d28f49db464d5997c43adcc9546593b1c0c61100aae4e288f48277f71245a62"},
 					{"from":[{"kind":"PUBLIC"}],"kind":"revoke","on":{"kind":"FUNCTION","names":[{"args":[],"name":"__capture_variable_ref_lckeobxqnf","schema":"qti"}]},"privileges":["EXECUTE"]}
 				],
 				"ident": "function:qti.__capture_variable_ref_lckeobxqnf",
@@ -79111,7 +79111,7 @@
 	},
 	"schema": "qti",
 	"schemaName": "Qti",
-	"seal": "a7dab1b447414141b773854f1c4b55fd92224d5ba2b00ea42ec022a25fb5bf45",
+	"seal": "acbadd86c53e9cd19a4ba3a8cc2664d97d974d280ea9d53d903336d7d7dfcf3b",
 	"theory": {
 		"laws": {
 			"__anchored_id_key_package_assembly_anchor_id_6pj7hyldv5": {
