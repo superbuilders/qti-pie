@@ -1191,7 +1191,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     178,
     {
       owner:
-        "`Package` keyed by `name` (`PackageName`, `src/qti/limits.ts`), the key every relation's `package` holds (`src/qti/package.ts`); the manifest identifier as the package's data, its attribute's `value` (`manifestIdentifiers`, `src/qti/overlay-queries/package.ts`), held by AL3, its value domain and \"DocumentId key\" over the manifest's IDs; `readPackage(dir, name)` and `BadPackageName` (`src/import/read.ts`), `importRowsOf` and `importPackage` under that name, `insertWrite` and `removeWrite`'s deletes by it (`src/qti/logins.ts`), the command line's `import <dir> <name>` (`src/cli/import.ts`); held by `src/import/package.test.ts` and `src/cli/output.db.test.ts`",
+        "`Package` keyed by `package` (`PackageName`, `src/qti/limits.ts`), the key every relation's `package` holds and the Package unit's (`PackageUnit`) (`src/qti/package.ts`); the manifest identifier as the package's data, its attribute's `value` (`manifestIdentifiers`, `src/qti/overlay-queries/package.ts`), held by AL3, its value domain and \"DocumentId key\" over the manifest's IDs; `readPackage(dir, name)` and `BadPackageName` (`src/import/read.ts`), `importRowsOf` and `importPackage` under that name, `insertWrite`, which only inserts (`src/qti/logins.ts`), the command line's `import <dir> <name>` (`src/cli/import.ts`); held by `src/import/package.test.ts` and `src/cli/output.db.test.ts`",
       status: "G",
     },
   ],

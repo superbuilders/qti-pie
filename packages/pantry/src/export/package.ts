@@ -114,7 +114,7 @@ export const exportEntries = Effect.fn("export.exportEntries")(function* exportE
   const login = yield* AuthorLogin;
   const store = yield* MediaStore;
   const db = yield* Db.open(login.roles.author, {});
-  if ((yield* db.workload.packageOf.once({ facts: {}, params: { name } })).size === 0) {
+  if ((yield* db.workload.packageOf.once({ facts: {}, params: { package: name } })).size === 0) {
     return yield* new PackageNotFound({ package: name });
   }
 

@@ -61,7 +61,7 @@ import type { Qti } from "#pantry/qti/schema.ts";
  * A package's name as a row holds it: `Package`'s key, every row's `package`, read off the insert
  * row of `Qti`'s `Package`, so the XML side types it through the schema alone.
  */
-export type PackageName = InsertRow<"Package">["name"];
+export type PackageName = InsertRow<"Package">["package"];
 
 /**
  * Where one document stands in its package, beside its view: every overlay builder's `ids` argument

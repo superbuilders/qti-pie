@@ -62,7 +62,7 @@ import { manifestPath } from "#pantry/vocab/terms/package.ts";
  * the part of the importer's `DocumentPlace` (Q5.15) it needs.
  */
 export interface ManifestIds {
-  readonly package: Addition<typeof Package>["name"];
+  readonly package: Addition<typeof Package>["package"];
 }
 
 /**

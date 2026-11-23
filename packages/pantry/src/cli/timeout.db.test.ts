@@ -85,7 +85,7 @@ const removeHold = [
  */
 const installHold = [
   ...removeHold,
-  `CREATE FUNCTION public.pantry_cli_timeout_hold() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ BEGIN IF starts_with(NEW.name::text, TG_ARGV[0]) THEN PERFORM set_config('application_name', TG_ARGV[0], true); PERFORM pg_advisory_xact_lock(${holdClass}); END IF; RETURN NULL; END $$`,
+  `CREATE FUNCTION public.pantry_cli_timeout_hold() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ BEGIN IF starts_with(NEW.package::text, TG_ARGV[0]) THEN PERFORM set_config('application_name', TG_ARGV[0], true); PERFORM pg_advisory_xact_lock(${holdClass}); END IF; RETURN NULL; END $$`,
   `CREATE CONSTRAINT TRIGGER pantry_cli_timeout_at_commit AFTER INSERT ON qti.package DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.pantry_cli_timeout_hold('${holdPrefix.commit}')`,
   `CREATE TRIGGER pantry_cli_timeout_at_statement AFTER INSERT ON qti.package FOR EACH ROW EXECUTE FUNCTION public.pantry_cli_timeout_hold('${holdPrefix.statement}')`,
 ] as const;
@@ -267,7 +267,9 @@ const storedUnder = Effect.fn("test.timeout.storedUnder")(function* storedUnder(
   client: Client,
   name: string,
 ) {
-  if ((yield* sql(client, "SELECT name FROM qti.package WHERE name = $1", [name])).length === 0) {
+  if (
+    (yield* sql(client, "SELECT package FROM qti.package WHERE package = $1", [name])).length === 0
+  ) {
     return Option.none();
   }
 

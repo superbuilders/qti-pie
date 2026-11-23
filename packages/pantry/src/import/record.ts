@@ -48,7 +48,7 @@ export interface PackageRecord {
 export const packageRecordOf = (input: {
   readonly documents: readonly PackagePath[];
   readonly media: readonly MediaFile[];
-  readonly name: Addition<typeof Package>["name"];
+  readonly name: Addition<typeof Package>["package"];
 }): PackageRecord => ({
   entries: new Map<string, Addition<typeof Entry>>([
     ...input.documents.map(
@@ -67,5 +67,5 @@ export const packageRecordOf = (input: {
     ]),
   ),
   mediaFiles: input.media,
-  package: { name: input.name },
+  package: { package: input.name },
 });

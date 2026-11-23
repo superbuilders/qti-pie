@@ -61,7 +61,8 @@ const readBack = (pkg: QtiPackage) =>
         const db = yield* authorDb;
 
         if (
-          (yield* db.workload.packageOf.once({ facts: {}, params: { name: pkg.name } })).size === 0
+          (yield* db.workload.packageOf.once({ facts: {}, params: { package: pkg.name } })).size ===
+          0
         ) {
           return "absent" as const satisfies Held;
         }

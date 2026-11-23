@@ -66,7 +66,7 @@ export const packageStored = (name: QtiPackage["name"]) =>
   Effect.gen(function* storedByName() {
     const db = yield* Db.open((yield* AuthorLogin).roles.author, {});
 
-    return (yield* db.workload.packageOf.once({ facts: {}, params: { name } })).size > 0;
+    return (yield* db.workload.packageOf.once({ facts: {}, params: { package: name } })).size > 0;
   });
 
 /**

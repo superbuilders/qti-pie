@@ -120,7 +120,7 @@ export const sittingTablesOf = (qti: RegistryLevel) => {
    * A package as the ledger names it in a key, the ledger's own (`#ledger.ts`): the name it is
    * published under.
    */
-  const PackageName = Package.fields.name;
+  const PackageName = Package.fields.package;
 
   /**
    * A test or an item as the ledger names it: its document's path in its package (SPEC-AUDIT

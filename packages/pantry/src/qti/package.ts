@@ -113,10 +113,12 @@ import { entryOf } from "#pantry/vocab/laws.ts";
 const fragmentMark = Text.pattern("#");
 
 /**
- * A package, keyed by its name (`PackageName`, `#pantry/qti/limits.ts`), the name its importer's
- * caller gives it, which every row of the package holds as its `package`: the same package
+ * A package, keyed by its name, `package` (`PackageName`, `#pantry/qti/limits.ts`), the name its
+ * importer's caller gives it, which every row of the package holds as its `package`, so the
+ * package's own row sits under its unit ({@link PackageUnit}) with the rest: the same package
  * imported again under its name is the same rows, and another package under a stored name is
- * refused on the keys the two share, so a name is one revision for as long as it stands. IMS
+ * refused on the keys the two share. No row of a package is ever changed or deleted, so a name is
+ * one revision forever. IMS
  * Content Packaging makes a manifest's `identifier` unique within its manifest alone (1.2,
  * §6.11.4), so it is the package's data, its `manifestIdentifiers`
  * (`#pantry/qti/overlay-queries/package.ts`), and no key: two packages that share one are two
@@ -124,7 +126,7 @@ const fragmentMark = Text.pattern("#");
  */
 export const Package = law(
   entryOf("Package key"),
-  relation("Package", { name: PackageName }, ["name"]),
+  relation("Package", { package: PackageName }, ["package"]),
 );
 
 /**
@@ -880,7 +882,9 @@ export const packageLawsByName = {
     ),
     check("E1_derived", CandidatePath, (p) => Text.matches(p.target, resolvedPathPattern)),
   ]),
-  "Entry family": declared("Entry family", [contained(on(Entry, "package"), on(Package, "name"))]),
+  "Entry family": declared("Entry family", [
+    contained(on(Entry, "package"), on(Package, "package")),
+  ]),
   "Entry kind": declared("Entry kind", [
     alternatives(Entry, "kind", EntryKind, { document: Document, media: Media }),
   ]),

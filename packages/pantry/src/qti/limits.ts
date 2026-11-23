@@ -58,9 +58,9 @@ export const nameMaxBytes = 255;
 /**
  * A package's name in the store: the name its importer's caller gives it, an NCName of at most
  * {@link nameMaxBytes} UTF-8 bytes, which every key, reference and family holds as itself.
- * `Package` is keyed by it, and every row of the package holds it as its `package`, so two packages
- * are two names, and an import under a stored name replaces the package stored under it, the one
- * the caller named.
+ * `Package` is keyed by it, and every row of the package holds it as its `package`, the key of the
+ * Package unit (`PackageUnit`, `#pantry/qti/package.ts`), so two packages are two names, and an
+ * import of another package under a stored name is refused: a stored package is never replaced.
  *
  * Its bound is a directory entry's name's. Every producer of the store's packages writes a package
  * as a directory named by its name before it is stored: edullm's AlphaScience import names a

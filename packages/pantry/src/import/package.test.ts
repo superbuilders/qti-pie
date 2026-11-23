@@ -104,7 +104,8 @@ describe.skipIf(!hasLease)("import/package.test.ts, on the lease", () => {
         assert.strictEqual(again.outcome, "unchanged");
         assert.strictEqual(again.package, first.package);
         assert.isAbove(
-          (yield* db.workload.packageOf.once({ facts: {}, params: { name: first.package } })).size,
+          (yield* db.workload.packageOf.once({ facts: {}, params: { package: first.package } }))
+            .size,
           0,
           first.package,
         );

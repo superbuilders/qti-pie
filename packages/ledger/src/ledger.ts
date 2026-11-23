@@ -577,7 +577,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
   /**
    * A package as the ledger names it: the name it is published under, pantry's.
    */
-  const PackageName = Package.fields.name;
+  const PackageName = Package.fields.package;
 
   /**
    * An item as the ledger names it in its package: its document's path, pantry's `Document` key
@@ -2512,7 +2512,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
   const PublishedTemplateDocument = closed.relation(
     "PublishedTemplateDocument",
     {
-      package: Package.fields.name,
+      package: Package.fields.package,
       path: Document.fields.path,
       template: closedId(PublishedTemplate),
     },

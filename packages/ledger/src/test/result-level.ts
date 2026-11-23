@@ -527,7 +527,7 @@ const drawsOf = query(ResultLevel).rule((r) => {
     .match(ApplicationDraw, {
       draw,
       operator,
-      package: r.param("package", Package.fields.name),
+      package: r.param("package", Package.fields.package),
       path,
     })
     .find({ draw, operator, path });

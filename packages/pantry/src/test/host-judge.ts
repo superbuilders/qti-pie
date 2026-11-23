@@ -32,7 +32,16 @@ import { codecText, insertPreview } from "@bjornpagen/grizzle/compile";
 import type { Law, LawSide, Pred, PreviewRows, RelationOf, StatedLaw } from "@bjornpagen/grizzle";
 import type { EvaluatedRow, RowSource } from "@bjornpagen/grizzle/compile";
 import { assert } from "@effect/vitest";
-import { Array as Arr, Formatter, Function as Fn, Option, pipe, Predicate, Result } from "effect";
+import {
+  Array as Arr,
+  Formatter,
+  Function as Fn,
+  Option,
+  pipe,
+  Predicate,
+  Result,
+  Schema,
+} from "effect";
 import { AttributeSlot, Flag } from "#pantry/grammar/install.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
 import { packageFactsOf } from "#pantry/import/write.ts";
@@ -1143,6 +1152,16 @@ export const containmentsIn = (
     : [];
 
 /**
+ * A row's package, the one field every row of a stored relation of `Qti` holds, since each leads
+ * its key with it: the row read at the evaluator's boundary, where a held row is any relation's.
+ */
+const packageOfRow = (row: HeldRow): Option.Option<string> =>
+  Option.map(
+    Schema.decodeUnknownOption(Schema.Struct({ package: Schema.String }))(row),
+    (held) => held.package,
+  );
+
+/**
  * Read a row of a stored relation with each field PostgreSQL generates of it at the value grizzle's
  * evaluator gives it, as a test compares a row the database holds: a relation that generates no
  * field holds the row as it is.
@@ -1172,7 +1191,12 @@ export const withGenerated = (
     return row;
   }
 
-  const admitted = evaluate.admit(relation, row);
+  const admitted = evaluate.admit(relation, {
+    ...row,
+    package: Option.getOrElse(packageOfRow(row), () =>
+      assert.fail(`a row of ${relation.name} states its package`),
+    ),
+  });
   if (Result.isFailure(admitted)) {
     return assert.fail(refusedRow(relation.name, admitted.failure.field));
   }

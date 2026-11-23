@@ -1,165 +1,29 @@
 /**
- * The author application's login, the import's write programs, and the author login's reads, plain
+ * The author application's login, the import's write program, and the author login's reads, plain
  * grizzle values over `Qti`: an application's grizzle config lists {@link AuthorApp} beside its own
- * logins, or puts {@link insertWrite}, {@link removeWrite} and the reads ({@link authorReads}) in a
- * workload of a role of its own, a role that writes {@link authorWrites}.
+ * logins, or puts {@link insertWrite} and the reads ({@link authorReads}) in a workload of a role
+ * of its own, a role that inserts {@link authorWrites}.
  *
- * A package is published whole or removed whole, never changed in place: its name is one revision
- * for as long as it stands, so `(package, item)` names the exact tree a child was served, in every
- * install, never only in one that happens to serve no replacing login. The publish
+ * A package is published whole and never changed or removed: every relation of `Qti` is closed, so
+ * its name is one revision forever, `(package, item)` names the exact tree a child was served in
+ * every install, and a fix is a package of its own under a new name, beside the old one, which
+ * stays as history (Bjorn, 2026-11-23: "closed = never changed or deleted"). The publish
  * ({@link insertWrite}) is declared with no rows, an empty array for each relation an import
- * inserts, so each insert is an array member that takes a package's rows with each call; the
- * removal ({@link removeWrite}) deletes each top relation's rows of one package by its `package`
- * ({@link byPackage}). grizzle compiles both wherever it compiles a workload: `grizzle generate`,
- * which writes the compiled login as the served file (`migrations/qti/served/author_app.json` for
- * this package's own), and `grizzle check`, which compiles it again and holds the file to it. A
- * schema whose writes cannot compile then fails there, never at the first import (R87, whose one
- * unfilled field made every import's ChangeSet refuse once a migrated schema ran it). A process
- * serves that file and compiles nothing: it applies the served `insertWrite` member to each
- * package's rows (`importRowsOf` of `#pantry/import/program.ts`; the W5 amendment's C19).
+ * inserts, so each insert is an array member that takes a package's rows with each call. grizzle
+ * compiles it wherever it compiles a workload: `grizzle generate`, which writes the compiled login
+ * as the served file (`migrations/qti/served/author_app.json` for this package's own), and `grizzle
+ * check`, which compiles it again and holds the file to it. A schema whose writes cannot compile
+ * then fails there, never at the first import (R87, whose one unfilled field made every import's
+ * ChangeSet refuse once a migrated schema ran it). A process serves that file and compiles nothing:
+ * it applies the served `insertWrite` member to each package's rows (`importRowsOf` of
+ * `#pantry/import/program.ts`; the W5 amendment's C19).
  */
-import { ChangeSet, insertableNamesOf, login, paged, param, workload } from "@bjornpagen/grizzle";
+import { ChangeSet, insertableNamesOf, login, paged, workload } from "@bjornpagen/grizzle";
 import { pipe, Record as Rec, Struct } from "effect";
 import { documentScan, entriesOf } from "#pantry/export/scan.ts";
-import type { WrittenName } from "#pantry/import/roster.ts";
 import { packageFactsOf } from "#pantry/import/write.ts";
-import { PackageName } from "#pantry/qti/limits.ts";
 import { Author } from "#pantry/qti/roles.ts";
 import { Qti } from "#pantry/qti/schema.ts";
-
-/**
- * The rows of a package, its delete's selection in {@link removeWrite}: the rows whose `package`
- * is the package's name, its parameter `package`.
- */
-const byPackage = { package: param("package", PackageName) } as const;
-
-/**
- * The relations a ChangeSet over `Qti` writes, the `Writes` of grizzle's `ChangeSet` type: each
- * relation its members name, and every relation a whole delete reaches through the families of the
- * relation it names.
- */
-type WritesOf<C> =
-  C extends ChangeSet<typeof Qti, infer _Params, infer Writes, infer _Reads> ? Writes : never;
-
-/**
- * The relations an import writes that a ChangeSet's deletes leave as they are: each relation an
- * import writes but `Package`, which a removal names by its key, that the ChangeSet does not write.
- */
-type Undeleted<C> = Exclude<WrittenName, WritesOf<C> | "Package">;
-
-/**
- * Hold a ChangeSet of deletes to reach every relation an import writes but `Package`, so a removal
- * leaves no stored row of the package: a top relation whose delete is missing fails to compile
- * here, naming the relation (`undeleted`). The deletes reach a family's members through its owner,
- * so a relation listed nowhere in the chain is reached where its owner is deleted, and nowhere
- * else.
- *
- * @param deletes - The deletes.
- * @returns The deletes.
- */
-const deletingEvery = <C>(
-  deletes: C & ([Undeleted<C>] extends [never] ? unknown : { readonly undeleted: Undeleted<C> }),
-): C => deletes;
-
-/**
- * Every top relation of one package, each by its `package` ({@link byPackage}), in the order of the
- * relations' names: {@link removeWrite}'s deletes. A tree, `Node`, is deleted whole by its root
- * field, and every other relation by its rows; a delete of a family's owner removes every row
- * nested under it, through every family, so no family's member is listed: `Instance`, a tree whose
- * nodes are the members of `AssembledDocument.instances`, goes with its `AssembledDocument`.
- * `Package` is not listed: a removal names it by its key.
- */
-const packageRows = {
-  AssembledCatalog: byPackage,
-  AssembledDocument: byPackage,
-  AttributeEntity: byPackage,
-  BoundVariable: byPackage,
-  CandidatePath: byPackage,
-  CatalogId: byPackage,
-  CatalogScope: byPackage,
-  CellHeaders: byPackage,
-  CnAttribute: byPackage,
-  CnCount: byPackage,
-  Comment: byPackage,
-  ContextRef: byPackage,
-  CountBound: byPackage,
-  DataSsml: byPackage,
-  DataSsmlMember: byPackage,
-  DataSsmlProperty: byPackage,
-  Doctype: byPackage,
-  Document: byPackage,
-  ElementType: byPackage,
-  EncodingDecl: byPackage,
-  Entry: byPackage,
-  Expression: byPackage,
-  FeedbackRef: byPackage,
-  File: byPackage,
-  FileOutside: byPackage,
-  FilePath: byPackage,
-  FragmentScope: byPackage,
-  IdentityText: byPackage,
-  Inclusion: byPackage,
-  Interaction: byPackage,
-  InteractionAttribute: byPackage,
-  ItemMode: byPackage,
-  ItemRefDocument: byPackage,
-  ItemRefHref: byPackage,
-  LabelUse: byPackage,
-  LeastCount: byPackage,
-  LinkReading: byPackage,
-  Literal: byPackage,
-  LiteralTyped: byPackage,
-  LookupValue: byPackage,
-  MapKey: byPackage,
-  MathAction: byPackage,
-  MathAlignScope: byPackage,
-  MathCell: byPackage,
-  MathCn: byPackage,
-  MathRank: byPackage,
-  Media: byPackage,
-  MostCount: byPackage,
-  Named: byPackage,
-  Namespace: byPackage,
-  Node: byPackage,
-  NumberedReading: byPackage,
-  OpenAttributeEntity: byPackage,
-  OpenElementName: byPackage,
-  OpenElementType: byPackage,
-  Pi: byPackage,
-  PlacedExpression: byPackage,
-  PlacedMathRank: byPackage,
-  PlacedVariableRef: byPackage,
-  PrintedVariableRef: byPackage,
-  Processing: byPackage,
-  Reference: byPackage,
-  ReferencePath: byPackage,
-  ReferringDocument: byPackage,
-  ResourceDocument: byPackage,
-  ResourceHref: byPackage,
-  ResourceHrefOutside: byPackage,
-  ResourceHrefPath: byPackage,
-  Rounding: byPackage,
-  RoundingFigures: byPackage,
-  RoundingModeFigures: byPackage,
-  SdDecl: byPackage,
-  ShareFragment: byPackage,
-  ShareTarget: byPackage,
-  Site: byPackage,
-  SitePath: byPackage,
-  Srcset: byPackage,
-  SsmlScope: byPackage,
-  StimulusRef: byPackage,
-  TableHeader: byPackage,
-  TableScope: byPackage,
-  TemplateRef: byPackage,
-  TextReference: byPackage,
-  TextReferencePath: byPackage,
-  Tolerance: byPackage,
-  UsageValue: byPackage,
-  UsageValueBaseType: byPackage,
-  VariableRef: byPackage,
-  XmlDecl: byPackage,
-} as const;
 
 /**
  * Each relation an import writes (grizzle's `insertableNamesOf`), inserted once by its key with no
@@ -183,7 +47,7 @@ const packageInserts = packageFactsOf(
  * {} })`, the rows `importRowsOf` builds (`#pantry/import/program.ts`).
  *
  * Every row is keyed by the package's name, which its caller gives it, and the paths and positions
- * in it, and every relation of `Qti` is immutable. A package under a name no package holds is
+ * in it, and every relation of `Qti` is closed. A package under a name no package holds is
  * inserted whole (`accepted`); the same package again under its name is `unchanged`, so a write
  * whose commit got no answer is settled by running it again; and another package under a stored
  * name meets `Package`'s key and the keys the two share, and is refused, so nothing stored is ever
@@ -191,32 +55,18 @@ const packageInserts = packageFactsOf(
  * ledger's containment, deferred to COMMIT, and change the tree under a session it recorded. Two
  * packages that share a manifest identifier under two names are two packages.
  *
- * It is over the schema, so a workload of any role that writes every relation of `Qti` holds it,
+ * It is over the schema, so a workload of any role that inserts every relation of `Qti` holds it,
  * the author role's ({@link AuthorApp}) or an application's own. An application that writes rows of
  * its own in the same transaction applies the union of this and its own ChangeSet
- * (`ChangeSet.union(insertWrite, its own)`), through a role that writes {@link authorWrites}.
+ * (`ChangeSet.union(insertWrite, its own)`), through a role that inserts {@link authorWrites}.
  */
 export const insertWrite = ChangeSet.empty(Qti).insertAll(packageInserts);
 
 /**
- * The removal of one whole package, its `Package` row included: every relation of
- * {@link packageRows} and `Package` by its key, the name its parameter `package` gives, which
- * {@link deletingEvery} holds to reach every relation an import writes. A level above `Qti` whose
- * rows a package's content holds by foreign key refuses the removal of a package they name, so a
- * package a child was served stays.
- */
-export const removeWrite = deletingEvery(
-  ChangeSet.empty(Qti).deleteWhere({
-    ...packageRows,
-    Package: { name: param("package", PackageName) },
-  }),
-);
-
-/**
  * The relations the author role writes, by name ({@link Author}): every stored relation of `Qti`,
- * each inserted into and deleted from, none updated. An application whose own role over its level
- * writes content beside rows of its own, in one transaction and under one login
- * ({@link insertWrite}), lists these in its role's write list beside its own relations.
+ * each only inserted into, never updated or deleted from. An application whose own role over its
+ * level writes content beside rows of its own, in one transaction and under one login
+ * ({@link insertWrite}), lists these in its role's insert list beside its own relations.
  */
 export const authorWrites = Author.write;
 
@@ -241,14 +91,13 @@ export const authorReads = {
  *   served file, its access paths earning their indexes (the W5 amendment's C20); and `packageOf`,
  *   the `Package` row by its name, a key member whose handle's `get` the export reads to refuse a
  *   name no package has, so every read pantry runs is a member of the workload;
- * - **the import's write programs**: {@link insertWrite}, every insert an array member, and
- *   {@link removeWrite}, its deletes selected by a parameter. grizzle compiles a ChangeSet from its
- *   Description, which names each delete's relation and parameter and each insert, and none of its
- *   rows, so these are the programs every package's import and removal apply, compiled once into
- *   the served file. Compiling them also guards the refusals of the write programs themselves: the
- *   schema's own compile already refuses a column or a relation no write fills, and this one
- *   refuses a write outside the author role (`OutsideRole`), a stratum no order of its statements
- *   keeps every key at (`UnorderableStratum`), and a delete that leaves a family's group partial.
+ * - **the import's write program**: {@link insertWrite}, every insert an array member. grizzle
+ *   compiles a ChangeSet from its Description, which names each insert and none of its rows, so it
+ *   is the program every package's import applies, compiled once into the served file. Compiling it
+ *   also guards the refusals of the write program itself: the schema's own compile already refuses
+ *   a column or a relation no write fills, and this one refuses a write outside the author role
+ *   (`OutsideRole`, an update or a delete among them) and a stratum no order of its statements
+ *   keeps every key at (`UnorderableStratum`).
  *
  * Its name is the one every earlier installation used, so a migration from scratch needs no
  * `--rename @…`. Where it is installed, its PostgreSQL role is the one grizzle's `roleNameOf` gives
@@ -258,7 +107,7 @@ export const authorReads = {
  * @see https://github.com/bjornpagen/grizzle/blob/eb56d58bb3191b6645f1334dc55f63c7a73c2dc4/packages/engine/src/program/names.ts#L61-L76
  */
 export const AuthorApp = login(Qti, "author_app", [Author], {
-  workload: [workload(Author, authorReads), workload(Author, { insertWrite, removeWrite })],
+  workload: [workload(Author, authorReads), workload(Author, { insertWrite })],
 });
 
 /**

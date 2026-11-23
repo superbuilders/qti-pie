@@ -51,7 +51,7 @@ const TestLayer = NodeChildProcessSpawner.layer.pipe(
  * The name the entries are built under: the property is over their paths, kinds and digests, which
  * the name only stamps.
  */
-const recordName: Addition<typeof Package>["name"] = "probe";
+const recordName: Addition<typeof Package>["package"] = "probe";
 
 /**
  * The paths a listing draws from: the manifest, files at the root and below, and names with a
@@ -429,7 +429,7 @@ describe("qti/package.ts", () => {
               );
 
               c.note(sizeOf(files));
-              assert.deepStrictEqual(record.package, { name: recordName });
+              assert.deepStrictEqual(record.package, { package: recordName });
               assert.strictEqual(entries.size, files.length);
               for (const file of files) {
                 const manifest = file.kind === "manifest";

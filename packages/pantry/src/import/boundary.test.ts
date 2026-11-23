@@ -172,7 +172,6 @@ const crossings: ByStep = [
       "import/refusal.ts: #pantry/import/rules.ts",
       "import/rules.ts: #pantry/package/refusal-origin.ts",
       "qti/attributes.ts: #pantry/model/xdm.ts",
-      "qti/logins.ts: #pantry/import/roster.ts",
       "qti/logins.ts: #pantry/import/write.ts",
       "vocab/open.ts: @qti-pie/crust/tree.ts",
     ],

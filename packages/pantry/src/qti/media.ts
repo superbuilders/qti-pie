@@ -74,7 +74,7 @@ import {
   wholeEntriesOf,
   workload,
 } from "@bjornpagen/grizzle";
-import { authorReads, authorWrites, insertWrite, removeWrite } from "#pantry/qti/logins.ts";
+import { authorReads, authorWrites, insertWrite } from "#pantry/qti/logins.ts";
 import { CandidatePath, Media, ReferencePath, TextReferencePath } from "#pantry/qti/package.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 
@@ -154,6 +154,14 @@ export const MediaType = relation.generated(
  * policy moved its learner).
  */
 export const QtiMediaPolicy = schema.extend([Qti], "QtiMediaPolicy", [MediaType], []);
+
+/**
+ * The relations a role that writes the media policy inserts, by name: {@link QtiMediaPolicy}'s one
+ * stored relation, {@link MediaType}, which `authorWrites` of `#pantry/qti/logins.ts` leaves out,
+ * since the author role writes `Qti` alone. An application's role that writes the policy lists
+ * these in its insert list.
+ */
+export const mediaPolicyWrites = [MediaType.name] as const;
 
 /**
  * Every media file each document names, by the document's place and the file's path, with the
@@ -269,31 +277,27 @@ export const QtiMedia = schema.extend([QtiMediaPolicy], "QtiMedia", [ServedFile,
  * level's derived relations among them (grizzle's `wholeEntriesOf`), and writes `Qti`'s stored
  * relations (`authorWrites` of `#pantry/qti/logins.ts`), as `Author` of `#pantry/qti/roles.ts`
  * does, and no relation of the policy: {@link MediaType} is written through a role of its own, one
- * that writes nothing a READ COMMITTED reader reads ({@link QtiMediaPolicy}). grizzle's `write`
- * grants SELECT, INSERT and DELETE on each table it names, and no UPDATE, since no relation of
- * `Qti` is mutable: a package is published whole (`insertWrite`) and removed whole
- * (`removeWrite`), never changed.
+ * that writes nothing a READ COMMITTED reader reads ({@link QtiMediaPolicy}). grizzle's `insert`
+ * grants SELECT and INSERT on each table it names, and no UPDATE or DELETE, since every relation
+ * of `Qti` is closed: a package is published whole (`insertWrite`) and never changed or removed.
  */
 export const MediaAuthor = role(QtiMedia, "author", wholeEntriesOf(QtiMedia), {
-  write: authorWrites,
+  insert: authorWrites,
 });
 
 /**
  * The author application's login over {@link QtiMedia}, over {@link MediaAuthor}, with the
- * workloads `AuthorApp` of `#pantry/qti/logins.ts` holds, `authorReads`, then the import's writes,
- * `insertWrite` and `removeWrite`: every program is over `Qti`, so its served file holds the same
+ * workloads `AuthorApp` of `#pantry/qti/logins.ts` holds, `authorReads`, then the import's write,
+ * `insertWrite`: every program is over `Qti`, so its served file holds the same
  * members. It bears `AuthorApp`'s name, so grizzle writes it as
  * `migrations/<root>/served/author_app.json`. An application's grizzle config lists this or
  * `AuthorApp`, never both, since their names convert alike. An application that writes rows of its
  * own beside a package's in one transaction declares its own role over its own level instead,
- * writing `authorWrites` beside its relations, and composes `insertWrite` with its own writes
+ * inserting `authorWrites` beside its relations, and composes `insertWrite` with its own writes
  * (`ChangeSet.union`, `ChangeSet.sequence`) into its one ChangeSet.
  */
 export const MediaAuthorApp = login(QtiMedia, "author_app", [MediaAuthor], {
-  workload: [
-    workload(MediaAuthor, authorReads),
-    workload(MediaAuthor, { insertWrite, removeWrite }),
-  ],
+  workload: [workload(MediaAuthor, authorReads), workload(MediaAuthor, { insertWrite })],
 });
 
 /**
