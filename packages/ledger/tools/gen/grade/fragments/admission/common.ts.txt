@@ -33,25 +33,6 @@
   const processed = processedOf.bind(answeredKey);
 
   /**
-   * The run admission judges: the answered session, by its run key (child, package, path, stage),
-   * under the validate-responses its session control states (QTI 3.0.1 §7.19.7), a fact of the run.
-   */
-  const runsOf = (validate: boolean) =>
-    query(delivery).rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-
-      return r
-        .match(answered, { child, package: pkg, path, stage })
-        .find({
-          child,
-          package: pkg,
-          path,
-          stage,
-          validate: Type.literal(AdmissionRun.fields.validate, validate),
-        });
-    });
-
-  /**
    * The item body's element nodes, its `qti-item-body` among them, each kind by its name
    * (`BodyNodeKind`).
    */

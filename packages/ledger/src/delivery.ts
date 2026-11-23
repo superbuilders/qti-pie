@@ -7,17 +7,20 @@
  * - **DeliveredTest**: the tests this runtime delivers, exactly to QTI 3.0.1, and the one stated
  *   limit of what it delivers: IMPL-TESTS' DeliverableTest (no section ref, include under a
  *   section, with-replacement or adaptive selection, or item ref naming no item of the package),
- *   and beyond it a test of one part, which neither selects, orders, branches, conditions nor
- *   controls item sessions, holds no test rubric, test feedback, stylesheet or template default,
- *   times only the whole test with `max-time` (no `min-time`), and refers to no adaptive item and
- *   no item with template processing (whose template values the take would draw: §2.7.3, "Template
- *   processing consists of one or more TemplateRules that are followed by the cloning engine or
- *   delivery system in order to assign values to the template variables"). Every other valid test
- *   is content pantry admits and this runtime does not open: "Delivered shape" holds every sitting
- *   to DeliveredTest's clauses at every write, so no test is ever delivered half to its rules. Each
- *   construct it leaves out has no form in AlphaTest's 2,825 served tests
- *   (`qti-port/registry/tests.md`, T-ABSENT and T-FORM-01; 0 of 2,825 refused, QP-CONVERTER's
- *   count), and each is lifted by the runtime that delivers it.
+ *   and beyond it a test of one part, which neither selects, orders, branches nor conditions, and
+ *   controls item sessions only as `#ledger/member-controls.ts` reads them (an item ref of an
+ *   individual part may set `validate-responses` true and `max-attempts` 0 on its own control;
+ *   nothing else of item session control moves from QTI's defaults), holds no test rubric, test
+ *   feedback, stylesheet or template default, times only the whole test with `max-time` (no
+ *   `min-time`), and refers to no adaptive item and no item with template processing (whose
+ *   template values the take would draw: §2.7.3, "Template processing consists of one or more
+ *   TemplateRules that are followed by the cloning engine or delivery system in order to assign
+ *   values to the template variables"). Every other valid test is content pantry admits and this
+ *   runtime does not open: "Delivered shape" holds every sitting to DeliveredTest's clauses at
+ *   every write, so no test is ever delivered half to its rules. Each construct it leaves out has
+ *   no form in AlphaTest's 2,825 served tests (`qti-port/registry/tests.md`, T-ABSENT and
+ *   T-FORM-01; 0 of 2,825 refused, QP-CONVERTER's count), and each is lifted by the runtime that
+ *   delivers it.
  * - The laws of a sitting's candidate sessions: each later budget is the time its sitting has left,
  *   no candidate session is suspended past its deadline unless the test allows late submission
  *   (Table 7.40.3), nothing of the sitting follows its end, its end falls in an open candidate
@@ -52,6 +55,7 @@ import { assertionViewsOf } from "#ledger/assertion-views.ts";
 import { creditRelationsOf } from "#ledger/credit-relations.ts";
 import { named } from "#ledger/laws.ts";
 import type { ledgerOf } from "#ledger/ledger.ts";
+import { memberControlsOf } from "#ledger/member-controls.ts";
 import { applicationOperandRelationsOf } from "#ledger/operands.ts";
 import { resultRelationsOf } from "#ledger/results.ts";
 import { servableOf } from "#ledger/servable.ts";
@@ -184,6 +188,24 @@ export const deliveryOf = (ledger: LedgerLevel, policy: SittingPolicy) => {
 
   const LateTest = derived("LateTest", lateTests);
 
+  /**
+   * The item refs whose own item-session-control a delivered test admits, and the two settings they
+   * may move (`#ledger/member-controls.ts`).
+   */
+  const controls = memberControlsOf(ledger);
+
+  /**
+   * Each validated member, by its test and item ref: an answer to it is admitted under
+   * validate-responses true (`#ledger/grade.ts` memberAnswerAdmissionOf).
+   */
+  const ValidatedMember = derived("ValidatedMember", controls.validatedMembers);
+
+  /**
+   * Each unlimited member, by its test and item ref: its item session takes another attempt after
+   * each one (`#ledger/sitting-programs.ts` responseTarget).
+   */
+  const UnlimitedMember = derived("UnlimitedMember", controls.unlimitedMembers);
+
   const undeliveredTests = query(ledger)
     .rule((r) => {
       const { package: pkg, path } = v(TestRoot, "undeliveredTest");
@@ -285,7 +307,23 @@ export const deliveryOf = (ledger: LedgerLevel, policy: SittingPolicy) => {
       return r
         .match(TestRoot, { package: pkg, path })
         .match(Node, { kind: "qti-item-session-control", package: pkg, parentKind, path })
-        .where(r.ne(parentKind, "qti-test-part"))
+        .where(r.ne(parentKind, "qti-test-part"), r.ne(parentKind, "qti-assessment-item-ref"))
+        .find({ package: pkg, path });
+    })
+    .rule((r) => {
+      const { package: pkg, path } = v(TestRoot, "undeliveredTest");
+      const { parent: ref } = v(Node, "undeliveredRefControl");
+
+      return r
+        .match(TestRoot, { package: pkg, path })
+        .match(Node, {
+          kind: "qti-item-session-control",
+          package: pkg,
+          parent: ref,
+          parentKind: "qti-assessment-item-ref",
+          path,
+        })
+        .where(r.not(controls.individualRefs, { package: pkg, path, start: ref }))
         .find({ package: pkg, path });
     })
     .rule((r) => {
@@ -303,9 +341,23 @@ export const deliveryOf = (ledger: LedgerLevel, policy: SittingPolicy) => {
       return r
         .match(TestRoot, { package: pkg, path })
         .match(SessionControl, { package: pkg, path, setting, value: true })
-        .where(
-          r.in(setting, ["allow-comment", "show-feedback", "show-solution", "validate-responses"]),
-        )
+        .where(r.in(setting, ["allow-comment", "show-feedback", "show-solution"]))
+        .find({ package: pkg, path });
+    })
+    .rule((r) => {
+      const { package: pkg, path } = v(TestRoot, "undeliveredTest");
+      const { scope } = v(SessionControl, "undeliveredValidation");
+
+      return r
+        .match(TestRoot, { package: pkg, path })
+        .match(SessionControl, {
+          package: pkg,
+          path,
+          scope,
+          setting: "validate-responses",
+          value: true,
+        })
+        .where(r.not(controls.individualRefs, { package: pkg, path, start: scope }))
         .find({ package: pkg, path });
     })
     .rule((r) => {
@@ -315,7 +367,17 @@ export const deliveryOf = (ledger: LedgerLevel, policy: SittingPolicy) => {
       return r
         .match(TestRoot, { package: pkg, path })
         .match(MaxAttempts, { attempts, package: pkg, path })
-        .where(r.ne(attempts, 1))
+        .where(r.ne(attempts, 1), r.ne(attempts, 0))
+        .find({ package: pkg, path });
+    })
+    .rule((r) => {
+      const { package: pkg, path } = v(TestRoot, "undeliveredTest");
+      const { scope } = v(MaxAttempts, "undeliveredNoLimit");
+
+      return r
+        .match(TestRoot, { package: pkg, path })
+        .match(MaxAttempts, { attempts: 0, package: pkg, path, scope })
+        .where(r.not(controls.individualRefs, { package: pkg, path, start: scope }))
         .find({ package: pkg, path });
     });
 
@@ -771,6 +833,8 @@ export const deliveryOf = (ledger: LedgerLevel, policy: SittingPolicy) => {
     ItemDuration,
     TimingScope,
     LateTest,
+    ValidatedMember,
+    UnlimitedMember,
     UndeliveredSitting,
     NextBudget,
     BudgetChain,

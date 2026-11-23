@@ -1,0 +1,44 @@
+
+  /**
+   * The run admission judges: the answered session, by its run key (child, package, path, stage),
+   * under the validate-responses its item ref's session control states (QTI 3.0.1 §7.19.7), a fact
+   * of the run: true for a validated member (`ValidatedMember`, an individual part's ref whose own
+   * control sets it), false for every other, QTI's default (Table 7.19.7).
+   */
+  const runsOf = query(delivery)
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(answered, "validatedAnswered");
+      const { path: test } = v(fields.TestSession, "validatedTest");
+      const { item } = v(fields.TestMember, "validatedMember");
+
+      return r
+        .match(answered, { child, package: pkg, path, stage })
+        .match(fields.TestSession, { child, package: pkg, path: test, stage })
+        .match(fields.TestMember, { document: path, item, package: pkg, path: test })
+        .match(fields.ValidatedMember, { item, package: pkg, path: test })
+        .find({
+          child,
+          package: pkg,
+          path,
+          stage,
+          validate: Type.literal(AdmissionRun.fields.validate, true),
+        });
+    })
+    .rule((r) => {
+      const { child, package: pkg, path, stage } = v(answered, "unvalidatedAnswered");
+      const { path: test } = v(fields.TestSession, "unvalidatedTest");
+      const { item } = v(fields.TestMember, "unvalidatedMember");
+
+      return r
+        .match(answered, { child, package: pkg, path, stage })
+        .match(fields.TestSession, { child, package: pkg, path: test, stage })
+        .match(fields.TestMember, { document: path, item, package: pkg, path: test })
+        .where(r.not(fields.ValidatedMember, { item, package: pkg, path: test }))
+        .find({
+          child,
+          package: pkg,
+          path,
+          stage,
+          validate: Type.literal(AdmissionRun.fields.validate, false),
+        });
+    });

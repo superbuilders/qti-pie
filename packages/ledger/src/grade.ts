@@ -8083,23 +8083,6 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
   const processed = processedOf.bind(answeredKey);
 
   /**
-   * The run admission judges: the answered session, by its run key (child, package, path, stage),
-   * under the validate-responses its session control states (QTI 3.0.1 §7.19.7), a fact of the run.
-   */
-  const runsOf = (validate: boolean) =>
-    query(delivery).rule((r) => {
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-
-      return r.match(answered, { child, package: pkg, path, stage }).find({
-        child,
-        package: pkg,
-        path,
-        stage,
-        validate: Type.literal(AdmissionRun.fields.validate, validate),
-      });
-    });
-
-  /**
    * The item body's element nodes, its `qti-item-body` among them, each kind by its name
    * (`BodyNodeKind`).
    */
@@ -8150,6 +8133,24 @@ export const admissionArgumentsOf = (delivery: DeliveryLevel) => {
       .where(r.ge(start, first), r.lt(start, last))
       .find({ name: token, package: pkg, path, start, value });
   });
+
+  /**
+   * The run admission judges: the answered session, by its run key (child, package, path, stage),
+   * under the validate-responses its session control states (QTI 3.0.1 §7.19.7), a fact of the run:
+   * the caller's to state, one evaluation per statement for each setting.
+   */
+  const runsOf = (validate: boolean) =>
+    query(delivery).rule((r) => {
+      const { child, package: pkg, path, stage } = v(answered, "answered");
+
+      return r.match(answered, { child, package: pkg, path, stage }).find({
+        child,
+        package: pkg,
+        path,
+        stage,
+        validate: Type.literal(AdmissionRun.fields.validate, validate),
+      });
+    });
 
   /**
    * The item's declarations, their attributes the machine reads and each `qti-value`'s string
@@ -15284,24 +15285,6 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
   const processedIn = (r: Rule<DeliveryLevel>) => processedOf.bind(memberKeyIn(r));
 
   /**
-   * The run admission judges: the answered session, by its run key (child, package, path, stage),
-   * under the validate-responses its session control states (QTI 3.0.1 §7.19.7), a fact of the run.
-   */
-  const runsOf = (validate: boolean) =>
-    query(delivery).rule((r) => {
-      const answered = answeredIn(r);
-      const { child, package: pkg, path, stage } = v(answered, "answered");
-
-      return r.match(answered, { child, package: pkg, path, stage }).find({
-        child,
-        package: pkg,
-        path,
-        stage,
-        validate: Type.literal(AdmissionRun.fields.validate, validate),
-      });
-    });
-
-  /**
    * The item body's element nodes, its `qti-item-body` among them, each kind by its name
    * (`BodyNodeKind`).
    */
@@ -15354,6 +15337,52 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
       .where(r.ge(start, first), r.lt(start, last))
       .find({ name: token, package: pkg, path, start, value });
   });
+
+  /**
+   * The run admission judges: the answered session, by its run key (child, package, path, stage),
+   * under the validate-responses its item ref's session control states (QTI 3.0.1 §7.19.7), a fact
+   * of the run: true for a validated member (`ValidatedMember`, an individual part's ref whose own
+   * control sets it), false for every other, QTI's default (Table 7.19.7).
+   */
+  const runsOf = query(delivery)
+    .rule((r) => {
+      const answered = answeredIn(r);
+      const { child, package: pkg, path, stage } = v(answered, "validatedAnswered");
+      const { path: test } = v(fields.TestSession, "validatedTest");
+      const { item } = v(fields.TestMember, "validatedMember");
+
+      return r
+        .match(answered, { child, package: pkg, path, stage })
+        .match(fields.TestSession, { child, package: pkg, path: test, stage })
+        .match(fields.TestMember, { document: path, item, package: pkg, path: test })
+        .match(fields.ValidatedMember, { item, package: pkg, path: test })
+        .find({
+          child,
+          package: pkg,
+          path,
+          stage,
+          validate: Type.literal(AdmissionRun.fields.validate, true),
+        });
+    })
+    .rule((r) => {
+      const answered = answeredIn(r);
+      const { child, package: pkg, path, stage } = v(answered, "unvalidatedAnswered");
+      const { path: test } = v(fields.TestSession, "unvalidatedTest");
+      const { item } = v(fields.TestMember, "unvalidatedMember");
+
+      return r
+        .match(answered, { child, package: pkg, path, stage })
+        .match(fields.TestSession, { child, package: pkg, path: test, stage })
+        .match(fields.TestMember, { document: path, item, package: pkg, path: test })
+        .where(r.not(fields.ValidatedMember, { item, package: pkg, path: test }))
+        .find({
+          child,
+          package: pkg,
+          path,
+          stage,
+          validate: Type.literal(AdmissionRun.fields.validate, false),
+        });
+    });
 
   /**
    * The item's declarations, their attributes the machine reads and each `qti-value`'s string
@@ -22221,11 +22250,12 @@ export const memberAdmissionArgumentsOf = (delivery: DeliveryLevel) => {
  * Response admission of the answer a call posts, over a test member a call answers by its item ref,
  * `child`, `stage` and `item` (answerTestItem's parameters): admission_of at the call's arguments
  * ({@link memberAdmissionArgumentsOf}), each reader bound to the rule's own parameters, so every
- * rule of a statement that reads it reads one evaluation. A delivered test's members are admitted
- * under validate-responses false, the run's: a test that sets it true is no DeliveredTest
- * (`#ledger/delivery.ts`). `hiddenIn`, the responses the values in force hide, as the ledger keys a
- * variable: their posted values are not written. `reasonsIn`, the reasons admission refuses the
- * answer for, guards every row of the answer's write (`r.not(reasonsIn(r), {})`).
+ * rule of a statement that reads it reads one evaluation. A delivered test's member is admitted
+ * under the validate-responses its item ref's own session control states, the run's: true for a
+ * validated member (`ValidatedMember`), false for every other (`#ledger/delivery.ts`). `hiddenIn`,
+ * the responses the values in force hide, as the ledger keys a variable: their posted values are
+ * not written. `reasonsIn`, the reasons admission refuses the answer for, guards every row of the
+ * answer's write (`r.not(reasonsIn(r), {})`).
  */
 export const memberAnswerAdmissionOf = (delivery: DeliveryLevel) => {
   const fields = delivery.relations;
@@ -22562,7 +22592,7 @@ export const memberAnswerAdmissionOf = (delivery: DeliveryLevel) => {
         orderedPoint: posted.orderedPoint,
         singlePoint: posted.singlePoint,
       }),
-      runs: args.runs(false).bind(key),
+      runs: args.runs.bind(key),
       texts: args.texts.bind({
         ...key,
         multipleIdentifier: posted.multipleIdentifier,

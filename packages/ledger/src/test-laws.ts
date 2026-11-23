@@ -10,11 +10,11 @@
  *   `TestMember.document`; SV-KEY-01: an item is `(package, path)`). "If no selection rules are
  *   given it must be assumed that all elements are to be selected" (Table 5.129, info:42753), and a
  *   delivered test selects nothing (`DeliveredTest`).
- * - **One attempt**: at most one attempt per member's item session. In a simultaneous part "By
- *   definition the candidate can take one and only one attempt at each item" (the overview,
- *   info:5376, from TestPart's `submission-mode`, Table 5.159.5); in an individual part a
- *   non-adaptive item's `max-attempts`, whose default a delivered test keeps, is 1 (Table 7.19.1),
- *   which `#delivery.ts`'s session control defaults state of the stage.
+ * - **One attempt**: at most one attempt per member's item session, but an unlimited member's. In a
+ *   simultaneous part "By definition the candidate can take one and only one attempt at each item"
+ *   (the overview, info:5376, from TestPart's `submission-mode`, Table 5.159.5); in an individual
+ *   part a non-adaptive item's `max-attempts` is 1 by default (Table 7.19.1), and only an item
+ *   ref's own `max-attempts` 0, "no limit", lifts it (`#ledger/member-controls.ts`).
  * - **Submitted together**: in a simultaneous part, "the candidate's responses are all submitted
  *   together at the end of the qti-test-part" (TestPart's `submission-mode`, Table 5.159.5:
  *   "simultaneous ... all submitted together at the end"): every attempt of such a member has its
@@ -31,6 +31,7 @@
 import { check, contained, derived, key, on, query, v } from "@bjornpagen/grizzle";
 import type { LedgerLevel } from "#ledger/delivery.ts";
 import { named } from "#ledger/laws.ts";
+import { memberControlsOf } from "#ledger/member-controls.ts";
 
 export const testLawsOf = (ledger: LedgerLevel) => {
   const { Attempt, ItemSession, TestEnd, TestMember, TestPart, TestPresented, TestSession } =
@@ -81,6 +82,31 @@ export const testLawsOf = (ledger: LedgerLevel) => {
       .find({ at, child, n, package: pkg, path, stage });
   });
   const TestAttempt = derived("TestAttempt", testAttempts);
+
+  /**
+   * The unlimited members, whose item sessions take any number of attempts.
+   */
+  const { unlimitedMembers } = memberControlsOf(ledger);
+
+  /**
+   * Each attempt of a sitting's member that takes at most one: every member's but an unlimited
+   * one's.
+   */
+  const LimitedTestAttempt = derived(
+    "LimitedTestAttempt",
+    query(ledger).rule((r) => {
+      const { at, child, n, package: pkg, path, stage } = v(testAttempts, "limitedAttempt");
+      const { path: test } = v(TestSession, "limitedSitting");
+      const { start } = v(TestMember, "limitedMember");
+
+      return r
+        .match(testAttempts, { at, child, n, package: pkg, path, stage })
+        .match(TestSession, { child, package: pkg, path: test, stage })
+        .match(TestMember, { document: path, package: pkg, path: test, start })
+        .where(r.not(unlimitedMembers, { package: pkg, path: test, start }))
+        .find({ at, child, n, package: pkg, path, stage });
+    }),
+  );
 
   /**
    * Each sitting's member that has its attempt.
@@ -168,6 +194,7 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     SittingMember,
     SittingSession,
     TestAttempt,
+    LimitedTestAttempt,
     AttemptedMember,
     PresentedMember,
     SimultaneousAttempt,
@@ -207,9 +234,12 @@ export const testLawsOf = (ledger: LedgerLevel) => {
   );
 
   /**
-   * One attempt: at most one attempt per member's item session.
+   * One attempt: at most one attempt per member's item session, an unlimited member's aside.
    */
-  const oneAttempt = named("One attempt", key(on(TestAttempt, "child", "package", "path", "n")));
+  const oneAttempt = named(
+    "One attempt",
+    key(on(LimitedTestAttempt, "child", "package", "path", "n")),
+  );
 
   /**
    * Submitted together: a simultaneous part's attempts exist only with its sitting's end.

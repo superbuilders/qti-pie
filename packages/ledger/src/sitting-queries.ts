@@ -286,13 +286,73 @@ const partsOf = (delivery: DeliveryLevel) => {
 };
 
 /**
+ * Each item session of the call's sittings whose attempt is in progress, what a submission ends:
+ * one with no attempt, one rule; and an unlimited member's (`UnlimitedMember`, its item ref's
+ * `max-attempts` 0) whose latest save is later than its every attempt, a response given since its
+ * last submission, the other. A member under QTI's default `max-attempts`, 1, is closed by its one
+ * attempt (Table 7.19.1, §2.2.1); an unlimited member's next attempt begins when its last ends.
+ */
+const inProgressOf = (delivery: DeliveryLevel) => {
+  const { Attempt, ItemSession, TestMember, TestSession, UnlimitedMember } = delivery.relations;
+  const saves = latestSavesOf(delivery);
+  /**
+   * Each item session of the call's sittings with an attempt at or after its latest save.
+   */
+  const attemptedSince = query(delivery).rule((r) => {
+    const savesAt = saves.bind({ sittings: r.relation("sittings", sittingHeading) });
+    const { child, package: pkg, path, n, at: saved } = v(savesAt, "sinceSave");
+    const { at } = v(Attempt, "attemptSince");
+
+    return r
+      .match(savesAt, { at: saved, child, n, package: pkg, path })
+      .match(Attempt, { at, child, n, package: pkg, path })
+      .where(r.ge(at, saved))
+      .find({ child, n, package: pkg, path });
+  });
+
+  return query(delivery)
+    .rule((r) => {
+      const sittings = r.relation("sittings", sittingHeading);
+      const { child, stage } = v(sittings, "unattemptedSitting");
+      const { package: pkg, path, n } = v(ItemSession, "unattempted");
+
+      return r
+        .match(sittings, { child, stage })
+        .match(ItemSession, { child, n, package: pkg, path, stage })
+        .where(r.not(Attempt, { child, n, package: pkg, path }))
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const sittings = r.relation("sittings", sittingHeading);
+      const savesAt = saves.bind({ sittings });
+      const attemptedSinceAt = attemptedSince.bind({ sittings });
+      const { child, stage } = v(sittings, "resavedSitting");
+      const { package: pkg, path: test } = v(TestSession, "resavedTest");
+      const { document, item } = v(TestMember, "resavedMember");
+      const { n } = v(ItemSession, "resaved");
+
+      return r
+        .match(sittings, { child, stage })
+        .match(TestSession, { child, package: pkg, path: test, stage })
+        .match(TestMember, { document, item, package: pkg, path: test })
+        .match(UnlimitedMember, { item, package: pkg, path: test })
+        .match(ItemSession, { child, n, package: pkg, path: document, stage })
+        .match(savesAt, { child, n, package: pkg, path: document })
+        .where(r.not(attemptedSinceAt, { child, n, package: pkg, path: document }))
+        .find({ child, n, package: pkg, path: document, stage });
+    });
+};
+
+/**
  * The item sessions the end of each of the call's sittings submits, by the close rule (module note
  * of `#ledger/finish.ts`), each by its key: one rule per way a part's end submits, the part its
- * member's item ref is in (`TestMember.part`, the place of the test's one part).
+ * member's item ref is in (`TestMember.part`, the place of the test's one part), each a member
+ * whose attempt is in progress ({@link inProgressOf}).
  */
 export const closingOf = (delivery: DeliveryLevel) => {
-  const { Attempt, ItemSession, TestMember, TestPresented } = delivery.relations;
+  const { TestMember, TestPresented } = delivery.relations;
   const parts = partsOf(delivery);
+  const inProgress = inProgressOf(delivery);
   const ended = endedSittingOf(delivery);
   const held = heldSavesOf(delivery);
   const shownSave = shownSaveOf(delivery);
@@ -339,25 +399,27 @@ export const closingOf = (delivery: DeliveryLevel) => {
 
   return query(delivery)
     .rule((r) => {
-      const endedAt = ended.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const sittings = r.relation("sittings", sittingHeading);
+      const endedAt = ended.bind({ sittings });
+      const inProgressAt = inProgress.bind({ sittings });
       const { child, stage, package: pkg, path: test } = v(endedAt, "presentedSitting");
       const { path: item } = v(TestPresented, "presentedShown");
       const { part } = v(TestMember, "presentedMember");
-      const { n } = v(ItemSession, "presentedSession");
+      const { n } = v(inProgressAt, "presentedSession");
 
       return r
         .match(endedAt, { child, package: pkg, path: test, stage })
         .match(TestPresented, { child, package: pkg, path: item, stage })
         .match(TestMember, { document: item, package: pkg, part, path: test })
         .match(parts.presented, { package: pkg, path: test, start: part })
-        .match(ItemSession, { child, n, package: pkg, path: item, stage })
-        .where(r.not(Attempt, { child, n, package: pkg, path: item }))
+        .match(inProgressAt, { child, n, package: pkg, path: item, stage })
         .find({ child, n, package: pkg, path: item });
     })
     .rule((r) => {
       const sittings = r.relation("sittings", sittingHeading);
       const endedAt = ended.bind({ sittings });
       const shownHeldAt = shownHeld.bind({ sittings });
+      const inProgressAt = inProgress.bind({ sittings });
       const { child, stage, package: pkg, path: test } = v(endedAt, "linearSitting");
       const { path: item, n } = v(shownHeldAt, "linearShown");
       const { part } = v(TestMember, "linearMember");
@@ -367,7 +429,7 @@ export const closingOf = (delivery: DeliveryLevel) => {
         .match(shownHeldAt, { child, n, package: pkg, path: item, stage })
         .match(TestMember, { document: item, package: pkg, part, path: test })
         .match(parts.linear, { package: pkg, path: test, start: part })
-        .where(r.not(Attempt, { child, n, package: pkg, path: item }))
+        .match(inProgressAt, { child, n, package: pkg, path: item, stage })
         .find({ child, n, package: pkg, path: item });
     });
 };

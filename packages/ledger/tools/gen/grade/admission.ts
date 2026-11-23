@@ -397,6 +397,7 @@ interface Variant {
   readonly key: string;
   readonly keyIn: string;
   readonly member: boolean;
+  readonly runs: string;
   readonly tail: string;
   readonly what: string;
 }
@@ -415,6 +416,7 @@ const variantsOf = (fragment: Fragments): readonly Variant[] => [
     key: fragment("admission/item-key"),
     keyIn: fragment("admission/item-key-in"),
     member: false,
+    runs: fragment("admission/item-runs"),
     tail: fragment("admission/item-call-tail"),
     what: "the item session a call answers by its key, `child`, `package`, `path` and `n` (recordAttempt's\n * parameters); its stage is the session's own",
   },
@@ -425,6 +427,7 @@ const variantsOf = (fragment: Fragments): readonly Variant[] => [
     key: fragment("admission/member-key"),
     keyIn: fragment("admission/member-key-in"),
     member: true,
+    runs: fragment("admission/member-runs"),
     tail: fragment("admission/member-call-tail"),
     what: "a test member a call answers by its item ref, `child`, `stage` and `item` (answerTestItem's parameters)",
   },
@@ -476,7 +479,7 @@ export const ${variant.fn} = (delivery: DeliveryLevel) => {
    * The call's parameters that name the answered item session.
    */
 ${variant.key}
-${variant.answered}${common}
+${variant.answered}${common}${variant.runs}
 ${readers}
   return {
     answered: answeredOf,
@@ -493,7 +496,9 @@ ${ret},
   const binds = ARGS.map((arg) => {
     const names = uses.get(arg) ?? [];
     if (arg === "runs") {
-      return `      runs: args.runs(${variant.member ? "false" : "validate"}).bind(key)`;
+      return variant.member
+        ? "      runs: args.runs.bind(key)"
+        : "      runs: args.runs(validate).bind(key)";
     }
 
     if (names.length > 0) {
@@ -508,7 +513,7 @@ ${ret},
     return `      ${arg}: args.${arg}.bind(key)`;
   });
   const validateDoc = variant.member
-    ? "A delivered test's members are admitted under validate-responses false, the run's: a\n * test that sets it true is no DeliveredTest (`#ledger/delivery.ts`)."
+    ? "A delivered test's member is admitted under the validate-responses its item ref's own\n * session control states, the run's: true for a validated member (`ValidatedMember`), false for\n * every other (`#ledger/delivery.ts`)."
     : "`validate`, the stage's validate-responses, is the caller's to state, a fact of the run\n * (admission_run): one evaluation per statement for each setting, whichever rules read it.";
   const reasonsDoc = variant.member
     ? "\n * `reasonsIn`, the reasons admission refuses the answer for, guards every row of the answer's write\n * (`r.not(reasonsIn(r), {})`)."

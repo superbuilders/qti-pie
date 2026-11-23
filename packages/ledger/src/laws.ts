@@ -206,7 +206,7 @@ export const ledgerLaws = {
     source: `${info}#OpIsNull (§2.11, qti-is-null: 'Note that empty containers and empty strings are both treated as NULL'): 'A text of one character or more' (src/keys.ts someText), and a feedback that is no empty string (src/evaluations.ts Feedback)`,
   },
   "One attempt": {
-    source: `${info}#DataCharacteristic_TestPart.Attr_submission-mode (Table 5.159.5; the overview: 'By definition the candidate can take one and only one attempt at each item'), and a non-adaptive item's max-attempts, 1 by default (${info}#DerivedCharacteristic_ItemSessionControl.Attr_max-attempts, Table 7.19.1): at most one attempt per member's item session (src/test-laws.ts)`,
+    source: `${info}#DataCharacteristic_TestPart.Attr_submission-mode (Table 5.159.5; the overview: 'By definition the candidate can take one and only one attempt at each item'), and a non-adaptive item's max-attempts, 1 by default (${info}#DerivedCharacteristic_ItemSessionControl.Attr_max-attempts, Table 7.19.1: 'A value of 0 indicates no limit'): at most one attempt per member's item session, but a member whose item ref, in an individual part, sets max-attempts 0 (src/test-laws.ts, src/member-controls.ts)`,
   },
   "One context value": {
     source:

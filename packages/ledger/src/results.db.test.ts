@@ -68,6 +68,16 @@
  * by "Response in time", unless the test allows late submission (Table 7.40.3,
  * `allow-late-submission`). Every program reads back its sitting's standing, which the table holds
  * after each move.
+ *
+ * And a test's item-session controls (`presentItem`, `saveTestItem`, `answerTestItem`, and
+ * `finishTest`, the end with its finish), held to their table ({@link controlsExpectedOf}):
+ * validate-responses and max-attempts 0 are delivered on an individual part's item ref alone ("only
+ * applicable when the item is in a qti-test-part with individual submission mode", Table 7.19.7),
+ * never on a simultaneous part's ref or a part's own control; a validated member refuses its
+ * candidate's invalid answer, and nothing else is held to it (no other member's answer, no save, no
+ * presentation, not the end, §2.2.4); an unlimited member takes an attempt after each (Table
+ * 7.19.1); and the end submits, unvalidated, every presented member whose attempt is in progress,
+ * and none never presented (Tables 7.19.6, 5.115).
  */
 import { factsDecoder, Sha256 } from "@bjornpagen/grizzle";
 import type { BrokenLaws } from "@bjornpagen/grizzle";
@@ -132,6 +142,33 @@ const TIMED_TEST = "timed.xml";
 const LATE_TEST = "late.xml";
 
 /**
+ * The extended-text items under a word minimum, each its own document: the validated, unlimited
+ * member's, the unvalidated member's and the validated member's of one attempt.
+ */
+const ESSAY_MIN = "items/essay-min.xml";
+
+const MEMBER_MIN = "items/member-min.xml";
+
+const DRAFT_MIN = "items/draft-min.xml";
+
+/**
+ * The test of item-session controls: one individual, nonlinear part, its members
+ * {@link MEMBER_REF}, {@link ESSAY_REF}, {@link DRAFT_REF} and {@link SAVED}.
+ */
+const CONTROLS_TEST = "controls.xml";
+
+/**
+ * Tests whose item-session controls this runtime does not deliver: validate-responses and
+ * max-attempts 0 on a simultaneous part's item ref, and validate-responses on an individual part's
+ * own control.
+ */
+const SIMULTANEOUS_VALIDATED_TEST = "simultaneous-validated.xml";
+
+const SIMULTANEOUS_UNLIMITED_TEST = "simultaneous-unlimited.xml";
+
+const PART_VALIDATED_TEST = "part-validated.xml";
+
+/**
  * The item ref a test names its first member by, the one its start presents, and that item's own
  * identifier: QTI holds a ref's identifier to its item's (information model §4.1.1, pantry's "Item
  * ref identifier").
@@ -145,6 +182,24 @@ const MEMBER = "member";
  * writes nothing.
  */
 const SAVED = "saved";
+
+/**
+ * The item ref of the controls test's first member, the one its start presents, under no control of
+ * its own, and that item's own identifier.
+ */
+const MEMBER_REF = "member-min";
+
+/**
+ * The item ref of the controls test's essay, `max-attempts` 0 and `validate-responses` true on its
+ * own item-session control, and that item's own identifier.
+ */
+const ESSAY_REF = "essay-min";
+
+/**
+ * The item ref of the controls test's draft, `validate-responses` true on its own item-session
+ * control under QTI's default `max-attempts`, 1, and that item's own identifier.
+ */
+const DRAFT_REF = "draft-min";
 
 /**
  * The draw item's document, by whether it is adaptive.
@@ -296,6 +351,113 @@ const textEntryXml = (identifier: string) => `<?xml version="1.0" encoding="UTF-
 </qti-assessment-item>`;
 
 /**
+ * The word minimum every extended-text item of the controls test states as its `pattern-mask`, an
+ * XML Schema regular expression, which matches the whole string: three words or more.
+ */
+const wordMinimum = String.raw`\s*\S+(\s+\S+){2,}\s*`;
+
+/**
+ * An extended-text item under {@link wordMinimum}, which nothing processes.
+ *
+ * @param identifier - The item's identifier.
+ */
+const minimumXml = (identifier: string) => `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="${asi}" identifier="${identifier}" title="${identifier}" adaptive="false" time-dependent="false" xml:lang="en">
+<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/><qti-item-body><qti-extended-text-interaction response-identifier="RESPONSE" pattern-mask="${wordMinimum}"/></qti-item-body>
+</qti-assessment-item>`;
+
+/**
+ * A test of one part, its item refs' markup `refs`, under the part's own item-session control
+ * `control`, none where it is empty.
+ *
+ * @param identifier - The test's identifier.
+ * @param submission - The part's submission mode.
+ * @param control - The part's own `qti-item-session-control`, or nothing.
+ * @param refs - The section's item refs.
+ */
+const controlledTestXml = (
+  identifier: string,
+  submission: "individual" | "simultaneous",
+  control: string,
+  refs: string,
+) => `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-test xmlns="${asi}" identifier="${identifier}" title="${identifier}"><qti-test-part identifier="part" navigation-mode="nonlinear" submission-mode="${submission}">${control}<qti-assessment-section identifier="section" title="section" visible="true">${refs}</qti-assessment-section></qti-test-part>
+</qti-assessment-test>`;
+
+/**
+ * An item ref, under its own item-session control `control`, none where it is empty.
+ *
+ * @param identifier - The ref's identifier.
+ * @param href - The item's document.
+ * @param control - Its own `qti-item-session-control`, or nothing.
+ */
+const refXml = (identifier: string, href: string, control: string) =>
+  control === ""
+    ? `<qti-assessment-item-ref identifier="${identifier}" href="${href}"/>`
+    : `<qti-assessment-item-ref identifier="${identifier}" href="${href}">${control}</qti-assessment-item-ref>`;
+
+/**
+ * The controls test's members, in order, each with its document and its own control.
+ */
+const controlsMembers = [
+  { control: "", path: MEMBER_MIN, ref: MEMBER_REF },
+  {
+    control: '<qti-item-session-control max-attempts="0" validate-responses="true"/>',
+    path: ESSAY_MIN,
+    ref: ESSAY_REF,
+  },
+  {
+    control: '<qti-item-session-control validate-responses="true"/>',
+    path: DRAFT_MIN,
+    ref: DRAFT_REF,
+  },
+  { control: "", path: OTHER, ref: SAVED },
+] as const;
+
+/**
+ * The tests of item-session controls, each with its documents: the controls test, which this
+ * runtime delivers, and three it does not.
+ */
+const controlTests = [
+  [
+    CONTROLS_TEST,
+    controlledTestXml(
+      "controls",
+      "individual",
+      "",
+      controlsMembers.map(({ control, path, ref }) => refXml(ref, path, control)).join(""),
+    ),
+  ],
+  [
+    SIMULTANEOUS_VALIDATED_TEST,
+    controlledTestXml(
+      "simultaneous-validated",
+      "simultaneous",
+      "",
+      refXml(ESSAY_REF, ESSAY_MIN, '<qti-item-session-control validate-responses="true"/>'),
+    ),
+  ],
+  [
+    SIMULTANEOUS_UNLIMITED_TEST,
+    controlledTestXml(
+      "simultaneous-unlimited",
+      "simultaneous",
+      "",
+      refXml(ESSAY_REF, ESSAY_MIN, '<qti-item-session-control max-attempts="0"/>'),
+    ),
+  ],
+  [
+    PART_VALIDATED_TEST,
+    controlledTestXml(
+      "part-validated",
+      "individual",
+      '<qti-item-session-control validate-responses="true"/>',
+      refXml(ESSAY_REF, ESSAY_MIN, ""),
+    ),
+  ],
+] as const;
+
+/**
  * A test of one individual, nonlinear part of two text entries, {@link MEMBER} and {@link SAVED},
  * under the time limits `limits` states, none where it is empty.
  *
@@ -316,11 +478,19 @@ const tests = [
   [LATE_TEST, testXml("late", '<qti-time-limits max-time="3600" allow-late-submission="true"/>')],
 ] as const;
 
-const testResource = (path: string) =>
-  `<resource identifier="${path.replace(".xml", "")}" type="imsqti_test_xmlv3p0" href="${path}"><file href="${path}"/><dependency identifierref="short"/><dependency identifierref="other"/></resource>`;
+const testResource = (path: string, dependencies: readonly string[]) =>
+  `<resource identifier="${path.replace(".xml", "")}" type="imsqti_test_xmlv3p0" href="${path}"><file href="${path}"/>${dependencies.map((dependency) => `<dependency identifierref="${dependency}"/>`).join("")}</resource>`;
+
+/**
+ * An item's resource, its identifier its document's name.
+ *
+ * @param path - The item's document.
+ */
+const itemResource = (path: string) =>
+  `<resource identifier="${path.replace("items/", "").replace(".xml", "")}" type="imsqti_item_xmlv3p0" href="${path}"><file href="${path}"/></resource>`;
 
 const manifest = `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${tests.map(([path]) => testResource(path)).join("")}</resources></manifest>`;
+<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}</resources></manifest>`;
 
 /**
  * The response every answered case gives.
@@ -966,7 +1136,8 @@ const SuiteLayer = Layer.unwrap(
 
 /**
  * The one package, the essay, the templated item, the operators item, the draw item adaptive and
- * not, and the tests of the text entries, published through the suite's login.
+ * not, the tests of the text entries, and the tests of item-session controls with their items,
+ * published through the suite's login.
  */
 const published = Effect.gen(function* publish() {
   const { suite } = yield* SuiteLogin;
@@ -982,7 +1153,10 @@ const published = Effect.gen(function* publish() {
   }
   yield* fs.writeFileString(`${dir}/${SHORT}`, textEntryXml(MEMBER));
   yield* fs.writeFileString(`${dir}/${OTHER}`, textEntryXml(SAVED));
-  for (const [path, xml] of tests) {
+  for (const { path, ref } of controlsMembers.filter((member) => member.path !== OTHER)) {
+    yield* fs.writeFileString(`${dir}/${path}`, minimumXml(ref));
+  }
+  for (const [path, xml] of [...tests, ...controlTests]) {
     yield* fs.writeFileString(`${dir}/${path}`, xml);
   }
 
@@ -1921,6 +2095,434 @@ const holdResponse = (
     );
   });
 
+/**
+ * A text a controls case gives: two words, short of {@link wordMinimum}, or five, within it.
+ */
+const controlTexts = { long: "A push moves the cart.", short: "A push." } as const;
+
+type ControlText = keyof typeof controlTexts;
+
+/**
+ * An item ref of the controls test a case acts on: every member but {@link SAVED}, which no case
+ * presents.
+ */
+type ControlRef = typeof MEMBER_REF | typeof ESSAY_REF | typeof DRAFT_REF;
+
+/**
+ * A move of a controls case in the sitting's open candidate session: a presentation of a member, a
+ * save of a text, or an answer of one, each only of a member presented before it, as "In turn"
+ * requires of an attempt.
+ */
+type ControlMove =
+  | Readonly<{ kind: "present"; ref: ControlRef }>
+  | Readonly<{ kind: "save" | "answer"; ref: ControlRef; text: ControlText }>;
+
+type ControlsCase = Readonly<{ name: string; moves: readonly ControlMove[] }>;
+
+const present = (ref: ControlRef): ControlMove => ({ kind: "present", ref });
+
+const save = (ref: ControlRef, text: ControlText): ControlMove => ({ kind: "save", ref, text });
+
+const answer = (ref: ControlRef, text: ControlText): ControlMove => ({ kind: "answer", ref, text });
+
+/**
+ * Every controls case: each moves through the controls test's open session, then ends it, the
+ * start presenting {@link MEMBER_REF}.
+ */
+const controlsCases = [
+  { moves: [], name: "the start alone" },
+  {
+    moves: [
+      present(ESSAY_REF),
+      answer(ESSAY_REF, "short"),
+      answer(ESSAY_REF, "long"),
+      answer(ESSAY_REF, "long"),
+    ],
+    name: "the essay answered short, then long twice",
+  },
+  {
+    moves: [answer(MEMBER_REF, "short"), answer(MEMBER_REF, "long")],
+    name: "the member answered short, then long",
+  },
+  {
+    moves: [present(DRAFT_REF), save(DRAFT_REF, "short"), present(ESSAY_REF)],
+    name: "the draft saved short and left",
+  },
+  {
+    moves: [present(ESSAY_REF), answer(ESSAY_REF, "long"), save(ESSAY_REF, "short")],
+    name: "the essay answered, then saved short",
+  },
+  {
+    moves: [present(ESSAY_REF), save(ESSAY_REF, "short"), answer(ESSAY_REF, "long")],
+    name: "the essay saved short, then answered",
+  },
+  {
+    moves: [
+      present(DRAFT_REF),
+      answer(DRAFT_REF, "short"),
+      answer(DRAFT_REF, "long"),
+      save(DRAFT_REF, "short"),
+    ],
+    name: "the draft answered short, then long, then saved short",
+  },
+  {
+    moves: [
+      present(ESSAY_REF),
+      save(ESSAY_REF, "short"),
+      present(DRAFT_REF),
+      present(ESSAY_REF),
+      answer(ESSAY_REF, "short"),
+      answer(MEMBER_REF, "short"),
+    ],
+    name: "the essay saved short, left and returned to, answered short; the member answered short",
+  },
+] as const satisfies readonly ControlsCase[];
+
+const controlsSpace: Gen<ControlsCase> = element(controlsCases);
+
+/**
+ * What the table holds of each member: whether its item ref's own control sets validate-responses
+ * true, and whether it sets max-attempts 0 (QTI 3.0.1 Tables 7.19.7 and 7.19.1).
+ */
+const controlsOf = {
+  [DRAFT_REF]: { unlimited: false, validated: true },
+  [ESSAY_REF]: { unlimited: true, validated: true },
+  [MEMBER_REF]: { unlimited: false, validated: false },
+} as const satisfies Record<ControlRef, Readonly<{ unlimited: boolean; validated: boolean }>>;
+
+/**
+ * Each control ref's document.
+ */
+const controlPathOf = {
+  [DRAFT_REF]: DRAFT_MIN,
+  [ESSAY_REF]: ESSAY_MIN,
+  [MEMBER_REF]: MEMBER_MIN,
+} as const satisfies Record<ControlRef, string>;
+
+/**
+ * An attempt's response as the table states it: its text, or NULL where the end submitted the
+ * member at its default.
+ */
+type SubmittedText = ControlText | "default";
+
+type ControlsExpected = Readonly<{
+  moves: readonly ("accepted" | "unchanged")[];
+  attempts: Readonly<Record<ControlRef | typeof SAVED, readonly SubmittedText[]>>;
+}>;
+
+/**
+ * A member's state as the controls' table folds a case's moves: whether it was presented, its
+ * attempts' texts, its latest save, and whether that save came after its last attempt.
+ */
+interface MemberState {
+  readonly attempts: SubmittedText[];
+  latest: Option.Option<ControlText>;
+  presented: boolean;
+  since: boolean;
+}
+
+/**
+ * A member's state at the sitting's start: presented there or not, with no attempt and no save.
+ *
+ * @param presented - Whether the start presents it.
+ */
+const freshMember = (presented: boolean): MemberState => ({
+  attempts: [],
+  latest: Option.none(),
+  presented,
+  since: false,
+});
+
+/**
+ * The controls' table, a fold over the case's moves of each member's state (presented, its
+ * attempts, its latest save, and whether that save came after its last attempt):
+ *
+ * - A presentation is accepted, and submits nothing: "navigation" in a nonlinear part moves the
+ *   candidate, and an attempt ends "only ... in direct response to a user action or in response to
+ *   some expected event, such as the end of a test" (§2.2.4), a submission.
+ * - A member takes a response while its attempt is in progress: under max-attempts 1, until its one
+ *   attempt (Table 7.19.1; "Once in the closed state the values of the response variables are
+ *   fixed", §2.2.1), and under max-attempts 0, always ("A value of 0 indicates no limit"). A save
+ *   or an answer of a member that takes none writes nothing.
+ * - An answer is the candidate's submission: a validated member's is accepted only where its text is
+ *   valid ("the candidates are not allowed to submit the item until they have provided valid
+ *   responses for all interactions", Table 7.19.7), and an unvalidated member's whatever its text
+ *   (tier (b) of admission holds only under validate-responses). A save is no submission, and is
+ *   never held to it.
+ * - The end submits, unvalidated, every presented member whose attempt is in progress: one with no
+ *   attempt from its latest save, or at its defaults where it has none (Table 7.19.6), and an
+ *   unlimited member saved since its last attempt from that save; never a member never presented,
+ *   whose "response variable remains NULL" (Table 5.115).
+ *
+ * @param c - The case.
+ */
+const controlsExpectedOf = (c: ControlsCase): ControlsExpected => {
+  const state: Record<ControlRef, MemberState> = {
+    [DRAFT_REF]: freshMember(false),
+    [ESSAY_REF]: freshMember(false),
+    [MEMBER_REF]: freshMember(true),
+  };
+  const takes = (ref: ControlRef) => controlsOf[ref].unlimited || state[ref].attempts.length === 0;
+  const moves = c.moves.map((move): "accepted" | "unchanged" => {
+    const member = state[move.ref];
+    if (move.kind === "present") {
+      member.presented = true;
+
+      return "accepted";
+    }
+
+    if (!takes(move.ref)) {
+      return "unchanged";
+    }
+
+    if (move.kind === "save") {
+      member.latest = Option.some(move.text);
+      member.since = true;
+
+      return "accepted";
+    }
+
+    if (controlsOf[move.ref].validated && move.text === "short") {
+      return "unchanged";
+    }
+
+    member.attempts.push(move.text);
+    member.since = false;
+
+    return "accepted";
+  });
+  const closed = (ref: ControlRef): readonly SubmittedText[] => {
+    const member = state[ref];
+    if (!member.presented) {
+      return member.attempts;
+    }
+
+    if (member.attempts.length === 0) {
+      return [Option.getOrElse(member.latest, (): SubmittedText => "default")];
+    }
+
+    return controlsOf[ref].unlimited && member.since
+      ? [...member.attempts, Option.getOrElse(member.latest, (): SubmittedText => "default")]
+      : member.attempts;
+  };
+
+  return {
+    attempts: {
+      [DRAFT_REF]: closed(DRAFT_REF),
+      [ESSAY_REF]: closed(ESSAY_REF),
+      [MEMBER_REF]: closed(MEMBER_REF),
+      [SAVED]: [],
+    },
+    moves,
+  };
+};
+
+/**
+ * The situations the controls' space must reach.
+ */
+const controlsSituations = [
+  "a validated member's short answer writes nothing",
+  "a validated member's valid answer is accepted",
+  "an unvalidated member's short answer is accepted",
+  "an unlimited member answered again",
+  "a limited member's second answer writes nothing",
+  "a limited member's save after its attempt writes nothing",
+  "a presentation submits nothing",
+  "the end submits a short save unvalidated",
+  "the end submits an unlimited member saved since its last attempt",
+  "the end submits a presented member at its defaults",
+  "the end submits nothing of a member never presented",
+] as const;
+
+type ControlsSituation = (typeof controlsSituations)[number];
+
+/**
+ * The situations a case reaches, read from its moves and the table's verdicts.
+ *
+ * @param c - The case.
+ * @param expected - The table's verdicts.
+ */
+const controlsSituationsOf = (c: ControlsCase, expected: ControlsExpected) => {
+  const reached = new Set<ControlsSituation>([
+    "the end submits nothing of a member never presented",
+  ]);
+  const answered = new Map<ControlRef, number>();
+  for (const [i, move] of c.moves.entries()) {
+    const verdict = expected.moves[i];
+    if (move.kind === "present") {
+      reached.add("a presentation submits nothing");
+    } else if (move.kind === "answer") {
+      const before = answered.get(move.ref) ?? 0;
+      if (verdict === "accepted") {
+        answered.set(move.ref, before + 1);
+        reached.add(
+          controlsOf[move.ref].validated
+            ? "a validated member's valid answer is accepted"
+            : "an unvalidated member's short answer is accepted",
+        );
+        if (before > 0) {
+          reached.add("an unlimited member answered again");
+        }
+      } else if (!controlsOf[move.ref].unlimited && before > 0) {
+        reached.add("a limited member's second answer writes nothing");
+      } else {
+        reached.add("a validated member's short answer writes nothing");
+      }
+    } else if (verdict === "unchanged") {
+      reached.add("a limited member's save after its attempt writes nothing");
+    }
+  }
+  for (const ref of [MEMBER_REF, ESSAY_REF, DRAFT_REF] as const) {
+    const attempts = expected.attempts[ref];
+    const ends = attempts.length - (answered.get(ref) ?? 0);
+    if (ends > 0 && attempts.at(-1) === "default") {
+      reached.add("the end submits a presented member at its defaults");
+    } else if (ends > 0 && (answered.get(ref) ?? 0) > 0) {
+      reached.add("the end submits an unlimited member saved since its last attempt");
+    } else if (ends > 0) {
+      reached.add("the end submits a short save unvalidated");
+    }
+  }
+
+  return [...reached];
+};
+
+/**
+ * One controls case: a fresh child's sitting of the controls test, written as host rows as a take
+ * writes it, entered, which presents {@link MEMBER_REF}; then each move through the test runtime's
+ * own programs, its outcome held to the table, and the child's attempts after a presentation held
+ * to be the attempts before it; then the end with its finish (`finishTest`), and every member's
+ * attempts, in their order, held to the table, each by the string its snapshot holds, none where
+ * the end submitted it at its default.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdControls = (
+  c: ControlsCase,
+  child: string,
+  note: (situation: ControlsSituation) => void,
+) =>
+  Effect.gen(function* hold() {
+    const expected = controlsExpectedOf(c);
+    for (const situation of controlsSituationsOf(c, expected)) {
+      note(situation);
+    }
+
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const sitting = { child, stage: 1n };
+    const taken = yield* db.workload.sittingFacts.once({
+      facts: {
+        insert: {
+          Attempt: rowsOf("Attempt", []),
+          ItemSession: rowsOf(
+            "ItemSession",
+            controlsMembers.map(({ path }) => ({ ...sitting, package: PACKAGE, path })),
+          ),
+          ResponseSnapshot: rowsOf("ResponseSnapshot", []),
+          SessionSeed: rowsOf(
+            "SessionSeed",
+            controlsMembers.map(({ path }) => ({ ...sitting, package: PACKAGE, path, seed: SEED })),
+          ),
+          TestSession: rowsOf("TestSession", [
+            { ...sitting, package: PACKAGE, path: CONTROLS_TEST },
+          ]),
+        },
+      },
+      params: {},
+    });
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as a take writes it`);
+
+    const entered = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(entered.kind, "accepted", `${c.name}: the entry`);
+
+    const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
+
+    const attemptCount = Effect.map(
+      db.workload.attemptsOf.once({ facts: {}, params: { child } }),
+      (rows) => Arr.fromIterable(rows).length,
+    );
+
+    for (const [i, move] of c.moves.entries()) {
+      const want = expected.moves[i];
+      const what = `${c.name}: move ${String(i + 1)}, ${move.kind} ${move.ref}${move.kind === "present" ? "" : ` ${move.text}`}`;
+      if (move.kind === "present") {
+        const before = yield* attemptCount;
+        const presented = yield* db.workload.presentItem.once({
+          facts: {},
+          params: { ...sitting, item: move.ref },
+        });
+        assert.strictEqual(presented.kind, want, what);
+        assert.strictEqual(yield* attemptCount, before, `${what}: submits nothing`);
+      } else {
+        const values = yield* responseParamsOf({
+          RESPONSE: {
+            baseType: "string",
+            cardinality: "single",
+            values: [{ baseType: "string", value: controlTexts[move.text] }],
+          },
+        });
+        const params = { ...sitting, given: began, item: move.ref, ...values };
+        const outcome =
+          move.kind === "save"
+            ? yield* db.workload.saveTestItem.once({ facts: {}, params })
+            : yield* db.workload.answerTestItem.once({
+                facts: {},
+                params: { ...params, next: [] },
+              });
+        assert.strictEqual(outcome.kind, want, what);
+      }
+    }
+
+    const ended = yield* db.workload.finishTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(ended.kind, "accepted", `${c.name}: the end and its finish`);
+
+    const attempts = Arr.fromIterable(
+      yield* db.workload.attemptsOf.once({ facts: {}, params: { child } }),
+    );
+    const strings = Arr.fromIterable(
+      yield* db.workload.snapshotStringsOf.once({ facts: {}, params: { child } }),
+    );
+    const textOf = (value: string): SubmittedText => {
+      if (value === controlTexts.long) {
+        return "long";
+      }
+
+      if (value === controlTexts.short) {
+        return "short";
+      }
+
+      return assert.fail(`${c.name}: an attempt of ${value}`);
+    };
+    const submittedOf = (path: string) =>
+      Arr.sort(
+        attempts.filter((row) => row.package === PACKAGE && row.path === path),
+        Order.mapInput(Order.BigInt, (row: (typeof attempts)[number]) => row.at),
+      ).map((row): SubmittedText => {
+        const held = strings.filter(
+          (value) =>
+            value.path === path &&
+            value.n === row.n &&
+            value.at === row.at &&
+            value.variable === "RESPONSE",
+        );
+
+        return held.length === 0 ? "default" : textOf(Option.getOrThrow(Arr.head(held)).value);
+      });
+    assert.deepStrictEqual<unknown>(
+      {
+        [DRAFT_REF]: submittedOf(controlPathOf[DRAFT_REF]),
+        [ESSAY_REF]: submittedOf(controlPathOf[ESSAY_REF]),
+        [MEMBER_REF]: submittedOf(controlPathOf[MEMBER_REF]),
+        [SAVED]: submittedOf(OTHER),
+      },
+      expected.attempts,
+      `${c.name}: every member's attempts, in order, after the end`,
+    );
+  });
+
 describe.skipIf(Option.isNone(migrations))(
   "an AI-graded essay's result relations, a templated item's take and an adaptive item's attempts, on the runner's database",
   () => {
@@ -2113,6 +2715,69 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the responses held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "delivers item-session controls on an individual part's item refs alone, and holds every answer, presentation and end to them",
+          (ctx) =>
+            Effect.gen(function* holdEveryControlsCase() {
+              yield* Effect.scoped(published);
+
+              const { suite } = yield* SuiteLogin;
+              const db = yield* Db.open(suite.roles.result_runner, {});
+              const delivered = new Set(
+                Arr.fromIterable(
+                  yield* db.workload.deliveredTestsOf.once({
+                    facts: {},
+                    params: { package: PACKAGE },
+                  }),
+                ).map((row) => row.path),
+              );
+              assert.deepStrictEqual<unknown>(
+                [
+                  CONTROLS_TEST,
+                  SIMULTANEOUS_VALIDATED_TEST,
+                  SIMULTANEOUS_UNLIMITED_TEST,
+                  PART_VALIDATED_TEST,
+                ].map((path) => [path, delivered.has(path)]),
+                [
+                  [CONTROLS_TEST, true],
+                  [SIMULTANEOUS_VALIDATED_TEST, false],
+                  [SIMULTANEOUS_UNLIMITED_TEST, false],
+                  [PART_VALIDATED_TEST, false],
+                ],
+                'validate-responses and max-attempts 0 delivered on an individual part\'s item ref alone (Table 7.19.7: "only applicable when the item is in a qti-test-part with individual submission mode")',
+              );
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "each sequence of presentations, saves and answers of the controls test's members, then its end, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<ControlsSituation>(controlsSituations),
+                    generator: controlsSpace,
+                    literal: (c: ControlsCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "controlsExpectedOf: validate-responses holds the candidate's answer alone (Table 7.19.7, §2.2.4), max-attempts 0 takes an attempt after each (Table 7.19.1), the end submits every presented member in progress unvalidated and none never presented (Tables 7.19.6, 5.115)",
+                    },
+                    suite: "ledger/results/controls",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdControls(row, `user_ledgerctl${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the controls held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
       },

@@ -19,12 +19,14 @@
  * templated item's session as every take does (`take`, `takeValuesOf` over the session's sitting),
  * reading both what it stored and the machine's own run of it (`templateProcessingOf` over
  * `takeArgumentsOf`); writes a test's sitting as host rows (`sittingFacts`: its test session, its
- * members' item sessions with their seeds, and an attempt), then enters, saves in, suspends and
- * ends it through the test runtime's own programs (`sittingProgramsOf`), each over the sitting the
- * call names, a timed entry with the first budget the call gives, as an application's level writes
- * it from its applied limit; and reads the Delivery relations the suite holds to its table, and
- * each attempt's completion status and outcomes as its response processing wrote them, one child's
- * at a time.
+ * members' item sessions with their seeds, and an attempt), then enters, presents in, saves in,
+ * answers in, suspends and ends it through the test runtime's own programs (`sittingProgramsOf`),
+ * each over the sitting the call names, a timed entry with the first budget the call gives, as an
+ * application's level writes it from its applied limit, and an end followed by the finish
+ * (`finishTest`, `finishTestOf` sequenced after `endTest`, as every application ends a sitting);
+ * and reads the Delivery relations the suite holds to its table, the tests it delivers, each
+ * attempt's completion status and outcomes as its response processing wrote them, and each
+ * attempt's string values, one child's at a time.
  *
  * @module
  */
@@ -40,10 +42,12 @@ import {
   wholeEntriesOf,
   workload,
 } from "@bjornpagen/grizzle";
+import { PackageName } from "@qti-pie/pantry/qti/limits.ts";
 import { authorWrites, insertWrite } from "@qti-pie/pantry/qti/logins.ts";
 import { QtiLom } from "@qti-pie/pantry/qti/lom.ts";
 import { deliveryOf } from "#ledger/delivery.ts";
 import { evaluationProgramsOf, personValueOf } from "#ledger/evaluation-programs.ts";
+import { finishTestOf } from "#ledger/finish.ts";
 import {
   gradeAttemptOf,
   gradeAttemptTables,
@@ -111,8 +115,10 @@ const {
   ApplicationDraw,
   ApplicationMaximum,
   ApplicationOperands,
+  Attempt,
   AttemptCredit,
   AwaitingHumanEvaluation,
+  DeliveredTest,
   HumanOperatorValue,
   ItemSessionStatus,
   ItemSessionValue,
@@ -126,6 +132,7 @@ const {
   SnapshotSingleBoolean,
   SnapshotSingleFloat,
   SnapshotSingleIdentifier,
+  SnapshotSingleString,
   TestBudget,
   TestSession,
   TestVisit,
@@ -724,15 +731,57 @@ const snapshotBooleansOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The child's attempts, each by its item session and its instant.
+ */
+const attemptsOf = query(ResultLevel).rule((r) => {
+  const { package: pkg, path, n, at } = v(Attempt, "attempt");
+
+  return r
+    .match(Attempt, { at, child: r.param("child", LearnerId), n, package: pkg, path })
+    .find({ at, n, package: pkg, path });
+});
+
+/**
+ * The child's snapshots' single string values, as they hold them.
+ */
+const snapshotStringsOf = query(ResultLevel).rule((r) => {
+  const { package: pkg, path, n, at, variable, value } = v(SnapshotSingleString, "string");
+
+  return r
+    .match(SnapshotSingleString, {
+      at,
+      child: r.param("child", LearnerId),
+      n,
+      package: pkg,
+      path,
+      value,
+      variable,
+    })
+    .find({ at, n, package: pkg, path, value, variable });
+});
+
+/**
+ * The tests of the call's package this runtime delivers (`DeliveredTest`), by their path.
+ */
+const deliveredTestsOf = query(ResultLevel).rule((r) => {
+  const { path } = v(DeliveredTest, "delivered");
+
+  return r.match(DeliveredTest, { package: r.param("package", PackageName), path }).find({ path });
+});
+
+/**
  * The suite's login, `result_suite`, acting as its one role, `result_runner`.
  */
 export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
   workload: [
     workload(Suite, {
+      answerTestItem: sittingPrograms.answerTestItem.bind({ sittings: namedSitting }),
       applicationsOf,
+      attemptsOf,
       awaitingOf,
       completionsOf,
       creditsOf,
+      deliveredTestsOf,
       drawsOf,
       endTest: sittingPrograms.endTest.bind({ sittings: namedSitting }),
       enterTest: sittingPrograms.enterTest.bind({ sittings: namedSitting }),
@@ -741,10 +790,14 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       }),
       evaluate,
       facts,
+      finishTest: ChangeSet.sequence(sittingPrograms.endTest, finishTestOf(ResultLevel)).bind({
+        sittings: namedSitting,
+      }),
       floatsOf,
       grade: gradeAttemptOf(ResultLevel).bind({ sittings: sessionSitting }),
       maximaOf,
       operandsOf,
+      presentItem: sittingPrograms.presentItem.bind({ sittings: namedSitting }),
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
       recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),
       saveTestItem: sittingPrograms.saveTestItem.bind({ sittings: namedSitting }),
@@ -753,6 +806,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       snapshotFloatsOf,
       snapshotIdentifierBagsOf,
       snapshotIdentifiersOf,
+      snapshotStringsOf,
       statusesOf,
       suspendTest: sittingPrograms.suspendTest.bind({ sittings: namedSitting }),
       take: takeValuesOf(ResultLevel).bind({ sittings: sessionSitting }),

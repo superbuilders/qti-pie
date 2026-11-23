@@ -21,9 +21,10 @@
  *   no value written, every response submitted at its default (Table 7.19.6), `DefaultSubmission`;
  *   its value lists are empty, which its admission judges.
  * - `answerTestItem` { sittings, item, given, …values, next }: an individual part's attempt (Table
- *   7.19.1: one attempt for a non-adaptive item), and the member `next` names presented where it
- *   names one, each only where the member's response admission gives no reason (`#ledger/grade.ts`
- *   memberAnswerAdmissionOf, over `sittings` and `item`).
+ *   7.19.1: one attempt for a non-adaptive item, any number for an item ref whose `max-attempts` is
+ *   0), and the member `next` names presented where it names one, each only where the member's
+ *   response admission, under its item ref's validate-responses, gives no reason
+ *   (`#ledger/grade.ts` memberAnswerAdmissionOf, over `sittings` and `item`).
  * - `suspendTest`, `endTest` { sittings }: the open candidate session suspended; the sitting's part
  *   ended.
  *
@@ -82,8 +83,9 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   /**
    * Response admission of the member an answer posts to (`#ledger/grade.ts`'s
    * memberAnswerAdmissionOf, over the call's `sittings` and `item`): an answer it gives a
-   * reason against writes nothing, and a response its values in force hide keeps its value, which
-   * is NULL, since the member's one attempt is this one (`responseTarget`).
+   * reason against writes nothing, and a response its values in force hide keeps its value: NULL
+   * at a member's first attempt, and an unlimited member's latest attempt's after it
+   * (`responseTarget`).
    */
   const admission = memberAnswerAdmissionOf(delivery);
 
@@ -138,25 +140,43 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * The item session a response is given in: the member's ({@link sittingMember}), whose item
-   * session has no attempt, since its one attempt closes it (Table 7.19.1) and "Once in the closed
-   * state the values of the response variables are fixed" (§2.2.1). Its sitting's state is the
-   * delivery level's laws': a response lies inside a candidate session, and a timed one's within
-   * its time and the application's grace (`#delivery.ts`), each refused, naming it, where it does
-   * not.
+   * The item session a response is given in, while it takes another attempt: the member's ({@link
+   * sittingMember}), one rule per way. A member under QTI's default `max-attempts`, 1, has no
+   * attempt yet, since its one attempt closes it (Table 7.19.1) and "Once in the closed state the
+   * values of the response variables are fixed" (§2.2.1); an unlimited member (`UnlimitedMember`,
+   * its item ref's `max-attempts` 0: "A value of 0 indicates no limit", Table 7.19.1) takes one
+   * after each. Its sitting's state is the delivery level's laws': a response lies inside a
+   * candidate session, and a timed one's within its time and the application's grace
+   * (`#delivery.ts`), each refused, naming it, where it does not.
    */
-  const responseTarget = query(delivery).rule((r) => {
-    const member = sittingMember.bind({
-      item: r.param("item", ItemRef),
-      sittings: r.relation("sittings", sittingHeading),
-    });
-    const { child, stage, package: pkg, path, n } = v(member, "response");
+  const responseTarget = query(delivery)
+    .rule((r) => {
+      const member = sittingMember.bind({
+        item: r.param("item", ItemRef),
+        sittings: r.relation("sittings", sittingHeading),
+      });
+      const { child, stage, package: pkg, path, n } = v(member, "response");
 
-    return r
-      .match(member, { child, n, package: pkg, path, stage })
-      .where(r.not(f.Attempt, { child, n, package: pkg, path }))
-      .find({ child, n, package: pkg, path, stage });
-  });
+      return r
+        .match(member, { child, n, package: pkg, path, stage })
+        .where(r.not(f.Attempt, { child, n, package: pkg, path }))
+        .find({ child, n, package: pkg, path, stage });
+    })
+    .rule((r) => {
+      const item = r.param("item", ItemRef);
+      const member = sittingMember.bind({
+        item,
+        sittings: r.relation("sittings", sittingHeading),
+      });
+      const { child, stage, package: pkg, path, n } = v(member, "unlimitedResponse");
+      const { path: test } = v(f.TestSession, "unlimitedTest");
+
+      return r
+        .match(member, { child, n, package: pkg, path, stage })
+        .match(f.TestSession, { child, package: pkg, path: test, stage })
+        .match(f.UnlimitedMember, { item, package: pkg, path: test })
+        .find({ child, n, package: pkg, path, stage });
+    });
 
   /**
    * Each of the call's sittings with its standing after the call ({@link sittingStandingOf}): the
@@ -3496,8 +3516,11 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
    * The attempt an answer and a skip in an individual part record, which the delivery level's laws
    * hold inside a candidate session and in time; and, where the candidate moves on, the member
    * `next` names presented, at most one row. Every row only where the member's response admission
-   * gives no reason (QTI 3.0.1 §7.19.7, tier (a) whatever validate-responses says, which a
-   * delivered test sets false), so a refused answer or skip writes nothing.
+   * gives no reason (QTI 3.0.1 §7.19.7: tier (a) whatever validate-responses says, and tier (b)
+   * where its item ref's own control sets it true, a `ValidatedMember`: "the candidates are not
+   * allowed to submit the item until they have provided valid responses for all interactions",
+   * Table 7.19.7), so a refused answer or skip writes nothing. Navigation, a suspension and the end
+   * are no candidate's submission, and no admission holds them back (§2.2.4).
    */
   const attemptAndMove = answerSnapshot
     .insert(
@@ -3576,8 +3599,8 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
    * submitted at its default (Table 7.19.6: "all response variables are submitted with their
    * default value or are NULL"), which `DefaultSubmission` records; its response processing, which
    * starts the responses at their defaults, is the grader's statement, sequenced after it. Its
-   * admission judges no posted value, so it refuses only what validate-responses needs, which a
-   * delivered test sets false.
+   * admission judges no posted value, so it refuses only what validate-responses needs, which only
+   * a validated member's item ref sets (`ValidatedMember`).
    */
   const skipTestItem = attemptAndMove.insert(
     f.DefaultSubmission,
