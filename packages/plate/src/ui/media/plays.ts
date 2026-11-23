@@ -46,7 +46,7 @@ export interface Plays {
 export type Seen = "ended" | "pause" | "play" | "rewound";
 
 /**
- * What one step leaves, and what the island does about it: `count` posts the new count, `refuse`
+ * What one step leaves, and what the island does about it: `count` writes the new count, `refuse`
  * pauses the media and says why, `none` does nothing.
  */
 export interface Stepped {
@@ -127,18 +127,14 @@ export const rewound = (from: number, to: number, duration: number): boolean => 
 };
 
 /**
- * A count, as plate's lexical form of an `integer` writes one.
- */
-const digits = /^[0-9]+$/u;
-
-/**
- * Read the count a response posts: its one text, a count of plays.
+ * Read the count of plays a response holds: its one integer, a count of plays.
  *
- * @param texts The response's texts, as `useResponse` gives them.
- * @returns The count, 0 when the response posts none.
+ * @param values The response's integers, as `useResponse` gives them.
+ * @returns The count, 0 when the response holds none, or holds a negative integer, which is no
+ *   count of plays.
  */
-export const countIn = (texts: readonly string[]): number => {
-  const [text] = texts;
+export const countIn = (values: readonly bigint[]): number => {
+  const [count] = values;
 
-  return text !== undefined && digits.test(text) ? Number(text) : 0;
+  return count !== undefined && count >= 0n ? Number(count) : 0;
 };

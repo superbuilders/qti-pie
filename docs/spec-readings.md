@@ -4170,12 +4170,12 @@ C2: the oracle's own reader.)
      choices selected" (2.4.1.1, 5.30), and of an End Attempt's response "The default value of the response variable is
      always ignored" (2.4.5, 5.45). So plate's redaction keeps a response's default, the one its template processing set
      else its declared one, where the first interaction the page shows that binds it starts at it (`bindingsShown`,
-     `#plate/redact/walk.ts`), and `postings` gives the entries it posts (`Posting.start`), which a host's `<Responses>`
-     starts a fresh attempt from: the island shows the default and the form posts it until the candidate changes it. A
-     Choice and an End Attempt post nothing, so an attempt they end untouched leaves the Choice's response NULL and sets
-     the End Attempt's to false. Restored values win: a host that holds a saved selection or a record's values starts
-     from those alone, whole, so a default the candidate cleared stays cleared. A posted default replaces the response's
-     value as any posted value does, so it is scored once. This binds plate, which delivers; pantry stores a
+     `#plate/redact/walk.ts`), and `startingResponses` (`#plate/starting.ts`) starts it there, which a host's
+     `<Responses>` starts a fresh attempt from: the island shows the default and the item posts it until the candidate
+     changes it. A Choice starts NULL and an End Attempt false, so an attempt they end untouched leaves the Choice's
+     response NULL and the End Attempt's false. Restored values win: a host that holds a saved selection or a record's
+     values lays those over the start, so a default the candidate cleared stays cleared. A posted default replaces the
+     response's value as any posted value does, so it is scored once. This binds plate, which delivers; pantry stores a
      `qti-default-value` as written. This is a case of documents in conflict within the information model: it follows
      2.4.1.1 and 2.4.5 for Choice and End Attempt, and 2.2.2.2 with the kinds' own texts for every other kind. (Decided
      2026-11-14 by the operator's ruling on lane R-DEFAULT: Choice by its own rule, as End Attempt.)
@@ -4318,7 +4318,7 @@ C2: the oracle's own reader.)
      has 2. `nsf` counts from the first non-zero digit to the last digit written, trailing zeros included, so `100` and
      `1.50` each have 3. A zero value has no non-zero digit, and its `nsf` is its digits after the point, at least one:
      `0` has 1 and `0.000` has 3. Text that is no decimal number, `INF` and `NaN` among it, gives `stringValue` alone
-     (`decode` in `#plate/form/encoding.ts`). This binds plate alone: pantry stores no response. It accepts and refuses
+     (`readRecord` in `#plate/model/typed-text.ts`). This binds plate alone: pantry stores no response. It accepts and refuses
      nothing; a response processing that reads `nsf` or `ndp` scores by these counts. This is not a case of documents in
      conflict. (Decided 2026-11-14 with the plate core survey's CODEC#18, replacing the form codec's "G-R4, pending".)
 
@@ -4591,8 +4591,8 @@ C2: the oracle's own reader.)
      response. In other words, all response variables are submitted with their default value or are NULL" (7.19.6,
      `allow-skipping`). A 0 that no play reported would make an untouched Media item one the candidate responded to. So
      plate's Media island posts nothing until the first counted play (`#plate/ui/media/media.tsx`), and the Media module
-     gives no `absentValue` (`#plate/interactions/media.ts`), so `decode` reads no entry as NULL, and response
-     processing reads NULL. Validation is apart: reading 186 judges `min-plays` with NULL as no play, so under
+     gives no `absentValue` (`#plate/interactions/media.ts`), so its response starts NULL (`startingResponses`), and
+     response processing reads NULL. Validation is apart: reading 186 judges `min-plays` with NULL as no play, so under
      `validateResponses` a NULL response is still refused when `min-plays` is above 0. It moves no verdict and no score:
      plate already reads so. This binds plate alone: pantry stores no response. This is not a case of documents in
      conflict. (Decided 2026-11-15 by lane R2-MODEL, survey row INT#33, which asked whether a never-played Media's

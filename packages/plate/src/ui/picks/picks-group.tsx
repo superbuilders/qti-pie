@@ -20,11 +20,12 @@ import { createContext, use, useEffect, useState } from "react";
 import type { FocusEventHandler, ReactNode } from "react";
 import { flag } from "#plate/ui/attributes.ts";
 import type { DataRoot, Named } from "#plate/ui/attributes.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { PickOutsidePicksGroup } from "#plate/ui/defects.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import { useEliminated } from "#plate/ui/picks/eliminated.tsx";
 import type { Picks } from "#plate/interactions/picks.ts";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { identifierSingles, useResponse } from "#plate/ui/responses.tsx";
 
 /**
  * The root slot of each kind that picks through a {@link PicksGroup}; its refusal's part is the
@@ -99,7 +100,7 @@ export const usePicks = (): PicksValue => {
  * can always take one back. An option the host has eliminated (`Eliminated`) is disabled instead,
  * and described by `eliminated`: neither a press nor the arrow keys pick it. The live regions are
  * prepared on mount when the group has a limit, since some screen readers read only a region that
- * was there before its text changed. A response of several posts each picked identifier once, in
+ * was there before its text changed. A response of several holds each picked identifier once, in
  * the order the group gives them, which a bag does not read.
  *
  * @param props The group.
@@ -110,7 +111,7 @@ export const usePicks = (): PicksValue => {
  *   limit: plate's catalog's, or the author's `data-max-selections-message`.
  * @param props.naming The attributes that name the group.
  * @param props.picks How many options the child picks.
- * @param props.response The entry name the response posts under.
+ * @param props.response The response, as its declaration types it: an identifier response.
  * @param props.root The root's attributes ({@link PicksRoot}).
  * @returns The group, bound to the response.
  * @see https://ui-sdk.dev/docs/react/components/radio
@@ -132,11 +133,11 @@ export const PicksGroup = ({
   limit: string;
   naming: Named;
   picks: Picks;
-  response: string;
+  response: Declared<"identifier">;
   root: PicksRoot;
 }>) => {
-  const [texts, set] = useResponse(response);
-  const struck = useEliminated(response);
+  const [texts, set] = useResponse(response, identifierSingles);
+  const struck = useEliminated(response.identifier);
   const [refusal, setRefusal] = useState<string>();
   const limited = picks.kind === "at-most";
 

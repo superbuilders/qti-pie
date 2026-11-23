@@ -51,9 +51,9 @@ export const unorderedPairsOf = (singles: readonly Single[]): readonly Unordered
   singles.flatMap((single) => (single.baseType === "pair" ? [single.value] : []));
 
 /**
- * Write a pair in plate's lexical form of a `directedPair`, as `format` in
- * `#plate/model/values.ts` writes one: the chip, one space, the target. An island posts it, the
- * server's decode reads it back to the same pair, and two pairs with one text are one pair.
+ * Write a pair in plate's lexical form of a `directedPair`, as `format` in `#plate/model/values.ts`
+ * writes one: the chip, one space, the target, which a review keys and shows a placement by, and
+ * two pairs with one text are one pair.
  *
  * @param pair The pair.
  * @returns Its lexical form.

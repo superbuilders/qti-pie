@@ -14,8 +14,9 @@
  * choice may pair with, any when absent.
  *
  * {@link matchModule}'s `redact` gives the page each set in its presented order, each choice with
- * its `match-group` and `match-max`, and the pairs to show, each as posted, `"<source> <target>"`;
- * the server shell renders it (`#plate/ui/item/interactions/`).
+ * its `match-group` and `match-max`, the declaration of the `directedPair` response its island
+ * writes, and the pairs to show, each a source and its target; the server shell renders it
+ * (`#plate/ui/item/interactions/`).
  *
  * @module
  */
@@ -48,6 +49,7 @@ import type {
   RedactedLevel,
   ReferencingChoice,
 } from "#plate/model/item.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { presentedOrder } from "#plate/shuffle.ts";
 
 /**
@@ -180,7 +182,8 @@ interface MatchPayloadChoice extends ReferencingChoice {
 
 /**
  * A Match as the page may know it: its Prompt, its sources and targets each in presented order,
- * the name its Controls post under, and the pairs to show. It holds no correct response.
+ * the declaration of the response its island writes, and the pairs to show. It holds no correct
+ * response.
  */
 interface MatchPayload {
   readonly ariaLabel: Option.Option<string>;
@@ -189,12 +192,12 @@ interface MatchPayload {
    * The author's `class`, as written, none when absent.
    */
   readonly class: Option.Option<string>;
-  readonly firstColumnHeader: Option.Option<string>;
   /**
-   * The name every Control posts under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: a `directedPair` response of the
+   * bound cardinality.
    */
-  readonly formName: string;
+  readonly declared: Declared<"directedPair", "multiple" | "single">;
+  readonly firstColumnHeader: Option.Option<string>;
   /**
    * `max-associations`, which the page holds the response to; 0 is no limit.
    */
@@ -422,8 +425,12 @@ export const matchModule: MatchModule = {
     ariaLabel: interaction.ariaLabel,
     ariaLabelledby: interaction.ariaLabelledby,
     class: interaction.class,
+    declared: {
+      baseType: "directedPair",
+      cardinality: interaction.cardinality,
+      identifier: interaction.response,
+    },
     firstColumnHeader: interaction.firstColumnHeader,
-    formName: kit.formName(interaction.response),
     maxAssociations: interaction.maxAssociations,
     pairs: pairsOf(kit.shown(interaction.response)),
     prompt: interaction.prompt,

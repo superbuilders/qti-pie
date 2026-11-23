@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { pointValue, responding } from "#specimen/posted.ts";
 import { mappedPoints } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -79,13 +80,20 @@ const placesOf = (settings: SelectPointSettings): Places => {
 };
 
 /**
- * The response a set of points posts.
+ * The response a set of points gives, in the cardinality the points bind: `single` for one point.
  *
+ * @param settings The settings.
  * @param placed The areas whose centres the points are at.
- * @returns One entry per point.
+ * @returns The response, none for no point.
  */
-const posted = (placed: readonly Area[]): Answered["posted"] =>
-  placed.map((area) => [response, pointText(area.centre)] as const);
+const posted = (settings: SelectPointSettings, placed: readonly Area[]): Answered["posted"] =>
+  responding(
+    response,
+    pointValue(
+      settings.points === "one" ? "single" : "multiple",
+      placed.map((area) => area.centre),
+    ),
+  );
 
 export const selectPoint = kind("select-point", {
   answers: (settings: SelectPointSettings) => {
@@ -94,13 +102,13 @@ export const selectPoint = kind("select-point", {
     const partial: readonly Answered[] =
       half === 0
         ? []
-        : [{ answer: "partial", posted: posted(targets.slice(0, half)), score: half }];
+        : [{ answer: "partial", posted: posted(settings, targets.slice(0, half)), score: half }];
 
     return [
-      { answer: "right", posted: posted(targets), score: targets.length },
+      { answer: "right", posted: posted(settings, targets), score: targets.length },
       ...partial,
-      { answer: "wrong", posted: posted([decoy]), score: settings.miss },
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "wrong", posted: posted(settings, [decoy]), score: settings.miss },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

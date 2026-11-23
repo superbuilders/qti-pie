@@ -21,10 +21,11 @@ import {
   SelectValue,
 } from "@ui-sdk/react/select";
 import type { ReactNode } from "react";
+import type { Declared } from "#plate/model/values.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { inlineChoiceKeys } from "#plate/ui/inline-choice/labels.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { identifierSingles, useResponse } from "#plate/ui/responses.tsx";
 
 /**
  * How an Inline Choice's trigger is named: by its `qti-label`'s server-rendered content, which UI
@@ -58,9 +59,9 @@ export interface InlineChoiceProps extends Pick<Authored<Named>, "root"> {
   }[];
   readonly labels: Labels<typeof inlineChoiceKeys>;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the island writes, as its declaration types it: a single `identifier` response.
    */
-  readonly name: string;
+  readonly response: Declared<"identifier", "single">;
   /**
    * `required`: false when the author wrote none, the XSD's default (5.74.2). The trigger says it
    * to assistive technology; the server judges whether a submitted response is valid, so a child
@@ -90,31 +91,30 @@ export interface InlineChoiceProps extends Pick<Authored<Named>, "root"> {
  *   so it posts nothing, and UI SDK hides it with an inline `style`, which the page's content
  *   security policy refuses, so the stylesheet hides that slot too.
  *
- * A pick writes the response, one identifier; nothing picked posts nothing. UI SDK's own
+ * A pick writes the response, one identifier; nothing picked is NULL. UI SDK's own
  * `required` is not set, as it would stop the host's form from posting; `aria-required` says it
  * instead.
  *
  * Two of UI SDK's defaults are set otherwise:
  *
  * - **A form reset changes nothing.** The response is the host's, posted by `<Responses>`'s hidden
- *   inputs, which a reset leaves as they are. React resets a form once its action returns, a
- *   refused or failed post included, and UI SDK then asks for its default value, NULL (reason
- *   `reset`). Taken, that request erased the child's pick, the select and the post both; left
- *   unanswered, it left UI SDK warning that the value stayed. The island refuses it, so the select
- *   keeps showing what the host holds.
+ *   field, which a reset leaves as it is. React resets a form once its action returns, a refused or
+ *   failed post included, and UI SDK then asks for its default value, NULL (reason `reset`). Taken,
+ *   that request erased the child's pick, the select and the post both; left unanswered, it left UI
+ *   SDK warning that the value stayed. The island refuses it, so the select keeps showing what the
+ *   host holds.
  * - **A press outside the open list reaches what it hits** (`modal={false}`): the list closes and the
  *   press acts, so one press of the host's Check answer both closes the list and submits. UI SDK's
  *   default, `"pointer"`, swallows that press, which only closed the list.
  *
- * @param props The interaction, its response's entry name and its labels
- *   ({@link InlineChoiceProps}).
+ * @param props The interaction, its response and its labels ({@link InlineChoiceProps}).
  * @returns The Inline Choice, its select bound to the response.
  * @see https://ui-sdk.dev/docs/react/components/select
  * @see https://react.dev/reference/react-dom/components/form
  */
 export const InlineChoice = (props: InlineChoiceProps) => {
-  const { choices, labels, name, required, root, trigger } = props;
-  const [texts, set] = useResponse(name);
+  const { choices, labels, required, response, root, trigger } = props;
+  const [texts, set] = useResponse(response, identifierSingles);
   const items = choices.map((choice) => ({ label: choice.label, value: choice.identifier }));
 
   return (

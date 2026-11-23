@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { identifierValue } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
 import { counted } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -53,24 +54,33 @@ const idOf = (menu: number, at: number): string => `M${String(menu + 1)}V${Strin
 const rightOf = (menu: number): number => (menu + 1) % offered;
 
 /**
- * What each menu posts when the first `rightMenus` take their right value and the rest take a
- * wrong one or none.
+ * What the menus give when the first `rightMenus` take their right value and the rest take a wrong
+ * one or none: each menu that takes one, its response a `single` identifier.
  *
  * @param menus How many menus there are.
  * @param rightMenus How many, from the first, take their right value.
  * @param rest What the others take.
- * @returns The posted entries.
+ * @returns The responses, none for a menu that takes nothing.
  */
 const posted = (menus: number, rightMenus: number, rest: "none" | "wrong"): Answered["posted"] =>
-  Arr.makeBy(menus, (menu) => menu).flatMap((menu) => {
-    if (menu < rightMenus) {
-      return [[responseOf(menu), idOf(menu, rightOf(menu))] as const];
-    }
+  Object.fromEntries(
+    Arr.makeBy(menus, (menu) => menu).flatMap((menu) => {
+      if (menu < rightMenus) {
+        return [
+          [responseOf(menu), identifierValue("single", [idOf(menu, rightOf(menu))])] as const,
+        ];
+      }
 
-    return rest === "wrong"
-      ? [[responseOf(menu), idOf(menu, (rightOf(menu) + 1) % offered)] as const]
-      : [];
-  });
+      return rest === "wrong"
+        ? [
+            [
+              responseOf(menu),
+              identifierValue("single", [idOf(menu, (rightOf(menu) + 1) % offered)]),
+            ] as const,
+          ]
+        : [];
+    }),
+  );
 
 /**
  * Inline Choice, as the record of kinds holds it.
@@ -91,7 +101,7 @@ export const inlineChoice = kind("inline-choice", {
       },
       ...partial,
       { answer: "wrong", posted: posted(settings.menus, 0, "wrong"), score: 0 },
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: { menus: counted("Menus", 1, 4), values: length },

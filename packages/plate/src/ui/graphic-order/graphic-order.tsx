@@ -44,6 +44,7 @@ import { Badge } from "#plate/ui/graphic-order/badge.tsx";
 import type { GraphicOrderLabels } from "#plate/ui/graphic-order/labels.ts";
 import { tapStep } from "#plate/ui/graphic-order/taps.ts";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { GraphicStage, useGraphicStage } from "#plate/ui/graphic/stage.tsx";
 import type { StageArea, StagePress } from "#plate/ui/graphic/stage.tsx";
 import { fillLabel } from "#plate/ui/labels.ts";
@@ -105,9 +106,10 @@ export interface GraphicOrderProps extends Authored<NameAttributes> {
    */
   readonly labels: GraphicOrderLabels;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the island writes, as its declaration types it: an `ordered` `identifier`
+   * response.
    */
-  readonly name: string;
+  readonly response: Declared<"identifier", "ordered">;
   /**
    * How many positions the Graphic Order shows, which the server derives from `max-choices` and
    * `min-choices` as it does an Order's (plate's reading 18): with a `min-choices`, the
@@ -204,13 +206,13 @@ const Badges = (props: {
  * list, and the island a tap on the image, `placed` for an area put in, `returned` for one taken
  * out, and `totalReached` for one refused (WCAG 4.1.3).
  *
- * @param props The interaction, its response's entry name and its labels
- *   ({@link GraphicOrderProps}).
+ * @param props The interaction, its response and its labels ({@link GraphicOrderProps}).
  * @returns The Graphic Order, its image and its positions bound to the response.
  */
 export const GraphicOrder = (props: GraphicOrderProps) => {
-  const { hotspots, image, labels, name, naming, positions, prompt, required, root, size } = props;
-  const sequence = useSequence(name, hotspots, positions, required);
+  const { hotspots, image, labels, naming, positions, prompt, required, response, root, size } =
+    props;
+  const sequence = useSequence(response, hotspots, positions, required);
   const { placements } = sequence;
   const [focused, setFocused] = useState<string>();
   const [refusal, setRefusal] = useState<string>();

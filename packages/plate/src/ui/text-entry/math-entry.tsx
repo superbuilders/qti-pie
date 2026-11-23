@@ -21,7 +21,7 @@ import { useEffect, useEffectEvent, useRef } from "react";
 import { fieldSettings, keyboardLayout, setUpField } from "#plate/math-entry/field.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import { asTyped, useBoxes } from "#plate/ui/typed.ts";
-import type { BoxCounts, TypedReading } from "#plate/ui/typed.ts";
+import type { BoxCounts, TypedDeclared, TypedReading } from "#plate/ui/typed.ts";
 
 /**
  * What the server gives a math entry's island: the Text Entry's binding and names. It takes no
@@ -41,9 +41,9 @@ export interface MathEntryProps extends Authored<Named> {
    */
   readonly baseType: "float" | "integer" | "string";
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the field writes, as its declaration types it.
    */
-  readonly name: string;
+  readonly response: TypedDeclared;
 }
 
 /**
@@ -64,7 +64,7 @@ interface FieldHooks {
 /**
  * Make the field in its place once MathLive's module has loaded, unless the island has gone by
  * then: set it up as plate's field, holding the response's text, named as a Text Entry's input
- * is, and posting its LaTeX on every change. The field goes with the island.
+ * is, and writing its LaTeX on every change. The field goes with the island.
  *
  * @param place The span the field stands in.
  * @param gone Aborted when the island unmounts.
@@ -125,21 +125,22 @@ const makeField = async (
  *   `aria-label` or `aria-labelledby`), keyboard-operable, its speech and live region MathLive's
  *   own, with the toggle that shows its virtual keyboard.
  *
- * Every change writes the response, `field.value`, MathLive's LaTeX, as typed: an empty field posts
- * nothing. A response that changes from outside the field, such as a host's restore, is written
- * into it.
+ * Every change writes the field's LaTeX, `field.value`, as typed, and the response read from it: an
+ * empty field is no answer. A response that changes from outside the field, such as a host's
+ * restore, is written into it.
  *
- * @param props The interaction, its response's entry name and its names ({@link MathEntryProps}).
+ * @param props The interaction, its response and its names ({@link MathEntryProps}).
  * @returns The math entry, its field bound to the response.
  */
 export const MathEntry = (props: MathEntryProps) => {
-  const { base, baseType, name, naming, root } = props;
-  const reading: TypedReading = { base, baseType, blankIsEmpty: false };
+  const { base, baseType, naming, response, root } = props;
+  const reading: TypedReading = { base, baseType, blankIsEmpty: true };
   const [[box], write] = useBoxes({
     counts: oneBox,
-    name,
+    declared: response,
     patternMask: undefined,
     reading,
+    typer: undefined,
     written: asTyped,
   });
   const place = useRef<HTMLSpanElement>(null);

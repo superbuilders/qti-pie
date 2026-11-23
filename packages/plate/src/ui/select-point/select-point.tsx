@@ -15,9 +15,9 @@
  * (`#plate/ui/select-point/primitive.ts`) takes every tap, drag and key, and its steps
  * (`#plate/ui/select-point/points.ts`) hold each point on the image.
  *
- * A point posts as one entry under the response's name, its two coordinates separated by a space,
- * point by point. An untouched Select Point posts nothing, the response stays NULL, "the candidate
- * has not offered a response" (5.115), until the child marks a point.
+ * Each point is one `point` value of the response, its two coordinates, point by point. An
+ * untouched Select Point holds none, the response stays NULL, "the candidate has not offered a
+ * response" (5.115), until the child marks a point.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info/index.html#Data_SelectPointInteraction
@@ -27,6 +27,7 @@ import type { PartProps } from "@ui-sdk/react/primitive";
 import { useId, useMemo } from "react";
 import type { ReactNode } from "react";
 import type { AuthoredSize, ImageSize } from "#plate/interactions/image-size.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { adapted } from "#plate/ui/adapted.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 
@@ -36,10 +37,10 @@ import type { StagePress, StageRole } from "#plate/ui/graphic/stage.tsx";
 import { fillLabel } from "#plate/ui/labels.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { pointSingles, useResponse } from "#plate/ui/responses.tsx";
 import type { SelectPointLabels } from "#plate/ui/select-point/labels.ts";
 import { Cross, Marker, selectPointScaleOf } from "#plate/ui/select-point/marker.tsx";
-import { pointsOf, textsOf } from "#plate/ui/select-point/points.ts";
+import { pointsOf, valuesOf } from "#plate/ui/select-point/points.ts";
 import type { Picks } from "#plate/interactions/picks.ts";
 import type { Point } from "#plate/ui/select-point/points.ts";
 import { selectPoint } from "#plate/ui/select-point/primitive.ts";
@@ -64,10 +65,10 @@ export interface SelectPointProps extends Authored<NameAttributes> {
    */
   readonly labels: SelectPointLabels;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance: one
-   * entry per point.
+   * The response the points write, as its declaration types it: a `point` response, one value per
+   * point.
    */
-  readonly name: string;
+  readonly response: Declared<"point", "multiple" | "single">;
   /**
    * How many points the child marks ({@link Picks}), which the server reads from the response's
    * cardinality and `max-choices`. `min-choices` is not a prop: it decides whether a submitted
@@ -218,19 +219,18 @@ const Board = (props: {
  * The overlay the marks stand in is `aria-hidden`: the list says everything it shows, and the
  * primitive announces each step and refusal with the `labels`.
  *
- * @param props The interaction, its response's entry name and its labels
- *   ({@link SelectPointProps}).
+ * @param props The interaction, its response and its labels ({@link SelectPointProps}).
  * @returns The Select Point, its points bound to the response.
  */
 export const SelectPoint = (props: SelectPointProps) => {
-  const { image, labels, name, naming, picks, prompt, root, size } = props;
-  const [texts, set] = useResponse(name);
-  const points = useMemo(() => pointsOf(texts), [texts]);
+  const { image, labels, naming, picks, prompt, response, root, size } = props;
+  const [values, set] = useResponse(response, pointSingles);
+  const points = useMemo(() => pointsOf(values), [values]);
   const keysId = useId();
   const handle = usePrimitive(primitive, {
     labels,
     onPointsChange: (next) => {
-      set(textsOf(next));
+      set(valuesOf(next));
     },
     picks,
     points,

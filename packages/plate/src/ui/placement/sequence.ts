@@ -16,9 +16,10 @@
  * @module
  */
 import { useMemo, useState } from "react";
+import type { Declared } from "#plate/model/values.ts";
 import type { Sequence, SequenceBoard } from "#plate/placement/machine.ts";
 import { listPlacements, listResponse } from "#plate/placement/order-list.ts";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { identifierSingles, useResponse } from "#plate/ui/responses.tsx";
 
 /**
  * Lay a response out on the positions: its identifiers in the first positions, in order, and the
@@ -92,7 +93,7 @@ export interface SequenceRoot {
  * or fills a position short of the required count does, writes nothing, so the host sees only a
  * change of the answer.
  *
- * @param name The entry name the response posts under.
+ * @param response The response, as its declaration types it: an `ordered` `identifier` response.
  * @param chips The choices or hotspots a child orders, in the order the page shows them, each by
  *   its `identifier`.
  * @param positions How many positions the order shows.
@@ -101,12 +102,12 @@ export interface SequenceRoot {
  * @returns The root's options.
  */
 export const useSequence = (
-  name: string,
+  response: Declared<"identifier", "ordered">,
   chips: readonly { readonly identifier: string }[],
   positions: number,
   required: number,
 ): SequenceRoot => {
-  const [texts, set] = useResponse(name);
+  const [texts, set] = useResponse(response, identifierSingles);
   const [layout, setLayout] = useState(() => sequenceOf(texts, positions));
   const board = useMemo(
     (): SequenceBoard => ({ chips: chips.map(({ identifier }) => identifier), kind: "sequence" }),
@@ -137,15 +138,15 @@ export const useSequence = (
  * ({@link listPlacements}); each move that reorders them posts the full order, and none other
  * posts anything ({@link listResponse}).
  *
- * @param name The entry name the response posts under.
+ * @param response The response, as its declaration types it: an `ordered` `identifier` response.
  * @param chips The choices, in their presented order, each by its `identifier`.
  * @returns The root's options.
  */
 export const useOrderList = (
-  name: string,
+  response: Declared<"identifier", "ordered">,
   chips: readonly { readonly identifier: string }[],
 ): SequenceRoot => {
-  const [texts, set] = useResponse(name);
+  const [texts, set] = useResponse(response, identifierSingles);
   const presented = useMemo(() => chips.map(({ identifier }) => identifier), [chips]);
   const board = useMemo((): SequenceBoard => ({ chips: presented, kind: "sequence" }), [presented]);
   const placements = useMemo(() => listPlacements(texts, presented), [presented, texts]);

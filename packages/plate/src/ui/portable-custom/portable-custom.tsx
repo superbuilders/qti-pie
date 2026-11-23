@@ -12,12 +12,13 @@
  *   (`#plate/ui/portable-custom/response.ts`), so a PCI the child comes back to can show the
  *   answer. Its template and context variables are empty objects: the payload node carries their
  *   identifiers alone. It is handed no state: a stored state is the server's to restore.
- * - **What it posts.** Each change the frame relays, the PCI's `qti-interaction-changed` or its
+ * - **What it writes.** Each change the frame relays, the PCI's `qti-interaction-changed` or its
  *   `getResponse()` after each input event the frame sees, is read by the JSON binding against the
- *   response's declaration and posted as plate's lexical texts through `useResponse`. JSON that
- *   does not fit the declaration is no valid response, as the PCI contract has `getResponse()` give
- *   none for one, so the response is NULL. A value the host sets from outside, such as a refused
- *   save set back, is not sent to a running PCI: it reaches the PCI when its frame is next made.
+ *   response's declaration and held whole as the response's value through `useResponseValue`, a
+ *   record as the PCI gives it. JSON that does not fit the declaration is no valid response, as the
+ *   PCI contract has `getResponse()` give none for one, so the response is NULL. A value the host
+ *   sets from outside, such as a refused save set back, is not sent to a running PCI: it reaches
+ *   the PCI when its frame is next made.
  * - **Lazy.** The frame is made only once the island has hydrated, as no message could be trusted
  *   before, and loads lazily, when the child nears it; until the PCI is ready the island says it is
  *   loading. The shell renders the island inside a Suspense boundary of its own.
@@ -57,8 +58,12 @@
 import { Result } from "effect";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { nullOf, nullRecord } from "#plate/model/values.ts";
+import type { ResponseValue } from "#plate/model/values.ts";
+import { toPciJson } from "#plate/pci/json.ts";
 import type { PciJsonRefused } from "#plate/pci/json.ts";
 import { flag } from "#plate/ui/attributes.ts";
+import { sameResponse } from "#plate/held.ts";
 import type { Authored, ClassRoot } from "#plate/ui/attributes.ts";
 import type { Group } from "#plate/ui/item/interactions/group.ts";
 import { usePciFailed } from "#plate/ui/portable-custom/failures.tsx";
@@ -66,11 +71,10 @@ import { hostFrame } from "#plate/ui/portable-custom/host.ts";
 import type { FrameFacts } from "#plate/ui/portable-custom/host.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import type { portableCustomKeys } from "#plate/ui/portable-custom/labels.ts";
-import { boundOf } from "#plate/ui/portable-custom/response.ts";
-import type { PostedAs } from "#plate/ui/portable-custom/response.ts";
+import type { PciDeclared } from "#plate/ui/portable-custom/response.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { useResponseValue } from "#plate/ui/responses.tsx";
 import { asciiTokens, collapsedText } from "#plate/model/whitespace.ts";
 
 /**
@@ -91,13 +95,9 @@ export interface PortableCustomProps extends Authored<Group, ClassRoot> {
    */
   readonly markup: ReactNode;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the PCI writes, as its declaration types it.
    */
-  readonly name: string;
-  /**
-   * How the response posts, from its declaration.
-   */
-  readonly posted: PostedAs;
+  readonly posted: PciDeclared;
   /**
    * The `qti-prompt`, server-rendered under its scoped id, which `naming` then names the group by;
    * undefined when the interaction has none.
@@ -139,14 +139,13 @@ const markupSelector = ':scope > [data-slot="plate-portable-custom-markup"]';
 const templateSelector = ':scope > [data-slot="plate-portable-custom-template"]';
 
 /**
- * Tell whether two lists of texts are the same, text for text in order.
+ * Give the NULL value of a PCI's response, of its declaration's type.
  *
- * @param left One list.
- * @param right The other.
- * @returns Whether they hold the same texts in the same order.
+ * @param declared The response's declaration.
+ * @returns NULL: the NULL record, or no values.
  */
-const sameTexts = (left: readonly string[], right: readonly string[]): boolean =>
-  left.length === right.length && left.every((text, index) => text === right[index]);
+const nullOfDeclared = (declared: PciDeclared): ResponseValue =>
+  declared.cardinality === "record" ? nullRecord : nullOf(declared.baseType, declared.cardinality);
 
 /**
  * Give the text of the elements an `aria-labelledby` names, in order, as one line.
@@ -177,7 +176,7 @@ const inherited = (element: Element, name: "dir" | "lang"): string =>
  * Render a Portable Custom Interaction for the child to answer in its frame, its response bound
  * to the item's `<Responses>`.
  *
- * @param props The interaction, where it runs, its response's entry name and its labels
+ * @param props The interaction, where it runs, its response and its labels
  *   ({@link PortableCustomProps}).
  * @returns The island: the prompt, the frame's stage, its status and the hidden source.
  */
@@ -186,7 +185,6 @@ export const PortableCustom = (props: PortableCustomProps) => {
     frame,
     labels,
     markup,
-    name,
     naming,
     posted,
     prompt,
@@ -196,7 +194,7 @@ export const PortableCustom = (props: PortableCustomProps) => {
     templates,
     typeIdentifier,
   } = props;
-  const [texts, set] = useResponse(name);
+  const [value, set] = useResponseValue(posted);
   const failed = usePciFailed();
   const [phase, setPhase] = useState<Phase>("loading");
   const stage = useRef<HTMLDivElement>(null);
@@ -208,22 +206,22 @@ export const PortableCustom = (props: PortableCustomProps) => {
   >;
 
   /**
-   * Give the response's value as the PCI is bound to it, from the texts the response holds now.
+   * Give the response's value as the PCI is bound to it, the value the response holds now.
    *
    * @returns The value's JSON.
    */
-  const bound = useEffectEvent(() => boundOf(texts, posted));
+  const bound = useEffectEvent(() => toPciJson(value));
 
   /**
-   * Post the texts the frame's change reads as, NULL for JSON that does not fit, unless they are
-   * the texts the response holds.
+   * Hold the value the frame's change reads as, NULL for JSON that does not fit, unless it is the
+   * value the response holds.
    *
-   * @param read The texts, or why the JSON does not fit.
+   * @param read The value, or why the JSON does not fit.
    */
-  const respond = useEffectEvent((read: Result.Result<readonly string[], PciJsonRefused>) => {
-    const next = Result.getOrElse(read, () => []);
+  const respond = useEffectEvent((read: Result.Result<ResponseValue, PciJsonRefused>) => {
+    const next = Result.getOrElse(read, (): ResponseValue => nullOfDeclared(posted));
 
-    if (!sameTexts(next, texts)) {
+    if (!sameResponse(next, value)) {
       set(next);
     }
   });
@@ -304,7 +302,7 @@ export const PortableCustom = (props: PortableCustomProps) => {
 
   // The island makes its frame once: the server shell keys it by what the frame runs, so a change of
   // that mounts a new island and frame, and a render that changes nothing of it, the response's
-  // texts among them, keeps the running PCI.
+  // value among them, keeps the running PCI.
   useEffect((): (() => void) | undefined => {
     const at = stage.current;
     const held = source.current;

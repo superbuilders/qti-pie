@@ -526,12 +526,12 @@ export const redactedInteractionsIn = (
   });
 
 /**
- * Give the value an interaction's response takes when the form posted no entry for it, in place
- * of NULL: each node answers through its module's `absentValue` (`InteractionModule` in
- * `#plate/interactions/contract.ts`), and a module that leaves the member unset answers none, so no
- * entry stays NULL for it. `postings`
- * (`#plate/postings.ts`) reads it into the response's posting, so a host that decodes through the
- * postings gets the module's value without naming the kind.
+ * Give the value an interaction's response starts at whatever its default, because no control of
+ * the interaction holds it: each node answers through its module's `absentValue`
+ * (`InteractionModule` in `#plate/interactions/contract.ts`), and a module that leaves the member
+ * unset answers none, so its response starts at its default or NULL. `startingResponses`
+ * (`#plate/starting.ts`) starts the response there, so a host that starts from it gets the module's
+ * value without naming the kind.
  *
  * @param interaction The interaction.
  * @returns The value no entry decodes to, none for NULL.

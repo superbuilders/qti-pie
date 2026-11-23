@@ -7,6 +7,7 @@
 import { Option } from "effect";
 import { Base64 } from "effect/encoding";
 import type { Answered } from "#specimen/answer.ts";
+import { integerValue, responding } from "#specimen/posted.ts";
 import { credited } from "#specimen/credit.ts";
 import { dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -119,12 +120,13 @@ const captions = placed(
 const enough = (settings: MediaSettings): number => Math.max(1, settings.plays.least);
 
 /**
- * The response a count of plays posts.
+ * The response a count of plays gives: a `single` integer.
  *
  * @param count The count.
- * @returns Its one entry.
+ * @returns The response.
  */
-const posted = (count: number): Answered["posted"] => [[response, String(count)]];
+const posted = (count: number): Answered["posted"] =>
+  responding(response, integerValue(BigInt(count)));
 
 /**
  * A Media's player: its markup, and the poster's file for a video.
@@ -181,7 +183,7 @@ export const media = kind("media", {
     return [
       { answer: "right", posted: posted(enough(settings)), score: 1 },
       ...fewer,
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

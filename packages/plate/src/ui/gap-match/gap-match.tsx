@@ -23,12 +23,13 @@
  */
 import { createContext, use, useMemo } from "react";
 import type { ReactNode } from "react";
+import type { Declared } from "#plate/model/values.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import { GapOutsideGapMatch } from "#plate/ui/defects.ts";
 import type { GapMatchLabels } from "#plate/ui/gap-match/labels.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import type { Limit } from "#plate/placement/limit.ts";
-import { placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
+import { directedPairsOf, placementsOf } from "#plate/ui/placement/associable.ts";
 import { chipRuleOf } from "#plate/placement/rules.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 import type { Pairs, PairsBoard } from "#plate/placement/machine.ts";
@@ -43,7 +44,7 @@ import {
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { directedPairSingles, useResponse } from "#plate/ui/responses.tsx";
 
 /**
  * What the server gives a Gap Match's island, as QTI's `qti-gap-match-interaction` and plate's
@@ -84,15 +85,16 @@ export interface GapMatchProps extends Authored<NameAttributes> {
    * `max-associations` (5.57.3): how many pairs the gaps hold in all. The server writes the XSD's
    * default of 1 when the author wrote none, and no limit for 0 (see {@link Limit}). A `single`
    * response needs no prop of its own: QTI binds one only where `max-associations` is 1, so the
-   * island posts at most one pair. `min-associations`, `match-min` and a gap's `required` are not
+   * island writes at most one pair. `min-associations`, `match-min` and a gap's `required` are not
    * props: they decide whether a submitted response is valid (5.57.2, 5.58.6, 5.55.5), which the
    * server judges, and a child is never stopped short of them.
    */
   readonly maxAssociations: Limit;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response, as its declaration types it: a `directedPair` response of `single` or
+   * `multiple` cardinality, each pair a gap text and the gap it fills.
    */
-  readonly name: string;
+  readonly response: Declared<"directedPair", "multiple" | "single">;
   /**
    * The `qti-prompt`, server-rendered under its scoped id, which `naming` names the group by where
    * the prompt names anything; undefined when the interaction has none.
@@ -168,14 +170,23 @@ const boardOf = (
  * `match-group` leaves out, and a gap text already in that gap. The response is written whole on
  * every change.
  *
- * @param props The interaction, its response's entry name and its labels
- *   ({@link GapMatchProps}).
+ * @param props The interaction, its response and its labels ({@link GapMatchProps}).
  * @returns The Gap Match, its placements bound to the response.
  */
 export const GapMatch = (props: GapMatchProps) => {
-  const { caption, children, gapTexts, gaps, labels, maxAssociations, name, naming, prompt, root } =
-    props;
-  const [texts, set] = useResponse(name);
+  const {
+    caption,
+    children,
+    gapTexts,
+    gaps,
+    labels,
+    maxAssociations,
+    naming,
+    prompt,
+    response,
+    root,
+  } = props;
+  const [pairs, set] = useResponse(response, directedPairSingles);
   const board = useMemo(
     () => boardOf(gapTexts, gaps, maxAssociations),
     [gapTexts, gaps, maxAssociations],
@@ -187,7 +198,7 @@ export const GapMatch = (props: GapMatchProps) => {
     }),
     [gapTexts, labels],
   );
-  const placements = useMemo(() => placementsOf(texts), [texts]);
+  const placements = useMemo(() => placementsOf(pairs), [pairs]);
 
   return (
     <div {...naming} {...root} data-slot="plate-gap-match" role="group">
@@ -198,7 +209,7 @@ export const GapMatch = (props: GapMatchProps) => {
           labels={labels}
           placements={placements}
           onPlacementsChange={(next: Pairs) => {
-            set(textsOf(next));
+            set(directedPairsOf(next));
           }}
         >
           <PlacementBank caption={caption}>

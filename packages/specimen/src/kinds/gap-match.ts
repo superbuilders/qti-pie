@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { directedPairValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -107,22 +108,32 @@ const rightPairs = (settings: GapMatchSettings): readonly (readonly [number, num
 };
 
 /**
+ * A pair's identifiers, the choice first.
+ *
+ * @param pair The choice's and the gap's places.
+ * @returns `W<n>` and `G<m>`.
+ */
+const identifiersOf = ([choice, gap]: readonly [number, number]): readonly [string, string] => [
+  choiceOf(choice),
+  gapOf(gap),
+];
+
+/**
  * A pair in its lexical form, the choice first.
  *
  * @param pair The choice's and the gap's places.
  * @returns `W<n> G<m>`.
  */
-const lexical = ([choice, gap]: readonly [number, number]): string =>
-  `${choiceOf(choice)} ${gapOf(gap)}`;
+const lexical = (pair: readonly [number, number]): string => identifiersOf(pair).join(" ");
 
 /**
- * The response a set of pairs posts.
+ * The response a set of pairs gives: a `multiple` of directed pairs.
  *
- * @param pairs The pairs.
- * @returns One entry per pair.
+ * @param made The pairs.
+ * @returns The response, none for no pair.
  */
-const posted = (pairs: readonly (readonly [number, number])[]): Answered["posted"] =>
-  pairs.map((pair) => [response, lexical(pair)] as const);
+const posted = (made: readonly (readonly [number, number])[]): Answered["posted"] =>
+  responding(response, directedPairValue("multiple", made.map(identifiersOf)));
 
 /**
  * Gap Match, as the record of kinds holds it.
@@ -144,7 +155,7 @@ export const gapMatch = kind("gap-match", {
         ),
         score: 0,
       },
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

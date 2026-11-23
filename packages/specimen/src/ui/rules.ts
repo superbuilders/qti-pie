@@ -6,10 +6,10 @@
  * The rules, for every item of a source and every showing (`#specimen/ui/showing.ts`):
  *
  * - R1: the item renders without throwing.
- * - C1: where the item's source describes the shown response as empty, as a generated case does, it
- *   posts what it starts at, the child having changed nothing (a Slider posts its start). Whether a
- *   response it calls right, wrong or partly right is so is `qti-match`'s, which the database
- *   grader judges.
+ * - C1: where the item's source describes the shown response as empty, as a generated case does, each
+ *   response it gives is what the response starts at, the child having changed nothing (a Slider
+ *   gives its start). Whether a response it calls right, wrong or partly right is so is
+ *   `qti-match`'s, which the database grader judges.
  * - I1: every `id` is unique, not empty and holds no white space (HTML, the `id` attribute).
  * - I2: every IDREF the page writes names an id on the page (HTML's and WAI-ARIA's IDREF attributes,
  *   SVG's `url(#id)`): an item stands alone, and names nothing of its host.
@@ -18,8 +18,9 @@
  * - N1: no notice appears but one naming a feature the verdict says plate shows as a notice, or a
  *   Portable Custom Interaction the host gives no facts for, and none more often than the item
  *   holds it.
- * - P1: in answering, the entries the page's form posts decode, under each response's posting, to the
- *   response drawn, NULL to the posting's absent value where it has one.
+ * - P1: in answering, the responses the host's `<Responses>` holds, each drawn at its value, posted
+ *   as a host posts them, as JSON text plate's codec writes (`PostedResponses`,
+ *   `@qti-pie/plate/codec`), decode by the same codec to each response drawn at its value.
  * - M1: a review draws only the marks the shown responses' class allows ({@link marksByClass}), and,
  *   where it withholds the solution, none `missed`.
  * - M2: no page draws a mark but a review; a review that withholds the solution marks only the
@@ -39,13 +40,13 @@
  *   which the stylesheet shows one, so a card stands there once in each band that holds it.
  * - J1: review and solution ship no island but a Media's replay island, which posts nothing. No
  *   client component stands in their element tree but plate's `MediaReplay` in an item that holds a
- *   Media, whose props, as the page receives them (serialized), hold none of the entry names the
- *   item's responses post under, and the page's HTML posts no entry (HTML's entry list): a control
- *   posts only under a name, so an island handed none of the responses' names, on a page with no
- *   control that posts, posts nothing. A review page also stands in no `<Responses>`, so no island
- *   there can write the host's entries. The exception is Bjorn's ruling of 2026-11-18, "replay mode
- *   is fine": a review and a solution play their media through plate's own controls, uncounted and
- *   unlimited, and record nothing; until then J1 allowed no island at all (spec reading 229).
+ *   Media, whose props, as the page receives them (serialized), hold none of the declarations of
+ *   the item's responses, the handle an island writes a response by, and the page's HTML posts no
+ *   entry (HTML's entry list): an island handed no response's declaration writes none, and a page
+ *   with no control that posts posts nothing. A review page also stands in no `<Responses>`, so no
+ *   island there can write the host's state. The exception is Bjorn's ruling of 2026-11-18, "replay
+ *   mode is fine": a review and a solution play their media through plate's own controls, uncounted
+ *   and unlimited, and record nothing; until then J1 allowed no island at all (spec reading 229).
  *
  * The suite grades nothing: plate runs no response processing, so a review shows the responses
  * drawn under the record the attempt starts from, as the host shows a record the QTI database
@@ -58,19 +59,18 @@
  *
  * @module
  */
-import { Option, Result } from "effect";
-import { decode, encode, format, postings, restore, solution } from "@qti-pie/plate";
+import { Option, Result, Schema } from "effect";
+import { format, restore, shownResponses, solution, startingResponses } from "@qti-pie/plate";
 import type {
   Accepted,
   AcceptedStimulus,
   Configuration,
-  Entry,
   HostFacts,
   ItemRecord,
-  Posting,
   ResponseValue,
   Responses,
 } from "@qti-pie/plate";
+import { PostedResponses } from "@qti-pie/plate/codec";
 import { recordOf } from "@qti-pie/plate/test/records";
 import type { Graded, ItemProps, Reveals } from "@qti-pie/plate/ui";
 import { render } from "#specimen/ui/rendered.ts";
@@ -93,14 +93,14 @@ export interface SourceItem {
   readonly accepted: Accepted;
   readonly configuration: Configuration;
   /**
-   * The response the source gives the child, which a `given` showing shows: the entries the form
-   * posts for it, under the suite's {@link instance}, and the class the source describes it as;
-   * none for a source that gives none, as the corpus, whose showings draw theirs from the correct
+   * The response the source gives the child, which a `given` showing shows: the responses it gives,
+   * typed, each one it leaves at its start absent, and the class the source describes it as; none
+   * for a source that gives none, as the corpus, whose showings draw theirs from the correct
    * response.
    */
   readonly given: Option.Option<{
     readonly described: Described;
-    readonly entries: readonly Entry[];
+    readonly responses: Responses;
   }>;
   /**
    * What the host knows of where the item's scripts run, `<Item>`'s `host`, none for none.
@@ -132,13 +132,14 @@ export interface SourceItem {
 }
 
 /**
- * One response the page posts, as the suite drew it: its posting, the value drawn, its correct
- * response, and its class against it.
+ * One response the page shows, as the suite drew it: its identifier, the value it starts at, the
+ * value drawn, its correct response, and its class against it.
  */
 export interface DrawnResponse {
   readonly class: ResponseClass;
   readonly correct: ResponseValue;
-  readonly posting: Posting;
+  readonly identifier: string;
+  readonly start: ResponseValue;
   readonly value: ResponseValue;
 }
 
@@ -158,11 +159,11 @@ export type Outcome =
 export interface Seen {
   /**
    * The response the item's source gives, as a `given` showing shows it: the class the source
-   * describes it as and the entries it posts; none where the showing draws its own.
+   * describes it as and the responses it gives; none where the showing draws its own.
    */
   readonly described: Option.Option<{
     readonly described: Described;
-    readonly entries: readonly Entry[];
+    readonly responses: Responses;
   }>;
   readonly drawn: readonly DrawnResponse[];
   readonly expectedNotices: readonly string[];
@@ -180,13 +181,25 @@ export const instance = "suite";
 /**
  * Give NULL of a response's type, as a response with no correct response is drawn.
  *
- * @param posting The response's posting.
- * @returns NULL of its binding's type.
+ * @param start The value the response starts at, of its declared type.
+ * @returns NULL of that type.
  */
-const nullOf = (posting: Posting): ResponseValue =>
-  posting.binding.cardinality === "record"
+const nullOf = (start: ResponseValue): ResponseValue =>
+  start.cardinality === "record"
     ? { cardinality: "record", fields: [] }
-    : { baseType: posting.binding.baseType, cardinality: posting.binding.cardinality, values: [] };
+    : { baseType: start.baseType, cardinality: start.cardinality, values: [] };
+
+/**
+ * Give the value a set of responses holds for one, read from its own keys alone.
+ *
+ * @param responses The responses.
+ * @param identifier The response.
+ * @returns Its value, none where they hold none.
+ */
+const valueIn = (responses: Responses, identifier: string): Option.Option<ResponseValue> =>
+  Object.hasOwn(responses, identifier)
+    ? Option.fromUndefinedOr(responses[identifier])
+    : Option.none();
 
 /**
  * Give the text of a failure as a page names it.
@@ -214,27 +227,25 @@ const noticedOf = (item: SourceItem): readonly string[] => [
 ];
 
 /**
- * One response the page posts, with what the suite draws it from: its identifier, its correct
- * response, the identifiers its interaction offers, and its posting.
+ * One response the page shows, with what the suite draws it from: its identifier, its correct
+ * response, the identifiers its interaction offers, and the value it starts at.
  */
-type PostedDrawable = Drawable & { readonly posting: Posting };
+type StartedDrawable = Drawable & { readonly start: ResponseValue };
 
 /**
  * Give the responses a showing shows, by identifier: in solution the correct ones; under `given`
- * the source's, as the page's postings decode its entries, none when it gives none or an entry does
- * not decode; and under a derivation, those drawn from the correct responses ({@link derived}).
+ * the source's laid over each response's start, none when it gives none; and under a derivation,
+ * those drawn from the correct responses ({@link derived}).
  *
  * @param item The item.
  * @param showing The showing.
- * @param drawables Each response the page posts, with its correct response.
- * @param posted The page's postings.
+ * @param drawables Each response the page shows, with its correct response and its start.
  * @returns The responses, or none.
  */
 const valuesShown = (
   item: SourceItem,
   showing: Showing,
-  drawables: readonly PostedDrawable[],
-  posted: readonly Posting[],
+  drawables: readonly StartedDrawable[],
 ): Option.Option<Readonly<Record<string, ResponseValue>>> => {
   if (showing.mode === "solution") {
     return Option.some(
@@ -247,20 +258,14 @@ const valuesShown = (
   }
 
   return item.given.pipe(
-    Option.flatMap(({ entries }) =>
-      Result.getSuccess(
-        Result.all(
-          posted.map((posting) => {
-            const own = entries.filter(([name]) => name === posting.binding.name);
-
-            return decode(own, posting.binding, posting.options).pipe(
-              Result.map((decoded) => [posting.identifier, decoded] as const),
-            );
-          }),
-        ),
+    Option.map(({ responses }) =>
+      Object.fromEntries(
+        drawables.map((each) => [
+          each.identifier,
+          Option.getOrElse(valueIn(responses, each.identifier), () => each.start),
+        ]),
       ),
     ),
-    Option.map((pairs) => Object.fromEntries(pairs)),
   );
 };
 
@@ -343,31 +348,36 @@ export const see = (
   // Every page shows the item's feedback by that record, as a host whose test states
   // `show-feedback="true"` shows it.
   const shownBy = { record, showFeedback: true } as const;
-  const posted = postings(accepted, instance, shownBy);
+  const start = startingResponses(accepted, shownBy);
   const correct: Responses = solution(accepted, record);
-  const drawables = posted.map((posting) => ({
-    correct: correct[posting.identifier] ?? nullOf(posting),
-    identifier: posting.identifier,
-    offered: item.offered.get(posting.identifier) ?? [],
-    posting,
-  }));
-  const drawnValues = valuesShown(item, showing, drawables, posted);
+  const drawables = shownResponses(accepted, shownBy).flatMap((identifier) =>
+    Option.toArray(
+      Option.map(valueIn(start, identifier), (started): StartedDrawable => ({
+        correct: Option.getOrElse(valueIn(correct, identifier), () => nullOf(started)),
+        identifier,
+        offered: item.offered.get(identifier) ?? [],
+        start: started,
+      })),
+    ),
+  );
+  const drawnValues = valuesShown(item, showing, drawables);
   const drawn = Option.match(drawnValues, {
     onNone: (): readonly DrawnResponse[] => [],
     onSome: (values) =>
       drawables.map((each): DrawnResponse => {
-        const value = values[each.identifier] ?? nullOf(each.posting);
+        const value = Option.getOrElse(valueIn(values, each.identifier), () => nullOf(each.start));
 
         return {
           class: classOf(value, each.correct),
           correct: each.correct,
-          posting: each.posting,
+          identifier: each.identifier,
+          start: each.start,
           value,
         };
       }),
   });
   const handed = Object.fromEntries(
-    drawn.map((each) => [each.posting.identifier, handedMarks(each.value, each.correct)] as const),
+    drawn.map((each) => [each.identifier, handedMarks(each.value, each.correct)] as const),
   );
   const base = {
     described:
@@ -419,18 +429,16 @@ export const see = (
 
   switch (showing.mode) {
     case "answering": {
-      const entries = Option.match(
-        item.given.pipe(Option.filter(() => showing.derived === "given")),
-        {
-          onNone: () =>
-            drawn.flatMap(({ posting, value }) => encode(value, posting.binding, posting.options)),
-          onSome: (given) => given.entries,
-        },
-      );
+      // The host's state starts from the attempt's start, every End Attempt among it, with the
+      // responses drawn laid over it, as a host lays a save over its start.
+      const responses: Responses = {
+        ...start,
+        ...Object.fromEntries(drawn.map(({ identifier, value }) => [identifier, value])),
+      };
 
       return {
         ...base,
-        outcome: rendered({ entries, mode: "answering", props: propsIn("answering") }),
+        outcome: rendered({ mode: "answering", props: propsIn("answering"), responses }),
       };
     }
     case "solution": {
@@ -594,34 +602,52 @@ const replayIsland = "ui/media/media.tsx#MediaReplay";
 const inItem = (text: string): Offence => ({ kind: "said", text, where: "item" });
 
 /**
- * Check P1 on one response: the entries the page posts under its name decode to the value drawn.
+ * The body as JSON text, as a host posts it and its server reads it.
+ */
+const bodyText = Schema.fromJsonString(PostedResponses);
+
+/**
+ * Post the responses drawn as a host posts them and read them back as its server does: written as
+ * JSON text by plate's codec and decoded by the same codec.
  *
- * @param posted The entries the page posts.
+ * @param drawn The responses drawn.
+ * @returns The body the server reads, or why it does not decode.
+ */
+const bodyOf = (drawn: readonly DrawnResponse[]): Result.Result<Responses, string> =>
+  Result.mapError(
+    Result.flatMap(
+      Schema.encodeResult(bodyText)(
+        Object.fromEntries(drawn.map(({ identifier, value }) => [identifier, value])),
+      ),
+      Schema.decodeUnknownResult(bodyText),
+    ),
+    (failure) => `the body does not carry through JSON text: ${failure.message}`,
+  );
+
+/**
+ * Check P1 on one response: the body the server reads holds it at the value drawn.
+ *
+ * @param body The body the server reads, or what is wrong with it.
  * @param response The response drawn.
  * @returns What broke, none or one line.
  */
-const postedOffences = (posted: readonly Entry[], response: DrawnResponse): readonly string[] => {
-  const { binding, options } = response.posting;
-  const entries = posted.filter(([name]) => name === binding.name);
-  const absent =
-    response.value.cardinality !== "record" && response.value.values.length === 0
-      ? Option.fromUndefinedOr(options.absent)
-      : Option.none();
-  const expected = Option.getOrElse(absent, (): ResponseValue => response.value);
-  const decoded = decode(entries, binding, options);
-
-  return Result.match(decoded, {
-    onFailure: (failure) => [
-      `${response.posting.identifier}: posted ${JSON.stringify(entries)}, which does not decode: ${reasonOf(failure)}`,
-    ],
-    onSuccess: (value) =>
-      carriedText(value) === carriedText(expected)
-        ? []
-        : [
-            `${response.posting.identifier}: drew ${shownValue(expected)}, posted ${JSON.stringify(entries)}, which decodes to ${shownValue(value)}`,
-          ],
+const postedOffences = (
+  body: Result.Result<Responses, string>,
+  response: DrawnResponse,
+): readonly string[] =>
+  Result.match(body, {
+    onFailure: (wrong) => [`${response.identifier}: ${wrong}`],
+    onSuccess: (responses) =>
+      Option.match(valueIn(responses, response.identifier), {
+        onNone: () => [`${response.identifier}: the body holds no value of it`],
+        onSome: (value) =>
+          carriedText(value) === carriedText(response.value)
+            ? []
+            : [
+                `${response.identifier}: drew ${shownValue(response.value)}, and the body holds ${shownValue(value)}`,
+              ],
+      }),
   });
-};
 
 /**
  * A rule every page keeps: what it says, and its check of what the suite saw, which gives every
@@ -660,21 +686,23 @@ export const rules: Readonly<Record<RuleName, Rule>> = {
         Option.filter(({ described }) => described === "empty"),
         Option.match({
           onNone: () => [],
-          onSome: ({ entries }) =>
-            seen.drawn.flatMap(({ posting }) => {
-              const own = entries.filter(([name]) => name === posting.binding.name);
-
-              return JSON.stringify(own) === JSON.stringify(posting.start)
-                ? []
-                : [
-                    inItem(
-                      `the source describes the response as empty, and ${posting.identifier} posts ${JSON.stringify(own)}, where it starts at ${JSON.stringify(posting.start)}`,
-                    ),
-                  ];
-            }),
+          onSome: ({ responses }) =>
+            seen.drawn.flatMap(({ identifier, start }) =>
+              Option.match(valueIn(responses, identifier), {
+                onNone: () => [],
+                onSome: (given) =>
+                  carriedText(given) === carriedText(start)
+                    ? []
+                    : [
+                        inItem(
+                          `the source describes the response as empty, and gives ${identifier} ${shownValue(given)}, where it starts at ${shownValue(start)}`,
+                        ),
+                      ],
+              }),
+            ),
         }),
       ),
-    says: "a response the item's source describes as empty posts what it starts at",
+    says: "a response the item's source describes as empty is given at what it starts at",
   },
   I1: {
     check: (seen) =>
@@ -732,7 +760,13 @@ export const rules: Readonly<Record<RuleName, Rule>> = {
         return [];
       }
 
-      const names = seen.drawn.map(({ posting }) => JSON.stringify(posting.binding.name));
+      const names = seen.drawn.map(({ identifier, start }) =>
+        JSON.stringify(
+          start.cardinality === "record"
+            ? { cardinality: start.cardinality, identifier }
+            : { baseType: start.baseType, cardinality: start.cardinality, identifier },
+        ),
+      );
 
       return pagesOf(seen).flatMap((page) => [
         ...page.islands.flatMap((island) => {
@@ -743,7 +777,7 @@ export const rules: Readonly<Record<RuleName, Rule>> = {
           return island.name === replayIsland && seen.kinds.includes("media")
             ? names
                 .filter((name) => shipped.includes(name))
-                .map((name) => inItem(`hands its replay island the entry name ${name}`))
+                .map((name) => inItem(`hands its replay island the response ${name}`))
             : [inItem(`ships the island ${island.name}`)];
         }),
         ...page.facts.posted.map(([name, text]) =>
@@ -868,13 +902,13 @@ export const rules: Readonly<Record<RuleName, Rule>> = {
   P1: {
     check: (seen) =>
       seen.showing.mode === "answering"
-        ? pagesOf(seen).flatMap((page) =>
-            seen.drawn.flatMap((response) =>
-              postedOffences(page.facts.posted, response).map(inItem),
-            ),
-          )
+        ? pagesOf(seen).flatMap(() => {
+            const body = bodyOf(seen.drawn);
+
+            return seen.drawn.flatMap((response) => postedOffences(body, response).map(inItem));
+          })
         : [],
-    says: "in answering, the entries the form posts decode to the responses drawn",
+    says: "in answering, the responses held, posted through plate's codec, read back as drawn",
   },
   R1: {
     check: (seen) =>

@@ -17,7 +17,7 @@ import { eliminatedBy } from "#plate/interactions/eliminated.ts";
 import type { EliminatedOption } from "#plate/interactions/eliminated.ts";
 
 /**
- * The eliminated options by the entry name their response posts under.
+ * The eliminated options by the identifier of the response they are options of.
  */
 type ByResponse = ReadonlyMap<string, ReadonlySet<string>>;
 
@@ -39,7 +39,8 @@ const EliminatedContext = createContext<ByResponse>(nothing);
 /**
  * Give the picks groups inside the options the host has eliminated.
  *
- * @param props.value The eliminated options, each its response's entry name and its identifier.
+ * @param props.value The eliminated options of the item, each its response's identifier and its
+ *   own.
  * @param props.children The item, with its islands.
  * @returns The item.
  */
@@ -55,8 +56,8 @@ export const Eliminated = ({
 /**
  * Read the options eliminated of one response.
  *
- * @param name The entry name the response posts under.
+ * @param response The response's identifier.
  * @returns The identifiers eliminated, none outside an {@link Eliminated}.
  */
-export const useEliminated = (name: string): ReadonlySet<string> =>
-  use(EliminatedContext).get(name) ?? noneEliminated;
+export const useEliminated = (response: string): ReadonlySet<string> =>
+  use(EliminatedContext).get(response) ?? noneEliminated;

@@ -21,7 +21,7 @@ import type { ReactNode } from "react";
 import { Option } from "effect";
 import type { ArrowDirection } from "#plate/interactions/area.ts";
 import { countsOf } from "#plate/interactions/counts.ts";
-import { entryName, scopedId } from "#plate/form/encoding.ts";
+import { scopedId } from "#plate/instance.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { PayloadOf } from "#plate/model/interactions.ts";
 import { flag } from "#plate/ui/attributes.ts";
@@ -95,16 +95,14 @@ const hotspotsOf = (
 
 /**
  * Find the item's shading interaction a Graphic Gap Match drawn as a number line reads (R7): the
- * first `qti-choice-interaction` of the item's body whose class holds `plate-shade`, with the entry
- * name its response posts under and its choices that run the ray left and right; none where the
- * plot is no number line or the item holds no such interaction.
+ * first `qti-choice-interaction` of the item's body whose class holds `plate-shade`, with its
+ * response's declaration and its choices that run the ray left and right; none where the plot is
+ * no number line or the item holds no such interaction.
  *
- * @param context What the shell knows: the root's class, the body and the instance.
- * @returns The shading interaction and its response's identifier, none for none.
+ * @param context What the shell knows: the root's class and the body.
+ * @returns The shading interaction, none for none.
  */
-const shadingOf = (
-  context: Pick<IslandContext, "body" | "className" | "instance">,
-): { readonly link: ShadeLink; readonly response: string } | undefined => {
+const shadingOf = (context: Pick<IslandContext, "body" | "className">): ShadeLink | undefined => {
   if (plotKindOf(context.className) !== "number-line") {
     return undefined;
   }
@@ -118,12 +116,13 @@ const shadingOf = (
   }
 
   return {
-    link: {
-      left: choice.shades.find((shade) => shade.direction === "left")?.identifier,
-      name: entryName(context.instance, choice.response),
-      right: choice.shades.find((shade) => shade.direction === "right")?.identifier,
+    left: choice.shades.find((shade) => shade.direction === "left")?.identifier,
+    response: {
+      baseType: "identifier",
+      cardinality: choice.cardinality,
+      identifier: choice.response,
     },
-    response: choice.response,
+    right: choice.shades.find((shade) => shade.direction === "right")?.identifier,
   };
 };
 
@@ -207,12 +206,12 @@ export const island = (
       floor={floorOf(context.className)}
       labels={labelsOf(graphicGapMatchKeys, context.locale, { totalReached: model.messages.max })}
       maxAssociations={limitOf(node.maxAssociations)}
-      name={node.formName}
       naming={groupNameOf(prompt, node, context)}
       plot={plotKindOf(context.className)}
       prompt={prompt}
+      response={node.declared}
       root={rootOf(model, context)}
-      shade={shadingOf(context)?.link}
+      shade={shadingOf(context)}
       size={node.size}
     />
   );
@@ -258,7 +257,7 @@ export const review = (
   const shade =
     shading === undefined
       ? undefined
-      : shadeDirectionOf(shading.link, pickedIn(context.values.get(shading.response)));
+      : shadeDirectionOf(shading, pickedIn(context.values.get(shading.response.identifier)));
   const figuresAt = (size: ImageSize) =>
     figuresOf(plot, node.choices.map(plotChoiceOf), hotspots, node.pairs, size, shade);
   const placed = hotspots.map((hotspot) => ({

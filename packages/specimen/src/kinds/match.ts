@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { directedPairValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -77,22 +78,32 @@ const rightPairs = (settings: MatchSettings): readonly (readonly [number, number
   );
 
 /**
+ * A pair's identifiers, the source first.
+ *
+ * @param pair The source's and the target's places.
+ * @returns `S<n>` and `T<m>`.
+ */
+const identifiersOf = ([source, target]: readonly [number, number]): readonly [string, string] => [
+  sourceOf(source),
+  targetOf(target),
+];
+
+/**
  * A pair in its lexical form, the source first.
  *
  * @param pair The source's and the target's places.
  * @returns `S<n> T<m>`.
  */
-const lexical = ([source, target]: readonly [number, number]): string =>
-  `${sourceOf(source)} ${targetOf(target)}`;
+const lexical = (pair: readonly [number, number]): string => identifiersOf(pair).join(" ");
 
 /**
- * The response a set of pairs posts.
+ * The response a set of pairs gives: a `multiple` of directed pairs.
  *
- * @param pairs The pairs.
- * @returns One entry per pair.
+ * @param made The pairs.
+ * @returns The response, none for no pair.
  */
-const posted = (pairs: readonly (readonly [number, number])[]): Answered["posted"] =>
-  pairs.map((pair) => [response, lexical(pair)] as const);
+const posted = (made: readonly (readonly [number, number])[]): Answered["posted"] =>
+  responding(response, directedPairValue("multiple", made.map(identifiersOf)));
 
 /**
  * Match, as the record of kinds holds it.
@@ -112,7 +123,7 @@ export const match = kind("match", {
         ),
         score: 0,
       },
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

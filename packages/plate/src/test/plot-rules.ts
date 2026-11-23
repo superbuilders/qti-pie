@@ -211,7 +211,11 @@ export interface PlotSubject {
   readonly shadeDirectionOf: (
     link: {
       readonly left: string | undefined;
-      readonly name: string;
+      readonly response: {
+        readonly baseType: "identifier";
+        readonly cardinality: "multiple" | "single";
+        readonly identifier: string;
+      };
       readonly right: string | undefined;
     },
     picked: readonly string[],
@@ -628,7 +632,14 @@ const walkReaders = (subject: PlotSubject): string | undefined => {
         ],
   );
   const picks = pickedCases.flatMap(([picked, direction]) => {
-    const ran = subject.shadeDirectionOf({ left: "L", name: "t.SHADE", right: "R" }, picked);
+    const ran = subject.shadeDirectionOf(
+      {
+        left: "L",
+        response: { baseType: "identifier", cardinality: "single", identifier: "SHADE" },
+        right: "R",
+      },
+      picked,
+    );
 
     return ran === direction
       ? []

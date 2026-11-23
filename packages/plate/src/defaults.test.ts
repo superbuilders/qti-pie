@@ -3,38 +3,35 @@ import path from "node:path";
 /**
  * Every response starts at its default (spec reading 183), held over real items against the
  * information model and each item's own declarations, through what a host starts a fresh attempt
- * from, every posting's `start` (`postings` in `#plate/postings.ts`):
+ * from, `startingResponses` (`#plate/starting.ts`):
  *
- * - **The start is the default.** Each response's `start` decodes, through its posting, to its
- *   declared `qti-default-value`, "set to this value at the start of the first attempt"
- *   (information model 2.2.2.2). A Choice, which "is always initialized with no choices selected"
- *   (2.4.1.1), and an End Attempt, whose response's "default value ... is always ignored" (2.4.5),
- *   start with no entry whatever their default: NULL, and End Attempt's `false`.
- * - **No secret.** Neither the entries nor the redacted item holds a correct value or a mapping key
- *   the default does not hold.
+ * - **The start is the default.** Each response starts at its declared `qti-default-value`, "set to
+ *   this value at the start of the first attempt" (information model 2.2.2.2). A Choice, which "is
+ *   always initialized with no choices selected" (2.4.1.1), and an End Attempt, whose response's
+ *   "default value ... is always ignored" (2.4.5), start empty whatever their default: NULL, and
+ *   End Attempt's `false`.
+ * - **No secret.** Neither the start nor the redacted item holds a correct value or a mapping key the
+ *   default does not hold.
  * - **Restored values win.** After an attempt that cleared a defaulted response, the record the
- *   database returns holds NULL for it, which posts nothing, not the default.
+ *   database returns holds NULL for it, which shows nothing, not the default.
  *
  * The items are every fixture and every accepted corpus item whose response declares a default,
  * and the fixtures of each other kind with a default written into a response here, each a value
  * other than the correct one where the item has one, with two items written here: an Inline
- * Choice, and a Text Entry in base 16, whose default 255 posts as `ff`.
+ * Choice, and a Text Entry in base 16, whose default 255 its box shows as `ff`.
  *
  * @module
  */
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Option, Result } from "effect";
-import { decode, encode } from "#plate/form/encoding.ts";
-import type { Entry } from "#plate/form/encoding.ts";
+import { Effect, Option } from "effect";
 import { interactionsIn } from "#plate/model/interactions.ts";
 import { recordOf } from "#plate/test/records.ts";
-import { format, match, nullOf, own } from "#plate/model/values.ts";
-import type { ResponseValue, Value } from "#plate/model/values.ts";
-import { postings } from "#plate/postings.ts";
-import type { Posting } from "#plate/postings.ts";
+import { format, isNullResponse, isRecordValue, match, nullOf, own } from "#plate/model/values.ts";
+import type { Responses, ResponseValue, Value } from "#plate/model/values.ts";
 import { redact } from "#plate/redact.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
 import { restore } from "#plate/restore.ts";
+import { startingResponses } from "#plate/starting.ts";
 import { jsonField } from "#plate/test/fixtures.ts";
 import { feedbackHidden, shownToCandidate } from "#plate/test/page.ts";
 import { acceptedOf, openCorpus } from "#plate/test/sweep.ts";
@@ -48,13 +45,8 @@ import type { Accepted } from "#plate/validate/verdict.ts";
 const fixtures = path.resolve(import.meta.dirname, "..", "fixtures");
 
 /**
- * The instance every posting here names.
- */
-const instance = "defaults";
-
-/**
  * How a response starts, by the information model: at its default, or empty whatever its default,
- * holding the value no entry posts (NULL, or End Attempt's `false`).
+ * holding NULL, or End Attempt's `false`.
  */
 type Start = { readonly kind: "default" } | { readonly kind: "empty"; readonly holds: Value };
 
@@ -96,8 +88,8 @@ const emptyAs = (baseType: Value["baseType"], cardinality: Value["cardinality"])
 });
 
 /**
- * A Text Entry in base 16 bound to an integer: its default, 255, posts as `ff`, and its correct
- * value is 254.
+ * A Text Entry in base 16 bound to an integer: its default, 255, which its box shows as `ff`, and
+ * its correct value is 254.
  */
 const hexItem = `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="hex" title="Hex" adaptive="false" time-dependent="false">
@@ -318,16 +310,16 @@ const secretsOf = (accepted: Accepted): readonly string[] => {
 };
 
 /**
- * Decode one response from what a page posts, through its posting.
+ * Give the value a start holds for a response, failing the test where it holds none.
  *
- * @param posting The response's posting.
- * @param entries The entries.
- * @returns The value, failing the test where the entries do not decode.
+ * @param started The start.
+ * @param response The response.
+ * @param where The item, for the failure message.
+ * @returns The value.
  */
-const decodedFrom = (posting: Posting, entries: readonly Entry[]): ResponseValue =>
-  Result.getOrElse(decode(entries, posting.binding, posting.options), (malformed) =>
-    assert.fail(`${posting.identifier} does not decode: ${malformed.message}`),
-  );
+const startedAt = (started: Responses, response: string, where: string): ResponseValue =>
+  (Object.hasOwn(started, response) ? started[response] : undefined) ??
+  assert.fail(`${where}: the start holds no ${response}`);
 
 /**
  * Write a value as JSON, a bigint as its digits.
@@ -352,13 +344,9 @@ const holdsStart = (
   where: string,
 ): void => {
   const redacted = redact(accepted, shownToCandidate, feedbackHidden);
-  const posted = postings(accepted, instance, feedbackHidden).flatMap((posting) => posting.start);
-  const byResponse = new Map(
-    postings(accepted, instance, feedbackHidden).map((posting) => [posting.identifier, posting]),
-  );
+  const started = startingResponses(accepted, feedbackHidden);
 
   for (const [response, start] of starts) {
-    const posting = byResponse.get(response) ?? assert.fail(`${where}: no posting of ${response}`);
     const declared = Option.getOrElse(
       Option.flatMap(
         Option.fromUndefinedOr(accepted.item.responses.get(response)),
@@ -366,12 +354,12 @@ const holdsStart = (
       ),
       () => assert.fail(`${where}: ${response} declares no default`),
     );
-    const value = decodedFrom(posting, posted);
+    const value = startedAt(started, response, where);
     const expected = start.kind === "default" ? declared : start.holds;
 
-    assert.isFalse("fields" in value, `${where}: ${response} decodes to a record`);
+    assert.isFalse(isRecordValue(value), `${where}: ${response} starts as a record`);
 
-    if (!("fields" in value)) {
+    if (!isRecordValue(value)) {
       assert.isTrue(
         match(value, expected) || (value.values.length === 0 && expected.values.length === 0),
         `${where}: ${response} starts at ${JSON.stringify(value.values.map(format))}, not ${JSON.stringify(expected.values.map(format))}`,
@@ -379,12 +367,16 @@ const holdsStart = (
     }
   }
 
+  const startedTexts = new Set(
+    Object.values(started).flatMap((value) =>
+      isRecordValue(value) ? [] : value.values.map(format),
+    ),
+  );
   const json = jsonOf(redacted);
 
   assert.deepStrictEqual(
     secretsOf(accepted).filter(
-      (secret) =>
-        posted.some(([, text]) => text === secret) || json.includes(JSON.stringify(secret)),
+      (secret) => startedTexts.has(secret) || json.includes(JSON.stringify(secret)),
     ),
     [],
     `${where}: a secret in the start or the redacted item`,
@@ -445,10 +437,14 @@ describe("a fresh attempt's start", () => {
       );
 
       assert.deepStrictEqual(
-        postings(accepted, instance, feedbackHidden).flatMap((posting) =>
-          posting.start.map(([, text]) => text),
-        ),
-        ["0.75"],
+        Object.values(startingResponses(accepted, feedbackHidden)),
+        [
+          {
+            baseType: "float",
+            cardinality: "single",
+            values: [{ baseType: "float", value: 0.75 }],
+          },
+        ],
         "slider-float starts at its default",
       );
     }),
@@ -466,14 +462,15 @@ describe("a fresh attempt's start", () => {
     }),
   );
 
-  it.effect("gives way to a restored NULL, which posts nothing", () =>
+  it.effect("gives way to a restored NULL, which shows nothing", () =>
     Effect.gen(function* restoredWins() {
       const known = cases.find((each) => each.location === "m2/items/p1-text-entry.xml");
       const accepted = yield* openCase(known ?? assert.fail("no text entry case"));
-      const posting =
-        postings(accepted, instance, feedbackHidden).find(
-          (each) => each.identifier === "RESPONSE",
-        ) ?? assert.fail("no posting of RESPONSE");
+      const started = startedAt(
+        startingResponses(accepted, feedbackHidden),
+        "RESPONSE",
+        "m2/items/p1-text-entry.xml",
+      );
       const restored = restore(
         accepted,
         recordOf({ attempt: "submitted", responses: { RESPONSE: nullOf("string", "single") } }),
@@ -482,8 +479,12 @@ describe("a fresh attempt's start", () => {
         assert.fail("the record holds no RESPONSE"),
       );
 
-      assert.deepStrictEqual(posting.start, [[posting.binding.name, "six"]]);
-      assert.deepStrictEqual(encode(shown, posting.binding, posting.options), []);
+      assert.deepStrictEqual(started, {
+        baseType: "string",
+        cardinality: "single",
+        values: [{ baseType: "string", value: "six" }],
+      });
+      assert.isTrue(isNullResponse(shown));
     }),
   );
 

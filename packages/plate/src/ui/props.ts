@@ -1,19 +1,19 @@
 /**
  * Plate's UI's data, `@qti-pie/plate/ui/props`: the types of what a host hands `<Item>`, of how a
- * review graded the attempt it shows, and of the entries an item posts, for server code that builds
+ * review graded the attempt it shows, and of the responses a host holds while the child answers,
+ * with the contract that decides what it posts (`#plate/held.ts`), for server code that builds
  * or reads them, such as the ledger's, without loading the UI. No module this entry reaches renders
  * anything: the UI's entries (`@qti-pie/plate/ui`, `@qti-pie/plate/ui/client`) reach every
  * interaction's island, whose browser libraries a server's program resolves to their server builds
  * (MathLive's `node` condition gives no `MathfieldElement`), so a program that imports the UI's
  * entries compiles the islands, and one that imports this entry compiles none of them.
  *
- * `@qti-pie/plate/ui` and `@qti-pie/plate/ui/client` export these same types, for the host that
+ * `@qti-pie/plate/ui/client` exports the held state and its contract too, for the host that
  * renders.
  *
  * @module
  */
 import type { Configuration } from "#plate/configuration.ts";
-import type { Entry } from "#plate/form/encoding.ts";
 import type { Showing } from "#plate/model/record.ts";
 import type { ResponseValue } from "#plate/model/values.ts";
 import type { RenderMode } from "#plate/payload.ts";
@@ -27,18 +27,17 @@ export type { Credit, Graded, GradedMarks, Reveals } from "#plate/ui/item/contex
 
 export type { AnswerMark, PartMark } from "#plate/ui/item/interactions/marks.ts";
 
-/**
- * One posted entry, plate's `Entry` (`#plate/form/encoding.ts`): the name a response posts under,
- * from plate's `entryName`, and one text it posts. A response holding several values posts one
- * entry per value, in its order, so a bag repeats a text as often as it holds it and a sequence
- * keeps its order.
- */
-export type PostedEntry = Entry;
+export type { Held, Typed } from "#plate/held.ts";
 
-/**
- * Every entry an item posts.
- */
-export type PostedEntries = readonly PostedEntry[];
+export {
+  answerOf,
+  EndedUnheld,
+  endedOf,
+  heldOf,
+  sameResponses,
+  savedOf,
+  Unread,
+} from "#plate/held.ts";
 
 /**
  * What `<Item>` takes besides what it shows the item by: the opened item, the configuration, the

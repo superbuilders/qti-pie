@@ -32,11 +32,11 @@ import { Effect, Option } from "effect";
 import { parseHTML } from "linkedom";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { acceptedItem, acceptedStimulus, configure } from "@qti-pie/plate";
+import { acceptedItem, acceptedStimulus, configure, startingResponses } from "@qti-pie/plate";
 import { admitted } from "@qti-pie/plate/test/admitted";
 import { Item } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
-import { Responses } from "@qti-pie/plate/ui/client";
+import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { factsOf } from "#specimen/ui/rendered.ts";
 import { instance } from "#specimen/ui/rules.ts";
 
@@ -152,7 +152,11 @@ const passageOf = (mode: "answering" | "review", spoken: boolean) =>
       const rendered = createElement(Item, props);
       const html = renderToStaticMarkup(
         mode === "answering"
-          ? createElement(Responses, { children: rendered, onChange: keepNothing, value: [] })
+          ? createElement(Responses, {
+              children: rendered,
+              onChange: keepNothing,
+              value: heldOf(startingResponses(item, props)),
+            })
           : rendered,
       );
       const { document } = parseHTML(`<!doctype html><html><body>${html}</body></html>`);

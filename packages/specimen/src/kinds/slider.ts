@@ -6,6 +6,7 @@
  */
 import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { numberValue, responding } from "#specimen/posted.ts";
 import { credited, matchesCorrect } from "#specimen/credit.ts";
 import { dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -94,23 +95,25 @@ interface SliderSettings {
 }
 
 /**
- * The response a number posts.
+ * The response a number gives: a `single` of the scale's base type, an integer exact.
  *
- * @param value The number.
- * @returns Its one entry.
+ * @param scale The scale.
+ * @param value The number, a whole one on an integer scale.
+ * @returns The response.
  */
-const posted = (value: number): Answered["posted"] => [[response, String(value)]];
+const posted = (scale: Scale, value: number): Answered["posted"] =>
+  responding(response, numberValue(scale.baseType, value));
 
 export const slider = kind("slider", {
   answers: (settings: SliderSettings) => {
     const scale: Scale = scales[settings.scale];
 
     return [
-      { answer: "right", posted: posted(scale.right), score: 1 },
-      { answer: "wrong", posted: posted(scale.wrong), score: 0 },
+      { answer: "right", posted: posted(scale, scale.right), score: 1 },
+      { answer: "wrong", posted: posted(scale, scale.wrong), score: 0 },
       {
         answer: "empty",
-        posted: settings.start === "default" ? posted(scale.start) : [],
+        posted: settings.start === "default" ? posted(scale, scale.start) : {},
         score: 0,
       },
     ];

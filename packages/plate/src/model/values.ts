@@ -226,6 +226,44 @@ export type ResponseValue = Value | RecordValue;
 export type Responses = Readonly<Record<string, ResponseValue>>;
 
 /**
+ * The value one single of a base type holds: an identifier's or a string's text, an integer's
+ * `bigint`, a pair's two identifiers, a point's two coordinates.
+ *
+ * @template B The base type.
+ */
+export type ValueOf<B extends ModelledBaseType> = Extract<
+  Single,
+  { readonly baseType: B }
+>["value"];
+
+/**
+ * A response of a base type as its declaration types it, which an island is handed in place of a
+ * name: its identifier, its base type and its cardinality, none of its values. A module narrows
+ * both to the binding it renders, so a Choice's is an `identifier` response of `single` or
+ * `multiple`.
+ *
+ * @template B The base types it may have.
+ * @template C The cardinalities it may have.
+ */
+export interface Declared<
+  B extends ModelledBaseType = ModelledBaseType,
+  C extends Value["cardinality"] = Value["cardinality"],
+> {
+  readonly baseType: B;
+  readonly cardinality: C;
+  readonly identifier: string;
+}
+
+/**
+ * A record response as its declaration types it: its identifier, and the cardinality `record`,
+ * since a record has no base type of its own.
+ */
+export interface RecordDeclared {
+  readonly cardinality: "record";
+  readonly identifier: string;
+}
+
+/**
  * Report whether a response's value is a record.
  *
  * @param value The value to test.
@@ -233,6 +271,17 @@ export type Responses = Readonly<Record<string, ResponseValue>>;
  */
 export const isRecordValue = (value: ResponseValue): value is RecordValue =>
   value.cardinality === "record";
+
+/**
+ * Give the text a record was typed as: its `stringValue` field, which the string interaction bound
+ * to it shows (QTI 3.0.1 information model 2.4.2.2: "stringValue - the string, as typed by the
+ * candidate").
+ *
+ * @param record The record.
+ * @returns Its `stringValue`, or none when it has no such field, as the NULL record has none.
+ */
+export const recordText = (record: RecordValue): readonly Single[] =>
+  record.fields.flatMap(({ identifier, value }) => (identifier === "stringValue" ? [value] : []));
 
 /**
  * Construct the NULL value of a base type and cardinality.

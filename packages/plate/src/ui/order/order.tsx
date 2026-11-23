@@ -28,6 +28,7 @@
  */
 import { useMemo } from "react";
 import type { ReactNode } from "react";
+import type { Declared } from "#plate/model/values.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import type { OrderLabels } from "#plate/ui/order/labels.ts";
 import type { Position } from "#plate/placement/machine.ts";
@@ -88,9 +89,10 @@ export interface OrderProps extends Authored<NameAttributes> {
    */
   readonly positions: number;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the island writes, as its declaration types it: an `ordered` `identifier`
+   * response.
    */
-  readonly name: string;
+  readonly response: Declared<"identifier", "ordered">;
   /**
    * `orientation`, "a hint to rendering systems that the ordering has an inherent vertical or
    * horizontal interpretation" (5.97.4). The XSD gives it no default, so it is absent where the
@@ -150,7 +152,7 @@ export interface OrderProps extends Authored<NameAttributes> {
  * primitive announces each step and refusal with the `labels`, filled with the chips' content and
  * the positions' numbers as the child sees them.
  *
- * @param props The interaction, its response's entry name and its labels ({@link OrderProps}).
+ * @param props The interaction, its response and its labels ({@link OrderProps}).
  * @returns The Order, its placements bound to the response.
  */
 export const Order = (props: OrderProps) => {
@@ -158,16 +160,16 @@ export const Order = (props: OrderProps) => {
     choices,
     labels,
     list,
-    name,
     naming,
     orientation,
     positions,
     prompt,
     required,
+    response,
     root: authored,
   } = props;
-  const board = useSequence(name, choices, positions, required);
-  const listed = useOrderList(name, choices);
+  const board = useSequence(response, choices, positions, required);
+  const listed = useOrderList(response, choices);
   const root = list ? listed : board;
   const shown = list ? choices.length : positions;
   const spots = useMemo(

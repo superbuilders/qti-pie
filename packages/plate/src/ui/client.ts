@@ -1,6 +1,7 @@
 /**
- * Plate's client entry: what a host's client components use to hold an item's responses and the
- * options a test's cross-out has eliminated, to hear of
+ * Plate's client entry: what a host's client components use to hold an item's responses, with the
+ * contract that decides what a host posts of them, to type into a Text Entry from a keypad of the
+ * host's own, to hold the options a test's cross-out has eliminated, to hear of
  * a Portable Custom Interaction that fails, to remember a test's read-aloud across its items and to
  * post a sitting's presence beacon,
  * and the interactions' islands with their props and labels types, which the server entry renders.
@@ -66,9 +67,19 @@ export type { PresenceBeacon } from "#plate/ui/presence/beacon.ts";
 
 export { ReadAloudSession } from "#plate/ui/read-aloud/session.tsx";
 
-export { Responses, useResponse } from "#plate/ui/responses.tsx";
+export { Responses, useTyping } from "#plate/ui/responses.tsx";
 
-export type { PostedEntries, PostedEntry } from "#plate/ui/props.ts";
+export type { Held, Typed } from "#plate/held.ts";
+
+export {
+  answerOf,
+  EndedUnheld,
+  endedOf,
+  heldOf,
+  sameResponses,
+  savedOf,
+  Unread,
+} from "#plate/held.ts";
 
 export { digitsClass, digitsOf } from "#plate/ui/text-entry/digits.ts";
 

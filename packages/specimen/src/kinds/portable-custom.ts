@@ -12,6 +12,7 @@
 import { Option } from "effect";
 import { Base64 } from "effect/encoding";
 import type { Answered } from "#specimen/answer.ts";
+import { integerValue, responding } from "#specimen/posted.ts";
 import { credited, matchesCorrect } from "#specimen/credit.ts";
 import { dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -148,18 +149,19 @@ const ranges = dimension("Counts", [
 const rightCount = (settings: PortableCustomSettings): number => settings.range.start + 2;
 
 /**
- * The response a count posts.
+ * The response a count gives: a `single` integer.
  *
  * @param count The count.
- * @returns Its one entry.
+ * @returns The response.
  */
-const posted = (count: number): Answered["posted"] => [[response, String(count)]];
+const posted = (count: number): Answered["posted"] =>
+  responding(response, integerValue(BigInt(count)));
 
 export const portableCustom = kind("portable-custom", {
   answers: (settings: PortableCustomSettings) => [
     { answer: "right", posted: posted(rightCount(settings)), score: 1 },
     { answer: "wrong", posted: posted(rightCount(settings) - 1), score: 0 },
-    { answer: "empty", posted: [], score: 0 },
+    { answer: "empty", posted: {}, score: 0 },
   ],
   dimensions: {
     face: dimension("Face", [

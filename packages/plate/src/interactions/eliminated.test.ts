@@ -4,8 +4,8 @@
  * identifiers, each option eliminated once, twice or not at all, in every order:
  *
  * - **struck:** an option is eliminated of a response exactly where the host handed that response's
- *   entry name with its identifier, so one interaction's cross-out never strikes another's option
- *   of the same identifier;
+ *   identifier with the option's, so one interaction's cross-out never strikes another's option of
+ *   the same identifier;
  * - **absent:** a response none of whose options the host eliminated holds no entry.
  *
  * Kills: a grouping that keys the options by identifier alone, one that keeps only each response's
@@ -18,9 +18,9 @@ import { eliminatedBy } from "#plate/interactions/eliminated.ts";
 import type { EliminatedOption } from "#plate/interactions/eliminated.ts";
 
 /**
- * The entry names of the two responses, and a third the host never names.
+ * The identifiers of the two responses, and a third the host never names.
  */
-const names = ["i.A", "i.B", "i.C"] as const;
+const names = ["A", "B", "C"] as const;
 
 /**
  * The identifiers the responses' options share.

@@ -8,6 +8,7 @@ import { Option } from "effect";
 import { credited, matchesCorrect } from "#specimen/credit.ts";
 import { dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
+import { booleanValue, responding } from "#specimen/posted.ts";
 import { correctResponse, declaration } from "#specimen/response.ts";
 import { length } from "#specimen/words.ts";
 import type { Length } from "#specimen/words.ts";
@@ -39,11 +40,11 @@ interface EndAttemptSettings {
 }
 
 export const endAttempt = kind("end-attempt", {
-  // The button posts `true`; a form that ends the attempt another way posts nothing, which plate
-  // reads as `false`. No press posts `false`, so there is no wrong response to give.
+  // The button's press ends the attempt with its response `true`; an attempt ended another way
+  // holds it at its start, `false`. No press gives `false`, so there is no wrong response to give.
   answers: () => [
-    { answer: "right", posted: [[response, "true"]], score: 1 },
-    { answer: "empty", posted: [], score: 0 },
+    { answer: "right", posted: responding(response, booleanValue(true)), score: 1 },
+    { answer: "empty", posted: {}, score: 0 },
   ],
   dimensions: {
     counts: dimension("Counts the attempt", [

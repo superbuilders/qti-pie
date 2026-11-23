@@ -7,6 +7,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { pointValue } from "#specimen/posted.ts";
 import { mappedPoints } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -101,14 +102,31 @@ const placesOf = (settings: PositionObjectSettings): Places => {
 };
 
 /**
- * The response each object's placings post.
+ * The responses the objects' placings give: each object placed at least once, its response its
+ * points in the cardinality the placings bind, `single` for one placing.
  *
+ * @param settings The settings.
  * @param placed The landmarks each object is placed at the centre of, by the object's place.
- * @returns One entry per placing.
+ * @returns The responses, none for an object left unplaced.
  */
-const posted = (placed: readonly (readonly Area[])[]): Answered["posted"] =>
-  placed.flatMap((areas, at) =>
-    areas.map((area) => [responseOf(at), pointText(area.centre)] as const),
+const posted = (
+  settings: PositionObjectSettings,
+  placed: readonly (readonly Area[])[],
+): Answered["posted"] =>
+  Object.fromEntries(
+    placed.flatMap((areas, at) =>
+      areas.length === 0
+        ? []
+        : [
+            [
+              responseOf(at),
+              pointValue(
+                settings.placings === "one" ? "single" : "multiple",
+                areas.map((area) => area.centre),
+              ),
+            ] as const,
+          ],
+    ),
   );
 
 export const positionObject = kind("position-object", {
@@ -118,13 +136,26 @@ export const positionObject = kind("position-object", {
     const partial: readonly Answered[] =
       total < 2
         ? []
-        : [{ answer: "partial", posted: posted([Arr.headNonEmpty(homes).slice(0, 1)]), score: 1 }];
+        : [
+            {
+              answer: "partial",
+              posted: posted(settings, [Arr.headNonEmpty(homes).slice(0, 1)]),
+              score: 1,
+            },
+          ];
 
     return [
-      { answer: "right", posted: posted(homes), score: total },
+      { answer: "right", posted: posted(settings, homes), score: total },
       ...partial,
-      { answer: "wrong", posted: posted(homes.map(() => [decoy])), score: 0 },
-      { answer: "empty", posted: [], score: 0 },
+      {
+        answer: "wrong",
+        posted: posted(
+          settings,
+          homes.map(() => [decoy]),
+        ),
+        score: 0,
+      },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

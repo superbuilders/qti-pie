@@ -9,9 +9,9 @@
  *
  * It is a layout of the Match's board (`matchBoardOf` in `#plate/placement/match-board.ts`), the
  * bank's own, and a press on a cell is the placement machine's step (`press` there), so the table
- * keeps every limit the bank keeps and posts the same `directedPair` response, one `"row column"`
- * text per ticked cell. A row whose `match-max` is 1 is a row of radios: a tick in another cell
- * moves its tick there.
+ * keeps every limit the bank keeps and writes the same `directedPair` response, one pair of its row
+ * and its column per ticked cell. A row whose `match-max` is 1 is a row of radios: a tick in
+ * another cell moves its tick there.
  *
  * @module
  */
@@ -19,6 +19,7 @@ import { announce, prepareAnnouncements } from "@ui-sdk/core";
 import { Checkbox, CheckboxIndicator } from "@ui-sdk/react/checkbox";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import type { Declared } from "#plate/model/values.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
@@ -27,12 +28,12 @@ import { matchBoardOf, press } from "#plate/placement/match-board.ts";
 import type { Cell } from "#plate/placement/match-board.ts";
 import type { MatchTableLabels } from "#plate/ui/match/labels.ts";
 import type { MatchHeader } from "#plate/ui/match/match.tsx";
-import { placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
+import { directedPairsOf, placementsOf } from "#plate/ui/placement/associable.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 import type { PairsArrangement, Refusal } from "#plate/placement/machine.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { directedPairSingles, useResponse } from "#plate/ui/responses.tsx";
 
 /**
  * One header of a Match's table, a row's or a column's: its choice; the id the server scopes for
@@ -63,9 +64,10 @@ export interface MatchTableProps extends Authored<NameAttributes> {
    */
   readonly maxAssociations: Limit;
   /**
-   * The entry name the response posts under.
+   * The response, as its declaration types it: a `directedPair` response of `single` or
+   * `multiple` cardinality.
    */
-  readonly name: string;
+  readonly response: Declared<"directedPair", "multiple" | "single">;
   /**
    * The `qti-prompt`, server-rendered; undefined when the interaction has none.
    */
@@ -135,19 +137,19 @@ const nameOf = (id: string | null, headers: readonly TableHeader[]): string =>
  * refused press changes nothing: it is announced and shown. A tick that moves along a row of radios
  * is announced; a tick put in or taken out is its tick box's own state, which a screen reader says.
  *
- * @param props The interaction, its response's entry name and its labels ({@link MatchTableProps}).
+ * @param props The interaction, its response and its labels ({@link MatchTableProps}).
  * @returns The table, its ticks bound to the response.
  */
 export const MatchTable = (props: MatchTableProps) => {
-  const { header, labels, maxAssociations, name, naming, prompt, root, sources, targets } = props;
-  const [texts, set] = useResponse(name);
+  const { header, labels, maxAssociations, naming, prompt, response, root, sources, targets } =
+    props;
+  const [pairs, set] = useResponse(response, directedPairSingles);
   const [message, setMessage] = useState<string>();
   const board = useMemo(
     () => matchBoardOf(sources, targets, maxAssociations),
     [maxAssociations, sources, targets],
   );
-  const arrangement: PairsArrangement = { ...board, placements: placementsOf(texts) };
-  const ticked = new Set(texts);
+  const arrangement: PairsArrangement = { ...board, placements: placementsOf(pairs) };
 
   useEffect(() => {
     prepareAnnouncements(document);
@@ -173,7 +175,7 @@ export const MatchTable = (props: MatchTableProps) => {
   };
 
   /**
-   * Press a cell: post the placements the machine's step leaves, saying a tick that moved, or say
+   * Press a cell: write the placements the machine's step leaves, saying a tick that moved, or say
    * why not.
    *
    * @param cell The cell.
@@ -195,7 +197,7 @@ export const MatchTable = (props: MatchTableProps) => {
     const { move } = step;
 
     setMessage(undefined);
-    set(textsOf(step.arrangement.placements));
+    set(directedPairsOf(step.arrangement.placements));
 
     if (move.kind === "placed" && move.from.kind === "target") {
       announce(
@@ -237,7 +239,9 @@ export const MatchTable = (props: MatchTableProps) => {
                 <th scope="row">{headerContent(source)}</th>
                 {targets.map((target) => {
                   const cell = { column: target.identifier, row: source.identifier };
-                  const checked = ticked.has(`${source.identifier} ${target.identifier}`);
+                  const checked = pairs.some(
+                    ([chip, column]) => chip === source.identifier && column === target.identifier,
+                  );
 
                   return (
                     <td

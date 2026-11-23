@@ -3,9 +3,9 @@
  * node, its island in `answering` (`#plate/ui/end-attempt/end-attempt.tsx`) and its server markup
  * in `review` and `solution`. It stands where phrasing content does, inside the author's sentence.
  *
- * Its island takes the button's text and names from the payload node alone: the response holds
- * nothing an island could be handed, and how the attempt counts (`count-attempt`) is the QTI
- * database's.
+ * Its island takes the button's text and names, and its response's declaration, from the payload
+ * node alone, and the instance its button's field is named for: the response holds nothing an
+ * island could be handed, and how the attempt counts (`count-attempt`) is the QTI database's.
  * A review or a solution shows the button's title where it stood, as words and no button, with no
  * mark (ruling R4): the response says only how the attempt ended, so there is no answer to mark,
  * and the attempt is over, so there is nothing to press. QTI's `title` is "displayed to the
@@ -57,7 +57,7 @@ const faceOf = (
  * @param paired The End Attempt.
  * @param paired.model Its model node: the author's `data-*`.
  * @param paired.payload Its payload node, as its module's `redact` gave it: the `title`, the
- *   author's names and the entry name.
+ *   author's names and the declaration of its response.
  * @param context What the page may know of the render.
  * @returns The island.
  */
@@ -67,7 +67,8 @@ export const island = (
 ): ReactNode => (
   <EndAttempt
     face={faceOf(payload, context)}
-    name={payload.formName}
+    instance={context.instance}
+    response={payload.declared}
     root={rootOf(model, context)}
   />
 );
@@ -75,7 +76,7 @@ export const island = (
 /**
  * Render an End Attempt's review or solution: the island's root, holding the button's title as
  * words in a `plate-end-attempt-title` part, and no button, so nothing a review shows can end an
- * attempt, post an entry or be taken for a control. A blank title, whose button shows no text,
+ * attempt, post its response or be taken for a control. A blank title, whose button shows no text,
  * shows nothing. Neither mode marks it.
  *
  * @param paired The End Attempt.

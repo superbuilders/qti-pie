@@ -4,11 +4,11 @@
  * (`#plate/ui/portable-custom/portable-custom.tsx`) and its server markup in `review` and
  * `solution`.
  *
- * The island stands where the PCI can run and its response can post: the host passed its `pci`
+ * The island stands where the PCI can run and its response can be held: the host passed its `pci`
  * facts and routed the PCI's response (the payload node's `host`), and the response is declared of
- * a cardinality and base type the form posts as text ({@link postedOf}). Anywhere else the PCI is
- * plate's Notice part naming the element, as a kind plate does not render is, rather than a frame
- * whose answers could not be kept.
+ * a cardinality and a base type the item can post, every one but `file` ({@link declaredOf}).
+ * Anywhere else the PCI is plate's Notice part naming the element, as a kind plate does not render
+ * is, rather than a frame whose answers could not be kept.
  *
  * A review or a solution shows the response as text, with no frame: the value the record holds, or
  * the correct one, each value in plate's lexical form, a record field by field. Plate's rule for
@@ -28,16 +28,14 @@
 import { Array as Arr, Option } from "effect";
 import { Fragment } from "react";
 import type { ReactNode } from "react";
-import { isPosted } from "#plate/form/encoding.ts";
-import type { PostedBaseType } from "#plate/form/encoding.ts";
 import { portableCustomModule } from "#plate/interactions/portable-custom.ts";
 import type { PortableCustomHost } from "#plate/interactions/portable-custom.ts";
 import { messageText } from "#plate/messages.ts";
 import type { Locale, MessageKey } from "#plate/messages.ts";
 import type { ModelOf } from "#plate/model/interactions.ts";
 import type { RedactedLevel } from "#plate/model/item.ts";
-import { format, isNullResponse, isRecordValue } from "#plate/model/values.ts";
-import type { ResponseValue, Value } from "#plate/model/values.ts";
+import { format, isModelled, isNullResponse, isRecordValue } from "#plate/model/values.ts";
+import type { ModelledBaseType, ResponseValue, Value } from "#plate/model/values.ts";
 import type { Paired } from "#plate/payload.ts";
 import type { PciFrameRoute } from "#plate/pci/frame-protocol.ts";
 import type { PciModuleRoute } from "#plate/pci/host.ts";
@@ -54,7 +52,7 @@ import type { Words } from "#plate/ui/item/interactions/words.tsx";
 import type { FrameFacts } from "#plate/ui/portable-custom/host.ts";
 import { portableCustomKeys } from "#plate/ui/portable-custom/labels.ts";
 import { PortableCustom } from "#plate/ui/portable-custom/portable-custom.tsx";
-import type { PostedAs } from "#plate/ui/portable-custom/response.ts";
+import type { PciDeclared } from "#plate/ui/portable-custom/response.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 
 /**
@@ -67,36 +65,35 @@ const isValueCardinality = (cardinality: string): cardinality is Value["cardinal
   cardinality === "single" || cardinality === "multiple" || cardinality === "ordered";
 
 /**
- * Tell whether a posted base type posts as text: every one but `file`, which a form posts as its
- * bytes.
+ * Tell whether the item can post a value of a base type: every one but `file`, which a form posts
+ * as its bytes, and plate holds none.
  *
  * @param baseType The base type.
- * @returns Whether it posts as text.
+ * @returns Whether it is one.
  */
-const isText = (baseType: PostedBaseType): baseType is Exclude<PostedBaseType, "file"> =>
+const isPostable = (baseType: ModelledBaseType): baseType is Exclude<ModelledBaseType, "file"> =>
   baseType !== "file";
 
 /**
- * Give how a PCI's response posts, as the server's posting binds it: a record, or a value of a
- * base type the form posts as text.
+ * Give the declaration a PCI's response is typed by, as the island writes it: a record, or a value
+ * of a base type the item can post.
  *
- * @param model The PCI's model node: its bound declaration's cardinality and base type, as
- *   written.
- * @returns How it posts, none for a response the island cannot post: undeclared, of a base type
- *   the form does not post, or a `file`.
+ * @param model The PCI's model node: its bound declaration's identifier, cardinality and base type,
+ *   as written.
+ * @returns The declaration, none for a response the island cannot write: undeclared, or a `file`.
  */
-const postedOf = (model: ModelOf<"portable-custom", RedactedLevel>): Option.Option<PostedAs> =>
+const declaredOf = (model: ModelOf<"portable-custom", RedactedLevel>): Option.Option<PciDeclared> =>
   model.cardinality.pipe(
-    Option.flatMap((cardinality): Option.Option<PostedAs> => {
+    Option.flatMap((cardinality): Option.Option<PciDeclared> => {
       if (cardinality === "record") {
-        return Option.some({ cardinality });
+        return Option.some({ cardinality, identifier: model.response });
       }
 
       return isValueCardinality(cardinality)
         ? model.baseType.pipe(
-            Option.filter(isPosted),
-            Option.filter(isText),
-            Option.map((baseType) => ({ baseType, cardinality })),
+            Option.filter(isModelled),
+            Option.filter(isPostable),
+            Option.map((baseType) => ({ baseType, cardinality, identifier: model.response })),
           )
         : Option.none();
     }),
@@ -138,13 +135,13 @@ const frameOf = (host: PortableCustomHost): FrameFacts => ({
  *   configuration, the host's facts, the prompt, the markup and its templates, and the names.
  * @param context What the page may know of the render.
  * @returns The island; or the Notice part naming `qti-portable-custom-interaction`, where the host
- *   gave no facts for it or its response cannot post.
+ *   gave no facts for it or its response cannot be held.
  */
 export const island = (
   { model, payload: node }: Paired<"portable-custom">,
   context: IslandContext,
 ): ReactNode =>
-  Option.match(Option.all({ host: node.host, posted: postedOf(model) }), {
+  Option.match(Option.all({ host: node.host, posted: declaredOf(model) }), {
     onNone: () => noticeOf(portableCustomModule.element, context.locale, "flow"),
     onSome: ({ host, posted }) => {
       const prompt = promptAt(node.prompt, node.response, context);
@@ -159,7 +156,6 @@ export const island = (
           key={JSON.stringify([frame, posted, properties, responseIdentifier, node.typeIdentifier])}
           labels={labelsOf(portableCustomKeys, context.locale, {})}
           markup={context.content(node.markup, { position: "flow" })}
-          name={node.formName}
           naming={groupOf(prompt, node, context)}
           posted={posted}
           prompt={prompt}

@@ -9,13 +9,12 @@
  *
  * - **No value until set.** A slider "does not have a default or initial position except where
  *   specified by a default value for the associated response variable" (QTI 3.0 information model
- *   5.134). It shows the number its response posts, which is its default as the attempt starts
- *   where the response declares one: the host's `<Responses>` starts from the default's entry
- *   (`Posting.start`, spec reading 183), so what the slider shows is always what the form posts.
- *   With no number posted, its root is `data-empty`, the thumb says the `empty` label in place of a
- *   number, and nothing posts: the response stays NULL. The first press or key that sets it
- *   answers, the press or key that leaves the thumb at the lower bound included, so the child can
- *   choose the lower bound as any other value.
+ *   5.134). It shows the number its response holds, which is its default as the attempt starts
+ *   where the response declares one: the host's `<Responses>` starts from the server's start (spec
+ *   reading 183), so what the slider shows is always what the item posts. With no number held, its
+ *   root is `data-empty`, the thumb says the `empty` label in place of a number, and the response
+ *   stays NULL. The first press or key that sets it answers, the press or key that leaves the thumb
+ *   at the lower bound included, so the child can choose the lower bound as any other value.
  * - **No inline style in server markup.** UI SDK places the thumb and the fill with inline styles.
  *   The page's markup carries none, so the island renders UI SDK's slider only once hydrated, where
  *   React writes those styles through the CSSOM, which a content security policy allows. The server
@@ -41,17 +40,17 @@ import {
   SliderTrack,
   SliderValue,
 } from "@ui-sdk/react/slider";
-import { Option } from "effect";
 import { useId, useSyncExternalStore } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
-import { postedNumber } from "#plate/form/encoding.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
+import type { Declared } from "#plate/model/values.ts";
 import { useResponse } from "#plate/ui/responses.tsx";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import type { sliderKeys } from "#plate/ui/slider/labels.ts";
+import { numberSingles } from "#plate/ui/slider/numbers.ts";
 
 /**
  * What the server gives a Slider's island, as QTI's `qti-slider-interaction` and plate's
@@ -67,9 +66,9 @@ export interface SliderProps extends Authored<Named> {
    */
   readonly lower: number;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the slider writes, as its declaration types it: a single `integer` or `float`.
    */
-  readonly name: string;
+  readonly response: Declared<"float" | "integer", "single">;
   /**
    * `orientation`, a hint (5.134.5): `horizontal` when the author wrote none. The root and every UI
    * SDK part carry it as `data-orientation`.
@@ -177,21 +176,6 @@ const decimalsOf = (value: number): number => {
 };
 
 /**
- * Read the number a response's text holds, as the form encoding reads a posted number
- * ({@link postedNumber}).
- *
- * @param text The response's text, as posted, absent when it posts none.
- * @returns The number, undefined when the text is absent, blank or no finite number.
- */
-const numberOf = (text: string | undefined): number | undefined =>
-  Option.fromUndefinedOr(text).pipe(
-    Option.flatMap(postedNumber),
-    Option.map(Number),
-    Option.filter(Number.isFinite),
-    Option.getOrUndefined,
-  );
-
-/**
  * Give the step a continuous scale moves by under a pointer: the largest power of ten no more than
  * the scale's span over the screen's longer side in CSS pixels, so no two pixels a track can span
  * share a value. It reads the screen, so it runs only in a hydrated page.
@@ -228,7 +212,7 @@ const resolutionOf = (span: number): number =>
  *
  * Every change writes the response, and the host paces its saves.
  *
- * @param props The interaction, its response's entry name and its labels ({@link SliderProps}).
+ * @param props The interaction, its response and its labels ({@link SliderProps}).
  * @returns The Slider, its thumb bound to the response.
  * @see https://ui-sdk.dev/docs/react/components/slider
  */
@@ -236,10 +220,10 @@ export const Slider = (props: SliderProps) => {
   const {
     labels,
     lower,
-    name,
     naming,
     orientation,
     prompt,
+    response,
     reverse,
     root,
     step,
@@ -247,16 +231,16 @@ export const Slider = (props: SliderProps) => {
     upper,
     valueHidden,
   } = props;
-  const [texts, set] = useResponse(name);
+  const [values, set] = useResponse(response, numberSingles[response.baseType]);
   const hydrated = useHydrated();
   const id = useId();
-  const shown = numberOf(texts[0]);
+  const [shown] = values;
   const empty = shown === undefined;
   const flipped = orientation === "vertical" && reverse;
   const span = upper - lower;
   const current = shown ?? lower;
   const write = (value: number) => {
-    set([String(value)]);
+    set([value]);
   };
   const lowerId = `${id}-lower`;
   const upperId = `${id}-upper`;

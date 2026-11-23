@@ -1,8 +1,8 @@
 /**
  * The redaction an author calls: {@link redact}, which copies an accepted item into the form a
  * page may know. The server shell (`<Item>`, `@qti-pie/plate/ui`) calls it itself, so a host
- * passes it the accepted item and never a `Redacted`, and `postings` reads an accepted item's
- * response bindings without printing it.
+ * passes it the accepted item and never a `Redacted`, and `startingResponses` reads an accepted
+ * item's response bindings without printing it.
  *
  * @module
  */
@@ -16,7 +16,7 @@ import type { Accepted } from "#plate/validate/verdict.ts";
  * shown as the record's template values and outcome values say, without its correct responses,
  * mappings, processing or template rules. A response keeps its default where an interaction the
  * page shows starts at it, the value the candidate sees as the attempt starts (spec reading 183),
- * which `postings` gives as the entries a fresh attempt starts from (`Posting.start`).
+ * which `startingResponses` gives as the value a fresh attempt starts from.
  *
  * A printed variable prints the value `record` holds for it, a template value else an outcome
  * value, formatted as its attributes say; NULL prints nothing, and one whose value `record` does

@@ -28,7 +28,7 @@ import { fillLabel } from "#plate/ui/labels.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { asTyped, inputModeOf, useBoxes } from "#plate/ui/typed.ts";
-import type { BoxCounts, Written } from "#plate/ui/typed.ts";
+import type { BoxCounts, TypedDeclared, Written } from "#plate/ui/typed.ts";
 import { textOfXhtml, xhtmlOfText } from "#plate/interactions/xhtml-text.ts";
 
 /**
@@ -86,9 +86,10 @@ export interface ExtendedTextProps extends Authored<Named> {
   readonly format: "plain" | "preformatted" | "xhtml";
   readonly labels: Labels<typeof extendedTextKeys>;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the boxes write, as its declaration types it: a `string`, `integer` or `float` of
+   * any cardinality but `record`, or a record.
    */
-  readonly name: string;
+  readonly response: TypedDeclared;
   /**
    * `pattern-mask`, undefined when the author wrote none: the XML Schema regular expression each
    * string matches to be valid (5.48.4). It never stops typing; a box shows the `pattern` label
@@ -134,14 +135,15 @@ const asXhtml: Written = { read: textOfXhtml, write: xhtmlOfText };
  *   `aria-describedby`, and announces the hint as it appears. Each box is judged on its own, and
  *   nothing shows while the child is still typing in it.
  *
- * Every keystroke writes the response: the boxes that hold an answer, in the boxes' order. A box
- * left empty posts nothing and leaves the others in their places, and so does one of white space
- * alone in `plain` and `preformatted` text, as QTI reads it, or a blank one bound to a number.
+ * Every keystroke writes the boxes' texts as typed and the response read from them: the boxes that
+ * hold an answer, in the boxes' order. A box left empty is no answer and leaves the others in their
+ * places, and so is one of white space alone in `plain` and `preformatted` text, as QTI reads it,
+ * or a blank one bound to a number.
  *
  * The browser offers nothing of its own: no remembered answers, no spelling marks, no correction
  * and no capital letters, since each would change or judge the child's own writing.
  *
- * @param props The interaction, its response's entry name and its labels
+ * @param props The interaction, its response and its labels
  *   ({@link ExtendedTextProps}).
  * @returns The Extended Text, its boxes bound to the response.
  * @see https://ui-sdk.dev/docs/react/components/textarea
@@ -153,11 +155,11 @@ export const ExtendedText = (props: ExtendedTextProps) => {
     baseType,
     format,
     labels,
-    name,
     naming,
     patternMask,
     placeholder,
     prompt,
+    response,
     root,
     size,
   } = props;
@@ -165,9 +167,10 @@ export const ExtendedText = (props: ExtendedTextProps) => {
   const written = format === "xhtml" ? asXhtml : asTyped;
   const [boxes, write, leave] = useBoxes({
     counts: props.boxes,
-    name,
+    declared: response,
     patternMask,
     reading,
+    typer: undefined,
     written,
   });
   const grouped = boxes.length > 1;

@@ -1,9 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect, Option, Result } from "effect";
+import { Effect, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 import type { SourceAttribute, SourceDocument, SourceElement } from "#plate/document/source.ts";
-import { decode, entryName } from "#plate/form/encoding.ts";
-import type { ValueBinding } from "#plate/form/encoding.ts";
 import { choiceOrder } from "#plate/interactions/choice.ts";
 import type { ChoiceInteraction, ChoicePayload } from "#plate/interactions/choice.ts";
 import type {
@@ -30,13 +28,12 @@ import type {
 } from "#plate/model/item.ts";
 import { recordOf } from "#plate/test/records.ts";
 import type { ItemRecord, RedactRecord, Showing } from "#plate/model/record.ts";
-import { nullOf } from "#plate/model/values.ts";
-import type { ResponseValue, Value } from "#plate/model/values.ts";
+import { nullOf, nullRecord } from "#plate/model/values.ts";
+import type { Declared, Responses, ResponseValue, Value } from "#plate/model/values.ts";
 import { interactionPayload } from "#plate/payload.ts";
 import type { PairedInteraction, View } from "#plate/payload.ts";
-import { postings, unpostedEndAttempts } from "#plate/postings.ts";
-import type { Posting } from "#plate/postings.ts";
 import { redact } from "#plate/redact.ts";
+import { shownResponses, startingResponses } from "#plate/starting.ts";
 import { hiddenOnlyResponses, redactItem, redactStructure } from "#plate/redact/walk.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
 import { jsonField } from "#plate/test/fixtures.ts";
@@ -378,14 +375,14 @@ const held: ReadonlyMap<string, Value> = new Map([
 ]);
 
 /**
- * Hand `postings` a hand-built item, which its type refuses: the type test is the
+ * Hand `startingResponses` a hand-built item, which its type refuses: the type test is the
  * `@ts-expect-error` below, which `tsc` fails on if the call ever type-checks. No test calls it.
  *
- * @returns What `postings` would make of the item.
+ * @returns What `startingResponses` would make of the item.
  */
-const postingsOfItem = (): readonly Posting[] =>
-  // @ts-expect-error -- an `Item` is not `Accepted`: only `checkAdmitted` makes one, so postings read only an admitted item.
-  postings(item, instance, feedbackHidden);
+const startOfItem = (): Responses =>
+  // @ts-expect-error -- an `Item` is not `Accepted`: only `checkAdmitted` makes one, so a start reads only an admitted item.
+  startingResponses(item, feedbackHidden);
 
 /**
  * Write a value as JSON, with every `Map` and `Set` written as its entries, so nothing it holds is
@@ -1696,16 +1693,14 @@ describe("redactItem on template blocks, inlines and choices", () => {
     ]);
   });
 
-  it("gives no posting for the response of an interaction a hidden template block holds", () => {
+  it("shows no response of an interaction a hidden template block holds", () => {
     const holdingEntry: Item = {
       ...visibility,
       body: [templatePart("template-block", byVisible("show"), [textEntry("FIRST")], ["FIRST"])],
       unsupported: [],
     };
     const postedOf = (value: Value): readonly string[] =>
-      postings(acceptForTest(holdingEntry), instance, underRecord(holding({ VISIBLE: value }))).map(
-        (posting) => posting.identifier,
-      );
+      shownResponses(acceptForTest(holdingEntry), underRecord(holding({ VISIBLE: value })));
 
     assert.deepStrictEqual(postedOf(multipleOf("X")), ["FIRST"]);
     assert.deepStrictEqual(postedOf(multipleOf("W")), []);
@@ -1847,10 +1842,7 @@ describe("redactItem on responses only hidden content binds", () => {
       [...hiddenOnlyResponses(accepted.item, underRecord(showingA))],
       ["HIDDEN_ANSWER"],
     );
-    assert.deepStrictEqual(
-      postings(accepted, instance, underRecord(showingA)).map((posting) => posting.identifier),
-      ["SHOWN_ANSWER"],
-    );
+    assert.deepStrictEqual(shownResponses(accepted, underRecord(showingA)), ["SHOWN_ANSWER"]);
 
     const showingB = holding({ T: identifierValue("B") });
 
@@ -1965,7 +1957,11 @@ describe("payload", () => {
     ]);
     assert.deepStrictEqual(opened.label, Option.some([{ kind: "text", text: "River" }]));
     assert.deepStrictEqual(opened.placeholder, Option.some("Choose one"));
-    assert.strictEqual(opened.formName, entryName(instance, "RIVER"));
+    assert.deepStrictEqual(opened.declared, {
+      baseType: "identifier",
+      cardinality: "single",
+      identifier: "RIVER",
+    });
     assert.deepStrictEqual(opened.restore, Option.none());
 
     const valued: View = {
@@ -1979,7 +1975,7 @@ describe("payload", () => {
   });
 
   it("refuses a full item in its type", () => {
-    assert.isFunction(postingsOfItem);
+    assert.isFunction(startOfItem);
   });
 
   it("presents the choices in document order with the Prompt and the binding", () => {
@@ -2072,14 +2068,19 @@ describe("payload", () => {
     assert.strictEqual(textEntryFor(opened, "FIRST").restore, "");
   });
 
-  it("names each control's entries by the instance and the response", () => {
+  it("hands each control its response's declaration", () => {
     const plain = pageFor(redacted, answering);
 
     assert.deepStrictEqual(
-      shippedIn(plain).map((interaction) => interaction.payload.formName),
-      ["CAPITAL", "FIRST", "SECOND", "NAMED", "ESSAY"].map((response) =>
-        entryName(instance, response),
-      ),
+      shippedIn(plain).map((interaction) => interaction.payload.declared),
+      [
+        { baseType: "identifier", cardinality: "single", identifier: "CAPITAL" },
+        ...["FIRST", "SECOND", "NAMED", "ESSAY"].map((response): Declared<"string", "single"> => ({
+          baseType: "string",
+          cardinality: "single",
+          identifier: response,
+        })),
+      ],
     );
   });
 
@@ -2359,24 +2360,12 @@ describe("choiceOrder", () => {
 });
 
 /**
- * Construct the posting of a single response with the entry name the page gives it here.
+ * Construct the NULL a single response of a base type starts at.
  *
- * @param identifier The response's identifier.
  * @param baseType Its declared base type.
- * @param base The number base its entries are read in, the `base` of the Text Entry or Extended
- *   Text that binds it; none when no Text Entry or Extended Text binds it.
- * @returns The posting.
+ * @returns The NULL.
  */
-const postingOf = (
-  identifier: string,
-  baseType: ValueBinding["baseType"],
-  base?: number,
-): Posting => ({
-  binding: { baseType, cardinality: "single", name: entryName(instance, identifier) },
-  identifier,
-  options: base === undefined ? {} : { base },
-  start: [],
-});
+const nullSingle = (baseType: Value["baseType"]): Value => nullOf(baseType, "single");
 
 /**
  * The responses of the smaller item the growth check reads, each bound to its own Text Entry,
@@ -2472,8 +2461,8 @@ const booleanResponse = (identifier: string, defaultValue: Option.Option<Value>)
     },
   ] as const;
 
-describe("postings", () => {
-  it("gives each posted response its binding and its first text interaction's base, in declaration order", () => {
+describe("startingResponses", () => {
+  it("starts each shown response at its start, in declaration order, and none no interaction binds", () => {
     const bound: Item = {
       ...item,
       body: [
@@ -2504,64 +2493,26 @@ describe("postings", () => {
         ],
       ]),
     };
+    const accepted = acceptForTest(bound);
 
-    assert.deepStrictEqual(postings(acceptForTest(bound), instance, feedbackHidden), [
-      postingOf("CAPITAL", "identifier"),
-      // A Text Entry's text is plain: white space alone reads as NULL (TextFormatEnum, SV-DESIGN-05).
-      { ...postingOf("FIRST", "string", 16), options: { base: 16, blankIsEmpty: true } },
-      { ...postingOf("SECOND", "string", 10), options: { base: 10, blankIsEmpty: true } },
-      // A Text Entry starts at its response's default, which it posts (spec reading 183).
-      {
-        ...postingOf("NAMED", "string", 10),
-        options: { base: 10, blankIsEmpty: true },
-        start: [[entryName(instance, "NAMED"), responseDefault]],
-      },
-      // An Extended Text of plain format reads white space alone as NULL (TextFormatEnum).
-      { ...postingOf("ESSAY", "string", 8), options: { base: 8, blankIsEmpty: true } },
+    assert.deepStrictEqual(shownResponses(accepted, feedbackHidden), [
+      "CAPITAL",
+      "FIRST",
+      "SECOND",
+      "NAMED",
+      "ESSAY",
     ]);
+    assert.deepStrictEqual(startingResponses(accepted, feedbackHidden), {
+      CAPITAL: nullSingle("identifier"),
+      ESSAY: nullSingle("string"),
+      FIRST: nullSingle("string"),
+      // A Text Entry starts at its response's default (spec reading 183).
+      NAMED: one({ baseType: "string", value: responseDefault }),
+      SECOND: nullSingle("string"),
+    });
   });
 
-  it("reads a Text Entry's text of XML white space alone as NULL, and any other text whole, over every blank of up to four characters (TextFormatEnum plain, SV-DESIGN-05)", () => {
-    const [posting] = postings(
-      acceptForTest({ ...item, body: [textEntry("FIRST")] }),
-      instance,
-      feedbackHidden,
-    );
-    const { binding, options } = posting ?? assert.fail("FIRST has no posting.");
-    const space = [" ", "\t", "\n", "\r"];
-    const blanks = [""];
-    for (let length = 1; length <= 4; length += 1) {
-      for (const shorter of blanks.filter((s) => s.length === length - 1)) {
-        blanks.push(...space.map((c) => shorter + c));
-      }
-    }
-    assert.lengthOf(blanks, 341);
-    for (const blank of blanks) {
-      assert.deepStrictEqual(
-        Result.getSuccess(decode([[binding.name, blank]], binding, options)),
-        Option.some(nullOf("string", "single")),
-        JSON.stringify(blank),
-      );
-    }
-    // A form's CR reads as a line feed, as plate's decode reads every posted line break, so the kept text is the
-    // blanks of space, tab and line feed alone.
-    for (const blank of blanks.slice(1).filter((s) => !s.includes("\r"))) {
-      for (const written of [`${blank}a`, `a${blank}`, `${blank}0${blank}`]) {
-        const read = Result.getSuccess(decode([[binding.name, written]], binding, options));
-        assert.deepStrictEqual(
-          read.pipe(
-            Option.map((value) =>
-              value.cardinality === "record" ? [] : value.values.map((single) => single.value),
-            ),
-          ),
-          Option.some([written]),
-          JSON.stringify(written),
-        );
-      }
-    }
-  });
-
-  it("gives every End Attempt the page does not show, inside hidden feedback, its false whatever its default, and none to one the page shows, which posts (SV-RP-01)", () => {
+  it("starts every End Attempt the page does not show, inside hidden feedback, at false whatever its default, and one the page shows at false too, and shows only the one it shows (SV-RP-01)", () => {
     const yes: Value = {
       baseType: "boolean",
       cardinality: "single",
@@ -2596,17 +2547,15 @@ describe("postings", () => {
       ]),
     };
     const accepted = acceptForTest(hidden);
-    const posted = postings(accepted, instance, feedbackHidden).map(({ identifier }) => identifier);
 
-    assert.include(posted, "HINT");
-    assert.notInclude(posted, "MORE");
-    assert.deepStrictEqual(unpostedEndAttempts(accepted, instance, feedbackHidden), [["MORE", no]]);
+    assert.deepStrictEqual(shownResponses(accepted, feedbackHidden), ["HINT"]);
+    assert.deepStrictEqual(startingResponses(accepted, feedbackHidden), { HINT: no, MORE: no });
 
     const shown: Item = { ...hidden, body: [hidden.body[0] ?? assert.fail("no body")] };
-    assert.deepStrictEqual(unpostedEndAttempts(acceptForTest(shown), instance, feedbackHidden), []);
+    assert.deepStrictEqual(startingResponses(acceptForTest(shown), feedbackHidden), { HINT: no });
   });
 
-  it("posts an End Attempt inside feedback the record shows only where the page shows feedback, and gives it its false where the page shows none (show-feedback, 7.19.2)", () => {
+  it("shows an End Attempt inside feedback the record shows only where the page shows feedback, and starts it at false either way (show-feedback, 7.19.2)", () => {
     const no: Value = {
       baseType: "boolean",
       cardinality: "single",
@@ -2641,46 +2590,21 @@ describe("postings", () => {
     };
     const fed: Showing = { record: start, showFeedback: true };
 
-    assert.deepStrictEqual(
-      postings(accepted, instance, fed).map(({ identifier }) => identifier),
-      ["MORE"],
-    );
-    assert.deepStrictEqual(unpostedEndAttempts(accepted, instance, fed), []);
+    assert.deepStrictEqual(shownResponses(accepted, fed), ["MORE"]);
+    assert.deepStrictEqual(startingResponses(accepted, fed), { MORE: no });
     for (const unfed of [underRecord(start), feedbackHidden]) {
-      assert.deepStrictEqual(postings(accepted, instance, unfed), []);
-      assert.deepStrictEqual(unpostedEndAttempts(accepted, instance, unfed), [["MORE", no]]);
+      assert.deepStrictEqual(shownResponses(accepted, unfed), []);
+      assert.deepStrictEqual(startingResponses(accepted, unfed), { MORE: no });
     }
   });
 
-  it("gives an Inline Choice's response its posting with no base, which decodes an empty entry as NULL and refuses two entries", () => {
-    const [posting, ...others] = postings(acceptForTest(riverItem), instance, feedbackHidden);
-    assert.deepStrictEqual(posting, postingOf("RIVER", "identifier"));
-    assert.lengthOf(others, 0);
-
-    const { binding, options } = posting ?? assert.fail("RIVER has no posting.");
-    assert.deepStrictEqual(
-      Result.getSuccess(decode([[binding.name, ""]], binding, options)),
-      Option.some(nullOf("identifier", "single")),
-    );
-    assert.deepStrictEqual(
-      Option.map(
-        Result.getFailure(
-          decode(
-            [
-              [binding.name, "S"],
-              [binding.name, "L"],
-            ],
-            binding,
-            options,
-          ),
-        ),
-        (malformed) => [malformed._tag, malformed.reason],
-      ),
-      Option.some(["Malformed", "single-many"]),
-    );
+  it("starts an Inline Choice's response at NULL", () => {
+    assert.deepStrictEqual(startingResponses(acceptForTest(riverItem), feedbackHidden), {
+      RIVER: nullSingle("identifier"),
+    });
   });
 
-  it("record binding in the page: postings gives a record response a Text Entry binds its RecordBinding, after the responses of a base type, and none to a record response no interaction binds", () => {
+  it("starts a record response a Text Entry binds at the NULL record, after the responses of a base type, and none a record response no interaction binds", () => {
     const answer = { correct: Option.none(), defaultValue: Option.none(), identifier: "ANSWER" };
     const recorded: Item = {
       ...item,
@@ -2699,40 +2623,41 @@ describe("postings", () => {
         { cardinality: "record", defaultValue: Option.none(), identifier: "UNBOUND" },
       ],
     );
-    assert.deepStrictEqual(postings(acceptForTest(recorded), instance, feedbackHidden), [
-      postingOf("CAPITAL", "identifier"),
-      {
-        binding: { cardinality: "record", name: entryName(instance, "ANSWER") },
-        identifier: "ANSWER",
-        // A Text Entry's text is plain: white space alone reads as NULL (TextFormatEnum, SV-DESIGN-05).
-        options: { blankIsEmpty: true },
-        start: [],
-      },
+    assert.deepStrictEqual(shownResponses(acceptForTest(recorded), feedbackHidden), [
+      "CAPITAL",
+      "ANSWER",
     ]);
+    assert.deepStrictEqual(startingResponses(acceptForTest(recorded), feedbackHidden), {
+      ANSWER: nullRecord,
+      CAPITAL: nullSingle("identifier"),
+    });
   });
 
-  it("gives no posting to a declared response no interaction binds, so a post carries nothing over its record value", () => {
+  it("starts no declared response no interaction binds, so a post carries nothing over its record value", () => {
     const unbound: Item = { ...item, body: [choice] };
 
-    assert.deepStrictEqual(postings(acceptForTest(unbound), instance, feedbackHidden), [
-      postingOf("CAPITAL", "identifier"),
-    ]);
+    assert.deepStrictEqual(startingResponses(acceptForTest(unbound), feedbackHidden), {
+      CAPITAL: nullSingle("identifier"),
+    });
   });
 
   it.effect(
-    "gives the postings of 8 times the responses, each bound to its own Text Entry, in under 32 times the time",
+    "starts 8 times the responses, each bound to its own Text Entry, in under 32 times the time",
     () =>
-      Effect.gen(function* postingsInLinearTime() {
+      Effect.gen(function* startsInLinearTime() {
         const fewer = entriesItem(fewerEntries);
         const more = entriesItem(fewerEntries * growthFactor);
-        assert.lengthOf(postings(more, instance, feedbackHidden), fewerEntries * growthFactor);
+        assert.lengthOf(
+          Object.keys(startingResponses(more, feedbackHidden)),
+          fewerEntries * growthFactor,
+        );
 
         const growth = yield* growthRatio(
           () => {
-            postings(fewer, instance, feedbackHidden);
+            startingResponses(fewer, feedbackHidden);
           },
           () => {
-            postings(more, instance, feedbackHidden);
+            startingResponses(more, feedbackHidden);
           },
         );
         assert.isBelow(
@@ -3790,7 +3715,7 @@ const recordBound: SourceDocument = doc(
 );
 
 describe("a record-bound control", () => {
-  it("gives a record-bound control the string control's payload with no notice, each posting under its response's one name, and postings a RecordBinding for each", () => {
+  it("gives a record-bound control the string control's payload with no notice, its response's record declaration, and starts each at the NULL record", () => {
     const recordItem = acceptedFrom(recordBound);
     const shown = redactItem(recordItem, shownToCandidate, feedbackHidden);
     const built = pageFor(shown, answering);
@@ -3798,29 +3723,17 @@ describe("a record-bound control", () => {
     const working = extendedTextFor(built, "WORKING");
 
     assert.deepStrictEqual(
-      [entry.baseType, entry.formName, entry.restore],
-      ["string", entryName(instance, "NUMBER"), ""],
+      [entry.baseType, entry.declared, entry.restore],
+      ["string", { cardinality: "record", identifier: "NUMBER" }, ""],
     );
     assert.deepStrictEqual(
-      [working.baseType, working.cardinality, working.formName, working.n, working.notice],
-      ["string", "record", entryName(instance, "WORKING"), 1, Option.none()],
+      [working.baseType, working.cardinality, working.declared, working.n, working.notice],
+      ["string", "record", { cardinality: "record", identifier: "WORKING" }, 1, Option.none()],
     );
-    assert.deepStrictEqual(postings(acceptForTest(recordItem), instance, feedbackHidden), [
-      {
-        binding: { cardinality: "record", name: entryName(instance, "NUMBER") },
-        identifier: "NUMBER",
-        // A Text Entry's text is plain: white space alone reads as NULL (TextFormatEnum, SV-DESIGN-05).
-        options: { blankIsEmpty: true },
-        start: [],
-      },
-      {
-        binding: { cardinality: "record", name: entryName(instance, "WORKING") },
-        identifier: "WORKING",
-        // An Extended Text of plain format reads white space alone as NULL (TextFormatEnum).
-        options: { blankIsEmpty: true },
-        start: [],
-      },
-    ]);
+    assert.deepStrictEqual(startingResponses(acceptForTest(recordItem), feedbackHidden), {
+      NUMBER: nullRecord,
+      WORKING: nullRecord,
+    });
   });
 });
 

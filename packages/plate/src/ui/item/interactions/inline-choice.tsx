@@ -84,8 +84,8 @@ export const island = (paired: Paired<"inline-choice">, context: IslandContext):
         ),
       }))}
       labels={labelsOf(inlineChoiceKeys, locale, { prompt: node.placeholder })}
-      name={node.formName}
       required={model.required}
+      response={node.declared}
       root={rootOf(model, context)}
       trigger={triggerOf(paired, context)}
     />

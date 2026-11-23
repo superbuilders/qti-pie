@@ -41,7 +41,7 @@ import type { Key, ReactNode } from "react";
 import { copyItemContent, itemContentNodes } from "#plate/content/modules.ts";
 import { passageName } from "#plate/content/passage-names.ts";
 import type { ItemPayloadsHeld } from "#plate/content/modules.ts";
-import { scopedId } from "#plate/form/encoding.ts";
+import { scopedId } from "#plate/instance.ts";
 import { message } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import type { BodyElement, RedactedLevel, RedactedNode } from "#plate/model/item.ts";

@@ -1,15 +1,24 @@
 /**
- * The Schema codecs of the value model, for the server and the boundaries: {@link SingleSchema},
- * {@link ValueSchema} and {@link RecordValueSchema} check, encode and decode the plain
- * {@link Single}, {@link Value} and {@link RecordValue} types of `#plate/model/values.ts`, and
- * {@link ResponseValueSchema} a response's value of either kind.
+ * The Schema codecs of the value model, for the server and the boundaries,
+ * `@qti-pie/plate/codec`: {@link SingleSchema}, {@link ValueSchema} and {@link RecordValueSchema}
+ * check, encode and decode the plain {@link Single}, {@link Value} and {@link RecordValue} types of
+ * `#plate/model/values.ts`, {@link ResponseValueSchema} a response's value of either kind, and
+ * {@link PostedResponses} the body an item posts: its responses by identifier, each typed as its
+ * declaration types it.
+ *
+ * It is the one codec of a posted answer. An item's islands hold typed values in the host's state
+ * (`Held`, `@qti-pie/plate/ui/client`), the host encodes what the state's contract gives it to post
+ * (`savedOf`, `answerOf`) with {@link PostedResponses}, and every server that takes a post (edullm's
+ * QTI app, metis) decodes it once at its boundary with the same Schema, so no server reads an item,
+ * a start record or anything else to decode a post. It loads only `effect` and crust's text rules.
+ * Plate's own page modules load no Schema, so the host's code encodes, never an island.
  *
  * @module
  */
 import { Array as Arr, Option, Schema, SchemaTransformation } from "effect";
 import { isNcName } from "@qti-pie/crust/text.ts";
 import { isXmlText, modelledBaseTypes, modelledCardinalities } from "#plate/model/values.ts";
-import type { RecordValue, Single, Value } from "#plate/model/values.ts";
+import type { RecordValue, Responses, Single, Value } from "#plate/model/values.ts";
 
 /**
  * An identifier as a Schema: a string that is an NCName.
@@ -257,3 +266,47 @@ export const RecordValueSchema = Schema.Struct({
  * cardinality; its type is `ResponseValue`.
  */
 export const ResponseValueSchema = Schema.Union([ValueSchema, RecordValueSchema]);
+
+/**
+ * The Schema of the body an item posts, plate's `Responses`: a JSON object keyed by response
+ * identifier, an NCName, which it refuses any other key as (a record Schema's key Schema drops a
+ * key it refuses, so the check is the whole body's), each value the response's value in its
+ * declared cardinality and base type, encoded as {@link ResponseValueSchema} encodes one, so an
+ * integer of any size is its decimal digits and a float JSON has no number for is written by name.
+ *
+ * The body holds every response the page shows, its value as the child left it, NULL as no values
+ * (a record as no field), and every End Attempt response of the item, `false` but for the one whose
+ * press ended the attempt, `true` (QTI 3.0.1 information model §5.45: "If response processing is
+ * invoked in any other way ... then the associated response variable is set to 'false'"; `answerOf`
+ * in `#plate/held.ts`). A response the body does not name is one the page does not show, which the
+ * database leaves as it holds it. The database holds each value to its declaration's cardinality
+ * and base type, so a value of another type is a broken contract its write dies on, never a state a
+ * server handles.
+ *
+ * @example
+ *   Schema.decodeUnknownEffect(PostedResponses)({
+ *     RESPONSE: {
+ *       baseType: "integer",
+ *       cardinality: "single",
+ *       values: [{ baseType: "integer", value: "42" }],
+ *     },
+ *   });
+ *   // { RESPONSE: { baseType: "integer", cardinality: "single", values: [{ baseType: "integer", value: 42n }] } }
+ */
+export const PostedResponses: Schema.Codec<
+  Responses,
+  Readonly<Record<string, (typeof ResponseValueSchema)["Encoded"]>>
+> = Schema.Record(Schema.String, ResponseValueSchema).check(
+  Schema.makeFilter((responses) =>
+    Object.keys(responses).flatMap((identifier): Schema.FilterIssue[] =>
+      isNcName(identifier)
+        ? []
+        : [
+            {
+              issue: `the response identifier ${JSON.stringify(identifier)} is not an NCName; post each response under its declaration's identifier`,
+              path: [identifier],
+            },
+          ],
+    ),
+  ),
+);

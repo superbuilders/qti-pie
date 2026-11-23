@@ -31,6 +31,7 @@ import { announce } from "@ui-sdk/core";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import type { GraphicAssociateLabels } from "#plate/ui/graphic-associate/labels.ts";
@@ -61,7 +62,7 @@ import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 
 /**
  * One `qti-associable-hotspot` as the island takes it: its area, `shape` and `coords` as written,
- * which the stage resolves once it knows the image's size; its identifier, which a pair posts; its
+ * which the stage resolves once it knows the image's size; its identifier, which a pair holds; its
  * name; the limits on the pairs it may be in; and its read-aloud, which stands beside its chip in
  * the bank.
  */
@@ -108,14 +109,15 @@ export interface GraphicAssociateProps extends Authored<NameAttributes> {
   /**
    * `max-associations` (5.59.2): how many pairs the response holds at most, and so how many boxes
    * the list offers. The server writes the XSD's default of 1 when the author wrote none, and no
-   * limit for 0 (see {@link Limit}). A `single` response has at most 1 here, so it never posts two
-   * entries.
+   * limit for 0 (see {@link Limit}). A `single` response has at most 1 here, so it never holds two
+   * pairs.
    */
   readonly maxAssociations: Limit;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response, as its declaration types it: a `pair` response of `single` or `multiple`
+   * cardinality.
    */
-  readonly name: string;
+  readonly response: Declared<"pair", "multiple" | "single">;
   /**
    * The `qti-prompt`, server-rendered; none where the interaction has none.
    */
@@ -186,17 +188,17 @@ const PairLines = (props: {
  * A pair joins two different areas, once, where both areas' `match-group`s allow it; an area is in
  * at most its `match-max` pairs, and the boxes hold at most `max-associations`. Each refusal is the
  * machine's, made before the response changes, announced, and shown, whichever input made the
- * move. A box posts only once both halves are full, so a move that leaves the pairs as they were
- * posts nothing.
+ * move. A box is a pair of the response only once both halves are full, so a move that leaves the
+ * pairs as they were writes nothing.
  *
- * @param props The interaction, its response's entry name and its labels
+ * @param props The interaction, its response and its labels
  *   ({@link GraphicAssociateProps}).
  * @returns The Graphic Associate, its image and its list bound to the response.
  * @see {@link PlacementRoot}
  */
 export const GraphicAssociate = (props: GraphicAssociateProps) => {
-  const { areas, image, labels, maxAssociations, name, naming, prompt, root, size } = props;
-  const pairs = usePairBoxes(name, areas, maxAssociations);
+  const { areas, image, labels, maxAssociations, naming, prompt, response, root, size } = props;
+  const pairs = usePairBoxes(response, areas, maxAssociations);
   const [message, setMessage] = useState<string | null>(null);
   const [focused, setFocused] = useState<string>();
   const areasBy = useMemo(() => new Map(areas.map((area) => [area.identifier, area])), [areas]);
@@ -245,7 +247,7 @@ export const GraphicAssociate = (props: GraphicAssociateProps) => {
   });
 
   /**
-   * Show the boxes a move left, and post their pairs where a pair changed.
+   * Show the boxes a move left, and write their pairs where a pair changed.
    *
    * @param next The boxes.
    */

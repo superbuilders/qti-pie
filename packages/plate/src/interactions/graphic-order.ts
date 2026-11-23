@@ -4,7 +4,7 @@
  *
  * {@link graphicOrderModule}'s `redact` gives the page the Prompt, the author's image (`img`,
  * `picture` or `object`), each hotspot in document order with its area, coordinates and
- * name, the effective bounds, the entry name the order posts under, one entry per
+ * name, the effective bounds, the declaration of the response its island writes, one value per
  * ordered hotspot in order, and the order the view shows; the server shell renders it
  * (`#plate/ui/item/interactions/`). Nothing but the response is posted, so a post is an `ordered`
  * `identifier` response.
@@ -59,7 +59,7 @@ import type {
   ReferencingChoice,
 } from "#plate/model/item.ts";
 import { format, isRecordValue } from "#plate/model/values.ts";
-import type { ResponseValue } from "#plate/model/values.ts";
+import type { Declared, ResponseValue } from "#plate/model/values.ts";
 import { areaGeometries } from "#plate/vocabulary.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";
 
@@ -132,19 +132,19 @@ interface GraphicOrderByLevel extends ByLevel {
 
 /**
  * A Graphic Order as the page may know it (Q-9, `graphic-order`): what the model node holds of the
- * hotspots and the image, the effective bounds, the name its order posts under, and the
- * order the view shows. It holds no correct response: `ordered` is the stored, posted or solution
- * value the view gave, kept to the hotspots it names.
+ * hotspots and the image, the effective bounds, the declaration of the response its island writes,
+ * and the order the view shows. It holds no correct response: `ordered` is the stored, posted or
+ * solution value the view gave, kept to the hotspots it names.
  */
 interface GraphicOrderPayload {
   readonly ariaLabel: Option.Option<string>;
   readonly ariaLabelledby: Option.Option<string>;
   readonly class: Option.Option<string>;
   /**
-   * The name its order posts under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: an `ordered` `identifier`
+   * response.
    */
-  readonly formName: string;
+  readonly declared: Declared<"identifier", "ordered">;
   readonly hotspots: readonly GraphicOrderHotspot[];
   readonly image: Nodes<RedactedLevel>;
   /**
@@ -303,7 +303,8 @@ const ownRegions = <L extends Level>(
 
 /**
  * Copy a Graphic Order's model node into its payload node: its content through the kit, the
- * effective bounds, the response's entry name, and the order the view shows.
+ * effective bounds, the declaration of the response its island writes, and the order the view
+ * shows.
  *
  * The order is the values the view shows ({@link RedactKit.shown}), each kept to the hotspots
  * ({@link keptOf}): what names no hotspot is not shown, and a hotspot twice is shown once, at its
@@ -323,7 +324,7 @@ const redactGraphicOrder = (
     ariaLabel: interaction.ariaLabel,
     ariaLabelledby: interaction.ariaLabelledby,
     class: interaction.class,
-    formName: kit.formName(interaction.response),
+    declared: { baseType: "identifier", cardinality: "ordered", identifier: interaction.response },
     hotspots: interaction.hotspots,
     image: interaction.image,
     maxChoices: max,

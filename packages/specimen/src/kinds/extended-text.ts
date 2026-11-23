@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { responding, stringValue } from "#specimen/posted.ts";
 import { credited, matchesCorrect } from "#specimen/credit.ts";
 import { dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -87,14 +88,15 @@ const rightAnswers = (settings: ExtendedTextSettings): readonly string[] =>
   Arr.makeBy(settings.boxes === "one" ? 1 : 2, (at) => run(settings.length, at));
 
 /**
- * The response a set of written answers posts: one entry per box that holds one, as the island
- * posts the boxes that hold an answer, in their order.
+ * The response a set of written answers gives: a string per box that holds one, in the boxes'
+ * order, as the island reads the boxes that hold an answer, in the cardinality the boxes bind.
  *
+ * @param settings The settings.
  * @param answers The answers.
- * @returns The entries.
+ * @returns The response, none for no answer.
  */
-const posted = (answers: readonly string[]): Answered["posted"] =>
-  answers.map((answer) => [response, answer] as const);
+const posted = (settings: ExtendedTextSettings, answers: readonly string[]): Answered["posted"] =>
+  responding(response, stringValue(cardinalities[settings.boxes], answers));
 
 export const extendedText = kind("extended-text", {
   answers: (settings: ExtendedTextSettings) => {
@@ -103,13 +105,17 @@ export const extendedText = kind("extended-text", {
     const partial: readonly Answered[] =
       rights.length < 2
         ? []
-        : [{ answer: "partial", posted: posted(rights.slice(0, 1)), score: 0 }];
+        : [{ answer: "partial", posted: posted(settings, rights.slice(0, 1)), score: 0 }];
 
     return [
-      { answer: "right", posted: posted(rights), score: worth },
+      { answer: "right", posted: posted(settings, rights), score: worth },
       ...partial,
-      { answer: "wrong", posted: posted([run(settings.length, rights.length)]), score: 0 },
-      { answer: "empty", posted: [], score: 0 },
+      {
+        answer: "wrong",
+        posted: posted(settings, [run(settings.length, rights.length)]),
+        score: 0,
+      },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

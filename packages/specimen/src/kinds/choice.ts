@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { identifierValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -68,13 +69,15 @@ const rightPlaces = (settings: ChoiceSettings): readonly number[] =>
 const idOf = (at: number): string => `C${String(at + 1)}`;
 
 /**
- * The response a set of picks posts.
+ * The response a set of picks gives: the picked options' identifiers, in the cardinality the picks
+ * bind.
  *
+ * @param settings The settings.
  * @param places The picked options' places.
- * @returns One entry per pick.
+ * @returns The response, none for no pick.
  */
-const posted = (places: readonly number[]): Answered["posted"] =>
-  places.map((at) => [response, idOf(at)] as const);
+const posted = (settings: ChoiceSettings, places: readonly number[]): Answered["posted"] =>
+  responding(response, identifierValue(cardinalityOf(settings.picks), places.map(idOf)));
 
 /**
  * Choice, as the record of kinds holds it.
@@ -85,17 +88,19 @@ export const choice = kind("choice", {
     const wrongs = Arr.makeBy(settings.options, (at) => at).filter((at) => !rights.includes(at));
     const half = Math.floor(rights.length / 2);
     const partial: readonly Answered[] =
-      half === 0 ? [] : [{ answer: "partial", posted: posted(rights.slice(0, half)), score: half }];
+      half === 0
+        ? []
+        : [{ answer: "partial", posted: posted(settings, rights.slice(0, half)), score: half }];
 
     return [
-      { answer: "right", posted: posted(rights), score: rights.length },
+      { answer: "right", posted: posted(settings, rights), score: rights.length },
       ...partial,
       {
         answer: "wrong",
-        posted: posted(wrongs.slice(0, Math.min(rights.length, wrongs.length))),
+        posted: posted(settings, wrongs.slice(0, Math.min(rights.length, wrongs.length))),
         score: 0,
       },
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

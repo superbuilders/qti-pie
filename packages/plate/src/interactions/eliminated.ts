@@ -8,17 +8,17 @@
  */
 
 /**
- * One eliminated option: the entry name its interaction's response posts under, from plate's
- * `entryName`, and the option's identifier. Two interactions may share an identifier, so the entry
- * name keeps one's cross-out from the other's.
+ * One eliminated option of an item: the identifier of the response its interaction binds, and the
+ * option's identifier. Two interactions may share an option's identifier, so the response keeps
+ * one's cross-out from the other's.
  */
-export type EliminatedOption = readonly [name: string, identifier: string];
+export type EliminatedOption = readonly [response: string, identifier: string];
 
 /**
- * Group eliminated options by the entry name their response posts under.
+ * Group eliminated options by the response they are options of.
  *
  * @param options The options, in any order, each once or more.
- * @returns Each response's eliminated identifiers, by its entry name; a response none of whose
+ * @returns Each response's eliminated identifiers, by its identifier; a response none of whose
  *   options is eliminated is absent.
  */
 export const eliminatedBy = (
@@ -26,8 +26,8 @@ export const eliminatedBy = (
 ): ReadonlyMap<string, ReadonlySet<string>> => {
   const grouped = new Map<string, Set<string>>();
 
-  for (const [name, identifier] of options) {
-    grouped.set(name, (grouped.get(name) ?? new Set<string>()).add(identifier));
+  for (const [response, identifier] of options) {
+    grouped.set(response, (grouped.get(response) ?? new Set<string>()).add(identifier));
   }
 
   return grouped;

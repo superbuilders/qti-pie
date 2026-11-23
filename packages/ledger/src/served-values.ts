@@ -1,12 +1,15 @@
 /**
  * The one boundary between plate's values and the ledger's typed sidecars,
  * `@qti-pie/ledger/served-values.ts`: plate's `Value` and `RecordValue` written as the rows of each
- * variable's declared cardinality and base type, and read back from them. A posted response is
- * decoded once, by plate's `decode`, into the value this module writes: nothing here reads or
- * writes a lexical form, and no value is text in the ledger. Nothing here computes a value either:
- * the database's statements grade an answer and write its outcomes, and this module reads back what
- * they wrote. Every application that serves items over the ledger (edullm's QTI app, metis) writes
- * and reads its values through this module alone.
+ * variable's declared cardinality and base type, and read back from them. A posted answer is
+ * decoded once, at the application's boundary, by plate's `PostedResponses`
+ * (`@qti-pie/plate/codec`), into the values this module writes, with nothing read first: nothing
+ * here reads or writes a lexical form, and no value is text in the ledger. The database holds each
+ * value to its declaration's cardinality and base type at COMMIT (the ledger's "Declared type"
+ * laws), so a value of another type is a broken contract the write dies on. Nothing here computes a
+ * value either: the database's statements grade an answer and write its outcomes, and this module
+ * reads back what they wrote. Every application that serves items over the ledger (edullm's QTI
+ * app, metis) writes and reads its values through this module alone.
  *
  * - A single is one row, a multiple its distinct values each with its `count`, an ordered its values
  *   at their `place` from 0, and a record its fields each with its `field`, in the arm of the
@@ -363,7 +366,7 @@ const addValue = Effect.fnUntraced(function* addValue<K extends { readonly varia
  * over these rows and writes the outcomes and the completion status itself, in the same
  * transaction.
  *
- * @param responses The responses, plate's decoding of the posted entries.
+ * @param responses The responses, the posted body as `PostedResponses` decodes it.
  * @returns One list per sidecar, its cardinality then its base type; a file dies as
  *   {@link UnpostedFile}.
  */

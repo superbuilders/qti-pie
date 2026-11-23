@@ -607,11 +607,10 @@ const base64Bytes = (data: string): number => {
  *
  * @param payload The node.
  * @param path Its path.
- * @returns The file; none for a nameless empty file, which the form reads as NULL too (`decode` in
- *   `#plate/form/encoding.ts`). `malformed` at the object for a node that is no object, at `data`
- *   when it is missing or no base64 string, at `mime` when it is missing, no string or no MIME type
- *   (an empty string is one the browser reports no type for), at `name` when it is no string or
- *   holds a character XML cannot carry, and at any other key.
+ * @returns The file; none for a nameless empty file, which is NULL. `malformed` at the object for a
+ *   node that is no object, at `data` when it is missing or no base64 string, at `mime` when it is
+ *   missing, no string or no MIME type (an empty string is one the browser reports no type for), at
+ *   `name` when it is no string or holds a character XML cannot carry, and at any other key.
  */
 const readFile = (payload: unknown, path: string): Read<Option.Option<Single>> => {
   if (!isObject(payload)) {

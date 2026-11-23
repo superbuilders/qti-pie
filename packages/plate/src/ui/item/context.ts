@@ -6,8 +6,8 @@
  * The shell renders plate's own redaction (`redact`) node for node, and pairs each interaction with
  * its payload node (`interactionPayload` in `#plate/payload.ts`), so by the time an interaction is
  * handed over the core has settled everything QTI and the host decide: the seeded shuffle (the
- * configuration's `seed`, the instance and the response), the entry name each response posts
- * under, the value each restores, and the template and feedback content the record shows.
+ * configuration's `seed`, the instance and the response), the declaration of each response an
+ * island writes, the value each restores, and the template and feedback content the record shows.
  *
  * @module
  */
@@ -112,7 +112,8 @@ export interface IslandContext {
    */
   readonly content: (nodes: readonly RedactedNode[], options?: ContentOptions) => ReactNode;
   /**
-   * The instance the host named, which scopes every id and entry name.
+   * The instance the host named, which scopes every id and names the entry the item's End Attempts
+   * post in.
    */
   readonly instance: string;
   /**

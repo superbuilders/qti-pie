@@ -8,7 +8,7 @@
  * no `Responses`, fetches nothing and suspends on nothing. It builds the page from plate's own
  * redaction, so nothing an item withholds (a correct response, a mapping, hidden feedback, a
  * template value it does not print) reaches the page, and everything QTI decides (the seeded
- * shuffle, each response's entry name, the feedback and template content the record shows, the
+ * shuffle, each response's declaration, the feedback and template content the record shows, the
  * printed variables) is the core's.
  *
  * @module
@@ -18,7 +18,7 @@ import type { Key, ReactNode } from "react";
 import { defaultView } from "#plate/content/contract.ts";
 import { copyItemContent, itemContentNodes } from "#plate/content/modules.ts";
 import type { ItemPayloadsHeld } from "#plate/content/modules.ts";
-import { checkInstance, scopedId } from "#plate/form/encoding.ts";
+import { checkInstance, scopedId } from "#plate/instance.ts";
 import { message } from "#plate/messages.ts";
 import type { Interaction, RedactedLevel, RedactedNode } from "#plate/model/item.ts";
 import { interactionPayload } from "#plate/payload.ts";

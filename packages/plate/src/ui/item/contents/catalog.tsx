@@ -51,7 +51,7 @@ import type {
   CatalogPayload,
 } from "#plate/content/catalog-info.ts";
 import { contentNodes, copyContent } from "#plate/content/modules.ts";
-import { scopedId } from "#plate/form/encoding.ts";
+import { scopedId } from "#plate/instance.ts";
 import { message } from "#plate/messages.ts";
 import type { Locale } from "#plate/messages.ts";
 import { addressUrl, classifyUrl, missingPathOf } from "#plate/model/url.ts";

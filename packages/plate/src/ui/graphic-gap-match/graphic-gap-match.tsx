@@ -33,8 +33,11 @@
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info/index.html#Data_GraphicGapMatchInteraction
  */
+import { Option } from "effect";
 import { useMemo, useState } from "react";
 import type { FocusEvent, ReactNode } from "react";
+import { isRecordValue } from "#plate/model/values.ts";
+import type { Declared, ResponseValue } from "#plate/model/values.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import type { ArrowDirection } from "#plate/interactions/area.ts";
@@ -54,7 +57,7 @@ import type { StageArea } from "#plate/ui/graphic/stage.tsx";
 import type { TargetFloor } from "#plate/graphic/scale.ts";
 import { isOne } from "#plate/placement/limit.ts";
 import type { Limit } from "#plate/placement/limit.ts";
-import { placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
+import { directedPairsOf, placementsOf } from "#plate/ui/placement/associable.ts";
 import { chipRuleOf } from "#plate/placement/rules.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 import type { Pairs, PairsBoard } from "#plate/placement/machine.ts";
@@ -71,7 +74,12 @@ import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
 import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
-import { useResponse } from "#plate/ui/responses.tsx";
+import {
+  directedPairSingles,
+  identifierSingles,
+  useResponse,
+  useResponseValue,
+} from "#plate/ui/responses.tsx";
 
 /**
  * One `qti-gap-text` or `qti-gap-img` as the island takes it: an associable choice; its content
@@ -178,15 +186,16 @@ export interface GraphicGapMatchProps extends Authored<NameAttributes> {
   readonly plot: PlotKind;
   /**
    * The item's shading interaction, where the plot is a number line and the item holds one
-   * (`plate-shade` on a `qti-choice-interaction`): the entry name its response posts under and its
-   * choices that run the ray left and right, which the island reads from the item's `<Responses>`
-   * to draw the ray as the child picks. Undefined for none.
+   * (`plate-shade` on a `qti-choice-interaction`): its response's declaration and its choices that
+   * run the ray left and right, which the island reads from the item's `<Responses>` to draw the
+   * ray as the child picks. Undefined for none.
    */
   readonly shade: ShadeLink | undefined;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response, as its declaration types it: a `multiple` `directedPair` response, each pair a
+   * choice and the hotspot it went to.
    */
-  readonly name: string;
+  readonly response: Declared<"directedPair", "multiple">;
   /**
    * The `qti-prompt`, server-rendered; none where the interaction has none.
    */
@@ -360,6 +369,18 @@ const StagePlotPins = (props: StagePlot) => {
 };
 
 /**
+ * Give the identifiers the shading interaction's response holds, the choices the child picked
+ * there, which tell which way the ray runs.
+ *
+ * @param value The shading interaction's response, as the item's state holds it.
+ * @returns Its identifiers, in order; none for a value of another type.
+ */
+const picksIn = (value: ResponseValue): readonly string[] =>
+  isRecordValue(value)
+    ? []
+    : value.values.flatMap((single) => Option.toArray(identifierSingles.read(single)));
+
+/**
  * Render a Graphic Gap Match for the child to answer, holding its response in the item's
  * `<Responses>`.
  *
@@ -399,8 +420,7 @@ const StagePlotPins = (props: StagePlot) => {
  * `match-max` (`targetFull`), a pair past `max-associations` (`totalReached`), and a pair either
  * side's `match-group` leaves out (`notInGroup`). The response is written whole on every change.
  *
- * @param props The interaction, its response's entry name and its labels
- *   ({@link GraphicGapMatchProps}).
+ * @param props The interaction, its response and its labels ({@link GraphicGapMatchProps}).
  * @returns The Graphic Gap Match, its placements bound to the response.
  */
 export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
@@ -412,17 +432,17 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
     image,
     labels,
     maxAssociations,
-    name,
     naming,
     plot,
     prompt,
+    response,
     root,
     shade,
     size,
   } = props;
-  const [texts, set] = useResponse(name);
-  const [shaded] = useResponse(shade?.name ?? name);
-  const toward = shade === undefined ? undefined : shadeDirectionOf(shade, shaded);
+  const [pairs, set] = useResponse(response, directedPairSingles);
+  const [shading] = useResponseValue(shade?.response ?? response);
+  const toward = shade === undefined ? undefined : shadeDirectionOf(shade, picksIn(shading));
   const [focused, setFocused] = useState<string>();
   const board = useMemo(
     () => boardOf(gapChoices, hotspots, maxAssociations),
@@ -432,7 +452,7 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
     () => new Map(gapChoices.map((choice) => [choice.identifier, choice])),
     [gapChoices],
   );
-  const placements = useMemo(() => placementsOf(texts), [texts]);
+  const placements = useMemo(() => placementsOf(pairs), [pairs]);
   const placed = new Set(placements.map(({ target }) => target));
 
   /**
@@ -462,7 +482,7 @@ export const GraphicGapMatch = (props: GraphicGapMatchProps) => {
         labels={labels}
         placements={placements}
         onPlacementsChange={(next: Pairs) => {
-          set(textsOf(next));
+          set(directedPairsOf(next));
         }}
       >
         <PlacementBank caption={caption}>

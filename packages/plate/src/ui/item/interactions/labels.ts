@@ -11,7 +11,7 @@
  */
 import { Option, Record as Rec, pipe } from "effect";
 import type { ReactNode } from "react";
-import { scopedId } from "#plate/form/encoding.ts";
+import { scopedId } from "#plate/instance.ts";
 import { message, messageText, numeral } from "#plate/messages.ts";
 import type { Locale, MessageKey } from "#plate/messages.ts";
 import { redactedInteractionsIn } from "#plate/model/interactions.ts";

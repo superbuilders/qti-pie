@@ -31,7 +31,7 @@ import type { BodyNode } from "#plate/model/item.ts";
 import type { ItemRecord, Showing } from "#plate/model/record.ts";
 import { nullOf } from "#plate/model/values.ts";
 import type { Value } from "#plate/model/values.ts";
-import { postings } from "#plate/postings.ts";
+import { shownResponses } from "#plate/starting.ts";
 import { redact } from "#plate/redact.ts";
 import { feedbackBlockTag } from "#plate/redact/walk.ts";
 import type { Redacted } from "#plate/redact/walk.ts";
@@ -49,11 +49,6 @@ import { documentDigest, goldenRecords, recordOf } from "#plate/test/records.ts"
 import { admitted } from "#plate/test/admitted.ts";
 import { acceptedItem } from "#plate/validate/verdict.ts";
 import type { Accepted } from "#plate/validate/verdict.ts";
-
-/**
- * The instance token every render here passes.
- */
-const instance = "fb";
 
 /**
  * The three feedback elements, as an item's verdict names a feature.
@@ -454,9 +449,7 @@ describe("the BPIG feedback examples", { tags: ["corpus"] }, () => {
           { BODY: identifiers("part2", "option2") },
         );
         const posted = (record: ItemRecord): readonly string[] =>
-          postings(accepted, instance, { record, showFeedback: true }).map(
-            (posting) => posting.identifier,
-          );
+          shownResponses(accepted, { record, showFeedback: true });
         const second = shownBy(accepted, configuration, chosen.record).text;
 
         assert.deepStrictEqual(posted(start), ["RESPONSE1"]);

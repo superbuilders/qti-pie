@@ -21,11 +21,10 @@ import { Effect, Option, Record as Rec } from "effect";
 import { opened } from "#specimen/open.ts";
 import { kindDimension } from "#specimen/kinds/index.ts";
 import { floorCase } from "#specimen/floor.ts";
-import { entriesOf } from "#specimen/specimen.ts";
 import type { Case as Specimen, KindName } from "#specimen/specimen.ts";
 import { clientExports } from "#specimen/ui/clients.ts";
 import { known } from "#specimen/ui/findings.ts";
-import { instance, rules, see } from "#specimen/ui/rules.ts";
+import { rules, see } from "#specimen/ui/rules.ts";
 import type { Seen, SourceItem } from "#specimen/ui/rules.ts";
 import { givenShowings, showingName } from "#specimen/ui/showing.ts";
 import type { ResponseClass, Showing } from "#specimen/ui/showing.ts";
@@ -64,8 +63,7 @@ type Feature = `${KindName} in ${Showing["mode"]}` | `class ${ResponseClass}`;
 
 /**
  * Give a generated case as the suite shows it: its item opened as a host opens it, the record a
- * templated item starts from, and the response its description gives, posted under the suite's
- * instance.
+ * templated item starts from, and the response its description gives.
  *
  * @param held The case.
  * @returns The item; the case's refusal when plate does not accept its item.
@@ -79,7 +77,7 @@ const sourceOf = (held: Specimen) =>
       configuration,
       given: Option.some({
         described: held.description.answer,
-        entries: entriesOf(held, instance),
+        responses: held.response.posted,
       }),
       host: held.item.host,
       kinds: facts.kinds,

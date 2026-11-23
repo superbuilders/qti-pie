@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { identifierValue, responding } from "#specimen/posted.ts";
 import { credited, matchesCorrect } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -77,13 +78,13 @@ const rightOrder = (settings: GraphicOrderSettings): readonly string[] =>
   Arr.makeBy(orderedCount(settings), (at) => idOf(settings.areas - 1 - at));
 
 /**
- * The response an order posts: one entry per area, first to last.
+ * The response an order gives: an `ordered` of the areas' identifiers, first to last.
  *
- * @param identifiers The areas, in order.
- * @returns The entries.
+ * @param areas The areas' identifiers, in order.
+ * @returns The response, none for no area ordered.
  */
-const posted = (identifiers: readonly string[]): Answered["posted"] =>
-  identifiers.map((identifier) => [response, identifier] as const);
+const posted = (areas: readonly string[]): Answered["posted"] =>
+  responding(response, identifierValue("ordered", areas));
 
 export const graphicOrder = kind("graphic-order", {
   answers: (settings: GraphicOrderSettings) => {
@@ -109,7 +110,7 @@ export const graphicOrder = kind("graphic-order", {
     return [
       { answer: "right", posted: posted(order), score: 1 },
       ...several,
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

@@ -47,9 +47,9 @@ export interface ItemRecord {
 export type RedactRecord = Pick<ItemRecord, "attempt" | "defaults" | "outcomes" | "templates">;
 
 /**
- * What a page shows an item by, which the host hands `<Item>`, `redact` and `postings` alike, so
- * the page and the responses it posts agree: whether the page shows the item's feedback, and the
- * record of the attempt it shows.
+ * What a page shows an item by, which the host hands `<Item>`, `redact` and `startingResponses`
+ * alike, so the page and the responses it posts agree: whether the page shows the item's feedback,
+ * and the record of the attempt it shows.
  *
  * `showFeedback` is the item session control's `show-feedback` that the test states for the item
  * (information model 7.19.2), and the host passes it as the test states it: "If it is 'false' then

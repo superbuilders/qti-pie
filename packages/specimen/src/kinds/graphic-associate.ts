@@ -6,6 +6,7 @@
  */
 import { Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { pairValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -58,35 +59,49 @@ export interface GraphicAssociateSettings {
 const idOf = (at: number): string => `H${String(at + 1)}`;
 
 /**
- * A pair in its lexical form: its two areas' identifiers.
+ * A pair's two areas' identifiers.
+ *
+ * @param pair The two places.
+ * @returns The identifiers, in the pair's order.
+ */
+const identifiersOf = (pair: Pair): readonly [string, string] => [idOf(pair[0]), idOf(pair[1])];
+
+/**
+ * A pair in its lexical form: its two areas' identifiers, separated by a space.
  *
  * @param pair The two places.
  * @returns The pair's text.
  */
-const pairText = (pair: Pair): string => `${idOf(pair[0])} ${idOf(pair[1])}`;
+const pairText = (pair: Pair): string => identifiersOf(pair).join(" ");
 
 /**
- * The response a set of pairs posts.
+ * The response a set of pairs gives, in the cardinality the pairs bind: `single` for one pair.
  *
+ * @param settings The settings.
  * @param made The pairs.
- * @returns One entry per pair.
+ * @returns The response, none for no pair.
  */
-const posted = (made: readonly Pair[]): Answered["posted"] =>
-  made.map((pair) => [response, pairText(pair)] as const);
+const posted = (settings: GraphicAssociateSettings, made: readonly Pair[]): Answered["posted"] =>
+  responding(
+    response,
+    pairValue(settings.pairs === "one" ? "single" : "multiple", made.map(identifiersOf)),
+  );
 
 export const graphicAssociate = kind("graphic-associate", {
   answers: (settings: GraphicAssociateSettings) => {
     const rights = rightPairs(settings.areas, settings.pairs, settings.reach);
     const half = Math.floor(rights.length / 2);
     const partial: readonly Answered[] =
-      half === 0 ? [] : [{ answer: "partial", posted: posted(rights.slice(0, half)), score: half }];
+      half === 0
+        ? []
+        : [{ answer: "partial", posted: posted(settings, rights.slice(0, half)), score: half }];
 
     return [
-      { answer: "right", posted: posted(rights), score: rights.length },
+      { answer: "right", posted: posted(settings, rights), score: rights.length },
       ...partial,
       // The first area and the last are never a right pair: the pairs run along the picture.
-      { answer: "wrong", posted: posted([[0, settings.areas - 1]]), score: 0 },
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "wrong", posted: posted(settings, [[0, settings.areas - 1]]), score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

@@ -5,8 +5,8 @@
  * {@link associateModule}'s `redact` gives the page the Prompt, its choices (a
  * `qti-simple-associable-choice` each, in the order the seed and the instance present them when
  * `shuffle` is true, a `fixed` choice keeping its place) with each one's `match-group` and
- * `match-max`, `max-associations`, the entry name the pairs post under, one entry per pair,
- * `"<a> <b>"` (decision D2), and the pairs the view shows; the server shell renders it
+ * `match-max`, `max-associations`, the declaration of the `pair` response its island writes, and
+ * the pairs the view shows; the server shell renders it
  * (`#plate/ui/item/interactions/`), so that no association needs a drag (WCAG 2.5.7) and every one
  * is made from the keyboard (2.1.1).
  *
@@ -63,7 +63,7 @@ import type {
   RedactedLevel,
   ReferencingChoice,
 } from "#plate/model/item.ts";
-import type { Single } from "#plate/model/values.ts";
+import type { Declared, Single } from "#plate/model/values.ts";
 
 /**
  * Associate's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -166,8 +166,8 @@ interface AssociatePayloadChoice extends ReferencingChoice {
 }
 
 /**
- * An Associate as the page may know it: its Prompt, its choices in presented order, the name its
- * pairs post under, and the pairs to show. It holds no correct response.
+ * An Associate as the page may know it: its Prompt, its choices in presented order, the declaration
+ * of the response its pairs are written to, and the pairs to show. It holds no correct response.
  */
 interface AssociatePayload {
   readonly ariaLabel: Option.Option<string>;
@@ -178,10 +178,10 @@ interface AssociatePayload {
    */
   readonly class: Option.Option<string>;
   /**
-   * The name its pairs post under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: a `pair` response of the bound
+   * cardinality.
    */
-  readonly formName: string;
+  readonly declared: Declared<"pair", "multiple" | "single">;
   /**
    * `max-associations`, written or defaulted (0 is no limit).
    */
@@ -346,7 +346,11 @@ export const associateModule: InteractionModule<"associate", AssociateByLevel, A
       matchMax: choice.matchMax,
     })),
     class: interaction.class,
-    formName: kit.formName(interaction.response),
+    declared: {
+      baseType: "pair",
+      cardinality: interaction.cardinality,
+      identifier: interaction.response,
+    },
     maxAssociations: interaction.maxAssociations,
     pairs: shownPairs(interaction.choices, kit.shown(interaction.response)),
     prompt: interaction.prompt,

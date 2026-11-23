@@ -18,7 +18,7 @@
  *
  * QTI says the delivery engine "must not indicate" the areas an area mapping scores and "Only the
  * actual position(s) selected by the candidate shall be indicated" (2.4.3.6), so the stage draws no
- * area, only the copies. An untouched stage posts nothing: every response stays NULL until the
+ * area, only the copies. An untouched stage holds no point: every response stays NULL until the
  * child places a copy. Its behaviour is the Position Object primitive's
  * (`#plate/ui/position-object/primitive.ts`).
  *
@@ -40,7 +40,10 @@ import type { ObjectDrawing } from "#plate/ui/position-object/token.tsx";
 import type { ImagePoint } from "#plate/graphic/geometry.ts";
 import type { GraphicLabels } from "#plate/ui/graphic/labels.ts";
 import type { StageScale } from "#plate/graphic/scale.ts";
-import { useEntries } from "#plate/ui/responses.tsx";
+import { pointSingles, useResponsesOf } from "#plate/ui/responses.tsx";
+import type { Declared } from "#plate/model/values.ts";
+import { pointsOf, valuesOf } from "#plate/ui/position-object/points.ts";
+import type { Placements } from "#plate/ui/position-object/points.ts";
 
 /**
  * The primitive, typed as UI SDK's React adapter reads it.
@@ -60,8 +63,8 @@ const parts = createParts(primitive, {
 });
 
 /**
- * One interaction of the stage as the island takes it: its response's entry name and limit, and how
- * its object is drawn.
+ * One interaction of the stage as the island takes it: its response and limit, and how its object
+ * is drawn.
  */
 export interface StagedObject extends ObjectDrawing, StageObject {}
 
@@ -116,7 +119,7 @@ export interface PositionObjectStageProps {
  * Give the place a copy is drawn at: where the held copy waits, else its own.
  *
  * @param held The copy held, if any.
- * @param name The interaction's entry name.
+ * @param name The interaction's response's identifier.
  * @param index The copy's place among its object's.
  * @param point The copy's own place.
  * @returns The place.
@@ -133,7 +136,7 @@ const drawnAt = (
  * Tell whether a control with keyboard focus stands for a copy.
  *
  * @param focused The control with keyboard focus, if any.
- * @param name The interaction's entry name.
+ * @param name The interaction's response's identifier.
  * @param index The copy's place among its object's, none for its object.
  * @returns Whether it does.
  */
@@ -149,7 +152,7 @@ const focuses = (focused: CopyKey | null, name: string, index: number | null): b
  * @param props.focused The control with keyboard focus, if any.
  * @param props.held The copy held, if any.
  * @param props.objects The stage's interactions.
- * @param props.placed Each interaction's placed copies, by its entry name.
+ * @param props.placed Each interaction's placed copies, by its response's identifier.
  * @returns The layer.
  */
 const Copies = (props: {
@@ -163,31 +166,31 @@ const Copies = (props: {
 
   return (
     <parts.Layer pointAt={pointAt}>
-      {objects.flatMap((object) =>
-        (placed[object.name] ?? []).map((point, index) => (
+      {objects.flatMap(({ response: { identifier }, ...object }) =>
+        (placed[identifier] ?? []).map((point, index) => (
           <parts.Token
-            key={`${object.name}#${String(index)}`}
+            key={`${identifier}#${String(index)}`}
             index={index}
-            name={object.name}
+            name={identifier}
             pointerEvents="all"
-            transform={placedAt(drawnAt(held, object.name, index, point))}
+            transform={placedAt(drawnAt(held, identifier, index, point))}
           >
             <ObjectCopy
               drawing={object}
               state={{
-                focusVisible: focuses(focused, object.name, index),
+                focusVisible: focuses(focused, identifier, index),
                 placed: true,
-                selected: held !== null && held.name === object.name && held.index === index,
+                selected: held !== null && held.name === identifier && held.index === index,
               }}
             />
           </parts.Token>
         )),
       )}
-      {objects.flatMap((object) =>
-        held !== null && held.name === object.name && held.index === null && held.at !== null
+      {objects.flatMap(({ response: { identifier }, ...object }) =>
+        held !== null && held.name === identifier && held.index === null && held.at !== null
           ? [
               <g
-                key={object.name}
+                key={identifier}
                 data-slot="plate-position-object-held"
                 pointerEvents="none"
                 transform={placedAt(held.at)}
@@ -195,7 +198,7 @@ const Copies = (props: {
                 <ObjectCopy
                   drawing={object}
                   state={{
-                    focusVisible: focuses(focused, object.name, null),
+                    focusVisible: focuses(focused, identifier, null),
                     placed: false,
                     selected: true,
                   }}
@@ -210,7 +213,8 @@ const Copies = (props: {
 
 /**
  * Render a Position Object stage for the child to answer, holding every response of its
- * interactions in the item's `<Responses>`, each point posting as one entry.
+ * interactions in the item's `<Responses>`, each point one value of its interaction's response, and
+ * writing all of them at once.
  *
  * The parts:
  *
@@ -240,16 +244,21 @@ const Copies = (props: {
  */
 export const PositionObjectStage = (props: PositionObjectStageProps) => {
   const { children, image, labels, objects, scale, size, stageLabels, stageNaming } = props;
-  const names = useMemo(() => objects.map((object) => object.name), [objects]);
+  const declared = useMemo(() => objects.map((object) => object.response), [objects]);
   const authored = useMemo((): AuthoredSize => ({ kind: "both", size }), [size]);
-  const [entries, set] = useEntries(names);
+  const [values, set] = useResponsesOf(declared, pointSingles);
+  const placements = useMemo(
+    (): Placements =>
+      new Map([...values].map(([identifier, points]) => [identifier, pointsOf(points)])),
+    [values],
+  );
   const handle = usePrimitive(primitive, {
     labels,
     objects,
     onPlacementsChange: (next) => {
-      set(next);
+      set(new Map([...next].map(([identifier, points]) => [identifier, valuesOf(points)])));
     },
-    placements: entries,
+    placements,
     size,
   });
 
@@ -288,10 +297,10 @@ export const PositionObjectStage = (props: PositionObjectStageProps) => {
  */
 export interface PositionObjectProps extends Authored<Named> {
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance, one
-   * entry per point.
+   * The response its copies write, as its declaration types it: a `point` response, one value per
+   * copy. Its identifier names the interaction to the stage's parts.
    */
-  readonly name: string;
+  readonly response: Declared<"point", "multiple" | "single">;
   /**
    * The object image, as the server rendered it, which the child takes copies from.
    */
@@ -325,7 +334,8 @@ export interface PositionObjectProps extends Authored<Named> {
  * @returns The group.
  */
 export const PositionObject = (props: PositionObjectProps) => {
-  const { name, naming, object, objectName, root } = props;
+  const { naming, object, objectName, response, root } = props;
+  const name = response.identifier;
   // A part made by UI SDK's `createParts` types its `className` as never `undefined`, so the
   // author's class is spread only where it is written.
   const { className, ...data } = root;

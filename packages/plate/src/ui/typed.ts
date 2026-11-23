@@ -1,68 +1,54 @@
 /**
- * What Text Entry's and Extended Text's islands share: which typed texts a response posts, the
+ * What Text Entry's and Extended Text's islands share: which typed texts a response holds, the
  * `pattern-mask` check that shows a box's hint, and each box's own text, held beside the response.
  *
  * A box is one native text control, a Text Entry's `input` or one of an Extended Text's
- * `textarea`s. Its text is the child's, exactly as typed; the response holds the texts that are
- * answers, in the boxes' order, each as typed, which is plate's lexical form of a typed value. The
- * two differ only by the boxes that hold no answer, so the boxes keep their own text and the
- * response is derived from it on every change.
+ * `textarea`s. Its text is the child's, exactly as typed, and the state `<Responses>` holds keeps
+ * it so (`Typed` in `#plate/held.ts`); the response's value is read from the texts that are
+ * answers, in the boxes' order, by plate's one reading of typed text
+ * (`#plate/model/typed-text.ts`). A box whose text is no value of its base type, `abc` in a
+ * whole-number box, leaves the response unread: its value is NULL, and the host refuses an answer
+ * until the child changes it.
  *
  * The module is imported by client modules only.
  *
  * @module
  */
-import { Option, Result } from "effect";
+import { Array as Arr, Option, Result } from "effect";
 import { useMemo, useState } from "react";
-import { decodeValue, postedLexical } from "#plate/form/encoding.ts";
 import { compile, matches } from "#plate/model/regex.ts";
 import type { Matcher } from "#plate/model/regex.ts";
-import { format } from "#plate/model/values.ts";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { readRecord, readTyped, typedLexical, typedText } from "#plate/model/typed-text.ts";
+import type { TypedDeclared, TypedReading } from "#plate/model/typed-text.ts";
+import { format, isRecordValue, nullOf, nullRecord } from "#plate/model/values.ts";
+import type { ResponseValue, Single } from "#plate/model/values.ts";
+import type { Typed } from "#plate/held.ts";
+import { useTypedResponse } from "#plate/ui/responses.tsx";
+import type { TypedResponse } from "#plate/ui/responses.tsx";
+import type { Key } from "#plate/ui/text-entry/keypad.ts";
+
+export type { TypedDeclared, TypedReading } from "#plate/model/typed-text.ts";
 
 /**
- * How a box's text is read as an answer: as plate's server decodes the same text.
- */
-export interface TypedReading {
-  /**
-   * The number base an `integer` answer is written in, the interaction's `base`: an integer from 2
-   * to 36, 10 when the author wrote none (the XSD's default).
-   */
-  readonly base: number;
-  /**
-   * The base type of the response the box writes. A record response is typed as a `string`, the
-   * text its fields are read from.
-   */
-  readonly baseType: "float" | "integer" | "string";
-  /**
-   * Whether a `string` of white space alone is no answer, as QTI's `TextFormatEnum` asks of
-   * `plain` and `preformatted` text: "where a response consists only of white-space characters …
-   * it should be treated as an empty string (NULL)". Otherwise only empty text is no answer.
-   */
-  readonly blankIsEmpty: boolean;
-}
-
-/**
- * Decide whether a box's text is an answer the response posts: whether the form encoding reads a
- * value from it ({@link postedLexical}), so blank text is no number, and a `string` is none when
- * empty or, with `blankIsEmpty`, when it holds XML white space alone.
+ * Decide whether a box's text is an answer: whether plate's reading of typed text reads a value
+ * from it ({@link typedLexical}), so blank text is no number, and a `string` is none when empty or,
+ * with `blankIsEmpty`, when it holds XML white space alone.
  *
  * @param text The box's text, as typed.
  * @param reading How the box's text is read.
- * @returns Whether the text posts.
+ * @returns Whether the text is an answer.
  * @see https://www.imsglobal.org/spec/qti/v3p0/info/index.html#Enumerated_TextFormatEnum
  */
 const posts = (text: string, reading: TypedReading): boolean =>
-  Option.isSome(postedLexical(reading.baseType, text, reading.blankIsEmpty));
+  Option.isSome(typedLexical(text, reading));
 
 /**
- * Decide whether a box's text fails a `pattern-mask`, as plate's server checks it.
+ * Decide whether a box's text fails a `pattern-mask`, as the database's admission checks it.
  *
- * The text is decoded as the box's base type and matched in the value's lexical form (reading
- * 54): a `string` as typed, its line breaks made LF; an `integer`, read in `base`, as its decimal
- * digits; a `float` as the shortest decimal that reads back to it. A text that is no value of a
- * numeric base type fails, as it is no number the mask could match, and the server refuses it
- * with the author's `data-patternmask-message`. A text that posts nothing is no answer, and fails
+ * The text is read as the box's base type and matched in the value's lexical form (reading 54): a
+ * `string` as typed, its line breaks made LF; an `integer`, read in `base`, as its decimal digits;
+ * a `float` as the shortest decimal that reads back to it. A text that is no value of a numeric
+ * base type fails, as it is no number the mask could match. A text that is no answer fails
  * nothing.
  *
  * @param matcher The `pattern-mask`, compiled.
@@ -72,17 +58,10 @@ const posts = (text: string, reading: TypedReading): boolean =>
  */
 const fails = (matcher: Matcher, text: string, reading: TypedReading): boolean =>
   posts(text, reading) &&
-  Result.match(
-    decodeValue(
-      [["", text]],
-      { baseType: reading.baseType, cardinality: "single", name: "" },
-      { base: reading.base },
-    ),
-    {
-      onFailure: () => true,
-      onSuccess: (value) => value.values.some((single) => !matches(matcher, format(single))),
-    },
-  );
+  Result.match(readTyped(text, { ...reading, blankIsEmpty: false }), {
+    onFailure: () => true,
+    onSuccess: (single) => Option.exists(single, (read) => !matches(matcher, format(read))),
+  });
 
 /**
  * Give the virtual keyboard a box asks for: digits for an `integer` in a base whose digits are all
@@ -126,18 +105,19 @@ export interface BoxCounts {
 }
 
 /**
- * The boxes, and the response's texts they were last laid out from or wrote.
+ * The boxes, and what of the state they were last laid out from or wrote: the boxes the state
+ * holds, or the value they were laid out from before the child typed.
  */
 interface Laid {
   readonly boxes: Boxes;
-  readonly seen: readonly string[];
+  readonly seen: ResponseValue | Typed;
 }
 
 /**
- * Lay a response's texts out in boxes: one text to a box, in order, as many boxes as the counts
- * give for that many texts, and the boxes past the texts empty. No box shows its hint.
+ * Lay texts out in boxes: one text to a box, in order, as many boxes as the counts give for that
+ * many texts, and the boxes past the texts empty. No box shows its hint.
  *
- * @param texts The response's texts.
+ * @param texts The texts.
  * @param counts How many boxes the interaction shows.
  * @returns The boxes.
  */
@@ -171,8 +151,9 @@ const withBox = (boxes: Boxes, index: number, change: (box: Box) => Box): Boxes 
 };
 
 /**
- * How a box's text stands in its response: `write` makes the posted text from the text a box shows,
- * `read` the text a box shows from a posted one, each the other's inverse on what `write` makes.
+ * How a box's text stands in its response: `write` makes the text the value holds from the text a
+ * box shows, `read` the text a box shows from the one a value holds, each the other's inverse on
+ * what `write` makes.
  */
 export interface Written {
   readonly write: (text: string) => string;
@@ -180,22 +161,107 @@ export interface Written {
 }
 
 /**
- * Typed text as it is posted: the text itself.
+ * Typed text as a value holds it: the text itself.
  */
 export const asTyped: Written = { read: (posted) => posted, write: (text) => text };
 
 /**
- * Hold the text of an interaction's boxes beside its response, write the response on every
- * change, and say which boxes show their hint.
+ * Give the texts a value shows in its boxes before the child types: a record's `stringValue`, the
+ * text it was typed as, and each single of any other value written back as a box shows it, an
+ * integer in the interaction's `base` ({@link typedText}).
  *
- * The response holds only the texts that post ({@link posts}), in the boxes' order, so a box the
- * child empties posts nothing and the boxes after it keep their places: the boxes keep their own
- * text, and every change writes the response from it. When the response changes from outside,
- * the host restoring a value or setting a refused save back, the boxes are laid out afresh from
- * the response's texts, one to a box from the first, and none shows its hint. That is detected
- * while rendering, by the texts being others than the ones last laid out or written, which
- * `useResponse` keeps as one array while they stay the same; the same render shows the new layout
- * and stores it, so no frame shows the old text.
+ * @param value The value.
+ * @param reading How a box's text is read.
+ * @param written How a box's text stands in its response.
+ * @returns The texts, in order.
+ */
+const textsOf = (value: ResponseValue, reading: TypedReading, written: Written): string[] => {
+  const singles: readonly Single[] = isRecordValue(value)
+    ? value.fields.flatMap((field) => (field.identifier === "stringValue" ? [field.value] : []))
+    : value.values;
+
+  return singles.flatMap((single) =>
+    single.baseType === "string" || single.baseType === "integer" || single.baseType === "float"
+      ? [written.read(typedText(single, reading.base))]
+      : [],
+  );
+};
+
+/**
+ * Read a typed response from its boxes' texts: each box whose text is an answer ({@link posts}), in
+ * order, read by plate's one reading of typed text, a record from its one box. A box whose text is
+ * no value of its base type leaves the response unread, its value NULL, since the screen holds no
+ * value of its type.
+ *
+ * @param texts The boxes' texts, as typed.
+ * @param declared The response's declaration.
+ * @param reading How a box's text is read.
+ * @param written How a box's text stands in its response.
+ * @returns The boxes the state holds, and the value read from them.
+ */
+const readBoxes = (
+  texts: readonly string[],
+  declared: TypedDeclared,
+  reading: TypedReading,
+  written: Written,
+): readonly [typed: Typed, value: ResponseValue] => {
+  const answers = texts.filter((text) => posts(text, reading)).map(written.write);
+  if (declared.cardinality === "record") {
+    const [text = ""] = answers;
+    const record = readRecord(text, reading.blankIsEmpty);
+
+    return Result.match(record, {
+      onFailure: () => [{ texts, unread: true }, nullRecord],
+      onSuccess: (value) => [{ texts, unread: false }, value],
+    });
+  }
+
+  const reads = Result.all(answers.map((text) => readTyped(text, reading)));
+
+  return Result.match(reads, {
+    onFailure: () => [{ texts, unread: true }, nullOf(declared.baseType, declared.cardinality)],
+    onSuccess: (singles) => [
+      { texts, unread: false },
+      {
+        baseType: declared.baseType,
+        cardinality: declared.cardinality,
+        values: Arr.getSomes(singles),
+      },
+    ],
+  });
+};
+
+/**
+ * Lay out a typed response's boxes from what the state holds: the boxes the child typed into, as
+ * typed, or before that the value's texts.
+ *
+ * @param held What the response holds.
+ * @param counts How many boxes the interaction shows.
+ * @param reading How a box's text is read.
+ * @param written How a box's text stands in its response.
+ * @returns The boxes, and what they were laid out from.
+ */
+const layoutOf = (
+  held: TypedResponse,
+  counts: BoxCounts,
+  reading: TypedReading,
+  written: Written,
+): Laid =>
+  held.typed === undefined
+    ? { boxes: laid(textsOf(held.value, reading, written), counts), seen: held.value }
+    : { boxes: laid(held.typed.texts, counts), seen: held.typed };
+
+/**
+ * Hold the text of an interaction's boxes in the item's state beside its response, write both on
+ * every change, and say which boxes show their hint.
+ *
+ * The state holds every box's text as typed, empty boxes among them, and the value read from the
+ * texts that are answers, in the boxes' order ({@link readBoxes}): a box the child empties is no
+ * answer, and the boxes after it keep their places. When the state changes from outside, the host
+ * restoring a save or starting the item afresh, the boxes are laid out again from what it holds,
+ * and none shows its hint. That is detected while rendering, by the state holding another `Typed`
+ * or value than the one last laid out or written; the same render shows the new layout and stores
+ * it, so no frame shows the old text.
  *
  * A box's hint waits for the child to finish: it shows once the box loses focus holding text that
  * fails the `pattern-mask`, so a child typing `12` toward `123` sees nothing after the `1`. It
@@ -203,13 +269,15 @@ export const asTyped: Written = { read: (posted) => posted, write: (text) => tex
  * the next loss of focus with failing text.
  *
  * @param options.counts How many boxes the interaction shows.
- * @param options.name The entry name the response posts under.
+ * @param options.declared The response's declaration.
  * @param options.patternMask The interaction's `pattern-mask`, none when the author wrote none. A
  *   pattern plate's reader refuses checks nothing; the server shows its notice in place of the
  *   interaction, so no island receives one.
  * @param options.reading How each box's text is read.
+ * @param options.typer How a host keypad's key types into the box, a Text Entry's; none for an
+ *   Extended Text.
  * @param options.written How a box's text is written into the response and read back from it: the
- *   text itself for typed text, the XHTML an `xhtml` Extended Text posts ({@link Written}). The
+ *   text itself for typed text, the XHTML an `xhtml` Extended Text holds ({@link Written}). The
  *   hint judges the text the box shows.
  * @returns The boxes, in order; the setter of one box's text by its index, for its value changes;
  *   and the handler of one box losing focus by its index, for its `blur`.
@@ -217,21 +285,19 @@ export const asTyped: Written = { read: (posted) => posted, write: (text) => tex
  */
 export const useBoxes = (options: {
   readonly counts: BoxCounts;
-  readonly name: string;
+  readonly declared: TypedDeclared;
   readonly patternMask: string | undefined;
   readonly reading: TypedReading;
+  readonly typer: ((key: Key) => void) | undefined;
   readonly written: Written;
 }): readonly [
   boxes: Boxes,
   write: (index: number, text: string) => void,
   leave: (index: number) => void,
 ] => {
-  const { counts, name, patternMask, reading, written } = options;
-  const [texts, set] = useResponse(name);
-  const [layout, setLayout] = useState<Laid>(() => ({
-    boxes: laid(texts.map(written.read), counts),
-    seen: texts,
-  }));
+  const { counts, declared, patternMask, reading, typer, written } = options;
+  const [held, set] = useTypedResponse(declared, typer);
+  const [layout, setLayout] = useState<Laid>(() => layoutOf(held, counts, reading, written));
   const matcher = useMemo(
     () => Option.fromUndefinedOr(patternMask).pipe(Option.flatMap(compile)),
     [patternMask],
@@ -239,8 +305,8 @@ export const useBoxes = (options: {
   const failing = (text: string) =>
     Option.exists(matcher, (compiled) => fails(compiled, text, reading));
   let current = layout;
-  if (layout.seen !== texts) {
-    current = { boxes: laid(texts.map(written.read), counts), seen: texts };
+  if (layout.seen !== (held.typed ?? held.value)) {
+    current = layoutOf(held, counts, reading, written);
     setLayout(current);
   }
 
@@ -249,13 +315,15 @@ export const useBoxes = (options: {
       flagged: box.flagged && failing(text),
       text,
     }));
-    const next = boxes
-      .map((box) => box.text)
-      .filter((each) => posts(each, reading))
-      .map(written.write);
+    const [typed, value] = readBoxes(
+      boxes.map((box) => box.text),
+      declared,
+      reading,
+      written,
+    );
 
-    setLayout({ boxes, seen: next });
-    set(next);
+    setLayout({ boxes, seen: typed });
+    set(typed, value);
   };
 
   const leave = (index: number) => {

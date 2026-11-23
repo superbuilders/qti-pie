@@ -72,7 +72,7 @@ export const island = (
     <MathEntry
       base={node.base}
       baseType={node.baseType}
-      name={node.formName}
+      response={node.declared}
       naming={controlNameOf(undefined, node, ownName(model, context), context)}
       root={rootOf(model, context)}
     />
@@ -84,7 +84,7 @@ export const island = (
       expectedLength={hintOf(node.expectedLength)}
       keypad={context.textEntryKeypad}
       labels={labelsOf(textEntryKeys, context.locale, { pattern: model.patternMaskMessage })}
-      name={node.formName}
+      response={node.declared}
       naming={controlNameOf(undefined, node, ownName(model, context), context)}
       patternMask={Option.getOrUndefined(model.patternMask)}
       placeholder={Option.getOrUndefined(node.placeholder)}

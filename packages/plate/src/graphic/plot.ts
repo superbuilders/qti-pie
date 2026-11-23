@@ -23,15 +23,16 @@ import type { Limit } from "#plate/placement/limit.ts";
 import type { Pairs } from "#plate/placement/machine.ts";
 import { boundsOf, drawingOf, interiorOf } from "#plate/graphic/geometry.ts";
 import type { Box, GraphicArea, ImagePoint } from "#plate/graphic/geometry.ts";
+import type { Declared } from "#plate/model/values.ts";
 
 /**
  * The item's shading interaction as a number line reads it (`plate-shade` on a
- * `qti-choice-interaction`): the entry name its response posts under, and its choices that run the
- * ray left and right (`plate-shade-left`, `plate-shade-right`), undefined where it has none.
+ * `qti-choice-interaction`): its response, as its declaration types it, and its choices that run
+ * the ray left and right (`plate-shade-left`, `plate-shade-right`), undefined where it has none.
  */
 export interface ShadeLink {
   readonly left: string | undefined;
-  readonly name: string;
+  readonly response: Declared<"identifier", "multiple" | "single">;
   readonly right: string | undefined;
 }
 

@@ -82,9 +82,9 @@ export const island = (
       choices={choicesOf(node, context)}
       labels={labelsOf(associateKeys, context.locale, {})}
       maxAssociations={limitOf(node.maxAssociations)}
-      name={node.formName}
       naming={groupNameOf(prompt, node, context)}
       prompt={prompt}
+      response={node.declared}
       root={rootOf(model, context)}
     />
   );

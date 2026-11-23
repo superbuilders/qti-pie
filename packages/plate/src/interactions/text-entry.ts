@@ -24,8 +24,8 @@ import type {
   ModuleParseContext,
   Parsed,
   ReaderKit,
-  RedactKit,
 } from "#plate/interactions/contract.ts";
+import type { TypedDeclared } from "#plate/model/typed-text.ts";
 import { format } from "#plate/model/values.ts";
 import type { Single } from "#plate/model/values.ts";
 import type { BaseType, Cardinality } from "#plate/vocabulary.ts";
@@ -121,7 +121,7 @@ export type TextFields = Omit<
 
 /**
  * What a Text Entry and an Extended Text share as the page may know them: the author's names, the
- * binding, the integer `base`, the placeholder and the entry name.
+ * binding, the integer `base`, the placeholder and the declaration of the response it writes.
  */
 export interface TextControlPayload {
   /**
@@ -141,9 +141,9 @@ export interface TextControlPayload {
    */
   readonly class: Option.Option<string>;
   /**
-   * The name its Control posts under, `entryName(instance, response)`.
+   * The response its Controls write, as its declaration types it.
    */
-  readonly formName: string;
+  readonly declared: TypedDeclared;
   /**
    * `placeholder-text`.
    */
@@ -241,20 +241,27 @@ export const textFields = (
 /**
  * Copy the fields a Text Entry and an Extended Text share into their payload node.
  *
- * @param interaction The text control.
- * @param kit The view's facts the payload hands a module.
+ * @param interaction The text control, with its binding's cardinality.
  * @returns The shared fields.
  */
 export const textControlPayload = (
-  interaction: TextFields,
-  kit: RedactKit,
+  interaction: TextFields & {
+    readonly cardinality: "multiple" | "ordered" | "record" | "single";
+  },
 ): TextControlPayload => ({
   ariaLabel: interaction.ariaLabel,
   ariaLabelledby: interaction.ariaLabelledby,
   base: interaction.base,
   baseType: interaction.baseType,
   class: interaction.class,
-  formName: kit.formName(interaction.response),
+  declared:
+    interaction.cardinality === "record"
+      ? { cardinality: "record", identifier: interaction.response }
+      : {
+          baseType: interaction.baseType,
+          cardinality: interaction.cardinality,
+          identifier: interaction.response,
+        },
   placeholder: interaction.placeholder,
   response: interaction.response,
 });
@@ -312,7 +319,7 @@ export const textEntryModule: InteractionModule<
    * `expected-length`, and the view's value written in its lexical form, an integer in `base`.
    */
   redact: (interaction, kit) => ({
-    ...textControlPayload(interaction, kit),
+    ...textControlPayload(interaction),
     expectedLength: interaction.expectedLength,
     restore: Option.match(Option.fromUndefinedOr(kit.shown(interaction.response)[0]), {
       onNone: () => "",

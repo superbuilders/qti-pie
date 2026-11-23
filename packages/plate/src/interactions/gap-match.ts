@@ -21,9 +21,10 @@
  * cap is.
  *
  * {@link gapMatchModule}'s `redact` gives the page the choices in presented order, the author's
- * gapped content with each `qti-gap` kept as an element, the gaps in document order, and the pairs
- * to show, each as posted, `"<choice> <gap>"`; the server shell renders it, each gap a client
- * `Gap` (`#plate/ui/item/interactions/`).
+ * gapped content with each `qti-gap` kept as an element, the gaps in document order, the
+ * declaration of the `directedPair` response its island writes, and the pairs to show, each a
+ * choice and the gap it fills; the server shell renders it, each gap a client `Gap`
+ * (`#plate/ui/item/interactions/`).
  *
  * @module
  */
@@ -59,6 +60,7 @@ import type {
   ReferencingChoice,
 } from "#plate/model/item.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { presentedOrder } from "#plate/shuffle.ts";
 
 /**
@@ -207,8 +209,8 @@ interface GapMatchPayloadChoice extends ReferencingChoice {
 
 /**
  * A Gap Match as the page may know it: its Prompt, its choices in presented order, its gapped
- * content, its gaps, the name its hidden inputs post under, and the pairs to show. It holds no
- * correct response.
+ * content, its gaps, the declaration of the response its island writes, and the pairs to show. It
+ * holds no correct response.
  */
 interface GapMatchPayload {
   readonly ariaLabel: Option.Option<string>;
@@ -220,10 +222,10 @@ interface GapMatchPayload {
   readonly class: Option.Option<string>;
   readonly content: Nodes<RedactedLevel>;
   /**
-   * The name its hidden inputs post under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: a `directedPair` response of the
+   * bound cardinality.
    */
-  readonly formName: string;
+  readonly declared: Declared<"directedPair", "multiple" | "single">;
   /**
    * The gaps the gapped content shows, in document order.
    */
@@ -487,7 +489,11 @@ export const gapMatchModule: InteractionModule<"gap-match", GapMatchByLevel, Gap
     })),
     class: interaction.class,
     content: interaction.gapped,
-    formName: kit.formName(interaction.response),
+    declared: {
+      baseType: "directedPair",
+      cardinality: interaction.cardinality,
+      identifier: interaction.response,
+    },
     gaps: gapsIn(interaction.gapped).map((gap) => ({
       ...gap,
       matchGroup: listedIn(gap.matchGroup),

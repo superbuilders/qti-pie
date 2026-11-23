@@ -19,7 +19,7 @@
  */
 import { Option } from "effect";
 import type { ReactNode } from "react";
-import { scopedId } from "#plate/form/encoding.ts";
+import { scopedId } from "#plate/instance.ts";
 import { countsOf } from "#plate/interactions/counts.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
 import type { PayloadOf } from "#plate/model/interactions.ts";
@@ -177,9 +177,9 @@ export const island = (
         header={headerOf(node, context)}
         labels={labelsOf(matchTableKeys, context.locale, { totalReached: model.messages.max })}
         maxAssociations={limitOf(node.maxAssociations)}
-        name={node.formName}
         naming={groupNameOf(prompt, node, context)}
         prompt={prompt}
+        response={node.declared}
         root={rootOf(model, context)}
         sources={node.sources.map((source, index) =>
           headerAt(
@@ -208,9 +208,9 @@ export const island = (
       header={headerOf(node, context)}
       labels={labelsOf(matchKeys, context.locale, { totalReached: model.messages.max })}
       maxAssociations={limitOf(node.maxAssociations)}
-      name={node.formName}
       naming={groupNameOf(prompt, node, context)}
       prompt={prompt}
+      response={node.declared}
       root={rootOf(model, context)}
       sources={node.sources.map((source, index) =>
         associableOf(

@@ -45,6 +45,7 @@ import type {
   SimpleChoice,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
+import type { Declared } from "#plate/model/values.ts";
 
 /**
  * Order's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -125,10 +126,10 @@ interface OrderPayload {
   readonly choices: readonly OrderChoicePayload[];
   readonly class: Option.Option<string>;
   /**
-   * The name its hidden inputs post under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: an `ordered` `identifier`
+   * response.
    */
-  readonly formName: string;
+  readonly declared: Declared<"identifier", "ordered">;
   /**
    * The most choices the response may place, from the least to the number of choices.
    */
@@ -297,11 +298,12 @@ const regionsOfOrder = <L extends Level>(
 
 /**
  * Copy an Order into its payload node: its content through the kit, its choices in presented
- * order, the identifiers the response places, and the effective bounds.
+ * order, the declaration of the response its island writes, the identifiers the response places,
+ * and the effective bounds.
  *
  * The identifiers placed are the values the view shows. An identifier that names no choice, and a
- * repeat of one, is left out, so a choice shows once, in one position, and the hidden inputs post
- * what the positions show.
+ * repeat of one, is left out, so a choice shows once, in one position, and the response holds what
+ * the positions show.
  *
  * @param interaction The Order.
  * @param kit What the payload hands a module's `redact`.
@@ -324,7 +326,7 @@ const redactOrder = (
       identifier: choice.identifier,
     })),
     class: interaction.class,
-    formName: kit.formName(interaction.response),
+    declared: { baseType: "identifier", cardinality: "ordered", identifier: interaction.response },
     maxChoices: Number(most),
     minChoices: Number(least),
     orientation: interaction.orientation,

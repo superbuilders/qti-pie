@@ -4,10 +4,10 @@
  *
  * {@link graphicAssociateModule}'s `redact` gives the page the Prompt, the author's image (`img`,
  * `picture` or `object`), each associable hotspot in document order with its area, coordinates,
- * name, `match-max` and `match-group`, `max-associations`, the entry name the pairs post
- * under, one entry per pair, `"<a> <b>"`, and the pairs the view shows; the server shell renders it
- * (`#plate/ui/item/interactions/`). Nothing but the response is posted, so a post is a `pair`
- * response of the declared cardinality. Without pointer selection the hotspots are offered in
+ * name, `match-max` and `match-group`, `max-associations`, the declaration of the `pair` response
+ * its island writes, and the pairs the view shows; the server shell renders it
+ * (`#plate/ui/item/interactions/`). Nothing but the response is written, a `pair` response of the
+ * declared cardinality. Without pointer selection the hotspots are offered in
  * document order.
  *
  * It follows three readings of `docs/spec-readings.md`, each cited by its wording:
@@ -73,7 +73,7 @@ import type {
   ReferencingChoice,
 } from "#plate/model/item.ts";
 import { isRecordValue } from "#plate/model/values.ts";
-import type { ResponseValue, Single } from "#plate/model/values.ts";
+import type { Declared, ResponseValue, Single } from "#plate/model/values.ts";
 import { areaGeometries } from "#plate/vocabulary.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";
 
@@ -195,10 +195,10 @@ interface GraphicAssociatePayload {
   readonly ariaLabelledby: Option.Option<string>;
   readonly class: Option.Option<string>;
   /**
-   * The name its pairs post under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: a `pair` response of the bound
+   * cardinality.
    */
-  readonly formName: string;
+  readonly declared: Declared<"pair", "multiple" | "single">;
   readonly hotspots: readonly GraphicAssociatePayloadHotspot[];
   readonly image: Nodes<RedactedLevel>;
   readonly maxAssociations: bigint;
@@ -331,7 +331,7 @@ const ownRegions = <L extends Level>(
 
 /**
  * Copy a Graphic Associate's model node into its payload node: its content through the kit, the
- * response's entry name, and the pairs the view shows.
+ * response's declaration, and the pairs the view shows.
  *
  * The pairs are the values the view shows ({@link RedactKit.shown}), each kept to the hotspots
  * ({@link keptPairs}): a pair that names no hotspot or a hotspot with itself is not shown, and an
@@ -348,7 +348,11 @@ const redactGraphicAssociate = (
   ariaLabel: interaction.ariaLabel,
   ariaLabelledby: interaction.ariaLabelledby,
   class: interaction.class,
-  formName: kit.formName(interaction.response),
+  declared: {
+    baseType: "pair",
+    cardinality: interaction.cardinality,
+    identifier: interaction.response,
+  },
   hotspots: interaction.hotspots.map((hotspot) => ({
     catalog: hotspot.catalog,
     coords: hotspot.coords,

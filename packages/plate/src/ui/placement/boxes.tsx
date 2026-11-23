@@ -6,7 +6,7 @@
  * halves both hold a chip is one pair of the response. The machine
  * (`#plate/placement/machine.ts`, {@link BoxesBoard}) holds QTI's limits and plate's rulings, and
  * the primitive refuses a move before anything changes and announces every step, a pair made
- * included; this module keeps the boxes a child sees and the response they post in step, and
+ * included; this module keeps the boxes a child sees and the response they write in step, and
  * renders the boxes.
  *
  * An island holds the board with {@link usePairBoxes} and composes the rest inside a
@@ -18,7 +18,8 @@
 import { useMemo, useState } from "react";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Limit } from "#plate/placement/limit.ts";
-import { boxesOf, halfName, keptBoxes, pairTextsOf } from "#plate/ui/placement/associable.ts";
+import type { Declared } from "#plate/model/values.ts";
+import { boxesOf, halfName, keptBoxes, pairsOfBoxes } from "#plate/ui/placement/associable.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 import { partnerRuleOf } from "#plate/placement/rules.ts";
 import type { Associable } from "#plate/placement/rules.ts";
@@ -26,7 +27,7 @@ import type { BoxLabels } from "#plate/ui/placement/labels.ts";
 import { shownBoxes } from "#plate/placement/machine.ts";
 import type { Boxes, BoxesBoard, Half } from "#plate/placement/machine.ts";
 import { PlacementChip, PlacementSlot, PlacementTarget } from "#plate/ui/placement/parts.tsx";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { pairSingles, useResponse } from "#plate/ui/responses.tsx";
 
 /**
  * What a `PlacementRoot` over a board of boxes takes from {@link usePairBoxes}: the board, the
@@ -51,25 +52,25 @@ export interface PairBoxesBoard {
  * Hold a board of boxes bound to a response of `pair`s in the item's `<Responses>`.
  *
  * The boxes are the response's pairs, and between moves also a box holding one chip, which no
- * response holds: the island keeps the boxes it last showed while they post the response it holds,
+ * response holds: the island keeps the boxes it last showed while they hold the response's pairs,
  * and follows the response wherever the host changes it (`keptBoxes`). A move that changes no pair,
  * such as a chip put in an empty box or moved between a box's halves, writes nothing, so the host
  * sees only a change of the answer. A box naming a chip the board lacks, as a stored pair can name
  * a choice the item no longer shows, is not shown, and the next move drops it from the response.
  *
- * @param name The entry name the response posts under.
+ * @param response The response, as its declaration types it: a `pair` response.
  * @param chips The choices or hotspots a child pairs, in the order the page shows them, each by its
  *   `identifier`, `match-group` and `match-max`.
  * @param total `max-associations`: how many pairs the response may hold.
  * @returns The board, for a `PlacementRoot` and {@link PairBoxes}.
  */
 export const usePairBoxes = (
-  name: string,
+  response: Declared<"pair">,
   chips: readonly Associable[],
   total: Limit,
 ): PairBoxesBoard => {
-  const [texts, set] = useResponse(name);
-  const [layout, setLayout] = useState(() => boxesOf(texts));
+  const [pairs, set] = useResponse(response, pairSingles);
+  const [layout, setLayout] = useState(() => boxesOf(pairs));
   const board = useMemo(
     (): BoxesBoard => ({ chips: chips.map(partnerRuleOf), kind: "boxes", total }),
     [chips, total],
@@ -77,10 +78,10 @@ export const usePairBoxes = (
   const placements = useMemo(() => {
     const known = new Set(chips.map((chip) => chip.identifier));
 
-    return keptBoxes(layout, texts).filter((box) =>
+    return keptBoxes(layout, pairs).filter((box) =>
       box.every((chip) => chip === null || known.has(chip)),
     );
-  }, [chips, layout, texts]);
+  }, [chips, layout, pairs]);
 
   return {
     root: {
@@ -88,8 +89,8 @@ export const usePairBoxes = (
       onPlacementsChange: (next) => {
         setLayout(next);
 
-        if (keptBoxes(next, texts) !== next) {
-          set(pairTextsOf(next));
+        if (keptBoxes(next, pairs) !== next) {
+          set(pairsOfBoxes(next));
         }
       },
       placements,

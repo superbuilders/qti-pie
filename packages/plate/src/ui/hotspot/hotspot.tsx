@@ -22,6 +22,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import type { AuthoredSize } from "#plate/interactions/image-size.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, NameAttributes, Named } from "#plate/ui/attributes.ts";
 import { DrawnArea, GraphicMark } from "#plate/ui/graphic/drawn.tsx";
@@ -38,7 +39,7 @@ import type { Spoken } from "#plate/ui/read-aloud/spoken.tsx";
 /**
  * One hotspot as the island takes it: its area, its geometry and `coords` as written, in the
  * image's pixels or as percentages of the image, which the stage resolves once it knows the image's
- * size; its identifier, which a pick posts; its name in the list; and its read-aloud, which stands
+ * size; its identifier, which a pick writes; its name in the list; and its read-aloud, which stands
  * beside its row.
  */
 export interface HotspotArea extends StageArea, Spoken {
@@ -71,9 +72,10 @@ export interface HotspotProps extends Authored<Named> {
   readonly image: ReactNode;
   readonly labels: HotspotLabels;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the island writes, as its declaration types it: an `identifier` response of
+   * `single` or `multiple` cardinality.
    */
-  readonly name: string;
+  readonly response: Declared<"identifier", "multiple" | "single">;
   /**
    * How many hotspots the child picks, which the server reads from the bound response's cardinality
    * and `max-choices` (5.68.2), as it reads a Choice's (`picksOf` in
@@ -184,11 +186,12 @@ const HotspotStage = (props: {
  * response changes, then announced assertively and shown; every row and area stays live, so the
  * child can always take one back.
  *
- * @param props The interaction, its response's entry name and its labels ({@link HotspotProps}).
+ * @param props The interaction, its response and its labels ({@link HotspotProps}).
  * @returns The Hotspot, its image and its list bound to the response.
  */
 export const Hotspot = (props: HotspotProps) => {
-  const { hotspots, image, labels, name, naming, picks, prompt, root, size, stageNaming } = props;
+  const { hotspots, image, labels, naming, picks, prompt, response, root, size, stageNaming } =
+    props;
   const [focused, setFocused] = useState<string>();
 
   return (
@@ -210,7 +213,7 @@ export const Hotspot = (props: HotspotProps) => {
       limit={labels.limit}
       naming={naming}
       picks={picks}
-      response={name}
+      response={response}
       root={{ ...root, "data-slot": "plate-hotspot" }}
     >
       {hotspots.map((hotspot) =>

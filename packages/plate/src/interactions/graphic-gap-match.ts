@@ -25,11 +25,11 @@
  * `base-type="…"` or `cardinality="…"`, as a binding no shipped kind renders is.
  *
  * {@link graphicGapMatchModule}'s `redact` gives the page the Prompt, the author's image (its
- * `img`, `picture` or `object`) and the size written on it, the gap choices in document order,
- * each gap image with the size written on it too, and the hotspots
- * in document order, each with its `match-group` and `match-max`, `max-associations`, the entry
- * name the pairs post under, one entry per pair, `"<choice> <hotspot>"` (decision D2), and the
- * pairs the view shows; the server shell renders it (`#plate/ui/item/interactions/`).
+ * `img`, `picture` or `object`) and the size written on it, the gap choices in document order, each
+ * gap image with the size written on it too, and the hotspots in document order, each with its
+ * `match-group` and `match-max`, `max-associations`, the declaration of the `directedPair` response
+ * its island writes, and the pairs the view shows, each a choice and the hotspot it went to; the
+ * server shell renders it (`#plate/ui/item/interactions/`).
  *
  * The information model gives this interaction no `shuffle` (5.60) and a gap choice no `fixed`
  * (5.56, 5.58), and the database refuses either written (`unknown-attribute`), so the choices are
@@ -80,6 +80,7 @@ import type {
   ReferencingChoice,
   Unsupported,
 } from "#plate/model/item.ts";
+import type { Declared } from "#plate/model/values.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";
 
 /**
@@ -288,8 +289,8 @@ interface GraphicGapMatchPayloadHotspot extends ReferencingChoice {
 
 /**
  * The payload node of a Graphic Gap Match (Q-8), the kind `graphic-gap-match`: its Prompt, its
- * image, its choices in document order, its hotspots, the name its pairs post under, and the pairs
- * to show. It holds no correct response.
+ * image, its choices in document order, its hotspots, the declaration of the response its island
+ * writes, and the pairs to show. It holds no correct response.
  */
 interface GraphicGapMatchPayload {
   readonly ariaLabel: Option.Option<string>;
@@ -300,10 +301,10 @@ interface GraphicGapMatchPayload {
    */
   readonly class: Option.Option<string>;
   /**
-   * The name its pairs post under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: a `multiple` `directedPair`
+   * response.
    */
-  readonly formName: string;
+  readonly declared: Declared<"directedPair", "multiple">;
   readonly hotspots: readonly GraphicGapMatchPayloadHotspot[];
   readonly image: Nodes<RedactedLevel>;
   /**
@@ -527,7 +528,11 @@ export const graphicGapMatchModule: InteractionModule<
       statistic: choice.statistic,
     })),
     class: interaction.class,
-    formName: kit.formName(interaction.response),
+    declared: {
+      baseType: "directedPair",
+      cardinality: "multiple",
+      identifier: interaction.response,
+    },
     hotspots: interaction.hotspots.map((hotspot) => ({
       arrow: hotspot.arrow,
       catalog: hotspot.catalog,

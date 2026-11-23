@@ -1,10 +1,16 @@
 import { assert, describe, expectTypeOf, it } from "@effect/vitest";
 import { Effect, Result, Schema } from "effect";
-import { RecordValueSchema, ResponseValueSchema, ValueSchema } from "#plate/codec/values.ts";
-import { nullOf } from "#plate/model/values.ts";
+import {
+  PostedResponses,
+  RecordValueSchema,
+  ResponseValueSchema,
+  ValueSchema,
+} from "#plate/codec/values.ts";
+import { isRecordValue, nullOf } from "#plate/model/values.ts";
 import type {
   ModelledBaseType,
   RecordValue,
+  Responses,
   ResponseValue,
   Single,
   Value,
@@ -363,5 +369,84 @@ describe("the plain types", () => {
     expectTypeOf<typeof ValueSchema.Type>().toEqualTypeOf<Value>();
     expectTypeOf<typeof RecordValueSchema.Type>().toEqualTypeOf<RecordValue>();
     expectTypeOf<typeof ResponseValueSchema.Type>().toEqualTypeOf<ResponseValue>();
+  });
+});
+
+/**
+ * A body a page posts: a multiple of identifiers, an integer past the safe integers, a float JSON
+ * has no number for, an ordered of points, a record, a NULL and an End Attempt not pressed.
+ */
+const body: Responses = {
+  CHOICES: value("identifier", "multiple", identifiers("A", "B", "B")),
+  DRAWN: value("boolean", "single", [{ baseType: "boolean", value: false }]),
+  EMPTY: nullOf("directedPair", "multiple"),
+  NUMBER: value("integer", "single", [{ baseType: "integer", value: 2n ** 64n + 1n }]),
+  POINTS: value("point", "ordered", [
+    { baseType: "point", value: [102n, 113n] },
+    { baseType: "point", value: [-3n, 0n] },
+  ]),
+  RATIO: value("float", "single", [{ baseType: "float", value: -0 }]),
+  TYPED: {
+    cardinality: "record",
+    fields: [
+      { identifier: "stringValue", value: { baseType: "string", value: "1.50" } },
+      { identifier: "floatValue", value: { baseType: "float", value: 1.5 } },
+    ],
+  },
+};
+
+describe("PostedResponses", () => {
+  it.effect(
+    "carries every response through JSON text whole: exact integers, named floats, records",
+    () =>
+      Effect.gen(function* postedRoundTrip() {
+        const read = yield* Schema.decodeUnknownEffect(PostedResponses)(
+          storedAsJson(Schema.encodeSync(PostedResponses)(body)),
+        );
+
+        assert.deepStrictEqual(read, body);
+        assert.deepStrictEqual(
+          Object.values(read).flatMap((each) =>
+            isRecordValue(each)
+              ? []
+              : each.values.flatMap((single) =>
+                  single.baseType === "float" ? [single.value] : [],
+                ),
+          ),
+          [-0],
+        );
+      }),
+  );
+
+  it("refuses a key that is no NCName, a single of two values and a value of another base type", () => {
+    const refused = [
+      {
+        "1st": storedAsJson(Schema.encodeSync(ResponseValueSchema)(nullOf("identifier", "single"))),
+      },
+      {
+        RESPONSE: {
+          baseType: "identifier",
+          cardinality: "single",
+          values: [
+            { baseType: "identifier", value: "A" },
+            { baseType: "identifier", value: "B" },
+          ],
+        },
+      },
+      {
+        RESPONSE: {
+          baseType: "identifier",
+          cardinality: "single",
+          values: [{ baseType: "integer", value: "1" }],
+        },
+      },
+    ];
+
+    for (const input of refused) {
+      assert.isTrue(
+        Result.isFailure(Schema.decodeUnknownResult(PostedResponses)(input)),
+        JSON.stringify(input),
+      );
+    }
   });
 });

@@ -154,10 +154,10 @@ export const island = (
   return (
     <Hottext
       labels={labelsOf(picksKeys, locale, { limit: model.messages.max })}
-      name={node.formName}
       naming={controlNameOf(prompt, node, ownName(model, context), context)}
       picks={picksOf(model)}
       prompt={prompt}
+      response={node.declared}
       root={rootOf(model, context)}
     >
       {passageWith(node, new Map(placed), context)}

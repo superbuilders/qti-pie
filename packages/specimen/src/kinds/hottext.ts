@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { identifierValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -84,13 +85,15 @@ const rightPlaces = (settings: HottextSettings): readonly number[] =>
 const idOf = (at: number): string => `T${String(at + 1)}`;
 
 /**
- * The response a set of picks posts.
+ * The response a set of picks gives: the picked runs' identifiers, in the cardinality the picks
+ * bind.
  *
+ * @param settings The settings.
  * @param places The picked runs' places.
- * @returns One entry per pick.
+ * @returns The response, none for no pick.
  */
-const posted = (places: readonly number[]): Answered["posted"] =>
-  places.map((at) => [response, idOf(at)] as const);
+const posted = (settings: HottextSettings, places: readonly number[]): Answered["posted"] =>
+  responding(response, identifierValue(cardinalityOf(settings.picks), places.map(idOf)));
 
 /**
  * A run as the passage holds it: its `qti-hottext`, inside an `em` at every other place when the
@@ -143,13 +146,15 @@ export const hottext = kind("hottext", {
     const wrongs = Arr.makeBy(settings.hottexts, (at) => at).filter((at) => !rights.includes(at));
     const half = Math.floor(rights.length / 2);
     const partial: readonly Answered[] =
-      half === 0 ? [] : [{ answer: "partial", posted: posted(rights.slice(0, half)), score: half }];
+      half === 0
+        ? []
+        : [{ answer: "partial", posted: posted(settings, rights.slice(0, half)), score: half }];
 
     return [
-      { answer: "right", posted: posted(rights), score: rights.length },
+      { answer: "right", posted: posted(settings, rights), score: rights.length },
       ...partial,
-      { answer: "wrong", posted: posted(wrongs.slice(0, rights.length)), score: 0 },
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "wrong", posted: posted(settings, wrongs.slice(0, rights.length)), score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

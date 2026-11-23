@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { directedPairValue, responding } from "#specimen/posted.ts";
 import { mapped } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -76,19 +77,19 @@ const areaOf = (at: number): string => `A${String(at + 1)}`;
  * pair, else one for every area.
  *
  * @param settings The settings.
- * @returns Each pair in its lexical form, the chip first.
+ * @returns Each pair's identifiers, the chip first.
  */
-const rightPairs = (settings: GraphicGapMatchSettings): readonly string[] =>
-  Arr.makeBy(settings.pairs === "one" ? 1 : settings.areas, (at) => `${chipOf(at)} ${areaOf(at)}`);
+const rightPairs = (settings: GraphicGapMatchSettings): readonly (readonly [string, string])[] =>
+  Arr.makeBy(settings.pairs === "one" ? 1 : settings.areas, (at) => [chipOf(at), areaOf(at)]);
 
 /**
- * The response a set of pairs posts.
+ * The response a set of pairs gives: a `multiple` of directed pairs.
  *
- * @param made The pairs, each in its lexical form.
- * @returns One entry per pair.
+ * @param made The pairs, each its identifiers, the chip first.
+ * @returns The response, none for no pair.
  */
-const posted = (made: readonly string[]): Answered["posted"] =>
-  made.map((pair) => [response, pair] as const);
+const posted = (made: readonly (readonly [string, string])[]): Answered["posted"] =>
+  responding(response, directedPairValue("multiple", made));
 
 export const graphicGapMatch = kind("graphic-gap-match", {
   answers: (settings: GraphicGapMatchSettings) => {
@@ -100,8 +101,8 @@ export const graphicGapMatch = kind("graphic-gap-match", {
     return [
       { answer: "right", posted: posted(rights), score: rights.length },
       ...partial,
-      { answer: "wrong", posted: posted([`${chipOf(0)} ${areaOf(1)}`]), score: 0 },
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "wrong", posted: posted([[chipOf(0), areaOf(1)]]), score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {
@@ -134,7 +135,7 @@ export const graphicGapMatch = kind("graphic-gap-match", {
   write: (settings: GraphicGapMatchSettings, context) => {
     const { stage } = settings;
     const areas = areasOf(stage, settings.areas);
-    const rights = rightPairs(settings);
+    const rights = rightPairs(settings).map((pair) => pair.join(" "));
     const picture = pictureOf(
       stage,
       `A picture of ${String(settings.areas)} spots`,

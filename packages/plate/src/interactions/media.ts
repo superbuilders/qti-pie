@@ -4,9 +4,9 @@
  *
  * {@link mediaModule}'s `redact` gives the page the Prompt, the author's own `audio`, `video` or
  * `object` with its `source` and `track` children (captions, descriptions and subtitles stay the
- * author's), `autostart`, `loop`, `min-plays` and `max-plays`, the entry name the count of plays
- * posts under, and the count to restore; the server shell renders it
- * (`#plate/ui/item/interactions/`), and the count it posts is the response.
+ * author's), `autostart`, `loop`, `min-plays` and `max-plays`, the declaration of the response the
+ * count of plays writes, and the count to restore; the server shell renders it
+ * (`#plate/ui/item/interactions/`), and the count of plays is the response.
  *
  * The facts this module keeps to, from the information model and the schema:
  *
@@ -32,12 +32,12 @@
  *   `max-plays` that is not 0 is none a candidate can have played, and is refused in tier (a). A
  *   negative count is no number of times, and is refused in tier (a) as malformed, with the message
  *   a text that is no number earns.
- * - A Media never played posts nothing, and its response stays where the attempt started it, at its
+ * - A Media never played writes nothing, and its response stays where the attempt started it, at its
  *   default, else NULL, never 0 (reading 203), so the module gives no `absentValue`: only its
  *   admission reads NULL as no play.
  * - `coords`, the deprecated rectangle of an `object`'s place, is read and ignored with a mark, and
  *   so is the deprecated `object` element, written as the author wrote it: a browser cannot report
- *   plays of one, so its count is never posted.
+ *   plays of one, so its count is never written.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_MediaInteraction
@@ -56,6 +56,7 @@ import type {
 } from "#plate/interactions/contract.ts";
 import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
 import { format, trimXmlSpace } from "#plate/model/values.ts";
+import type { Declared } from "#plate/model/values.ts";
 
 /**
  * Media's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -124,8 +125,8 @@ interface MediaByLevel extends ByLevel {
 
 /**
  * A Media (Q-14, the `media` kind) as the page may know it: its Prompt and media element copied
- * through the payload, the limits on its plays, the name its count posts under, and the count to
- * restore. It holds no correct response.
+ * through the payload, the limits on its plays, the declaration of the response its count writes,
+ * and the count to restore. It holds no correct response.
  */
 interface MediaPayload {
   readonly ariaLabel: Option.Option<string>;
@@ -136,10 +137,9 @@ interface MediaPayload {
    */
   readonly class: Option.Option<string>;
   /**
-   * The name its count posts under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its count of plays writes, as its declaration types it: a single `integer`.
    */
-  readonly formName: string;
+  readonly declared: Declared<"integer", "single">;
   readonly loop: boolean;
   /**
    * `max-plays`, written or defaulted (0 is no limit).
@@ -270,7 +270,7 @@ export const mediaModule: InteractionModule<"media", MediaByLevel, MediaPayload>
     ariaLabelledby: interaction.ariaLabelledby,
     autostart: interaction.autostart,
     class: interaction.class,
-    formName: kit.formName(interaction.response),
+    declared: { baseType: "integer", cardinality: "single", identifier: interaction.response },
     loop: interaction.loop,
     maxPlays: interaction.maxPlays,
     media: interaction.media,

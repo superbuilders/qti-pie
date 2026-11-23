@@ -28,7 +28,7 @@ import { Duration, Effect } from "effect";
 import { parseHTML } from "linkedom";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Responses, TextEntry, digitsOf } from "@qti-pie/plate/ui/client";
+import { Responses, TextEntry, digitsOf, heldOf } from "@qti-pie/plate/ui/client";
 import type { TextEntryProps } from "@qti-pie/plate/ui/client";
 
 /**
@@ -113,13 +113,13 @@ const kills: readonly (readonly [why: string, filter: (text: string) => string])
 ];
 
 /**
- * The props a Text Entry's island takes, as the server shell gives them, but those a rule varies.
+ * The props a Text Entry's island takes, as the server shell gives them, but those a rule varies
+ * and its response, which follows the base type.
  */
-const boxProps: Omit<TextEntryProps, "baseType" | "digits" | "keypad"> = {
+const boxProps: Omit<TextEntryProps, "baseType" | "digits" | "keypad" | "response"> = {
   base: 10,
   expectedLength: undefined,
   labels: { delete: "Delete", keypad: "Keypad", pattern: "Not a valid answer" },
-  name: "suite.RESPONSE",
   naming: { "aria-label": "Answer" },
   patternMask: undefined,
   placeholder: undefined,
@@ -137,9 +137,13 @@ const inputModeOf = (
 ): string | null => {
   const html = renderToStaticMarkup(
     createElement(Responses, {
-      children: createElement(TextEntry, { ...boxProps, ...props }),
+      children: createElement(TextEntry, {
+        ...boxProps,
+        ...props,
+        response: { baseType: props.baseType, cardinality: "single", identifier: "RESPONSE" },
+      }),
       onChange: () => {},
-      value: [],
+      value: heldOf({ RESPONSE: { baseType: props.baseType, cardinality: "single", values: [] } }),
     }),
   );
 

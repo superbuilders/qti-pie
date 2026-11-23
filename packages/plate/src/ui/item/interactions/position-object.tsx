@@ -14,7 +14,7 @@
  * by the areas of its area mapping, which the page never shows (plate's ruling R4; 2.4.3.6).
  *
  * Every prop is read from the payload, which holds no correct response and no area of the mapping:
- * the stage's size, each interaction's entry name, its effective `max-choices`, its object, its
+ * the stage's size, each interaction's response, its effective `max-choices`, its object, its
  * effective centre point, and, in review and solution, the positions the view shows.
  *
  * The walk reaches {@link container} through the item (`Walk.container` in
@@ -224,10 +224,10 @@ export const island = (
   context: IslandContext,
 ): ReactNode => (
   <PositionObject
-    name={node.formName}
     naming={controlNameOf(undefined, node, ownName(model, context), context)}
     object={context.content(node.object, { position: "phrasing" })}
     objectName={objectNameOf(model, context)}
+    response={node.declared}
     root={rootOf(model, context)}
   />
 );
@@ -302,8 +302,8 @@ export const review = (
 };
 
 /**
- * Give a stage's island the interaction it is told of: its response's entry name and limit, and how
- * its object is drawn.
+ * Give a stage's island the interaction it is told of: its response and limit, and how its object
+ * is drawn.
  *
  * @param node The Position Object's payload.
  * @param addressing The instance, the item's location and the assets.
@@ -312,7 +312,7 @@ export const review = (
 const stagedOf = (node: PayloadOf<"position-object">, addressing: Addressing): StagedObject => ({
   ...drawingOf(node, addressing),
   limit: limitOfObject(node),
-  name: node.formName,
+  response: node.declared,
 });
 
 /**

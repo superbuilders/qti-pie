@@ -9,9 +9,11 @@
  * Plate grades nothing: the QTI database runs template processing at the take, and response
  * processing, openness and credit in the statement that records an attempt, and the host hands
  * plate the values that statement returns, as an {@link ItemRecord} and a review's `graded`.
- * `redact` copies the item into the form a page may know, `postings` gives the bindings its
- * responses post under, and `entryName` (with its inverse `responseOf`), `partition`, `decode` and
- * `encode` carry a response between its value and the entries a form posts. `format` writes a value
+ * `redact` copies the item into the form a page may know, `shownResponses` names the responses its
+ * page's interactions write, and `startingResponses` gives the responses an attempt starts from,
+ * which a host's `<Responses>` holds. A host posts them typed, as `PostedResponses` in
+ * `@qti-pie/plate/codec` encodes them, and its server decodes them once with the same Schema.
+ * `format` writes a value
  * in its base type's lexical form, which `parseLexical` reads back, and `readIeeeDouble` reads an
  * `xs:double` as plate reads every one. The QTI database admits or refuses the answers in the
  * statement that grades them, and `refusalMessages` words a refused answer's reasons for its page.
@@ -40,6 +42,7 @@
  * Effect runtime: it returns its value, or a `Result` when a caller can make it fail.
  *
  * Nothing else under `src/` is reachable from outside the package but the UI's four entries,
+ * `./codec`, the posted body's codec and the value model's Schemas, which a browser bundle loads,
  * `./admission-codes`, the reason codes `refusalMessages` words, the one list (generated from the
  * QTI database's machine) the ledger builds its closed roster `AdmissionCode` from without loading
  * the rest of plate, `./test/admitted`, the test support that tells a document the database
@@ -67,24 +70,6 @@ export type { Configuration } from "#plate/configuration.ts";
 
 export { configure, InvalidConfiguration } from "#plate/configuration.ts";
 
-export type {
-  Binding,
-  DecodeOptions,
-  Entry,
-  Partition,
-  RecordBinding,
-  ValueBinding,
-} from "#plate/form/encoding.ts";
-
-export {
-  decode,
-  encode,
-  entryName,
-  Malformed,
-  partition,
-  responseOf,
-} from "#plate/form/encoding.ts";
-
 export { textOfXhtml } from "#plate/interactions/xhtml-text.ts";
 
 export { collapseXmlSpace } from "#plate/model/attributes.ts";
@@ -96,7 +81,9 @@ export type { ItemRecord, Showing } from "#plate/model/record.ts";
 export { assetPaths } from "#plate/model/url.ts";
 
 export type {
+  Declared,
   ModelledBaseType,
+  RecordDeclared,
   RecordValue,
   Responses,
   ResponseValue,
@@ -115,9 +102,7 @@ export type { ModuleRoute, PciModules, PciNotice, PciResolution } from "#plate/p
 
 export { resolvePciModules } from "#plate/pci/resolve.ts";
 
-export type { Posting } from "#plate/postings.ts";
-
-export { postings, unpostedEndAttempts } from "#plate/postings.ts";
+export { shownResponses, startingResponses } from "#plate/starting.ts";
 
 export { redact } from "#plate/redact.ts";
 

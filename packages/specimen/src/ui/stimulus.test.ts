@@ -40,10 +40,10 @@ import { Duration, Effect, Option } from "effect";
 import { parseHTML } from "linkedom";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { solution } from "@qti-pie/plate";
+import { solution, startingResponses } from "@qti-pie/plate";
 import { Item } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
-import { Responses } from "@qti-pie/plate/ui/client";
+import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { corpusItems } from "#specimen/ui/corpus.ts";
 import { instance } from "#specimen/ui/rules.ts";
 import type { SourceItem } from "#specimen/ui/rules.ts";
@@ -200,7 +200,7 @@ const pageOf = (item: SourceItem, showing: ShowingName): Document => {
         createElement(Responses, {
           children: createElement(Item, { ...shown, mode: "answering" }),
           onChange: keepNothing,
-          value: [],
+          value: heldOf(startingResponses(item.accepted, shown)),
         }),
       )
     : renderToStaticMarkup(

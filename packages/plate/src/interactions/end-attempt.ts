@@ -2,13 +2,15 @@
  * End Attempt (Q-4), the `qti-end-attempt-interaction`: its model node, parse, redaction and its
  * rule for counting an attempt, on the module shape the interaction-module contract states.
  *
- * {@link endAttemptModule}'s `redact` gives the page the button's `title`, the entry name it posts
- * `true` under, the author's names and `count-attempt`; the server shell renders it, the one submit
- * button among the interactions (`#plate/ui/item/interactions/`). A submission by any other means
- * posts no entry for the response, which decodes to `false` through
- * {@link InteractionModule.absentValue}, whatever default value the response declares: the
- * information model sets the response to `false` whenever the attempt ends another way, and
- * ignores its default value.
+ * {@link endAttemptModule}'s `redact` gives the page the button's `title`, the declaration of its
+ * response, the author's names and `count-attempt`; the server shell renders it, the one submit
+ * button among the interactions (`#plate/ui/item/interactions/`). An item's start holds every End
+ * Attempt response at `false`, {@link InteractionModule.absentValue}, whatever default value the
+ * response declares; the button posts its response's identifier under `endedName(instance)`
+ * (`#plate/instance.ts`) only when its press submits the host's form, HTML's submitter, and the
+ * host's `answerOf` (`#plate/held.ts`) gives that response `true` in the answer it posts. So the
+ * response is `true` when the attempt ended through the button and `false` when it ended any other
+ * way, its default value ignored (QTI 3.0.1 information model §5.45).
  *
  * - **Binding.** A response of cardinality `single` and base type `boolean`; the body walk gives any
  *   other binding the notice naming the one it breaks, as for every kind.
@@ -36,7 +38,7 @@ import type {
   ModuleInteraction,
   Parsed,
 } from "#plate/interactions/contract.ts";
-import type { Value } from "#plate/model/values.ts";
+import type { Declared, Value } from "#plate/model/values.ts";
 
 /**
  * End Attempt's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -97,9 +99,10 @@ interface EndAttemptPayload {
    */
   readonly countAttempt: boolean;
   /**
-   * The name the button posts `true` under.
+   * The response the button ends the attempt through, as its declaration types it: a single
+   * `boolean` response.
    */
-  readonly formName: string;
+  readonly declared: Declared<"boolean", "single">;
   readonly response: string;
   /**
    * The text the button shows.
@@ -126,9 +129,10 @@ export const endAttemptModule: InteractionModule<
   EndAttemptPayload
 > = {
   /**
-   * A single boolean `false`: a submission without the button's entry sets the response to
-   * `false`, whatever its default value, since the information model sets an End Attempt's
-   * response to false whenever the attempt ends another way and ignores its default value.
+   * A single boolean `false`: the value the body an item posts holds for the response unless the
+   * button's press submitted it, whatever its default value, since the information model sets an
+   * End Attempt's response to false whenever the attempt ends another way and ignores its default
+   * value.
    */
   absentValue: () => notPressed,
   binding,
@@ -166,15 +170,16 @@ export const endAttemptModule: InteractionModule<
     return interaction;
   },
   /**
-   * Copy the model node into its payload node: the entry name the button posts under, and
-   * the author's names, which name the button only when its `title` gives it no text.
+   * Copy the model node into its payload node: the declaration of the response the button ends
+   * the attempt through, and the author's names, which name the button only when its `title` gives
+   * it no text.
    */
-  redact: (interaction, kit) => ({
+  redact: (interaction) => ({
     ariaLabel: interaction.ariaLabel,
     ariaLabelledby: interaction.ariaLabelledby,
     class: interaction.class,
     countAttempt: interaction.countAttempt,
-    formName: kit.formName(interaction.response),
+    declared: { baseType: "boolean", cardinality: "single", identifier: interaction.response },
     response: interaction.response,
     title: interaction.title,
   }),

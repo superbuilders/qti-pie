@@ -21,8 +21,6 @@ import { forcedChooser, generate, randomChooser, recorder } from "@bjornpagen/te
 import type { Chooser } from "@bjornpagen/testing/source";
 import { tokenOf, valuesFromToken } from "@bjornpagen/testing/tape";
 import type { Tape } from "@bjornpagen/testing/tape";
-import { entryName } from "@qti-pie/plate";
-import type { Entry } from "@qti-pie/plate";
 import type { Posted } from "#specimen/answer.ts";
 import { anyQuery, listed, queryIn, reached } from "#specimen/dimension.ts";
 import type { Listed, Query, Unreadable } from "#specimen/dimension.ts";
@@ -62,8 +60,8 @@ export const queryOf = (
 ): Result.Result<Query, Unreadable> => queryIn(dimensions, pairs);
 
 /**
- * The child's response a case draws: what the form posts for it, and the `SCORE` the item's
- * response processing gives it.
+ * The child's response a case draws: what the child gave, typed, each response the child left
+ * untouched absent ({@link Posted}), and the `SCORE` the item's response processing gives it.
  */
 export interface Response {
   readonly posted: Posted;
@@ -230,17 +228,6 @@ export const page = (held: Query, from: Option.Option<string>, count: number): P
     specimens,
   };
 };
-
-/**
- * The entries a case's response posts for an item instance, as the host's `<Responses>` would
- * hold them.
- *
- * @param drawn The case.
- * @param instance The instance the host renders the item as.
- * @returns The entries, named for the instance.
- */
-export const entriesOf = (drawn: Case, instance: string): readonly Entry[] =>
-  drawn.response.posted.map(([response, posted]) => [entryName(instance, response), posted]);
 
 export type { Description } from "#specimen/description.ts";
 

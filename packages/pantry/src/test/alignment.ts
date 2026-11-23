@@ -1295,7 +1295,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     191,
     {
       owner:
-        "plate reads a record response's number fields in `decode` (`numberFields`, `#plate/form/encoding.ts`); pantry stores no response",
+        "plate reads a record response's number fields in `readRecord` (`numberFields`, `#plate/model/typed-text.ts`); pantry stores no response",
       status: "G",
     },
   ],

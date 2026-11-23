@@ -51,6 +51,7 @@ import type {
   TemplateVisibility,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
+import type { Declared } from "#plate/model/values.ts";
 
 /**
  * Hot Text's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -159,10 +160,10 @@ interface HottextPayload {
    */
   readonly content: Nodes<RedactedLevel>;
   /**
-   * The name every Control posts under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: an `identifier` response of the
+   * Hot Text's cardinality.
    */
-  readonly formName: string;
+  readonly declared: Declared<"identifier", "multiple" | "single">;
   /**
    * Each hottext of the content, at any depth, by its `qti-hottext` element's path: what it stands
    * as in the passage, a choice or plain text ({@link HottextPart}).
@@ -371,7 +372,11 @@ const redact = (
   ariaLabelledby: interaction.ariaLabelledby,
   class: interaction.class,
   content: interaction.content,
-  formName: kit.formName(interaction.response),
+  declared: {
+    baseType: "identifier",
+    cardinality: interaction.cardinality,
+    identifier: interaction.response,
+  },
   hottexts: new Map(partsIn(interaction.content)),
   maxChoices: interaction.maxChoices,
   prompt: interaction.prompt,

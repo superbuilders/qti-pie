@@ -25,9 +25,10 @@
  *   plain strings, from plate's message catalog or from the author's own message. A label's
  *   `{placeholders}` hold values only the island knows; the island fills them, and each label's
  *   comment names them.
- * - **The response.** An island reads and writes only its own response, through `useResponse(name)`,
- *   as plate's lexical forms. It renders no `name` on its controls and no hidden input: the item's
- *   `<Responses>` posts every entry.
+ * - **The response.** An island reads and writes only its own response, the declaration the server
+ *   hands it, through `useResponse(response, codec)`, as typed values of its declared base type. It
+ *   renders no `name` on its controls and no hidden input: the item's `<Responses>` posts every
+ *   response.
  * - **Parts.** plate's parts carry `data-slot="plate-<kind>-<part>"`, beside the UI SDK components'
  *   own slots; state is a `data-*` attribute. No `class` but the author's and no `style`: the
  *   item's stylesheet styles the slots, and the page's content security policy refuses inline
@@ -41,6 +42,7 @@
  * @module
  */
 import type { ReactNode } from "react";
+import type { Declared } from "#plate/model/values.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import type { picksKeys } from "#plate/ui/picks/labels.ts";
@@ -74,9 +76,10 @@ export interface ChoiceProps extends Authored<Named> {
   })[];
   readonly labels: Labels<typeof picksKeys>;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the island writes, as its declaration types it: an `identifier` response of
+   * `single` or `multiple` cardinality.
    */
-  readonly name: string;
+  readonly response: Declared<"identifier", "multiple" | "single">;
   /**
    * `orientation`: `vertical` when the author wrote none, the XSD's default (5.30.4). A layout hint
    * the stylesheet reads from the root's `data-orientation`; arrow keys move both ways either way.
@@ -124,11 +127,12 @@ export interface ChoiceProps extends Authored<Named> {
  * - `plate-choice-limit`, the `limit` label, shown from a refused pick until the next accepted one;
  * - `plate-choice-instruction`, under the prompt, the `instruction` where the host asks for one.
  *
- * @param props The interaction, its response's entry name and its labels ({@link ChoiceProps}).
+ * @param props The interaction, its response and its labels ({@link ChoiceProps}).
  * @returns The Choice, its controls bound to the response.
  */
 export const Choice = (props: ChoiceProps) => {
-  const { choices, instruction, labels, name, naming, orientation, picks, prompt, root } = props;
+  const { choices, instruction, labels, naming, orientation, picks, prompt, response, root } =
+    props;
 
   return (
     <PicksGroup
@@ -144,7 +148,7 @@ export const Choice = (props: ChoiceProps) => {
       limit={labels.limit}
       naming={naming}
       picks={picks}
-      response={name}
+      response={response}
       root={{ ...root, "data-orientation": orientation, "data-slot": "plate-choice" }}
     >
       {choices.map(({ content, readAloud, ...option }) => {

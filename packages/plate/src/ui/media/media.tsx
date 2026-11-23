@@ -9,8 +9,8 @@
  * to the media element and runs its step at each `play`, `pause`, `ended` and each `seeking` that
  * brings the position back to the start, so the author's native controls, where the author asked
  * for them, count and refuse exactly as the island's own control does. After each counted play the
- * count is the response's one text; until the first, the island posts nothing, and the response is
- * NULL.
+ * count is the response's one integer; until the first, the island writes nothing, and the response
+ * is NULL.
  *
  * - **Autostart.** The server writes no `autoplay`: with `autostart` the island starts the media
  *   itself once it is listening, so the play is counted, and only while the response counts no play
@@ -82,7 +82,8 @@ import { countIn, rewound, step } from "#plate/ui/media/plays.ts";
 import type { Phase, Plays, Seen } from "#plate/ui/media/plays.ts";
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
-import { useResponse } from "#plate/ui/responses.tsx";
+import type { Declared } from "#plate/model/values.ts";
+import { integerSingles, useResponse } from "#plate/ui/responses.tsx";
 import { collapsedText } from "#plate/model/whitespace.ts";
 
 /**
@@ -114,9 +115,9 @@ export interface MediaProps extends Authored<Group> {
    */
   readonly maxPlays: Limit;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the count of plays writes, as its declaration types it: a single `integer`.
    */
-  readonly name: string;
+  readonly response: Declared<"integer", "single">;
   /**
    * The `qti-prompt`, server-rendered under its scoped id, which `naming` then names the group by;
    * undefined when the interaction has none.
@@ -542,12 +543,12 @@ const Player = (props: PlayerProps) => {
  * Render a Media for the child to play, counting the plays into its response in the item's
  * `<Responses>`.
  *
- * @param props The interaction, its response's entry name and its labels ({@link MediaProps}).
+ * @param props The interaction, its response and its labels ({@link MediaProps}).
  * @returns The Media, its media element's plays bound to the response.
  */
 export const Media = (props: MediaProps) => {
-  const { autostart, least, maxPlays, name, ...shown } = props;
-  const [texts, set] = useResponse(name);
+  const { autostart, least, maxPlays, response, ...shown } = props;
+  const [values, set] = useResponse(response, integerSingles);
 
   return (
     <Player
@@ -555,11 +556,11 @@ export const Media = (props: MediaProps) => {
       recorded={null}
       tally={{
         autostart,
-        count: countIn(texts),
+        count: countIn(values),
         least,
         maxPlays,
         write: (count) => {
-          set([String(count)]);
+          set([BigInt(count)]);
         },
       }}
     />
@@ -568,7 +569,7 @@ export const Media = (props: MediaProps) => {
 
 /**
  * What the server gives a Media's replay island, a review's or a solution's: the attempt island's
- * parts but its response's entry name and its rules for plays, which a replay has no use for.
+ * parts but its response and its rules for plays, which a replay has no use for.
  */
 export interface MediaReplayProps
   extends Authored<Group>, Pick<MediaProps, "captions" | "children" | "labels" | "prompt"> {
@@ -582,7 +583,7 @@ export interface MediaReplayProps
 /**
  * Replay a Media in a review or a solution: its own controls play, pause and caption the media as
  * the attempt's do, with no limit and no start of their own, and nothing counts. It is handed no
- * entry name and reads no `<Responses>`, so it posts nothing and needs no form.
+ * response and reads no `<Responses>`, so it writes nothing and needs no form.
  *
  * @param props The interaction, its labels and the count shown ({@link MediaReplayProps}).
  * @returns The Media, replayed.

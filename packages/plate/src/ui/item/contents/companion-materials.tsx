@@ -34,7 +34,7 @@ import type {
   ProtractorMaterial,
   RuleMaterial,
 } from "#plate/content/companion-materials.ts";
-import { scopedId } from "#plate/form/encoding.ts";
+import { scopedId } from "#plate/instance.ts";
 import { message } from "#plate/messages.ts";
 import type { Locale, MessageKey } from "#plate/messages.ts";
 import { addressUrl, classifyUrl, missingPathOf } from "#plate/model/url.ts";

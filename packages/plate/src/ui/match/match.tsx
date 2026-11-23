@@ -15,11 +15,12 @@
  * @module
  */
 import { useMemo } from "react";
+import type { Declared } from "#plate/model/values.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import type { Limit } from "#plate/placement/limit.ts";
 import type { MatchLabels } from "#plate/ui/match/labels.ts";
 import { matchBoardOf } from "#plate/placement/match-board.ts";
-import { placementsOf, textsOf } from "#plate/ui/placement/associable.ts";
+import { directedPairsOf, placementsOf } from "#plate/ui/placement/associable.ts";
 import type { AssociableChoice } from "#plate/ui/placement/associable.ts";
 import type { Pairs } from "#plate/placement/machine.ts";
 import type { TargetName } from "#plate/ui/placement/primitive.ts";
@@ -35,7 +36,7 @@ import {
 import { PromptPart } from "#plate/ui/prompt.tsx";
 import type { Prompt } from "#plate/ui/prompt.tsx";
 import { spokenBeside } from "#plate/ui/read-aloud/spoken.tsx";
-import { useResponse } from "#plate/ui/responses.tsx";
+import { directedPairSingles, useResponse } from "#plate/ui/responses.tsx";
 
 /**
  * One group of a Match, a choice of its second set, as the island shows it: the choice, but for
@@ -84,13 +85,14 @@ export interface MatchProps extends Authored<NameAttributes> {
    * default of 1 when the author wrote none, and no limit for 0 (see {@link Limit}). A chip from
    * the bank is refused once the groups hold that many, and a chip moved between groups is not,
    * since a move makes no new association. A `single` response has at most 1 here, so it never
-   * posts two entries.
+   * holds two pairs.
    */
   readonly maxAssociations: Limit;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response, as its declaration types it: a `directedPair` response of `single` or
+   * `multiple` cardinality.
    */
-  readonly name: string;
+  readonly response: Declared<"directedPair", "multiple" | "single">;
   /**
    * The `qti-prompt`, server-rendered under its scoped id, which `naming` names the group by where
    * the prompt names anything; undefined when the interaction has none.
@@ -147,16 +149,17 @@ export interface MatchProps extends Authored<NameAttributes> {
  * of its chips would leave is not the child's to guess. Each refusal is the primitive's: stopped
  * before the response changes, announced, and shown in the message.
  *
- * The response is a bag: one `"source target"` text per chip in a group, in the order the
- * primitive keeps them, never sorted or made distinct.
+ * The response is a bag: one `directedPair` per chip in a group, the chip's source first, in the
+ * order the primitive keeps them, never sorted or made distinct.
  *
- * @param props The interaction, its response's entry name and its labels ({@link MatchProps}).
+ * @param props The interaction, its response and its labels ({@link MatchProps}).
  * @returns The Match, its placements bound to the response.
  * @see {@link PlacementRoot}
  */
 export const Match = (props: MatchProps) => {
-  const { header, labels, maxAssociations, name, naming, prompt, root, sources, targets } = props;
-  const [texts, set] = useResponse(name);
+  const { header, labels, maxAssociations, naming, prompt, response, root, sources, targets } =
+    props;
+  const [pairs, set] = useResponse(response, directedPairSingles);
   const chipsBy = useMemo(
     () => new Map(sources.map((source) => [source.identifier, source])),
     [sources],
@@ -165,7 +168,7 @@ export const Match = (props: MatchProps) => {
     () => matchBoardOf(sources, targets, maxAssociations),
     [maxAssociations, sources, targets],
   );
-  const placements = useMemo(() => placementsOf(texts), [texts]);
+  const placements = useMemo(() => placementsOf(pairs), [pairs]);
 
   return (
     <div {...naming} {...root} data-slot="plate-match" role="group">
@@ -175,7 +178,7 @@ export const Match = (props: MatchProps) => {
         labels={labels}
         placements={placements}
         onPlacementsChange={(next: Pairs) => {
-          set(textsOf(next));
+          set(directedPairsOf(next));
         }}
       >
         {header === undefined ? null : (

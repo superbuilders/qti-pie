@@ -40,6 +40,7 @@ import type {
 import { shadeOf } from "#plate/interactions/plot-roles.ts";
 import type { ShadeDirection } from "#plate/interactions/plot-roles.ts";
 import { format } from "#plate/model/values.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { presentedOrder } from "#plate/shuffle.ts";
 
 /**
@@ -135,9 +136,10 @@ export interface ChoicePayload {
    */
   readonly class: Option.Option<string>;
   /**
-   * The name its Controls post under, `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: an `identifier` response of the
+   * Choice's cardinality.
    */
-  readonly formName: string;
+  readonly declared: Declared<"identifier", "multiple" | "single">;
   readonly maxChoices: bigint;
   /**
    * `orientation`, a rendering hint, `vertical` when absent, the XSD's default
@@ -331,7 +333,7 @@ export const choiceModule: InteractionModule<"choice", ChoiceByLevel, ChoicePayl
   parse,
   /**
    * Copy the Choice into its payload node: its choices in presented order ({@link presented}), the
-   * entry name its Controls post under, and the identifiers the view shows as checked.
+   * declaration of the response its island writes, and the identifiers the view shows as checked.
    */
   redact: (interaction, kit) => ({
     ariaLabel: interaction.ariaLabel,
@@ -343,7 +345,11 @@ export const choiceModule: InteractionModule<"choice", ChoiceByLevel, ChoicePayl
       identifier: choice.identifier,
     })),
     class: interaction.class,
-    formName: kit.formName(interaction.response),
+    declared: {
+      baseType: "identifier",
+      cardinality: interaction.cardinality,
+      identifier: interaction.response,
+    },
     maxChoices: interaction.maxChoices,
     orientation: interaction.orientation,
     prompt: interaction.prompt,

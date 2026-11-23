@@ -204,8 +204,8 @@ export interface PortableCustomHost {
 
 /**
  * The payload node of a Portable Custom Interaction (Q-16, kind `portable-custom`): what the page
- * may know of the model node, its content copied through the payload's kit, the name its
- * response travels under, and what the host told the module of this PCI. It holds no correct
+ * may know of the model node, its content copied through the payload's kit, and what the host told
+ * the module of this PCI. It holds no correct
  * value, no template value and no stored value: the page posts the response (issue pci-05), and
  * the frame host of issue pci-04 hands the PCI its values.
  */
@@ -214,11 +214,6 @@ interface PortableCustomPayload {
   readonly ariaLabelledby: Option.Option<string>;
   readonly class: Option.Option<string>;
   readonly configuration: PortableCustomConfiguration;
-  /**
-   * The name the response's controls post under: the view's name for it, else
-   * `entryName(instance, response)`.
-   */
-  readonly formName: string;
   /**
    * What the host told the module of this PCI ({@link PortableCustomHost}); none when the host
    * passed no `pci` facts, or routed nothing for this PCI's response, and then the page has no
@@ -518,8 +513,8 @@ export const portableCustomModule: InteractionModule<
     };
   },
   /**
-   * Copy the model node into its payload node: its content through the kit, the configuration,
-   * the name the response travels under, and what the host told the module of this PCI through
+   * Copy the model node into its payload node: its content through the kit, the configuration, and
+   * what the host told the module of this PCI through
    * `kit.host.pci` ({@link hostOf}): the routes for its response, the loader, the entry, and each
    * module the author named that the routes do not cover, for the page to name. The written
    * module facts reach the payload node through nothing else: the routes replace them. The kit's
@@ -535,7 +530,6 @@ export const portableCustomModule: InteractionModule<
       responseIdentifier: interaction.response,
       templateVariables: interaction.templateVariables,
     },
-    formName: kit.formName(interaction.response),
     host: hostOf(interaction, kit.host.pci),
     inertTemplates: interaction.inertTemplates,
     markup: interaction.markup,

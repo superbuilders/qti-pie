@@ -33,6 +33,7 @@ import type {
   SimpleChoice,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
+import type { Declared } from "#plate/model/values.ts";
 
 /**
  * Inline Choice's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -131,9 +132,9 @@ export interface InlineChoicePayload {
    */
   readonly class: Option.Option<string>;
   /**
-   * The name its Control posts under, `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: a single `identifier` response.
    */
-  readonly formName: string;
+  readonly declared: Declared<"identifier", "single">;
   /**
    * The content of the first `qti-label`, none when the interaction has none.
    */
@@ -243,7 +244,8 @@ export const inlineChoiceModule: InteractionModule<
   parse,
   /**
    * Copy the Inline Choice into its payload node: its choices in presented order, its Label, the
-   * entry name its Control posts under, and the identifier the view shows as chosen, none for NULL.
+   * declaration of the response its island writes, and the identifier the view shows as chosen,
+   * none for NULL.
    */
   redact: (interaction, kit) => ({
     ariaLabel: interaction.ariaLabel,
@@ -253,7 +255,7 @@ export const inlineChoiceModule: InteractionModule<
       identifier: choice.identifier,
     })),
     class: interaction.class,
-    formName: kit.formName(interaction.response),
+    declared: { baseType: "identifier", cardinality: "single", identifier: interaction.response },
     label: interaction.label,
     placeholder: interaction.placeholder,
     response: interaction.response,

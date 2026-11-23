@@ -80,9 +80,9 @@ export const island = (
       image={contentOf(node.image, "flow", context)}
       labels={labelsOf(graphicAssociateKeys, context.locale, {})}
       maxAssociations={limitOf(node.maxAssociations)}
-      name={node.formName}
       naming={groupNameOf(prompt, node, context)}
       prompt={prompt}
+      response={node.declared}
       root={rootOf(model, context)}
       size={node.size}
     />

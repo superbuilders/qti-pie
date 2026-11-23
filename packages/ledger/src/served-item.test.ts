@@ -1,7 +1,8 @@
 /**
- * The ledger's reading of a posted answer (`postedOf`) against the page it was posted from: the
- * record an attempt starts from shows and hides feedback, and the responses its post carries are
- * those of the interactions that page shows, the End Attempts it hides `false`. The case is an
+ * The responses an attempt starts from (`startingOf`) against the page it starts on, and the post a
+ * page makes of them: the record an attempt starts from shows and hides feedback, and the responses
+ * its start holds, which its post carries, are those of the interactions that page shows, every End
+ * Attempt `false` but the one whose press ends the attempt. The case is an
  * adaptive item whose End Attempt stands in feedback the first attempt shows and its second hides,
  * and whose checklist stands in feedback the second attempt shows: QTI 3.0.1 information model
  * §5.49, feedback block: an interaction inside hidden feedback "must also be hidden. The candidate
@@ -19,9 +20,11 @@
  */
 import { assert, describe, it } from "@effect/vitest";
 import { acceptedItem, configure, noSupports, openAdmitted } from "@qti-pie/plate";
-import type { ItemRecord, Value } from "@qti-pie/plate";
-import { Effect, Option } from "effect";
-import { postedOf, reviewOf } from "#ledger/served-item.ts";
+import type { ItemRecord, Responses, Value } from "@qti-pie/plate";
+import { PostedResponses } from "@qti-pie/plate/codec";
+import { answerOf, heldOf } from "@qti-pie/plate/ui/props";
+import { Effect, Option, Schema } from "effect";
+import { reviewOf, startingOf } from "#ledger/served-item.ts";
 import type { ReviewShows, ServedItem } from "#ledger/served-item.ts";
 import type { Judged } from "#ledger/served-values.ts";
 
@@ -128,38 +131,61 @@ const boolean = (value: boolean): Value => ({
   values: [{ baseType: "boolean", value }],
 });
 
-describe("postedOf reads a post against the page it was posted from", () => {
+/**
+ * Answer an attempt as a host does and read the post as its server does: the answer the held
+ * state's contract gives (`answerOf`), with the End Attempt pressed, if any, written as JSON text
+ * by plate's codec and decoded by the same codec.
+ *
+ * @param responses The responses the page holds.
+ * @param ended The End Attempt whose press ended the attempt, none for another submit.
+ * @returns The responses the server reads.
+ */
+const posted = (responses: Responses, ended: Option.Option<string>) =>
+  Effect.gen(function* answered() {
+    const answer = yield* Effect.fromResult(answerOf(heldOf(responses), ended));
+    const body = Schema.fromJsonString(PostedResponses);
+
+    return yield* Schema.decodeUnknownEffect(body)(yield* Schema.encodeEffect(body)(answer));
+  }).pipe(Effect.orDie);
+
+describe("an attempt starts from the page it shows, and posts what that page holds", () => {
   it.effect(
-    "the first attempt's End Attempt posts true; the checklist its feedback hides posts nothing",
+    "the first attempt's start holds its End Attempt at false and not the checklist its feedback hides; pressing the End Attempt posts it true",
     () =>
       Effect.gen(function* firstAttempt() {
         const served = yield* opened;
-        const responses = yield* postedOf(served, begun, [[`${instance}.DRAWN`, "true"]]);
+        const start = startingOf(served, begun);
 
-        assert.deepStrictEqual(responses["DRAWN"], boolean(true));
-        assert.isUndefined(responses["RESPONSE"]);
+        assert.deepStrictEqual(start, { DRAWN: boolean(false) });
+        assert.deepStrictEqual(yield* posted(start, Option.some("DRAWN")), {
+          DRAWN: boolean(true),
+        });
       }),
   );
 
   it.effect(
-    "the second attempt's ticked checklist posts its choices, and its hidden End Attempt is false",
+    "the second attempt's start holds the checklist its feedback shows, NULL, and its hidden End Attempt at false; a submit posts the ticked checklist and the End Attempt false",
     () =>
       Effect.gen(function* secondAttempt() {
         const served = yield* opened;
-        const responses = yield* postedOf(served, revealed, [
-          [`${instance}.RESPONSE`, "c1"],
-          [`${instance}.RESPONSE`, "c2"],
-        ]);
+        const start = startingOf(served, revealed);
+        const ticked = {
+          ...start,
+          RESPONSE: {
+            baseType: "identifier",
+            cardinality: "multiple",
+            values: [
+              { baseType: "identifier", value: "c1" },
+              { baseType: "identifier", value: "c2" },
+            ],
+          },
+        } satisfies Record<string, Value>;
 
-        assert.deepStrictEqual(responses["RESPONSE"], {
-          baseType: "identifier",
-          cardinality: "multiple",
-          values: [
-            { baseType: "identifier", value: "c1" },
-            { baseType: "identifier", value: "c2" },
-          ],
+        assert.deepStrictEqual(start, {
+          DRAWN: boolean(false),
+          RESPONSE: { baseType: "identifier", cardinality: "multiple", values: [] },
         });
-        assert.deepStrictEqual(responses["DRAWN"], boolean(false));
+        assert.deepStrictEqual(yield* posted(ticked, Option.none()), ticked);
       }),
   );
 });

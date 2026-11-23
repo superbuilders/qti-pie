@@ -22,6 +22,7 @@
  * @module
  */
 import type { ReactNode } from "react";
+import type { Declared } from "#plate/model/values.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
 import type { picksKeys } from "#plate/ui/picks/labels.ts";
@@ -46,13 +47,14 @@ export interface HottextProps extends Authored<Named> {
   readonly children: ReactNode;
   readonly labels: Labels<typeof picksKeys>;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the island writes, as its declaration types it: an `identifier` response of
+   * `single` or `multiple` cardinality.
    */
-  readonly name: string;
+  readonly response: Declared<"identifier", "multiple" | "single">;
   /**
    * How many hottexts the child picks (5.66.1), as the server reads it (`picksOf` in
    * `#plate/interactions/picks.ts`): one as radios of one group, where a pick replaces the last,
-   * else checkboxes, a pick past `max-choices` refused. The response is a bag: the island posts
+   * else checkboxes, a pick past `max-choices` refused. The response is a bag: the island writes
    * each picked identifier once, which a bag does not read in any order.
    */
   readonly picks: Picks;
@@ -83,11 +85,11 @@ export interface HottextProps extends Authored<Named> {
  *   nothing in it moves when it is picked;
  * - `plate-hottext-limit`, the `limit` label, shown from a refused pick until the next accepted one.
  *
- * @param props The interaction, its response's entry name and its labels ({@link HottextProps}).
+ * @param props The interaction, its response and its labels ({@link HottextProps}).
  * @returns The Hot Text, its hottexts bound to the response.
  */
 export const Hottext = (props: HottextProps) => {
-  const { children, labels, name, naming, picks, prompt, root } = props;
+  const { children, labels, naming, picks, prompt, response, root } = props;
 
   return (
     <PicksGroup
@@ -96,7 +98,7 @@ export const Hottext = (props: HottextProps) => {
       limit={labels.limit}
       naming={naming}
       picks={picks}
-      response={name}
+      response={response}
       root={{ ...root, "data-slot": "plate-hottext" }}
     >
       {children}

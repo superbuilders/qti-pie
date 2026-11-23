@@ -14,6 +14,7 @@
  *
  * @module
  */
+import type { Declared } from "#plate/model/values.ts";
 import type { AssociateLabels } from "#plate/ui/associate/labels.ts";
 import type { Authored, NameAttributes } from "#plate/ui/attributes.ts";
 import type { Limit } from "#plate/placement/limit.ts";
@@ -57,13 +58,14 @@ export interface AssociateProps extends Authored<NameAttributes> {
   /**
    * `max-associations` (5.8.2): how many pairs the response may hold. The server writes the XSD's
    * default of 1 when the author wrote none, and no limit for 0 (see {@link Limit}). A `single`
-   * response has at most 1 here, so it never posts two entries.
+   * response has at most 1 here, so it never holds two pairs.
    */
   readonly maxAssociations: Limit;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response, as its declaration types it: a `pair` response of `single` or `multiple`
+   * cardinality.
    */
-  readonly name: string;
+  readonly response: Declared<"pair", "multiple" | "single">;
   /**
    * The `qti-prompt`, server-rendered under its scoped id, which `naming` names the group by where
    * the prompt names anything; undefined when the interaction has none.
@@ -98,16 +100,16 @@ export interface AssociateProps extends Authored<NameAttributes> {
  * boxes hold `max-associations` pairs in all. Each refusal is the primitive's: stopped before the
  * response changes, announced, and shown in the message.
  *
- * The response is a bag: one `"first second"` text per box that holds a pair, in the order of the
- * boxes, never sorted; a box holding one choice posts nothing.
+ * The response is a bag: one `pair` per box that holds two choices, its first half's choice first,
+ * in the order of the boxes, never sorted; a box holding one choice writes nothing.
  *
- * @param props The interaction, its response's entry name and its labels ({@link AssociateProps}).
+ * @param props The interaction, its response and its labels ({@link AssociateProps}).
  * @returns The Associate, its boxes bound to the response.
  * @see {@link PlacementRoot}
  */
 export const Associate = (props: AssociateProps) => {
-  const { choices, labels, maxAssociations, name, naming, prompt, root } = props;
-  const pairs = usePairBoxes(name, choices, maxAssociations);
+  const { choices, labels, maxAssociations, naming, prompt, response, root } = props;
+  const pairs = usePairBoxes(response, choices, maxAssociations);
 
   return (
     <div {...naming} {...root} data-slot="plate-associate" role="group">

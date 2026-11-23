@@ -17,11 +17,11 @@
  *
  * A review and a solution replay the media (Bjorn's ruling, 2026-11-18, plate's UI suite's J1): its
  * own controls play it as often as anyone likes and count nothing, and the replay island is handed
- * no entry name, so it posts nothing. The count it shows is the server's, written here.
+ * no response, so it writes nothing. The count it shows is the server's, written here.
  *
  * The islands stand only for an `audio` or a `video`. A browser reports no plays of the deprecated
  * `object`, so a Media holding one, or no media at all, is its server markup in every mode, and
- * posts nothing.
+ * writes nothing.
  *
  * A review shows the count its response holds as `plate-media-count`, a response that reports no
  * play as 0, as plate reads it (reading 186); a solution shows the count its correct response
@@ -210,7 +210,7 @@ const leastOf = (minPlays: bigint, locale: Locale): Least => {
  *
  * @param paired The Media and its payload node.
  * @param paired.payload Its payload node, as its module's `redact` gave it: the prompt, the media, the
- *   author's names, `autostart`, `loop`, `min-plays`, `max-plays` and the entry name.
+ *   author's names, `autostart`, `loop`, `min-plays`, `max-plays` and the response's declaration.
  * @param context What the page may know of the render.
  * @returns The island, or the markup.
  */
@@ -228,9 +228,9 @@ export const island = (paired: Paired<"media">, context: IslandContext): ReactNo
       labels={labelsOf(mediaKeys, context.locale, {})}
       least={leastOf(node.minPlays, context.locale)}
       maxPlays={limitOf(node.maxPlays)}
-      name={node.formName}
       naming={groupOf(prompt, node, context)}
       prompt={prompt}
+      response={node.declared}
       root={rootOf(model, context)}
     >
       {mediaOf(node, context)}

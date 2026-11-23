@@ -10,15 +10,51 @@
 import { Data } from "effect";
 
 /**
- * `useResponse` was called outside a `<Responses>`, whose entries it reads and writes: the host
- * rendered an item's islands without wrapping them in `<Responses value onChange>`.
+ * An island read its response outside a `<Responses>`, whose state it reads and writes: the host
+ * rendered an item's islands without wrapping them in `<Responses instance value onChange>`.
  */
 export class ResponsesMissing extends Data.TaggedError("ResponsesMissing") {
   /**
    * What was called outside what, and what to wrap it in.
    */
   override get message(): string {
-    return "useResponse needs an enclosing <Responses>; render the item inside one.";
+    return "An island's response needs an enclosing <Responses>; render the item inside one.";
+  }
+}
+
+/**
+ * An island's response is not in the state its `<Responses>` holds: the host did not start the item
+ * from the server's start (`heldOf` of `startingOf`), which holds every response the page shows.
+ */
+export class ResponseUnheld extends Data.TaggedError("ResponseUnheld")<{
+  /**
+   * The response's identifier.
+   */
+  readonly response: string;
+}> {
+  /**
+   * Which response is missing, and what to start from.
+   */
+  override get message(): string {
+    return `The response ${JSON.stringify(this.response)} is not in <Responses>' state; start the item from heldOf of the server's startingOf, which holds every response the page shows.`;
+  }
+}
+
+/**
+ * The state holds a response's value of another type than the declaration its island was handed:
+ * the host built the state from something other than the server's start of this item.
+ */
+export class ResponseMistyped extends Data.TaggedError("ResponseMistyped")<{
+  /**
+   * The response's identifier.
+   */
+  readonly response: string;
+}> {
+  /**
+   * Which response is mistyped, and what to start from.
+   */
+  override get message(): string {
+    return `<Responses>' state holds the response ${JSON.stringify(this.response)} at another type than its declaration; start the item from heldOf of the server's startingOf for this item.`;
   }
 }
 
@@ -72,7 +108,7 @@ export class PlacementPartOutside extends Data.TaggedError("PlacementPartOutside
  */
 export class PositionObjectOffStage extends Data.TaggedError("PositionObjectOffStage")<{
   /**
-   * The entry name the part was rendered with.
+   * The identifier of the response whose part it is.
    */
   readonly name: string;
 }> {

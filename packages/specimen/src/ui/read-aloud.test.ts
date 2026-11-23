@@ -38,12 +38,12 @@ import { Effect, Option } from "effect";
 import { parseHTML } from "linkedom";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { acceptedItem, configure } from "@qti-pie/plate";
+import { acceptedItem, configure, startingResponses } from "@qti-pie/plate";
 import type { Accepted, Configuration } from "@qti-pie/plate";
 import { admitted } from "@qti-pie/plate/test/admitted";
 import { Item } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
-import { Responses } from "@qti-pie/plate/ui/client";
+import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 import { clientExports } from "#specimen/ui/clients.ts";
 import { factsOf, islandsIn } from "#specimen/ui/rendered.ts";
 
@@ -184,7 +184,11 @@ const page = (mode: "answering" | "review", supports: Option.Option<Supports>) =
     const item = createElement(Item, props);
     const html = renderToStaticMarkup(
       mode === "answering"
-        ? createElement(Responses, { children: item, onChange: keepNothing, value: [] })
+        ? createElement(Responses, {
+            children: item,
+            onChange: keepNothing,
+            value: heldOf(startingResponses(accepted, props)),
+          })
         : item,
     );
     const { document } = parseHTML(`<!doctype html><html><body>${html}</body></html>`);

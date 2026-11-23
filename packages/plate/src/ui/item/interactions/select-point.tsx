@@ -71,10 +71,10 @@ export const island = (
     <SelectPoint
       image={contentOf(node.image, "flow", context)}
       labels={labelsOf(selectPointKeys, context.locale, {})}
-      name={node.formName}
       naming={groupNameOf(prompt, node, context)}
       picks={picksOfPoints(node)}
       prompt={prompt}
+      response={node.declared}
       root={rootOf(model, context)}
       size={{ height: node.height, width: node.width }}
     />

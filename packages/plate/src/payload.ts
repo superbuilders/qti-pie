@@ -4,7 +4,8 @@
  *
  * {@link interactionPayload} pairs an interaction of a redacted body (`#plate/redact/walk.ts`)
  * with its payload node ({@link Paired}), its facts from the author's {@link View}: its presented
- * order, its entry name and the values it shows, and what its module bakes in of the host's facts.
+ * order, the declaration of the response it writes and the values it shows, and what its module
+ * bakes in of the host's facts.
  * The payload node names every field it keeps and never
  * spreads a model object, so a field the model gains reaches the page only when this file names
  * it. It holds no correct response, mapping, default, processing rule, seed or template value: the
@@ -15,12 +16,11 @@
  *
  * @module
  */
-import { entryName, recordText } from "#plate/form/encoding.ts";
 import type { ModuleKind, RedactKit } from "#plate/interactions/contract.ts";
 import { modulePayload, payloadAt } from "#plate/model/interactions.ts";
 import type { ModelOf, PayloadOf } from "#plate/model/interactions.ts";
 import type { Interaction, RedactedLevel } from "#plate/model/item.ts";
-import { isRecordValue } from "#plate/model/values.ts";
+import { isRecordValue, recordText } from "#plate/model/values.ts";
 import type { ResponseValue, Single } from "#plate/model/values.ts";
 import type { HostFacts } from "#plate/pci/host.ts";
 
@@ -48,7 +48,7 @@ export interface View {
    */
   readonly host: HostFacts;
   /**
-   * The item instance key, which scopes every id and each entry name.
+   * The item instance key, which scopes every id and names the entry its End Attempts post in.
    */
   readonly instance: string;
   /**
@@ -120,7 +120,6 @@ const shown = (view: View, response: string): readonly Single[] => {
  * @returns The kit.
  */
 const kitOf = (view: View): RedactKit => ({
-  formName: (response) => entryName(view.instance, response),
   host: view.host,
   instance: view.instance,
   seed: view.seed,
@@ -132,7 +131,7 @@ const kitOf = (view: View): RedactKit => ({
  * server shell renders the interaction with, which the redacted model node does not hold, as its
  * module's `redact` reads them of the view and the host's facts through its kit: a Choice's and an
  * Inline Choice's choices in presented order (`choiceOrder` in `#plate/interactions/choice.ts`),
- * the entry name its response posts under, and the values the view shows.
+ * and the values the view shows.
  *
  * @param interaction The interaction, as the redacted body holds it.
  * @param view The author's inputs: the instance, the seed, the values and the host's facts.

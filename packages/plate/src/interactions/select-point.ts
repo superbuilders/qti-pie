@@ -4,11 +4,10 @@
  *
  * {@link selectPointModule}'s `redact` gives the page the Prompt, the author's image (`img`,
  * `picture` or `object`) and the size that bounds its points, the response's cardinality and the
- * counts, the entry name its points post under (one entry per point, its two coordinates
- * separated by a space, which `decode` reads as a point), how many points the page offers a place
- * for, and the points the view shows; the server shell renders it
- * (`#plate/ui/item/interactions/`). The response's area mapping is never copied into the payload:
- * the page holds the correct points only in solution mode, as values.
+ * counts, the declaration of the response its points write (each point its two coordinates, x then
+ * y), how many points the page offers a place for, and the points the view shows; the server shell
+ * renders it (`#plate/ui/item/interactions/`). The response's area mapping is never copied into the
+ * payload: the page holds the correct points only in solution mode, as values.
  *
  * It follows three readings of `docs/spec-readings.md`, each cited by its wording, all enforced by
  * the QTI database's area test when its response processing maps the points:
@@ -45,7 +44,7 @@ import type {
 } from "#plate/interactions/contract.ts";
 import { authoredSizeOf, imageElementOf, sizeCarrierOf } from "#plate/interactions/image-size.ts";
 import type { BodyNode, Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
-import type { Single } from "#plate/model/values.ts";
+import type { Declared, Single } from "#plate/model/values.ts";
 
 /**
  * Select Point's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -115,9 +114,9 @@ interface PointText {
 
 /**
  * A Select Point as the page may know it (Q-18, `select-point`): what the model node holds of the
- * image and the counts, the name its points post under, how many points the page offers a place
- * for, and the points the view shows. It holds no correct response and no area: `points` is the
- * stored, posted or solution value the view gave, as the texts of its coordinates.
+ * image and the counts, the declaration of the response its points write, how many points the page
+ * offers a place for, and the points the view shows. It holds no correct response and no area:
+ * `points` is the stored or solution value the view gave, as the texts of its coordinates.
  */
 interface SelectPointPayload {
   readonly ariaLabel: Option.Option<string>;
@@ -125,10 +124,10 @@ interface SelectPointPayload {
   readonly cardinality: SelectPointCardinality;
   readonly class: Option.Option<string>;
   /**
-   * The name its points post under, one entry per point holding its two coordinates separated by
-   * a space, x then y: the view's name for the response, else `entryName(instance, response)`.
+   * The response its points write, as its declaration types it: a `point` response of the
+   * interaction's cardinality, each point two coordinates, x then y.
    */
-  readonly formName: string;
+  readonly declared: Declared<"point", SelectPointCardinality>;
   /**
    * How many points the page offers a place for ({@link groupsOf}, and one per shown point beyond
    * that).
@@ -213,7 +212,7 @@ const ownRegions = <L extends Level>(
 
 /**
  * Copy a Select Point's model node into its payload node: its content through the kit, the
- * response's entry name, how many points the page offers, and the points the view shows.
+ * response's declaration, how many points the page offers, and the points the view shows.
  *
  * The points are the point values the view shows ({@link shownPoints}). The points offered are
  * {@link groupsOf}'s, and one per shown point beyond them.
@@ -233,7 +232,11 @@ const redactSelectPoint = (
     ariaLabelledby: interaction.ariaLabelledby,
     cardinality: interaction.cardinality,
     class: interaction.class,
-    formName: kit.formName(interaction.response),
+    declared: {
+      baseType: "point",
+      cardinality: interaction.cardinality,
+      identifier: interaction.response,
+    },
     groups: Math.max(groupsOf(interaction), points.length),
     height: interaction.height,
     image: interaction.image,

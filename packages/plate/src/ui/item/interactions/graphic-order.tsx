@@ -57,11 +57,11 @@ export const island = (
       hotspots={spokenAreasOf(node.hotspots, context)}
       image={contentOf(node.image, "flow", context)}
       labels={labelsOf(graphicOrderKeys, context.locale, {})}
-      name={node.formName}
       naming={groupNameOf(prompt, node, context)}
       positions={Number(node.maxChoices)}
       prompt={prompt}
       required={Number(node.minChoices)}
+      response={node.declared}
       root={rootOf(model, context)}
       size={node.size}
     />

@@ -1,6 +1,6 @@
 /**
  * The author's ids as the server shell writes them, scoped so that they meet neither another
- * instance's nor plate's own, which `scopedId` (`#plate/form/encoding.ts`) scopes.
+ * instance's nor plate's own, which `scopedId` (`#plate/instance.ts`) scopes.
  *
  * @module
  */

@@ -10,10 +10,12 @@
  * candidate ends the attempt through it, and to `false` when the attempt ends any other way, its
  * default value ignored (QTI 3.0 information model 5.45). HTML gives exactly that through a submit
  * button: a form posts a submit button's `name` and `value` only when that button is the one that
- * submitted it. So the button is `type="submit"` with the response's entry name and
- * `value="true"`, and a submission by any other means posts no entry for the response, which the
- * server decodes as `false` (the module's `absentValue`). The island neither reads nor writes
- * `useResponse`: an entry in the host's `<Responses>` would post on every submission.
+ * submitted it. The host's `<Responses>` holds every End Attempt response at `false` (the module's
+ * `absentValue`); the button is `type="submit"`, named `endedName(instance)` (`#plate/instance.ts`)
+ * with its response's identifier as its `value`, so only the press that ended the attempt posts it,
+ * and the host's `answerOf` (`#plate/held.ts`) gives that response `true` in the answer, read from
+ * the form's entries by `endedOf`. The island neither reads nor writes `<Responses>`' state: a
+ * `true` held there would post on every submission.
  *
  * Its markup is phrasing content, a `span` and the button, so it stands inside a paragraph, a table
  * cell or a list item as written. It renders no `form`: the host's form, around the item, is the
@@ -28,6 +30,8 @@
  */
 import { Button } from "@ui-sdk/react/button";
 import { useFormStatus } from "react-dom";
+import { endedName } from "#plate/instance.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { flag } from "#plate/ui/attributes.ts";
 import type { Authored, Named, Unnamed } from "#plate/ui/attributes.ts";
 
@@ -54,10 +58,15 @@ export interface EndAttemptProps extends Pick<Authored<Named>, "root"> {
    */
   readonly face: Face;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance, which the
-   * button posts `true` under.
+   * The item instance token the page renders the item under, which names the entry the button posts
+   * its response's identifier in (`endedName`).
    */
-  readonly name: string;
+  readonly instance: string;
+  /**
+   * The response the button ends the attempt through, as its declaration types it: a single
+   * `boolean` response.
+   */
+  readonly response: Declared<"boolean", "single">;
 }
 
 /**
@@ -67,8 +76,8 @@ export interface EndAttemptProps extends Pick<Authored<Named>, "root"> {
  *
  * - `plate-end-attempt`, the root, a `span`, with the author's `class` and `data-*`, and
  *   `data-pending` while the host's form submits;
- * - UI SDK's `button`, a native `button type="submit"` with the response's entry name as its `name`
- *   and `value="true"`, showing and named as its `face` says.
+ * - UI SDK's `button`, a native `button type="submit"` named `endedName(instance)`, its `value` the
+ *   response's identifier, showing and named as its `face` says.
  *
  * While the host's form is submitting, by this button or any other, the button takes no press: it
  * is disabled, `data-disabled`, but stays focusable with `aria-disabled`, so a child's second tap
@@ -78,14 +87,14 @@ export interface EndAttemptProps extends Pick<Authored<Named>, "root"> {
  * only a form whose `action` is a function, as qti-app's is; in any other form the button is never
  * disabled.
  *
- * @param props The interaction's root, face and response's entry name ({@link EndAttemptProps}).
+ * @param props The interaction's root, face, instance and response ({@link EndAttemptProps}).
  * @returns The End Attempt, its button posting the response.
  * @see https://ui-sdk.dev/docs/react/components/button
  * @see https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constructing-the-form-data-set
  * @see https://react.dev/reference/react-dom/hooks/useFormStatus
  */
 export const EndAttempt = (props: EndAttemptProps) => {
-  const { face, name, root } = props;
+  const { face, instance, response, root } = props;
   const { pending } = useFormStatus();
 
   return (
@@ -94,9 +103,9 @@ export const EndAttempt = (props: EndAttemptProps) => {
         {...face.naming}
         disabled={pending}
         focusableWhenDisabled
-        name={name}
+        name={endedName(instance)}
         type="submit"
-        value="true"
+        value={response.identifier}
       >
         {face.kind === "titled" ? face.title : null}
       </Button>

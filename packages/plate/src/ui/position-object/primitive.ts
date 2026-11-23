@@ -22,7 +22,7 @@
  *   the stage shows the focus too ({@link PositionRootState.focused}).
  *
  * Each placement is the point QTI records, where the object's centre point lands on the stage, in
- * the stage image's own pixels and on a whole pixel; it posts as one entry of the response, its x
+ * the stage image's own pixels and on a whole pixel; it is one `point` value of the response, its x
  * then its y (`#plate/ui/position-object/points.ts`). A copy past an object's limit is refused
  * before any state changes, announced and shown (WCAG 4.1.3), except where the limit is one, when
  * the tap picks up the copy already placed. Every text comes from the `labels` option, filled with
@@ -53,9 +53,10 @@ import type { ImagePoint } from "#plate/graphic/geometry.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import { reached } from "#plate/placement/limit.ts";
 import type { Limit } from "#plate/placement/limit.ts";
-import { middleOf, pointOn, pointsOf, withPoints } from "#plate/ui/position-object/points.ts";
+import type { Declared } from "#plate/model/values.ts";
+import { middleOf, pointOn, withPoints } from "#plate/ui/position-object/points.ts";
+import type { Placements } from "#plate/ui/position-object/points.ts";
 import type { PositionObjectLabels } from "#plate/ui/position-object/labels.ts";
-import type { PostedEntries } from "#plate/ui/props.ts";
 
 /**
  * Why the placements changed: `item-press` for a tap, a click, or Space or Enter; `drag` for a
@@ -64,9 +65,9 @@ import type { PostedEntries } from "#plate/ui/props.ts";
 type PositionReason = "drag" | "item-press" | "remove-press";
 
 /**
- * One interaction of the stage as the primitive holds it: the response it binds, by its entry
- * name, and how many copies of its object the child may place. Its object's name is read from the
- * page, from its `object` part, as announcements say it.
+ * One interaction of the stage as the primitive holds it: the response it binds, and how many
+ * copies of its object the child may place. Its object's name is read from the page, from its
+ * `object` part, as announcements say it.
  */
 export interface StageObject {
   /**
@@ -75,30 +76,30 @@ export interface StageObject {
    */
   readonly limit: Limit;
   /**
-   * The entry name of the response, which each of its points posts under and which names the
-   * interaction to its parts.
+   * The response its copies write, as its declaration types it: a `point` response, one value per
+   * copy. Its identifier names the interaction to its parts.
    */
-  readonly name: string;
+  readonly response: Declared<"point", "multiple" | "single">;
 }
 
 /**
- * What the primitive takes: the stage's interactions, the stage image's size, every entry their
- * responses post, and the labels.
+ * What the primitive takes: the stage's interactions, the stage image's size, every interaction's
+ * placed copies, and the labels.
  */
 interface PositionOptions {
   readonly labels: PositionObjectLabels;
   readonly objects: readonly StageObject[];
   /**
-   * Asks for new entries after a child's move, with UI SDK's change details.
+   * Asks for new placements after a child's move, with UI SDK's change details.
    */
   readonly onPlacementsChange: (
-    placements: PostedEntries,
+    placements: Placements,
     details: ChangeDetails<PositionReason>,
   ) => void;
   /**
-   * Every entry the stage's responses post, in posting order: the island's `useEntries`.
+   * Every interaction's placed copies, by its response's identifier: the island's responses.
    */
-  readonly placements: PostedEntries;
+  readonly placements: Placements;
   /**
    * The stage image's size, the pixel space every point is in.
    */
@@ -121,14 +122,14 @@ export interface HeldCopy {
    */
   readonly index: number | null;
   /**
-   * The entry name of the interaction whose object it is.
+   * The identifier of the response of the interaction whose object it is.
    */
   readonly name: string;
 }
 
 /**
- * A copy of an object, or an object itself, by its interaction's entry name and its place among
- * its object's copies, none for the object.
+ * A copy of an object, or an object itself, by its interaction's response's identifier and its
+ * place among its object's copies, none for the object.
  */
 export interface CopyKey {
   readonly index: number | null;
@@ -137,7 +138,8 @@ export interface CopyKey {
 
 /**
  * What the root's render functions see: the copy held, if one is; every placed copy by its
- * interaction's entry name; and the control with keyboard focus, whose copy on the stage shows it.
+ * interaction's response's identifier; and the control with keyboard focus, whose copy on the stage
+ * shows it.
  */
 interface PositionRootState {
   readonly focused: CopyKey | null;
@@ -172,20 +174,20 @@ interface State {
   readonly labels: PositionObjectLabels;
   readonly message: string | null;
   readonly objects: readonly StageObject[];
-  readonly placements: PostedEntries;
+  readonly placements: Placements;
   readonly size: ImageSize;
 }
 
 /**
- * An interaction's part's props: its entry name.
+ * An interaction's part's props: its response's identifier.
  */
 interface ObjectProps {
   readonly name: string;
 }
 
 /**
- * A placed copy's part's props: its interaction's entry name and the copy's place among its
- * object's copies.
+ * A placed copy's part's props: its interaction's response's identifier and the copy's place among
+ * its object's copies.
  */
 interface CopyProps {
   readonly index: number;
@@ -234,16 +236,16 @@ const arrows: ReadonlyMap<string, readonly [x: number, y: number]> = new Map([
 ]);
 
 /**
- * Find an interaction of the stage by its entry name. Every part is rendered with the entry name
- * of an interaction its stage holds, so a name the stage does not hold is a defect, thrown.
+ * Find an interaction of the stage by its response's identifier. Every part is rendered with the
+ * identifier of an interaction its stage holds, so one the stage does not hold is a defect, thrown.
  *
  * @param state The primitive's state.
- * @param name The entry name.
+ * @param name The response's identifier.
  * @returns The interaction.
- * @throws {PositionObjectOffStage} For a name the stage does not hold.
+ * @throws {PositionObjectOffStage} For an identifier the stage does not hold.
  */
 const objectOf = (state: State, name: string): StageObject => {
-  const object = state.objects.find((each) => each.name === name);
+  const object = state.objects.find((each) => each.response.identifier === name);
 
   if (object === undefined) {
     throw new PositionObjectOffStage({ name });
@@ -253,14 +255,14 @@ const objectOf = (state: State, name: string): StageObject => {
 };
 
 /**
- * Read an interaction's placed copies from the placements.
+ * Read an interaction's placed copies from the placements, none before its response holds any.
  *
  * @param state The primitive's state.
  * @param object The interaction.
  * @returns Its points, in the order they were placed.
  */
 const placedOf = (state: State, object: StageObject): readonly ImagePoint[] =>
-  pointsOf(state.placements, object.name);
+  state.placements.get(object.response.identifier) ?? [];
 
 /**
  * Report whether an interaction has placed as many copies as it may.
@@ -276,7 +278,7 @@ const fullOf = (state: State, object: StageObject): boolean =>
  * Report whether a copy is the one held.
  *
  * @param held The copy held, if any.
- * @param name The interaction's entry name.
+ * @param name The interaction's response's identifier.
  * @param index The placed copy's place, none for a new copy.
  * @returns Whether it is held.
  */
@@ -284,13 +286,15 @@ const holds = (held: HeldCopy | null, name: string, index: number | null): boole
   held !== null && held.name === name && held.index === index;
 
 /**
- * Give every placed copy, by its interaction's entry name.
+ * Give every placed copy, by its interaction's response's identifier.
  *
  * @param state The primitive's state.
  * @returns The points of each interaction.
  */
 const placedByName = (state: State): Readonly<Record<string, readonly ImagePoint[]>> =>
-  Object.fromEntries(state.objects.map((object) => [object.name, placedOf(state, object)]));
+  Object.fromEntries(
+    state.objects.map((object) => [object.response.identifier, placedOf(state, object)]),
+  );
 
 /**
  * Write a point's coordinates for a label.
@@ -349,7 +353,7 @@ export const positionObject = definePrimitive({
     /**
      * Find an interaction's `object` part on the page.
      *
-     * @param name The interaction's entry name.
+     * @param name The interaction's response's identifier.
      * @returns The part's element, if one is bound.
      */
     const objectElement = (name: string): HTMLElement | undefined =>
@@ -369,7 +373,7 @@ export const positionObject = definePrimitive({
       object: StageObject,
       values: Readonly<Record<string, number>> = {},
     ): string => {
-      const el = objectElement(object.name);
+      const el = objectElement(object.response.identifier);
 
       return fillLabel(label, { ...values, object: el === undefined ? "" : labelOf(el) });
     };
@@ -388,7 +392,10 @@ export const positionObject = definePrimitive({
       at: ImagePoint | null,
       dragging: boolean,
     ) => {
-      store.set({ held: { at, dragging, index, name: object.name }, message: null });
+      store.set({
+        held: { at, dragging, index, name: object.response.identifier },
+        message: null,
+      });
       announce(say(store.get().labels.picked, object), { priority: "assertive" });
     };
 
@@ -461,7 +468,7 @@ export const positionObject = definePrimitive({
       reason: PositionReason,
       event?: Event,
     ) => {
-      const next = withPoints(store.get().placements, object.name, points);
+      const next = withPoints(store.get().placements, object.response.identifier, points);
 
       if (!change("placements", next, event === undefined ? { reason } : { event, reason })) {
         return;
@@ -619,7 +626,7 @@ export const positionObject = definePrimitive({
        *
        * @param event The press.
        * @param el The copy's element on the stage.
-       * @param name The interaction's entry name.
+       * @param name The interaction's response's identifier.
        * @param index The copy's place among its object's.
        */
       dragCopy: (event: PointerEvent, el: HTMLElement, name: string, index: number) => {
@@ -693,7 +700,7 @@ export const positionObject = definePrimitive({
        *
        * @param event The press.
        * @param el The object's element.
-       * @param name The interaction's entry name.
+       * @param name The interaction's response's identifier.
        */
       dragNew: (event: PointerEvent, el: HTMLElement, name: string) => {
         const object = objectOf(store.get(), name);
@@ -783,7 +790,7 @@ export const positionObject = definePrimitive({
        * it off.
        *
        * @param event The key press.
-       * @param name The interaction's entry name.
+       * @param name The interaction's response's identifier.
        * @param index The placed copy's place, none on the object.
        */
       keydown: (event: KeyboardEvent, name: string, index: number | null) => {
@@ -850,7 +857,7 @@ export const positionObject = definePrimitive({
        * Handle a press on a placed copy, on the stage or in its object's list: put it down where it
        * waits when it is the one held, else pick it up.
        *
-       * @param name The interaction's entry name.
+       * @param name The interaction's response's identifier.
        * @param index The copy's place among its object's.
        * @param event The click.
        */
@@ -877,7 +884,7 @@ export const positionObject = definePrimitive({
        * Handle a press on an object: while a new copy of it is held, put that copy down where it
        * waits; while a placed copy of it is held, take that copy off; else pick up a new copy.
        *
-       * @param name The interaction's entry name.
+       * @param name The interaction's response's identifier.
        * @param event The click.
        */
       pressObject: (name: string, event?: Event) => {

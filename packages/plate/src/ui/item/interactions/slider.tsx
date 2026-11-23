@@ -168,8 +168,8 @@ const namingOf = (
 ): Named => controlNameOf(prompt, node, ownName(model, context), context);
 
 /**
- * Render a Slider's island. The value it shows is the one its response posts, which the host's
- * `<Responses>` holds: its default as the attempt starts (`Posting.start`, spec reading 183), else
+ * Render a Slider's island. The value it shows is the one its response holds in the host's
+ * `<Responses>`: its default as the attempt starts (the server's start, spec reading 183), else
  * nothing until the child sets it. The payload node's `start` is the value a review shows.
  *
  * @param paired The Slider and its payload node.
@@ -187,10 +187,10 @@ export const island = (paired: Paired<"slider">, context: IslandContext): ReactN
     <Slider
       labels={labelsOf(sliderKeys, context.locale, {})}
       lower={node.lower}
-      name={node.formName}
       naming={namingOf(paired, prompt, context)}
       orientation={orientationOf(node)}
       prompt={prompt}
+      response={node.declared}
       reverse={node.reverse}
       root={rootOf(model, context)}
       step={Option.getOrUndefined(node.step)}

@@ -18,10 +18,10 @@ import { parseHTML } from "linkedom";
 import { Children, Component, Fragment, Suspense, createElement, isValidElement } from "react";
 import type { JSXElementConstructor, ReactElement, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { Accepted, Entry } from "@qti-pie/plate";
+import type { Accepted, Responses as ResponseValues } from "@qti-pie/plate";
 import { Item } from "@qti-pie/plate/ui";
 import type { ItemProps } from "@qti-pie/plate/ui";
-import { Responses } from "@qti-pie/plate/ui/client";
+import { heldOf, Responses } from "@qti-pie/plate/ui/client";
 
 /**
  * An element the island walk cannot expand: a class component, an async component, or a built-in
@@ -98,9 +98,10 @@ export interface PageFacts {
    */
   readonly notices: readonly string[];
   /**
-   * Every entry the page's form posts, in tree order, as HTML's entry list builds it.
+   * Every entry the page's form posts, its name and its text, in tree order, as HTML's entry list
+   * builds it.
    */
-  readonly posted: readonly Entry[];
+  readonly posted: readonly FormEntry[];
   /**
    * Every IDREF the page writes: the attribute, the element that carries it, the id it names, and
    * where it stands.
@@ -642,6 +643,11 @@ const nameOf = (element: Element, role: string): string => {
 };
 
 /**
+ * One entry of a form's entry list, as HTML builds it: a control's name and the text it posts.
+ */
+type FormEntry = readonly [name: string, text: string];
+
+/**
  * Give the entries one form control posts, as HTML's entry list builds them: none for a control
  * with no name or that is disabled; a `select` each selected option's value; a `textarea` its text;
  * a checkbox or radio button its `value`, else `on`, only when checked; a button-type, image or
@@ -651,7 +657,7 @@ const nameOf = (element: Element, role: string): string => {
  * @returns Its entries.
  * @see https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constructing-the-form-data-set
  */
-const entriesOf = (control: Element): readonly Entry[] => {
+const entriesOf = (control: Element): readonly FormEntry[] => {
   const name = control.getAttribute("name") ?? "";
   const type = control.getAttribute("type")?.toLowerCase() ?? "text";
 
@@ -661,7 +667,7 @@ const entriesOf = (control: Element): readonly Entry[] => {
 
   switch (control.localName) {
     case "select": {
-      return [...control.querySelectorAll("option[selected]")].map((option): Entry => [
+      return [...control.querySelectorAll("option[selected]")].map((option): FormEntry => [
         name,
         option.getAttribute("value") ?? contentText(option),
       ]);
@@ -781,11 +787,15 @@ export const factsOf = (html: string): PageFacts => {
 };
 
 /**
- * What a page is rendered from: `<Item>`'s props, and in `answering` the entries the host's
- * `<Responses>` holds.
+ * What a page is rendered from: `<Item>`'s props, and in `answering` the responses the host's
+ * `<Responses>` holds, every response the page shows.
  */
 export type Showable =
-  | { readonly entries: readonly Entry[]; readonly mode: "answering"; readonly props: ItemProps }
+  | {
+      readonly mode: "answering";
+      readonly props: ItemProps;
+      readonly responses: ResponseValues;
+    }
   | { readonly mode: "review" | "solution"; readonly props: ItemProps };
 
 /**
@@ -797,9 +807,10 @@ const keepNothing = (): void => {
 
 /**
  * Render an item as a host renders it: `<Item>` alone in review and solution, and in answering
- * inside the `<Responses>` that holds its entries.
+ * inside the `<Responses>` that holds its responses, started from them as plate's `heldOf` starts
+ * a host's.
  *
- * @param showable The props and entries.
+ * @param showable The props and responses.
  * @param clients Every export of plate's `"use client"` modules, by value, with its name.
  * @returns The page.
  * @throws {UnwalkedElement} When `<Item>`'s tree holds an element the island walk cannot expand;
@@ -810,7 +821,11 @@ export const render = (showable: Showable, clients: ReadonlyMap<unknown, string>
   const islands = islandsIn(item, clients);
   const page =
     showable.mode === "answering"
-      ? createElement(Responses, { children: item, onChange: keepNothing, value: showable.entries })
+      ? createElement(Responses, {
+          children: item,
+          onChange: keepNothing,
+          value: heldOf(showable.responses),
+        })
       : item;
 
   return { facts: factsOf(renderToStaticMarkup(page)), islands };

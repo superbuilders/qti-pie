@@ -506,21 +506,14 @@ export interface ModuleParseContext extends ParseContext {
 /**
  * What the payload hands a module's `redact`, for the one interaction it gives the payload node of
  * (`interactionPayload` in `#plate/payload.ts`): the view's facts about the interaction's
- * responses, so a module restores a stored response into its parts, writes its inputs under the
- * response's entry name, and shuffles by the configuration's seed, with no hub naming its kind, and
- * the host's facts ({@link RedactKit.host}), so a module reads what only its host knows. The view's
+ * responses, so a module restores a stored response into its parts, hands its island the response's
+ * declaration, and shuffles by the configuration's seed, with no hub naming its kind, and the
+ * host's facts ({@link RedactKit.host}), so a module reads what only its host knows. The view's
  * values are the host's: a value a module's interaction binds has passed the module's `shown`
  * (through `restore` in `#plate/restore.ts` or `solution` in `#plate/solution.ts`) when the host
  * read them from there, so what a module shows is what its own step gave.
  */
 export interface RedactKit {
-  /**
-   * Give the name a response's controls post under, `entryName(instance, response)`.
-   *
-   * @param response The response identifier, one of the module's `bindings`.
-   * @returns The entry name.
-   */
-  readonly formName: (response: string) => string;
   /**
    * The host's facts, the view's `host`, the empty record when the host passed none: what only
    * the host knows, such as the URL of a script it serves (`HostFacts` in `#plate/pci/host.ts`). A
@@ -531,7 +524,7 @@ export interface RedactKit {
    */
   readonly host: HostFacts;
   /**
-   * The item instance key, which scopes every id and entry name.
+   * The item instance key, which scopes every id.
    */
   readonly instance: string;
   /**
@@ -787,19 +780,17 @@ export interface InteractionModule<
   out P extends { readonly response: string },
 > {
   /**
-   * The value a response the interaction binds takes when the form posted no entry for it, in
-   * place of NULL. `absentValueOf` in `#plate/model/interactions.ts` reads it, `postings`
-   * (`#plate/postings.ts`) carries it in the response's posting as `decode`'s `absent` option, and
-   * `decode` (`#plate/form/encoding.ts`) gives it for no entry, so a host that decodes through the
-   * postings gets it without naming the kind. Absent means NULL, which
-   * almost every kind leaves in place: a Control that posts nothing has no response. End Attempt
-   * sets it: its button posts `true`
-   * when the candidate ends the attempt through it, and a submission without the button sets the
-   * response to `false`, not NULL, since the information model sets an End Attempt's response to
-   * false whenever the attempt ends another way.
+   * The value a response the interaction binds starts at whatever its default, in place of the
+   * default or NULL, because no control of the interaction holds it. `absentValueOf` in
+   * `#plate/model/interactions.ts` reads it, and `startingResponses` (`#plate/starting.ts`) starts
+   * the response there, so a host that starts from it gets it without naming the kind. Absent means
+   * the response starts at its default or NULL, as almost every kind does. End Attempt sets it: its
+   * response is `false` whenever the attempt ends another way than through it, the information
+   * model setting an End Attempt's response to false then, and its button posts that it ended the
+   * attempt (`answerOf` in `#plate/held.ts`).
    *
    * @param interaction The model node.
-   * @returns The value no entry decodes to.
+   * @returns The value the response starts at.
    * @see https://www.imsglobal.org/spec/qti/v3p0/info#Root_EndAttemptInteraction
    */
   readonly absentValue?: (interaction: NodeAt<F>) => Value;
@@ -837,9 +828,9 @@ export interface InteractionModule<
   ) => Parsed<NodeAt<F>> | Unsupported;
   /**
    * Copy the model node into the payload node the page may know: its content through the kit, and
-   * what it shows of the view, the stored values, the response's entry name, the seed and the rest,
-   * read from the kit ({@link RedactKit}) and baked into the payload node, since the page sees the
-   * `Payload` and none of the view beyond it. It is handed the node of the redacted body.
+   * what it shows of the view, the stored values, the response's declaration, the seed and the
+   * rest, read from the kit ({@link RedactKit}) and baked into the payload node, since the page
+   * sees the `Payload` and none of the view beyond it. It is handed the node of the redacted body.
    */
   readonly redact: (interaction: NodeAt<F, RedactedLevel>, kit: RedactKit) => P;
   /**

@@ -10,8 +10,8 @@
  *   slider moves continuously. A `step` of 0 constrains nothing, so it reads as none.
  * - **Starting position.** "A slider interaction does not have a default or initial position except
  *   where specified by a default value for the associated response variable" (QTI 3.0 information
- *   model, 5.134). So the slider starts at its response's default, the entry the host's
- *   `<Responses>` starts the attempt from (`Posting.start`, spec reading 183), and with none it
+ *   model, 5.134). So the slider starts at its response's default, the value the host's
+ *   `<Responses>` starts the attempt from (the server's start, spec reading 183), and with none it
  *   shows no value and its response stays NULL until the candidate sets it. A review shows the
  *   value the view gives, its payload node's `start`.
  * - **Step labels.** `step-label="true"` lists each step when there are at most 21. Past that, or
@@ -42,6 +42,7 @@ import type {
 } from "#plate/interactions/contract.ts";
 import type { Level, ModelLevel, Nodes, RedactedLevel } from "#plate/model/item.ts";
 import { format, trimXmlSpace } from "#plate/model/values.ts";
+import type { Declared } from "#plate/model/values.ts";
 
 /**
  * Slider's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -154,9 +155,9 @@ interface SliderPayload {
    */
   readonly class: Option.Option<string>;
   /**
-   * The name the slider posts under.
+   * The response the slider writes, as its declaration types it: a single `integer` or `float`.
    */
-  readonly formName: string;
+  readonly declared: Declared<SliderBaseType, "single">;
   /**
    * The lowest value: the lower bound, rounded down under an `integer` binding.
    */
@@ -168,7 +169,7 @@ interface SliderPayload {
   /**
    * The value a review or a solution shows: the number the view shows, none when it shows none,
    * since a slider has no initial position of its own. An answering slider shows what its response
-   * posts instead.
+   * holds instead.
    */
   readonly start: Option.Option<string>;
   /**
@@ -336,7 +337,7 @@ export const sliderModule: InteractionModule<"slider", SliderByLevel, SliderPayl
   },
   /**
    * Copy the model node into its payload node: the Prompt through the kit, the range worked out,
-   * the response's entry name, and the number it starts at, the value it shows, else none.
+   * the response's declaration, and the number it starts at, the value it shows, else none.
    */
   redact: (interaction, kit) => {
     const range = rangeOf(interaction);
@@ -345,7 +346,11 @@ export const sliderModule: InteractionModule<"slider", SliderByLevel, SliderPayl
       ariaLabel: interaction.ariaLabel,
       ariaLabelledby: interaction.ariaLabelledby,
       class: interaction.class,
-      formName: kit.formName(interaction.response),
+      declared: {
+        baseType: interaction.baseType,
+        cardinality: "single",
+        identifier: interaction.response,
+      },
       lower: range.lower,
       orientation: interaction.orientation,
       prompt: interaction.prompt,

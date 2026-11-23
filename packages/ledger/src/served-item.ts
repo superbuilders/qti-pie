@@ -8,8 +8,10 @@
  * in, pantry's `MediaStore`.
  *
  * Nothing here grades: the database's statements judge and score an answer, and a review shows what
- * they wrote ({@link reviewOf}). The values an answer or a take writes, and those the reads give
- * back, cross to plate through `#ledger/served-values.ts`.
+ * they wrote ({@link reviewOf}). Nothing here decodes an answer either: a page posts its responses
+ * typed, and the application decodes the post once at its boundary with plate's `PostedResponses`
+ * (`@qti-pie/plate/codec`), reading nothing first. The values an answer or a take writes, and those
+ * the reads give back, cross to plate through `#ledger/served-values.ts`.
  *
  * @module
  */
@@ -21,23 +23,19 @@ import {
   acceptedStimulus,
   assetPaths,
   configure,
-  decode,
-  encode,
   noSupports,
   openAdmitted,
-  partition,
   pciModulesIn,
-  postings,
   resolvePciModules,
   restore,
+  shownResponses,
   shuffleSeed,
   solution,
-  unpostedEndAttempts,
+  startingResponses,
 } from "@qti-pie/plate";
 import type {
   Accepted,
   AcceptedStimulus,
-  Entry,
   HostFacts,
   ItemRecord,
   ModuleRoute,
@@ -47,7 +45,7 @@ import type {
   Showing,
   Supports,
 } from "@qti-pie/plate";
-import type { Graded, ItemProps, PostedEntries } from "@qti-pie/plate/ui/props";
+import type { Graded, ItemProps } from "@qti-pie/plate/ui/props";
 import { Effect, Option, Schema } from "effect";
 import { begunOfRows } from "#ledger/served-values.ts";
 import type { Judged, StartRows } from "#ledger/served-values.ts";
@@ -90,12 +88,6 @@ export interface ReviewShows {
 }
 
 /**
- * The child's answer could not be read as the item declares it, as a whole number typed as words is
- * not one: nothing was recorded, and the child can change it.
- */
-class AnswerUnreadable extends Schema.TaggedError<AnswerUnreadable>()("AnswerUnreadable", {}) {}
-
-/**
  * The item refused the answer as posted, as more choices than it allows, or, where the stage
  * validates responses, fewer than it asks for: the database's admission judged it in the statement
  * that would record it, so nothing was recorded, and the child can change it. It carries the
@@ -108,9 +100,9 @@ export class AnswerRefused extends Schema.TaggedError<AnswerRefused>()("AnswerRe
 
 /**
  * An opened item, as plate holds it for an item session, a preview or a lab: accepted, with the
- * configuration it is rendered with, the instance token its form's entries are named under, the
- * stimuli its refs name, each accepted from its own document, and the supports enabled for the
- * candidate it is served to; what plate's `<Item>` takes in every mode.
+ * configuration it is rendered with, the instance token its ids and its posted field are named
+ * under, the stimuli its refs name, each accepted from its own document, and the supports enabled
+ * for the candidate it is served to; what plate's `<Item>` takes in every mode.
  */
 export type ServedItem = Pick<ItemProps, "configuration" | "instance" | "item"> & {
   readonly stimuli: readonly AcceptedStimulus[];
@@ -390,8 +382,8 @@ const openStimulus = Effect.fn("qti.item.stimulus.open")(function* openStimulus(
 
 /**
  * What an opening of an item names beyond its rows and the application's addresses: the
- * configuration's `seed`, which a shuffled interaction's order follows, the instance token its
- * form's entries are named under, and the supports enabled for its candidate. Whether a stage
+ * configuration's `seed`, which a shuffled interaction's order follows, the instance token its ids
+ * and its posted field are named under, and the supports enabled for its candidate. Whether a stage
  * validates responses is no part of it: the database's admission reads the session's policy.
  */
 interface Opening {
@@ -456,8 +448,8 @@ const openItem = Effect.fn("qti.item.open")(function* openItem(
 });
 
 /**
- * The instance token a served item's form entries are named under: one stable token for every
- * attempt and render of an item session, since a page shows one item and the instance keys
+ * The instance token a served item's ids and its posted field are named under: one stable token for
+ * every attempt and render of an item session, since a page shows one item and the instance keys
  * processing's draws with the seed.
  */
 const servedInstance = "served";
@@ -532,7 +524,7 @@ const unrecorded: Showing = { showFeedback: false };
  * Give what an item is shown by while the child answers it, and in its solution: the record the
  * attempt starts from, whose outcomes show its feedback, a hint's among them, since edullm's QTI
  * app shows an item's feedback between attempts ({@link ReviewShows}' `feedback`), so the page the
- * child answers, the entries it starts from and the responses it posts all read the same.
+ * child answers and the responses it starts from and posts all read the same.
  *
  * @param record The database's record.
  * @returns What the page is shown by.
@@ -540,30 +532,63 @@ const unrecorded: Showing = { showFeedback: false };
 const answered = (record: ItemRecord): Showing => ({ record, showFeedback: true });
 
 /**
- * Give the entries that post some responses as each response's binding posts them.
+ * Lay values over an attempt's start: each response the start holds, at the value given where one
+ * is, else at its start, so the result names exactly the responses the page posts.
  *
- * @param served The served item.
- * @param responses The responses, by identifier.
- * @returns The entries; a response they hold no value of posts none, so its control stays empty.
+ * @param start The attempt's start.
+ * @param values The values laid over it, by identifier.
+ * @returns The responses.
  */
-export const entriesOf = ({ instance, item }: ServedItem, responses: Responses): PostedEntries =>
-  postings(item, instance, unrecorded).flatMap(({ binding, identifier, options }) =>
-    Option.match(Option.fromUndefinedOr(responses[identifier]), {
-      onNone: () => [],
-      onSome: (value) => encode(value, binding, options),
-    }),
+const laidOver = (start: Responses, values: Responses): Responses =>
+  Object.fromEntries(
+    Object.entries(start).map(([identifier, value]) => [
+      identifier,
+      (Object.hasOwn(values, identifier) ? values[identifier] : undefined) ?? value,
+    ]),
   );
 
 /**
- * Give the entries that post the item's correct responses, plate's `solution` under the record's
- * correct responses in force, those its template processing set among them.
+ * Give the responses an attempt's islands start from, plate's `startingResponses` under the record
+ * the attempt starts from (spec reading 183): every response the page shows at its start, a Choice
+ * and an End Attempt empty whatever their default, every other island at its response's default,
+ * the record's own where template processing set one, else its declaration's, so a slider with a
+ * default shows it and the answer posts it until the child changes it; and every End Attempt
+ * response of the item at `false`, the one whose press ends the attempt posting `true`. Every
+ * attempt starts so, as a reload does: no draft is kept, and an End Attempt's press, a hint's, is
+ * how its attempt ended, no response to carry into the next. A host starts its `<Responses>` from
+ * plate's `heldOf` of these.
+ *
+ * @param served The served item.
+ * @param record The database's record the attempt starts from.
+ * @returns The responses.
+ */
+export const startingOf = (served: ServedItem, record: ItemRecord): Responses =>
+  startingResponses(served.item, answered(record));
+
+/**
+ * Give the responses an attempt resumes from: a save's values laid over its start
+ * ({@link startingOf}), so a default the child cleared stays cleared, and a response the save does
+ * not hold, one the page shows only now, starts as a fresh attempt's does.
+ *
+ * @param served The served item.
+ * @param record The database's record the attempt starts from.
+ * @param saved The save's responses, the database's (`responsesOfRows`).
+ * @returns The responses.
+ */
+export const resumedOf = (served: ServedItem, record: ItemRecord, saved: Responses): Responses =>
+  laidOver(startingOf(served, record), saved);
+
+/**
+ * Give the responses that answer the item rightly, plate's `solution` under the record's correct
+ * responses in force, those its template processing set among them, laid over the attempt's start
+ * ({@link startingOf}): a response with no correct response stays at its start.
  *
  * @param served The served item.
  * @param record The database's record of the item session.
- * @returns The entries; a response with no correct response posts none.
+ * @returns The responses.
  */
-export const correctEntriesOf = (served: ServedItem, record: ItemRecord): PostedEntries =>
-  entriesOf(served, solution(served.item, record));
+export const correctOf = (served: ServedItem, record: ItemRecord): Responses =>
+  laidOver(startingOf(served, record), solution(served.item, record));
 
 /**
  * Give the item in plate's solution mode, as `record` shows it: every interaction as server markup
@@ -582,18 +607,18 @@ export const solutionOf = (served: ServedItem, record: ItemRecord): ItemProps =>
 });
 
 /**
- * Tell whether the item asks the child nothing: it has no control that posts a response, as a
+ * Tell whether the item asks the child nothing: no interaction it shows writes a response, as a
  * lesson that is a video and its text has none, so the child only reads or watches it and goes on.
  *
  * @param served The served item.
- * @returns Whether it posts no response.
+ * @returns Whether it shows no response.
  */
-export const asksNothing = ({ instance, item }: ServedItem): boolean =>
-  postings(item, instance, unrecorded).length === 0;
+export const asksNothing = ({ item }: ServedItem): boolean =>
+  shownResponses(item, unrecorded).length === 0;
 
 /**
  * Give the item in plate's answering mode, as `record` shows it: each interaction its island,
- * holding no correct response, which reads and writes the entries the form's `<Responses>` holds,
+ * holding no correct response, which reads and writes the responses the host's `<Responses>` holds,
  * and each Portable Custom Interaction run by the host facts `pciFactsOf` gives for the item's
  * rows. Only this mode reads the PCI facts: plate's review and solution show a PCI's response as
  * text, with no frame, so neither a review nor a solution reads a configuration file.
@@ -616,23 +641,6 @@ export const answeringOf = Effect.fn("qti.item.answering")(function* answeringOf
 
   return { ...served, ...answered(record), host: facts, mode: "answering" } satisfies ItemProps;
 });
-
-/**
- * Give the entries an attempt's islands start from, each posting's `start`, plate's rendering rule
- * (spec reading 183): a Choice and an End Attempt start empty whatever their default, and every
- * other island at its response's default, the record's own where template processing set one, else
- * its declaration's, so a slider with a default shows it and the answer posts it until the child
- * changes it. Every attempt starts so, as a reload does: no draft is kept, and an End Attempt's
- * press, a hint's, is how its attempt ended, no response to carry into the next.
- *
- * @param served The served item.
- * @param record The database's record the attempt starts from.
- * @returns The starting entries.
- */
-export const startingEntriesOf = (
-  { instance, item }: ServedItem,
-  record: ItemRecord,
-): PostedEntries => postings(item, instance, answered(record)).flatMap(({ start }) => start);
 
 /**
  * Give how the attempt a review shows did, as plate's review is handed it, from what the database
@@ -698,48 +706,4 @@ export const reviewOf = (
     ? { record: records.after, showFeedback: true }
     : { record: records.begun, showFeedback: false }),
   values: restore(served.item, records.after).values,
-});
-
-/**
- * Read the child's responses from the entries the form posted, as each response's binding declares,
- * by identifier: a decoding, which judges nothing. The responses read are those of the interactions
- * the page shows under `record`, the record the attempt started from, which {@link answeringOf} and
- * {@link startingEntriesOf} were given: feedback and template content show or hide them by its
- * values, so an interaction the page shows only once feedback reveals it, as an adaptive item's
- * next part does, posts its response. A Text Entry's or a plain Extended Text's text of white space
- * alone is NULL (plate's `postings`, SV-DESIGN-05). Every End Attempt the page does not show under
- * that record, one inside hidden feedback among them, is `false`, whatever its default (plate's
- * `unpostedEndAttempts`; SV-RP-01).
- *
- * @param served The served item.
- * @param record The record the attempt started from, the one its page was rendered under.
- * @param entries The entries the form posted.
- * @returns The responses; a text that is no value of its base type fails as
- *   {@link AnswerUnreadable}.
- * @see QTI 3.0.1 information model §5.45: "If response processing is invoked in any other way ... then the associated
- *   response variable is set to 'false'. The default value of the response variable is always ignored."; §5.49, of an
- *   interaction inside hidden feedback: "The candidate must not be able to set or update the value of the associated
- *   response variables", which only the record the page shows tells.
- */
-export const postedOf = Effect.fnUntraced(function* postedOf(
-  { instance, item }: ServedItem,
-  record: ItemRecord,
-  entries: readonly Entry[],
-) {
-  const { own } = partition(entries, instance);
-  const posted = yield* Effect.forEach(
-    postings(item, instance, answered(record)),
-    ({ binding, identifier, options }) =>
-      Effect.fromResult(decode(own, binding, options)).pipe(
-        Effect.mapBoth({
-          onFailure: () => AnswerUnreadable.make({}),
-          onSuccess: (value) => [identifier, value] as const,
-        }),
-      ),
-  );
-
-  return Object.fromEntries([
-    ...unpostedEndAttempts(item, instance, answered(record)),
-    ...posted,
-  ]) satisfies Responses;
 });

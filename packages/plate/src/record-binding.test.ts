@@ -1,17 +1,17 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Option, Result } from "effect";
 import { configure } from "#plate/configuration.ts";
-import { decode, entryName, partition } from "#plate/form/encoding.ts";
-import type { Entry } from "#plate/form/encoding.ts";
 import type { TextEntryPayload } from "#plate/interactions/text-entry.ts";
 import { redactedInteractionsIn } from "#plate/model/interactions.ts";
 import { recordOf } from "#plate/test/records.ts";
 import type { ItemRecord } from "#plate/model/record.ts";
-import type { RecordValue, ResponseValue } from "#plate/model/values.ts";
+import { readRecord } from "#plate/model/typed-text.ts";
+import { nullRecord } from "#plate/model/values.ts";
+import type { RecordValue } from "#plate/model/values.ts";
 import { interactionPayload } from "#plate/payload.ts";
-import { postings } from "#plate/postings.ts";
 import { redact } from "#plate/redact.ts";
 import { restore } from "#plate/restore.ts";
+import { startingResponses } from "#plate/starting.ts";
 import { feedbackHidden, pageOf, shownToCandidate } from "#plate/test/page.ts";
 import type { Page } from "#plate/test/page.ts";
 import { admitted } from "#plate/test/admitted.ts";
@@ -102,9 +102,9 @@ const fieldsOf = <V>(record: {
   Object.fromEntries(record.fields.map((field) => [field.identifier, field.value]));
 
 /**
- * The fields `decode` gives a record binding for the typed text, each its single: the text as
- * typed, and the number it reads as with its digit counts. It has no `integerValue`, since it has
- * fractional digits, and no `exponent`.
+ * The fields plate's reading of typed text gives a record for the typed text, each its single: the
+ * text as typed, and the number it reads as with its digit counts. It has no `integerValue`, since
+ * it has fractional digits, and no `exponent`.
  */
 const typedFields: RecordValue["fields"] = [
   { identifier: "stringValue", value: { baseType: "string", value: typed } },
@@ -115,9 +115,9 @@ const typedFields: RecordValue["fields"] = [
   { identifier: "nsf", value: { baseType: "integer", value: 3n } },
 ];
 
-describe("a record answer from post to review", () => {
+describe("a record answer from the box to review", () => {
   it.effect(
-    "posts a record answer end to end: the Text Entry shows the string control, the post decodes to its fields, and the record the attempt stores and the control shown again keep the text as typed",
+    "holds a record answer end to end: the Text Entry shows the string control, starts NULL, the typed text reads as its fields, and the record the attempt stores and the control shown again keep the text as typed",
     () =>
       Effect.gen(function* postsRecordAnswer() {
         const configuration = yield* configure({ seed: "" });
@@ -128,29 +128,12 @@ describe("a record answer from post to review", () => {
 
         const first = numberEntries(pageOf(redacted, { configuration, instance }));
         assert.deepStrictEqual(
-          first.map((entry) => [entry.baseType, entry.formName, entry.restore]),
-          [["string", entryName(instance, "NUMBER"), ""]],
+          first.map((entry) => [entry.baseType, entry.declared, entry.restore]),
+          [["string", { cardinality: "record", identifier: "NUMBER" }, ""]],
         );
+        assert.deepStrictEqual(startingResponses(accepted, feedbackHidden), { NUMBER: nullRecord });
 
-        const entries: readonly Entry[] = [[entryName(instance, "NUMBER"), typed]];
-        const { own } = partition(entries, instance);
-        const posts = postings(accepted, instance, feedbackHidden);
-        assert.deepStrictEqual(
-          posts.map(({ binding, identifier }) => [identifier, binding.cardinality]),
-          [["NUMBER", "record"]],
-        );
-
-        const responses: Readonly<Record<string, ResponseValue>> = Object.fromEntries(
-          posts.map(({ binding, identifier, options }) => [
-            identifier,
-            ok(decode(own, binding, options), `decoding ${identifier}`),
-          ]),
-        );
-        const posted = responses["NUMBER"];
-        const decoded =
-          posted?.cardinality === "record"
-            ? posted
-            : assert.fail("the post does not decode NUMBER to a record");
+        const decoded = ok(readRecord(typed, false), "reading the typed text");
         assert.deepStrictEqual(fieldsOf(decoded), fieldsOf({ fields: typedFields }));
 
         const stored: ItemRecord = recordOf({ attempt: "submitted", records: { NUMBER: decoded } });

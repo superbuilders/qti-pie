@@ -3,65 +3,55 @@
  * holds, each the place on the stage its object's centre point lands on, in the stage image's own
  * pixels. Pure, and safe to import on the server and the client.
  *
- * A `point` response posts each value as one entry under its entry name, the point's lexical form,
- * its x and its y separated by a space (QTI's point type: "two integers separated by white space"),
- * so the island writes one entry per copy, in the order the copies were placed. A point is two
- * whole numbers, so a copy lands on a whole pixel.
+ * A `point` response holds each copy as one `point` value, its x and its y (QTI's point type: "two
+ * integers"), so the island writes one value per copy, in the order the copies were placed. A point
+ * is two whole numbers, so a copy lands on a whole pixel.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info/index.html#Root_PositionObjectInteraction
  */
-import { Option } from "effect";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
-import { pointCoordinates } from "#plate/model/values.ts";
 import type { ImagePoint } from "#plate/graphic/geometry.ts";
-import type { PostedEntries, PostedEntry } from "#plate/ui/props.ts";
 
 /**
- * Read a point from the text it posts, as the value model reads a point's text
- * ({@link pointCoordinates}): two whole numbers separated by XML white space, x then y.
- *
- * @param text The text.
- * @returns The point, none where the text is not two whole numbers.
+ * The placed copies of every interaction of a stage, by the identifier of the response each binds,
+ * each interaction's points in the order its copies were placed.
  */
-const pointOf = (text: string): Option.Option<ImagePoint> =>
-  Option.map(pointCoordinates(text), ([x, y]) => ({ x: Number(x), y: Number(y) }));
+export type Placements = ReadonlyMap<string, readonly ImagePoint[]>;
 
 /**
- * Read the points a response's entries hold, an entry that is no point left out.
+ * Read the points a response's values hold, one per value, in order: each value's two coordinates,
+ * x then y, as the island's numbers.
  *
- * @param entries The entries, any other names' among them.
- * @param name The entry name the response posts under.
- * @returns The points, in posted order.
+ * @param values The response's point values.
+ * @returns The points, in order.
  */
-export const pointsOf = (entries: PostedEntries, name: string): readonly ImagePoint[] =>
-  entries.flatMap(([entry, text]) => (entry === name ? Option.toArray(pointOf(text)) : []));
+export const pointsOf = (values: readonly (readonly [bigint, bigint])[]): readonly ImagePoint[] =>
+  values.map(([x, y]) => ({ x: Number(x), y: Number(y) }));
 
 /**
- * Write points as the entries a response posts: one per point, its x and its y separated by a
- * space.
+ * Write the values points hold: each point's two coordinates, x then y, as whole numbers.
  *
- * @param points The points, in order.
- * @param name The entry name the response posts under.
- * @returns The entries.
+ * @param points The points, in order, each on a whole pixel.
+ * @returns The values, one per point.
  */
-const entriesOf = (points: readonly ImagePoint[], name: string): PostedEntries =>
-  points.map((point): PostedEntry => [name, `${String(point.x)} ${String(point.y)}`]);
+export const valuesOf = (points: readonly ImagePoint[]): readonly (readonly [bigint, bigint])[] =>
+  points.map((point) => [BigInt(point.x), BigInt(point.y)]);
 
 /**
- * Replace one response's points among an island's entries, keeping every other response's entries
- * as they are and in their order.
+ * Replace one response's points among a stage's placements, keeping every other response's points
+ * as they are.
  *
- * @param entries Every entry the island posts.
- * @param name The entry name of the response whose points change.
+ * @param placements Every interaction's placed copies.
+ * @param response The identifier of the response whose points change.
  * @param points The response's points now.
- * @returns The entries.
+ * @returns The placements.
  */
 export const withPoints = (
-  entries: PostedEntries,
-  name: string,
+  placements: Placements,
+  response: string,
   points: readonly ImagePoint[],
-): PostedEntries => [...entries.filter(([entry]) => entry !== name), ...entriesOf(points, name)];
+): Placements => new Map([...placements, [response, points]]);
 
 /**
  * Give the whole pixel of the stage a point lands on: the point rounded to whole numbers and held

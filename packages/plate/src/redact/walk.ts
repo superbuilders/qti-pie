@@ -14,8 +14,8 @@
  *
  * A response's default is no secret: it is the value the response holds as its attempt starts,
  * which the candidate sees and may change (spec reading 183). `redactItem` keeps it in the
- * response's binding where an interaction the page shows starts at it, and `postings`
- * (`#plate/postings.ts`) gives the entries it posts, which the host's `<Responses>` starts from.
+ * response's binding where an interaction the page shows starts at it, and `startingResponses`
+ * (`#plate/starting.ts`) gives the value it starts at, which the host's `<Responses>` starts from.
  *
  * @module
  */
@@ -755,8 +755,8 @@ const startsAtDefault = (interaction: Interaction): boolean =>
 
 /**
  * Give the responses a body's interactions start at their defaults: each one whose first
- * interaction in document order, the one `postingsIn` reads a response's posting from, starts at
- * its default ({@link startsAtDefault}).
+ * interaction in document order, the one `startingResponses` reads a response's start from, starts
+ * at its default ({@link startsAtDefault}).
  *
  * @param body The redacted body.
  * @returns The responses' identifiers.
@@ -896,7 +896,7 @@ export interface RedactOptions {
  * by the template value the record holds ({@link shownBy}): a block or inline shown leaves
  * its content in its place, a hidden one nothing; a choice shown keeps its identifier, content and
  * `fixed`, a hidden one is absent from its interaction, so a shuffled interaction presents the
- * choices that remain under the same key, and its postings name none of it. One whose template
+ * choices that remain under the same key, and its start names none of it. One whose template
  * variable the record does not hold is withheld: a block or inline stays its notice,
  * `qti-template-block` or `qti-template-inline`, and a choice is absent. The redacted item lists no
  * response only content the page does not see binds: `responses`

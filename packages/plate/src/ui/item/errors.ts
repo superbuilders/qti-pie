@@ -9,7 +9,7 @@
  * @module
  */
 import { Data } from "effect";
-import type { InstanceBreach } from "#plate/form/encoding.ts";
+import type { InstanceBreach } from "#plate/instance.ts";
 
 /**
  * Say what a broken token holds, by the breach `checkInstance` found.
@@ -37,9 +37,9 @@ const breachText = (breach: InstanceBreach): string => {
 };
 
 /**
- * An `instance` that breaks a requirement `checkInstance` checks: a developer error. Every id and
- * entry name the item writes is scoped by the instance, so a token that breaks one could collide
- * with another instance's.
+ * An `instance` that breaks a requirement `checkInstance` checks: a developer error. Every id the
+ * item writes, and the entry its End Attempts post in, is scoped by the instance, so a token that
+ * breaks one could collide with another instance's.
  */
 export class InvalidInstance extends Data.TaggedError("InvalidInstance")<{
   /**

@@ -1,22 +1,19 @@
 /**
- * Select Point's points as its island holds, posts and changes them: the points a response's
- * texts hold, the texts they post, each step a child takes, a mark, a move or a removal, with the
- * one refusal, a mark past `max-choices`, and the keyboard's cross. Pure, and safe to import on the
+ * Select Point's points as its island holds and changes them: the points a response's values hold,
+ * the values they write, each step a child takes, a mark, a move or a removal, with the one
+ * refusal, a mark past `max-choices`, and the keyboard's cross. Pure, and safe to import on the
  * server and the client.
  *
- * A point is two whole numbers, x then y, in the image's own pixels from its top-left corner
- * (QTI's `point` base type, information model 5.128), and a Select Point's response posts each
- * point as one entry under its name, the point's lexical form, its two coordinates separated by a
- * space, which plate's `decode` reads as a point. Every point a step gives lies on the image, from
- * 0 to its width across and from 0 to its height down, so the core's validation accepts it under
- * either tier.
+ * A point is two whole numbers, x then y, in the image's own pixels from its top-left corner (QTI's
+ * `point` base type, information model 5.128), and a Select Point's response holds each point as
+ * one `point` value, its two coordinates. Every point a step gives lies on the image, from 0 to its
+ * width across and from 0 to its height down, so the core's validation accepts it under either
+ * tier.
  *
  * @module
  * @see https://www.imsglobal.org/spec/qti/v3p0/info/index.html#Data_SelectPointInteraction
  */
-import { Option } from "effect";
 import type { ImageSize } from "#plate/interactions/image-size.ts";
-import { pointCoordinates } from "#plate/model/values.ts";
 import type { ImagePoint } from "#plate/graphic/geometry.ts";
 import type { Picks } from "#plate/interactions/picks.ts";
 
@@ -61,36 +58,23 @@ export interface Reach {
 const steps = { far: 10, near: 1 } as const;
 
 /**
- * Read a point from the text it posts as, as the value model reads a point's text
- * ({@link pointCoordinates}) and the form encoding reads a posted point: two whole numbers
- * separated by XML white space, x then y.
+ * Read the points a response's values hold, one per value, in order: each value's two coordinates,
+ * x then y, as the island's numbers.
  *
- * @param text The text.
- * @returns The point, none for text that is not a point's lexical form.
- */
-const pointOf = (text: string): Option.Option<Point> =>
-  Option.map(pointCoordinates(text), ([x, y]) => ({ x: Number(x), y: Number(y) }));
-
-/**
- * Read the points a response's texts hold, one per text, in posting order. A text that is no
- * point, which only a post without script can leave, is no point the island can show, and the
- * next step drops it.
- *
- * @param texts The texts the response posts.
+ * @param values The response's point values.
  * @returns The points, in order.
  */
-export const pointsOf = (texts: readonly string[]): readonly Point[] =>
-  texts.flatMap((text) => Option.toArray(pointOf(text)));
+export const pointsOf = (values: readonly (readonly [bigint, bigint])[]): readonly Point[] =>
+  values.map(([x, y]) => ({ x: Number(x), y: Number(y) }));
 
 /**
- * Write the texts points post: each point's lexical form, its x, a space, then its y, as the
- * core's `format` writes a point.
+ * Write the values points hold: each point's two coordinates, x then y, as whole numbers.
  *
  * @param points The points, in order.
- * @returns The texts, one per point.
+ * @returns The values, one per point.
  */
-export const textsOf = (points: readonly Point[]): readonly string[] =>
-  points.map((point) => `${String(point.x)} ${String(point.y)}`);
+export const valuesOf = (points: readonly Point[]): readonly (readonly [bigint, bigint])[] =>
+  points.map((point) => [BigInt(point.x), BigInt(point.y)]);
 
 /**
  * Give the whole number nearest a coordinate, no lower than 0 and no higher than a bound.

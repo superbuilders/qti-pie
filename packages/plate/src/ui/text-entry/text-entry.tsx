@@ -15,7 +15,7 @@ import { Button } from "@ui-sdk/react/button";
 import { Field, FieldError } from "@ui-sdk/react/field";
 import { Input, createInputController } from "@ui-sdk/react/input";
 import { Option } from "effect";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { TextEntryKeypad } from "#plate/configuration.ts";
 import type { Authored, Named } from "#plate/ui/attributes.ts";
 import type { Labels } from "#plate/ui/item/interactions/labels.ts";
@@ -24,7 +24,7 @@ import { faces, keypadOf, pressed } from "#plate/ui/text-entry/keypad.ts";
 import type { Key } from "#plate/ui/text-entry/keypad.ts";
 import type { textEntryKeys } from "#plate/ui/text-entry/labels.ts";
 import { asTyped, inputModeOf, useBoxes } from "#plate/ui/typed.ts";
-import type { BoxCounts, TypedReading } from "#plate/ui/typed.ts";
+import type { BoxCounts, TypedDeclared, TypedReading } from "#plate/ui/typed.ts";
 
 /**
  * What the server gives a Text Entry's island, as QTI's `qti-text-entry-interaction` and plate's
@@ -44,8 +44,9 @@ export interface TextEntryProps extends Authored<Named> {
    */
   readonly digits: boolean;
   /**
-   * The base type of the response the interaction binds. A `record` response is a `string` here:
-   * the text typed is its `stringValue`, which the server reads its other fields from.
+   * The base type the box's text is read as: the response's, and `string` for a `record` response,
+   * the text typed being its `stringValue`, which plate's reading of typed text reads its other
+   * fields from.
    */
   readonly baseType: "float" | "integer" | "string";
   /**
@@ -60,9 +61,10 @@ export interface TextEntryProps extends Authored<Named> {
   readonly keypad: TextEntryKeypad;
   readonly labels: Labels<typeof textEntryKeys>;
   /**
-   * The entry name the response posts under, plate's `entryName` for the item's instance.
+   * The response the box writes, as its declaration types it: a single `string`, `integer` or
+   * `float`, or a record.
    */
-  readonly name: string;
+  readonly response: TypedDeclared;
   /**
    * `pattern-mask`, undefined when the author wrote none: the XML Schema regular expression a
    * valid answer matches (5.162.5). It never stops typing; it shows the `pattern` label once the
@@ -133,16 +135,18 @@ const inputModeFor = (
  * the child to leave both, so a tap on a key while typing toward an answer shows nothing.
  *
  * A drill's box keeps the digits of what is typed and drops every other character as it is typed
- * (`digitsOf`), so its response holds digits alone. Every keystroke writes the response, and the
- * host paces its saves. An empty input posts
- * nothing, and so does a blank one bound to a number, which the server would read as NULL. The
- * text posts as typed: the server trims a number and reads an `integer` in `base`.
+ * (`digitsOf`), so its response holds digits alone. Every keystroke writes the box's text and the
+ * value read from it, and the host paces its saves. An empty input is no answer, NULL, and so is
+ * one of XML white space alone, since a Text Entry's text is plain (QTI's `TextFormatEnum`,
+ * SV-DESIGN-05). The box shows its text exactly as typed; the value is plate's reading of it, a
+ * number trimmed and an `integer` read in `base`. A key of a host's own keypad types into the box
+ * as this keypad's do (`useTyping` in `#plate/ui/responses.tsx`).
  *
  * The browser offers nothing of its own: no remembered answers, no spelling marks, no
  * correction, and no capital letter at the start, since each would change or judge a child's
  * answer that is compared exactly, case and spelling included.
  *
- * @param props The interaction, its response's entry name and its labels ({@link TextEntryProps}).
+ * @param props The interaction, its response and its labels ({@link TextEntryProps}).
  * @returns The Text Entry, its input bound to the response.
  * @see https://ui-sdk.dev/docs/react/components/input
  * @see https://ui-sdk.dev/docs/react/components/field
@@ -155,40 +159,43 @@ export const TextEntry = (props: TextEntryProps) => {
     expectedLength,
     keypad,
     labels,
-    name,
     naming,
     patternMask,
     placeholder,
+    response,
     root,
   } = props;
-  const reading = { base, baseType, blankIsEmpty: false };
+  const reading = { base, baseType, blankIsEmpty: true };
   const [controller] = useState(createInputController);
   const input = useRef<HTMLInputElement>(null);
+  const press = useCallback(
+    (key: Key) => {
+      const element = input.current;
+
+      if (element !== null) {
+        const typed = pressed(
+          {
+            end: element.selectionEnd ?? element.value.length,
+            start: element.selectionStart ?? element.value.length,
+            text: element.value,
+          },
+          key,
+        );
+
+        controller.setValue(typed.text);
+        element.setSelectionRange(typed.caret, typed.caret);
+      }
+    },
+    [controller],
+  );
   const [[box], write, leave] = useBoxes({
     counts: oneBox,
-    name,
+    declared: response,
     patternMask,
     reading,
+    typer: press,
     written: asTyped,
   });
-
-  const press = (key: Key) => {
-    const element = input.current;
-
-    if (element !== null) {
-      const typed = pressed(
-        {
-          end: element.selectionEnd ?? element.value.length,
-          start: element.selectionStart ?? element.value.length,
-          text: element.value,
-        },
-        key,
-      );
-
-      controller.setValue(typed.text);
-      element.setSelectionRange(typed.caret, typed.caret);
-    }
-  };
 
   return (
     <span

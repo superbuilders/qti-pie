@@ -97,9 +97,9 @@ export const island = (
       gaps={node.gaps.map(({ identifier, matchGroup }) => ({ identifier, matchGroup }))}
       labels={labelsOf(gapMatchKeys, context.locale, { totalReached: model.messages.max })}
       maxAssociations={limitOf(model.maxAssociations)}
-      name={node.formName}
       naming={groupNameOf(prompt, node, context)}
       prompt={prompt}
+      response={node.declared}
       root={rootOf(model, context)}
     >
       {context.content(node.content, { own, position: "flow" })}

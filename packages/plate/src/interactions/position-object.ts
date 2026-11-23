@@ -15,9 +15,9 @@
  * Each payload node gives the server shell what the page may know of its interaction: the object
  * and the size written on it,
  * the stage's size, the effective centre point, the effective `max-choices` and `min-choices`, the
- * entry name its points post under, and the positions the view shows. A point posts as one entry
- * under the entry name, its lexical form, x then y separated by white space
- * (`#plate/form/encoding.ts`). The QTI database's admission always caps the count at
+ * declaration of the response its points write, and the positions the view shows. Each point is one
+ * `point` value of the response, its two coordinates, x then y. The QTI database's admission always
+ * caps the count at
  * `max-choices`; it holds a point to the stage's edge, and the count to `min-choices`, only under
  * `validate-responses`, since the area mapping maps a point anywhere.
  *
@@ -80,7 +80,7 @@ import type {
   RedactedLevel,
 } from "#plate/model/item.ts";
 import { trimXmlSpace } from "#plate/model/values.ts";
-import type { Single } from "#plate/model/values.ts";
+import type { Declared, Single } from "#plate/model/values.ts";
 
 /**
  * Position Object's identifier in the QTI 3.0 conformance list, Appendix A.
@@ -170,9 +170,9 @@ interface ShownPosition {
 
 /**
  * A Position Object as the page may know it (Q-17, `position-object`): what the model node holds
- * of the object, the effective bounds, the stage's size, the name its point posts under, and the
- * positions the view shows. It holds no correct response: `positions` is the stored, posted or
- * solution value the view gave.
+ * of the object, the effective bounds, the stage's size, the declaration of the response its points
+ * write, and the positions the view shows. It holds no correct response: `positions` is the stored
+ * or solution value the view gave.
  */
 interface PositionObjectPayload {
   readonly ariaLabel: Option.Option<string>;
@@ -181,10 +181,10 @@ interface PositionObjectPayload {
   readonly centerPoint: readonly [x: number, y: number];
   readonly class: Option.Option<string>;
   /**
-   * The name its points post under, one entry each: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its points write, as its declaration types it: a `point` response of the
+   * interaction's cardinality, one value per placed copy.
    */
-  readonly formName: string;
+  readonly declared: Declared<"point", (typeof binding.cardinalities)[number]>;
   readonly maxChoices: bigint;
   readonly minChoices: bigint;
   readonly object: Nodes<RedactedLevel>;
@@ -245,7 +245,7 @@ const ownRegions = <L extends Level>(
 
 /**
  * Copy a Position Object's model node into its payload node: its object through the kit, the
- * effective bounds, the response's entry name, and the positions the view shows.
+ * effective bounds, the response's declaration, and the positions the view shows.
  *
  * The positions are the values the view shows ({@link RedactKit.shown}) as coordinates
  * ({@link shownOf}).
@@ -263,7 +263,11 @@ const redactPositionObject = (
   cardinality: interaction.cardinality,
   centerPoint: interaction.centerPoint,
   class: interaction.class,
-  formName: kit.formName(interaction.response),
+  declared: {
+    baseType: "point",
+    cardinality: interaction.cardinality,
+    identifier: interaction.response,
+  },
   maxChoices: interaction.maxChoices,
   minChoices: interaction.minChoices,
   object: interaction.object,

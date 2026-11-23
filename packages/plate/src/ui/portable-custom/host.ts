@@ -18,8 +18,8 @@
  * - **The type identifier.** The registered factory is chosen on the page by `factoryFor`
  *   (`#plate/pci/type-identifier.ts`), the rule's one source.
  * - **The response.** Each change the frame relays is read by the JSON binding against the response's
- *   declaration (`textsOf` in `#plate/ui/portable-custom/response.ts`) and handed to the island to
- *   post; the PCI is bound to the texts the response holds when it is instantiated.
+ *   declaration (`fromPciJson` in `#plate/pci/json.ts`) and handed to the island to hold as the
+ *   response's value; the PCI is bound to the value the response holds when it is instantiated.
  * - **Teardown.** The island asks the PCI to complete, `oncompleted()` among it, and the frame is
  *   removed once the frame says it has, or after {@link completionGraceMs}. When React removes the
  *   island's markup with the frame inside, the frame boot completes the PCI on its own `pagehide`.
@@ -31,9 +31,11 @@
  * @module
  * @see https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-iframe-element
  */
-import { Brand, Result } from "effect";
+import { Brand } from "effect";
+import type { Result } from "effect";
 import type { FrameToPage, PciFrameRoute } from "#plate/pci/frame-protocol.ts";
 import { fromPciJson } from "#plate/pci/json.ts";
+import type { ResponseValue } from "#plate/model/values.ts";
 import type { PciJson, PciJsonRefused } from "#plate/pci/json.ts";
 import { factoryFor } from "#plate/pci/type-identifier.ts";
 import type { FactoryChoice } from "#plate/pci/type-identifier.ts";
@@ -44,8 +46,7 @@ import type {
   PageLoad,
   PageMessage,
 } from "#plate/ui/portable-custom/protocol.ts";
-import { textsOf } from "#plate/ui/portable-custom/response.ts";
-import type { PostedAs } from "#plate/ui/portable-custom/response.ts";
+import type { PciDeclared } from "#plate/ui/portable-custom/response.ts";
 
 /**
  * Where the PCI runs, as the host told the server: the URL of its frame page, the routes of the
@@ -60,7 +61,7 @@ export interface FrameFacts {
 }
 
 /**
- * One PCI to host: where it runs, what it is, what its frame shows, and how its response posts.
+ * One PCI to host: where it runs, what it is, what its frame shows, and how its response is typed.
  */
 export interface HostedPci {
   /**
@@ -73,7 +74,7 @@ export interface HostedPci {
    * The language and direction it stands in, each empty when nothing names one.
    */
   readonly placed: { readonly dir: string; readonly lang: string };
-  readonly posted: PostedAs;
+  readonly posted: PciDeclared;
   /**
    * The HTML of the markup, and of each `template`'s content, as the page rendered them.
    */
@@ -113,12 +114,12 @@ export interface FrameEvents {
    */
   readonly ready: (choice: Exclude<FactoryChoice, { readonly kind: "none" }>) => void;
   /**
-   * Hear the PCI's response as the texts the form posts, each time the frame relays a change,
-   * or why its JSON does not fit the declaration.
+   * Hear the PCI's response as the value its declaration types, each time the frame relays a
+   * change, or why its JSON does not fit the declaration.
    *
-   * @param texts The texts, or the refusal.
+   * @param value The value, or the refusal.
    */
-  readonly response: (texts: Result.Result<readonly string[], PciJsonRefused>) => void;
+  readonly response: (value: Result.Result<ResponseValue, PciJsonRefused>) => void;
 }
 
 /**
@@ -414,11 +415,7 @@ export const hostFrame = (
       }
       case "changed": {
         if (!closing) {
-          events.response(
-            Result.map(fromPciJson(message.value, pci.posted), (value) =>
-              textsOf(value, pci.posted),
-            ),
-          );
+          events.response(fromPciJson(message.value, pci.posted));
         }
 
         break;

@@ -3,6 +3,7 @@
  *
  * @module
  */
+import type { Responses } from "@qti-pie/plate";
 import type { Array as Arr } from "effect";
 import { dimension } from "#specimen/dimension.ts";
 
@@ -24,15 +25,16 @@ export const answer = dimension("The child's response", [
 export type Answer = (typeof answer.values)[number]["value"];
 
 /**
- * What a form posts for a response, before an instance names it: each entry's response identifier
- * and its text, in the order the form posts them. A response with no entry posts nothing, which a
- * form decodes as plate's interaction module says (NULL, or its absent value).
+ * What the child gave an item, typed as plate holds it: each response the child gave a value, by
+ * its identifier, the value in the cardinality and base type the kind's item declares. A response
+ * the child left untouched is absent: a host lays these over the attempt's start (plate's
+ * `startingResponses`), where it holds NULL, or its interaction's own start, End Attempt's `false`.
  */
-export type Posted = readonly (readonly [response: string, text: string])[];
+export type Posted = Responses;
 
 /**
- * One response a kind's settings admit: which it is, what the form posts for it, and the `SCORE`
- * the item's processing gives it.
+ * One response a kind's settings admit: which it is, what the child gave, and the `SCORE` the
+ * item's processing gives it.
  */
 export interface Answered {
   readonly answer: Answer;

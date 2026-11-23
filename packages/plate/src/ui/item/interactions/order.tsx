@@ -147,12 +147,12 @@ export const island = (
       }))}
       labels={labelsOf(orderKeys, context.locale, {})}
       list={carriesRendererClass(model.class, "plate-order-list")}
-      name={node.formName}
       naming={groupNameOf(prompt, node, context)}
       orientation={Option.getOrUndefined(node.orientation)}
       positions={node.maxChoices}
       prompt={prompt}
       required={node.minChoices}
+      response={node.declared}
       root={rootOf(model, context)}
     />
   );

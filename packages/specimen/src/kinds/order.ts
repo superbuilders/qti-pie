@@ -6,6 +6,7 @@
  */
 import { Array as Arr, Option } from "effect";
 import type { Answered } from "#specimen/answer.ts";
+import { identifierValue, responding } from "#specimen/posted.ts";
 import { credited } from "#specimen/credit.ts";
 import { counted, dimension } from "#specimen/dimension.ts";
 import { kind } from "#specimen/kind.ts";
@@ -47,13 +48,13 @@ interface OrderSettings {
 const idOf = (at: number): string => `O${String(at + 1)}`;
 
 /**
- * The response an order posts.
+ * The response an order gives: an `ordered` of the choices' identifiers.
  *
- * @param places The choices' places in the right order, in the order posted.
- * @returns One entry per choice.
+ * @param places The choices' places, in the order the child puts them.
+ * @returns The response, none for no choice placed.
  */
 const posted = (places: readonly number[]): Answered["posted"] =>
-  places.map((at) => [response, idOf(at)] as const);
+  responding(response, identifierValue("ordered", places.map(idOf)));
 
 /**
  * Order, as the record of kinds holds it.
@@ -70,7 +71,7 @@ export const order = kind("order", {
         score: settings.choices - 2,
       },
       { answer: "wrong", posted: posted([...right.slice(1), 0]), score: 0 },
-      { answer: "empty", posted: [], score: 0 },
+      { answer: "empty", posted: {}, score: 0 },
     ];
   },
   dimensions: {

@@ -1,14 +1,14 @@
 /**
  * What the associating interactions share: the choices a child associates, as the server writes
- * them, and the texts their responses post; the rule each brings to a board is
- * `#plate/placement/rules.ts`'s. Match and Gap Match post `directedPair`s from a board of pairs;
- * Associate and Graphic Associate post `pair`s from a board of boxes. Safe to import on the
+ * them, and the values their responses hold; the rule each brings to a board is
+ * `#plate/placement/rules.ts`'s. Match and Gap Match write `directedPair`s from a board of pairs;
+ * Associate and Graphic Associate write `pair`s from a board of boxes. Safe to import on the
  * server.
  *
  * @module
  */
 import type { ReactNode } from "react";
-import { pairText } from "#plate/interactions/pair.ts";
+import type { UnorderedPair } from "#plate/interactions/pair.ts";
 import { fillLabel } from "#plate/ui/labels.ts";
 import type { BoxLabels } from "#plate/ui/placement/labels.ts";
 import type { Box, Boxes, Half, Pairs } from "#plate/placement/machine.ts";
@@ -35,90 +35,81 @@ export interface AssociableChoice extends Associable, Spoken {
 }
 
 /**
- * Read the two identifiers of a text in plate's lexical form of a `pair` or a `directedPair`: two
- * identifiers and one space between them, as `format` in `#plate/model/values.ts` writes one for
- * the server's restore and the islands write one when they post. A text of any other shape holds no
- * pair, so it gives none.
- *
- * @param text A text of a response.
- * @returns The text's two identifiers in written order, or none.
+ * A `directedPair` as a response holds it: its source, then its target.
  */
-const identifiersOf = (text: string): readonly (readonly [string, string])[] => {
-  const [first, second, ...rest] = text.split(" ");
-
-  return first === undefined || second === undefined || rest.length > 0 ? [] : [[first, second]];
-};
+export type DirectedPair = readonly [string, string];
 
 /**
- * Read a response of `directedPair`s as placements, one chip in one target per text, in posting
- * order ({@link identifiersOf}).
+ * Read a response of `directedPair`s as placements, one chip in one target per pair, in the
+ * response's order: a pair's source is the chip and its target the target.
  *
- * @param texts The response's texts, in posting order.
+ * @param pairs The response's pairs, in order.
  * @returns The placements.
  */
-export const placementsOf = (texts: readonly string[]): Pairs =>
-  texts.flatMap((text) => identifiersOf(text).map(([chip, target]) => ({ chip, target })));
+export const placementsOf = (pairs: readonly DirectedPair[]): Pairs =>
+  pairs.map(([chip, target]) => ({ chip, target }));
 
 /**
  * Write placements as a response of `directedPair`s, the chip first. The response is a bag, so
  * the order is the placements' own and carries nothing.
  *
  * @param placements The placements.
- * @returns The response's texts.
+ * @returns The response's pairs.
  */
-export const textsOf = (placements: Pairs): readonly string[] => placements.map(pairText);
+export const directedPairsOf = (placements: Pairs): readonly DirectedPair[] =>
+  placements.map(({ chip, target }) => [chip, target]);
 
 /**
- * Read a response of `pair`s as boxes, one full box per text, in posting order
- * ({@link identifiersOf}); a pair's first identifier goes in a box's first half.
+ * Read a response of `pair`s as boxes, one full box per pair, in the response's order; a pair's
+ * first identifier goes in a box's first half.
  *
- * @param texts The response's texts, in posting order.
+ * @param pairs The response's pairs, in order.
  * @returns The boxes.
  */
-export const boxesOf = (texts: readonly string[]): Boxes =>
-  texts.flatMap((text) => identifiersOf(text).map(([first, second]): Box => [first, second]));
+export const boxesOf = (pairs: readonly UnorderedPair[]): Boxes =>
+  pairs.map(([first, second]): Box => [first, second]);
 
 /**
- * Write boxes as a response of `pair`s: one text per box that holds a pair, its first half's chip
- * first, and nothing for a box short of one. The response is a bag, so the order is the boxes'
+ * Write boxes as a response of `pair`s: one pair per box that holds two chips, its first half's
+ * chip first, and nothing for a box short of one. The response is a bag, so the order is the boxes'
  * own and carries nothing.
  *
  * @param boxes The boxes.
- * @returns The response's texts.
+ * @returns The response's pairs.
  */
-export const pairTextsOf = (boxes: Boxes): readonly string[] =>
-  boxes.flatMap(([first, second]) =>
-    first === null || second === null ? [] : [`${first} ${second}`],
+export const pairsOfBoxes = (boxes: Boxes): readonly UnorderedPair[] =>
+  boxes.flatMap(([first, second]): readonly UnorderedPair[] =>
+    first === null || second === null ? [] : [[first, second]],
   );
 
 /**
  * Key a response of `pair`s by what it means: each pair's two identifiers in sorted order, since
  * "(A,B) and (B,A) are equivalent" (8.13), and the pairs sorted, since the response is a bag.
  *
- * @param texts The response's texts.
+ * @param pairs The response's pairs.
  * @returns The key.
  */
-const pairsKey = (texts: readonly string[]): string =>
-  texts
-    .map((text) => text.split(" ").toSorted().join(" "))
+const pairsKey = (pairs: readonly UnorderedPair[]): string =>
+  pairs
+    .map((pair) => pair.toSorted().join(" "))
     .toSorted()
     .join("\n");
 
 /**
- * Give the boxes an island shows for its response: the boxes it last showed while they post the
- * response it holds, boxes short of a pair included, which no response holds; else one full box per
+ * Give the boxes an island shows for its response: the boxes it last showed while they hold the
+ * response's pairs, boxes short of a pair included, which no response holds; else one full box per
  * pair of the response, as when the host restored another answer.
  *
- * An Associate or a Graphic Associate keeps the boxes it shows, since a box with one chip posts
+ * An Associate or a Graphic Associate keeps the boxes it shows, since a box with one chip writes
  * nothing, and passes these to the placement root, so its boxes follow the response whenever the
  * host changes it, and never otherwise.
  *
  * @param shown The boxes the island last showed.
- * @param texts The response the island holds.
- * @returns `shown` itself, when it posts `texts`; else the response's own boxes.
+ * @param pairs The response's pairs.
+ * @returns `shown` itself, when it holds `pairs`; else the response's own boxes.
  */
-export const keptBoxes = (shown: Boxes, texts: readonly string[]): Boxes =>
-  pairsKey(pairTextsOf(shown)) === pairsKey(texts) ? shown : boxesOf(texts);
+export const keptBoxes = (shown: Boxes, pairs: readonly UnorderedPair[]): Boxes =>
+  pairsKey(pairsOfBoxes(shown)) === pairsKey(pairs) ? shown : boxesOf(pairs);
 
 /**
  * Name a half of a box, as its target carries the name and its slot and every announcement say

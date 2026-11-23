@@ -67,11 +67,11 @@ export const island = (
         context.picksInstruction ? message(context.locale, instructionOf(picksOf(node))) : undefined
       }
       labels={labelsOf(picksKeys, context.locale, { limit: model.messages.max })}
-      name={node.formName}
       naming={controlNameOf(prompt, node, ownName(model, context), context)}
       orientation={node.orientation}
       picks={picksOf(node)}
       prompt={prompt}
+      response={node.declared}
       root={rootOf(model, context)}
     />
   );

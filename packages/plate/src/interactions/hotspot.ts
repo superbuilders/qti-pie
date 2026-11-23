@@ -54,6 +54,7 @@ import type {
   TemplateVisibility,
 } from "#plate/model/item.ts";
 import { format } from "#plate/model/values.ts";
+import type { Declared } from "#plate/model/values.ts";
 import { areaGeometries } from "#plate/vocabulary.ts";
 import type { AreaGeometry } from "#plate/vocabulary.ts";
 
@@ -161,10 +162,10 @@ interface HotspotPayload {
   readonly choices: readonly HotspotChoicePayload[];
   readonly class: Option.Option<string>;
   /**
-   * The name its Controls post under: the view's name for the response, else
-   * `entryName(instance, response)`.
+   * The response its island writes, as its declaration types it: an `identifier` response of the
+   * Hotspot's cardinality.
    */
-  readonly formName: string;
+  readonly declared: Declared<"identifier", "multiple" | "single">;
   readonly image: Nodes<RedactedLevel>;
   readonly maxChoices: bigint;
   readonly prompt: Option.Option<Nodes<RedactedLevel>>;
@@ -327,8 +328,8 @@ export const hotspotModule: InteractionModule<"hotspot", HotspotByLevel, Hotspot
   },
   /**
    * Copy the model node into its payload node: the Prompt and the image through the kit, each
-   * hotspot without its settled visibility, and the view's facts: the entry name and the
-   * identifiers to show as checked, the values shown.
+   * hotspot without its settled visibility, the declaration of the response its island writes,
+   * and the view's facts: the identifiers to show as checked, the values shown.
    */
   redact: (interaction, kit) => ({
     ariaLabel: interaction.ariaLabel,
@@ -336,7 +337,11 @@ export const hotspotModule: InteractionModule<"hotspot", HotspotByLevel, Hotspot
     cardinality: interaction.cardinality,
     choices: interaction.choices.map(({ templateVisibility: _settled, ...choice }) => choice),
     class: interaction.class,
-    formName: kit.formName(interaction.response),
+    declared: {
+      baseType: "identifier",
+      cardinality: interaction.cardinality,
+      identifier: interaction.response,
+    },
     image: interaction.image,
     maxChoices: interaction.maxChoices,
     prompt: interaction.prompt,
