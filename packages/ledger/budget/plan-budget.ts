@@ -16,8 +16,9 @@
  * - `answer`: an individual part's attempt, graded in the same transaction (`answerTestItem`).
  * - `suspend` and `resume`: the sitting suspended (`suspendTest`), and entered again (`enterTest`).
  * - `submit`: the test ended and finished (`finishTest`: endTest, then finishTestOf).
- * - `beacon`: the presence beacon, PRESENCE-LEDGER's growing window; declared, and failing, until it
- *   lands.
+ * - `beacon`: the sitting's presence beacon (`beaconTest`), measured warm at its own bar of 10 ms, on
+ *   a connection that already sent one, as the browser sends one a second: from PRESENCE-LEDGER's
+ *   Presence on, one put of the sitting's growing window.
  *
  * Run from this package: `node budget/plan-budget.ts --database <scratch database> --migrations
  * <the generated result composition's folder>`, with pantry's `QTI_PIE_PG_*` settings naming the
@@ -81,6 +82,20 @@ const suite = served<typeof ResultSuite>(
 /**
  * The decision every seeded sitting is taken under: the seed its members' processing draws from.
  */
+/**
+ * The presence beacon's bar: 10 ms of database time, warm, flat from 1x to 100x (edullm-bd,
+ * 2026-11-23).
+ *
+ * @limitKind product
+ * @owner Bjorn's planning budget, as edullm-bd stated the beacon's (edullm out/rc-cutover/PRESENCE.md)
+ * @unit milliseconds of database time
+ * @scope one presence beacon, on a connection that already sent one
+ * @constraint the bar the beacon is judged by, warm
+ * @source edullm-bd to PLAN-BUDGET, 2026-11-23: "≤ 10 ms of database time, warm, flat from 1× to 100×"
+ * @verified 2026-11-23
+ */
+const beaconBarMs = 10;
+
 const DECISION = "7d3c2a4e-58b1-4f6a-9c0d-2b8e5f1a6c34";
 
 const layerOf = Effect.gen(function* layerOfSuite() {
@@ -153,6 +168,9 @@ const answer = (db: SuiteDb, child: string, item: string, value: string) =>
       }),
     ),
   );
+
+const beacon = (db: SuiteDb, child: string) =>
+  accepted("beaconTest", db.workload.beaconTest.once({ facts: {}, params: sittingOf(child) }));
 
 const suspend = (db: SuiteDb, child: string) =>
   accepted("suspendTest", db.workload.suspendTest.once({ facts: {}, params: sittingOf(child) }));
@@ -288,6 +306,13 @@ const program = Effect.gen(function* planBudget() {
       warm: false,
     },
     {
+      act: (child) => withDb((db) => beacon(db, child)),
+      barMs: beaconBarMs,
+      name: "beacon",
+      prepare: entered(stdTest),
+      warm: true,
+    },
+    {
       act: (child) => withDb((db) => enter(db, child)),
       barMs: 100,
       name: "resume",
@@ -320,17 +345,7 @@ const program = Effect.gen(function* planBudget() {
       admin,
       composition: "ledger-result",
       grow: copyUnits("child"),
-      pending:
-        values.populate === true
-          ? []
-          : [
-              {
-                barMs: 10,
-                name: "beacon",
-                reason:
-                  "the presence beacon (Presence, a growing window keyed by a WITHOUT OVERLAPS span) is PRESENCE-LEDGER's; its bar is 10 ms of database time, warm, flat from 1x to 100x",
-              },
-            ],
+      pending: [],
       repeats: Number(values.repeats ?? "3"),
       scales: (values.scales ?? "1,10,100").split(",").map(Number),
       seed: (child) => withDb((db) => fullPath(db, child, Number(/\d+$/u.exec(child)?.[0] ?? "0"))),
