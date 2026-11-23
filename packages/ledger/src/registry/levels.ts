@@ -61,7 +61,8 @@ const formKinds = [
  *   score's machine is, and each recorded class's grader in force; the rubric uses; the seed tables
  *   the primitives read, each entry with its place, and which table each class reads in each role;
  *   and why an element is outside the profile.
- * - **`Registry`** (`registry`): views over pantry's content, storing nothing and refusing nothing:
+ * - **`Registry`** (`registry`): views over pantry's content, refusing nothing, `RecordedApplication`
+ *   stored (grizzle's `derived.stored`, kept at COMMIT at every package a transaction writes):
  *
  *   - `OutsideProfile`: each element that puts its document outside this deployment's profile, with
  *     why, which the grader's gradable relation reads, so an item is served for credit only within
@@ -1029,7 +1030,7 @@ export const registryOf = (qti: typeof QtiLom, roster: Roster) => {
    * the identity the ledger keys an attempt by, SPEC-AUDIT SV-KEY-01) and the operator's place in
    * that document: what a ledger fact of an attempt names.
    */
-  const RecordedApplication = derived(
+  const RecordedApplication = derived.stored(
     "RecordedApplication",
     query(RegistryRoster).rule((r) => {
       const { class: operatorClass, package: pkg, path, start } = v(boundOperators, "bound");

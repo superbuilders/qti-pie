@@ -1,7 +1,9 @@
 /**
  * Which items this deployment serves for credit: the delivery level's verdict, where what the
  * grader runs meets what the registry admits and what the package holds. Every relation here is
- * derived and stores nothing, and pantry admits every valid item: an item outside the verdict is
+ * derived, `Servable` stored (grizzle's `derived.stored`: its rows are its definition's at every
+ * package a transaction writes, kept at COMMIT, since its definition reads the item's own package's
+ * rows and closed facts alone), and pantry admits every valid item: an item outside the verdict is
  * stored as written and never served, which the one law here holds ("Served for credit": every item
  * session is of a servable item).
  *
@@ -330,7 +332,7 @@ export const servableOf = (ledger: LedgerLevel) => {
    * The items served for credit ({@link servableItems}), by their document: what the delivery
    * serves and grades.
    */
-  const Servable = derived("Servable", servableItems);
+  const Servable = derived.stored("Servable", servableItems);
 
   /**
    * Served for credit: every item session is of an item served for credit, so an item outside the

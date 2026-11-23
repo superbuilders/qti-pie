@@ -352,7 +352,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       .find({ baseType, cardinality, declarationKind, identifier, package: pkg, path });
   });
 
-  const ItemVariable = derived("ItemVariable", declaredVariables);
+  const ItemVariable = derived.stored("ItemVariable", declaredVariables);
 
   /**
    * An item's built-in session variable, by its name among QTI's (pantry's `BuiltIn` roster), as a
@@ -401,7 +401,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
     .rule(builtInVariable("numAttempts", "integer"))
     .rule(builtInVariable("duration", "float"))
     .rule(builtInVariable("completionStatus", "identifier"));
-  const ItemSessionVariable = derived("ItemSessionVariable", sessionVariables);
+  const ItemSessionVariable = derived.stored("ItemSessionVariable", sessionVariables);
 
   /**
    * QTI's record variables: every variable an item declares of cardinality `record`, which has no
@@ -425,7 +425,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
       })
       .find({ declarationKind, identifier, package: pkg, path });
   });
-  const ItemRecordVariable = derived("ItemRecordVariable", recordVariables);
+  const ItemRecordVariable = derived.stored("ItemRecordVariable", recordVariables);
 
   /**
    * Every variable an item's session holds, by its package, the item's `identifier` and the
@@ -433,7 +433,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
    * ({@link ItemSessionVariable}'s rows) and a record ({@link ItemRecordVariable}'s). What a
    * session's start record is made of (`StartVariable`), a record's among them.
    */
-  const SessionVariableName = derived(
+  const SessionVariableName = derived.stored(
     "SessionVariableName",
     query(qti)
       .rule((r) => {
