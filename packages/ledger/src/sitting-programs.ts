@@ -67,7 +67,12 @@ import type { deliveryOf } from "#ledger/delivery.ts";
 import { memberAnswerAdmissionOf, takeValuesOf } from "#ledger/grade.ts";
 import { processingSeed } from "#ledger/grading.ts";
 import { SnapshotKind } from "#ledger/ledger.ts";
-import { sittingHeading, sittingStandingOf, takenHeading } from "#ledger/sitting-queries.ts";
+import {
+  shownMemberOf,
+  sittingHeading,
+  sittingStandingOf,
+  takenHeading,
+} from "#ledger/sitting-queries.ts";
 
 /**
  * The relations the test runtime's programs write of a sitting beside its item sessions, by name,
@@ -211,45 +216,35 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   const standing = sittingStandingOf(delivery);
 
   /**
-   * Each sitting's last presentation's instant.
+   * Each of the call's sittings' member last presented: what a resumption presents again.
    */
-  const lastPresentedAt = query(delivery).rule((r) => {
-    const { child, stage, at } = v(f.TestPresented, "lastPresented");
-
-    return r.match(f.TestPresented, { at, child, stage }).find({ at: r.max(at), child, stage });
-  });
+  const lastPresented = shownMemberOf(delivery);
 
   /**
-   * Each sitting's member last presented: what a resumption presents again.
-   */
-  const lastPresented = query(delivery).rule((r) => {
-    const { child, stage, at } = v(lastPresentedAt, "lastAt");
-    const { package: pkg, path } = v(f.TestPresented, "lastMember");
-
-    return r
-      .match(lastPresentedAt, { at, child, stage })
-      .match(f.TestPresented, { at, child, package: pkg, path, stage })
-      .find({ child, package: pkg, path, stage });
-  });
-
-  /**
-   * Each timed sitting's latest suspended session's next budget: what its last candidate session
-   * left.
+   * Each of the call's timed sittings' latest suspended session's next budget, bound to the call's
+   * sittings before its maximum, so it reads their budgets alone.
    */
   const lastNext = query(delivery).rule((r) => {
-    const { child, stage, next, left } = v(f.NextBudget, "lastNextBudget");
+    const sittings = r.relation("sittings", sittingHeading);
+    const { child, stage } = v(sittings, "budgetedSitting");
+    const { next, left } = v(f.NextBudget, "lastNextBudget");
 
     return r
+      .match(sittings, { child, stage })
       .match(f.NextBudget, { child, left, next, stage })
       .find({ child, next: r.max(next), stage });
   });
 
+  /**
+   * What each of the call's timed sittings' last candidate session left ({@link lastNext}).
+   */
   const lastLeft = query(delivery).rule((r) => {
-    const { child, stage, next } = v(lastNext, "lastNext");
+    const lastAt = lastNext.bind({ sittings: r.relation("sittings", sittingHeading) });
+    const { child, stage, next } = v(lastAt, "lastNext");
     const { left } = v(f.NextBudget, "lastLeft");
 
     return r
-      .match(lastNext, { child, next, stage })
+      .match(lastAt, { child, next, stage })
       .match(f.NextBudget, { child, left, next, stage })
       .find({ child, left, stage });
   });
@@ -401,30 +396,34 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
             .find({ child, k: 0n, package: pkg, path: document, stage });
         })
         .rule((r) => {
-          const closed = closedSitting.bind({ sittings: r.relation("sittings", sittingHeading) });
+          const sittings = r.relation("sittings", sittingHeading);
+          const closed = closedSitting.bind({ sittings });
+          const shown = lastPresented.bind({ sittings });
           const { child, stage, package: testPackage, path: test } = v(closed, "resumedTest");
           const { k: visited, at } = v(f.TestVisit, "resumedVisit");
-          const { package: pkg, path } = v(lastPresented, "resumedMember");
+          const { package: pkg, path } = v(shown, "resumedMember");
 
           return r
             .match(closed, { child, package: testPackage, path: test, stage })
             .match(f.TestVisit, { at, child, k: visited, stage })
-            .match(lastPresented, { child, package: pkg, path, stage })
+            .match(shown, { child, package: pkg, path, stage })
             .find({ child, k: r.count(), package: pkg, path, stage });
         }),
     )
     .insert(
       f.TestBudget,
       query(delivery).rule((r) => {
-        const closed = closedSitting.bind({ sittings: r.relation("sittings", sittingHeading) });
+        const sittings = r.relation("sittings", sittingHeading);
+        const closed = closedSitting.bind({ sittings });
+        const leftOf = lastLeft.bind({ sittings });
         const { child, stage, package: testPackage, path: test } = v(closed, "resumedBudget");
         const { k: visited, at } = v(f.TestVisit, "budgetVisit");
-        const { left } = v(lastLeft, "left");
+        const { left } = v(leftOf, "left");
 
         return r
           .match(closed, { child, package: testPackage, path: test, stage })
           .match(f.TestVisit, { at, child, k: visited, stage })
-          .match(lastLeft, { child, left, stage })
+          .match(leftOf, { child, left, stage })
           .find({
             child,
             k: r.count(),

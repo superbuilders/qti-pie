@@ -214,25 +214,42 @@ const lastShownOf = (delivery: DeliveryLevel) => {
 };
 
 /**
- * The member on screen in each of the call's sittings, the item of its latest presentation, by its
- * item session, with the instant of that session's latest save, where it has one.
+ * The member on screen in each of the call's sittings, the item of its latest presentation: what
+ * a resumption presents again, and the member a linear part's end submits.
  */
-const shownSaveOf = (delivery: DeliveryLevel) => {
+export const shownMemberOf = (delivery: DeliveryLevel) => {
   const { TestPresented } = delivery.relations;
   const lastShown = lastShownOf(delivery);
+
+  return query(delivery).rule((r) => {
+    const lastShownAt = lastShown.bind({ sittings: r.relation("sittings", sittingHeading) });
+    const { child, stage, at } = v(lastShownAt, "lastShown");
+    const { package: pkg, path } = v(TestPresented, "onScreen");
+
+    return r
+      .match(lastShownAt, { at, child, stage })
+      .match(TestPresented, { at, child, package: pkg, path, stage })
+      .find({ child, package: pkg, path, stage });
+  });
+};
+
+/**
+ * The member on screen in each of the call's sittings ({@link shownMemberOf}), by its item
+ * session, with the instant of that session's latest save, where it has one.
+ */
+const shownSaveOf = (delivery: DeliveryLevel) => {
+  const shown = shownMemberOf(delivery);
   const saves = latestSavesOf(delivery);
 
   return query(delivery).rule((r) => {
     const sittings = r.relation("sittings", sittingHeading);
-    const lastShownAt = lastShown.bind({ sittings });
+    const shownAt = shown.bind({ sittings });
     const savesAt = saves.bind({ sittings });
-    const { child, stage, at: shown } = v(lastShownAt, "lastShown");
-    const { package: pkg, path } = v(TestPresented, "onScreen");
+    const { child, stage, package: pkg, path } = v(shownAt, "shown");
     const { n, at } = v(savesAt, "shownSave");
 
     return r
-      .match(lastShownAt, { at: shown, child, stage })
-      .match(TestPresented, { at: shown, child, package: pkg, path, stage })
+      .match(shownAt, { child, package: pkg, path, stage })
       .match(savesAt, { at, child, n, package: pkg, path })
       .find({ at, child, n, package: pkg, path, stage });
   });
