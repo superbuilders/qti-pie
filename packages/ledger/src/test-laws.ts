@@ -25,6 +25,12 @@
  *   not permitted to return" (Table 5.159.4, `navigation-mode`), a member presented before a later
  *   presentation of another member has its attempt: moving on submits, and a skip is a submission
  *   of NULL responses (Table 7.19.6, `allow-skipping`).
+ * - **Shown before saved**: a save is of a presented member, in any part. An item session is in its
+ *   initial state "before the delivery has taken place" (§2.2.1), and the candidate sets or updates
+ *   its response variables only in the interacting state, in which "The body must be presented to
+ *   the candidate" (§2.3); so a save of a member never shown is no response the candidate gave, and
+ *   is refused at its write, never admitted for the end to drop (the end submits only what was
+ *   shown, `#ledger/finish.ts`).
  *
  * Every relation here is derived and stores nothing; each law reads its query at commit.
  */
@@ -34,7 +40,7 @@ import { named } from "#ledger/laws.ts";
 import { memberControlsOf } from "#ledger/member-controls.ts";
 
 export const testLawsOf = (ledger: LedgerLevel) => {
-  const { Attempt, ItemSession, TestEnd, TestMember, TestPart, TestPresented, TestSession } =
+  const { Attempt, ItemSession, Save, TestEnd, TestMember, TestPart, TestPresented, TestSession } =
     ledger.relations;
 
   /**
@@ -133,6 +139,21 @@ export const testLawsOf = (ledger: LedgerLevel) => {
   const PresentedMember = derived("PresentedMember", presentedMembers);
 
   /**
+   * Each sitting's member with a save.
+   */
+  const savedMembers = query(ledger).rule((r) => {
+    const { child, package: pkg, path, n } = v(Save, "save");
+    const { stage } = v(ItemSession, "savedSession");
+
+    return r
+      .match(Save, { child, n, package: pkg, path })
+      .match(ItemSession, { child, n, package: pkg, path, stage })
+      .match(TestSession, { child, stage })
+      .find({ child, package: pkg, path, stage });
+  });
+  const SavedMember = derived("SavedMember", savedMembers);
+
+  /**
    * Each sitting with an attempt of a member of a simultaneous part.
    */
   const simultaneousAttempts = query(ledger).rule((r) => {
@@ -197,6 +218,7 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     LimitedTestAttempt,
     AttemptedMember,
     PresentedMember,
+    SavedMember,
     SimultaneousAttempt,
     EndedPresentation,
     MovedOn,
@@ -272,6 +294,17 @@ export const testLawsOf = (ledger: LedgerLevel) => {
   );
 
   /**
+   * Shown before saved: a save is of a member the candidate was shown, in any part.
+   */
+  const savedWhenPresented = named(
+    "Shown before saved",
+    contained(
+      on(SavedMember, "child", "stage", "package", "path"),
+      on(PresentedMember, "child", "stage", "package", "path"),
+    ),
+  );
+
+  /**
    * In turn: a linear part's member the candidate moved on from has its attempt.
    */
   const movingOnSubmits = named(
@@ -291,6 +324,7 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     endSubmitsPresented,
     attemptedWhenPresented,
     movingOnSubmits,
+    savedWhenPresented,
   ] as const;
 
   return { laws, relations } as const;

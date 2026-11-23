@@ -94,6 +94,13 @@
  * presentation, not the end, §2.2.4); an unlimited member takes an attempt after each (Table
  * 7.19.1); and the end submits, unvalidated, every presented member whose attempt is in progress,
  * and none never presented (Tables 7.19.6, 5.115).
+ *
+ * And a simultaneous part's shown members (`presentItem`, `saveTestItem`, `finishTest`), held to
+ * their table ({@link shownExpectedOf}): a save of a member never presented is refused by "Shown
+ * before saved" and stores nothing (§2.2.1, §2.3), the end submits every presented member from its
+ * latest save or at its defaults and none never presented, and an attempt of a human-scored essay
+ * waits for its score (`pendingExternalScoring`, Results Reporting Table 2.7.7), so its sitting is
+ * final only where the essay was never presented.
  */
 import { Sha256 } from "@bjornpagen/grizzle";
 import { factsDecoder } from "@bjornpagen/grizzle/compile";
@@ -209,6 +216,21 @@ const PART_VALIDATED_TEST = "part-validated.xml";
 const SHOWING_TEST = "showing.xml";
 
 /**
+ * The test of shown members ({@link shownTestXml}): one simultaneous, nonlinear part.
+ */
+const SHOWN_TEST = "shown.xml";
+
+/**
+ * The human-scored essay's document ({@link humanXml}).
+ */
+const HUMAN = "items/human.xml";
+
+/**
+ * The item ref the shown test names its human-scored essay by, and that item's own identifier.
+ */
+const HUMAN_REF = "human";
+
+/**
  * The item ref a test names its first member by, the one its start presents, and that item's own
  * identifier: QTI holds a ref's identifier to its item's (information model §4.1.1, pantry's "Item
  * ref identifier").
@@ -216,10 +238,11 @@ const SHOWING_TEST = "showing.xml";
 const MEMBER = "member";
 
 /**
- * The item ref a test names its second member by, and that item's own identifier, which no case
- * presents: an individual part's end attempts only the members presented, so a save of it after
- * the end reaches the laws, where a save of a member the end closed finds no open item session and
- * writes nothing.
+ * The item ref a test names its second member by, and that item's own identifier, which a response
+ * case presents once it enters and then saves: the end alone (`endTest`, no close) attempts
+ * nothing, so a save of it after the end reaches the laws, where a save of a member the end closed
+ * finds no open item session and writes nothing; and a save before the first candidate session is
+ * of a member never presented, which "Shown before saved" refuses too.
  */
 const SAVED = "saved";
 
@@ -407,6 +430,16 @@ const minimumXml = (identifier: string) => `<?xml version="1.0" encoding="UTF-8"
 </qti-assessment-item>`;
 
 /**
+ * The human-scored essay: an extended-text response whose SCORE a person gives, declared
+ * `external-scored` `human` ("a human must score the Item", Table 8.21), which no response
+ * processing of its own sets.
+ */
+const humanXml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="${asi}" identifier="${HUMAN_REF}" title="${HUMAN_REF}" adaptive="false" time-dependent="false" xml:lang="en">
+<qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="string"/><qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float" external-scored="human"/><qti-item-body><qti-extended-text-interaction response-identifier="RESPONSE"/></qti-item-body>
+</qti-assessment-item>`;
+
+/**
  * A test of one part, its item refs' markup `refs`, under the part's own item-session control
  * `control`, none where it is empty.
  *
@@ -513,6 +546,17 @@ const showingTestXml = `<?xml version="1.0" encoding="UTF-8"?>
 </qti-assessment-test>`;
 
 /**
+ * The test of shown members: one simultaneous, nonlinear part, {@link MEMBER} first, the one its
+ * start presents, then the human-scored essay {@link HUMAN_REF}.
+ */
+const shownTestXml = controlledTestXml(
+  "shown",
+  "simultaneous",
+  "",
+  `${refXml(MEMBER, SHORT, "")}${refXml(HUMAN_REF, HUMAN, "")}`,
+);
+
+/**
  * A test of one individual, nonlinear part of two text entries, {@link MEMBER} and {@link SAVED},
  * under the time limits `limits` states, none where it is empty.
  *
@@ -545,7 +589,7 @@ const itemResource = (path: string) =>
   `<resource identifier="${path.replace("items/", "").replace(".xml", "")}" type="imsqti_item_xmlv3p0" href="${path}"><file href="${path}"/></resource>`;
 
 const manifest = `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}</resources></manifest>`;
+<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}</resources></manifest>`;
 
 /**
  * The response every answered case gives.
@@ -1191,8 +1235,8 @@ const SuiteLayer = Layer.unwrap(
 
 /**
  * The one package, the essay, the templated item, the operators item, the draw item adaptive and
- * not, the tests of the text entries, and the tests of item-session controls with their items,
- * published through the suite's login.
+ * not, the tests of the text entries, the tests of item-session controls with their items, and the
+ * test of shown members with its human-scored essay, published through the suite's login.
  */
 const published = Effect.gen(function* publish() {
   const { suite } = yield* SuiteLogin;
@@ -1211,7 +1255,13 @@ const published = Effect.gen(function* publish() {
   for (const { path, ref } of controlsMembers.filter((member) => member.path !== OTHER)) {
     yield* fs.writeFileString(`${dir}/${path}`, minimumXml(ref));
   }
-  for (const [path, xml] of [...tests, ...controlTests, [SHOWING_TEST, showingTestXml]]) {
+  yield* fs.writeFileString(`${dir}/${HUMAN}`, humanXml);
+  for (const [path, xml] of [
+    ...tests,
+    ...controlTests,
+    [SHOWING_TEST, showingTestXml],
+    [SHOWN_TEST, shownTestXml],
+  ]) {
     yield* fs.writeFileString(`${dir}/${path}`, xml);
   }
 
@@ -1977,16 +2027,22 @@ const responseCases = [
 const responseSpace: Gen<ResponseCase> = element(responseCases);
 
 /**
- * What the table expects of a save: accepted, or refused by the law that names it.
+ * What the table expects of a save: accepted, or refused, naming one of the laws it breaks, each by
+ * the relation or check its refusal names.
  */
 type ResponseExpected =
   | Readonly<{ kind: "accepted" }>
-  | Readonly<{ kind: "refused"; law: "SessionSnapshot" | "Response_in_time" }>;
+  | Readonly<{
+      kind: "refused";
+      laws: readonly ("SessionSnapshot" | "PresentedMember" | "Response_in_time")[];
+    }>;
 
 /**
  * The responses' table. A save outside the sitting's candidate sessions is refused by "Inside a
  * candidate session", whose target is `SessionSnapshot` (§2.2.1: "During each attempt the candidate
- * interacts with the item through one or more candidate sessions"), whatever its timing. In the
+ * interacts with the item through one or more candidate sessions"), whatever its timing; one before
+ * the sitting's first is also of a member never presented, which "Shown before saved" refuses
+ * (target `PresentedMember`), and the refusal names either. In the
  * open one, a save arriving, by the database's stamp, past its timed session's deadline and the
  * in-flight grace is refused by "Response in time", unless the test allows late submission (Table
  * 7.40.3: "The allow-late-submission attribute regulates whether a candidate's response that is
@@ -1997,12 +2053,16 @@ type ResponseExpected =
  * @param c - The case.
  */
 const responseExpectedOf = (c: ResponseCase): ResponseExpected => {
+  if (c.when === "unstarted") {
+    return { kind: "refused", laws: ["SessionSnapshot", "PresentedMember"] };
+  }
+
   if (c.when !== "open") {
-    return { kind: "refused", law: "SessionSnapshot" };
+    return { kind: "refused", laws: ["SessionSnapshot"] };
   }
 
   return c.timing === "arrivedLate"
-    ? { kind: "refused", law: "Response_in_time" }
+    ? { kind: "refused", laws: ["Response_in_time"] }
     : { kind: "accepted" };
 };
 
@@ -2014,6 +2074,7 @@ const responseSituations = [
   "accepted past its deadline: late submission allowed",
   "accepted though the browser read it past its deadline: the database's stamp decides",
   "refused: Inside a candidate session",
+  "refused: before the sitting's first candidate session",
   "refused: Response in time",
   "standing: open",
   "standing: suspended",
@@ -2034,7 +2095,8 @@ const standingsOf = (reads: Readonly<{ standing: Iterable<Readonly<{ standing: s
 /**
  * One response case: a fresh child's sitting of the case's test, taken by the test runtime's own
  * take (`takeSitting`, its members' sessions and starts the take's) and, but for a save before its
- * first candidate session, entered, a timed entry with the case's first budget, then suspended, or
+ * first candidate session, entered, a timed entry with the case's first budget, and {@link SAVED}
+ * presented, the member the case saves ("Shown before saved"), then suspended, or
  * ended as the case says, an attempt of {@link MEMBER} before the end, which nothing grades, so the
  * ended sitting waits on it and is not final; then a save of {@link SAVED} with no value, its
  * `given` the case's from the session's beginning, held to the table, and every move's `standing`
@@ -2076,6 +2138,12 @@ const holdResponse = (
               `${c.name}: the entry, the sitting open after it`,
             );
             note("standing: open");
+
+            const shown = yield* db.workload.presentItem.once({
+              facts: {},
+              params: { ...sitting, item: SAVED },
+            });
+            assert.strictEqual(shown.kind, "accepted", `${c.name}: the saved member presented`);
 
             return Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
           });
@@ -2130,17 +2198,21 @@ const holdResponse = (
     );
     const want = responseExpectedOf(c);
     if (want.kind === "refused") {
+      const named =
+        Result.isFailure(saved) && saved.failure.kind === "refused"
+          ? Formatter.format(refusedLawsOf(saved.failure.refused))
+          : "";
       assert.isTrue(
-        Result.isFailure(saved) &&
-          saved.failure.kind === "refused" &&
-          Formatter.format(refusedLawsOf(saved.failure.refused)).includes(want.law),
-        `${c.name}: refused by ${want.law}, got ${Formatter.format(saved)}`,
+        want.laws.some((law) => named.includes(law)),
+        `${c.name}: refused by one of ${want.laws.join(", ")}, got ${Formatter.format(saved)}`,
       );
-      note(
-        want.law === "Response_in_time"
-          ? "refused: Response in time"
-          : "refused: Inside a candidate session",
-      );
+      if (c.when === "unstarted") {
+        note("refused: before the sitting's first candidate session");
+      } else if (c.timing === "arrivedLate") {
+        note("refused: Response in time");
+      } else {
+        note("refused: Inside a candidate session");
+      }
 
       return;
     }
@@ -2604,6 +2676,277 @@ const holdControls = (
       },
       expected.attempts,
       `${c.name}: every member's attempts, in order, after the end`,
+    );
+  });
+
+/**
+ * A move of a shown case on the human-scored essay, in the shown test's open candidate session:
+ * its presentation, or a save of {@link shownText}.
+ */
+type ShownMove = "present" | "save";
+
+type ShownCase = Readonly<{ name: string; moves: readonly ShownMove[] }>;
+
+/**
+ * The text every shown case's save gives.
+ */
+const shownText = "A push moves the cart.";
+
+/**
+ * Every shown case: each moves the human-scored essay through the shown test's open session, then
+ * ends it, the start presenting {@link MEMBER}.
+ */
+const shownCases = [
+  { moves: [], name: "the essay never presented" },
+  { moves: ["save"], name: "the essay saved before it is presented" },
+  { moves: ["present"], name: "the essay presented and left blank" },
+  {
+    moves: ["save", "present", "save"],
+    name: "the essay saved before it is presented, then presented and saved",
+  },
+] as const satisfies readonly ShownCase[];
+
+const shownSpace: Gen<ShownCase> = element(shownCases);
+
+/**
+ * What the shown table holds of a case: each move's verdict, each member's attempts after the end
+ * (its saved text, or `default` where the end submitted it unsaved), each attempt's status, and
+ * whether the sitting is final.
+ */
+type ShownExpected = Readonly<{
+  moves: readonly ("accepted" | "refused")[];
+  attempts: Readonly<Record<typeof MEMBER | typeof HUMAN_REF, readonly ("saved" | "default")[]>>;
+  statuses: Readonly<Record<typeof MEMBER | typeof HUMAN_REF, readonly string[]>>;
+  final: boolean;
+}>;
+
+/**
+ * The shown table, a fold over the case's moves of whether the essay was presented and whether it
+ * holds a save:
+ *
+ * - A save of a member never presented is refused by "Shown before saved": an item session is in its
+ *   initial state "before the delivery has taken place" (§2.2.1), and the candidate sets its
+ *   response variables only in the interacting state, in which "The body must be presented to the
+ *   candidate" (§2.3). A save of a presented member is accepted.
+ * - The end of a simultaneous part submits every presented member, from its latest save, or at its
+ *   defaults where it has none (Tables 5.159.5, 7.19.6), and none never presented, whose "response
+ *   variable remains NULL" (Table 5.115).
+ * - An attempt of the essay, whose SCORE a human gives, is `pendingExternalScoring` once its response
+ *   processing ran: "the score is NOT final because the 'external-scored' property for the outcome
+ *   variable was set" (Results Reporting, Table 2.7.7); the member's, which scores nothing
+ *   externally, is `final`. A sitting is final once ended with no attempt pending, so it is final
+ *   exactly where the essay was never presented.
+ *
+ * @param c - The case.
+ */
+const shownExpectedOf = (c: ShownCase): ShownExpected => {
+  let presented = false;
+  let saved = false;
+  const moves = c.moves.map((move): "accepted" | "refused" => {
+    if (move === "present") {
+      presented = true;
+
+      return "accepted";
+    }
+
+    if (!presented) {
+      return "refused";
+    }
+
+    saved = true;
+
+    return "accepted";
+  });
+
+  return {
+    attempts: {
+      [HUMAN_REF]: presented ? [saved ? "saved" : "default"] : [],
+      [MEMBER]: ["default"],
+    },
+    final: !presented,
+    moves,
+    statuses: {
+      [HUMAN_REF]: presented ? ["pendingExternalScoring"] : [],
+      [MEMBER]: ["final"],
+    },
+  };
+};
+
+/**
+ * The situations the shown space must reach.
+ */
+const shownSituations = [
+  "a save of a member never presented is refused, and stores nothing",
+  "a presented member's save is submitted at the end",
+  "a presented member never saved is submitted at its defaults",
+  "a member never presented has no attempt, and its sitting is final",
+  "a presented human-scored essay waits for its score, and its sitting is not final",
+] as const;
+
+type ShownSituation = (typeof shownSituations)[number];
+
+/**
+ * The situations a case reaches, read from the table's verdicts.
+ *
+ * @param expected - The table's verdicts.
+ */
+const shownSituationsOf = (expected: ShownExpected) => {
+  const reached = new Set<ShownSituation>();
+  if (expected.moves.includes("refused")) {
+    reached.add("a save of a member never presented is refused, and stores nothing");
+  }
+
+  const essay = expected.attempts[HUMAN_REF];
+  if (essay.includes("saved")) {
+    reached.add("a presented member's save is submitted at the end");
+  }
+
+  if (essay.includes("default")) {
+    reached.add("a presented member never saved is submitted at its defaults");
+  }
+
+  reached.add(
+    expected.final
+      ? "a member never presented has no attempt, and its sitting is final"
+      : "a presented human-scored essay waits for its score, and its sitting is not final",
+  );
+
+  return [...reached];
+};
+
+/**
+ * One shown case: a fresh child's sitting of the shown test, taken by the test runtime's own take
+ * (`takeSitting`), entered, which presents {@link MEMBER}; then each move on the essay through the
+ * test runtime's own programs (`presentItem`, `saveTestItem`), its outcome held to the table, a
+ * refused save to name "Shown before saved" and to leave the essay with no save; then the end with
+ * its finish (`finishTest`), and each member's attempts, their statuses and the sitting's
+ * finality held to the table.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdShown = (c: ShownCase, child: string, note: (situation: ShownSituation) => void) =>
+  Effect.gen(function* hold() {
+    const expected = shownExpectedOf(c);
+    for (const situation of shownSituationsOf(expected)) {
+      note(situation);
+    }
+
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const sitting = { child, stage: 1n };
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: PACKAGE, path: SHOWN_TEST, seed: DECISION },
+    });
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
+
+    const entered = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(entered.kind, "accepted", `${c.name}: the entry`);
+
+    const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
+    const essaySaves = Effect.map(
+      db.workload.savesOf.once({ facts: {}, params: { child } }),
+      (sittings) =>
+        Arr.fromIterable(sittings)
+          .flatMap(({ saves }) => Arr.fromIterable(saves))
+          .filter(({ path }) => path === HUMAN),
+    );
+
+    for (const [i, move] of c.moves.entries()) {
+      const want = expected.moves[i];
+      const what = `${c.name}: move ${String(i + 1)}, ${move} the essay`;
+      if (move === "present") {
+        const presented = yield* db.workload.presentItem.once({
+          facts: {},
+          params: { ...sitting, item: HUMAN_REF },
+        });
+        assert.strictEqual(presented.kind, want, what);
+      } else {
+        const values = yield* responseParamsOf({
+          RESPONSE: {
+            baseType: "string",
+            cardinality: "single",
+            values: [{ baseType: "string", value: shownText }],
+          },
+        });
+        const outcome = yield* Effect.result(
+          db.workload.saveTestItem.once({
+            facts: {},
+            params: { ...sitting, given: began, item: HUMAN_REF, ...values },
+          }),
+        );
+        if (want === "refused") {
+          assert.isTrue(
+            Result.isFailure(outcome) &&
+              outcome.failure.kind === "refused" &&
+              refusedLawsOf(outcome.failure.refused).some(
+                ({ law }) =>
+                  law.kind === "contained" &&
+                  law.from.relation === "SavedMember" &&
+                  law.to.relation === "PresentedMember",
+              ),
+            `${what}: refused by "Shown before saved", got ${Formatter.format(outcome)}`,
+          );
+          assert.deepStrictEqual<unknown>(
+            yield* essaySaves,
+            [],
+            `${what}: the refused save stores nothing`,
+          );
+        } else {
+          assert.strictEqual(Result.getOrThrow(outcome).kind, want, what);
+        }
+      }
+    }
+
+    const ended = yield* db.workload.finishTest.once({ facts: {}, params: sitting });
+    assert.strictEqual(ended.kind, "accepted", `${c.name}: the end and its finish`);
+
+    const attempts = Arr.fromIterable(
+      yield* db.workload.attemptsOf.once({ facts: {}, params: { child } }),
+    );
+    const strings = Arr.fromIterable(
+      yield* db.workload.snapshotStringsOf.once({ facts: {}, params: { child } }),
+    );
+    const statuses = Arr.fromIterable(
+      yield* db.workload.statusesOf.once({ facts: {}, params: { child } }),
+    );
+    const finals = Arr.fromIterable(
+      yield* db.workload.finalsOf.once({ facts: {}, params: { child } }),
+    );
+    const submittedOf = (path: string) =>
+      attempts
+        .filter((row) => row.package === PACKAGE && row.path === path)
+        .map((row) => {
+          const held = strings.filter(
+            (value) =>
+              value.path === path &&
+              value.n === row.n &&
+              value.at === row.at &&
+              value.variable === "RESPONSE",
+          );
+
+          if (held.length === 0) {
+            return "default";
+          }
+
+          return Option.getOrThrow(Arr.head(held)).value === shownText
+            ? "saved"
+            : assert.fail(`${c.name}: an attempt of ${Formatter.format(held)}`);
+        });
+    const statusesAt = (path: string) =>
+      statuses
+        .filter((row) => row.package === PACKAGE && row.path === path)
+        .map((row) => row.status);
+    assert.deepStrictEqual<unknown>(
+      {
+        attempts: { [HUMAN_REF]: submittedOf(HUMAN), [MEMBER]: submittedOf(SHORT) },
+        final: finals.some((row) => row.stage === sitting.stage),
+        statuses: { [HUMAN_REF]: statusesAt(HUMAN), [MEMBER]: statusesAt(SHORT) },
+      },
+      { attempts: expected.attempts, final: expected.final, statuses: expected.statuses },
+      `${c.name}: every member's attempts and their statuses after the end, and whether the sitting is final`,
     );
   });
 
@@ -4223,7 +4566,7 @@ describe.skipIf(Option.isNone(migrations))(
                     literal: (c: ResponseCase) => c.name,
                     oracle: {
                       kind: "specification",
-                      name: "responseExpectedOf: inside a candidate session (QTI 3.0.1 §2.2.1), arriving, by the database's stamp, within its time and the in-flight grace unless the test allows late submission (Table 7.40.3)",
+                      name: "responseExpectedOf: inside a candidate session (QTI 3.0.1 §2.2.1), of a member shown (§2.3), arriving, by the database's stamp, within its time and the in-flight grace unless the test allows late submission (Table 7.40.3)",
                     },
                     suite: "ledger/results/responses",
                   },
@@ -4507,6 +4850,43 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the showings held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "refuses a save of a member never shown, submits every shown member at a simultaneous part's end, and holds a shown human-scored essay for its score",
+          (ctx) =>
+            Effect.gen(function* holdEveryShownCase() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "each sequence of presentations and saves of the shown test's human-scored essay, then its end, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<ShownSituation>(shownSituations),
+                    generator: shownSpace,
+                    literal: (c: ShownCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "shownExpectedOf: a save is of a member shown (§2.2.1, §2.3), the end of a simultaneous part submits every shown member and none never shown (Tables 5.159.5, 7.19.6, 5.115), and an attempt of a human-scored outcome is pendingExternalScoring (Results Reporting Table 2.7.7)",
+                    },
+                    suite: "ledger/results/shown",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdShown(row, `user_ledgershown${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the shown members held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
 

@@ -3616,7 +3616,9 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
 
   /**
    * A response given and not submitted: a `save` snapshot with its values, which the delivery
-   * level's laws hold inside a candidate session and in time. QTI's suspended values: "An item
+   * level's laws hold inside a candidate session, in time, and to a member the candidate was shown
+   * ("Shown before saved", `#ledger/test-laws.ts`), so a save of a member never presented is
+   * refused, naming it, never stored for the end to drop. QTI's suspended values: "An item
    * session that enters the suspended state may have values for the response variables that have
    * yet to be submitted for response processing" (§2.2.4). The latest save of an item session is
    * its responses now: what a reopened item restores and what the end of a simultaneous part

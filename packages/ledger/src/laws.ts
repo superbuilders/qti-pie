@@ -337,6 +337,9 @@ export const ledgerLaws = {
   "Settable kind": {
     source: `${info}#Abstract_TemplateRuleGroup (TemplateRuleGroup: a template value a template variable, qti-set-correct-response 'The response variable to have its correct value set' (Table 6.51.5), qti-set-default-value 'The response variable or outcome variable to have its default value set' (Table 6.51.4)): what template processing set names a variable of the kind its rule sets (src/ledger.ts settable)`,
   },
+  "Shown before saved": {
+    source: `${info}#Main2p2 (§2.2.1: 'The initial state of an item session represents the state after it has been determined that the item will be delivered to the candidate but before the delivery has taken place'; §2.3: 'The body must be presented to the candidate when the associated item session is in the interacting state. In this state, the candidate must be able to interact with each of the visible interactions and therefore set or update the values of the associated response variables'): a save is of a member the candidate was shown, in any part (src/test-laws.ts)`,
+  },
   "Single value": {
     source: `${info}#Enumerated_CardinalityEnum (§8.17, CardinalityEnum: 'single' - 'a cardinality of single i.e. a single value'): a single variable's sidecar holds one row a variable, its value (src/ledger.ts: 'a single value')`,
   },

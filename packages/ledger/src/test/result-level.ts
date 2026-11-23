@@ -142,6 +142,7 @@ const {
   PresentTime,
   ProcessedAttempt,
   SessionSeed,
+  SittingFinal,
   SnapshotMultipleIdentifier,
   SnapshotSingleBoolean,
   SnapshotSingleFloat,
@@ -897,6 +898,16 @@ const startsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The child's final sittings (`SittingFinal`), each by its stage: an ended sitting none of whose
+ * attempts waits for its response processing or an external score.
+ */
+const finalsOf = query(ResultLevel).rule((r) => {
+  const { stage } = v(SittingFinal, "final");
+
+  return r.match(SittingFinal, { child: r.param("child", LearnerId), stage }).find({ stage });
+});
+
+/**
  * The tests of the call's package this runtime delivers (`DeliveredTest`), by their path.
  */
 const deliveredTestsOf = query(ResultLevel).rule((r) => {
@@ -933,6 +944,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       }),
       evaluate,
       facts,
+      finalsOf,
       finishTest: ChangeSet.sequence(sittingPrograms.endTest, finishTestOf(ResultLevel)).bind({
         sittings: namedSitting,
       }),
