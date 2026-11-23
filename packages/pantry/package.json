@@ -42,7 +42,8 @@
     "fetch-specs": "node src/test/spec-cache/fetch.ts",
     "grizzle": "grizzle",
     "grizzle:check": "grizzle check grizzle.config.ts",
-    "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run"
+    "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run",
+    "plan-budget": "plan-budget"
   },
   "dependencies": {
     "@bjornpagen/grizzle": "workspace:*",
@@ -57,6 +58,7 @@
   "devDependencies": {
     "@bjornpagen/devtools": "workspace:*",
     "@effect/vitest": "catalog:",
+    "@qti-pie/plan-budget": "workspace:*",
     "@qti-pie/plate": "workspace:*",
     "@types/pg": "catalog:",
     "oxfmt": "catalog:",

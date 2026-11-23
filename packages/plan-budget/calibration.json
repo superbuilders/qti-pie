@@ -1,0 +1,302 @@
+{
+  "budgetMs": 100,
+  "ceilingKb": 45463,
+  "conditions": "postgres@edullm-planbudget (PostgreSQL 19.0 aarch64, localhost:5493), no other client during the runs (pg_stat_activity checked before each round); the runs in edullm.slice, not priority.slice; cassowary, 64 cores shared by many jobs, load 261 to 391; 2026-11-23 12:42 to 12:50 UTC",
+  "exponent": 0.6518108549768827,
+  "loads": {
+    "least": 260.78,
+    "most": 390.83
+  },
+  "msAtOneMb": 8.437865096613244,
+  "points": [
+    {
+      "action": "author_app.author.packageOf",
+      "coldCpuMs": 1.402724,
+      "coldKb": 40,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.budgetsOf",
+      "coldCpuMs": 1.707105,
+      "coldKb": 64,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.attemptsOf",
+      "coldCpuMs": 1.799689,
+      "coldKb": 75,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.completionsOf",
+      "coldCpuMs": 1.907254,
+      "coldKb": 84,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.snapshotBooleansOf",
+      "coldCpuMs": 1.768171,
+      "coldKb": 84,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.snapshotStringsOf",
+      "coldCpuMs": 1.831719,
+      "coldKb": 84,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.snapshotFloatsOf",
+      "coldCpuMs": 1.882442,
+      "coldKb": 85,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.snapshotIdentifiersOf",
+      "coldCpuMs": 1.962195,
+      "coldKb": 86,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.snapshotIdentifierBagsOf",
+      "coldCpuMs": 1.782264,
+      "coldKb": 89,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.takenHeadersOf",
+      "coldCpuMs": 2.181424,
+      "coldKb": 93,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.takenIdentifiersOf",
+      "coldCpuMs": 2.214211,
+      "coldKb": 98,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.takenIntegersOf",
+      "coldCpuMs": 2.339044,
+      "coldKb": 98,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.adminGate",
+      "coldCpuMs": 2.56577,
+      "coldKb": 294,
+      "runs": 3
+    },
+    {
+      "action": "author_app.author.entriesOf",
+      "coldCpuMs": 3.212881,
+      "coldKb": 324,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.mediaDigests",
+      "coldCpuMs": 4.711991,
+      "coldKb": 565,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.recordVerifiedSignIn",
+      "coldCpuMs": 5.339107,
+      "coldKb": 941,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.floatsOf",
+      "coldCpuMs": 6.459989,
+      "coldKb": 1153,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.durationsOf",
+      "coldCpuMs": 11.811875,
+      "coldKb": 2818,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.contentCourse",
+      "coldCpuMs": 17.303576,
+      "coldKb": 3225,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.decideStage",
+      "coldCpuMs": 17.995385000000002,
+      "coldKb": 4448,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.statusesOf",
+      "coldCpuMs": 15.089685,
+      "coldKb": 5326,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.contentItem",
+      "coldCpuMs": 29.934339,
+      "coldKb": 7899,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.contentPackages",
+      "coldCpuMs": 27.133917,
+      "coldKb": 8529,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.servedItem",
+      "coldCpuMs": 39.465248,
+      "coldKb": 8968,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.latestDecision",
+      "coldCpuMs": 39.513831,
+      "coldKb": 9299,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.contentPackage",
+      "coldCpuMs": 29.506329,
+      "coldKb": 10433,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.drawsOf",
+      "coldCpuMs": 30.185427,
+      "coldKb": 10442,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.creditsOf",
+      "coldCpuMs": 36.521499,
+      "coldKb": 13433,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.deliveredTestsOf",
+      "coldCpuMs": 41.662917,
+      "coldKb": 16989,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.contentPlay",
+      "coldCpuMs": 62.370476,
+      "coldKb": 20440,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.applicationsOf",
+      "coldCpuMs": 69.573207,
+      "coldKb": 22570,
+      "runs": 3
+    },
+    {
+      "action": "app.learner.recordAttempt",
+      "coldCpuMs": 39.456466,
+      "coldKb": 22604,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.maximaOf",
+      "coldCpuMs": 70.506795,
+      "coldKb": 24462,
+      "runs": 3
+    },
+    {
+      "action": "author_app.author.documentScan",
+      "coldCpuMs": 54.49531700000001,
+      "coldKb": 30052,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.awaitingOf",
+      "coldCpuMs": 103.868427,
+      "coldKb": 31946,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.operandsOf",
+      "coldCpuMs": 447.130116,
+      "coldKb": 46393,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.beaconTest",
+      "coldCpuMs": 78.46569600000001,
+      "coldKb": 59013,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.presentItem",
+      "coldCpuMs": 136.569047,
+      "coldKb": 126128,
+      "runs": 3
+    },
+    {
+      "action": "publisher_app.publisher.sets",
+      "coldCpuMs": 290.139436,
+      "coldKb": 155693,
+      "runs": 3
+    },
+    {
+      "action": "publisher_app.publisher.versions",
+      "coldCpuMs": 293.556275,
+      "coldKb": 163544,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.suspendTest",
+      "coldCpuMs": 213.899342,
+      "coldKb": 170677,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.endTest",
+      "coldCpuMs": 222.86380500000004,
+      "coldKb": 179821,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.pauseTest",
+      "coldCpuMs": 273.632998,
+      "coldKb": 211123,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.takeRunIntegersOf",
+      "coldCpuMs": 590.038377,
+      "coldKb": 252617,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.enterTest",
+      "coldCpuMs": 258.95516599999996,
+      "coldKb": 273465,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.enterTimedTest",
+      "coldCpuMs": 249.74098,
+      "coldKb": 275951,
+      "runs": 3
+    },
+    {
+      "action": "result_suite.result_runner.saveTestItem",
+      "coldCpuMs": 904.359827,
+      "coldKb": 426233,
+      "runs": 1
+    }
+  ],
+  "r2": 0.9675468722510218,
+  "residualFactor": {
+    "p05": 0.6619694501857235,
+    "p50": 1.0057545624065478,
+    "p95": 1.9293460119046544
+  },
+  "unequalMemory": []
+}

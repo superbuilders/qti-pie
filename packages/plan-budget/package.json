@@ -1,0 +1,36 @@
+{
+  "name": "@qti-pie/plan-budget",
+  "private": true,
+  "description": "The planning budget's two checks over any grizzle composition, as a test on a scratch installation with realistic data, never a grizzle feature: every served statement's and every armed commit-time judge's cold generic plan held to a planner-memory ceiling calibrated from the 100 ms bar, and each student action timed on a fresh connection at 1x, 10x and 100x data, failing over 100 ms of database time or when the pages it touches grow with stored rows beyond the child's own.",
+  "license": "MIT",
+  "bin": {
+    "plan-budget": "./src/main.ts"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "imports": {
+    "#plan-budget/*": "./src/*"
+  },
+  "exports": {
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "toolchain-typecheck",
+    "test": "mkdir -p work/.vp-tmp && TMPDIR=\"$PWD/work/.vp-tmp\" NODE_OPTIONS=\"$NODE_OPTIONS --disable-proto=delete --disable-sigusr1\" vitest run"
+  },
+  "dependencies": {
+    "@bjornpagen/grizzle": "workspace:*",
+    "@bjornpagen/grizzle-engine": "workspace:*",
+    "@effect/platform-node": "catalog:",
+    "effect": "catalog:",
+    "pg": "catalog:"
+  },
+  "devDependencies": {
+    "@bjornpagen/devtools": "workspace:*",
+    "@bjornpagen/testing": "workspace:*",
+    "@effect/vitest": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "vitest": "catalog:"
+  }
+}

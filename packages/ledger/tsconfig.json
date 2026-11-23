@@ -5,5 +5,5 @@
     "types": ["node", "react/experimental"],
     "jsx": "react-jsx"
   },
-  "include": ["src", "tools", "vite.config.ts", "grizzle.result.config.ts"]
+  "include": ["src", "tools", "budget", "vite.config.ts", "grizzle.result.config.ts"]
 }

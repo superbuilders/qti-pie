@@ -16,7 +16,8 @@
     "typecheck": "toolchain-typecheck",
     "test": "vitest run",
     "generate": "node tools/gen/main.ts",
-    "generate:check": "node tools/gen/main.ts --check"
+    "generate:check": "node tools/gen/main.ts --check",
+    "plan-budget": "node --disable-proto=delete --disable-sigusr1 budget/plan-budget.ts"
   },
   "dependencies": {
     "@bjornpagen/grizzle": "workspace:*",
@@ -30,6 +31,7 @@
     "@bjornpagen/testing": "workspace:*",
     "@effect/platform-node": "catalog:",
     "@effect/vitest": "catalog:",
+    "@qti-pie/plan-budget": "workspace:*",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
     "@types/react": "catalog:",

@@ -217,6 +217,9 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.1.4(effect@4.1.4)(vitest@5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)))
+      '@qti-pie/plan-budget':
+        specifier: workspace:*
+        version: link:../plan-budget
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -269,6 +272,9 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.1.4(effect@4.1.4)(vitest@5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)))
+      '@qti-pie/plan-budget':
+        specifier: workspace:*
+        version: link:../plan-budget
       '@qti-pie/plate':
         specifier: workspace:*
         version: link:../plate
@@ -278,6 +284,43 @@ importers:
       oxfmt:
         specifier: 'catalog:'
         version: 0.79.0
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/plan-budget:
+    dependencies:
+      '@bjornpagen/grizzle':
+        specifier: workspace:*
+        version: link:../../vendor/grizzle/packages/grizzle
+      '@bjornpagen/grizzle-engine':
+        specifier: workspace:*
+        version: link:../../vendor/grizzle/packages/engine
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.1.4(effect@4.1.4)(redis@6.3.1)
+      effect:
+        specifier: 'catalog:'
+        version: 4.1.4
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+    devDependencies:
+      '@bjornpagen/devtools':
+        specifier: workspace:*
+        version: link:../../vendor/toolchain/packages/devtools
+      '@bjornpagen/testing':
+        specifier: workspace:*
+        version: link:../../vendor/toolchain/packages/testing
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.1.4(effect@4.1.4)(vitest@5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)))
+      '@types/node':
+        specifier: 26.6.6
+        version: 26.6.6
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
       vitest:
         specifier: 'catalog:'
         version: 5.1.1(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
