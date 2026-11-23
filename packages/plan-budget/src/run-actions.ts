@@ -89,7 +89,14 @@ export interface ActionVerdict {
   readonly slope: number;
   readonly byScale: readonly {
     readonly scale: number;
+    /**
+     * The first fresh connection's CPU at the scale: the bar's number.
+     */
     readonly cpuMs: number;
+    /**
+     * The least CPU of the scale's repeats, beside it.
+     */
+    readonly leastCpuMs: number;
     readonly pages: number;
     readonly wallMs: number;
     readonly waits: Readonly<Record<string, number>>;
@@ -135,9 +142,10 @@ export interface MeasuredAt {
 }
 
 /**
- * An action's verdict over the scales it was measured at: at each, the least CPU, pages and wall
- * time of its repeats; over them, the pages' log-log slope; a reason for every scale over its bar
- * and for a slope past the descents' bound.
+ * An action's verdict over the scales it was measured at: at each, the first fresh connection's
+ * CPU, the bar's number (edullm-bd, 2026-11-23), with the least of its repeats beside it, and the
+ * least pages and wall time; over them, the pages' log-log slope; a reason for every scale whose
+ * first connection is over its bar and for a slope past the descents' bound.
  *
  * @param action - The action, by its name and bar.
  * @param records - Every record measured, of any action.
@@ -153,7 +161,8 @@ export const verdictOf = (
     const runs = records.filter((record) => record.action === action.name && record.size === scale);
 
     return {
-      cpuMs: Math.min(...runs.map(({ cpuMs }) => cpuMs)),
+      cpuMs: runs[0]?.cpuMs ?? Number.NaN,
+      leastCpuMs: Math.min(...runs.map(({ cpuMs }) => cpuMs)),
       pages: Math.min(...runs.map(({ pages }) => pages)),
       scale,
       waits: runs.at(-1)?.waits ?? {},

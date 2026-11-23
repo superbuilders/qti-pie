@@ -234,7 +234,7 @@ const verdicts = (files: readonly string[], bars: readonly string[]) =>
 
     for (const verdict of judged) {
       yield* Effect.logInfo(
-        `${verdict.verdict === "pass" ? "pass" : "FAIL"} ${verdict.action}: slope ${verdict.slope.toFixed(2)}; ${verdict.byScale.map(({ cpuMs, pages, scale }) => `${String(scale)}x ${cpuMs.toFixed(1)} ms ${String(pages)} pages`).join(", ")}; ${verdict.reasons.join("; ") || "within its bar, flat"}`,
+        `${verdict.verdict === "pass" ? "pass" : "FAIL"} ${verdict.action}: slope ${verdict.slope.toFixed(2)}; ${verdict.byScale.map(({ cpuMs, leastCpuMs, pages, scale }) => `${String(scale)}x ${cpuMs.toFixed(1)} ms (least ${leastCpuMs.toFixed(1)}) ${String(pages)} pages`).join(", ")}; ${verdict.reasons.join("; ") || "within its bar, flat"}`,
       );
     }
 
@@ -247,7 +247,7 @@ const verdicts = (files: readonly string[], bars: readonly string[]) =>
         composition: values.composition,
         failing: failed.map(({ action, byScale, reasons, slope }) => ({
           action,
-          reason: `${reasons.join("; ")} (least CPU and pages: ${byScale.map(({ cpuMs, pages, scale }) => `${String(scale)}x ${cpuMs.toFixed(0)} ms, ${String(pages)} pages`).join("; ")}; slope ${slope.toFixed(2)})`,
+          reason: `${reasons.join("; ")} (first connection's CPU, least of the repeats, pages: ${byScale.map(({ cpuMs, leastCpuMs, pages, scale }) => `${String(scale)}x ${cpuMs.toFixed(0)} ms, ${leastCpuMs.toFixed(0)} ms, ${String(pages)} pages`).join("; ")}; slope ${slope.toFixed(2)})`,
         })),
         load: loadNow(),
         measured: judged.length,
