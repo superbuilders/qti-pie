@@ -207,7 +207,6 @@ export const deliveryOf = (ledger: LedgerLevel) => {
     DeliverableTest,
     ItemMode,
     ItemSession,
-    LateSubmission,
     MaxAttempts,
     MaxTime,
     Node,
@@ -234,44 +233,10 @@ export const deliveryOf = (ledger: LedgerLevel) => {
    * with template processing.
    */
   /**
-   * The elements a delivered test's time limits may stand on, by their place: its root, and its one
-   * part (Table 7.40, "Parents: AssessmentItemRef, AssessmentSection, AssessmentTest, TestPart"). A
-   * delivered test times at most one of the two, and for a test of one part the two scopes time the
-   * same span: "the time limits relate to the durations of all the item sessions plus any other
-   * time spent navigating that part of the test" (§2.8.5).
+   * The elements a delivered test's time limits may stand on, and the tests that allow late
+   * submission, the Ledger's (`TimingScope`, `LateTest`).
    */
-  const timingScopes = query(ledger)
-    .rule((r) => {
-      const { package: pkg, path, start } = v(TestRoot, "timingRoot");
-
-      return r
-        .match(TestRoot, { package: pkg, path, start })
-        .find({ package: pkg, path, scope: start });
-    })
-    .rule((r) => {
-      const { package: pkg, path, start } = v(TestPart, "timingPart");
-
-      return r
-        .match(TestPart, { package: pkg, path, start })
-        .find({ package: pkg, path, scope: start });
-    });
-
-  const TimingScope = derived("TimingScope", timingScopes);
-
-  /**
-   * The tests whose time limits allow late submission, at their root or their part (Table 7.40.3,
-   * default false).
-   */
-  const lateTests = query(ledger).rule((r) => {
-    const { package: pkg, path, scope } = v(timingScopes, "lateScope");
-
-    return r
-      .match(timingScopes, { package: pkg, path, scope })
-      .match(LateSubmission, { package: pkg, path, scope })
-      .find({ package: pkg, path });
-  });
-
-  const LateTest = derived("LateTest", lateTests);
+  const { LateTest, TimingScope } = ledger.relations;
 
   /**
    * Each member's item-session control in force, by the nearest scope, and the item refs whose own
@@ -339,11 +304,11 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .find({ package: pkg, path });
     })
     .rule((r) => {
-      const { package: pkg, path, scope: start } = v(timingScopes, "undeliveredScope");
+      const { package: pkg, path, scope: start } = v(TimingScope, "undeliveredScope");
       const { seconds } = v(MaxTime, "undeliveredLimit");
 
       return r
-        .match(timingScopes, { package: pkg, path, scope: start })
+        .match(TimingScope, { package: pkg, path, scope: start })
         .match(MaxTime, { package: pkg, path, scope: start, seconds })
         .where(r.or(r.lt(seconds, 0), r.gt(seconds, longestMaxTime)))
         .find({ package: pkg, path });
@@ -958,7 +923,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .match(TestVisit, { at: began, child, k, stage })
         .match(TestSuspension, { child, k, stage })
         .match(lastPresences, { at: last, child, k, stage })
-        .where(r.not(lateTests, { package: pkg, path }))
+        .where(r.not(LateTest, { package: pkg, path }))
         .find({
           child,
           k,
@@ -990,7 +955,7 @@ export const deliveryOf = (ledger: LedgerLevel) => {
         .match(SnapshotGiven, { at, child, n, package: pkg, path })
         .match(TestBudget, { child, k, remaining, stage })
         .match(TestSession, { child, package: testPackage, path: test, stage })
-        .where(r.not(lateTests, { package: testPackage, path: test }))
+        .where(r.not(LateTest, { package: testPackage, path: test }))
         .find({
           arrived: Num.sub(Num.sub(Type.base(at), inFlightGraceMicros), Type.base(began)),
           at,
@@ -1178,8 +1143,6 @@ export const deliveryOf = (ledger: LedgerLevel) => {
   const deliveryRelations = [
     DeliveredTest,
     ItemDuration,
-    TimingScope,
-    LateTest,
     ValidatedMember,
     UnlimitedMember,
     UndeliveredSitting,

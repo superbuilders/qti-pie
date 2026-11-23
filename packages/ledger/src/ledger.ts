@@ -336,6 +336,7 @@ export const ledgerOf = (qti: RegistryLevel) => {
     TableRole,
     TypedDeclarationName,
   } = qti.relations;
+  const { LateSubmission, TestPart, TestRoot } = qti.relations;
 
   /**
    * QTI's typed item variables (§2.2.2): every variable an item declares with a base type, by its
@@ -457,6 +458,51 @@ export const ledgerOf = (qti: RegistryLevel) => {
           .find({ declarationKind, identifier, package: pkg, path });
       }),
   );
+
+  /**
+   * The elements a delivered test's time limits may stand on, by their place: its root, and its one
+   * part (Table 7.40, "Parents: AssessmentItemRef, AssessmentSection, AssessmentTest, TestPart"). A
+   * delivered test times at most one of the two, and for a test of one part the two scopes time the
+   * same span: "the time limits relate to the durations of all the item sessions plus any other
+   * time spent navigating that part of the test" (§2.8.5).
+   */
+  const timingScopes = query(qti)
+    .rule((r) => {
+      const { package: pkg, path, start } = v(TestRoot, "timingRoot");
+
+      return r
+        .match(TestRoot, { package: pkg, path, start })
+        .find({ package: pkg, path, scope: start });
+    })
+    .rule((r) => {
+      const { package: pkg, path, start } = v(TestPart, "timingPart");
+
+      return r
+        .match(TestPart, { package: pkg, path, start })
+        .find({ package: pkg, path, scope: start });
+    });
+
+  const TimingScope = derived("TimingScope", timingScopes);
+
+  /**
+   * The tests whose time limits allow late submission, at their root or their part (Table 7.40.3,
+   * default false).
+   */
+  const lateTests = query(qti).rule((r) => {
+    const { package: pkg, path, scope } = v(timingScopes, "lateScope");
+
+    return r
+      .match(timingScopes, { package: pkg, path, scope })
+      .match(LateSubmission, { package: pkg, path, scope })
+      .find({ package: pkg, path });
+  });
+
+  /**
+   * {@link lateTests} stored: a test's content, known once its package is published, which the
+   * learner part's judge reads at every timed response's COMMIT ("Response in time", "Suspended in
+   * time"), so it reads the table, never the timing scopes again.
+   */
+  const LateTest = derived.stored("LateTest", lateTests);
 
   /**
    * QTI's outcome declarations a candidate sees, by the document's place `(package, path)` and the
@@ -2735,6 +2781,8 @@ export const ledgerOf = (qti: RegistryLevel) => {
       AdmissionCode,
       ItemSession,
       SessionSeed,
+      TimingScope,
+      LateTest,
       StageControl,
       ProgramNodeKind,
       DeclarationNodeKind,
