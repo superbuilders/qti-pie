@@ -14415,9 +14415,9 @@ export const programOf = fn("programOf", {
     from unnest(attributes) y group by y.start
   ),
   n as (
-    select width_bucket(x.start, o.starts) as start, width_bucket(x."end" - 1, o.starts) + 1 as "end",
-      width_bucket(x.parent, o.starts) as parent, x.kind, t.text as txt, a.*
-    from unnest(nodes) x cross join o left join unnest(texts) t on t.start = x.start left join a on a.owner_start = x.start
+    select width_bucket(x.start, (select o.starts from o)) as start, width_bucket(x."end" - 1, (select o.starts from o)) + 1 as "end",
+      width_bucket(x.parent, (select o.starts from o)) as parent, x.kind, t.text as txt, a.*
+    from unnest(nodes) x left join unnest(texts) t on t.start = x.start left join a on a.owner_start = x.start
   ),
   declared as (
     select trim_xml(t => y.value) as identifier from unnest(declarations) d
@@ -14963,10 +14963,10 @@ export const repliesOf = fn("repliesOf", {
   },
   body: fn.body`
   with o as (select array_agg(x.start order by x.start) as starts from unnest(nodes) x)
-  select f.field, width_bucket(f.start, o.starts), s_float(base => 'float', f => f.value) from o, unnest(reply_floats) f
+  select f.field, width_bucket(f.start, (select o.starts from o)), s_float(base => 'float', f => f.value) from unnest(reply_floats) f
   where (f.child, f.package, f.path, f.stage) = ((run).child, (run).package, (run).path, (run).stage)
   union all
-  select t.field, width_bucket(t.start, o.starts), s_text(base => t.base, t => t.value) from o, unnest(reply_texts) t
+  select t.field, width_bucket(t.start, (select o.starts from o)), s_text(base => t.base, t => t.value) from unnest(reply_texts) t
   where (t.child, t.package, t.path, t.stage) = ((run).child, (run).package, (run).path, (run).stage)
 `,
   calls: [sText, sFloat],
