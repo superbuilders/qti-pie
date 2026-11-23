@@ -1304,51 +1304,60 @@ $$;
 create function p3.literal_parts(v p3.val) returns setof p3.segment language sql immutable as $$
   select i::integer, (v.vals[i]).t from generate_subscripts(v.vals, 1) i
 $$;
-create function p3.custom_value(inp p3.inputs, operator_class text, ops p3.val[], start integer) returns p3.val language plpgsql immutable as $$
+create function p3.custom_value(drawn integer, inp p3.inputs, operator_class text, ops p3.val[], start integer) returns p3.evaluation language plpgsql immutable as $$
 declare t text := case when cardinality((ops[1]).vals) = 0 then null else ((ops[1]).vals[1]).t end;
-  q quantity; nr near; f float8; d integer; acc single[];
+  q quantity; nr near; f float8; d integer; acc single[]; v val; demanded application[] := '{}';
 begin
-  if cardinality((ops[1]).vals) = 0 then return v_null(); end if;
-  case operator_class
-  when 'normalize-space' then return string_val(t => normalize_space(t => t));
-  when 'markup-text' then return string_val(t => markup_text(t => t));
-  when 'when-present' then return when_present(probe => ops[1], value => ops[2]);
-  when 'tex-normal' then return string_val(t => tex_normal(input => t));
-  when 'numeral-normal' then return string_val(t => numeral_normal(input => t));
-  when 'read-number' then
-    f := read_number(t => t);
-    return row('single', case when f is null then '{}'::single[] else array[s_float(base => 'float', f => f)] end)::val;
-  when 'tokenize' then
-    return row('ordered', array(select s_text(base => 'string', t => p.t) from tokenized(t => t, separator => ((ops[2]).vals[1]).t) p order by p.place))::val;
-  when 'translate' then return string_val(t => translated(t => t, from_points => ((ops[2]).vals[1]).t, to_points => ((ops[3]).vals[1]).t));
-  when 'math-canonical' then return string_val(t => math_canonical(input => t, reduce => coalesce(((ops[2]).vals[1]).b, true)));
-  when 'quantity' then
-    q := quantity_of(t => t, spellings => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'unit-spellings') p),
-      letters => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'letter-units') p));
-    if q is null then return v_null(); end if;
-    return row('record', array[s_field(s => s_float(base => 'float', f => q.value), field => 'value')]
-      || case when q.unit is null then '{}'::single[] else array[s_field(s => s_text(base => 'identifier', t => q.unit), field => 'unit')] end
-      || case when q.rest is null then '{}'::single[] else array[s_field(s => s_text(base => 'string', t => q.rest), field => 'rest')] end)::val;
-  when 'unit-near' then
-    nr := unit_near(t => t, words => array(select p from literal_parts(v => ops[2]) p), spellings => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'unit-spellings') p),
-      targets => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'typo-targets') w), competitors => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'competitors') w),
-      glue => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'glue-words') w));
-    if nr is null then return v_null(); end if;
-    return row('record', case when nr.unit is null then '{}'::single[] else array[s_field(s => s_text(base => 'identifier', t => nr.unit), field => 'unit')] end
-      || array[s_field(s => s_int(n => nr.distance), field => 'distance')])::val;
-  when 'phrase-distance' then
-    d := phrase_distance(t => t, phrases => array(select p from literal_parts(v => ops[2]) p), words => array(select p from literal_parts(v => ops[3]) p),
-      plurals => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'plurals') p), ie_plurals => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'ie-plurals') w),
-      never_plural => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'never-plural') w), spellings => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'unit-spellings') p),
-      unit_words => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'unit-words') w), contrast => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'contrast-words') w),
-      operation => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'operation-words') w), stop_words => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'stop-words') w),
-      verbs => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'verbs') w));
-    return row('single', case when d is null then '{}'::single[] else array[s_int(n => d)] end)::val;
-  -- rubric-score (spec/custom-operators.md §3.3-§5): the attempt's recorded reply, read from the inputs. The statement
-  -- passes the ledger's OperatorReply rows for the attempt, keyed by the operator's start, and none where there is no
-  -- reply (none yet, or a decline).
-  when 'rubric-score' then
-    acc := array(select s_field(s => r.value, field => r.field) from unnest(inp.replies) r where r.start = custom_value.start order by r.field);
-    return case when cardinality(acc) = 0 then v_null() else row('record', acc)::val end;
-  end case;
+  if cardinality((ops[1]).vals) = 0 then v := v_null();
+  else
+    case operator_class
+    when 'normalize-space' then v := string_val(t => normalize_space(t => t));
+    when 'markup-text' then v := string_val(t => markup_text(t => t));
+    when 'when-present' then v := when_present(probe => ops[1], value => ops[2]);
+    when 'tex-normal' then v := string_val(t => tex_normal(input => t));
+    when 'numeral-normal' then v := string_val(t => numeral_normal(input => t));
+    when 'read-number' then
+      f := read_number(t => t);
+      v := row('single', case when f is null then '{}'::single[] else array[s_float(base => 'float', f => f)] end)::val;
+    when 'tokenize' then
+      v := row('ordered', array(select s_text(base => 'string', t => p.t) from tokenized(t => t, separator => ((ops[2]).vals[1]).t) p order by p.place))::val;
+    when 'translate' then v := string_val(t => translated(t => t, from_points => ((ops[2]).vals[1]).t, to_points => ((ops[3]).vals[1]).t));
+    when 'math-canonical' then v := string_val(t => math_canonical(input => t, reduce => coalesce(((ops[2]).vals[1]).b, true)));
+    when 'quantity' then
+      q := quantity_of(t => t, spellings => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'unit-spellings') p),
+        letters => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'letter-units') p));
+      v := case when q is null then v_null()
+        else row('record', array[s_field(s => s_float(base => 'float', f => q.value), field => 'value')]
+          || case when q.unit is null then '{}'::single[] else array[s_field(s => s_text(base => 'identifier', t => q.unit), field => 'unit')] end
+          || case when q.rest is null then '{}'::single[] else array[s_field(s => s_text(base => 'string', t => q.rest), field => 'rest')] end)::val end;
+    when 'unit-near' then
+      nr := unit_near(t => t, words => array(select p from literal_parts(v => ops[2]) p), spellings => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'unit-spellings') p),
+        targets => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'typo-targets') w), competitors => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'competitors') w),
+        glue => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'glue-words') w));
+      v := case when nr is null then v_null()
+        else row('record', case when nr.unit is null then '{}'::single[] else array[s_field(s => s_text(base => 'identifier', t => nr.unit), field => 'unit')] end
+          || array[s_field(s => s_int(n => nr.distance), field => 'distance')])::val end;
+    when 'phrase-distance' then
+      d := phrase_distance(t => t, phrases => array(select p from literal_parts(v => ops[2]) p), words => array(select p from literal_parts(v => ops[3]) p),
+        plurals => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'plurals') p), ie_plurals => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'ie-plurals') w),
+        never_plural => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'never-plural') w), spellings => array(select p from bound_pairs(inp => inp, operator_class => operator_class, table_role => 'unit-spellings') p),
+        unit_words => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'unit-words') w), contrast => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'contrast-words') w),
+        operation => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'operation-words') w), stop_words => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'stop-words') w),
+        verbs => array(select w from bound_words(inp => inp, operator_class => operator_class, table_role => 'verbs') w));
+      v := row('single', case when d is null then '{}'::single[] else array[s_int(n => d)] end)::val;
+    -- rubric-score (spec/custom-operators.md §3.3-§5), the one place a recorded application is recognized: where the
+    -- attempt's evaluator has evaluated it (the inputs' `evaluated`, the ledger's OperatorEvaluation), its recorded
+    -- reply, read from the inputs (the ledger's OperatorReply rows for the attempt, keyed by the operator's start), NULL
+    -- for a decline, which has none; where it has not, its request: the run demands it, and its value is NULL until a
+    -- later run reads its evaluation. A NULL response makes no request (above).
+    when 'rubric-score' then
+      if exists (select from unnest(inp.evaluated) e where e.start = custom_value.start) then
+        acc := array(select s_field(s => r.value, field => r.field) from unnest(inp.replies) r where r.start = custom_value.start order by r.field);
+        v := case when cardinality(acc) = 0 then v_null() else row('record', acc)::val end;
+      else
+        demanded := array[row(custom_value.start)::application]; v := v_null();
+      end if;
+    end case;
+  end if;
+  return row(v.card, demanded, drawn, v.vals)::evaluation;
 end $$;

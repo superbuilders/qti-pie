@@ -61,9 +61,14 @@ create type p3.doc_field_file_name as (child text collate pg_catalog.pg_c_utf8, 
 -- How a run ended: exit or run (a template constraint's restart never ends one), and the draw stream's
 -- position after it.
 create type p3.doc_end as (child text collate pg_catalog.pg_c_utf8, drawn integer, flow text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, stage bigint);
--- A call's result: every run's values after it, by base type, and how each run ended. A field of rows alone,
--- so a statement reads each as a source (FNNEST, Compute.rowOf).
-create type p3.doc_values as (bases p3.doc_base[], booleans p3.doc_boolean[], directed_pairs p3.doc_directed_pair[], ends p3.doc_end[],
+-- A recorded application a response processing run reached with a response and could not evaluate (rubric-score's
+-- request), by its run and its operator element's start in the stored tree: a run that demands any returns its demands
+-- alone, so nothing of its attempt is written and the attempt waits for their evaluations.
+create type p3.doc_demand as (child text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, stage bigint, start bigint);
+-- A call's result: every run's values after it, by base type, and how each run ended; a response processing run that
+-- demanded recorded applications gives its demands alone. A field of rows alone, so a statement reads each as a source
+-- (FNNEST, Compute.rowOf).
+create type p3.doc_values as (bases p3.doc_base[], booleans p3.doc_boolean[], demands p3.doc_demand[], directed_pairs p3.doc_directed_pair[], ends p3.doc_end[],
   field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
   field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
   field_texts p3.doc_field_text[], file_names p3.doc_file_name[], files p3.doc_file[],
@@ -78,3 +83,7 @@ create type p3.copy as (place bigint);
 -- type. A recorded decline, and a request with no reply yet, have no row (the statement's gate holds the latter pending).
 create type p3.doc_reply_float as (child text collate pg_catalog.pg_c_utf8, field text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, stage bigint, start bigint, value float8);
 create type p3.doc_reply_text as (base text collate pg_catalog.pg_c_utf8, child text collate pg_catalog.pg_c_utf8, field text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, stage bigint, start bigint, value text collate pg_catalog.pg_c_utf8);
+-- A recorded application of an attempt that has its evaluation, replied or declined (the ledger's OperatorEvaluation), by
+-- the run its attempt is and its operator element's start in the stored tree: what response processing reads as the
+-- run's evaluated applications, so it demands none twice and a declined one's value is NULL.
+create type p3.doc_evaluation as (child text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, stage bigint, start bigint);
