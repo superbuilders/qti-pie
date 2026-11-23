@@ -632,6 +632,38 @@ export const Program = rows({
   weights: PWeight,
 });
 
+export const WalkNode = rows({
+  any_ns: PAnyN,
+  areas: PArea,
+  bases: PBase,
+  categories: PCategory,
+  constants: PConstant,
+  customs: PCustom,
+  end: pg.integer,
+  equals: PEqual,
+  fields: PField,
+  filters: PFilter,
+  franges: PFrange,
+  idents: PIdent,
+  ints: PInt,
+  kind: ProcessingKind,
+  literals: PLiteral,
+  maths: PMath,
+  parent: pg.integer,
+  patterns: PPattern,
+  ranges: PRange,
+  rounds: PRound,
+  sections: PSection,
+  start: pg.integer,
+  stats: PStat,
+  texts: PText,
+  weights: PWeight,
+});
+
+export const Walk = rows({
+  nodes: WalkNode,
+});
+
 export const Mapping = rows({
   dflt: pg["double precision"],
   identifier: anyText,
@@ -9664,14 +9696,75 @@ export const matches = fn("matches", {
   volatility: "immutable",
 });
 
-export const kids = fn("kids", {
-  args: { i: pg.integer, prog: row(Program) },
+export const walkOf = fn("walkOf", {
+  args: { prog: row(Program) },
   body: fn.body`
-declare j int := i + 1; base int := (prog.nodes[1]).start;
+  select row(array(select row(coalesce(an.v, '{}'), coalesce(ar.v, '{}'), coalesce(ba.v, '{}'), coalesce(ca.v, '{}'),
+      coalesce(co.v, '{}'), coalesce(cu.v, '{}'), nd."end", coalesce(eq.v, '{}'), coalesce(fi.v, '{}'),
+      coalesce(fl.v, '{}'), coalesce(fr.v, '{}'), coalesce(id.v, '{}'), coalesce(it.v, '{}'), nd.kind,
+      coalesce(li.v, '{}'), coalesce(ma.v, '{}'), nd.parent, coalesce(pa.v, '{}'), coalesce(ra.v, '{}'),
+      coalesce(ro.v, '{}'), coalesce(se.v, '{}'), nd.start, coalesce(st.v, '{}'), coalesce(te.v, '{}'),
+      coalesce(we.v, '{}'))::${WalkNode}
+    from unnest(prog.nodes) with ordinality as nd("end", kind, parent, start, place)
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.any_ns) x) s group by 1) an on an.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.areas) x) s group by 1) ar on ar.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.bases) x) s group by 1) ba on ba.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.categories) x) s group by 1) ca on ca.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.constants) x) s group by 1) co on co.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.customs) x) s group by 1) cu on cu.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.equals) x) s group by 1) eq on eq.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.fields) x) s group by 1) fi on fi.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.filters) x) s group by 1) fl on fl.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.franges) x) s group by 1) fr on fr.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.idents) x) s group by 1) id on id.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.ints) x) s group by 1) it on it.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.literals) x) s group by 1) li on li.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.maths) x) s group by 1) ma on ma.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.patterns) x) s group by 1) pa on pa.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.ranges) x) s group by 1) ra on ra.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.rounds) x) s group by 1) ro on ro.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.sections) x) s group by 1) se on se.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.stats) x) s group by 1) st on st.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.texts) x) s group by 1) te on te.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.weights) x) s group by 1) we on we.start = nd.start
+    order by nd.place))::${Walk}
+`,
+  calls: [],
+  language: "sql",
+  nullInput: "called",
+  returns: row(Walk),
+  volatility: "immutable",
+});
+
+export const kidsAt = fn("kidsAt", {
+  args: { i: pg.integer, walk: WalkNode },
+  body: fn.body`
+declare j int := i + 1; base int := (walk[1]).start;
 begin
-  while j <= cardinality(prog.nodes) and (prog.nodes[j]).start < (prog.nodes[i])."end" loop
+  while j <= cardinality(walk) and (walk[j]).start < (walk[i])."end" loop
     return next row(j)::${Child};
-    j := (prog.nodes[j])."end" - base + 1;
+    j := (walk[j])."end" - base + 1;
   end loop;
 end `,
   calls: [],
@@ -9734,8 +9827,8 @@ end `,
 });
 
 export const ident = fn("ident", {
-  args: { prog: row(Program), s: pg.integer },
-  body: fn.body` select p.identifier from unnest(prog.idents) p where p.start = s `,
+  args: { nd: row(WalkNode) },
+  body: fn.body` select p.identifier from unnest(nd.idents) p `,
   calls: [],
   language: "sql",
   nullInput: "called",
@@ -12369,17 +12462,17 @@ end `,
 });
 
 export const kept = fn("kept", {
-  args: { inp: row(Inputs), prog: row(Program), s: pg.integer },
+  args: { inp: row(Inputs), nd: row(WalkNode) },
   body: fn.body`
   select m.place, m.ref from unnest(inp.members) m
-  where (not exists (select 1 from unnest(prog.sections) p where p.start = s)
-      or exists (select 1 from unnest(prog.sections) p, unnest(inp.ref_sections) h
-        where p.start = s and h.ref = m.ref and h.section = p.section))
-    and (not exists (select 1 from unnest(prog.filters) f where f.start = s and f.filter = 'include')
-      or exists (select 1 from unnest(prog.categories) c, unnest(inp.ref_categories) h
-        where c.start = s and c.filter = 'include' and h.ref = m.ref and h.category = c.category))
-    and not exists (select 1 from unnest(prog.categories) c, unnest(inp.ref_categories) h
-      where c.start = s and c.filter = 'exclude' and h.ref = m.ref and h.category = c.category)
+  where (not exists (select 1 from unnest(nd.sections) p)
+      or exists (select 1 from unnest(nd.sections) p, unnest(inp.ref_sections) h
+        where h.ref = m.ref and h.section = p.section))
+    and (not exists (select 1 from unnest(nd.filters) f where f.filter = 'include')
+      or exists (select 1 from unnest(nd.categories) c, unnest(inp.ref_categories) h
+        where c.filter = 'include' and h.ref = m.ref and h.category = c.category))
+    and not exists (select 1 from unnest(nd.categories) c, unnest(inp.ref_categories) h
+      where c.filter = 'exclude' and h.ref = m.ref and h.category = c.category)
   order by m.place
 `,
   calls: [],
@@ -13380,9 +13473,9 @@ end `,
 });
 
 export const counted = fn("counted", {
-  args: { inp: row(Inputs), kind: ProcessingKind, prog: row(Program), s: pg.integer },
+  args: { inp: row(Inputs), kind: ProcessingKind, nd: row(WalkNode) },
   body: fn.body`
-  select v_single(s => s_int(n => (select count(*) from kept(prog => prog, inp => inp, s => s) m where counts(kind => kind, inp => inp, r => m.ref))))
+  select v_single(s => s_int(n => (select count(*) from kept(nd => nd, inp => inp) m where counts(kind => kind, inp => inp, r => m.ref))))
 `,
   calls: [sInt, vSingle, kept, counts],
   language: "sql",
@@ -13422,14 +13515,14 @@ export const weightOf = fn("weightOf", {
 });
 
 export const outcomeBounds = fn("outcomeBounds", {
-  args: { inp: row(Inputs), kind: ProcessingKind, prog: row(Program), s: pg.integer },
+  args: { inp: row(Inputs), kind: ProcessingKind, nd: row(WalkNode) },
   body: fn.body`
 declare m ${Member}; mv ${MemberVar}; x float8; acc ${Single}[] := '{}';
-  nm text := ident(prog => prog, s => s);
-  w text := (select p.weight from unnest(prog.weights) p where p.start = s);
+  nm text := ident(nd => nd);
+  w text := (select p.weight from unnest(nd.weights) p);
   b text := case kind when 'qti-outcome-minimum' then 'minimum' when 'qti-outcome-maximum' then 'maximum' end;
 begin
-  for m in select km.* from kept(prog => prog, inp => inp, s => s) km order by km.place loop
+  for m in select km.* from kept(nd => nd, inp => inp) km order by km.place loop
     mv := null;
     select n.* into mv from named(inp => inp, held => inp.member_vars, r => m.ref, nm => nm) n;
     continue when mv.identifier is not null and mv.card <> 'single';
@@ -13463,18 +13556,18 @@ export const weighted = fn("weighted", {
 });
 
 export const testVariables = fn("testVariables", {
-  args: { inp: row(Inputs), prog: row(Program), s: pg.integer },
+  args: { inp: row(Inputs), nd: row(WalkNode) },
   body: fn.body`
 declare m ${Member}; mv ${MemberVar}; acc ${Single}[] := '{}'; refs text[] := '{}';
-  nm text := ident(prog => prog, s => s);
-  w text := (select p.weight from unnest(prog.weights) p where p.start = s);
-  written text := (select p.base from unnest(prog.bases) p where p.start = s);
+  nm text := ident(nd => nd);
+  w text := (select p.weight from unnest(nd.weights) p);
+  written text := (select p.base from unnest(nd.bases) p);
   result_base text;
 begin
   if w is not null and written is not null and written <> 'float' then
-    raise exception 'qti-test-variables at % weights a base-type %, whose behaviour Table 7.39.5 leaves undefined', s, written;
+    raise exception 'qti-test-variables at % weights a base-type %, whose behaviour Table 7.39.5 leaves undefined', nd.start, written;
   end if;
-  for m in select km.* from kept(prog => prog, inp => inp, s => s) km order by km.place loop
+  for m in select km.* from kept(nd => nd, inp => inp) km order by km.place loop
     mv := null;
     select n.* into mv from named(inp => inp, held => inp.member_vars, r => m.ref, nm => nm) n;
     continue when mv.identifier is null or mv.card <> 'single' or cardinality(mv.vals) = 0;
@@ -13520,9 +13613,9 @@ end `,
 });
 
 export const readVariable = fn("readVariable", {
-  args: { held: MemberVar, inp: row(Inputs), prog: row(Program), s: pg.integer, vars: Var },
+  args: { held: MemberVar, inp: row(Inputs), nd: row(WalkNode), vars: Var },
   body: fn.body`
-declare id text := ident(prog => prog, s => s); w text := (select p.weight from unnest(prog.weights) p where p.start = s); mv ${MemberVar};
+declare id text := ident(nd => nd); w text := (select p.weight from unnest(nd.weights) p); mv ${MemberVar};
 begin
   if cardinality(inp.members) = 0 or exists (select 1 from unnest(vars) z where z.identifier = id) then return value_of(vars => vars, id => id); end if;
   mv := prefixed(inp => inp, held => held, id => id);
@@ -13536,12 +13629,12 @@ end `,
   volatility: "immutable",
 });
 
-export const evaluate = fn("evaluate", {
-  args: { i: pg.integer, inp: row(Inputs), prog: row(Program), st: row(RunState) },
+export const evaluated = fn("evaluated", {
+  args: { i: pg.integer, inp: row(Inputs), st: row(RunState), walk: WalkNode },
   body: fn.body`
 declare
-  nd ${Node} := prog.nodes[i];
-  ks int[] := array(select c.i from kids(prog => prog, i => i) c);
+  nd ${WalkNode} := walk[i];
+  ks int[] := array(select c.i from kids_at(i => i, walk => walk) c);
   k int; r ${Evaluation}; dr ${Drawing}; v ${Val}; a ${Val}; b ${Val}; ops ${Val}[] := '{}'; mem ${Numbers};
   f float8; n numeric; x numeric; y numeric; lo numeric; hi numeric; step numeric; idx numeric;
   acc ${Single}[];
@@ -13551,37 +13644,37 @@ begin
   case nd.kind
   -- References and literals.
   when 'qti-base-value' then
-    v := row('single', array(select l.value from unnest(prog.literals) l where l.start = nd.start))::${Val};
+    v := row('single', array(select l.value from unnest(nd.literals) l))::${Val};
   -- A variable, a correct response or a default: the run's own of the name, else, in a test's run, an item's through its
   -- item ref (Tables 7.47, 7.10 and 7.12; test-outcome.sql \`read_variable\`). An item's run holds no member, so it reads its
   -- own, and an undeclared one raises.
-  when 'qti-variable' then v := read_variable(prog => prog, inp => inp, vars => st.vars, held => inp.member_vars, s => nd.start);
-  when 'qti-correct' then v := read_variable(prog => prog, inp => inp, vars => st.correct, held => inp.member_correct, s => nd.start);
-  when 'qti-default' then v := read_variable(prog => prog, inp => inp, vars => st.defaults, held => inp.member_defaults, s => nd.start);
+  when 'qti-variable' then v := read_variable(nd => nd, inp => inp, vars => st.vars, held => inp.member_vars);
+  when 'qti-correct' then v := read_variable(nd => nd, inp => inp, vars => st.correct, held => inp.member_correct);
+  when 'qti-default' then v := read_variable(nd => nd, inp => inp, vars => st.defaults, held => inp.member_defaults);
   when 'qti-null' then v := v_null();
   when 'qti-custom-operator' then
-    if not exists (select from unnest(prog.customs) p where p.start = nd.start) then v := v_null();
+    if not exists (select from unnest(nd.customs) p) then v := v_null();
     else
       foreach k in array ks loop
-        r := evaluate(prog => prog, inp => inp, i => k, st => st); st.drawn := r.drawn; ops := ops || row(r.card, r.vals)::${Val};
+        r := evaluated(walk => walk, inp => inp, i => k, st => st); st.drawn := r.drawn; ops := ops || row(r.card, r.vals)::${Val};
       end loop;
-      v := custom_value(operator_class => (select p.class from unnest(prog.customs) p where p.start = nd.start), ops => ops, inp => inp, start => nd.start);
+      v := custom_value(operator_class => (select p.class from unnest(nd.customs) p), ops => ops, inp => inp, start => nd.start);
     end if;
   -- Logic, three-valued.
   when 'qti-is-null' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; v := v_bool(b => cardinality(r.vals) = 0);
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; v := v_bool(b => cardinality(r.vals) = 0);
   when 'qti-not' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
     v := v_bool(b => not truth(v => row(r.card, r.vals)::${Val}));
   when 'qti-and', 'qti-or', 'qti-any-n' then
     trues := 0; falses := 0; nulls := 0;
     if nd.kind = 'qti-any-n' then
       -- The bounds are read first, min then max, as plate's walk visits them before the operands.
-      an := (select p from unnest(prog.any_ns) p where p.start = nd.start);
+      an := (select p from unnest(nd.any_ns) p);
       lo := resolve_int(vars => st.vars, r => an.min); hi := resolve_int(vars => st.vars, r => an.max);
     end if;
     foreach k in array ks loop
-      r := evaluate(prog => prog, inp => inp, i => k, st => st); st.drawn := r.drawn;
+      r := evaluated(walk => walk, inp => inp, i => k, st => st); st.drawn := r.drawn;
       case truth(v => row(r.card, r.vals)::${Val}) when true then trues := trues + 1; when false then falses := falses + 1; else nulls := nulls + 1; end case;
     end loop;
     v := case nd.kind
@@ -13594,17 +13687,17 @@ begin
         when trues >= lo and trues + nulls <= hi then true end) end;
   -- Containers.
   when 'qti-match' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     v := v_bool(b => case when is_null(v => a) or is_null(v => b) then null else matches(a => a, b => b) end);
   when 'qti-member' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     v := v_bool(b => case when is_null(v => a) or is_null(v => b) then null
       else exists (select 1 from generate_subscripts(b.vals, 1) ix where same(a => unfielded(s => b.vals[ix]), b => a.vals[1])) end);
   when 'qti-contains' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     v := v_bool(b => case when is_null(v => a) or is_null(v => b) then null
       when a.card = 'ordered' then exists (
         select 1 from generate_series(0, cardinality(a.vals) - cardinality(b.vals)) o
@@ -13613,44 +13706,44 @@ begin
   when 'qti-multiple', 'qti-ordered' then
     acc := '{}';
     foreach k in array ks loop
-      r := evaluate(prog => prog, inp => inp, i => k, st => st); st.drawn := r.drawn; acc := acc || r.vals;
+      r := evaluated(walk => walk, inp => inp, i => k, st => st); st.drawn := r.drawn; acc := acc || r.vals;
     end loop;
     v := row(case nd.kind when 'qti-multiple' then 'multiple' when 'qti-ordered' then 'ordered' end, acc)::${Val};
   when 'qti-delete' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     v := row(b.card, case when is_null(v => a) then '{}'::${Single}[]
       else array(select b.vals[pos] from generate_subscripts(b.vals, 1) pos where not matches(a => a, b => v_single(s => b.vals[pos])) order by pos) end)::${Val};
   when 'qti-index' then
-    idx := resolve_int(vars => st.vars, r => (select p.value from unnest(prog.ints) p where p.start = nd.start));
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
+    idx := resolve_int(vars => st.vars, r => (select p.value from unnest(nd.ints) p));
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
     v := case when idx is null or idx < 1 or idx > cardinality(r.vals) then v_null() else v_single(s => r.vals[idx::int]) end;
   when 'qti-container-size' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
     v := v_single(s => s_int(n => cardinality(r.vals)));
   when 'qti-random' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
     if cardinality(r.vals) = 0 then v := v_null();
     else dr := draw_below(seed => st.seed, label => st.label, drawn => st.drawn, count => cardinality(r.vals)); st.drawn := dr.drawn; v := v_single(s => r.vals[dr.result::int + 1]); end if;
   when 'qti-repeat' then
     acc := '{}';
-    n := coalesce(resolve_int(vars => st.vars, r => (select p.value from unnest(prog.ints) p where p.start = nd.start)), 0);
+    n := coalesce(resolve_int(vars => st.vars, r => (select p.value from unnest(nd.ints) p)), 0);
     -- A count past what a loop counts is a resource bound exhausted: the grade aborts, never wraps (SV-SQL-06).
     if n > 2147483647 then raise exception 'a repeat of % copies passes what the grader counts; the grade aborts', n using errcode = 'program_limit_exceeded'; end if;
     for k in 1 .. n loop
       foreach cnt in array ks loop
-        r := evaluate(prog => prog, inp => inp, i => cnt, st => st); st.drawn := r.drawn; acc := acc || r.vals;
+        r := evaluated(walk => walk, inp => inp, i => cnt, st => st); st.drawn := r.drawn; acc := acc || r.vals;
       end loop;
     end loop;
     v := row('ordered', acc)::${Val};
   when 'qti-field-value' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
     v := row('single', array(select unfielded(s => r.vals[ix]) from generate_subscripts(r.vals, 1) ix
-      where (r.vals[ix]).field = (select p.field from unnest(prog.fields) p where p.start = nd.start) order by ix))::${Val};
+      where (r.vals[ix]).field = (select p.field from unnest(nd.fields) p) order by ix))::${Val};
   -- Arithmetic.
   when 'qti-sum', 'qti-product', 'qti-subtract', 'qti-min', 'qti-max' then
     foreach k in array ks loop
-      r := evaluate(prog => prog, inp => inp, i => k, st => st); st.drawn := r.drawn; ops := ops || row(r.card, r.vals)::${Val};
+      r := evaluated(walk => walk, inp => inp, i => k, st => st); st.drawn := r.drawn; ops := ops || row(r.card, r.vals)::${Val};
     end loop;
     mem := (select m from members_of(vs => ops) m);
     if mem.integers is null or (nd.kind = 'qti-subtract' and exists (select 1 from unnest(ops) o where o.card <> 'single')) then v := v_null();
@@ -13689,8 +13782,8 @@ begin
       v := v_single(s => s_float(base => 'float', f => f));
     end if;
   when 'qti-divide' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     a := numbered(v => a); b := numbered(v => b);
     if is_null(v => a) or is_null(v => b) or number(s => b.vals[1]) = 0 then v := v_null();
     -- An integer past the double range divides exactly, the quotient carried to a thousand places (never an infinity's
@@ -13701,8 +13794,8 @@ begin
       v := case when f in ('Infinity', '-Infinity', 'NaN') then v_null() else v_single(s => s_float(base => 'float', f => f)) end;
     end if;
   when 'qti-integer-divide', 'qti-integer-modulus' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     x := integer_of(v => a); y := integer_of(v => b);
     if x is null or y is null or y = 0 then v := v_null();
     -- integer-divide and integer-modulus round the quotient toward negative infinity (plate's floored division),
@@ -13711,7 +13804,7 @@ begin
       v := v_single(s => s_int(n => case nd.kind when 'qti-integer-divide' then n when 'qti-integer-modulus' then x - n * y end)); end if;
   when 'qti-gcd', 'qti-lcm' then
     foreach k in array ks loop
-      r := evaluate(prog => prog, inp => inp, i => k, st => st); st.drawn := r.drawn; ops := ops || row(r.card, r.vals)::${Val};
+      r := evaluated(walk => walk, inp => inp, i => k, st => st); st.drawn := r.drawn; ops := ops || row(r.card, r.vals)::${Val};
     end loop;
     mem := (select m from members_of(vs => ops) m);
     if mem.integers is null or not mem.integers then v := v_null();
@@ -13720,8 +13813,8 @@ begin
       when 'qti-lcm' then case when exists (select 1 from unnest(mem.vals) z where z.n = 0) then v_single(s => s_int(n => 0)) else bounded(n => lcm_of(z => mem.vals)) end end;
     end if;
   when 'qti-power' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     a := numbered(v => a); b := numbered(v => b);
     if is_null(v => a) or is_null(v => b) then v := v_null();
     -- An integer past the double range raises exactly, to a thousand places (SV-EXPR-01); a negative base to a
@@ -13736,32 +13829,32 @@ begin
       v := case when f in ('Infinity', '-Infinity', 'NaN') then v_null() else v_single(s => s_float(base => 'float', f => f)) end;
     end if;
   when 'qti-round', 'qti-truncate' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := numbered(v => row(r.card, r.vals)::${Val});
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := numbered(v => row(r.card, r.vals)::${Val});
     x := case when is_null(v => a) then null when (a.vals[1]).base = 'integer' then (a.vals[1]).n
       when (a.vals[1]).f not in ('Infinity', '-Infinity', 'NaN') then exact(f => (a.vals[1]).f) end;
     v := case when x is null then v_null()
       else v_single(s => s_int(n => case nd.kind when 'qti-round' then floor(x + 0.5) when 'qti-truncate' then trunc(x) end)) end;
   when 'qti-integer-to-float' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; x := integer_of(v => row(r.card, r.vals)::${Val});
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; x := integer_of(v => row(r.card, r.vals)::${Val});
     v := case when x is null then v_null() else v_single(s => s_float(base => 'float', f => ieee(x => x))) end;
   when 'qti-math-constant' then
     -- JavaScript's Math.PI and Math.E, the doubles nearest π and e, read from their shortest decimals: no libm.
-    v := v_single(s => s_float(base => 'float', f => case (select p.c from unnest(prog.constants) p where p.start = nd.start)
+    v := v_single(s => s_float(base => 'float', f => case (select p.c from unnest(nd.constants) p)
       when 'pi' then 3.141592653589793::float8 when 'e' then 2.718281828459045::float8 end));
   when 'qti-math-operator' then
     foreach k in array ks loop
-      r := evaluate(prog => prog, inp => inp, i => k, st => st); st.drawn := r.drawn; ops := ops || row(r.card, r.vals)::${Val};
+      r := evaluated(walk => walk, inp => inp, i => k, st => st); st.drawn := r.drawn; ops := ops || row(r.card, r.vals)::${Val};
     end loop;
-    v := math_value(op => (select p.op from unnest(prog.maths) p where p.start = nd.start), ops => ops);
+    v := math_value(op => (select p.op from unnest(nd.maths) p), ops => ops);
   when 'qti-stats-operator' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
     mem := case when r.card = 'single' then null else (select m from members_of(vs => array[row(r.card, r.vals)::${Val}]) m) end;
     v := case when mem.integers is null then v_null()
-      else stat_value(op => (select p.op from unnest(prog.stats) p where p.start = nd.start), members => mem.vals) end;
+      else stat_value(op => (select p.op from unnest(nd.stats) p), members => mem.vals) end;
   -- Comparison.
   when 'qti-gt', 'qti-lt', 'qti-gte', 'qti-lte' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     if is_null(v => a) or is_null(v => b) then v := v_bool(b => null);
     else
       a := numbered(v => a); b := numbered(v => b);
@@ -13772,8 +13865,8 @@ begin
   -- duration-lt and duration-gte (plate's comparingDurations): the seconds compared exactly as the doubles they are, a
   -- NaN neither shorter nor as long as anything; NULL when either is NULL; an operand that is no single duration, false.
   when 'qti-duration-lt', 'qti-duration-gte' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     if is_null(v => a) or is_null(v => b) then v := v_bool(b => null);
     else
       t0 := case when a.card = 'single' and cardinality(a.vals) = 1 and (a.vals[1]).base = 'duration' then (a.vals[1]).f end;
@@ -13782,67 +13875,67 @@ begin
         when 'qti-duration-lt' then t0 < t1 when 'qti-duration-gte' then t0 >= t1 end end);
     end if;
   when 'qti-equal' then
-    eq := (select p from unnest(prog.equals) p where p.start = nd.start);
+    eq := (select p from unnest(nd.equals) p);
     t0 := resolve_float(vars => st.vars, r => eq.t0); t1 := resolve_float(vars => st.vars, r => eq.t1);
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     v := case when is_null(v => a) or is_null(v => b) then v_bool(b => null)
       else equal_value(eq => eq, x => numbered(v => a), y => numbered(v => b), t0 => t0, t1 => t1) end;
   when 'qti-equal-rounded' then
-    rd := (select p from unnest(prog.rounds) p where p.start = nd.start);
+    rd := (select p from unnest(nd.rounds) p);
     n := resolve_int(vars => st.vars, r => rd.figures);
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     x := rounded(v => numbered(v => a), mode => rd.mode, figures => n); y := rounded(v => numbered(v => b), mode => rd.mode, figures => n);
     v := v_bool(b => case when x is null or y is null then null else x = y end);
   when 'qti-round-to' then
-    rd := (select p from unnest(prog.rounds) p where p.start = nd.start);
+    rd := (select p from unnest(nd.rounds) p);
     n := resolve_int(vars => st.vars, r => rd.figures);
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
     x := rounded(v => numbered(v => row(r.card, r.vals)::${Val}), mode => rd.mode, figures => n);
     v := case when x is null then v_null() else v_single(s => s_float(base => 'float', f => ieee(x => x))) end;
   -- Text.
   when 'qti-string-match', 'qti-substring' then
-    tx := (select p from unnest(prog.texts) p where p.start = nd.start);
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
-    r := evaluate(prog => prog, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
+    tx := (select p from unnest(nd.texts) p);
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn; a := row(r.card, r.vals)::${Val};
+    r := evaluated(walk => walk, inp => inp, i => ks[2], st => st); st.drawn := r.drawn; b := row(r.card, r.vals)::${Val};
     v := case when is_null(v => a) or is_null(v => b) then v_bool(b => null)
       else v_bool(b => text_holds(kind => nd.kind, p => tx, one => (a.vals[1]).t, other => (b.vals[1]).t)) end;
   -- pattern-match: the pattern resolved first, a variable's single string compiled as XML Schema's Appendix F, then
   -- the operand; xsd_run of no program is NULL, so a NULL variable, a non-string value and a variable holding no
   -- Appendix F expression (QTI's NULL for an undefined result) give NULL with no branch of their own.
   when 'qti-pattern-match' then
-    pt := (select p from unnest(prog.patterns) p where p.start = nd.start);
+    pt := (select p from unnest(nd.patterns) p);
     if pt.ref is null then compiled := pt.program;
     else
       a := value_of(vars => st.vars, id => pt.ref);
       compiled := case when a.card = 'single' and cardinality(a.vals) = 1 and (a.vals[1]).base = 'string'
         then xsd_compile(p => (a.vals[1]).t) end;
     end if;
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
     v := v_bool(b => case when r.card = 'single' and cardinality(r.vals) = 1 and (r.vals[1]).base = 'string'
       then xsd_run(program => compiled, v => (r.vals[1]).t) end);
   -- Mapping and areas.
   when 'qti-map-response' then
-    a := value_of(vars => st.vars, id => ident(prog => prog, s => nd.start));
-    v := v_single(s => s_float(base => 'float', f => mapped(inp => inp, id => ident(prog => prog, s => nd.start), v => a)));
+    a := value_of(vars => st.vars, id => ident(nd => nd));
+    v := v_single(s => s_float(base => 'float', f => mapped(inp => inp, id => ident(nd => nd), v => a)));
   when 'qti-map-response-point' then
-    a := value_of(vars => st.vars, id => ident(prog => prog, s => nd.start));
-    v := v_single(s => s_float(base => 'float', f => mapped_points(inp => inp, id => ident(prog => prog, s => nd.start), v => a)));
+    a := value_of(vars => st.vars, id => ident(nd => nd));
+    v := v_single(s => s_float(base => 'float', f => mapped_points(inp => inp, id => ident(nd => nd), v => a)));
   when 'qti-inside' then
-    r := evaluate(prog => prog, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
-    ar := (select p.area from unnest(prog.areas) p where p.start = nd.start);
+    r := evaluated(walk => walk, inp => inp, i => ks[1], st => st); st.drawn := r.drawn;
+    ar := (select p.area from unnest(nd.areas) p);
     v := v_bool(b => case when cardinality(r.vals) = 0 then null
       else exists (select 1 from unnest(r.vals) s where s.base = 'point' and holds(a => ar, x => ieee(x => s.n), y => ieee(x => s.m))) end);
   -- Draws.
   when 'qti-random-integer' then
-    rg := (select p from unnest(prog.ranges) p where p.start = nd.start);
+    rg := (select p from unnest(nd.ranges) p);
     lo := resolve_int(vars => st.vars, r => rg.lo); hi := resolve_int(vars => st.vars, r => rg.hi); step := resolve_int(vars => st.vars, r => rg.step);
     if lo is null or hi is null or step is null or hi < lo or step <= 0 then v := v_null();
     else dr := draw_below(seed => st.seed, label => st.label, drawn => st.drawn, count => div(hi - lo, step) + 1); st.drawn := dr.drawn;
       v := v_single(s => s_int(n => lo + step * dr.result)); end if;
   when 'qti-random-float' then
-    fr := (select p from unnest(prog.franges) p where p.start = nd.start);
+    fr := (select p from unnest(nd.franges) p);
     t0 := resolve_float(vars => st.vars, r => fr.lo); t1 := resolve_float(vars => st.vars, r => fr.hi);
     if t0 is null or t1 is null or t0 in ('Infinity', '-Infinity', 'NaN') or t1 in ('Infinity', '-Infinity', 'NaN') or t1 < t0 then v := v_null();
     else
@@ -13856,9 +13949,9 @@ begin
   -- Outcome processing only (Tables 6.9.41 and 6.9.58 to 6.9.64; test-outcome.sql): a test's counts, outcome bounds and test variables, read from
   -- the inputs' test fields, which no item's run holds.
   when 'qti-number-correct', 'qti-number-incorrect', 'qti-number-presented', 'qti-number-responded', 'qti-number-selected' then
-    v := counted(kind => nd.kind, prog => prog, inp => inp, s => nd.start);
-  when 'qti-outcome-minimum', 'qti-outcome-maximum' then v := outcome_bounds(kind => nd.kind, prog => prog, inp => inp, s => nd.start);
-  when 'qti-test-variables' then v := test_variables(prog => prog, inp => inp, s => nd.start);
+    v := counted(kind => nd.kind, nd => nd, inp => inp);
+  when 'qti-outcome-minimum', 'qti-outcome-maximum' then v := outcome_bounds(kind => nd.kind, nd => nd, inp => inp);
+  when 'qti-test-variables' then v := test_variables(nd => nd, inp => inp);
   end case;
   return row(v.card, st.drawn, v.vals)::${Evaluation};
 end `,
@@ -13879,7 +13972,7 @@ end `,
     bag,
     hasNan,
     matches,
-    kids,
+    kidsAt,
     valueOf,
     ident,
     resolveInt,
@@ -13930,47 +14023,47 @@ export const runRules = fn("runRules", {
     from_kid: pg.integer,
     i: pg.integer,
     inp: row(Inputs),
-    prog: row(Program),
     st: row(RunState),
+    walk: WalkNode,
   },
   body: fn.body`
-declare ks int[] := array(select c.i from kids(prog => prog, i => i) c); place int; k int; nd ${Node}; rks int[]; b int; taken boolean;
+declare ks int[] := array(select c.i from kids_at(i => i, walk => walk) c); place int; k int; nd ${WalkNode}; rks int[]; b int; taken boolean;
   rr ${Evaluation}; id text;
 begin
   for place in from_kid .. cardinality(ks) loop
-    k := ks[place]; nd := prog.nodes[k]; rks := array(select c.i from kids(prog => prog, i => k) c); id := ident(prog => prog, s => nd.start);
+    k := ks[place]; nd := walk[k]; rks := array(select c.i from kids_at(i => k, walk => walk) c); id := ident(nd => nd);
     case nd.kind
     when 'qti-set-outcome-value', 'qti-set-template-value' then
-      rr := evaluate(prog => prog, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
+      rr := evaluated(walk => walk, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
       st.vars := array(select a from assign(vars => st.vars, id => id, x => row(rr.card, rr.vals)::${Val}) a);
     when 'qti-set-correct-response' then
-      rr := evaluate(prog => prog, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
+      rr := evaluated(walk => walk, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
       st.correct := array(select a from assign(vars => st.correct, id => id, x => row(rr.card, rr.vals)::${Val}) a);
     when 'qti-set-default-value' then
-      rr := evaluate(prog => prog, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
+      rr := evaluated(walk => walk, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
       st.defaults := array(select a from assign(vars => st.defaults, id => id, x => row(rr.card, rr.vals)::${Val}) a);
     when 'qti-lookup-outcome-value' then
-      rr := evaluate(prog => prog, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
+      rr := evaluated(walk => walk, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
       st.vars := array(select a from assign(vars => st.vars, id => id, x => looked_up(inp => inp, id => id, x => row(rr.card, rr.vals)::${Val})) a);
     when 'qti-response-condition', 'qti-template-condition', 'qti-outcome-condition' then
       taken := false;
       foreach b in array rks loop
         exit when taken;
-        case prog.nodes[b].kind
+        case walk[b].kind
         when 'qti-response-if', 'qti-response-else-if', 'qti-template-if', 'qti-template-else-if', 'qti-outcome-if', 'qti-outcome-else-if' then
-          rr := evaluate(prog => prog, inp => inp, i => (select c.i from kids(prog => prog, i => b) c limit 1), st => st); st.drawn := rr.drawn;
-          if coalesce(truth(v => row(rr.card, rr.vals)::${Val}), false) then st := run_rules(prog => prog, inp => inp, i => b, from_kid => 2, st => st); taken := true; end if;
+          rr := evaluated(walk => walk, inp => inp, i => (select c.i from kids_at(i => b, walk => walk) c limit 1), st => st); st.drawn := rr.drawn;
+          if coalesce(truth(v => row(rr.card, rr.vals)::${Val}), false) then st := run_rules(walk => walk, inp => inp, i => b, from_kid => 2, st => st); taken := true; end if;
         when 'qti-response-else', 'qti-template-else', 'qti-outcome-else' then
-          st := run_rules(prog => prog, inp => inp, i => b, from_kid => 1, st => st); taken := true;
+          st := run_rules(walk => walk, inp => inp, i => b, from_kid => 1, st => st); taken := true;
         end case;
         if st.flow <> 'run' then return st; end if;
       end loop;
-    when 'qti-response-processing-fragment', 'qti-outcome-processing-fragment' then st := run_rules(prog => prog, inp => inp, i => k, from_kid => 1, st => st);
+    when 'qti-response-processing-fragment', 'qti-outcome-processing-fragment' then st := run_rules(walk => walk, inp => inp, i => k, from_kid => 1, st => st);
     -- qti-exit-test: "The exit outcome rule terminates outcomes processing immediately (for this invocation)" (Table
     -- 6.32.5), as qti-exit-response ends response processing.
     when 'qti-exit-response', 'qti-exit-template', 'qti-exit-test' then st.flow := 'exit';
     when 'qti-template-constraint' then
-      rr := evaluate(prog => prog, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
+      rr := evaluated(walk => walk, inp => inp, i => rks[1], st => st); st.drawn := rr.drawn;
       if not coalesce(truth(v => row(rr.card, rr.vals)::${Val}), false) then
         if st.spent then st.vars := st.declared; st.correct := st.declared_correct; st.defaults := st.declared_defaults;
         else st.flow := 'restart'; end if;
@@ -13980,7 +14073,7 @@ begin
   end loop;
   return st;
 end `,
-  calls: [truth, kids, assign, ident, lookedUp, evaluate],
+  calls: [truth, kidsAt, assign, ident, lookedUp, evaluated],
   language: "plpgsql",
   nullInput: "called",
   returns: row(RunState),
@@ -13998,9 +14091,9 @@ export const responseProcessing = fn("responseProcessing", {
     vars: Var,
   },
   body: fn.body`
-  select run_rules(prog => prog, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, 0, 'run', label, seed, false, vars)::${RunState})
+  select run_rules(walk => (walk_of(prog => prog)).nodes, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, 0, 'run', label, seed, false, vars)::${RunState})
 `,
-  calls: [runRules],
+  calls: [walkOf, runRules],
   language: "sql",
   nullInput: "called",
   returns: row(RunState),
@@ -14018,16 +14111,16 @@ export const templateProcessing = fn("templateProcessing", {
     vars: Var,
   },
   body: fn.body`
-declare state ${RunState}; restarts int := 0; drawn int := 0;
+declare state ${RunState}; restarts int := 0; drawn int := 0; walk ${WalkNode}[] := (walk_of(prog => prog)).nodes;
 begin
   loop
-    state := run_rules(prog => prog, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, drawn, 'run', label, seed, restarts >= 100, vars)::${RunState});
+    state := run_rules(walk => walk, inp => inp, i => 1, from_kid => 1, st => row(correct, vars, correct, defaults, defaults, drawn, 'run', label, seed, restarts >= 100, vars)::${RunState});
     exit when state.flow <> 'restart';
     restarts := restarts + 1; drawn := state.drawn;
   end loop;
   return state;
 end `,
-  calls: [runRules],
+  calls: [walkOf, runRules],
   language: "plpgsql",
   nullInput: "called",
   returns: row(RunState),
@@ -14083,13 +14176,13 @@ export const outcomeProcessing = fn("outcomeProcessing", {
     seed: anyText,
   },
   body: fn.body`
-  select run_rules(prog => prog, inp => inp, i => 1, from_kid => 1, st => row(
+  select run_rules(walk => (walk_of(prog => prog)).nodes, inp => inp, i => 1, from_kid => 1, st => row(
     '{}'::${Var}[], array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins,
     '{}'::${Var}[], outcomes || contexts, outcomes || contexts, 0, 'run', label,
     seed,
     false, array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins)::${RunState})
 `,
-  calls: [runRules, initial, boundContexts],
+  calls: [walkOf, runRules, initial, boundContexts],
   language: "sql",
   nullInput: "called",
   returns: row(RunState),
@@ -16646,7 +16739,8 @@ export const gradingFunctions = [
   bag,
   hasNan,
   matches,
-  kids,
+  walkOf,
+  kidsAt,
   lookup,
   valueOf,
   assign,
@@ -16771,7 +16865,7 @@ export const gradingFunctions = [
   testVariables,
   prefixed,
   readVariable,
-  evaluate,
+  evaluated,
   runRules,
   responseProcessing,
   templateProcessing,

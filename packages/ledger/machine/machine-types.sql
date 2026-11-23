@@ -105,6 +105,15 @@ create type p3.program as (any_ns p3.p_any_n[], areas p3.p_area[], bases p3.p_ba
   idents p3.p_ident[], ints p3.p_int[], literals p3.p_literal[], maths p3.p_math[], nodes p3.node[],
   patterns p3.p_pattern[], ranges p3.p_range[], rounds p3.p_round[], sections p3.p_section[], stats p3.p_stat[],
   texts p3.p_text[], weights p3.p_weight[]);
+-- A program as the machine's walk reads it (walk_of): one per node, in the program's order, the node and each sidecar's
+-- rows at its start. The walk holds the whole array as one value it passes on, so a node and its parameters are read
+-- by the node's place, never by searching the program; a call is handed the walk, never a copy of the program.
+create type p3.walk_node as (any_ns p3.p_any_n[], areas p3.p_area[], bases p3.p_base[], categories p3.p_category[],
+  constants p3.p_constant[], customs p3.p_custom[], "end" integer, equals p3.p_equal[], fields p3.p_field[], filters p3.p_filter[],
+  franges p3.p_frange[], idents p3.p_ident[], ints p3.p_int[], kind text collate pg_catalog.pg_c_utf8, literals p3.p_literal[],
+  maths p3.p_math[], parent integer, patterns p3.p_pattern[], ranges p3.p_range[], rounds p3.p_round[], sections p3.p_section[],
+  start integer, stats p3.p_stat[], texts p3.p_text[], weights p3.p_weight[]);
+create type p3.walk as (nodes p3.walk_node[]);
 
 -- The item's immutable inputs the expressions read: mappings, area mappings and lookup tables. An absent bound is the
 -- bound's identity, -Infinity or Infinity, so a clamp has no special case. A map key and a table's target are

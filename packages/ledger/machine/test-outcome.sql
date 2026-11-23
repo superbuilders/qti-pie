@@ -38,16 +38,16 @@
 --   - then its `exclude-category`'s: "If specified, only variables from items with no matching category are included"
 --     (7.39.3, info:82711); one shared category excludes a member.
 -- An absent characteristic keeps every member (spec reading 216.4, plate's `keptItems`, restated here).
-create function p3.kept(inp p3.inputs, prog p3.program, s int) returns setof p3.member language sql immutable as $$
+create function p3.kept(inp p3.inputs, nd p3.walk_node) returns setof p3.member language sql immutable as $$
   select m.place, m.ref from unnest(inp.members) m
-  where (not exists (select 1 from unnest(prog.sections) p where p.start = s)
-      or exists (select 1 from unnest(prog.sections) p, unnest(inp.ref_sections) h
-        where p.start = s and h.ref = m.ref and h.section = p.section))
-    and (not exists (select 1 from unnest(prog.filters) f where f.start = s and f.filter = 'include')
-      or exists (select 1 from unnest(prog.categories) c, unnest(inp.ref_categories) h
-        where c.start = s and c.filter = 'include' and h.ref = m.ref and h.category = c.category))
-    and not exists (select 1 from unnest(prog.categories) c, unnest(inp.ref_categories) h
-      where c.start = s and c.filter = 'exclude' and h.ref = m.ref and h.category = c.category)
+  where (not exists (select 1 from unnest(nd.sections) p)
+      or exists (select 1 from unnest(nd.sections) p, unnest(inp.ref_sections) h
+        where h.ref = m.ref and h.section = p.section))
+    and (not exists (select 1 from unnest(nd.filters) f where f.filter = 'include')
+      or exists (select 1 from unnest(nd.categories) c, unnest(inp.ref_categories) h
+        where c.filter = 'include' and h.ref = m.ref and h.category = c.category))
+    and not exists (select 1 from unnest(nd.categories) c, unnest(inp.ref_categories) h
+      where c.filter = 'exclude' and h.ref = m.ref and h.category = c.category)
   order by m.place
 $$;
 
@@ -143,8 +143,8 @@ begin
 end $$;
 
 -- A test-level count: the members its subset keeps that count, a single integer.
-create function p3.counted(inp p3.inputs, kind text, prog p3.program, s int) returns p3.val language sql immutable as $$
-  select v_single(s => s_int(n => (select count(*) from kept(prog => prog, inp => inp, s => s) m where counts(kind => kind, inp => inp, r => m.ref))))
+create function p3.counted(inp p3.inputs, kind text, nd p3.walk_node) returns p3.val language sql immutable as $$
+  select v_single(s => s_int(n => (select count(*) from kept(nd => nd, inp => inp) m where counts(kind => kind, inp => inp, r => m.ref))))
 $$;
 
 -- The weight an item ref gives a weight identifier: its qti-weight of that identifier, "If no matching definition is
@@ -173,13 +173,13 @@ $$;
 -- by default"), so the minimum ignores only a member whose name names no outcome of its item: nothing, or a response, a
 -- template variable or a built-in, none of which declares a bound (spec reading 216.6). The bounds in the session's
 -- sequence; none is NULL.
-create function p3.outcome_bounds(inp p3.inputs, kind text, prog p3.program, s int) returns p3.val language plpgsql immutable as $$
+create function p3.outcome_bounds(inp p3.inputs, kind text, nd p3.walk_node) returns p3.val language plpgsql immutable as $$
 declare m member; mv member_var; x float8; acc single[] := '{}';
-  nm text := ident(prog => prog, s => s);
-  w text := (select p.weight from unnest(prog.weights) p where p.start = s);
+  nm text := ident(nd => nd);
+  w text := (select p.weight from unnest(nd.weights) p);
   b text := case kind when 'qti-outcome-minimum' then 'minimum' when 'qti-outcome-maximum' then 'maximum' end;
 begin
-  for m in select km.* from kept(prog => prog, inp => inp, s => s) km order by km.place loop
+  for m in select km.* from kept(nd => nd, inp => inp) km order by km.place loop
     mv := null;
     select n.* into mv from named(inp => inp, held => inp.member_vars, r => m.ref, nm => nm) n;
     continue when mv.identifier is not null and mv.card <> 'single';
@@ -211,17 +211,17 @@ end $$;
 --     first words bound it: "The behaviour of this characterisic is only defined if the base-type attribute is float or
 --     omitted". A weight beside any other `base-type` has no defined value, so such content is admitted and not graded
 --     (GRADING-SQL's "gradable"), and the run raises if it is ever reached.
-create function p3.test_variables(inp p3.inputs, prog p3.program, s int) returns p3.val language plpgsql immutable as $$
+create function p3.test_variables(inp p3.inputs, nd p3.walk_node) returns p3.val language plpgsql immutable as $$
 declare m member; mv member_var; acc single[] := '{}'; refs text[] := '{}';
-  nm text := ident(prog => prog, s => s);
-  w text := (select p.weight from unnest(prog.weights) p where p.start = s);
-  written text := (select p.base from unnest(prog.bases) p where p.start = s);
+  nm text := ident(nd => nd);
+  w text := (select p.weight from unnest(nd.weights) p);
+  written text := (select p.base from unnest(nd.bases) p);
   result_base text;
 begin
   if w is not null and written is not null and written <> 'float' then
-    raise exception 'qti-test-variables at % weights a base-type %, whose behaviour Table 7.39.5 leaves undefined', s, written;
+    raise exception 'qti-test-variables at % weights a base-type %, whose behaviour Table 7.39.5 leaves undefined', nd.start, written;
   end if;
-  for m in select km.* from kept(prog => prog, inp => inp, s => s) km order by km.place loop
+  for m in select km.* from kept(nd => nd, inp => inp) km order by km.place loop
     mv := null;
     select n.* into mv from named(inp => inp, held => inp.member_vars, r => m.ref, nm => nm) n;
     continue when mv.identifier is null or mv.card <> 'single' or cardinality(mv.vals) = 0;
@@ -282,8 +282,8 @@ end $$;
 --   item variables with base-types integer and float. If the item variable is of any other type the weight is ignored"
 --   (Table 7.47.2, info:83672), each value of a container weighted, NULL staying NULL. The result "has the base-type and
 --   cardinality declared for the variable subject to the type promotion of weighted outcomes" (info:83598).
-create function p3.read_variable(held p3.member_var[], inp p3.inputs, prog p3.program, s int, vars p3.var[]) returns p3.val language plpgsql immutable as $$
-declare id text := ident(prog => prog, s => s); w text := (select p.weight from unnest(prog.weights) p where p.start = s); mv member_var;
+create function p3.read_variable(held p3.member_var[], inp p3.inputs, nd p3.walk_node, vars p3.var[]) returns p3.val language plpgsql immutable as $$
+declare id text := ident(nd => nd); w text := (select p.weight from unnest(nd.weights) p); mv member_var;
 begin
   if cardinality(inp.members) = 0 or exists (select 1 from unnest(vars) z where z.identifier = id) then return value_of(vars => vars, id => id); end if;
   mv := prefixed(inp => inp, held => held, id => id);
@@ -345,7 +345,7 @@ end $$;
 create function p3.outcome_processing(bound p3.var[], builtins p3.var[], contexts p3.var[], inp p3.inputs, label text,
   outcomes p3.var[], prog p3.program, seed text)
 returns p3.run_state language sql immutable as $$
-  select run_rules(prog => prog, inp => inp, i => 1, from_kid => 1, st => row(
+  select run_rules(walk => (walk_of(prog => prog)).nodes, inp => inp, i => 1, from_kid => 1, st => row(
     '{}'::var[], array(select i from initial(declared => outcomes) i) || array(select c from bound_contexts(contexts => contexts, bound => bound) c) || builtins,
     '{}'::var[], outcomes || contexts, outcomes || contexts, 0, 'run', label,
     seed,

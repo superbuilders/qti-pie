@@ -146,6 +146,7 @@ const tokens = new Map([
   ["flow", "Flow"],
   ["holds", "Holds"],
   ["node.kind", "ProcessingKind"],
+  ["walk_node.kind", "ProcessingKind"],
   ["area.kind", "AreaKind"],
   ["lookup_table.kind", "LookupKind"],
   ["p_equal.mode", "ToleranceMode"],

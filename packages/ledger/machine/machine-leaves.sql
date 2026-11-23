@@ -161,13 +161,68 @@ create function p3.matches(a p3.val, b p3.val) returns boolean language sql immu
     when 'single' then same(a => a.vals[1], b => b.vals[1]) end
 $$;
 
+-- A program as its walk reads it (walk_node): each node in the program's order, with every sidecar's rows whose start is
+-- its start, each sidecar's in that sidecar's order; one pass over each array, joined by start.
+create function p3.walk_of(prog p3.program) returns p3.walk language sql immutable as $$
+  select row(array(select row(coalesce(an.v, '{}'), coalesce(ar.v, '{}'), coalesce(ba.v, '{}'), coalesce(ca.v, '{}'),
+      coalesce(co.v, '{}'), coalesce(cu.v, '{}'), nd."end", coalesce(eq.v, '{}'), coalesce(fi.v, '{}'),
+      coalesce(fl.v, '{}'), coalesce(fr.v, '{}'), coalesce(id.v, '{}'), coalesce(it.v, '{}'), nd.kind,
+      coalesce(li.v, '{}'), coalesce(ma.v, '{}'), nd.parent, coalesce(pa.v, '{}'), coalesce(ra.v, '{}'),
+      coalesce(ro.v, '{}'), coalesce(se.v, '{}'), nd.start, coalesce(st.v, '{}'), coalesce(te.v, '{}'),
+      coalesce(we.v, '{}'))::walk_node
+    from unnest(prog.nodes) with ordinality as nd("end", kind, parent, start, place)
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.any_ns) x) s group by 1) an on an.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.areas) x) s group by 1) ar on ar.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.bases) x) s group by 1) ba on ba.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.categories) x) s group by 1) ca on ca.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.constants) x) s group by 1) co on co.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.customs) x) s group by 1) cu on cu.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.equals) x) s group by 1) eq on eq.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.fields) x) s group by 1) fi on fi.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.filters) x) s group by 1) fl on fl.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.franges) x) s group by 1) fr on fr.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.idents) x) s group by 1) id on id.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.ints) x) s group by 1) it on it.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.literals) x) s group by 1) li on li.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.maths) x) s group by 1) ma on ma.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.patterns) x) s group by 1) pa on pa.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.ranges) x) s group by 1) ra on ra.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.rounds) x) s group by 1) ro on ro.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.sections) x) s group by 1) se on se.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.stats) x) s group by 1) st on st.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.texts) x) s group by 1) te on te.start = nd.start
+    left join (select (s.x).start as start, array_agg(s.x order by s.o) as v
+      from (select x, row_number() over () as o from unnest(prog.weights) x) s group by 1) we on we.start = nd.start
+    order by nd.place))::walk
+$$;
+
 -- The element children of node i, in document order: pre-order intervals, so each step skips a whole subtree.
-create function p3.kids(i int, prog p3.program) returns setof p3.child language plpgsql immutable as $$
-declare j int := i + 1; base int := (prog.nodes[1]).start;
+create function p3.kids_at(i int, walk p3.walk_node[]) returns setof p3.child language plpgsql immutable as $$
+declare j int := i + 1; base int := (walk[1]).start;
 begin
-  while j <= cardinality(prog.nodes) and (prog.nodes[j]).start < (prog.nodes[i])."end" loop
+  while j <= cardinality(walk) and (walk[j]).start < (walk[i])."end" loop
     return next row(j)::child;
-    j := (prog.nodes[j])."end" - base + 1;
+    j := (walk[j])."end" - base + 1;
   end loop;
 end $$;
 
@@ -200,9 +255,9 @@ begin
   if not hit then raise exception 'undeclared variable %', id; end if;
 end $$;
 
--- A node's identifier parameter, by its start.
-create function p3.ident(prog p3.program, s int) returns text language sql immutable as
-$$ select p.identifier from unnest(prog.idents) p where p.start = s $$;
+-- A node's identifier parameter.
+create function p3.ident(nd p3.walk_node) returns text language sql immutable as
+$$ select p.identifier from unnest(nd.idents) p $$;
 -- An integer attribute's value: its literal, or the single integer its variable holds (plate's referenceInteger,
 -- which raises for a variable no declaration names); NULL where the variable holds none.
 create function p3.resolve_int(r p3.int_ref, vars p3.var[]) returns numeric language sql immutable as $$
