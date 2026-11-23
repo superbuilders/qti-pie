@@ -322,7 +322,9 @@ describe("describeFailure, a refused import", () => {
   // defines its class, loads the composed grammar.
   it("a refusal the database gave says where to look by the kind of its witness", () => {
     // Oracle: the witness kind the refusal's origin carries, read from its field and never from
-    // its detail: a key is named in the message, an unreported witness names none. Bound: every kind of `WitnessKind`, exhausted; residual none.
+    // its detail: a key is named in the message, an unreported witness names none, and an
+    // unreproduced one names none and says a concurrent write changed the row. Bound: every kind
+    // of `WitnessKind`, exhausted; residual none.
     for (const witness of WitnessKind.literals) {
       const { exitCode, help, kind } = describeFailure({
         _tag: "ImportRefused",
@@ -336,6 +338,11 @@ describe("describeFailure, a refused import", () => {
       assert.notStrictEqual(help, kindHelp["import-refused"]);
       assert.strictEqual(help.includes("at the row the message names"), named, witness);
       assert.strictEqual(help.includes("The database names no row for this law"), !named, witness);
+      assert.strictEqual(
+        help.includes("another write committed beside this one"),
+        witness === "unreproduced",
+        witness,
+      );
       assert.include(help, "Nothing was written.");
     }
   });

@@ -248,12 +248,14 @@ const importDefectHelp =
 /**
  * What to do next after a refusal the database gave, by the kind of its witness: it names the law
  * and where the law is stated, and names the failing row only when its witness holds one, the key
- * grizzle reported.
+ * grizzle reported; an `unreproduced` one says why no row is named.
  */
 const databaseRefusalHelp = {
   key: "Find what the law describes in the package, at the row the message names, fix it, then import the package again. Nothing was written.",
   unreported:
     "The database names no row for this law, so find what the law describes in the package by the law's source, fix it, then import the package again. Nothing was written.",
+  unreproduced:
+    "The database names no row for this law: it refused the write, and another write committed beside this one changed the row it refused before that row could be read. Find what the law describes in the package by the law's source, fix it, then import the package again. Nothing was written.",
 } as const satisfies Readonly<Record<DatabaseRefusal["witness"], string>>;
 
 /**

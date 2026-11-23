@@ -259,24 +259,26 @@ const ending = <F>(name: string, failure: () => Promise<F>, dies: boolean) =>
   ).pipe(Command.withGlobalFlags(outputGlobalFlags));
 
 /**
- * A witness of each kind a database refusal names its row by: grizzle's key witness, and none. A
- * kind `WitnessKind` adds fails to compile here.
+ * A witness of each kind a database refusal names its row by: grizzle's key witness, none, and
+ * none for a row a concurrent commit changed. A kind `WitnessKind` adds fails to compile here.
  */
 const witnessesByKind = {
   key: { kind: "key", relation: "Attribute", values: { local: "href", node: "n-1" } },
   unreported: { kind: "unreported" },
+  unreproduced: { kind: "unreproduced" },
 } as const satisfies {
   readonly [Kind in typeof WitnessKind.Type]: Witness & { readonly kind: Kind };
 };
 
 /**
  * Where each origin's help sends the person: the reader's to the message, a named row's to that
- * row, an unreported witness's to the law's source.
+ * row, an unreported or unreproduced witness's to the law's source.
  */
 const helpByOrigin = {
   Reader: "Fix the package as the message says, then import it again.",
   key: "at the row the message names",
   unreported: "The database names no row for this law, so find what the law describes",
+  unreproduced: "another write committed beside this one changed the row it refused",
 } as const satisfies Readonly<Record<"Reader" | typeof WitnessKind.Type, string>>;
 
 layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refusal", (it) => {

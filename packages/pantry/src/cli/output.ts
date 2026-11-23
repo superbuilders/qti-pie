@@ -182,7 +182,9 @@ export const modeOfEnvironment = Effect.gen(function* resolveEnvironmentMode() {
  *   the first stated row breaks, that every row written holds them, or nothing of them), the laws
  *   (`RefusedLaw`), where each is stated, and whether the message names the row that broke them
  *   (`WitnessKind`: `key`, grizzle's key witness) or the database named none (`unreported`, for a
- *   foreign key or a law no row the ChangeSet states breaks as grizzle judges it).
+ *   constraint PostgreSQL checks by itself or a law no row the ChangeSet states breaks as grizzle
+ *   judges it; `unreproduced`, for a deferred foreign key whose row a concurrent commit changed
+ *   before grizzle read it).
  * - `failure` is present only for an `internal` failure qti can name, such as an export that cannot
  *   rebuild a stored package: the failure's tag.
  */

@@ -248,24 +248,38 @@ export interface Explanation {
  *
  * Grizzle names a violating row by its key fields alone, never another column: a key's, and a row
  * check's, a closed relation's check's, a contract's or a pattern's where the host judges a row the
- * ChangeSet states to break it. A foreign key, and a check no stated row breaks as the host judges
- * it, it names by none: its witness is `unreported` (README, "Errors and outcomes").
+ * ChangeSet states to break it, and a deferred foreign key's, the key of the row the write leaves
+ * unmatched at COMMIT. A check no stated row breaks as the host judges it, and a constraint
+ * PostgreSQL checks by itself, it names by none: its witness is `unreported`. A deferred foreign
+ * key whose unmatched row a concurrent commit changed before grizzle read it names its law and no
+ * row: its witness is `unreproduced`, since the row it would name is no longer the state the write
+ * committed against (README, "Errors and outcomes").
  *
  * @param witness - The refusal's witness.
- * @returns Where the row is, or that the database names none.
+ * @returns Where the row is, or why the database names none.
  */
 const witnessText = (witness: Witness): string => {
-  if (witness.kind === "unreported") {
-    return "the database names no row: PostgreSQL reports a constraint it checks itself by the constraint alone";
+  switch (witness.kind) {
+    case "key": {
+      const values = Object.entries(witness.values)
+        .map(
+          ([field, value]) =>
+            `${field}=${Predicate.isString(value) ? value : Formatter.format(value)}`,
+        )
+        .join(" ");
+
+      return `at ${witness.relation} ${values}`;
+    }
+    case "unreported": {
+      return "the database names no row: PostgreSQL reports a constraint it checks itself by the constraint alone";
+    }
+    case "unreproduced": {
+      return "the database names no row: this law refused the write, and the row it left unmatched could not be named, since another write committed beside it changed that row before it was read";
+    }
+    default: {
+      return witness satisfies never;
+    }
   }
-
-  const values = Object.entries(witness.values)
-    .map(
-      ([field, value]) => `${field}=${Predicate.isString(value) ? value : Formatter.format(value)}`,
-    )
-    .join(" ");
-
-  return `at ${witness.relation} ${values}`;
 };
 
 /**

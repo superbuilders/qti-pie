@@ -21,12 +21,15 @@ import { Schema } from "effect";
 const witnessKinds = {
   key: "key",
   unreported: "unreported",
+  unreproduced: "unreproduced",
 } as const satisfies { readonly [Kind in Witness["kind"]]: Kind };
 
 /**
  * How a database refusal names the row that broke its laws: `key`, grizzle's key witness, the
- * violating row's key fields; `unreported`, no row, for a foreign key or a law no stated row
- * breaks as grizzle judges it.
+ * violating row's key fields, a deferred foreign key's among them; `unreported`, no row, for a
+ * constraint PostgreSQL checks by itself or a law no stated row breaks as grizzle judges it;
+ * `unreproduced`, no row, for a deferred foreign key whose unmatched row a concurrent commit
+ * changed before grizzle read it, the law named alone.
  */
 export const WitnessKind = Schema.Literals(Object.values(witnessKinds));
 
