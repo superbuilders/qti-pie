@@ -389,7 +389,7 @@ returns p3.doc_values language sql immutable as $$
     array(select d.b from (select distinct row(v.base, (run).child, v.identifier, (run).package, (run).path, (run).stage)::doc_base as b from v where v.card <> 'record') d
       order by (d.b).identifier),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).b)::doc_boolean from s where card <> 'record' and (x).base = 'boolean'),
-    '{}'::doc_demand[],
+    '{}'::doc_demand_maximum[], '{}'::doc_demand[],
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (x).t, (run).stage, (x).u)::doc_directed_pair from s where card <> 'record' and (x).base = 'directedPair'),
     array[row((run).child, st.drawn, st.flow, (run).package, (run).path, (run).stage)::doc_end],
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).b)::doc_field_boolean from s where card = 'record' and (x).base = 'boolean'),
@@ -404,7 +404,7 @@ returns p3.doc_values language sql immutable as $$
     array(select row((run).child, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::doc_file_name from s where card <> 'record' and (x).base = 'file' and (x).w is not null),
     array(select row((run).child, (x).u, (x).d, holds, identifier, (run).package, (run).path, place, (run).stage)::doc_file from s where card <> 'record' and (x).base = 'file'),
     array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::doc_float from s where card <> 'record' and (x).base in ('float', 'duration')),
-    '{}'::doc_human_demand[],
+    '{}'::doc_human_demand_maximum[], '{}'::doc_human_demand[],
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::doc_integer from s where card <> 'record' and (x).base = 'integer'),
     array(select row((run).child, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::doc_pair from s where card <> 'record' and (x).base = 'pair'),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n, (x).m)::doc_point from s where card <> 'record' and (x).base = 'point'),
@@ -414,19 +414,19 @@ returns p3.doc_values language sql immutable as $$
 $$;
 -- Two results as one: each field's rows, the first's then the second's.
 create function p3.doc_values_joined(a p3.doc_values, b p3.doc_values) returns p3.doc_values language sql immutable as $$
-  select row(a.bases || b.bases, a.booleans || b.booleans, a.demands || b.demands, a.directed_pairs || b.directed_pairs, a.ends || b.ends, a.field_booleans || b.field_booleans,
+  select row(a.bases || b.bases, a.booleans || b.booleans, a.demand_maxima || b.demand_maxima, a.demands || b.demands, a.directed_pairs || b.directed_pairs, a.ends || b.ends, a.field_booleans || b.field_booleans,
     a.field_directed_pairs || b.field_directed_pairs, a.field_file_names || b.field_file_names, a.field_files || b.field_files, a.field_floats || b.field_floats, a.field_integers || b.field_integers,
     a.field_pairs || b.field_pairs, a.field_points || b.field_points, a.field_texts || b.field_texts,
-    a.file_names || b.file_names, a.files || b.files, a.floats || b.floats, a.human_demands || b.human_demands,
+    a.file_names || b.file_names, a.files || b.files, a.floats || b.floats, a.human_demand_maxima || b.human_demand_maxima, a.human_demands || b.human_demands,
     a.integers || b.integers, a.pairs || b.pairs, a.points || b.points,
     a.texts || b.texts, a.vars || b.vars)::doc_values
 $$;
 -- No document's values.
 create function p3.no_doc_values() returns p3.doc_values language sql immutable as $$
-  select row('{}'::doc_base[], '{}'::doc_boolean[], '{}'::doc_demand[], '{}'::doc_directed_pair[], '{}'::doc_end[], '{}'::doc_field_boolean[], '{}'::doc_field_directed_pair[],
+  select row('{}'::doc_base[], '{}'::doc_boolean[], '{}'::doc_demand_maximum[], '{}'::doc_demand[], '{}'::doc_directed_pair[], '{}'::doc_end[], '{}'::doc_field_boolean[], '{}'::doc_field_directed_pair[],
     '{}'::doc_field_file_name[], '{}'::doc_field_file[], '{}'::doc_field_float[], '{}'::doc_field_integer[], '{}'::doc_field_pair[],
     '{}'::doc_field_point[], '{}'::doc_field_text[], '{}'::doc_file_name[], '{}'::doc_file[],
-    '{}'::doc_float[], '{}'::doc_human_demand[], '{}'::doc_integer[], '{}'::doc_pair[], '{}'::doc_point[],
+    '{}'::doc_float[], '{}'::doc_human_demand_maximum[], '{}'::doc_human_demand[], '{}'::doc_integer[], '{}'::doc_pair[], '{}'::doc_point[],
     '{}'::doc_text[], '{}'::doc_var[])::doc_values
 $$;
 
@@ -564,19 +564,28 @@ begin
 end $$;
 -- One response processing run's result: where it demanded a recorded application (one it reached with a response and
 -- could not evaluate, rubric-score's request), its demands alone, each once, by its operator element's start in the
--- stored tree, so nothing of its attempt is written and the attempt waits for their evaluations; else, where some rubric
--- group's every application it reached declined and no person has valued the group (a valued group's applications are
--- never reached: they take the person's value), its human demands alone, each group once, so the attempt waits for a
--- person; else its values (doc_values_of, each variable as it stands).
+-- stored tree, with the maximum each took where it took one, so nothing of its attempt is written and the attempt waits
+-- for their evaluations; else, where some rubric group's every application it reached declined and no person has valued
+-- the group (a valued group's applications are never reached: they take the person's value), its human demands alone,
+-- each group once, with the least maximum its applications took where any took one, so the attempt waits for a person;
+-- else its values (doc_values_of, each variable as it stands).
 create function p3.response_values_of(kinds p3.var_kind[], nodes p3.program_node[], run p3.document_run, st p3.run_state)
 returns p3.doc_values language plpgsql immutable as $$
 declare result doc_values := no_doc_values(); starts bigint[];
 begin
   starts := array(select x.start from unnest(nodes) x order by x.start);
-  result.demands := array(select distinct row((run).child, (run).package, (run).path, (run).stage, starts[d.start])::doc_demand from unnest(st.demanded) d);
+  select coalesce(array_agg(row((run).child, (run).package, (run).path, (run).stage, starts[d.start])::doc_demand), '{}'),
+    coalesce(array_agg(row((run).child, d.maximum, (run).package, (run).path, (run).stage, starts[d.start])::doc_demand_maximum)
+      filter (where d.maximum is not null), '{}')
+  into result.demands, result.demand_maxima
+  from (select x.start, (select max(a.maximum) from unnest(st.reached) a where a.start = x.start) as maximum
+    from unnest(st.demanded) x group by x.start) d;
   if cardinality(result.demands) > 0 then return result; end if;
-  result.human_demands := array(select row((run).child, (run).package, (run).path, a.rubric, (run).stage)::doc_human_demand
-    from unnest(st.reached) a group by a.rubric having bool_and(a.declined));
+  select coalesce(array_agg(row((run).child, (run).package, (run).path, g.rubric, (run).stage)::doc_human_demand), '{}'),
+    coalesce(array_agg(row((run).child, g.maximum, (run).package, (run).path, g.rubric, (run).stage)::doc_human_demand_maximum)
+      filter (where g.maximum is not null), '{}')
+  into result.human_demands, result.human_demand_maxima
+  from (select a.rubric, min(a.maximum) as maximum from unnest(st.reached) a group by a.rubric having bool_and(a.declined)) g;
   if cardinality(result.human_demands) > 0 then return result; end if;
   return doc_values_of(delta => false, kinds => kinds, run => run, st => st);
 end $$;

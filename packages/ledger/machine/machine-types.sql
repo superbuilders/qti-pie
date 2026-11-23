@@ -108,9 +108,9 @@ create type p3.application as (start integer);
 -- none. Every application of the group takes it, as a reply's record, in place of its draws' evaluations.
 create type p3.human_value as (feedback text collate pg_catalog.pg_c_utf8, rubric text collate pg_catalog.pg_c_utf8, score float8);
 -- A recorded application a run reached whose group no person has valued: its operator element's place, its rubric
--- operand's text, and whether it is evaluated with no reply (a decline). A group whose every reached application
--- declined is a person's to score.
-create type p3.reached_application as (declined boolean, rubric text collate pg_catalog.pg_c_utf8, start integer);
+-- operand's text, the value its maximum operand took (NULL where it took none), and whether it is evaluated with no
+-- reply (a decline). A group whose every reached application declined is a person's to score.
+create type p3.reached_application as (declined boolean, maximum float8, rubric text collate pg_catalog.pg_c_utf8, start integer);
 
 create type p3.program as (any_ns p3.p_any_n[], areas p3.p_area[], bases p3.p_base[], categories p3.p_category[],
   constants p3.p_constant[], customs p3.p_custom[], equals p3.p_equal[], fields p3.p_field[], filters p3.p_filter[], franges p3.p_frange[],

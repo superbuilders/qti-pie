@@ -1348,8 +1348,8 @@ begin
       v := row('single', case when d is null then '{}'::single[] else array[s_int(n => d)] end)::val;
     -- rubric-score (spec/custom-operators.md §3.3-§5), the one place a recorded application is recognized. Where a
     -- person has valued its group (the inputs' `humans`, by its rubric operand's text), that value, as a reply's record:
-    -- every application of the group takes it, in place of its draws. Else it is reached, declined where it is evaluated
-    -- with no reply; where the attempt's evaluator has evaluated it (the inputs' `evaluated`, the ledger's
+    -- every application of the group takes it, in place of its draws. Else it is reached, with its maximum operand's
+    -- value, declined where it is evaluated with no reply; where the attempt's evaluator has evaluated it (the inputs' `evaluated`, the ledger's
     -- OperatorEvaluation), its recorded reply, read from the inputs (the ledger's OperatorReply rows for the attempt,
     -- keyed by the operator's start), NULL for a decline, which has none; where it has not, its request: the run demands
     -- it, and its value is NULL until a later run reads its evaluation. A NULL response makes no request (above).
@@ -1361,7 +1361,7 @@ begin
       else
         evaluated := exists (select from unnest(inp.evaluated) e where e.start = custom_value.start);
         acc := array(select s_field(s => r.value, field => r.field) from unnest(inp.replies) r where r.start = custom_value.start order by r.field);
-        reached := array[row(evaluated and cardinality(acc) = 0, ((ops[2]).vals[1]).t, custom_value.start)::reached_application];
+        reached := array[row(evaluated and cardinality(acc) = 0, ((ops[3]).vals[1]).f, ((ops[2]).vals[1]).t, custom_value.start)::reached_application];
         if not evaluated then demanded := array[row(custom_value.start)::application]; end if;
         v := case when cardinality(acc) = 0 then v_null() else row('record', acc)::val end;
       end if;

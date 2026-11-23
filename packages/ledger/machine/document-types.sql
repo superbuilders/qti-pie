@@ -65,17 +65,23 @@ create type p3.doc_end as (child text collate pg_catalog.pg_c_utf8, drawn intege
 -- request), by its run and its operator element's start in the stored tree: a run that demands any returns its demands
 -- alone, so nothing of its attempt is written and the attempt waits for their evaluations.
 create type p3.doc_demand as (child text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, stage bigint, start bigint);
+-- A demand's maximum: the value its application's maximum operand took in the run that demanded it (a qti-default, the
+-- default in force, which response processing never sets), where it took one; a NULL maximum is no row.
+create type p3.doc_demand_maximum as (child text collate pg_catalog.pg_c_utf8, maximum float8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, stage bigint, start bigint);
 -- A rubric group whose every recorded application a response processing run reached declined, with no person's value,
 -- by its run and the group's rubric: a person's to score. A run that asks a person gives its human demands alone.
 create type p3.doc_human_demand as (child text collate pg_catalog.pg_c_utf8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, rubric text collate pg_catalog.pg_c_utf8, stage bigint);
+-- A human demand's maximum: the least value the maximum operands of the group's reached applications took, where any
+-- took one; none is no row.
+create type p3.doc_human_demand_maximum as (child text collate pg_catalog.pg_c_utf8, maximum float8, package text collate pg_catalog.pg_c_utf8, path text collate pg_catalog.pg_c_utf8, rubric text collate pg_catalog.pg_c_utf8, stage bigint);
 -- A call's result: every run's values after it, by base type, and how each run ended; a response processing run that
 -- demanded recorded applications gives its demands alone, and one that asks a person its human demands alone. A field of rows alone, so a statement reads each as a source
 -- (FNNEST, Compute.rowOf).
-create type p3.doc_values as (bases p3.doc_base[], booleans p3.doc_boolean[], demands p3.doc_demand[], directed_pairs p3.doc_directed_pair[], ends p3.doc_end[],
+create type p3.doc_values as (bases p3.doc_base[], booleans p3.doc_boolean[], demand_maxima p3.doc_demand_maximum[], demands p3.doc_demand[], directed_pairs p3.doc_directed_pair[], ends p3.doc_end[],
   field_booleans p3.doc_field_boolean[], field_directed_pairs p3.doc_field_directed_pair[], field_file_names p3.doc_field_file_name[], field_files p3.doc_field_file[],
   field_floats p3.doc_field_float[], field_integers p3.doc_field_integer[], field_pairs p3.doc_field_pair[], field_points p3.doc_field_point[],
   field_texts p3.doc_field_text[], file_names p3.doc_file_name[], files p3.doc_file[],
-  floats p3.doc_float[], human_demands p3.doc_human_demand[], integers p3.doc_integer[], pairs p3.doc_pair[],
+  floats p3.doc_float[], human_demand_maxima p3.doc_human_demand_maximum[], human_demands p3.doc_human_demand[], integers p3.doc_integer[], pairs p3.doc_pair[],
   points p3.doc_point[], texts p3.doc_text[], vars p3.doc_var[]);
 -- A copy's place among a bag's copies of one value: a multiple held as (value, count) crosses as count rows of the
 -- value, each at its own place.

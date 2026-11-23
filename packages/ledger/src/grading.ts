@@ -619,6 +619,7 @@ export const HumanValue = rows({
 
 export const ReachedApplication = rows({
   declined: pg.boolean,
+  maximum: pg["double precision"],
   rubric: anyText,
   start: pg.integer,
 });
@@ -1672,8 +1673,26 @@ export const DocDemand = rows({
   start: natural,
 });
 
+export const DocDemandMaximum = rows({
+  child: LearnerId,
+  maximum: pg["double precision"],
+  package: anyText,
+  path: anyText,
+  stage: pg.bigint,
+  start: natural,
+});
+
 export const DocHumanDemand = rows({
   child: LearnerId,
+  package: anyText,
+  path: anyText,
+  rubric: anyText,
+  stage: pg.bigint,
+});
+
+export const DocHumanDemandMaximum = rows({
+  child: LearnerId,
+  maximum: pg["double precision"],
   package: anyText,
   path: anyText,
   rubric: anyText,
@@ -1683,6 +1702,7 @@ export const DocHumanDemand = rows({
 export const DocValues = rows({
   bases: DocBase,
   booleans: DocBoolean,
+  demand_maxima: DocDemandMaximum,
   demands: DocDemand,
   directed_pairs: DocDirectedPair,
   ends: DocEnd,
@@ -1698,6 +1718,7 @@ export const DocValues = rows({
   file_names: DocFileName,
   files: DocFile,
   floats: DocFloat,
+  human_demand_maxima: DocHumanDemandMaximum,
   human_demands: DocHumanDemand,
   integers: DocInteger,
   pairs: DocPair,
@@ -13340,8 +13361,8 @@ begin
       v := row('single', case when d is null then '{}'::${Single}[] else array[s_int(n => d)] end)::${Val};
     -- rubric-score (spec/custom-operators.md §3.3-§5), the one place a recorded application is recognized. Where a
     -- person has valued its group (the inputs' \`humans\`, by its rubric operand's text), that value, as a reply's record:
-    -- every application of the group takes it, in place of its draws. Else it is reached, declined where it is evaluated
-    -- with no reply; where the attempt's evaluator has evaluated it (the inputs' \`evaluated\`, the ledger's
+    -- every application of the group takes it, in place of its draws. Else it is reached, with its maximum operand's
+    -- value, declined where it is evaluated with no reply; where the attempt's evaluator has evaluated it (the inputs' \`evaluated\`, the ledger's
     -- OperatorEvaluation), its recorded reply, read from the inputs (the ledger's OperatorReply rows for the attempt,
     -- keyed by the operator's start), NULL for a decline, which has none; where it has not, its request: the run demands
     -- it, and its value is NULL until a later run reads its evaluation. A NULL response makes no request (above).
@@ -13353,7 +13374,7 @@ begin
       else
         evaluated := exists (select from unnest(inp.evaluated) e where e.start = custom_value.start);
         acc := array(select s_field(s => r.value, field => r.field) from unnest(inp.replies) r where r.start = custom_value.start order by r.field);
-        reached := array[row(evaluated and cardinality(acc) = 0, ((ops[2]).vals[1]).t, custom_value.start)::${ReachedApplication}];
+        reached := array[row(evaluated and cardinality(acc) = 0, ((ops[3]).vals[1]).f, ((ops[2]).vals[1]).t, custom_value.start)::${ReachedApplication}];
         if not evaluated then demanded := array[row(custom_value.start)::${Application}]; end if;
         v := case when cardinality(acc) = 0 then v_null() else row('record', acc)::${Val} end;
       end if;
@@ -15009,7 +15030,7 @@ export const docValuesOf = fn("docValuesOf", {
     array(select d.b from (select distinct row(v.base, (run).child, v.identifier, (run).package, (run).path, (run).stage)::${DocBase} as b from v where v.card <> 'record') d
       order by (d.b).identifier),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).b)::${DocBoolean} from s where card <> 'record' and (x).base = 'boolean'),
-    '{}'::${DocDemand}[],
+    '{}'::${DocDemandMaximum}[], '{}'::${DocDemand}[],
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (x).t, (run).stage, (x).u)::${DocDirectedPair} from s where card <> 'record' and (x).base = 'directedPair'),
     array[row((run).child, st.drawn, st.flow, (run).package, (run).path, (run).stage)::${DocEnd}],
     array(select row((run).child, (x).field, holds, identifier, (run).package, (run).path, (run).stage, (x).b)::${DocFieldBoolean} from s where card = 'record' and (x).base = 'boolean'),
@@ -15024,7 +15045,7 @@ export const docValuesOf = fn("docValuesOf", {
     array(select row((run).child, holds, identifier, (x).w, (run).package, (run).path, place, (run).stage)::${DocFileName} from s where card <> 'record' and (x).base = 'file' and (x).w is not null),
     array(select row((run).child, (x).u, (x).d, holds, identifier, (run).package, (run).path, place, (run).stage)::${DocFile} from s where card <> 'record' and (x).base = 'file'),
     array(select row((x).base, (run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).f)::${DocFloat} from s where card <> 'record' and (x).base in ('float', 'duration')),
-    '{}'::${DocHumanDemand}[],
+    '{}'::${DocHumanDemandMaximum}[], '{}'::${DocHumanDemand}[],
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n)::${DocInteger} from s where card <> 'record' and (x).base = 'integer'),
     array(select row((run).child, (x).u, holds, identifier, (x).t, (run).package, (run).path, place, (run).stage)::${DocPair} from s where card <> 'record' and (x).base = 'pair'),
     array(select row((run).child, holds, identifier, (run).package, (run).path, place, (run).stage, (x).n, (x).m)::${DocPoint} from s where card <> 'record' and (x).base = 'point'),
@@ -15042,10 +15063,10 @@ export const docValuesOf = fn("docValuesOf", {
 export const docValuesJoined = fn("docValuesJoined", {
   args: { a: row(DocValues), b: row(DocValues) },
   body: fn.body`
-  select row(a.bases || b.bases, a.booleans || b.booleans, a.demands || b.demands, a.directed_pairs || b.directed_pairs, a.ends || b.ends, a.field_booleans || b.field_booleans,
+  select row(a.bases || b.bases, a.booleans || b.booleans, a.demand_maxima || b.demand_maxima, a.demands || b.demands, a.directed_pairs || b.directed_pairs, a.ends || b.ends, a.field_booleans || b.field_booleans,
     a.field_directed_pairs || b.field_directed_pairs, a.field_file_names || b.field_file_names, a.field_files || b.field_files, a.field_floats || b.field_floats, a.field_integers || b.field_integers,
     a.field_pairs || b.field_pairs, a.field_points || b.field_points, a.field_texts || b.field_texts,
-    a.file_names || b.file_names, a.files || b.files, a.floats || b.floats, a.human_demands || b.human_demands,
+    a.file_names || b.file_names, a.files || b.files, a.floats || b.floats, a.human_demand_maxima || b.human_demand_maxima, a.human_demands || b.human_demands,
     a.integers || b.integers, a.pairs || b.pairs, a.points || b.points,
     a.texts || b.texts, a.vars || b.vars)::${DocValues}
 `,
@@ -15059,10 +15080,10 @@ export const docValuesJoined = fn("docValuesJoined", {
 export const noDocValues = fn("noDocValues", {
   args: {},
   body: fn.body`
-  select row('{}'::${DocBase}[], '{}'::${DocBoolean}[], '{}'::${DocDemand}[], '{}'::${DocDirectedPair}[], '{}'::${DocEnd}[], '{}'::${DocFieldBoolean}[], '{}'::${DocFieldDirectedPair}[],
+  select row('{}'::${DocBase}[], '{}'::${DocBoolean}[], '{}'::${DocDemandMaximum}[], '{}'::${DocDemand}[], '{}'::${DocDirectedPair}[], '{}'::${DocEnd}[], '{}'::${DocFieldBoolean}[], '{}'::${DocFieldDirectedPair}[],
     '{}'::${DocFieldFileName}[], '{}'::${DocFieldFile}[], '{}'::${DocFieldFloat}[], '{}'::${DocFieldInteger}[], '{}'::${DocFieldPair}[],
     '{}'::${DocFieldPoint}[], '{}'::${DocFieldText}[], '{}'::${DocFileName}[], '{}'::${DocFile}[],
-    '{}'::${DocFloat}[], '{}'::${DocHumanDemand}[], '{}'::${DocInteger}[], '{}'::${DocPair}[], '{}'::${DocPoint}[],
+    '{}'::${DocFloat}[], '{}'::${DocHumanDemandMaximum}[], '{}'::${DocHumanDemand}[], '{}'::${DocInteger}[], '{}'::${DocPair}[], '{}'::${DocPoint}[],
     '{}'::${DocText}[], '{}'::${DocVar}[])::${DocValues}
 `,
   calls: [],
@@ -15283,10 +15304,18 @@ export const responseValuesOf = fn("responseValuesOf", {
 declare result ${DocValues} := no_doc_values(); starts bigint[];
 begin
   starts := array(select x.start from unnest(nodes) x order by x.start);
-  result.demands := array(select distinct row((run).child, (run).package, (run).path, (run).stage, starts[d.start])::${DocDemand} from unnest(st.demanded) d);
+  select coalesce(array_agg(row((run).child, (run).package, (run).path, (run).stage, starts[d.start])::${DocDemand}), '{}'),
+    coalesce(array_agg(row((run).child, d.maximum, (run).package, (run).path, (run).stage, starts[d.start])::${DocDemandMaximum})
+      filter (where d.maximum is not null), '{}')
+  into result.demands, result.demand_maxima
+  from (select x.start, (select max(a.maximum) from unnest(st.reached) a where a.start = x.start) as maximum
+    from unnest(st.demanded) x group by x.start) d;
   if cardinality(result.demands) > 0 then return result; end if;
-  result.human_demands := array(select row((run).child, (run).package, (run).path, a.rubric, (run).stage)::${DocHumanDemand}
-    from unnest(st.reached) a group by a.rubric having bool_and(a.declined));
+  select coalesce(array_agg(row((run).child, (run).package, (run).path, g.rubric, (run).stage)::${DocHumanDemand}), '{}'),
+    coalesce(array_agg(row((run).child, g.maximum, (run).package, (run).path, g.rubric, (run).stage)::${DocHumanDemandMaximum})
+      filter (where g.maximum is not null), '{}')
+  into result.human_demands, result.human_demand_maxima
+  from (select a.rubric, min(a.maximum) as maximum from unnest(st.reached) a group by a.rubric having bool_and(a.declined)) g;
   if cardinality(result.human_demands) > 0 then return result; end if;
   return doc_values_of(delta => false, kinds => kinds, run => run, st => st);
 end `,
