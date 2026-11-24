@@ -41,7 +41,7 @@ import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Duration, Effect, Formatter, Option, pipe, Schema, Struct } from "effect";
 import { ReaderRefusal, WellFormednessError } from "@qti-pie/crust/errors.ts";
-import { checkNameOf, lawNameOf, refusalOf, ruleOfLaw, rulesOf } from "#pantry/import/refusal.ts";
+import { lawNameOf, refusalOf, ruleOfLaw, rulesOf } from "#pantry/import/refusal.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
 import { readerOrigin } from "#pantry/package/refusal-origin.ts";
 import { Qti } from "#pantry/qti/schema.ts";
@@ -632,15 +632,19 @@ const plannedAxes = nonEmpty("the planned axes", [
 const crossTier = nonEmpty("the cross-tier laws", [
   ...statedNamed("Binding declared", containedInto("Declaration")),
   ...statedNamed("Choice bounds"),
-  plantedLaw(
-    { kind: "check", name: checkNameOf("MathML arity"), relation: "Node" },
-    "a check of the MathML tier, named by its own name",
-  ),
+  {
+    entry: { kind: "declared", ...entryOf("MathML arity") },
+    kind: "check",
+    name: "MathML_arity",
+    relation: "Node",
+  } satisfies Law,
   ...statedNamed("AL1 owner", containedFrom("Attribute", "package", "path", "start", "kind")),
-  plantedLaw(
-    { kind: "check", name: checkNameOf("N5 Follow"), relation: "Node" },
-    "a check of the content-order tier, named by its own name",
-  ),
+  {
+    entry: { kind: "declared", ...entryOf("N5 Follow") },
+    kind: "check",
+    name: "N5_Follow",
+    relation: "Node",
+  } satisfies Law,
   ...statedNamed("N7 last slot"),
   ...statedNamed("N2 tree"),
   ...statedNamed("E1 derived", foldOver("Node", "children")),
@@ -735,56 +739,6 @@ describe("the merged axes and the laws no row states", () => {
       refused.message,
     );
     assert.isTrue(Option.isNone(ruleOfLaw(law)));
-  });
-
-  it("gives each law the installed name of the constraint or domain that refused it, whatever the law's kind, and none where a write statement or a generated column's NOT NULL did", () => {
-    // Oracle: grizzle's `RefusedLaw.by` (`RefusingObject`, `types/changeset/changeset.ts` at the
-    // vendored commit): a table's constraint and a domain's CHECK carry the name PostgreSQL holds
-    // them under, and a write statement and a generated column's NOT NULL carry none, so the
-    // refusal reads the name off the refusing object and nothing off the schema. Bound: a check Qti
-    // states (AL1's admission), a check it does not (one a level an install stacks names), a primary key,
-    // a contract and a generated field's law, each refused by each kind of object; exhausted.
-    const laws: readonly Law[] = [
-      plantedLaw(
-        { kind: "check", name: checkNameOf("AL1 admission"), relation: "Attribute" },
-        "a check Qti states, named by its own name",
-      ),
-      plantedLaw(
-        { kind: "check", name: "Planted_level_check", relation: "Attribute" },
-        "a check a level an install stacks names",
-      ),
-      plantedLaw(
-        { fields: ["identifier"], kind: "primaryKey", relation: "Package" },
-        "a primary key, as a refusal by its index names it",
-      ),
-      plantedLaw({ contract: "natural", kind: "contract" }, "a contract, as its domain names it"),
-      plantedLaw(
-        { field: "value", kind: "generated", relation: "DocumentLang" },
-        "a generated field's law, as its NOT NULL names it",
-      ),
-    ];
-    const objects = [
-      [{ kind: "constraint", name: "planted_constraint" }, Option.some("planted_constraint")],
-      [{ kind: "domain", name: "planted_domain_check" }, Option.some("planted_domain_check")],
-      [{ kind: "statement" }, Option.none()],
-      [{ kind: "notNull" }, Option.none()],
-    ] as const;
-
-    for (const law of laws) {
-      for (const [by, installed] of objects) {
-        const refused = refusalOf(
-          { kind: "every", laws: [{ by, id: "", law }] },
-          { kind: "unreported" },
-        );
-        const [fact] = refused.origin._tag === "Database" ? refused.origin.laws : [];
-
-        assert.deepStrictEqual(
-          Option.fromUndefinedOr(fact?.installed),
-          installed,
-          `${Formatter.format(law)}, refused by a ${by.kind}`,
-        );
-      }
-    }
   });
 });
 

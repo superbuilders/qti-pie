@@ -261,7 +261,6 @@ const lawIdOf = (law: Law): Option.Option<string> =>
  * @returns The refused law.
  */
 export const refusedOf = (law: Law): RefusalLaw => ({
-  by: { kind: "statement" },
   id: Option.getOrElse(lawIdOf(law), () => ""),
   law,
 });

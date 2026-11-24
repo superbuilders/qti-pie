@@ -12,6 +12,7 @@
  * (`policyLaws` of `#pantry/test/oracle-laws.ts`).
  */
 import { Sha256 } from "@bjornpagen/grizzle";
+import { lawsByStatement } from "@bjornpagen/grizzle/compile";
 import type { CheckVerdict, EvaluatedRow, Unevaluated } from "@bjornpagen/grizzle/compile";
 import { exhaust } from "@bjornpagen/testing/explore";
 import { requiredInSpace } from "@bjornpagen/testing/features";
@@ -20,8 +21,8 @@ import type { Gen } from "@bjornpagen/testing/gen";
 import { searched } from "@bjornpagen/testing/vitest";
 import { NodeServices } from "@effect/platform-node";
 import { assert, describe, it, layer } from "@effect/vitest";
-import { Duration, Effect, FileSystem, Option, Record as Rec, Result } from "effect";
-import { lawOfCheck } from "#pantry/import/refusal.ts";
+import { Duration, Effect, FileSystem, Formatter, Option, Record as Rec, Result } from "effect";
+import { lawNameOf } from "#pantry/import/refusal.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import {
   ClassificationPurpose,
@@ -339,19 +340,22 @@ const statedViews = new Set<unknown>([
 const judgedRelations = new Set<unknown>([LomTerm, RecordNode]);
 
 describe("the LOM level", () => {
-  it("states each law of lomLawsByName and no other, each check named by its law", () => {
-    // Oracle: the level's own grouping, and `checkNameOf`, the naming every check of the schema
-    // follows. Bound: every statement of the level.
+  it("states each law of lomLawsByName and no other, each law named by its group's entry", () => {
+    // Oracle: the level's own grouping, and grizzle's laws of each statement as an
+    // `invariant-rejected` outcome names them (`lawsByStatement`), each named by the entry its
+    // group declares. Bound: every statement of the level.
     const own = QtiLom.statements.slice(QtiLomVocabulary.statements.length);
     assert.deepStrictEqual(own, Object.values(lomLawsByName).flat());
+
+    const lawsOf = lawsByStatement(QtiLom);
     for (const [law, statements] of Object.entries(lomLawsByName)) {
       for (const statement of statements) {
-        if (statement.kind === "check") {
-          assert.deepStrictEqual(lawOfCheck(statement.name), Option.some(law), statement.name);
+        for (const stated of lawsOf(statement)) {
+          assert.deepStrictEqual(lawNameOf(stated), Option.some(law), Formatter.format(stated));
         }
       }
     }
-  });
+  }, 300_000);
 
   it("asks a package for nothing, and judges only a record's terms and vCards", () => {
     // Oracle: IEEE 1484.12.1-2002 §4.2 ("All data elements are optional"), QTI 3.0 Metadata

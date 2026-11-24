@@ -71,8 +71,8 @@
  * {@link RecordNode} of `QtiViews` (`#pantry/qti/names.ts`), which reads its document's type from
  * its `Document`. A query reads a text by `Text.matches` only within a byte bound its type
  * states, and every text here is a folded `matchedText`. Every check is named by its law with
- * spaces written as underscores, as every check of the schema is (`checkNameOf` of
- * `#pantry/import/refusal.ts`).
+ * spaces written as underscores, as every check of the schema is, and declares its law's entry, by
+ * which a refusal names it (`lawNameOf` of `#pantry/import/refusal.ts`).
  *
  * @see {@link https://www.imsglobal.org/sites/default/files/spec/qti/v3/md-bind/index.html | QTI 3.0 Metadata, §2.7}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/conf | QTI 3.0 Conformance and Certification, §2.2 and §3}

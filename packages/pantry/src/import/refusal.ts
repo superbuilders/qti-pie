@@ -46,44 +46,12 @@ export const lawNames: readonly LawName[] = Object.keys(lawTable).filter((name):
 );
 
 /**
- * Name the check that states a law: its name with each space an underscore, since grizzle's check
- * names are `[A-Za-z0-9_]` and no law name holds an underscore, so {@link lawOfCheck} inverts it.
- *
- * @param law - The law.
- * @returns The check's name.
- */
-export const checkNameOf = (law: LawName): string => law.replaceAll(" ", "_");
-
-/**
- * Read the law a check states from the check's name, as an `invariant-rejected` outcome reports it.
- *
- * @param name - The check's name.
- * @returns The law, or none for a name no law's check bears.
- */
-export const lawOfCheck = (name: string): Option.Option<LawName> => {
-  const law = name.replaceAll("_", " ");
-
-  return Option.fromUndefinedOr(lawNames.find((known) => known === law));
-};
-
-/**
- * The object that refused a law, as the importer reads it: an installed constraint or domain, by
- * the name PostgreSQL holds it under, or a write statement or a generated column's NOT NULL, which
- * install no constraint of the law's. grizzle's `RefusingObject` is one, its name a branded text.
- */
-export type RefusingBy =
-  | { readonly kind: "constraint" | "domain"; readonly name: string }
-  | { readonly kind: "notNull" | "statement" };
-
-/**
  * One law of a refusal, as the importer names it: the law as the schema states it, the login's own
- * law or a law of a level above the login's, its id, and the object that refused it. The id is a
- * LawId for a law of the theory or a text pattern, and a GeneratedLawId for a generated field's
- * law. grizzle's `RefusedLaw` is one, its id and installed name branded texts; a test plants one
- * with texts of its own.
+ * law or a law of a level above the login's, and its id. The id is a LawId for a law of the theory
+ * or a text pattern, and a GeneratedLawId for a generated field's law. grizzle's `RefusedLaw` is
+ * one, its id a branded text; a test plants one with a text of its own.
  */
 export interface RefusalLaw {
-  readonly by: RefusingBy;
   readonly id: string;
   readonly law: Law;
 }
@@ -174,10 +142,11 @@ const lawNamed = (name: string): Option.Option<LawName> =>
  * states it states it: the login's own law as it is, and the law of a level above the login's, the
  * first law of an `above` refusal, such as a LOM check (`QtiLom` of `#pantry/qti/lom.ts`) refusing
  * a write of a login over `Qti`, as that level's own law (grizzle's `AboveLaw.law`). Its entry is
- * the one its declaration declares (`#pantry/qti/law-entries.ts`), the law table's row of its name,
- * or, where nothing declares one, the one grizzle derives, which names a check by its own name
- * ({@link lawOfCheck}) and a law of any other kind by its shape, which no row of the table holds.
- * Nothing reads the schema.
+ * the one its declaration declares (`#pantry/qti/law-entries.ts`), the law table's row of its name:
+ * every statement of the schema declares one (`law-names.test.ts`), and grizzle names a law refused
+ * at COMMIT, over a stored relation's table among them, by its law. A law no row of the table
+ * names, one a level an application stacks states with an entry grizzle derives among them, is
+ * named by none. Nothing reads the schema.
  *
  * @param law - A law of an `invariant-rejected` outcome, or one a schema states.
  * @returns Its name, or none for a law no row of the table names.
@@ -185,23 +154,8 @@ const lawNamed = (name: string): Option.Option<LawName> =>
 export const lawNameOf = (law: Law): Option.Option<LawName> => {
   const { entry }: OwnLaw = law.kind === "above" ? law.law : law;
 
-  return entry.kind === "declared" ? lawNamed(entry.name) : lawOfCheck(entry.name);
+  return lawNamed(entry.name);
 };
-
-/**
- * Read the name PostgreSQL holds the object that refused a law under, as the outcome names it
- * (grizzle's `RefusedLaw.by`), whatever the law's kind: a table's constraint, a CHECK, a key, a
- * foreign key or an exclusion constraint, or a domain's CHECK. A write statement and a rule over a
- * query's trigger raise the law under its identity and install no constraint for it, and grizzle
- * names a generated column's NOT NULL by its table and column alone, so a law they refused has
- * none.
- *
- * @param refused - A law of an `invariant-rejected` outcome.
- * @returns The refusing object's installed name, or none.
- * @see https://github.com/bjornpagen/grizzle/blob/eb56d58bb3191b6645f1334dc55f63c7a73c2dc4/packages/engine/src/types/changeset/changeset.ts#L1200-L1215
- */
-export const installedNameOf = ({ by }: RefusalLaw): Option.Option<string> =>
-  by.kind === "constraint" || by.kind === "domain" ? Option.some(by.name) : Option.none();
 
 /**
  * The rule the law table gives a law: its name's row's ({@link lawNameOf}).
@@ -314,19 +268,14 @@ export const explain = (
 };
 
 /**
- * One law of a refusal as the refusal carries it: its display text, the installed name of the
- * object that refused it ({@link installedNameOf}), and the name and rule the law table gives it.
+ * One law of a refusal as the refusal carries it: its display text, and the name and rule the law
+ * table gives it.
  *
  * @param law - A law of an `invariant-rejected` outcome.
  * @returns Its facts.
  */
 const lawFactOf = (refused: RefusalLaw): typeof RefusedLaw.Type => {
   const fact: Types.Mutable<typeof RefusedLaw.Type> = { text: Formatter.format(refused.law) };
-  const installed = installedNameOf(refused);
-  if (Option.isSome(installed)) {
-    fact.installed = installed.value;
-  }
-
   const name = lawNameOf(refused.law);
   if (Option.isSome(name)) {
     fact.name = name.value;

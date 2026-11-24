@@ -77,20 +77,15 @@ export const RefusedKind = Schema.Literals(Object.values(refusalDecisions));
 
 /**
  * One law a database refusal names: its `text`, the law as grizzle's outcome names it, written by
- * Effect's `Formatter.format` for a person to read; its `installed` name, the name PostgreSQL holds
- * the object that refused it under, a table's constraint or a domain's CHECK, whatever the law's
- * kind (grizzle's `RefusedLaw.by`), absent where a write statement or a generated column's NOT NULL
- * refused it; and the `name` and `rule` the law table gives it, absent for a law the table does not
- * hold. A program reads which law broke by its `name`, or by its `installed` name where the table
- * names none.
+ * Effect's `Formatter.format` for a person to read; and the `name` and `rule` the law table gives
+ * it, absent for a law the table does not hold. A program reads which law broke by its `name`.
  *
  * The text is no JSON: `Formatter.format` writes a bigint as `1n`. The law stays display text
  * because grizzle has no encoder or decoder of its `Law` or its IR, and will never have one, as its
  * owner ruled on 2026-11-08: the database is the whole constraint engine, so a refusal prints what
- * the database states, each law's display text and its installed name.
+ * the database states, each law's display text.
  */
 export const RefusedLaw = Schema.Struct({
-  installed: Schema.optionalKey(Schema.String),
   name: Schema.optionalKey(Schema.String),
   rule: Schema.optionalKey(Schema.String),
   text: Schema.String,

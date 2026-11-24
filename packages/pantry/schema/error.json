@@ -13,7 +13,6 @@
       "items": {
         "type": "object",
         "properties": {
-          "installed": { "type": "string" },
           "name": { "type": "string" },
           "rule": { "type": "string" },
           "text": { "type": "string" }

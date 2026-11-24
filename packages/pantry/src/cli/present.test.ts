@@ -192,21 +192,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("the JSON error shape",
 const matchesCommittedError = matchesCommitted("error");
 
 /**
- * The installed name the constraint that refuses AL1's check carries in this file's refusals. The
- * importer reads a refused law's installed name off the object that refused it (`by.name`,
- * grizzle's `RefusedLaw`) and compiles nothing, so the name is planted, and a printed `installed`
- * is that name exactly when the refusal carried it through.
- */
-const plantedConstraint = "planted_al1_admission_constraint";
-
-/**
- * A check law, as grizzle names one.
- */
-type CheckLaw = Extract<Law, { readonly kind: "check" }>;
-
-/**
- * A law the table does not hold: a check of no law, which `Qti` does not state, so it has no
- * installed name.
+ * A law the table does not hold: a check of no law, which `Qti` does not state.
  */
 const unownedLaw = {
   entry: { kind: "derived", name: "not_a_law", source: "a check Qti does not state" },
@@ -216,30 +202,13 @@ const unownedLaw = {
 } as const satisfies Law;
 
 /**
- * A check as a refusal by a write statement carries it, which names no installed object. A check
- * needs no LawId: the importer names it by its own name.
- *
- * @param law - The check.
- * @returns The refused law.
- */
-const refusedByStatement = (law: CheckLaw): RefusalLaw => ({
-  by: { kind: "statement" },
-  id: "",
-  law,
-});
-
-/**
- * A check as PostgreSQL's refusal of it carries it, as the login's own law or as a level above
- * states it: refused by its table's constraint, under the {@link plantedConstraint} name.
+ * A check as a refusal of it carries it, as the login's own law or as a level above states it. A
+ * check needs no LawId: the importer names it by the entry it carries.
  *
  * @param law - The check, or a level above's law of it.
  * @returns The refused law.
  */
-const refusedByConstraint = (law: Law): RefusalLaw => ({
-  by: { kind: "constraint", name: plantedConstraint },
-  id: "",
-  law,
-});
+const refusedLawOf = (law: Law): RefusalLaw => ({ id: "", law });
 
 /**
  * A command named `name` that fails with `failure`, or dies with it when `dies`, under the output
@@ -288,9 +257,8 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
       // Oracle: the origin each refusal is built from, and the law table read directly by the name
       // its one check was built from: a refusal the reader made prints its one rule and no
       // decision, law, source or witness in either mode; one the database made prints how grizzle
-      // decided its laws, its laws with the table's name and rule and, for the check `Qti` states,
-      // the installed name its refusing constraint carried, the table's source once, and the kind
-      // of the witness it was built under. A `some` outcome names two laws, AL1's check and a check of no law, which `Qti` does
+      // decided its laws, its laws with the table's name and rule, the table's source once, and
+      // the kind of the witness it was built under. A `some` outcome names two laws, AL1's check and a check of no law, which `Qti` does
       // not state and which has its text alone, as grizzle's `Refused` requires. An `above`
       // outcome names AL1's check first as a level above states it, by the name of the law it
       // wraps, and `above every` the login's own AL1 check after it. The help is
@@ -298,19 +266,16 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
       // kind of `RefusedKind` and of `WitnessKind`, exhausted, each in text and JSON; residual
       // none.
       Effect.gen(function* everyOrigin() {
-        const { checkNameOf, refusalOf } = yield* Effect.promise(
-          () => import("#pantry/import/refusal.ts"),
-        );
+        const { refusalOf } = yield* Effect.promise(() => import("#pantry/import/refusal.ts"));
         const { ImportRefused } = yield* Effect.promise(() => import("#pantry/import/rules.ts"));
         const { rule, source } = lawTable["AL1 admission"];
         const law = {
           entry: { kind: "declared", name: "AL1 admission", source },
           kind: "check",
-          name: checkNameOf("AL1 admission"),
+          name: "AL1_admission",
           relation: "Attribute",
         } as const;
         const lawFact = {
-          installed: plantedConstraint,
           name: "AL1 admission",
           rule,
           text: Formatter.format(law),
@@ -318,8 +283,8 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
         const unownedFact = { text: Formatter.format(unownedLaw) };
         const aboveLaw = { kind: "above", law, level: "QtiMedia" } as const;
         const aboveFact = { ...lawFact, text: Formatter.format(aboveLaw) };
-        const refusedAbove = refusedByConstraint(aboveLaw);
-        const own = refusedByConstraint(law);
+        const refusedAbove = refusedLawOf(aboveLaw);
+        const own = refusedLawOf(law);
         const refusalsByDecision = {
           "above every": {
             facts: [aboveFact, lawFact],
@@ -337,7 +302,7 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
           first: { facts: [lawFact], refused: { kind: "first", laws: [own] } },
           some: {
             facts: [lawFact, unownedFact],
-            refused: { kind: "some", laws: [own, refusedByStatement(unownedLaw)] },
+            refused: { kind: "some", laws: [own, refusedLawOf(unownedLaw)] },
           },
         } as const satisfies {
           readonly [Decision in typeof RefusedKind.Type]: {

@@ -1,20 +1,20 @@
 /**
  * The laws each module names where it states them (`namedLaws` of `#pantry/test/law-namer.ts`),
- * held to the law table and to the schema: every group's name is a law of the table, a check sits
- * in its own law's group, every statement of `Qti` sits in exactly one group, and every law grizzle
- * names for a statement is named by its group, so the law table reads each name from the
- * statement's site and restates none.
+ * held to the law table and to the schema: every group's name is a law of the table, every
+ * statement of `Qti` sits in exactly one group, and every law grizzle names for a statement is
+ * named by its group, by the entry the group's declaration gives it, so no statement of `Qti` is
+ * undeclared, the law table reads each name from the statement's site and restates none.
  */
 import type { Statement } from "@bjornpagen/grizzle";
 import { assert, describe, it } from "@effect/vitest";
 import { Array as Arr, Formatter, Option, Result } from "effect";
-import { checkNameOf, lawNameOf, lawNames } from "#pantry/import/refusal.ts";
+import { lawNameOf, lawNames } from "#pantry/import/refusal.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { namedLaws, statementLawsOf } from "#pantry/test/law-namer.ts";
 
 describe("the laws each module names where it states them", () => {
-  it("names each group by a law of the table, holds each check in its own law's group, groups every statement of Qti once, and names each law by its statement's group", () => {
+  it("names each group by a law of the table, groups every statement of Qti once, and names each law by its statement's group, so no statement is undeclared", () => {
     // Oracle: the law table's own names, Qti's statements, and grizzle's laws of each statement
     // as an `invariant-rejected` outcome names them (`lawsByStatement`). Bound: every statement of
     // Qti.
@@ -27,10 +27,6 @@ describe("the laws each module names where it states them", () => {
 
       for (const name of lawNames) {
         for (const statement of byName[name] ?? []) {
-          if (statement.kind === "check") {
-            assert.strictEqual(statement.name, checkNameOf(name), `${name}: its check`);
-          }
-
           groups.set(statement, [...(groups.get(statement) ?? []), name]);
         }
       }

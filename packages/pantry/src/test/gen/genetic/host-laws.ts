@@ -27,7 +27,7 @@
 import { Formatter, Option, Predicate, Result, Schema } from "effect";
 import { sameLaw } from "@bjornpagen/grizzle";
 import type { Law } from "@bjornpagen/grizzle";
-import { lawNameOf, lawOfCheck } from "#pantry/import/refusal.ts";
+import { lawNameOf } from "#pantry/import/refusal.ts";
 import type { LawName } from "#pantry/import/refusal.ts";
 import type { PackageInputs } from "#pantry/import/write.ts";
 import { utf8Length } from "#pantry/qti/limits.ts";
@@ -65,7 +65,7 @@ export const evaluatedLaws: readonly Law[] = judged.map(({ law }) => law);
 const checkLaws: ReadonlyMap<Law, LawName> = new Map(
   evaluatedLaws.flatMap((law) =>
     law.kind === "check"
-      ? Option.toArray(Option.map(lawOfCheck(law.name), (name) => [law, name] as const))
+      ? Option.toArray(Option.map(lawNameOf(law), (name) => [law, name] as const))
       : [],
   ),
 );
@@ -79,9 +79,9 @@ const checkLaws: ReadonlyMap<Law, LawName> = new Map(
  * cannot judge.
  */
 const unreadChecks: ReadonlySet<LawName> = new Set(
-  Qti.statements.flatMap((statement) =>
+  statementLaws.flatMap(({ laws, statement }) =>
     statement.kind === "check" && statement.relation.kind === "derived"
-      ? Option.toArray(lawOfCheck(statement.name))
+      ? laws.flatMap((law) => Option.toArray(lawNameOf(law)))
       : [],
   ),
 );
