@@ -45,9 +45,9 @@ export interface Copies {
 
 /**
  * How a composition's population grows: the copies made on the installation's superuser session,
- * then vacuumed. {@link copyUnits} is the copy every composition whose unit is one text column
- * takes; a composition whose unit is not (metis's child, a person under several columns with its
- * user id and assignment numbers, two gapless series each copy continues) states its own.
+ * then vacuumed and analyzed. {@link copyUnits} is the copy every composition whose unit is one text
+ * column takes; a composition whose unit is not (metis's child, a person under several columns with
+ * its user id and assignment numbers, two gapless series each copy continues) states its own.
  */
 export type Grow = (admin: pg.Client, copies: Copies) => Effect.Effect<void, PopulationRefused>;
 
@@ -104,15 +104,16 @@ const run = (client: pg.Client, step: string, sql: string) =>
   });
 
 /**
- * The copy of every row a unit column holds, then VACUUM, which counts every table's size at the
- * scale. grizzle declares every column's statistics from the schema's structure and never samples
- * them, so the size is all a load changes; an ANALYZE would count it from a sample, which over a
- * table's dead pages can count none (grizzle's README, "Declared statistics": "Run VACUUM, never
- * ANALYZE, after a load").
+ * The copy of every row a unit column holds, then VACUUM ANALYZE, so the population stands as
+ * production's does at the scale: VACUUM counts every table's size, as production's autovacuum
+ * keeps reltuples and relpages current, and ANALYZE leaves the planner what an analyzed table
+ * gives it beside the columns' declared statistics, which it keeps (grizzle main's ruling of
+ * 2026-11-24: a budget population keeps ANALYZE, since BUDGET-TEST's 760 s plan flip shows only
+ * after it).
  *
  * @param unit - The unit's column, which every table of a unit's rows holds.
  * @returns The growth: given the superuser's session and the copies, it completes once they are
- *   made and vacuumed.
+ *   made, vacuumed and analyzed.
  */
 export const copyUnits =
   (unit: string): Grow =>
@@ -126,5 +127,5 @@ export const copyUnits =
       yield* run(client, "settings", `SET plan_budget.last = '${String(copies.last)}'`);
       yield* run(client, "copy", copyStatement);
       yield* run(client, "settings", "RESET session_replication_role");
-      yield* run(client, "vacuum", "VACUUM");
+      yield* run(client, "vacuum analyze", "VACUUM ANALYZE");
     });
