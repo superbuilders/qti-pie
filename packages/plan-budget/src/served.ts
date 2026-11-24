@@ -13,6 +13,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { lex } from "@bjornpagen/grizzle-engine/internal/plan/migration.ts";
+import { standUpTexts } from "@bjornpagen/grizzle-engine/internal/plan/runtime.ts";
 import { servedFile } from "@bjornpagen/grizzle-engine/internal/plan/serve.ts";
 import { Schema } from "effect";
 
@@ -207,6 +208,33 @@ const isNamedText = (value: unknown): value is SentStatement =>
   typeof value["sql"] === "string";
 
 /**
+ * A write's stand-up as its served file holds it (grizzle runtime/write/flight.ts StandUp), each
+ * text named: a carrier's table, its emptying and its reader, or a judged table's call.
+ */
+type ServedStandUp =
+  | {
+      readonly kind: "carrier";
+      readonly table: SentStatement;
+      readonly emptying: SentStatement;
+      readonly reader: SentStatement;
+    }
+  | { readonly kind: "judged"; readonly call: SentStatement };
+
+/**
+ * Whether a value is a write's stand-up.
+ *
+ * @param value - Any value of the decoded file.
+ * @returns True for a carrier's or a judged table's stand-up.
+ */
+const isStandUp = (value: unknown): value is ServedStandUp =>
+  isRecord(value) &&
+  ((value["kind"] === "carrier" &&
+    isNamedText(value["table"]) &&
+    isNamedText(value["emptying"]) &&
+    isNamedText(value["reader"])) ||
+    (value["kind"] === "judged" && isNamedText(value["call"])));
+
+/**
  * A unit's CTE text with its placeholders numbered after the units sent before it
  * (runtime/write/parted.ts).
  *
@@ -247,7 +275,10 @@ const assembledText = (units: readonly ServedUnit[]): string => {
 
 /**
  * Every statement a served program sends, in its largest form: each named text its form holds, and
- * each single statement's whole text, each once, in the order a depth-first walk meets them.
+ * each single statement's whole text, each once, in the order a depth-first walk meets them; a
+ * stand-up's texts in the order its session sends them (grizzle's standUpTexts: a carrier's table
+ * before the reader that returns its rows), since a walk of its fields by name would send the
+ * reader before the table its type is.
  *
  * @param member - The decoded member.
  * @returns Its statements.
@@ -267,6 +298,10 @@ const statementsIn = (member: ServedMember): readonly SentStatement[] => {
       found.set(sql, { name: "assembled", sql });
     } else if (isList(value)) {
       stack.push(...value.toReversed());
+    } else if (isStandUp(value)) {
+      for (const { name, sql } of standUpTexts(value)) {
+        found.set(sql, { name, sql });
+      }
     } else if (isNamedText(value)) {
       found.set(value.sql, { name: value.name, sql: value.sql });
     } else if (isRecord(value)) {
