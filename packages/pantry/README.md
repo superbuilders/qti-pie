@@ -20,13 +20,13 @@ around them. There is no pantry runtime: the application opens its own connectio
 | --- | --- |
 | `qti/schema.ts` | `Qti`, the one schema constant, every relation public and typed on `Qti.relations` |
 | `qti/media.ts` | `QtiMedia`, the package-media level to stack with `schema.extend`; its policy is `MediaType` rows |
-| `qti/roles.ts`, `qti/logins.ts` | `Author`, `AuthorApp`, `insertWrite`, the import's insert-only publish, and `removeWrite`, a whole package's removal |
+| `qti/roles.ts`, `qti/logins.ts` | `Author`, `AuthorApp` and `insertWrite`, the import's insert-only publish: a package is never changed or removed |
 | `import/read.ts` | `readPackage(dir, name)`: one read under the name the package is stored by, bytes to documents, files by path and referenced paths |
 | `import/program.ts` | `importRowsOf`: the rows a read package is written as, for `insertWrite`, and its media files with their digests |
-| `import/package.ts` | `importPackage(db.workload, pkg)`: its media put in the `MediaStore`, then `importRowsOf` applied through an author `Db`'s `insertWrite`, with retries |
+| `import/package.ts` | `importPackage(db.workload, pkg)`: its media put in the `MediaStore`, then `importRowsOf` applied once through an author `Db`'s `insertWrite` |
 | `package/media.ts` | `MediaStore`, the content-addressed store media bytes live in, and its folder and in-memory layers |
 | `import/refusal.ts`, `vocab/laws.ts` | `lawNameOf`, `rulesOf` and `lawTable`: a refused law's QTI rule |
-| `export/scan.ts`, `export/render.ts` | `documentScan` and `entriesOf` (grizzle queries), `documentScanOf(document)`, and `documentXml(rows)` |
+| `export/scan.ts`, `export/render.ts` | `documentScan` and `entriesOf` (grizzle queries), `documentScanOf(document)`, and `documentXml(document, rows)` |
 | `db/install.ts` | `MediaPolicySchema`, which parses `policy.json`, `{ "media": { "<extension>": "<type>" } }` |
 | `test/package-judgment.ts` | `judgePackage(dir, samples)`: the law oracle's prediction, with no database, of what the import's laws refuse in a package |
 
@@ -50,9 +50,10 @@ new name is `accepted`, the same package again under its name is `unchanged`, an
 is refused on the keys the two share. A refusal is grizzle's `refused` call error; `rulesOf(error.refused.laws)` names
 its QTI rules.
 
-Or it imports one with its media put in its `MediaStore` (`package/media.ts`), its reruns of an unanswered commit and
-its named refusal, through its author `Db`'s workload, over `AuthorApp` or `MediaAuthorApp` (`qti/media.ts`) alike.
-Its outcome is `accepted` or `unchanged`:
+Or it imports one with its media put in its `MediaStore` (`package/media.ts`) and its refusal named, through its author
+`Db`'s workload, over `AuthorApp` or `MediaAuthorApp` (`qti/media.ts`) alike. Its outcome is `accepted` or
+`unchanged`; a commit with no answer fails it with grizzle's `commitUnknown`, and importing the package again answers
+`unchanged` where it committed:
 
 ```ts
 const { outcome, package: name } = yield* importPackage(db.workload, pkg)

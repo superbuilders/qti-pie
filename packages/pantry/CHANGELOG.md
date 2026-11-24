@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased: no --timeout
+
+- The command line has no `--timeout` and reads no `QTI_TIMEOUT`: a command runs until it ends or its operator stops
+  it. The error kind `timeout` and the errors `CommandTimedOut`, `WriteStopped` and `WriteUnsettled` are removed.
+- An export dies on rows the laws exclude: `DocumentRowCount` (`export/pages.ts`) is removed, `assembleScan` and
+  `readDocument` (`model/assemble.ts`) return the document, and `exportEntries`, `exportPackage` and `documentXml`
+  fail with no `AssembleError` or crust `EncodeError`.
+
 ## Unreleased: the mapping, catalog and table copies are views
 
 The importer writes no copy of an attribute a view reads. Breaking changes:
@@ -28,38 +36,18 @@ content-addressed store holds. A package's name is one revision. Breaking change
   relation, `Media`, holds each media entry's `digest`, which the importer states, and the law "Entry kind"
   (`alternatives`) holds every entry to exactly one `Document` or `Media` row, in place of "Document entry"'s
   `Document` ⊆ `Entry`.
-- `replaceWrite` and `entryDigestsOf` (`qti/logins.ts`) are removed. `AuthorApp`'s and `MediaAuthorApp`'s workloads
-  serve `insertWrite` and `removeWrite`, and `authorReads` drops `entryDigestsOf`. Another package under a stored name
-  is refused.
+- `importWrite` (`qti/logins.ts`) is removed. `AuthorApp`'s and `MediaAuthorApp`'s workloads serve `insertWrite`
+  alone: a package is closed, never changed or removed. Another package under a stored name is refused.
 - `importRowsOf` (`import/program.ts`) answers `media` beside `insert`: each media file's path, bytes and digest,
   which the writer puts in its store before it writes the rows.
 - `importPackage` (`import/package.ts`) takes its workload's `insertWrite` alone and needs a `MediaStore`
-  (`package/media.ts`). It runs a write whose commit got no answer again, which answers `unchanged` where it
-  committed, so `CommitUnresolved`, `settleCommitUnknown`, `holdsPackage` and `EntryDigest` are removed, and its
-  outcome loses `replaced`.
+  (`package/media.ts`). It applies its write once: a commit with no answer fails it with grizzle's `commitUnknown`,
+  and importing the package again answers `unchanged` where it committed, so `CommitUnresolved`,
+  `settleCommitUnknown`, `holdsPackage` and `EntryDigest` are removed.
 - `exportEntries` and `exportPackage` (`export/package.ts`) read each media file from the `MediaStore` by its digest;
   `compareExported` and `compareWithRecord` are removed, and `compareRecord` (`export/compare.ts`) is
   `compareSource`, the package the import read against the export.
-- The command line puts media in a folder, `QTI_PIE_MEDIA`, else `~/.local/var/qti-pie/media-store`. `qti import`
-  prints no `replaced`, and `--output json`'s `outcome` (`schema/import.json`) loses `"replaced"`.
-
-## Unreleased: replace by set difference
-
-An import replaces the package stored under its manifest identifier. Breaking changes:
-
-- `importWrite` (`qti/logins.ts`) is removed. `replaceWrite` takes its place in `AuthorApp`'s and `MediaAuthorApp`'s
-  workloads: one ChangeSet that deletes each top relation's rows stored under the parameter `package` and inserts the
-  package's rows, which grizzle plans as one set difference, so the rows both hold stay untouched. An application
-  applies it as `db.workload.replaceWrite.apply({ insert: rows.insert }, { package: rows.package })`.
-- `importPackage` (`import/package.ts`) writes every import through `replaceWrite`, and its outcome gains `replaced`:
-  a changed package under a stored identifier, once refused on `Package`'s key. Its workload takes `replaceWrite` and
-  `entryDigestsOf` in place of `importWrite` and `packageOf`.
-- New read in `authorReads`: `entryDigestsOf`, each entry's path and digest by the package's manifest identifier. An
-  import whose commit got no answer reads it back and compares it with the package's entries, since the `Package` row
-  stands before and after a replace.
-- `qti import` prints `replaced` for a changed package, and `--output json`'s `outcome` (`schema/import.json`) gains
-  `"replaced"`.
-- The one migration is regenerated from zero, its served file holding `replaceWrite` and `entryDigestsOf`.
+- The command line puts media in a folder, `QTI_PIE_MEDIA`, else `~/.local/var/qti-pie/media-store`.
 
 ## Unreleased: just grizzle
 
