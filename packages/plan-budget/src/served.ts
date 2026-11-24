@@ -79,10 +79,13 @@ export interface ActionStep {
 
 /**
  * One program of one role of a login, as a call of it reaches the database: its statements, then
- * the judge blocks its writes arm.
+ * the judge blocks its writes arm; named `<login>.<role>.<program>`, with its login and role as the
+ * served file names them, by which a check takes the roles it holds.
  */
 export interface ServedAction {
   readonly action: string;
+  readonly login: string;
+  readonly role: string;
   readonly steps: readonly ActionStep[];
   readonly statements: number;
   readonly judges: number;
@@ -468,6 +471,8 @@ export const actionsOf = (
       return {
         action: `${login}.${role.name}.${member.name}`,
         judges: armed.length,
+        login,
+        role: role.name,
         statements: statements.length,
         steps: [
           ...statements.map(({ name, sql }): ActionStep => ({

@@ -8,16 +8,9 @@
 import { appendFileSync } from "node:fs";
 import { Effect } from "effect";
 import { loadNow } from "#plan-budget/backend.ts";
-import { MeasureFailed, measurePlans } from "#plan-budget/plans.ts";
-import type { ActionPlans, Connections } from "#plan-budget/plans.ts";
-import {
-  actionsOf,
-  captureBodiesQuery,
-  deltaTablesOf,
-  judgeBlocksOf,
-  judgeBodiesQuery,
-  loginsIn,
-} from "#plan-budget/served.ts";
+import { installedActions, measurePlans } from "#plan-budget/plans.ts";
+import type { ActionPlans, Connections, MeasureFailed } from "#plan-budget/plans.ts";
+import { loginsIn } from "#plan-budget/served.ts";
 import type { ServedAction } from "#plan-budget/served.ts";
 
 /**
@@ -162,40 +155,22 @@ export const measureMemory = (
   run: MemoryRun,
 ): Effect.Effect<readonly MemoryRecord[], MeasureFailed> =>
   Effect.gen(function* measureMemoryOf() {
-    const bodies = yield* Effect.tryPromise({
-      catch: (cause) =>
-        new MeasureFailed({ action: "the installation's judge functions", at: "pg_proc", cause }),
-      try: () =>
-        connections.watcher.query<{ readonly name: string; readonly body: string }>(
-          judgeBodiesQuery,
-        ),
-    });
-    const judges = bodies.rows.flatMap(({ body, name }) => judgeBlocksOf(name, body));
-    const captures = yield* Effect.tryPromise({
-      catch: (cause) =>
-        new MeasureFailed({ action: "the installation's capture functions", at: "pg_proc", cause }),
-      try: () => connections.watcher.query<{ readonly body: string }>(captureBodiesQuery),
-    });
-    const deltaTables = new Map(captures.rows.flatMap(({ body }) => [...deltaTablesOf(body)]));
-
-    yield* Effect.logInfo(
-      `${String(judges.length)} judge blocks in ${String(bodies.rows.length)} judge functions`,
+    const served = yield* installedActions(
+      connections,
+      run.migrations,
+      run.logins ?? loginsIn(run.migrations),
     );
-
-    const logins = run.logins ?? loginsIn(run.migrations);
     const records: MemoryRecord[] = [];
 
-    for (const login of logins) {
-      for (const served of actionsOf(run.migrations, login, judges, deltaTables)) {
-        const measured = yield* measurePlans(connections, served, run.budgetMs);
-        const record = memoryRecordOf(served, measured, run);
+    for (const action of served) {
+      const measured = yield* measurePlans(connections, action, run.budgetMs);
+      const record = memoryRecordOf(action, measured, run);
 
-        records.push(record);
-        yield* Effect.logInfo(memoryLineOf(record));
+      records.push(record);
+      yield* Effect.logInfo(memoryLineOf(record));
 
-        if (run.out !== undefined) {
-          appendFileSync(run.out, `${JSON.stringify(record)}\n`);
-        }
+      if (run.out !== undefined) {
+        appendFileSync(run.out, `${JSON.stringify(record)}\n`);
       }
     }
 

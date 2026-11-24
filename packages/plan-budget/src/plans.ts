@@ -28,6 +28,13 @@ import { Effect, Schema } from "effect";
 import type pg from "pg";
 import { cpuMsBetween, scheduledOf } from "#plan-budget/backend.ts";
 import type { Scheduled } from "#plan-budget/backend.ts";
+import {
+  actionsOf,
+  captureBodiesQuery,
+  deltaTablesOf,
+  judgeBlocksOf,
+  judgeBodiesQuery,
+} from "#plan-budget/served.ts";
 import type { ActionStep, ServedAction } from "#plan-budget/served.ts";
 
 /**
@@ -311,3 +318,43 @@ export const measurePlans = (
         Effect.promise(() => client.end()),
       ),
   );
+
+/**
+ * Every served program of an installation: each program of each role of each named login its
+ * migrations serve, with the judge blocks its writes arm, the installation's judge and capture
+ * functions read from its catalog on the watcher's session. Every check of every program reads its
+ * programs here, so none is left out.
+ *
+ * @param connections - The measurement's connections.
+ * @param migrations - The schema's migrations directory.
+ * @param logins - The logins, by their served files' names (`loginsIn` for every one).
+ * @returns The programs, login by login, each in its served file's order.
+ */
+export const installedActions = (
+  connections: Connections,
+  migrations: string,
+  logins: readonly string[],
+): Effect.Effect<readonly ServedAction[], MeasureFailed> =>
+  Effect.gen(function* installedActionsOf() {
+    const bodies = yield* Effect.tryPromise({
+      catch: (cause) =>
+        new MeasureFailed({ action: "the installation's judge functions", at: "pg_proc", cause }),
+      try: () =>
+        connections.watcher.query<{ readonly name: string; readonly body: string }>(
+          judgeBodiesQuery,
+        ),
+    });
+    const judges = bodies.rows.flatMap(({ body, name }) => judgeBlocksOf(name, body));
+    const captures = yield* Effect.tryPromise({
+      catch: (cause) =>
+        new MeasureFailed({ action: "the installation's capture functions", at: "pg_proc", cause }),
+      try: () => connections.watcher.query<{ readonly body: string }>(captureBodiesQuery),
+    });
+    const deltaTables = new Map(captures.rows.flatMap(({ body }) => [...deltaTablesOf(body)]));
+
+    yield* Effect.logInfo(
+      `${String(judges.length)} judge blocks in ${String(bodies.rows.length)} judge functions`,
+    );
+
+    return logins.flatMap((login) => actionsOf(migrations, login, judges, deltaTables));
+  });
