@@ -1691,7 +1691,7 @@ const holdCase = (c: Case, child: string, note: (situation: Situation) => void) 
     const awaitingRows = yield* db.workload.awaitingOf.once(atChild);
     const operandRows = yield* db.workload.operandsOf.once(atChild);
     const floatRows = yield* db.workload.floatsOf.once(atChild);
-    const creditRows = yield* db.workload.creditsOf.once(atChild);
+    const creditRows = yield* db.workload.creditsOf.once({ facts: {}, params: key });
     const drawRows = yield* db.workload.drawsOf.once({ facts: {}, params: { package: PACKAGE } });
     const maximumOf = (operator: bigint) =>
       maxima.filter((row) => row.operator === operator).map((row) => row.maximum);
@@ -2027,7 +2027,7 @@ const holdOperators = (
     const atChild = { facts: {}, params: { child } };
     const statusRows = yield* db.workload.statusesOf.once(atChild);
     const floatRows = yield* db.workload.floatsOf.once(atChild);
-    const creditRows = yield* db.workload.creditsOf.once(atChild);
+    const creditRows = yield* db.workload.creditsOf.once({ facts: {}, params: key });
     assert.deepStrictEqual<unknown>(
       {
         credit: Arr.fromIterable(creditRows).map((row) => [row.earned, row.maximum, row.kind]),

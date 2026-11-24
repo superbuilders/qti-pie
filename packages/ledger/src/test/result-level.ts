@@ -666,10 +666,11 @@ const floatsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
- * The child's attempts' credit.
+ * The credit of the attempts of the item session a call names (`child`, `package`, `path`, `n`),
+ * the session it graded.
  */
 const creditsOf = query(ResultLevel).rule((r) => {
-  const { package: pkg, path, n, at, earned, maximum, kind } = v(AttemptCredit, "credit");
+  const { at, earned, maximum, kind } = v(AttemptCredit, "credit");
 
   return r
     .match(AttemptCredit, {
@@ -678,11 +679,11 @@ const creditsOf = query(ResultLevel).rule((r) => {
       earned,
       kind,
       maximum,
-      n,
-      package: pkg,
-      path,
+      n: r.param("n", ItemSession.fields.n),
+      package: r.param("package", ItemSession.fields.package),
+      path: r.param("path", ItemSession.fields.path),
     })
-    .find({ at, earned, kind, maximum, n, package: pkg, path });
+    .find({ at, earned, kind, maximum });
 });
 
 /**
