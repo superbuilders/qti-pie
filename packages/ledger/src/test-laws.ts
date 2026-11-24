@@ -95,7 +95,6 @@ export const testLawsOf = (ledger: LedgerLevel) => {
       .match(TestSession, { child, stage })
       .find({ at, child, n, package: pkg, path, stage });
   });
-  const TestAttempt = derived("TestAttempt", testAttempts);
 
   /**
    * The unlimited members, whose item sessions take any number of attempts.
@@ -263,7 +262,6 @@ export const testLawsOf = (ledger: LedgerLevel) => {
   const relations = [
     SittingMember,
     SittingSession,
-    TestAttempt,
     LimitedTestAttempt,
     AttemptedMember,
     PresentedMember,

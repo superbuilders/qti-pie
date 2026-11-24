@@ -586,8 +586,6 @@ export const ledgerOf = (qti: RegistryLevel) => {
       .find({ package: pkg, path, start });
   });
 
-  const ScoreDeclared = derived("ScoreDeclared", scoreDeclared);
-
   /**
    * The documents whose credit's maximum is their MAXSCORE, by `(package, path)`: a score a credit
    * reads ({@link scoreDeclared}) and MAXSCORE declared `single` where a candidate sees it. "Items
@@ -3015,7 +3013,6 @@ export const ledgerOf = (qti: RegistryLevel) => {
       ItemSessionVariable,
       ItemRecordVariable,
       SessionVariableName,
-      ScoreDeclared,
       MaximumOutcome,
       MaximumNormal,
       ...assertions,
