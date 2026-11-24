@@ -198,6 +198,15 @@ export const ConfigurationSchema = Schema.Struct({
 export type Configuration = typeof ConfigurationSchema.Type;
 
 /**
+ * The settings a host writes, as {@link configure} takes them: {@link ConfigurationSchema}'s
+ * encoded side, `seed` required, every other field optional and defaulted where left out, and
+ * `assets` an array of `[path, address]` entries. It is the schema's own type, so a key the schema
+ * does not name, a misspelt one or one it has dropped, fails to compile at the call site, and a
+ * caller holding settings of no known type decodes them at its own boundary first.
+ */
+export type ConfigurationInput = typeof ConfigurationSchema.Encoded;
+
+/**
  * A field of the configuration.
  */
 type Field = keyof Configuration;
@@ -326,26 +335,32 @@ const invalidConfiguration = (error: Schema.SchemaError): InvalidConfiguration =
   });
 
 /**
- * Decode a host's settings through {@link ConfigurationSchema}, refusing a key it does not name.
+ * Decode a host's settings through {@link ConfigurationSchema}, refusing a key it does not name,
+ * which an object built elsewhere than its call can carry past {@link ConfigurationInput}.
  */
-const decodeConfiguration = Schema.decodeUnknownEffect(ConfigurationSchema, {
+const decodeConfiguration = Schema.decodeEffect(ConfigurationSchema, {
   onExcessProperty: "error",
 });
 
 /**
  * Read a configuration, filling every field the input leaves out with its default.
  *
- * Each field is read as the type it holds, so `"3"` is no heading level and `7` no seed, and a key
- * that names no field is refused, so a misspelt setting never runs as its default.
+ * Each field's type is {@link ConfigurationInput}'s, so `"3"` is no heading level, `7` no seed and
+ * a misspelt or dropped key no field, each a compile error at the call; what the type cannot state
+ * is refused here, a value outside its field's range, an asset path or address of the wrong form,
+ * a path in two entries, and a key an object built elsewhere carries past the type, so a setting
+ * never runs as its default.
  *
  * @example
  *   configure({ headingLevel: 3, seed: "7" }); // succeeds with headingLevel 3 and every other default
  *
- * @param input The host's settings, an object keyed by field name.
+ * @param input The host's settings.
  * @returns The decoded configuration, or {@link InvalidConfiguration} naming the first key outside
  *   its allowed values or outside the fields.
  */
-export const configure = (input: unknown): Effect.Effect<Configuration, InvalidConfiguration> =>
+export const configure = (
+  input: ConfigurationInput,
+): Effect.Effect<Configuration, InvalidConfiguration> =>
   decodeConfiguration(input).pipe(
     Effect.mapError(invalidConfiguration),
     Effect.withSpan("plate.configure"),

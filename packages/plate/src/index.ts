@@ -68,7 +68,7 @@ export type {
 
 export { refusalMessages } from "#plate/admission.ts";
 
-export type { Configuration } from "#plate/configuration.ts";
+export type { Configuration, ConfigurationInput } from "#plate/configuration.ts";
 
 export { configure, InvalidConfiguration } from "#plate/configuration.ts";
 

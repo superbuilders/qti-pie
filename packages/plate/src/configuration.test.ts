@@ -3,30 +3,13 @@ import { Effect, Option } from "effect";
 import { configure } from "#plate/configuration.ts";
 
 /**
- * The inputs `configure` refuses, each with the key its refusal names: a value outside its field's
- * range, a value of another type (the text of a number among them), and a key that names no field,
- * every item session control setting among them, validate-responses (the QTI database's) included.
+ * The settings `configure` refuses when it runs, each well typed, with the key its refusal names:
+ * a value outside its field's range, an asset path or address of the wrong form, and one path in
+ * two entries, which no type states.
  */
 const refused = [
   { field: "headingLevel", input: { headingLevel: 1, seed: "" } },
-  { field: "headingLevel", input: { headingLevel: "3", seed: "" } },
-  { field: "headingLevel", input: { headingLevel: "", seed: "" } },
-  { field: "outputBudget", input: { outputBudget: "1e3", seed: "" } },
-  { field: "validateResponses", input: { seed: "", validateResponses: false } },
-  { field: "seed", input: { seed: 7 } },
-  { field: "showSolutions", input: { seed: "", showSolutions: true } },
-  { field: "trust", input: { seed: "", trust: "full" } },
-  { field: "locale", input: { locale: "fr", seed: "" } },
-  { field: "hotspotPicks", input: { hotspotPicks: "shade", seed: "" } },
-  { field: "hotspotPicks", input: { hotspotPicks: true, seed: "" } },
-  { field: "hotspotList", input: { hotspotList: "hidden", seed: "" } },
-  { field: "hotspotList", input: { hotspotList: false, seed: "" } },
-  { field: "picksInstruction", input: { picksInstruction: "true", seed: "" } },
-  { field: "bankCaption", input: { bankCaption: "true", seed: "" } },
-  { field: "textEntryKeypad", input: { seed: "", textEntryKeypad: "onscreen" } },
-  { field: "textEntryKeypad", input: { seed: "", textEntryKeypad: true } },
-  { field: "maxAttempts", input: { maxAttempts: 1, seed: "" } },
-  { field: "showFeedback", input: { seed: "", showFeedback: true } },
+  { field: "headingLevel", input: { headingLevel: 7, seed: "" } },
   { field: "outputBudget", input: { outputBudget: 0, seed: "" } },
   {
     field: "outputBudget",
@@ -105,15 +88,56 @@ const refused = [
       seed: "",
     },
   },
-  { field: "assets", input: { assets: [["items/a.png"]], seed: "" } },
-  {
-    field: "assets",
-    input: {
-      assets: new Map([["items/a.png", "https://cdn.example/a"]]),
-      seed: "",
-    },
-  },
 ] as const;
+
+/**
+ * The settings no call of `configure` compiles with, its input typed by the schema's encoded side
+ * (`ConfigurationInput`): the type test is each `@ts-expect-error` below, which `tsc` fails on if
+ * its call ever type-checks. A key the schema does not name, a misspelt one or one it has dropped
+ * (validate-responses, the QTI database's, and every other item session control setting), a value
+ * of another type (the text of a number among them), an asset entry of another shape, and a
+ * missing seed. No test calls it.
+ *
+ * @returns The calls, never run.
+ */
+const neverCompiles = () => [
+  // @ts-expect-error -- validateResponses is a key the schema dropped: the QTI database judges it.
+  configure({ seed: "", validateResponses: false }),
+  // @ts-expect-error -- showSolutions is no field of the configuration.
+  configure({ seed: "", showSolutions: true }),
+  // @ts-expect-error -- headingLvl misspells headingLevel.
+  configure({ headingLvl: 3, seed: "" }),
+  // @ts-expect-error -- trust is no field of the configuration.
+  configure({ seed: "", trust: "full" }),
+  // @ts-expect-error -- maxAttempts is an item session control setting, no field of plate's.
+  configure({ maxAttempts: 1, seed: "" }),
+  // @ts-expect-error -- showFeedback is an item session control setting, no field of plate's.
+  configure({ seed: "", showFeedback: true }),
+  // @ts-expect-error -- the text of a number is no heading level.
+  configure({ headingLevel: "3", seed: "" }),
+  // @ts-expect-error -- the text of a number is no output budget.
+  configure({ outputBudget: "1e3", seed: "" }),
+  // @ts-expect-error -- a seed is a string.
+  configure({ seed: 7 }),
+  // @ts-expect-error -- a seed is required.
+  configure({}),
+  // @ts-expect-error -- fr is no supported locale.
+  configure({ locale: "fr", seed: "" }),
+  // @ts-expect-error -- shade is no way a Hotspot shows a pick.
+  configure({ hotspotPicks: "shade", seed: "" }),
+  // @ts-expect-error -- hidden is no way a Hotspot shows its list.
+  configure({ hotspotList: "hidden", seed: "" }),
+  // @ts-expect-error -- the text of a boolean is no boolean.
+  configure({ picksInstruction: "true", seed: "" }),
+  // @ts-expect-error -- the text of a boolean is no boolean.
+  configure({ bankCaption: "true", seed: "" }),
+  // @ts-expect-error -- onscreen misspells on-screen.
+  configure({ seed: "", textEntryKeypad: "onscreen" }),
+  // @ts-expect-error -- an entry is a path and an address.
+  configure({ assets: [["items/a.png"]], seed: "" }),
+  // @ts-expect-error -- assets are written as entries, never as a map.
+  configure({ assets: new Map([["items/a.png", "https://cdn.example/a"]]), seed: "" }),
+];
 
 describe("configure", () => {
   it.effect("gives every default for a configuration of its two required fields alone", () =>
@@ -133,11 +157,12 @@ describe("configure", () => {
     }),
   );
 
-  it.effect('requires a seed, and decodes seed "7" as "7"', () =>
-    Effect.gen(function* seedKey() {
-      const error = yield* Effect.flip(configure({}));
+  it("refuses in its type every key the schema does not name, every value of another type and a missing seed", () => {
+    assert.isFunction(neverCompiles);
+  });
 
-      assert.deepStrictEqual(error.field, Option.some("seed"));
+  it.effect('decodes seed "7" as "7"', () =>
+    Effect.gen(function* seedKey() {
       assert.strictEqual((yield* configure({ seed: "7" })).seed, "7");
     }),
   );
@@ -202,13 +227,16 @@ describe("configure", () => {
     }),
   );
 
-  it.effect("refuses a key that names no field, and its message names the fields there are", () =>
-    Effect.gen(function* unknownKey() {
-      const error = yield* Effect.flip(configure({ seed: "", showSolutions: true }));
+  it.effect(
+    "refuses a key an object built apart from its call carries past the type, and its message names the fields there are",
+    () =>
+      Effect.gen(function* unknownKey() {
+        const settings = { seed: "", showSolutions: true };
+        const error = yield* Effect.flip(configure(settings));
 
-      assert.include(error.message, "has no field showSolutions");
-      assert.include(error.message, "outputBudget, picksInstruction, seed, textEntryKeypad");
-    }),
+        assert.include(error.message, "has no field showSolutions");
+        assert.include(error.message, "outputBudget, picksInstruction, seed, textEntryKeypad");
+      }),
   );
 
   it.effect(
