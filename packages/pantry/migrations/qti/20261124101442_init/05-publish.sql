@@ -3693,20 +3693,6 @@ COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_identifier_start_xf557pdh
 
 COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_root_kind_merm4oeh73" IS 'btree index VariableRef(package, path, rootKind)';
 
-COMMENT ON STATISTICS "qti"."__attribute_dep_package_path_37ouah6cle" IS 'dependencies Attribute(package, path)';
-
-COMMENT ON STATISTICS "qti"."__bound_variable_dep_package_path_h3xeuy73k4" IS 'dependencies BoundVariable(package, path)';
-
-COMMENT ON STATISTICS "qti"."__data_ssml_property_dep_package_member_76cqu4jubz" IS 'dependencies DataSsmlProperty(package, member)';
-
-COMMENT ON STATISTICS "qti"."__instance_dep_package_assembly_47a3l5vrjf" IS 'dependencies Instance(package, assembly)';
-
-COMMENT ON STATISTICS "qti"."__interaction_attribute_dep_package_path_dh4uatylra" IS 'dependencies InteractionAttribute(package, path)';
-
-COMMENT ON STATISTICS "qti"."__placed_share_target_dep_package_assembly_763o2p4rif" IS 'dependencies PlacedShareTarget(package, assembly)';
-
-COMMENT ON STATISTICS "qti"."__share_fragment_dep_package_id_digest_art5xi2qsi" IS 'dependencies ShareFragment(package, idDigest)';
-
 COMMENT ON FUNCTION "qti"."__reader_news_assembled_catalog_z3igbb5mrk"() IS 'the reader of the delta of news of AssembledCatalog';
 
 COMMENT ON FUNCTION "qti"."__reader_olds_assembled_catalog_feoyt677yo"() IS 'the reader of the delta of olds of AssembledCatalog';
