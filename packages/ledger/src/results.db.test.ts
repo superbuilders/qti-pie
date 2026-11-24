@@ -60,6 +60,13 @@
  * drawing the child makes on paper and checks against a model the item reveals once its end-attempt
  * button says it is drawn (CONTENT-FRESH's "draw" items), in the package twice, adaptive and not.
  *
+ * And a sitting as a review reads it (`reviewOf`, `#ledger/attempt-rows.ts` attemptRowsOf), held to
+ * its table ({@link reviewExpectedOf}): each item session of the sitting that has an attempt, at
+ * its latest attempt (the Delivery level's `LatestAttempt`), with its values as they stand, the
+ * completion status its response processing left, its credit and its marks; an essay waiting for
+ * a person holds its response alone, a session never answered has no row, and another sitting's
+ * attempt is not read.
+ *
  * And a test's responses (`enterTest`, `saveTestItem`, `suspendTest`, `endTest`, the test runtime's
  * own programs, over a sitting written as host rows), held to their table
  * ({@link responseExpectedOf}): a save lies inside a candidate session, so one before the sitting's
@@ -157,7 +164,8 @@ import { DeclineReason } from "#ledger/evaluations.ts";
 import { operatorTagPrefix } from "#ledger/registry/operators.ts";
 import { reviewShowsOf, sessionFactsOf } from "#ledger/served-item.ts";
 import type { ReviewShows, SessionControl } from "#ledger/served-item.ts";
-import { responseParamsOf, responsesOfRows } from "#ledger/served-values.ts";
+import { judgedOfRows, responseParamsOf, responsesOfRows } from "#ledger/served-values.ts";
+import type { AttemptRows, MarkRows, ValueRows } from "#ledger/served-values.ts";
 import { Reading } from "#ledger/sittings.ts";
 import type { ResultSuite } from "#ledger/test/result-level.ts";
 import { inFlightGraceMicros, presenceGraceMicros } from "#ledger/delivery.ts";
@@ -2263,6 +2271,468 @@ const holdDrawCase = (c: DrawCase, child: string, note: (situation: DrawSituatio
         `${c.name}, after attempt ${String(k + 1)}: every attempt's completion status and outcomes`,
       );
     }
+  });
+
+/**
+ * A review case: a fresh child's sitting, one item stage, holding the adaptive draw item answered
+ * twice (drawn, then `ending`), the non-adaptive draw item answered once (`ending`), the essay
+ * answered and waiting for a person (both its draws declined), and a text entry begun and never
+ * answered; and a second sitting of the child, a text entry answered there.
+ */
+type ReviewCase = Readonly<{ name: string; ending: Ending }>;
+
+const reviewSpace: Gen<ReviewCase> = map(element(endings), (ending): ReviewCase => ({
+  ending,
+  name: `review: the adaptive draw drawn then ${ending}, the draw ${ending}, an essay waiting for a person`,
+}));
+
+/**
+ * One item session's row of the review read, as the table states it: its item, the completion
+ * status its response processing left (none while it is pending), its single values in force and
+ * its multiple values, each `[variable, base type, value]` (a multiple's with its count), its
+ * credit `[earned, maximum, kind]`, and each mark `[variable, value, mark]`, every mark of a
+ * multiple at place 0 covering one copy.
+ */
+type ReviewRow = Readonly<{
+  credit: readonly (readonly [number, number, string])[];
+  marks: readonly (readonly [string, string, string])[];
+  multiples: readonly (readonly [string, string, string, bigint])[];
+  path: string;
+  processed: readonly string[];
+  singles: readonly (readonly [string, string, unknown])[];
+}>;
+
+/**
+ * The owner's credit of a SCORE over its maximum: none at 0 or below, full at the maximum or
+ * above, partial between.
+ *
+ * @param score The SCORE.
+ * @param maximum Its maximum.
+ * @returns The credit's kind.
+ */
+const reviewCreditOf = (score: number, maximum: number): string => {
+  if (score <= 0) {
+    return "none";
+  }
+
+  return score >= maximum ? "full" : "partial";
+};
+
+/**
+ * A draw item's row after its attempts end so: its latest attempt's outcomes as the draw family's
+ * table states them (info §2.2.2.3; {@link drawExpectedOf}), the responses that attempt gave
+ * ({@link responsesOf}), its credit, SCORE over MAXSCORE, and its marks on RESPONSE, whose correct
+ * response is every point of the model: a ticked point `right`, a point nobody ticked `missed`
+ * (no point the checklist offers outside the model is ever ticked here). DRAWN, a boolean with no
+ * correct response, has no mark.
+ *
+ * @param adaptive Whether the item is the adaptive one.
+ * @param ended How each attempt ended.
+ * @returns The row.
+ */
+const drawRowOf = (adaptive: boolean, ended: readonly Ending[]): ReviewRow => {
+  const after = Option.getOrThrow(
+    Arr.last(drawExpectedOf({ adaptive, endings: ended, name: "review" })),
+  );
+  const { drawn, ticked } = responsesOf(Option.getOrThrow(Arr.last(ended)));
+
+  return {
+    credit: after.score.flatMap((score) =>
+      after.maxScore.map((maximum) => [score, maximum, reviewCreditOf(score, maximum)] as const),
+    ),
+    marks: drawPoints.map(
+      (point) => ["RESPONSE", point, ticked.includes(point) ? "right" : "missed"] as const,
+    ),
+    multiples: [
+      ...after.feedback.map((value) => ["FEEDBACK", "identifier", value, 1n] as const),
+      ...ticked.map((value) => ["RESPONSE", "identifier", value, 1n] as const),
+    ],
+    path: drawPathOf(adaptive),
+    processed: [after.status],
+    singles: [
+      ["DRAWN", "boolean", drawn],
+      ...after.hint.map((value) => ["HINT", "identifier", value] as const),
+      ...after.hintNull.map((value) => ["HINT_NULL", "boolean", value] as const),
+      ...after.maxScore.map((value) => ["MAXSCORE", "float", value] as const),
+      ...after.score.map((value) => ["SCORE", "float", value] as const),
+    ],
+  };
+};
+
+/**
+ * The table of the review read, from QTI 3.0.1's text, read apart from the read: each item session
+ * of the sitting that has an attempt, at its latest attempt (Results Reporting reports an item
+ * session's variables at the end of its last attempt), and none that has none.
+ *
+ * - The adaptive draw at its second attempt, its outcomes those its response processing left after
+ *   the first's (info §2.2.2.3); the non-adaptive draw at its one attempt.
+ * - The essay, both its draws declined, waits for a person: `pendingResponseProcessing` (Results
+ *   Reporting, Table 2.7.7: "the item variables represent the values of the response variables
+ *   after submission but before response processing has taken place"), so it holds its response
+ *   alone, no completion status, no credit and no mark (a string response with no correct response
+ *   is never marked).
+ * - The text entry never answered has no row, and the second sitting's attempt is none of this
+ *   sitting's.
+ *
+ * @param c The case.
+ * @returns The rows, by path.
+ */
+const reviewExpectedOf = (c: ReviewCase): readonly ReviewRow[] =>
+  Arr.sort(
+    [
+      drawRowOf(true, ["drawn", c.ending]),
+      drawRowOf(false, [c.ending]),
+      {
+        credit: [],
+        marks: [],
+        multiples: [],
+        path: ESSAY,
+        processed: [],
+        singles: [["RESPONSE", "string", RESPONSE]],
+      },
+    ],
+    Order.mapInput(Order.String, (row: ReviewRow) => row.path),
+  );
+
+/**
+ * The situations the review family must reach.
+ */
+const reviewSituations = [
+  "a multi-attempt item read at its latest attempt",
+  "full credit",
+  "no credit",
+  "a mark right",
+  "a mark missed",
+  "an essay waiting for a person, its response alone",
+  "a session with no attempt has no row",
+  "another sitting's attempt is not read",
+] as const;
+
+type ReviewSituation = (typeof reviewSituations)[number];
+
+/**
+ * The situations a review case reaches, read off what its table expects.
+ *
+ * @param expected The case's rows.
+ * @returns Its situations.
+ */
+const reviewSituationsOf = (expected: readonly ReviewRow[]): readonly ReviewSituation[] => [
+  "a multi-attempt item read at its latest attempt",
+  "an essay waiting for a person, its response alone",
+  "a session with no attempt has no row",
+  "another sitting's attempt is not read",
+  ...expected.flatMap((row): readonly ReviewSituation[] => [
+    ...row.credit.map((credit): ReviewSituation =>
+      credit[2] === "full" ? "full credit" : "no credit",
+    ),
+    ...row.marks.map((mark): ReviewSituation =>
+      mark[2] === "right" ? "a mark right" : "a mark missed",
+    ),
+  ]),
+];
+
+/**
+ * How many values a cardinality's row of a snapshot holds, every base type's.
+ *
+ * @param group The row.
+ * @returns Its values.
+ */
+const valueCountOf = (
+  group:
+    | ValueRows["single"][number]
+    | ValueRows["multiple"][number]
+    | ValueRows["ordered"][number]
+    | ValueRows["record"][number],
+) =>
+  group.identifier.length +
+  group.boolean.length +
+  group.integer.length +
+  group.float.length +
+  group.string.length +
+  group.point.length +
+  group.pair.length +
+  group.directedPair.length +
+  group.duration.length +
+  group.uri.length +
+  group.file.length;
+
+/**
+ * How many marks an attempt's marks row holds, every shape's.
+ *
+ * @param marks The row.
+ * @returns Its marks.
+ */
+const markCountOf = (marks: MarkRows) =>
+  marks.text.length +
+  marks.integer.length +
+  marks.float.length +
+  marks.boolean.length +
+  marks.pair.length +
+  marks.directedPair.length +
+  marks.point.length +
+  marks.file.length;
+
+/**
+ * One run of a review case: the sitting's item sessions begun as an application's decision begins
+ * them, each attempt recorded as host rows and graded as the write that records it grades it
+ * (`grade`), the essay's draws each declined through the evaluator's own write
+ * (`recordEvaluations`), and the second sitting's text entry answered; then the sitting read as a
+ * review reads it (`reviewOf`, `attemptRowsOf`), held to the table, each row at its session's
+ * latest attempt, and its rows read as an application reads them (`judgedOfRows`).
+ *
+ * @param c The case.
+ * @param child The run's fresh child.
+ * @param note Records the situation the case reaches.
+ */
+const holdReview = (c: ReviewCase, child: string, note: (situation: ReviewSituation) => void) =>
+  Effect.gen(function* hold() {
+    const expected = reviewExpectedOf(c);
+    for (const situation of reviewSituationsOf(expected)) {
+      note(situation);
+    }
+
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const stage = 1n;
+    const other = 2n;
+    const beginAt = (path: string, at: bigint, control: boolean) =>
+      db.workload.begin.once({
+        facts: {
+          insert: {
+            StageControl: rowsOf(
+              "StageControl",
+              control
+                ? [{ child, stage: at, ...directControl, maxAttempts: BigInt(drawAttempts) }]
+                : [],
+            ),
+          },
+        },
+        params: { child, package: PACKAGE, path, seed: SEED, stage: at },
+      });
+    const attempt = (
+      key: Readonly<{ child: string; n: bigint; package: string; path: string }>,
+      rows: Readonly<{
+        booleans: readonly Readonly<{ value: boolean; variable: string }>[];
+        identifiers: readonly string[];
+        strings: readonly Readonly<{ value: string; variable: string }>[];
+      }>,
+    ) =>
+      Effect.andThen(
+        db.workload.facts.once({
+          facts: {
+            insert: {
+              Attempt: rowsOf("Attempt", [key]),
+              ProcessedAttempt: rowsOf("ProcessedAttempt", []),
+              ResponseSnapshot: rowsOf("ResponseSnapshot", [{ ...key, kind: "attempt" }]),
+              SnapshotMultipleIdentifier: rowsOf(
+                "SnapshotMultipleIdentifier",
+                rows.identifiers.map((value) => ({
+                  ...key,
+                  count: 1n,
+                  value,
+                  variable: "RESPONSE",
+                })),
+              ),
+              SnapshotSingleBoolean: rowsOf(
+                "SnapshotSingleBoolean",
+                rows.booleans.map((row) => ({ ...key, ...row })),
+              ),
+              SnapshotSingleFloat: rowsOf("SnapshotSingleFloat", []),
+              SnapshotSingleString: rowsOf(
+                "SnapshotSingleString",
+                rows.strings.map((row) => ({ ...key, ...row })),
+              ),
+            },
+          },
+          params: {},
+        }),
+        db.workload.grade.once({ facts: {}, params: key }),
+      );
+    const drawKey = (adaptive: boolean) => ({
+      child,
+      n: 0n,
+      package: PACKAGE,
+      path: drawPathOf(adaptive),
+    });
+    const drawAttempt = (adaptive: boolean, ending: Ending) => {
+      const { drawn, ticked } = responsesOf(ending);
+
+      return attempt(drawKey(adaptive), {
+        booleans: [{ value: drawn, variable: "DRAWN" }],
+        identifiers: ticked,
+        strings: [],
+      });
+    };
+
+    yield* beginAt(drawPathOf(true), stage, true);
+    yield* beginAt(drawPathOf(false), stage, false);
+    yield* beginAt(ESSAY, stage, false);
+    yield* beginAt(OTHER, stage, false);
+    yield* beginAt(SHORT, other, true);
+    yield* drawAttempt(true, "drawn");
+    yield* drawAttempt(true, c.ending);
+    yield* drawAttempt(false, c.ending);
+
+    const essay = { child, n: 0n, package: PACKAGE, path: ESSAY };
+    yield* attempt(essay, {
+      booleans: [],
+      identifiers: [],
+      strings: [{ value: RESPONSE, variable: "RESPONSE" }],
+    });
+
+    const recorded = Arr.fromIterable(
+      yield* db.workload.attemptsOf.once({ facts: {}, params: { child } }),
+    );
+    const essayAt = Option.getOrThrow(Arr.findFirst(recorded, (row) => row.path === ESSAY)).at;
+    const operators = Arr.sort(
+      Arr.dedupe(
+        Arr.fromIterable(
+          yield* db.workload.drawsOf.once({ facts: {}, params: { package: PACKAGE } }),
+        )
+          .filter((row) => row.path === ESSAY)
+          .map((row) => row.operator),
+      ),
+      Order.BigInt,
+    );
+    for (const operator of operators) {
+      yield* db.workload.recordEvaluations.once({
+        facts: {},
+        params: {
+          declines: [
+            {
+              ...essay,
+              at: essayAt,
+              grader: grader.version,
+              operator,
+              reason: Option.getOrThrow(Arr.head(DeclineReason.handles)),
+              request: requestOf(operator),
+            },
+          ],
+          feedbacks: [],
+          replies: [],
+        },
+      });
+    }
+    yield* attempt(
+      { child, n: 0n, package: PACKAGE, path: SHORT },
+      { booleans: [], identifiers: [], strings: [{ value: RESPONSE, variable: "RESPONSE" }] },
+    );
+
+    const reviewed = Option.getOrThrow(
+      Arr.head(
+        Arr.fromIterable(yield* db.workload.reviewOf.once({ facts: {}, params: { child, stage } })),
+      ),
+    );
+    const rows: readonly AttemptRows[] = reviewed.attempts;
+    const latest = new Map<string, bigint>();
+    for (const row of yield* db.workload.attemptsOf.once({ facts: {}, params: { child } })) {
+      const session = `${row.path} ${String(row.n)}`;
+      const held = latest.get(session);
+      if (held === undefined || row.at > held) {
+        latest.set(session, row.at);
+      }
+    }
+    const read = Arr.sort(
+      yield* Effect.all(
+        reviewed.attempts.map((row) =>
+          Effect.map(judgedOfRows(row), (judged) => {
+            const [single] = row.single;
+            const [multiple] = row.multiple;
+            const [ordered] = row.ordered;
+            const [record] = row.record;
+            const [marked] = row.marks;
+            assert.isDefined(single, `${c.name}, ${row.path}: its singles' row`);
+            assert.isDefined(multiple, `${c.name}, ${row.path}: its multiples' row`);
+            assert.isDefined(ordered, `${c.name}, ${row.path}: its ordereds' row`);
+            assert.isDefined(record, `${c.name}, ${row.path}: its records' row`);
+            assert.isDefined(marked, `${c.name}, ${row.path}: its marks' row`);
+            assert.strictEqual(
+              row.at,
+              latest.get(`${row.path} ${String(row.n)}`),
+              `${c.name}, ${row.path}: read at its session's latest attempt`,
+            );
+
+            const singles = [
+              ...single.boolean.map(({ value, variable }) => [variable, "boolean", value] as const),
+              ...single.float.map(({ value, variable }) => [variable, "float", value] as const),
+              ...single.identifier.map(
+                ({ value, variable }) => [variable, "identifier", value] as const,
+              ),
+              ...single.string.map(({ value, variable }) => [variable, "string", value] as const),
+            ];
+            const multiples = multiple.identifier.map(
+              ({ count, value, variable }) => [variable, "identifier", value, count] as const,
+            );
+            assert.deepStrictEqual<unknown>(
+              [
+                valueCountOf(single),
+                valueCountOf(multiple),
+                valueCountOf(ordered),
+                valueCountOf(record),
+                markCountOf(marked),
+                judged.credit.pipe(Option.map((kind) => [kind])),
+              ],
+              [
+                singles.length,
+                multiples.length,
+                0,
+                0,
+                marked.text.length,
+                Option.fromUndefinedOr(row.credit[0]).pipe(Option.map(({ kind }) => [kind])),
+              ],
+              `${c.name}, ${row.path}: no value or mark of a shape the table gives none of, and the credit judgedOfRows reads its row's`,
+            );
+
+            return {
+              credit: row.credit.map(
+                ({ earned, kind, maximum }) => [earned, maximum, kind] as const,
+              ),
+              marks: Arr.sort(
+                marked.text.map((mark) => {
+                  assert.deepStrictEqual<unknown>(
+                    [mark.baseType, mark.place, mark.copies],
+                    ["identifier", 0n, 1n],
+                    `${c.name}, ${row.path}: a multiple's mark at place 0, one copy`,
+                  );
+
+                  return [mark.variable, mark.value, mark.mark] as const;
+                }),
+                Order.mapInput(Order.String, (mark: readonly [string, string, string]) => mark[1]),
+              ),
+              multiples: Arr.sort(
+                multiples,
+                Order.mapInput(
+                  Order.String,
+                  (given: readonly [string, string, string, bigint]) => `${given[0]} ${given[2]}`,
+                ),
+              ),
+              path: row.path,
+              processed: Option.toArray(
+                row.processed.pipe(Option.map(({ completionStatus }) => completionStatus)),
+              ),
+              singles: Arr.sort(
+                singles,
+                Order.mapInput(
+                  Order.String,
+                  ([variable]: readonly [string, string, unknown]) => variable,
+                ),
+              ),
+            } satisfies ReviewRow;
+          }),
+        ),
+      ),
+      Order.mapInput(Order.String, (row: ReviewRow) => row.path),
+    );
+    assert.strictEqual(
+      rows.length,
+      expected.length,
+      `${c.name}: one row per item session with an attempt`,
+    );
+    assert.deepStrictEqual<unknown>(
+      read,
+      expected,
+      `${c.name}: the sitting's rows, as the table states them`,
+    );
   });
 
 /**
@@ -5602,6 +6072,43 @@ describe.skipIf(Option.isNone(migrations))(
               yield* Effect.log(
                 `the draw item's outcomes held over ${String(exhausted.cases)} cases`,
               );
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "reads a sitting's item sessions each at its latest attempt, as it stands, with its credit and marks, an essay waiting for a person among them",
+          (ctx) =>
+            Effect.gen(function* holdEveryReview() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "a sitting of the adaptive draw answered twice, the draw once, each ending every way, an essay both of whose draws declined and a session never answered, beside a second sitting, each case on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<ReviewSituation>(reviewSituations),
+                    generator: reviewSpace,
+                    literal: (c: ReviewCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "reviewExpectedOf, the rule table: Results Reporting reports an item session at its last attempt (Table 2.7.7, pendingResponseProcessing's responses alone), info §2.2.2.3, the owner's credit, a mark right on a given value the correct response holds and missed on one no given value took",
+                    },
+                    suite: "ledger/results/review",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdReview(row, `user_ledgerreview${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the review read held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
 

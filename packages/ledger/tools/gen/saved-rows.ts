@@ -17,10 +17,10 @@ import type { LedgerLevel } from "#ledger/delivery.ts";
 import type { Generator } from "#tools/gen/generator.ts";
 
 /**
- * QTI's cardinalities (§2.2.2), each the attachment of a save's value rows
+ * QTI's cardinalities (§2.2.2), each the attachment of a snapshot's value rows
  * (`#ledger/served-values.ts` ValueRows), by the name its sidecars start with.
  */
-const cardinalities = [
+export const cardinalities = [
   { attachment: "single", prefix: "SnapshotSingle", reads: "singlesOf" },
   { attachment: "multiple", prefix: "SnapshotMultiple", reads: "multiplesOf" },
   { attachment: "ordered", prefix: "SnapshotOrdered", reads: "orderedsOf" },
@@ -65,7 +65,7 @@ const sidecarsOf = (ledger: LedgerLevel): readonly Sidecar[] => {
 };
 
 /**
- * One sidecar's read at the save its parent row carries: every value of it, by its variable.
+ * One sidecar's read at the snapshot its parent row carries: every value of it, by its variable.
  */
 const readOf = ({ baseType, name, values }: Sidecar): string => {
   const columns = values.toSorted().join(", ");
@@ -85,18 +85,47 @@ const readOf = ({ baseType, name, values }: Sidecar): string => {
 };
 
 /**
+ * Each cardinality's reads of one snapshot's values, `singlesOf`, `multiplesOf`, `orderedsOf` and
+ * `recordsOf`, each a function of the snapshot's key its parent row carries: the snapshot's own row
+ * (`head`, its relation, matched at that key) carrying one array per sidecar of the cardinality, by
+ * base type. A reader of an attempt's values as they stand reads its singles from the values in
+ * force (`singleOf` names the relation a single's sidecar is read through), which hold its
+ * snapshot's heading.
+ *
+ * @param sidecars The level's snapshot sidecars.
+ * @param snapshot The snapshot: its head relation, its key's type and the parameter's name.
+ * @param snapshot.head The relation the snapshot's own row is matched in.
+ * @param snapshot.key The type of the key its parent row carries.
+ * @param snapshot.param The name of that key's parameter.
+ * @param singleOf The relation a single's sidecar is read through, by the sidecar's name.
+ * @returns The four functions' text.
+ */
+export const valueReadsOf = (
+  sidecars: readonly Sidecar[],
+  snapshot: { readonly head: string; readonly key: string; readonly param: string },
+  singleOf: (name: string) => string,
+): readonly string[] =>
+  cardinalities.map(
+    ({ attachment, prefix, reads }) =>
+      `const ${reads} = (${snapshot.param}: ${snapshot.key}) =>
+    query(delivery)
+      .rule((r) => r.match(${snapshot.head}, keyOf(${snapshot.param})).find(keyOf(${snapshot.param})))${sidecars
+        .filter(({ name }) => name.startsWith(prefix))
+        .map((sidecar) =>
+          readOf(attachment === "single" ? { ...sidecar, name: singleOf(sidecar.name) } : sidecar),
+        )
+        .join("")};`,
+  );
+
+/**
  * `src/saved-rows.ts` as this generator prints it, before the formatter.
  */
 const savedRowsText = (sidecars: readonly Sidecar[]): string => {
   const names = sidecars.map(({ name }) => name).toSorted();
-  const valueReads = cardinalities.map(
-    ({ prefix, reads }) =>
-      `const ${reads} = (save: SaveKey) =>
-    query(delivery)
-      .rule((r) => r.match(ResponseSnapshot, keyOf(save)).find(keyOf(save)))${sidecars
-        .filter(({ name }) => name.startsWith(prefix))
-        .map(readOf)
-        .join("")};`,
+  const valueReads = valueReadsOf(
+    sidecars,
+    { head: "ResponseSnapshot", key: "SaveKey", param: "save" },
+    (name) => name,
   );
 
   return `/**
@@ -212,19 +241,22 @@ ${cardinalities.map(({ attachment, reads }) => `      .attach("${attachment}", $
 };
 
 /**
- * The generator of `src/saved-rows.ts`: the Ledger level's sidecars, the level built over any
- * roster's registry, since a sidecar's fields are the same under every roster, printed and passed
- * through the formatter's one pass, whose output is its own fixed point.
+ * The Ledger level's snapshot sidecars ({@link sidecarsOf}), the level built over any roster's
+ * registry, since a sidecar's fields are the same under every roster: what this generator and the
+ * attempt rows' (`#tools/gen/attempt-rows.ts`) print their reads from.
+ *
+ * @returns The sidecars.
  */
-export const generator: Generator = {
-  generate: async (tools) => {
-    const [{ QtiLom }, { ledgerOf }, { registryOf }, { customOperators }] = await Promise.all([
-      import("@qti-pie/pantry/qti/lom.ts"),
-      import("#ledger/ledger.ts"),
-      import("#ledger/registry/levels.ts"),
-      import("#ledger/registry/operators.ts"),
-    ]);
-    const ledger = ledgerOf(
+export const levelSidecars = async (): Promise<readonly Sidecar[]> => {
+  const [{ QtiLom }, { ledgerOf }, { registryOf }, { customOperators }] = await Promise.all([
+    import("@qti-pie/pantry/qti/lom.ts"),
+    import("#ledger/ledger.ts"),
+    import("#ledger/registry/levels.ts"),
+    import("#ledger/registry/operators.ts"),
+  ]);
+
+  return sidecarsOf(
+    ledgerOf(
       registryOf(QtiLom, {
         bindings: [],
         graders: [],
@@ -232,22 +264,33 @@ export const generator: Generator = {
         rubricUses: [],
         tables: [],
       }).Registry,
-    );
+    ),
+  );
+};
 
-    return await tools.format(savedRowsText(sidecarsOf(ledger)));
-  },
-  reads: [
-    "../crust/src/",
-    "../pantry/src/",
-    "../plate/src/admission-codes.ts",
-    "src/credit.ts",
-    "src/evaluations.ts",
-    "src/grading.ts",
-    "src/keys.ts",
-    "src/ledger.ts",
-    "src/registry/",
-    "src/scalars.ts",
-    "src/sittings.ts",
-  ],
+/**
+ * The files {@link levelSidecars} reads: the Ledger level's sources and what it loads.
+ */
+export const sidecarReads = [
+  "../crust/src/",
+  "../pantry/src/",
+  "../plate/src/admission-codes.ts",
+  "src/credit.ts",
+  "src/evaluations.ts",
+  "src/grading.ts",
+  "src/keys.ts",
+  "src/ledger.ts",
+  "src/registry/",
+  "src/scalars.ts",
+  "src/sittings.ts",
+] as const;
+
+/**
+ * The generator of `src/saved-rows.ts`: the Ledger level's sidecars ({@link levelSidecars}),
+ * printed and passed through the formatter's one pass, whose output is its own fixed point.
+ */
+export const generator: Generator = {
+  generate: async (tools) => await tools.format(savedRowsText(await levelSidecars())),
+  reads: sidecarReads,
   target: "src/saved-rows.ts",
 };

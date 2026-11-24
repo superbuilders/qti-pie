@@ -31,7 +31,8 @@
  * application ends a sitting); and reads the Delivery relations the suite holds to its table, the
  * tests it delivers, each attempt's completion status and outcomes as its response processing wrote
  * them, each attempt's string values, its candidate sessions' budgets, each item session's control
- * and state as every application reads them (`sessionControlOf`), and its presence windows,
+ * and state as every application reads them (`sessionControlOf`), each sitting's item sessions at
+ * their latest attempts as a review reads them (`attemptRowsOf`), and its presence windows,
  * present time and last beacons, one child's at a time.
  *
  * @module
@@ -77,6 +78,7 @@ import { registryOf } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
 import { sessionControlOf } from "#ledger/session-control.ts";
 import { presenceTables, sittingProgramsOf, sittingTables } from "#ledger/sitting-programs.ts";
+import { attemptRowsOf } from "#ledger/attempt-rows.ts";
 import { savedRowsOf } from "#ledger/saved-rows.ts";
 import { sittingHeading, sittingOfSessionOf, takenHeading } from "#ledger/sitting-queries.ts";
 import { settleTables } from "#ledger/test-run-writes.ts";
@@ -935,6 +937,15 @@ const savesOf = query(ResultLevel)
   .attach("saves", savedRowsOf(ResultLevel), "array");
 
 /**
+ * The sitting a call names by its key, `child` and `stage`, with each of its item sessions at its
+ * latest attempt, its values as they stand, its credit and its marks (`attemptRowsOf`, the read an
+ * application attaches under its own read of a sitting, as a review of it reads it).
+ */
+const reviewOf = query(ResultLevel)
+  .rule((r) => r.find({ child: r.param("child", LearnerId), stage: r.param("stage", pg.bigint) }))
+  .attach("attempts", attemptRowsOf(ResultLevel).sitting, "array");
+
+/**
  * The child's item sessions' start records (`StartVariable`), each variable by its session's
  * sitting and item.
  */
@@ -1041,6 +1052,7 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
       recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),
       resumeTest: resumedEntry.bind({ sittings: namedSitting }),
+      reviewOf,
       saveTestItem: sittingPrograms.saveTestItem.bind({ sittings: namedSitting }),
       savesOf,
       sessionsOf,

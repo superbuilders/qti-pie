@@ -23,8 +23,8 @@
  *   order is one value, and a float or a duration by its identity image, grizzle's `floatBits`,
  *   which the ledger's key holds beside the value: `-0` and `0` two values, every NaN one.
  *
- * The rows read back are typed structurally ({@link ValueRows}, {@link AttemptRows},
- * {@link StartRows}): each
+ * The rows read back are typed structurally ({@link ValueRows}, {@link ProcessedRows},
+ * {@link JudgedRows}, {@link AttemptRows}, {@link StartRows}): each
  * application's own read attaches a snapshot's values in this form, and its rows are its own
  * database's, so they are converted here and never parsed.
  *
@@ -487,15 +487,36 @@ export interface MarkRows {
 }
 
 /**
- * An attempt as an application's read carries it, after the database's statement graded it: its
- * value rows, every response it was answered with and every outcome its response processing set,
- * the completion status that processing left, its credit, the database's `AttemptCredit`, none
- * while its score is pending or where its scores say none, and its marks ({@link MarkRows}).
+ * A processed attempt as an application's read carries it, after the database's statement graded
+ * it: its value rows, every response it was answered with and every outcome its response
+ * processing set, and the completion status that processing left (the ledger's
+ * `ProcessedAttempt`).
  */
-export interface AttemptRows extends ValueRows {
+export interface ProcessedRows extends ValueRows {
   readonly completionStatus: string;
+}
+
+/**
+ * What the database judged of an attempt, as an application's read carries it: its credit, the
+ * database's `AttemptCredit`, none while its score is pending or where its scores say none, and its
+ * marks ({@link MarkRows}), one row of the attempt carrying their arrays.
+ */
+export interface JudgedRows {
   readonly credit: readonly { readonly kind: Credit }[];
   readonly marks: readonly MarkRows[];
+}
+
+/**
+ * An item session at its latest attempt as `#ledger/attempt-rows.ts` `attemptRowsOf` reads it under
+ * a sitting: its value rows as they stand (each single in force, an asserted outcome at its latest
+ * assertion's value), the completion status its response processing left, none while the attempt
+ * is pending response processing, and what the database judged of it ({@link JudgedRows}). A
+ * processed one is read into its record by {@link recordOfRows}, its completion status beside its
+ * values; a pending one holds the responses it was submitted with, which {@link responsesOfRows}
+ * reads (Results Reporting, Table 2.7.7, `pendingResponseProcessing`).
+ */
+export interface AttemptRows extends ValueRows, JudgedRows {
+  readonly processed: Option.Option<{ readonly completionStatus: string }>;
 }
 
 /**
@@ -730,7 +751,7 @@ const everyDeclared = <D, A>(
 export const recordOfRows = Effect.fnUntraced(function* recordOfRows(
   begun: ItemRecord,
   declared: Declarations,
-  attempt: AttemptRows,
+  attempt: ProcessedRows,
 ) {
   const read = yield* valuesOf(attempt);
 
@@ -1038,7 +1059,7 @@ const marksOf = Effect.fnUntraced(function* marksOf(rows: MarkRows) {
  * @param attempt The attempt's rows.
  * @returns Its credit and its marks; a mark of a file dies as {@link UnpostedFile}.
  */
-export const judgedOfRows = Effect.fnUntraced(function* judgedOfRows(attempt: AttemptRows) {
+export const judgedOfRows = Effect.fnUntraced(function* judgedOfRows(attempt: JudgedRows) {
   const marks = yield* Effect.flatMap(groupOf(attempt.marks), marksOf);
 
   return {

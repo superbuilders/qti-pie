@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { generator as admissionCodes } from "#tools/gen/admission-codes.ts";
+import { generator as attemptRows } from "#tools/gen/attempt-rows.ts";
 import { generator as finishCopies } from "#tools/gen/finish-copies.ts";
 import type { Generator } from "#tools/gen/generator.ts";
 import { generator as grade } from "#tools/gen/grade.ts";
@@ -20,6 +21,7 @@ import { ledgerDirectory, scratchDirectory, toolsFor } from "#tools/gen/tools.ts
  */
 const GENERATORS: readonly Generator[] = [
   admissionCodes,
+  attemptRows,
   finishCopies,
   grade,
   grading,

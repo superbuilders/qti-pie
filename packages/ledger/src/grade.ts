@@ -21717,47 +21717,26 @@ export const attemptArgumentsOf = (delivery: DeliveryLevel) => {
   });
 
   /**
-   * Each item session of the sitting and the instant of its latest attempt, processed or not: the
-   * one its review shows.
+   * The attempts the read covers: each item session of the sitting at its latest attempt, processed
+   * or not (the Delivery level's LatestAttempt), with its sitting's stage, the run key's: the one
+   * its review shows.
    */
-  const unprocessedOf = query(delivery).rule((r) => {
+  const gradableOf = query(delivery).rule((r) => {
     const sittings = r.relation("sittings", sittingHeading);
     const { child: sittingChild, stage: sittingStage } = v(sittings, "subjectSitting");
-    const { package: pkg, path, n } = v(fields.ItemSession, "session");
-    const { at } = v(fields.Attempt, "attempt");
+    const { package: pkg, path, n, at } = v(fields.LatestAttempt, "latest");
 
     return r
       .match(sittings, { child: sittingChild, stage: sittingStage })
-      .match(fields.ItemSession, {
+      .match(fields.LatestAttempt, {
+        at,
         child: sittingChild,
         n,
         package: pkg,
         path,
         stage: sittingStage,
       })
-      .match(fields.Attempt, { at, child: sittingChild, n, package: pkg, path })
-      .find({
-        child: sittingChild,
-        first: r.max(at),
-        n,
-        package: pkg,
-        path,
-        stage: sittingStage,
-      });
-  });
-  const boundUnprocessedIn = (r: Rule<DeliveryLevel>) => unprocessedOf.bind(bySession(r));
-
-  /**
-   * The attempts the read covers: each session's latest, with its sitting's stage, the run key's.
-   */
-  const gradableOf = query(delivery).rule((r) => {
-    const boundUnprocessed = boundUnprocessedIn(r);
-    const unprocessed = boundUnprocessed;
-    const { child, package: pkg, path, n, stage, first: at } = v(unprocessed, "unprocessed");
-
-    return r
-      .match(unprocessed, { child, first: at, n, package: pkg, path, stage })
-      .find({ at, child, n, package: pkg, path, stage });
+      .find({ at, child: sittingChild, n, package: pkg, path, stage: sittingStage });
   });
   const boundGradableIn = (r: Rule<DeliveryLevel>) => gradableOf.bind(bySession(r));
 

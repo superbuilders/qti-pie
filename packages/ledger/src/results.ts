@@ -100,6 +100,8 @@ export const pendingApplicationsOf = (ledger: LedgerLevel) => {
  *   {@link pendingApplicationsOf}.
  * - **ItemSessionStatus** `(child, package, path, n, at) → stage, status`: each attempt's status,
  *   exactly one.
+ * - **LatestAttempt** `(child, package, path, n) → stage, at`: each item session's latest attempt,
+ *   processed or not, the one its review shows.
  * - **SettledSitting** `(child, stage)`: each sitting that has ended with no attempt pending,
  *   derived.
  * - The laws of the ledger's stored **SittingFinal** `(child, stage, at)` (`#sittings.ts`), keyed by
@@ -147,6 +149,31 @@ export const resultRelationsOf = (
       .where(r.not(ProcessedAttempt, { at, child, n, package: pkg, path }))
       .find({ at, child, n, package: pkg, path, stage });
   });
+
+  /**
+   * Each item session's latest attempt, processed or not, with its item session's stage: its
+   * greatest instant, an attempt's instant being a clock of its item session (`Attempt`'s key), so
+   * the latest is the last committed. The attempt a review of the session shows and the one a
+   * reader of a sitting's attempts as they stand reads, its values, credit and marks
+   * (`#ledger/attempt-rows.ts`) and the attempts the marks read (`#ledger/grade.ts`
+   * attemptArgumentsOf's `gradable`). A fold, which grizzle reads at the key set its reads restrict
+   * it at; read at two in one statement, as the review's sitting and the marks' evaluation read it,
+   * it is derived whole for now (measured 2026-11-24: every attempt of the database for a
+   * three-row review), until grizzle keys a fold at the union of its reads' key sets (the ask in
+   * DECIDE6).
+   */
+  const LatestAttempt = derived(
+    "LatestAttempt",
+    query(ledger).rule((r) => {
+      const { child, package: pkg, path, n, at } = v(Attempt, "latest");
+      const { stage } = v(ItemSession, "latestSession");
+
+      return r
+        .match(Attempt, { at, child, n, package: pkg, path })
+        .match(ItemSession, { child, n, package: pkg, path, stage })
+        .find({ at: r.max(at), child, n, package: pkg, path, stage });
+    }),
+  );
 
   /**
    * Each processed attempt with an external-scored outcome no assertion has scored, with its item
@@ -326,6 +353,7 @@ export const resultRelationsOf = (
     AttemptStatus,
     PendingApplication,
     ItemSessionStatus,
+    LatestAttempt,
     SettledSitting,
     UnsettledFinal,
     UnfinalEnded,

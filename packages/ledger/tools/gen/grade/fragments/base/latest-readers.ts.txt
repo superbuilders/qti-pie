@@ -1,21 +1,9 @@
-/** Each item session of the sitting and the instant of its latest attempt, processed or not: the one its review shows. */
-const unprocessedOf = (session: GradedSession) =>
-	query(delivery).rule((r) => {
-		const { package: pkg, path, n } = v(fields.ItemSession, "session")
-		const { at } = v(fields.Attempt, "attempt")
-		return r
-			.match(fields.ItemSession, { child: session.child, stage: session.stage, package: pkg, path, n })
-			.match(fields.Attempt, { child: session.child, package: pkg, path, n, at })
-			.find({ child: session.child, package: pkg, path, n, stage: session.stage, first: r.max(at) })
-	})
-
-/** The attempts the read covers: each session's latest, with its sitting's stage, the run key's. */
+/** The attempts the read covers: each item session of the sitting at its latest attempt, processed or not (the Delivery level's LatestAttempt), with its sitting's stage, the run key's: the one its review shows. */
 const gradableOf = (session: GradedSession) =>
 	query(delivery).rule((r) => {
-		const unprocessed = unprocessedOf(session).bind(bySession(session))
-		const { child, package: pkg, path, n, stage, first: at } = v(unprocessed, "unprocessed")
+		const { package: pkg, path, n, at } = v(fields.LatestAttempt, "latest")
 		return r
-			.match(unprocessed, { child, package: pkg, path, n, stage, first: at })
-			.find({ child, package: pkg, path, n, stage, at })
+			.match(fields.LatestAttempt, { child: session.child, stage: session.stage, package: pkg, path, n, at })
+			.find({ child: session.child, package: pkg, path, n, stage: session.stage, at })
 	})
 
