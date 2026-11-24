@@ -1,4 +1,3 @@
-import os from "node:os";
 import { Config, Effect, FileSystem, Option, Path, Schema } from "effect";
 import { Flag } from "effect/cli";
 
@@ -166,7 +165,7 @@ const isProtected = Effect.fn("cli.isProtected")(function* isProtected(target: s
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const here = yield* fs.realPath(process.cwd());
-  const home = yield* Config.String("HOME").pipe(Config.withDefault(os.homedir()));
+  const home = yield* Config.String("HOME");
   const homeReal = yield* fs
     .realPath(home)
     .pipe(

@@ -70,18 +70,28 @@ type ScratchEnv = Readonly<{
    * A port no server listens on.
    */
   QTI_PIE_PG_PORT: string;
+  /**
+   * A folder of the logins' password files that holds none.
+   */
+  QTI_PIE_PG_SECRETS: string;
+  /**
+   * The run's media store, under its home.
+   */
+  QTI_PIE_MEDIA: string;
 }>;
 
 /**
- * The scratch environment under `root`: a `home` folder there, and a CA file there that no run
- * writes.
+ * The scratch environment under `root`: a `home` folder there, with the run's media store in it, a
+ * CA file there that no run writes, and a password folder there that holds no file.
  *
  * @param root - The folder one test file owns for the run, from {@link fileScratchDirectory}.
  */
 export const scratchEnv = (root: string): ScratchEnv => ({
   HOME: path.join(root, "home"),
+  QTI_PIE_MEDIA: path.join(root, "home", "media-store"),
   QTI_PIE_PG_CA: path.join(root, "no-such-ca.crt"),
   QTI_PIE_PG_PORT: "1",
+  QTI_PIE_PG_SECRETS: path.join(root, "no-secrets"),
 });
 
 /**

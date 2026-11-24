@@ -52,8 +52,8 @@ import type { PasswordCommandError } from "#pantry/db/connection.ts";
 import { searchTimeout } from "#pantry/test/settings.ts";
 
 /**
- * The folder each run's scratch `HOME`, CA and secrets folders are made in, the package's
- * git-ignored `work/`.
+ * The folder each run's scratch CA and secrets folders are made in, the package's git-ignored
+ * `work/`.
  */
 const work = fileURLToPath(new URL("../../work/", import.meta.url));
 
@@ -268,10 +268,11 @@ const databases = [
 const cas = ["unset", "a file", "a missing file"] as const;
 
 /**
- * Where the login's password file is: the default folder under `HOME`, named by the database, or a
- * `QTI_PIE_PG_SECRETS`.
+ * Where the login's password file is: in the folder `QTI_PIE_PG_SECRETS` names, or nowhere, the
+ * setting unset, which a login refuses, naming it, where no password command is set, and the
+ * migration identity never reads.
  */
-const secretFolders = ["the default under HOME", "set"] as const;
+const secretFolders = ["set", "unset"] as const;
 
 /**
  * One case of the box: a variant of each setting.
@@ -285,12 +286,13 @@ interface Settings {
 }
 
 /**
- * The settings that meet in a case: the database name meets the CA and the secrets folder, since
- * a refused name is refused before the CA is read and a login's password file lies under the
- * name's folder; the port meets the CA, since a refused port is refused before the CA is read; and
- * the host meets nothing, each setting read apart from the others. So each case varies one of them
- * over those it meets, the others at their first, kept variant (the host's CA a file, so both
- * connections build), the small box in which every interaction the connections have occurs.
+ * The settings that meet in a case: the database name meets the CA and the secrets folder, since a
+ * refused name is refused before the CA is read and a login's password file is named by its role,
+ * whose prefix is the name; the port meets the CA, since a refused port is refused before the CA is
+ * read; and the host meets nothing, each setting read apart from the others. So each case varies
+ * one of them over those it meets, the others at their first, kept variant (the host's CA a file,
+ * so both connections build), the small box in which every interaction the connections have
+ * occurs.
  */
 const settingsAxes = ["database", "port", "host"] as const;
 
@@ -315,14 +317,12 @@ const settingsOf: Gen<Settings> = (source) => {
 type Reached = "built" | "malformed" | "no CA";
 
 /**
- * The scratch folders a run reads: `HOME`, with a password file for every database name the script
- * keeps, the file `QTI_PIE_PG_CA` names, the folder `QTI_PIE_PG_SECRETS` names, with the login's
- * password file in each kept database's installation, and an empty folder.
+ * The scratch folders a run reads: the file `QTI_PIE_PG_CA` names, the folder `QTI_PIE_PG_SECRETS`
+ * names, with the login's password file in each kept database's installation, and an empty folder.
  */
 interface Scratch {
   readonly caFile: string;
   readonly empty: string;
-  readonly home: string;
   readonly secrets: string;
 }
 
@@ -338,14 +338,6 @@ const namedCa = "the CA QTI_PIE_PG_CA names";
 const secretsPassword = "the password in QTI_PIE_PG_SECRETS";
 
 /**
- * The password in a database's default folder under `HOME`.
- *
- * @param database - The database the folder is named by.
- * @returns The password.
- */
-const homePassword = (database: string): string => `the password for ${database}`;
-
-/**
  * Write the scratch folders of one run into a temporary folder of `work/` that the scope removes.
  *
  * @returns The folders.
@@ -356,25 +348,17 @@ const scratchFolders = Effect.gen(function* scratchFolders() {
   const scratch: Scratch = {
     caFile: `${root}/server-ca.pem`,
     empty: `${root}/empty`,
-    home: `${root}/home`,
     secrets: `${root}/secrets`,
   };
 
-  yield* fs.makeDirectory(scratch.home, { recursive: true });
   yield* fs.makeDirectory(scratch.empty, { recursive: true });
   yield* fs.writeFileString(scratch.caFile, namedCa);
   yield* fs.makeDirectory(scratch.secrets, { recursive: true });
 
   for (const database of databases) {
     if (Option.isSome(database.value)) {
-      const folder = `${scratch.home}/.local/var/qti-pie/${database.value.value}`;
       const role = roleNameOf(rootLogin, { rolePrefix: database.value.value });
 
-      yield* fs.makeDirectory(folder, { recursive: true });
-      yield* fs.writeFileString(
-        `${folder}/${role}.password`,
-        `${homePassword(database.value.value)}\n`,
-      );
       yield* fs.writeFileString(`${scratch.secrets}/${role}.password`, `  ${secretsPassword}  \n`);
     }
   }
@@ -383,7 +367,7 @@ const scratchFolders = Effect.gen(function* scratchFolders() {
 });
 
 /**
- * The variables a case's environment holds: `HOME` always, and each other where the case sets it.
+ * The variables a case's environment holds, each where the case sets it.
  */
 interface Environment {
   QTI_PIE_PG_CA?: string;
@@ -395,7 +379,6 @@ interface Environment {
   QTI_PIE_PG_PASSWORD_COMMAND_TIMEOUT?: string;
   QTI_PIE_PG_PORT?: string;
   QTI_PIE_PG_SECRETS?: string;
-  HOME: string;
 }
 
 /**
@@ -403,11 +386,10 @@ interface Environment {
  *
  * @param settings - The case.
  * @param scratch - The run's folders.
- * @returns The variables, `HOME`, the migration identity and its password always among them.
+ * @returns The variables, the migration identity and its password always among them.
  */
 const environmentOf = (settings: Settings, scratch: Scratch): Environment => {
   const environment: Environment = {
-    HOME: scratch.home,
     QTI_PIE_PG_MIGRATION_PASSWORD: migrationPassword,
     QTI_PIE_PG_MIGRATION_ROLE: migrationRole,
   };
@@ -677,9 +659,9 @@ const assertMissingCa = (built: Result.Result<unknown, unknown>, scratch: Scratc
 };
 
 /**
- * Hold a login's build in a case of the settings box whose settings are well formed: refused where
- * the CA file is missing, and else built at the setting's port, against the named CA, with the
- * password file of the case's secrets folder.
+ * Hold a login's build in a case of the settings box whose settings are well formed, its secrets
+ * folder set: refused where the CA file is missing, and else built at the setting's port, against
+ * the named CA, with the password file of the case's secrets folder.
  *
  * @param settings - The case.
  * @param scratch - The run's folders.
@@ -713,7 +695,7 @@ const loginReached = Effect.fnUntraced(function* loginReached(
     assert.notProperty(built.success, "role");
     assert.strictEqual(
       yield* passwordText(built.success.password).pipe(Effect.provide(provider)),
-      settings.secrets === "set" ? secretsPassword : homePassword(database),
+      secretsPassword,
     );
   }
 
@@ -810,7 +792,13 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
                   return;
                 }
 
-                c.note(yield* loginReached(settings, scratch, loginBuild, provider));
+                if (settings.secrets === "unset") {
+                  c.note("malformed");
+                  assertMalformed(loginBuild, ["QTI_PIE_PG_SECRETS"]);
+                } else {
+                  c.note(yield* loginReached(settings, scratch, loginBuild, provider));
+                }
+
                 c.note(yield* migrationReached(settings, scratch, migrationBuild, provider));
               }),
           ),
@@ -849,7 +837,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
               Effect.gen(function* oneCase() {
                 const environment: Environment = {
                   ...serverSettings,
-                  HOME: scratch.home,
                   QTI_PIE_PG_CA: scratch.caFile,
                   QTI_PIE_PG_SECRETS: file === "present" ? scratch.secrets : scratch.empty,
                 };
@@ -943,11 +930,11 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
             ({ ca, role }, c) =>
               Effect.gen(function* oneCase() {
                 const environment: Environment = {
-                  HOME: scratch.home,
                   QTI_PIE_PG_DATABASE: serverSettings.QTI_PIE_PG_DATABASE,
                   QTI_PIE_PG_HOST: serverSettings.QTI_PIE_PG_HOST,
                   QTI_PIE_PG_MIGRATION_PASSWORD: migrationPassword,
                   QTI_PIE_PG_PORT: serverSettings.QTI_PIE_PG_PORT,
+                  QTI_PIE_PG_SECRETS: scratch.secrets,
                 };
 
                 if (Option.isSome(ca.text)) {
@@ -1060,7 +1047,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
               Effect.gen(function* oneCase() {
                 const environment: Environment = {
                   ...serverSettings,
-                  HOME: scratch.home,
                   QTI_PIE_PG_CA: scratch.caFile,
                   QTI_PIE_PG_MIGRATION_PASSWORD: migrationPassword,
                   QTI_PIE_PG_SECRETS: scratch.secrets,
@@ -1159,7 +1145,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
         const provider = ConfigProvider.layer(
           ConfigProvider.fromUnknown({
             ...serverSettings,
-            HOME: scratch.home,
             QTI_PIE_PG_CA: scratch.caFile,
             QTI_PIE_PG_PASSWORD_COMMAND: command,
             QTI_PIE_PG_SECRETS: scratch.secrets,
@@ -1238,7 +1223,6 @@ layer(NodeServices.layer)("db/connection.ts, under scripts/db.sh's settings", (i
               Effect.gen(function* oneCase() {
                 const environment: Environment = {
                   ...serverSettings,
-                  HOME: scratch.home,
                   QTI_PIE_PG_CA: scratch.caFile,
                   QTI_PIE_PG_PASSWORD_COMMAND: command,
                   QTI_PIE_PG_SECRETS: scratch.secrets,
@@ -1316,7 +1300,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
                   const provider = ConfigProvider.layer(
                     ConfigProvider.fromUnknown({
                       ...serverSettings,
-                      HOME: scratch.home,
                       QTI_PIE_PG_CA: scratch.caFile,
                       QTI_PIE_PG_PASSWORD_COMMAND: command,
                       QTI_PIE_PG_PASSWORD_COMMAND_TIMEOUT: "1 second",

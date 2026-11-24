@@ -45,8 +45,7 @@ export default defineConfig({
 
 /**
  * The variables of the process the tests run in that scripts/db.sh or the grizzle config reads,
- * removed from each run, so only a case's own settings reach it. Every default the script derives
- * from `HOME` is set.
+ * removed from each run, so only a case's own settings reach it.
  */
 const cleared = {
   QTI_PIE_GRIZZLE_CONFIG: undefined,
@@ -65,7 +64,7 @@ const migrationRole = "qti_migrator";
 /**
  * The settings scripts/db.sh requires, and a subcommand that requires it: every subcommand the
  * host, the port, the CA, the database, the migration identity and, with no password command, its
- * password file, and `create` alone the template.
+ * password file and the logins' password folder, and `create` alone the template.
  */
 const requiredSettings = [
   { setting: "QTI_PIE_PG_HOST", subcommand: "check-clear" },
@@ -74,6 +73,7 @@ const requiredSettings = [
   { setting: "QTI_PIE_PG_DATABASE", subcommand: "check-clear" },
   { setting: "QTI_PIE_PG_MIGRATION_ROLE", subcommand: "check-clear" },
   { setting: "QTI_PIE_PG_MIGRATION_PASSWORD_FILE", subcommand: "check-clear" },
+  { setting: "QTI_PIE_PG_SECRETS", subcommand: "check-clear" },
   { setting: "QTI_PIE_PG_TEMPLATE", subcommand: "create" },
 ] as const;
 

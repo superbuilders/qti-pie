@@ -208,19 +208,6 @@ export const DatabaseName = Schema.String.check(
 );
 
 /**
- * A folder setting whose default is a path under the home folder: the variable's value, else
- * `HOME` with `below` appended.
- *
- * @param name - The variable.
- * @param below - The default's path under the home folder.
- * @returns The folder.
- */
-const underHome = (name: string, below: string): Config.Config<string> =>
-  Config.all({ home: Config.String("HOME"), set: Config.option(Config.String(name)) }).pipe(
-    Config.map(({ home, set }) => Option.getOrElse(set, () => `${home}/${below}`)),
-  );
-
-/**
  * The database a connection names, `QTI_PIE_PG_DATABASE`, which is also its installation's role
  * prefix, so a lane's database name is its prefix and two lanes never share one. It has no default:
  * a suite reads `Config.option(clusterDatabase)` to skip where no database is named.
@@ -234,17 +221,12 @@ export const clusterDatabase = Config.schema(DatabaseName, "QTI_PIE_PG_DATABASE"
  * - `ca` is the CA file a connection verifies the server against, `QTI_PIE_PG_CA`.
  * - `host` is the server's host, `QTI_PIE_PG_HOST`, which its certificate must name.
  * - `port` is the server's port, `QTI_PIE_PG_PORT`.
- * - `secrets` is the folder of the logins' password files, `~/.local/var/qti-pie/<database>` by
- *   default, where `scripts/db.sh migrate` writes them.
  */
 const clusterSettings = Config.all({
   ca: Config.String("QTI_PIE_PG_CA"),
   database: clusterDatabase,
   host: Config.String("QTI_PIE_PG_HOST"),
   port: Config.Port("QTI_PIE_PG_PORT"),
-  secrets: clusterDatabase.pipe(
-    Config.flatMap((name) => underHome("QTI_PIE_PG_SECRETS", `.local/var/qti-pie/${name}`)),
-  ),
 });
 
 /**
@@ -280,9 +262,8 @@ interface PasswordCommand {
  * The executable that gives each role its password, `QTI_PIE_PG_PASSWORD_COMMAND`, none where it is
  * unset or empty, as scripts/db.sh reads it, with the bound of one run of it,
  * `QTI_PIE_PG_PASSWORD_COMMAND_TIMEOUT`, 60 seconds ({@link passwordCommandTimeoutSeconds}) where
- * it is unset or empty. Where the command
- * is set, it replaces both local sources: the migration identity's `QTI_PIE_PG_MIGRATION_PASSWORD`
- * and each login's password file.
+ * it is unset or empty. Where the command is set, it replaces both local sources: the migration
+ * identity's `QTI_PIE_PG_MIGRATION_PASSWORD` and each login's password file.
  *
  * The bound is long enough for a sign-in the command runs to prompt and be answered by hand.
  * scripts/db.sh puts none on its own runs: it runs the command before it starts psql.
@@ -302,21 +283,37 @@ const passwordCommandSetting: Config.Config<Option.Option<PasswordCommand>> = Co
 );
 
 /**
+ * Where each login's password comes from: the password command, run for the login's role, or the
+ * folder of its password files, `QTI_PIE_PG_SECRETS`, where `scripts/db.sh migrate` writes them,
+ * which is required where no command is set.
+ */
+type LoginPasswords =
+  | { readonly _tag: "command"; readonly command: PasswordCommand }
+  | { readonly _tag: "files"; readonly secrets: string };
+
+/**
+ * The logins' password source ({@link LoginPasswords}), read from the password command's setting
+ * and, where it names none, from `QTI_PIE_PG_SECRETS`.
+ */
+const loginPasswordsSetting: Config.Config<LoginPasswords> = passwordCommandSetting.pipe(
+  Config.flatMap((command) =>
+    Option.match(command, {
+      onNone: () =>
+        Config.map(Config.String("QTI_PIE_PG_SECRETS"), (secrets): LoginPasswords => ({
+          _tag: "files",
+          secrets,
+        })),
+      onSome: (named) => Config.succeed<LoginPasswords>({ _tag: "command", command: named }),
+    }),
+  ),
+);
+
+/**
  * The variable the migration identity's password is read from, which scripts/db.sh exports, from
  * the owner's password file `QTI_PIE_PG_MIGRATION_PASSWORD_FILE` names, for each grizzle command it
  * runs.
  */
 const migrationPasswordSetting = "QTI_PIE_PG_MIGRATION_PASSWORD";
-
-/**
- * A connection to the cluster, without its password, the folder its logins' password files are in,
- * and the password command that gives every role its password where the settings name one.
- */
-interface ClusterConnection {
-  readonly command: Option.Option<PasswordCommand>;
-  readonly connection: Omit<DbConnection, "password">;
-  readonly secrets: string;
-}
 
 /**
  * How long a password command that is being stopped has to exit after SIGTERM before its process
@@ -453,12 +450,6 @@ const primedPassword = Effect.fnUntraced(function* primedPassword(
 });
 
 /**
- * The cluster's settings and the password command's, read before any file is, so a missing or
- * malformed setting fails with Effect's `ConfigError` first.
- */
-const settingsRead = Effect.all({ command: passwordCommandSetting, settings: clusterSettings });
-
-/**
  * The database a test file's connections name in place of `QTI_PIE_PG_DATABASE`'s, a copy of it of
  * the file's own (`#pantry/test/file-database.ts`), or none, the live default, for the database the
  * settings name. A copy keeps its template's roles, so the role prefix stays the settings'
@@ -490,21 +481,15 @@ export const FileDatabase = Context.Reference<Option.Option<string>>("pantry/db/
  * @param settings.database - The database, which is the installation's role prefix too.
  * @param settings.host - The server's host.
  * @param settings.port - The server's port.
- * @param settings.secrets - The folder of the logins' password files.
- * @param command - The password command, if any.
  * @returns The connection, without its password.
  * @see https://github.com/bjornpagen/grizzle/blob/eb56d58bb3191b6645f1334dc55f63c7a73c2dc4/packages/grizzle/src/adapter/types/config.ts#L41-L45
  */
-const connectionAt = (
-  settings: {
-    readonly ca: string;
-    readonly database: string;
-    readonly host: string;
-    readonly port: number;
-    readonly secrets: string;
-  },
-  command: Option.Option<PasswordCommand>,
-): Effect.Effect<ClusterConnection, ClusterConfigError, FileSystem.FileSystem> =>
+const connectionAt = (settings: {
+  readonly ca: string;
+  readonly database: string;
+  readonly host: string;
+  readonly port: number;
+}): Effect.Effect<Omit<DbConnection, "password">, ClusterConfigError, FileSystem.FileSystem> =>
   Effect.gen(function* connectedAt() {
     const fs = yield* FileSystem.FileSystem;
     const fileDatabase = yield* FileDatabase;
@@ -519,29 +504,27 @@ const connectionAt = (
       port: settings.port,
       servername: settings.host,
     };
-    const result: ClusterConnection = {
-      command,
-      connection: {
-        database: Option.getOrElse(fileDatabase, () => settings.database),
-        driver: pg,
-        rolePrefix: settings.database,
-        transport,
-      },
-      secrets: settings.secrets,
+    const connection: Omit<DbConnection, "password"> = {
+      database: Option.getOrElse(fileDatabase, () => settings.database),
+      driver: pg,
+      rolePrefix: settings.database,
+      transport,
     };
 
-    return result;
+    return connection;
   });
 
 /**
- * Read the server's settings and its CA for a login's connection. It fails with Effect's
- * `ConfigError` for a missing or malformed setting, before any file is read, and with a
- * {@link ClusterConfigError} when the CA is unreadable.
+ * Read the server's settings, then the logins' password source ({@link LoginPasswords}), then the
+ * server's CA for a login's connection. It fails with Effect's `ConfigError` for a missing or
+ * malformed setting, before any file is read, and with a {@link ClusterConfigError} when the CA is
+ * unreadable.
  */
 const loginCluster = Effect.gen(function* loginCluster() {
-  const { command, settings } = yield* settingsRead;
+  const settings = yield* clusterSettings;
+  const passwords = yield* loginPasswordsSetting;
 
-  return yield* connectionAt(settings, command);
+  return { connection: yield* connectionAt(settings), passwords };
 });
 
 /**
@@ -562,9 +545,10 @@ const loginCluster = Effect.gen(function* loginCluster() {
  * {@link ClusterConfigError} when the CA is unreadable.
  */
 export const migrationConnection = Effect.gen(function* migrationConnection() {
-  const { command, settings } = yield* settingsRead;
+  const settings = yield* clusterSettings;
+  const command = yield* passwordCommandSetting;
   const role = yield* migrationRoleSetting;
-  const { connection } = yield* connectionAt(settings, command);
+  const connection = yield* connectionAt(settings);
   const result: MigrationConnectionConfig = {
     ...connection,
     password: Option.match(command, {
@@ -667,12 +651,11 @@ const installedRoleOf = <L>(
  */
 const rolePasswords = Effect.gen(function* rolePasswords() {
   const fs = yield* FileSystem.FileSystem;
-  const { command, connection, secrets } = yield* loginCluster;
+  const { connection, passwords } = yield* loginCluster;
   const passwordOf = (role: string): Effect.Effect<Redacted.Redacted, CredentialError> =>
-    Option.match(command, {
-      onNone: () => filePassword(fs, secrets, role),
-      onSome: (passwordCommand) => attemptPassword(passwordCommand, role),
-    });
+    passwords._tag === "files"
+      ? filePassword(fs, passwords.secrets, role)
+      : attemptPassword(passwords.command, role);
 
   return { connection, passwordOf };
 });
@@ -732,18 +715,16 @@ export const loginConnection = Effect.gen(function* loginConnection() {
  */
 export const primedLoginConnection = Effect.gen(function* primedLoginConnection() {
   const fs = yield* FileSystem.FileSystem;
-  const { command, connection, secrets } = yield* loginCluster;
+  const { connection, passwords } = yield* loginCluster;
 
   return <L>(
     login: AnyLogin | ServedLogin<L>,
   ): Effect.Effect<DbConnection, PasswordCommandError | CredentialError> =>
     Effect.flatMap(installedRoleOf(login, connection), (role) =>
-      Option.match(command, {
-        onNone: () => Effect.succeed({ ...connection, password: filePassword(fs, secrets, role) }),
-        onSome: (passwordCommand) =>
-          primedPassword(passwordCommand, role).pipe(
+      passwords._tag === "files"
+        ? Effect.succeed({ ...connection, password: filePassword(fs, passwords.secrets, role) })
+        : primedPassword(passwords.command, role).pipe(
             Effect.map((password): DbConnection => ({ ...connection, password })),
           ),
-      }),
     );
 }).pipe(Effect.withSpan("db.primedLoginConnection"));

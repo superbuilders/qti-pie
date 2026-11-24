@@ -381,7 +381,7 @@ const mediaHelp = {
   MediaMissing:
     "The database names a media file the local media store does not hold, so the export cannot write it, and nothing was exported. Set QTI_PIE_MEDIA to the store the package was imported into, or import the package again from its source into this store, then export it again.",
   MediaUnstored:
-    "Check that the local media store's folder (QTI_PIE_MEDIA, else ~/.local/var/qti-pie/media-store) is writable and the disk has room, then import the package again. Nothing was written to the database.",
+    "Check that the local media store's folder, the one QTI_PIE_MEDIA names, is writable and the disk has room, then import the package again. Nothing was written to the database.",
 } as const satisfies Readonly<Partial<Record<KindedTag, string>>>;
 
 /**

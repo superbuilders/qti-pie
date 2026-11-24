@@ -64,6 +64,7 @@ Every setting is required, and a missing one is refused, naming it:
 export QTI_PIE_PG_HOST=localhost QTI_PIE_PG_PORT=5432 QTI_PIE_PG_CA="$PGSSLROOTCERT"
 export QTI_PIE_PG_DATABASE=$db QTI_PIE_PG_MIGRATION_ROLE=${db}_owner
 export QTI_PIE_PG_MIGRATION_PASSWORD_FILE=$secrets/owner.password QTI_PIE_PG_TEMPLATE=template0
+export QTI_PIE_PG_SECRETS=$secrets QTI_PIE_MEDIA=$secrets/media-store
 ```
 
 From `packages/qti-pie/packages/pantry`:
@@ -77,8 +78,9 @@ scripts/db.sh check-clear  # list this installation's roles (grizzle roles) and 
 ```
 
 Run `grizzle migrate` through `scripts/db.sh`, which exports the settings and the owner's password for the config's
-migration connection. Login passwords live in `QTI_PIE_PG_SECRETS` (`~/.local/var/qti-pie/<database>/<role>.password`
-by default); `QTI_PIE_PG_PASSWORD_COMMAND` gives every role's password in their place. pantry's database tests run only
+migration connection. Login passwords live in `QTI_PIE_PG_SECRETS` (`<role>.password` in that folder);
+`QTI_PIE_PG_PASSWORD_COMMAND` gives every role's password in their place. The command line's media store is the
+folder `QTI_PIE_MEDIA` names. pantry's database tests run only
 under a lease: `QTI_PIE_PG_DATABASE` names a migrated database and `QTI_PIE_PG_MIGRATION_PASSWORD` its
 owner's password, and each file that writes runs on a copy of that database of its own
 (`src/test/file-database.ts`), `${db}_<file>`, dropped when the file ends. When the lane is done,

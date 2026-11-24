@@ -91,8 +91,7 @@ $ node src/cli.ts roundtrip ./my-package my-package
 ```
 
 `import` stores the package under the name it is given, an NCName such as `my-package`, which `export` takes, and its
-media files' bytes in the local media store, `QTI_PIE_MEDIA` or else `~/.local/var/qti-pie/media-store`, by their
-SHA-256. A manifest's identifier is unique within its manifest alone (IMS Content Packaging 1.2, §6.11.4), so it names
+media files' bytes in the local media store, the folder `QTI_PIE_MEDIA` names, by their SHA-256. A manifest's identifier is unique within its manifest alone (IMS Content Packaging 1.2, §6.11.4), so it names
 no package: another package under a stored name is refused, since a name is one revision, and two packages that share a
 manifest identifier are two names.
 
@@ -118,7 +117,7 @@ item-prefixed names that pass through it, because the package declares nothing t
 
 - `QTI_PIE_PG_PASSWORD_COMMAND` names an executable that prints a role's password. Every connection attempt runs it,
   without a shell, with the role's name as its one argument, in place of `QTI_PIE_PG_MIGRATION_PASSWORD` and the logins'
-  password files.
+  password files (`QTI_PIE_PG_SECRETS`).
 
 Package-media mode is no setting of pantry's: an application lists `QtiMedia` (or a level of its own over it) in its
 grizzle config and writes its policy as `MediaType` rows, one per entry of its `policy.json`. Write them through a

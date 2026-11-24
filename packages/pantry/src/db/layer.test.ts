@@ -36,9 +36,9 @@ const unusedCa = "an unused CA: this layer is built and released without connect
 
 /**
  * The server the layer is given, every setting a connection requires (`#pantry/db/connection.ts`
- * refuses a missing one by name) but the CA, whose file the test writes: never reached, since no
- * session connects. They are the test's own, never the process environment's, so the test runs the
- * same with a lease set or none.
+ * refuses a missing one by name) but the CA and the secrets folder, which the test makes: never
+ * reached, since no session connects. They are the test's own, never the process environment's, so
+ * the test runs the same with a lease set or none.
  */
 const unusedServer = {
   QTI_PIE_PG_DATABASE: "layer_unused",
@@ -80,15 +80,19 @@ layer(NodeServices.layer)("db/layer.ts, built from the committed served file", (
       // A folder of this run's own, so a concurrent run of the suite never rewrites the CA this one
       // reads.
       const scratch = yield* scratchDirectory("layer-served-");
-      const home = `${scratch}/home`;
+      const secrets = `${scratch}/secrets`;
       const ca = `${scratch}/ca.crt`;
-      yield* fs.makeDirectory(home, { recursive: true });
+      yield* fs.makeDirectory(secrets, { recursive: true });
       yield* fs.writeFileString(ca, unusedCa);
 
       const exit = yield* Effect.provide(Effect.void, AuthorAppLayer).pipe(
         Effect.provide(
           ConfigProvider.layer(
-            ConfigProvider.fromUnknown({ ...unusedServer, HOME: home, QTI_PIE_PG_CA: ca }),
+            ConfigProvider.fromUnknown({
+              ...unusedServer,
+              QTI_PIE_PG_CA: ca,
+              QTI_PIE_PG_SECRETS: secrets,
+            }),
           ),
         ),
         Effect.exit,

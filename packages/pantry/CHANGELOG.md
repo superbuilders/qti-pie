@@ -7,6 +7,11 @@
 - An export dies on rows the laws exclude: `DocumentRowCount` (`export/pages.ts`) is removed, `assembleScan` and
   `readDocument` (`model/assemble.ts`) return the document, and `exportEntries`, `exportPackage` and `documentXml`
   fail with no `AssembleError` or crust `EncodeError`.
+- `QTI_PIE_MEDIA` (the command line's media store, `localMediaStore` of `package/media.ts`), `QTI_PIE_PG_SECRETS`
+  (the logins' password folder, where no `QTI_PIE_PG_PASSWORD_COMMAND` is set) and `HOME` (the home folder no export
+  replaces) are required, each with no default. A consumer of `localMediaStore` sets `QTI_PIE_MEDIA` itself, as
+  metis's content admission (`packages/content-admission/scripts/admit.ts`) must, and so does an operator who runs
+  pantry's command line through edullm's `pnpm db qti <command>`.
 
 ## Unreleased: the mapping, catalog and table copies are views
 

@@ -148,19 +148,10 @@ export const directoryMediaStore = (root: string) =>
   );
 
 /**
- * The folder the command line's store is in: `QTI_PIE_MEDIA`, else
- * `~/.local/var/qti-pie/media-store`, beside the local databases' password folders, a name no
- * database's can take, since a database's name holds no `-` (`scripts/db.sh`). One store serves
- * every local database: a digest names its bytes wherever they are put.
+ * The folder the command line's store is in, `QTI_PIE_MEDIA`, which is required. One store may
+ * serve every local database: a digest names its bytes wherever they are put.
  */
-const mediaFolder = Config.all({
-  home: Config.String("HOME"),
-  set: Config.option(Config.NonEmptyString("QTI_PIE_MEDIA")),
-}).pipe(
-  Config.map(({ home, set }) =>
-    Option.getOrElse(set, () => `${home}/.local/var/qti-pie/media-store`),
-  ),
-);
+const mediaFolder = Config.NonEmptyString("QTI_PIE_MEDIA");
 
 /**
  * The command line's store: {@link directoryMediaStore} at {@link mediaFolder}.

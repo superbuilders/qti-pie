@@ -14,8 +14,8 @@
 # QTI_PIE_PG_PORT and QTI_PIE_PG_CA (the server, verified verify-full against its CA, PGSSLROOTCERT on this machine),
 # QTI_PIE_PG_DATABASE (the lane's database), QTI_PIE_PG_MIGRATION_ROLE (the lane's owner role, which owns the database
 # and every schema grizzle migrate installs), QTI_PIE_PG_MIGRATION_PASSWORD_FILE (the owner's password, a mode-600
-# file) unless QTI_PIE_PG_PASSWORD_COMMAND gives every password, and, for create, QTI_PIE_PG_TEMPLATE. Only
-# QTI_PIE_PG_SECRETS, the folder of the logins' password files, has a default: ~/.local/var/qti-pie/<database>.
+# file) and QTI_PIE_PG_SECRETS (the folder of the logins' password files) unless QTI_PIE_PG_PASSWORD_COMMAND gives
+# every password, and, for create, QTI_PIE_PG_TEMPLATE.
 #
 # The database's name is its installation's role prefix (src/db/connection.ts), so grizzle names every role here.
 # QTI_PIE_PG_DATABASE must be a lowercase letter, then at most 62 lowercase letters, digits or underscores, with no __
@@ -50,8 +50,10 @@ required QTI_PIE_PG_PORT
 required QTI_PIE_PG_CA
 required QTI_PIE_PG_DATABASE
 required QTI_PIE_PG_MIGRATION_ROLE
-[[ -n "${QTI_PIE_PG_PASSWORD_COMMAND:-}" ]] || required QTI_PIE_PG_MIGRATION_PASSWORD_FILE
-: "${QTI_PIE_PG_SECRETS:=$HOME/.local/var/qti-pie/$QTI_PIE_PG_DATABASE}"
+if [[ -z "${QTI_PIE_PG_PASSWORD_COMMAND:-}" ]]; then
+	required QTI_PIE_PG_MIGRATION_PASSWORD_FILE
+	required QTI_PIE_PG_SECRETS
+fi
 config="${QTI_PIE_GRIZZLE_CONFIG:-grizzle.config.ts}"
 
 if [[ ! $QTI_PIE_PG_DATABASE =~ ^[a-z][a-z0-9_]{0,62}$ || $QTI_PIE_PG_DATABASE == *__* || $QTI_PIE_PG_DATABASE == pg_* ]]; then
@@ -161,7 +163,7 @@ migrate() {
 drop() {
 	! exists || as_migration uninstall
 	as_owner postgres -c "DROP DATABASE IF EXISTS $QTI_PIE_PG_DATABASE WITH (FORCE)"
-	rm -rf "$QTI_PIE_PG_SECRETS"
+	[[ -n "${QTI_PIE_PG_PASSWORD_COMMAND:-}" ]] || rm -rf "$QTI_PIE_PG_SECRETS"
 }
 
 # Keeps the password files, which migrate sets on the new login roles.
