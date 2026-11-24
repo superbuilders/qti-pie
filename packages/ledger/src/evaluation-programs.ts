@@ -45,7 +45,7 @@
  * not processed): a redelivered row, whose application the first delivery took out of pending,
  * finds nothing and records nothing, as does a row of an application the item does not record or
  * whose request was never made. A role that composes these inserts what they record and what the
- * grading and settling write (`gradeAttemptTables`, `testOutcomeRunTables`, SittingFinal).
+ * grading and settling write (`gradeAttemptWrites`, `settleWrites`).
  *
  * @module
  */
@@ -59,22 +59,23 @@ import type { DeliveryLevel } from "#ledger/sitting-programs.ts";
 import { sittingOfSessionOf } from "#ledger/sitting-queries.ts";
 
 /**
- * The relations the evaluator's write records, by name, for a role's insert list: each
+ * The relations the evaluator's write records, by name and by the mode a role writes each by: each
  * application's evaluation and its reply, feedback or decline (`recordEvaluations`), beside what
- * its grading and settling write.
+ * its grading and settling write, each closed, so a role's insert list names it.
  */
-export const evaluationTables = [
-  "OperatorEvaluation",
-  "OperatorReply",
-  "OperatorFeedback",
-  "OperatorDecline",
-] as const;
+export const evaluationWrites = {
+  insert: ["OperatorEvaluation", "OperatorReply", "OperatorFeedback", "OperatorDecline"],
+  write: [],
+} as const;
 
 /**
- * The relations a person's value writes, by name, for a role's insert list: the value and its
- * feedback (`personValueOf`).
+ * The relations a person's value writes, by name and by the mode a role writes each by: the value
+ * and its feedback (`personValueOf`), each closed, so a role's insert list names it.
  */
-export const personValueTables = ["HumanOperatorValue", "HumanOperatorFeedback"] as const;
+export const personValueWrites = {
+  insert: ["HumanOperatorValue", "HumanOperatorFeedback"],
+  write: [],
+} as const;
 
 /**
  * The evaluator's write over a delivery level, `recordEvaluations`, and its read-back `awaiting`.

@@ -1,4 +1,6 @@
-] as const
+	],
+	write: [],
+} as const
 
 /**
  * The response processing of every attempt of the sitting its write records, in a stratum after the one that records

@@ -627,8 +627,9 @@ ${indented(TYPES.map((t) => startOf(outcomeMember("Record", t))).join("\n"), "\t
  */
 const takeTables = (): string =>
   [
-    "\n/** Every relation the take's write inserts into, by name: what a role that composes it inserts into. */",
-    "export const takeValuesTables = [",
+    "\n/** Every relation the take's write writes, by name and by the mode a role that composes it writes each by: each is closed, so its insert list names it. */",
+    "export const takeValuesWrites = {",
+    "\tinsert: [",
     '\t"ItemSessionValue",',
     ...CARDINALITIES.flatMap((cardinality) =>
       TYPES.map((t) => `\t"ItemSessionValue${cardinality}${t}",`),
@@ -637,7 +638,9 @@ const takeTables = (): string =>
     ...CARDINALITIES.flatMap((cardinality) => TYPES.map((t) => `\t"Start${cardinality}${t}",`)),
     '\t"StartRecord",',
     ...TYPES.map((t) => `\t"StartRecord${t}",`),
-    "] as const\n",
+    "\t],",
+    "\twrite: [],",
+    "} as const\n",
   ].join("\n");
 
 /**

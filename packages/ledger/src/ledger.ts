@@ -255,27 +255,25 @@ export const ExternalScoring = closed.unordered("ExternalScoring", ["externalMac
  * timestamp are derived from these facts and the content, never stored.
  */
 /**
- * The relations of a learner's item sessions, by name, for a role's insert list: a take's item
- * sessions and their seeds, the control an item stage's decision states beside them
- * (`StageControl`), and the snapshots and attempts a candidate's responses write.
+ * The relations of a learner's item sessions, by name and by the mode a role writes each by: a
+ * take's item sessions and their seeds, the control an item stage's decision states beside them
+ * (`StageControl`), and the snapshots and attempts a candidate's responses write, each closed, so
+ * a role's insert list names it.
  */
-export const sessionTables = [
-  "ItemSession",
-  "SessionSeed",
-  "StageControl",
-  "ResponseSnapshot",
-  "Attempt",
-] as const;
+export const sessionWrites = {
+  insert: ["ItemSession", "SessionSeed", "StageControl", "ResponseSnapshot", "Attempt"],
+  write: [],
+} as const;
 
 /**
- * The relations of an item session's context values, by name, for a role's insert list: what an
- * application states of the session its processing reads (`SessionContext*`).
+ * The relations of an item session's context values, by name and by the mode a role writes each
+ * by: what an application states of the session its processing reads (`SessionContext*`), each
+ * closed, so a role's insert list names it.
  */
-export const sessionContextTables = [
-  "SessionContextFloat",
-  "SessionContextInteger",
-  "SessionContextBoolean",
-] as const;
+export const sessionContextWrites = {
+  insert: ["SessionContextFloat", "SessionContextInteger", "SessionContextBoolean"],
+  write: [],
+} as const;
 
 /**
  * The values an assertion sets, by base type, which both a person's and a machine's assertion

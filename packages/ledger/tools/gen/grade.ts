@@ -11,7 +11,7 @@ import { takeStage } from "#tools/gen/grade/take.ts";
 
 /**
  * The ledger's grade.ts, whole, from its generator alone: the base stage (the grading statement's
- * readers and writes, gradeArgumentsOf, attemptArgumentsOf, gradeAttemptTables, gradeAttemptOf),
+ * readers and writes, gradeArgumentsOf, attemptArgumentsOf, gradeAttemptWrites, gradeAttemptOf),
  * then the members stage (testTreeOf and memberValuesOf, from attemptArgumentsOf's rules, and the
  * values in force, `#ledger/assertion-views.ts`'s `valuesInForceOf` over the Delivery level), the
  * admission stage (admissionArgumentsOf and memberAdmissionArgumentsOf, one template, from

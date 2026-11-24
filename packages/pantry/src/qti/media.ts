@@ -156,12 +156,13 @@ export const MediaType = relation.generated(
 export const QtiMediaPolicy = schema.extend([Qti], "QtiMediaPolicy", [MediaType], []);
 
 /**
- * The relations a role that writes the media policy inserts, by name: {@link QtiMediaPolicy}'s one
- * stored relation, {@link MediaType}, which `authorWrites` of `#pantry/qti/logins.ts` leaves out,
- * since the author role writes `Qti` alone. An application's role that writes the policy lists
- * these in its insert list.
+ * The relations a role that writes the media policy writes, by name and by the mode it writes each
+ * by: {@link QtiMediaPolicy}'s one stored relation, {@link MediaType}, closed, so under `insert`,
+ * which `authorWrites` of `#pantry/qti/logins.ts` leaves out, since the author role writes `Qti`
+ * alone. An application's role that writes the policy spreads each list into its list of the same
+ * mode.
  */
-export const mediaPolicyWrites = [MediaType.name] as const;
+export const mediaPolicyWrites = { insert: [MediaType.name], write: [] } as const;
 
 /**
  * Every media file each document names, by the document's place and the file's path, with the
@@ -275,15 +276,13 @@ export const QtiMedia = schema.extend([QtiMediaPolicy], "QtiMedia", [ServedFile,
  * The author role over {@link QtiMedia}, for an application whose author login is over the media
  * level: it holds every stored relation and roster of the installation whole, the policy's and the
  * level's derived relations among them (grizzle's `wholeEntriesOf`), and writes `Qti`'s stored
- * relations (`authorWrites` of `#pantry/qti/logins.ts`), as `Author` of `#pantry/qti/roles.ts`
- * does, and no relation of the policy: {@link MediaType} is written through a role of its own, one
- * that writes nothing a READ COMMITTED reader reads ({@link QtiMediaPolicy}). grizzle's `insert`
- * grants SELECT and INSERT on each table it names, and no UPDATE or DELETE, since every relation
- * of `Qti` is closed: a package is published whole (`insertWrite`) and never changed or removed.
+ * relations by their modes (`authorWrites` of `#pantry/qti/logins.ts`), as `Author` of
+ * `#pantry/qti/roles.ts` does, and no relation of the policy: {@link MediaType} is written through a
+ * role of its own, one that writes nothing a READ COMMITTED reader reads ({@link QtiMediaPolicy}).
+ * Every relation of `Qti` is closed, so each is under `insert`, which grants SELECT and INSERT and
+ * no UPDATE or DELETE: a package is published whole (`insertWrite`) and never changed or removed.
  */
-export const MediaAuthor = role(QtiMedia, "author", wholeEntriesOf(QtiMedia), {
-  insert: authorWrites,
-});
+export const MediaAuthor = role(QtiMedia, "author", wholeEntriesOf(QtiMedia), authorWrites);
 
 /**
  * The author application's login over {@link QtiMedia}, over {@link MediaAuthor}, with the

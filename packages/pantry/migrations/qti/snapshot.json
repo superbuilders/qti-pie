@@ -8354,7 +8354,7 @@
 								}
 							]
 						},
-						"__attribute_ix_package_kind_name_start_path_jmvc4xtkis": {
+						"__attribute_ix_package_name_kind_start_path_brs3pod6d3": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -8363,12 +8363,12 @@
 								},
 								{
 									"direction": "asc",
-									"field": "kind",
+									"field": "name",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "name",
+									"field": "kind",
 									"kind": "field"
 								},
 								{
@@ -8406,36 +8406,6 @@
 								{
 									"kind": "law",
 									"law": "__placed_weighted_variable_in_item_scoped_reading_pbksxep36q"
-								}
-							]
-						},
-						"__attribute_ix_package_name_path_start_2urjynczwy": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "name",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
 								}
 							]
 						},
@@ -10117,6 +10087,31 @@
 				},
 				"bound_variable": {
 					"indexes": {
+						"__bound_variable_ix_adaptive_package_path_vykdhcnses": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "adaptive",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "path",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__bound_variable_in_item_mode_ypv7eokcvm"
+								}
+							]
+						},
 						"__bound_variable_ix_package_attribute_path_ej2y7oq7v2": {
 							"columns": [
 								{
@@ -10143,31 +10138,6 @@
 								{
 									"kind": "law",
 									"law": "__single_response_gap_key_package_path_start_glr7weesqf"
-								}
-							]
-						},
-						"__bound_variable_ix_package_path_adaptive_khkcbwhnkh": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "adaptive",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__bound_variable_in_item_mode_ypv7eokcvm"
 								}
 							]
 						},
@@ -10889,13 +10859,8 @@
 				},
 				"choice_interaction": {
 					"indexes": {
-						"__choice_interaction_ix_package_interaction_k6iqlgrqib": {
+						"__choice_interaction_ix_interaction_interaction_path_eltlb3fxvv": {
 							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
 								{
 									"direction": "asc",
 									"field": "interaction",
@@ -10904,6 +10869,11 @@
 								{
 									"direction": "asc",
 									"field": "interactionPath",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "package",
 									"kind": "field"
 								},
 								{
@@ -15548,7 +15518,7 @@
 				},
 				"instance": {
 					"indexes": {
-						"__instance_ix_assembly_assembly_kind_package_gx4vwly74d": {
+						"__instance_ix_assembly_assembly_kind_package_cxxugxc5qj": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -15563,36 +15533,6 @@
 								{
 									"direction": "asc",
 									"field": "package",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__prefixed_declaration_in_reference_declaration_x4gjjjhjmz"
-								}
-							]
-						},
-						"__instance_ix_package_assembly_assembly_kind_end_6c3k3mjz3l": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "assembly",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "assemblyKind",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "end",
 									"kind": "field"
 								},
 								{
@@ -15604,11 +15544,72 @@
 							"reasons": [
 								{
 									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+									"law": "__prefixed_declaration_in_reference_declaration_x4gjjjhjmz"
+								}
+							]
+						},
+						"__instance_ix_choices_document_hottexts_idref_5im6kvrdif": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "choices",
+									"kind": "field"
 								},
 								{
+									"direction": "asc",
+									"field": "document",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "hottexts",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "idrefTargets",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "ids",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
 									"kind": "law",
-									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
+									"law": "__instance_in_document_vfn6vj4am3"
+								}
+							]
+						},
+						"__instance_ix_document_package_root_kind_nkgaklmucx": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "document",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "rootKind",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__instance_in_document_3oxl5j3fol"
 								}
 							]
 						},
@@ -15651,7 +15652,42 @@
 								}
 							]
 						},
-						"__instance_ix_package_assembly_assembly_kind_parent_i6gt6br7ge": {
+						"__instance_ix_package_assembly_assembly_kind_fofo6ivhpq": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "assembly",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "assemblyKind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "document",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "siteDocument",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								}
+							]
+						},
+						"__instance_ix_package_assembly_assembly_kind_parent_iqfhp55klk": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -15675,12 +15711,7 @@
 								},
 								{
 									"direction": "asc",
-									"field": "site",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "siteDocument",
+									"field": "document",
 									"kind": "field"
 								}
 							],
@@ -15695,7 +15726,7 @@
 								}
 							]
 						},
-						"__instance_ix_package_assembly_assembly_kind_parent_znncdu42ko": {
+						"__instance_ix_package_assembly_assembly_kind_site_2t5vat5ziy": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -15710,6 +15741,50 @@
 								{
 									"direction": "asc",
 									"field": "assemblyKind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "site",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "parent",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
+								},
+								{
+									"kind": "law",
+									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								}
+							]
+						},
+						"__instance_ix_package_assembly_assembly_kind_site_wbxkfyviqk": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "assembly",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "assemblyKind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "siteDocument",
 									"kind": "field"
 								},
 								{
@@ -15719,118 +15794,6 @@
 								},
 								{
 									"direction": "asc",
-									"field": "siteDocument",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
-								},
-								{
-									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
-								}
-							]
-						},
-						"__instance_ix_package_assembly_assembly_kind_site_65ivnxs6hw": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "assembly",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "assemblyKind",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "siteDocument",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "document",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "site",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
-								},
-								{
-									"kind": "law",
-									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
-								}
-							]
-						},
-						"__instance_ix_package_assembly_assembly_kind_site_c7f2vpiy27": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "assembly",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "assemblyKind",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "site",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "siteDocument",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
-								},
-								{
-									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
-								}
-							]
-						},
-						"__instance_ix_package_assembly_document_athumb4mf5": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "assembly",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
 									"field": "document",
 									"kind": "field"
 								}
@@ -15838,72 +15801,118 @@
 							"reasons": [
 								{
 									"kind": "law",
-									"law": "__expression_attribute_in_placed_expression_znmdqiy4so"
+									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
 								},
-								{
-									"kind": "law",
-									"law": "__placed_expression_site_in_placed_expression_t4g3sk5o5e"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_reference_site_in_placed_variable_ref_gj7s2p65m3"
-								},
-								{
-									"kind": "law",
-									"law": "__sole_reading_in_placed_variable_ref_iyibyvmeop"
-								}
-							]
-						},
-						"__instance_ix_package_assembly_kind_assembly_zz7dcr5yl2": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "assemblyKind",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "assembly",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "document",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "parent",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "siteDocument",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "site",
-									"kind": "field"
-								}
-							],
-							"reasons": [
 								{
 									"kind": "law",
 									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
-								},
-								{
-									"kind": "law",
-									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
 								},
 								{
 									"kind": "law",
 									"law": "__prefixed_declaration_in_reference_declaration_x4gjjjhjmz"
+								},
+								{
+									"kind": "law",
+									"law": "__described_assembled_lang_in_listed_lang_dwhbhmcta6"
+								},
+								{
+									"kind": "law",
+									"law": "__filtered_section_key_package_assembly_path_start_3uqyug4o63"
+								},
+								{
+									"kind": "law",
+									"law": "__item_read_check_e_1_derived_v5eug5qkaj"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_filter_in_filtered_section_6oiicudkw6"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_test_reference_in_test_reading_3u63npqz5f"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_base_check_e_1_derived_f5ojib7mwq"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_cardinality_check_e_1_derived_4knmmrc36o"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_declaration_in_typed_declaration_qo5yv5ftpt"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_ref_in_sole_reading_y7dbmpbrju"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_weighted_variable_in_item_scoped_reading_pbksxep36q"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_map_response_in_item_ref_table_zibsrtnjsa"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_map_response_point_in_item_ref_table_s4hqm4kp4f"
+								},
+								{
+									"kind": "law",
+									"law": "__scope_duration_read_check_e_1_derived_eh7u3n7vgi"
+								},
+								{
+									"kind": "law",
+									"law": "__sole_reading_in_placed_variable_ref_iyibyvmeop"
+								},
+								{
+									"kind": "law",
+									"law": "__test_reading_key_package_assembly_path_start_duaaxujabc"
+								}
+							]
+						},
+						"__instance_ix_package_assembly_document_assembly_7ihxhlx23c": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "assembly",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "document",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "assemblyKind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "end",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_declaration_in_reference_declaration_x4gjjjhjmz"
+								},
+								{
+									"kind": "law",
+									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
 								},
 								{
 									"kind": "law",
@@ -15943,47 +15952,15 @@
 								},
 								{
 									"kind": "law",
-									"law": "__described_assembled_lang_in_listed_lang_dwhbhmcta6"
+									"law": "__expression_attribute_in_placed_expression_znmdqiy4so"
 								},
 								{
 									"kind": "law",
-									"law": "__filtered_section_key_package_assembly_path_start_3uqyug4o63"
+									"law": "__placed_expression_site_in_placed_expression_t4g3sk5o5e"
 								},
 								{
 									"kind": "law",
-									"law": "__item_read_check_e_1_derived_v5eug5qkaj"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_base_check_e_1_derived_f5ojib7mwq"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_cardinality_check_e_1_derived_4knmmrc36o"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_declaration_in_typed_declaration_qo5yv5ftpt"
-								},
-								{
-									"kind": "law",
-									"law": "__scope_duration_read_check_e_1_derived_eh7u3n7vgi"
-								},
-								{
-									"kind": "law",
-									"law": "__test_reading_key_package_assembly_path_start_duaaxujabc"
-								},
-								{
-									"kind": "law",
-									"law": "__anchored_name_key_package_assembly_anchor_l25sk7zs37"
-								},
-								{
-									"kind": "law",
-									"law": "__assembled_name_key_package_assembly_identifier_xphaapsts3"
-								},
-								{
-									"kind": "law",
-									"law": "__numbered_reading_in_assembled_replaceable_ckzauu53v6"
+									"law": "__placed_reference_site_in_placed_variable_ref_gj7s2p65m3"
 								}
 							]
 						},
@@ -16037,7 +16014,7 @@
 								}
 							]
 						},
-						"__instance_ix_package_document_choices_hottexts_qlg6xqawz7": {
+						"__instance_ix_package_assembly_kind_site_site_5dou2irxgs": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -16046,67 +16023,7 @@
 								},
 								{
 									"direction": "asc",
-									"field": "document",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "choices",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "hottexts",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "idrefTargets",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "ids",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__instance_in_document_vfn6vj4am3"
-								}
-							]
-						},
-						"__instance_ix_package_document_root_kind_rubmvpymix": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "document",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "rootKind",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__instance_in_document_3oxl5j3fol"
-								}
-							]
-						},
-						"__instance_ix_package_site_site_document_assembly_qbsms3vpvp": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
+									"field": "assemblyKind",
 									"kind": "field"
 								},
 								{
@@ -16121,7 +16038,12 @@
 								},
 								{
 									"direction": "asc",
-									"field": "assemblyKind",
+									"field": "assembly",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "parent",
 									"kind": "field"
 								}
 							],
@@ -16132,15 +16054,71 @@
 								},
 								{
 									"kind": "law",
+									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								},
+								{
+									"kind": "law",
 									"law": "__numbered_reading_in_assembled_replaceable_ckzauu53v6"
 								},
 								{
 									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+									"law": "__anchored_name_key_package_assembly_anchor_l25sk7zs37"
+								},
+								{
+									"kind": "law",
+									"law": "__assembled_name_key_package_assembly_identifier_xphaapsts3"
+								},
+								{
+									"kind": "law",
+									"law": "__filtered_section_key_package_assembly_path_start_3uqyug4o63"
+								},
+								{
+									"kind": "law",
+									"law": "__item_read_check_e_1_derived_v5eug5qkaj"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_filter_in_filtered_section_6oiicudkw6"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_test_reference_in_test_reading_3u63npqz5f"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_base_check_e_1_derived_f5ojib7mwq"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_cardinality_check_e_1_derived_4knmmrc36o"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_declaration_in_typed_declaration_qo5yv5ftpt"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_map_response_in_item_ref_table_zibsrtnjsa"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_map_response_point_in_item_ref_table_s4hqm4kp4f"
+								},
+								{
+									"kind": "law",
+									"law": "__scope_duration_read_check_e_1_derived_eh7u3n7vgi"
+								},
+								{
+									"kind": "law",
+									"law": "__sole_reading_in_placed_variable_ref_iyibyvmeop"
+								},
+								{
+									"kind": "law",
+									"law": "__test_reading_key_package_assembly_path_start_duaaxujabc"
 								}
 							]
 						},
-						"__instance_ix_package_site_site_document_document_bjipxfrcbk": {
+						"__instance_ix_package_site_site_document_document_w4pi7om2g3": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -16161,9 +16139,28 @@
 									"direction": "asc",
 									"field": "document",
 									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "assembly",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "assemblyKind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "parent",
+									"kind": "field"
 								}
 							],
 							"reasons": [
+								{
+									"kind": "law",
+									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								},
 								{
 									"kind": "law",
 									"law": "__instance_start_in_site_target_sxmrwx3a2t"
@@ -16183,10 +16180,6 @@
 								{
 									"kind": "law",
 									"law": "__copied_id_key_package_assembly_id_digest_jlyggysnji"
-								},
-								{
-									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
 								}
 							]
 						},
@@ -19419,7 +19412,50 @@
 				},
 				"node": {
 					"indexes": {
-						"__node_ix_package_kind_parent_kind_element_children_adichcjcn5": {
+						"__node_ix_package_end_path_kind_parent_j4wpst3jjn": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "end",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "path",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "kind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "parent",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								},
+								{
+									"kind": "law",
+									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
+								},
+								{
+									"kind": "law",
+									"law": "__numbered_reading_in_assembled_replaceable_ckzauu53v6"
+								}
+							]
+						},
+						"__node_ix_package_kind_path_start_lmpqq2vqbz": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -19433,57 +19469,16 @@
 								},
 								{
 									"direction": "asc",
-									"field": "parentKind",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "elementChildren",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
 									"field": "path",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "start",
 									"kind": "field"
 								}
 							],
 							"reasons": [
-								{
-									"kind": "law",
-									"law": "__expression_attribute_in_placed_expression_znmdqiy4so"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_expression_site_in_placed_expression_t4g3sk5o5e"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_reference_site_in_placed_variable_ref_gj7s2p65m3"
-								},
-								{
-									"kind": "law",
-									"law": "__sole_reading_in_placed_variable_ref_iyibyvmeop"
-								},
-								{
-									"kind": "law",
-									"law": "__described_assembled_lang_in_listed_lang_dwhbhmcta6"
-								},
-								{
-									"kind": "law",
-									"law": "__described_lang_in_listed_lang_atvlgqj6pb"
-								},
-								{
-									"kind": "law",
-									"law": "__listed_identifier_in_matched_identifier_ha5ttd4ekt"
-								},
-								{
-									"kind": "law",
-									"law": "__listed_title_in_matched_title_q4mtn3mzwi"
-								},
-								{
-									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
-								},
 								{
 									"kind": "law",
 									"law": "__anchored_id_key_package_assembly_anchor_id_digest_5ksp7mxkzx"
@@ -19542,6 +19537,10 @@
 								},
 								{
 									"kind": "law",
+									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								},
+								{
+									"kind": "law",
 									"law": "__untyped_unweighted_check_e_1_derived_ksmovdmsof"
 								},
 								{
@@ -19550,7 +19549,7 @@
 								}
 							]
 						},
-						"__node_ix_package_parent_kind_path_start_6zgfzdfjgw": {
+						"__node_ix_package_parent_kind_kind_element_children_ilct6rhmkh": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -19564,23 +19563,60 @@
 								},
 								{
 									"direction": "asc",
-									"field": "path",
+									"field": "kind",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "start",
+									"field": "elementChildren",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "path",
 									"kind": "field"
 								}
 							],
 							"reasons": [
 								{
 									"kind": "law",
-									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
+									"law": "__expression_attribute_in_placed_expression_znmdqiy4so"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_expression_site_in_placed_expression_t4g3sk5o5e"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_reference_site_in_placed_variable_ref_gj7s2p65m3"
+								},
+								{
+									"kind": "law",
+									"law": "__sole_reading_in_placed_variable_ref_iyibyvmeop"
+								},
+								{
+									"kind": "law",
+									"law": "__described_assembled_lang_in_listed_lang_dwhbhmcta6"
+								},
+								{
+									"kind": "law",
+									"law": "__described_lang_in_listed_lang_atvlgqj6pb"
+								},
+								{
+									"kind": "law",
+									"law": "__listed_identifier_in_matched_identifier_ha5ttd4ekt"
+								},
+								{
+									"kind": "law",
+									"law": "__listed_title_in_matched_title_q4mtn3mzwi"
 								},
 								{
 									"kind": "law",
 									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								},
+								{
+									"kind": "law",
+									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
 								}
 							]
 						},
@@ -19659,7 +19695,7 @@
 								}
 							]
 						},
-						"__node_ix_package_path_end_kind_parent_gyibajsdba": {
+						"__node_ix_package_path_elements_parent_kind_tnqealhfrg": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -19669,64 +19705,21 @@
 								{
 									"direction": "asc",
 									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "end",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "kind",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "parent",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
-								},
-								{
-									"kind": "law",
-									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
-								},
-								{
-									"kind": "law",
-									"law": "__numbered_reading_in_assembled_replaceable_ckzauu53v6"
-								}
-							]
-						},
-						"__node_ix_package_path_kind_parent_elements_d5l24r3p2o": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "kind",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "parent",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
 									"field": "elements",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "parent",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "kind",
 									"kind": "field"
 								}
 							],
@@ -19735,6 +19728,56 @@
 									"kind": "law",
 									"law": "__head_qualifier_pair_in_head_qualifier_76doyrjyr4"
 								},
+								{
+									"kind": "law",
+									"law": "__arity_floor_in_expression_operand_ozxacvptz6"
+								},
+								{
+									"kind": "law",
+									"law": "__binary_math_operator_in_expression_operand_mr5tjuxq3w"
+								},
+								{
+									"kind": "law",
+									"law": "__least_one_apply_in_apply_argument_skkofr24ji"
+								},
+								{
+									"kind": "law",
+									"law": "__least_two_apply_in_apply_argument_pair_jvkfjy6xrz"
+								},
+								{
+									"kind": "law",
+									"law": "__most_one_argument_key_package_path_apply_smab77x2oh"
+								},
+								{
+									"kind": "law",
+									"law": "__most_two_argument_pair_key_package_path_apply_4jqzdfppjj"
+								}
+							]
+						},
+						"__node_ix_package_path_kind_parent_ctzjat3gnu": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "path",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "kind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "parent",
+									"kind": "field"
+								}
+							],
+							"reasons": [
 								{
 									"kind": "law",
 									"law": "__mapping_base_type_in_mappable_base_type_rf7guqrcb4"
@@ -19854,74 +19897,6 @@
 								{
 									"kind": "law",
 									"law": "__set_field_name_key_package_path_set_identifier_upbneb53h5"
-								},
-								{
-									"kind": "law",
-									"law": "__expression_attribute_in_placed_expression_znmdqiy4so"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_expression_site_in_placed_expression_t4g3sk5o5e"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_reference_site_in_placed_variable_ref_gj7s2p65m3"
-								},
-								{
-									"kind": "enforcement",
-									"of": "derived relation CellTable"
-								},
-								{
-									"kind": "law",
-									"law": "__area_mapping_base_type_check_area_mapping_base_got56ctris"
-								},
-								{
-									"kind": "law",
-									"law": "__area_mapping_cardinality_check_area_mapping_base_tx2lcf46bs"
-								},
-								{
-									"kind": "law",
-									"law": "__lookup_table_cardinality_check_lookup_table_7m633u4n7s"
-								},
-								{
-									"kind": "law",
-									"law": "__map_key_type_check_typed_attribute_value_t6dqdqno2h"
-								},
-								{
-									"kind": "law",
-									"law": "__mapping_cardinality_check_mappable_base_type_cigaaynmbz"
-								},
-								{
-									"kind": "law",
-									"law": "__math_operand_check_arity_kpqxciys3l"
-								},
-								{
-									"kind": "law",
-									"law": "__packaged_template_default_in_item_ref_document_m3otj5ldln"
-								},
-								{
-									"kind": "law",
-									"law": "__quotation_end_check_quotation_punctuation_4memiejsdn"
-								},
-								{
-									"kind": "law",
-									"law": "__record_set_value_in_attribute_3rn3g5hdmw"
-								},
-								{
-									"kind": "law",
-									"law": "__record_set_value_in_attribute_tseagas2m6"
-								},
-								{
-									"kind": "law",
-									"law": "__set_cardinality_check_value_cardinality_dj4pq6y3h2"
-								},
-								{
-									"kind": "law",
-									"law": "__template_processing_in_mapped_response_declaration_s6zp76inmz"
-								},
-								{
-									"kind": "law",
-									"law": "__typed_value_text_check_typed_value_7udkirii6y"
 								}
 							]
 						},
@@ -19969,6 +19944,158 @@
 								{
 									"kind": "law",
 									"law": "__most_two_argument_pair_key_package_path_apply_4jqzdfppjj"
+								},
+								{
+									"kind": "law",
+									"law": "__node_kind_parent_kind_in_document_ny4jinszlm"
+								},
+								{
+									"kind": "law",
+									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
+								},
+								{
+									"kind": "law",
+									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								},
+								{
+									"kind": "law",
+									"law": "__forbidden_resource_type_in_other_vocabulary_type_r6ld7jzq3f"
+								},
+								{
+									"kind": "law",
+									"law": "__lang_key_text_check_key_text_bound_nz5fxhk5sj"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_declaration_in_reference_declaration_x4gjjjhjmz"
+								},
+								{
+									"kind": "law",
+									"law": "__expression_attribute_in_placed_expression_znmdqiy4so"
+								},
+								{
+									"kind": "law",
+									"law": "__item_read_check_e_1_derived_v5eug5qkaj"
+								},
+								{
+									"kind": "law",
+									"law": "__numbered_reading_in_assembled_replaceable_ckzauu53v6"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_expression_site_in_placed_expression_t4g3sk5o5e"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_reference_site_in_placed_variable_ref_gj7s2p65m3"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_test_reference_in_test_reading_3u63npqz5f"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_base_check_e_1_derived_f5ojib7mwq"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_cardinality_check_e_1_derived_4knmmrc36o"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_declaration_in_typed_declaration_qo5yv5ftpt"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_ref_in_sole_reading_y7dbmpbrju"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_weighted_variable_in_item_scoped_reading_pbksxep36q"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_map_response_in_item_ref_table_zibsrtnjsa"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_map_response_point_in_item_ref_table_s4hqm4kp4f"
+								},
+								{
+									"kind": "law",
+									"law": "__scope_duration_read_check_e_1_derived_eh7u3n7vgi"
+								},
+								{
+									"kind": "law",
+									"law": "__sole_reading_in_placed_variable_ref_iyibyvmeop"
+								},
+								{
+									"kind": "law",
+									"law": "__test_reading_key_package_assembly_path_start_duaaxujabc"
+								},
+								{
+									"kind": "enforcement",
+									"of": "derived relation CellTable"
+								},
+								{
+									"kind": "law",
+									"law": "__area_mapping_base_type_check_area_mapping_base_got56ctris"
+								},
+								{
+									"kind": "law",
+									"law": "__area_mapping_cardinality_check_area_mapping_base_tx2lcf46bs"
+								},
+								{
+									"kind": "law",
+									"law": "__lookup_table_cardinality_check_lookup_table_7m633u4n7s"
+								},
+								{
+									"kind": "law",
+									"law": "__map_key_type_check_typed_attribute_value_t6dqdqno2h"
+								},
+								{
+									"kind": "law",
+									"law": "__mapping_cardinality_check_mappable_base_type_cigaaynmbz"
+								},
+								{
+									"kind": "law",
+									"law": "__math_operand_check_arity_kpqxciys3l"
+								},
+								{
+									"kind": "law",
+									"law": "__packaged_template_default_in_item_ref_document_m3otj5ldln"
+								},
+								{
+									"kind": "law",
+									"law": "__quotation_end_check_quotation_punctuation_4memiejsdn"
+								},
+								{
+									"kind": "law",
+									"law": "__record_set_value_in_attribute_3rn3g5hdmw"
+								},
+								{
+									"kind": "law",
+									"law": "__record_set_value_in_attribute_tseagas2m6"
+								},
+								{
+									"kind": "law",
+									"law": "__required_parts_in_requirement_met_a4fgnymrr2"
+								},
+								{
+									"kind": "law",
+									"law": "__selection_without_replacement_in_bounded_selection_p2dvfmcw33"
+								},
+								{
+									"kind": "law",
+									"law": "__set_cardinality_check_value_cardinality_dj4pq6y3h2"
+								},
+								{
+									"kind": "law",
+									"law": "__template_processing_in_mapped_response_declaration_s6zp76inmz"
+								},
+								{
+									"kind": "law",
+									"law": "__typed_value_text_check_typed_value_7udkirii6y"
 								}
 							]
 						},
@@ -20046,57 +20173,7 @@
 								}
 							]
 						},
-						"__node_ix_package_path_parent_elements_eiswbbzaxd": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "parent",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "elements",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__arity_floor_in_expression_operand_ozxacvptz6"
-								},
-								{
-									"kind": "law",
-									"law": "__binary_math_operator_in_expression_operand_mr5tjuxq3w"
-								},
-								{
-									"kind": "law",
-									"law": "__least_one_apply_in_apply_argument_skkofr24ji"
-								},
-								{
-									"kind": "law",
-									"law": "__least_two_apply_in_apply_argument_pair_jvkfjy6xrz"
-								},
-								{
-									"kind": "law",
-									"law": "__most_one_argument_key_package_path_apply_smab77x2oh"
-								},
-								{
-									"kind": "law",
-									"law": "__most_two_argument_pair_key_package_path_apply_4jqzdfppjj"
-								}
-							]
-						},
-						"__node_ix_package_path_parent_kind_kind_parent_h6snizktuj": {
+						"__node_ix_package_path_parent_kind_parent_kind_d5hqnr55hg": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -20115,12 +20192,12 @@
 								},
 								{
 									"direction": "asc",
-									"field": "kind",
+									"field": "parent",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "parent",
+									"field": "kind",
 									"kind": "field"
 								}
 							],
@@ -20175,10 +20252,6 @@
 								},
 								{
 									"kind": "law",
-									"law": "__node_kind_parent_kind_in_document_ny4jinszlm"
-								},
-								{
-									"kind": "law",
 									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
 								},
 								{
@@ -20187,45 +20260,7 @@
 								},
 								{
 									"kind": "law",
-									"law": "__lang_key_text_check_key_text_bound_nz5fxhk5sj"
-								},
-								{
-									"kind": "law",
 									"law": "__scope_node_in_math_action_hm2bwrzft3"
-								}
-							]
-						},
-						"__node_ix_package_path_parent_parent_kind_p6opm4cre4": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "parent",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "parentKind",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__least_one_apply_in_apply_argument_skkofr24ji"
-								},
-								{
-									"kind": "law",
-									"law": "__least_two_apply_in_apply_argument_pair_jvkfjy6xrz"
 								}
 							]
 						},
@@ -21966,8 +22001,18 @@
 				},
 				"open_attribute": {
 					"indexes": {
-						"__open_attribute_ix_package_path_start_element_e42jbn5dtd": {
+						"__open_attribute_ix_element_namespace_kind_package_miiko3525k": {
 							"columns": [
+								{
+									"direction": "asc",
+									"field": "elementNamespace",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "kind",
+									"kind": "field"
+								},
 								{
 									"direction": "asc",
 									"field": "package",
@@ -21981,16 +22026,6 @@
 								{
 									"direction": "asc",
 									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "elementNamespace",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "kind",
 									"kind": "field"
 								}
 							],
@@ -22514,11 +22549,11 @@
 				},
 				"placed_binding": {
 					"indexes": {
-						"__placed_binding_ix_package_assembly_adaptive_lv5atayv6x": {
+						"__placed_binding_ix_adaptive_assembly_package_7gm4mjnnud": {
 							"columns": [
 								{
 									"direction": "asc",
-									"field": "package",
+									"field": "adaptive",
 									"kind": "field"
 								},
 								{
@@ -22528,7 +22563,7 @@
 								},
 								{
 									"direction": "asc",
-									"field": "adaptive",
+									"field": "package",
 									"kind": "field"
 								}
 							],
@@ -22539,13 +22574,8 @@
 								}
 							]
 						},
-						"__placed_binding_ix_package_assembly_instance_path_u7y4ztcx7f": {
+						"__placed_binding_ix_assembly_instance_package_path_lpkwyl5gz4": {
 							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
 								{
 									"direction": "asc",
 									"field": "assembly",
@@ -22554,6 +22584,11 @@
 								{
 									"direction": "asc",
 									"field": "instance",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "package",
 									"kind": "field"
 								},
 								{
@@ -22824,6 +22859,66 @@
 				},
 				"placed_choice": {
 					"indexes": {
+						"__placed_choice_ix_identifier_package_path_start_b4qfx73qw3": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "identifier",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "path",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "start",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__placed_choice_in_choice_nsk6b6onok"
+								}
+							]
+						},
+						"__placed_choice_ix_kind_package_path_start_mldz5gffdb": {
+							"columns": [
+								{
+									"direction": "asc",
+									"field": "kind",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "package",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "path",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "start",
+									"kind": "field"
+								}
+							],
+							"reasons": [
+								{
+									"kind": "law",
+									"law": "__placed_choice_in_node_mr4pdvh6ln"
+								}
+							]
+						},
 						"__placed_choice_ix_package_assembly_identifier_uhvul24o7s": {
 							"columns": [
 								{
@@ -22854,66 +22949,6 @@
 								{
 									"kind": "law",
 									"law": "__placed_choice_space_name_key_package_assembly_dujkv6dwyz"
-								}
-							]
-						},
-						"__placed_choice_ix_package_identifier_path_start_4ff4uctojl": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "identifier",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__placed_choice_in_choice_nsk6b6onok"
-								}
-							]
-						},
-						"__placed_choice_ix_package_kind_path_start_6u6xdpvxrk": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "kind",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__placed_choice_in_node_mr4pdvh6ln"
 								}
 							]
 						},
@@ -23325,16 +23360,16 @@
 				},
 				"placed_hottext": {
 					"indexes": {
-						"__placed_hottext_ix_package_identifier_path_start_hz2kbnxvhq": {
+						"__placed_hottext_ix_identifier_package_path_start_6mrbhc7y7h": {
 							"columns": [
 								{
 									"direction": "asc",
-									"field": "package",
+									"field": "identifier",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "identifier",
+									"field": "package",
 									"kind": "field"
 								},
 								{
@@ -23686,16 +23721,16 @@
 				},
 				"placed_idref": {
 					"indexes": {
-						"__placed_idref_ix_package_id_digest_path_whg3pktib3": {
+						"__placed_idref_ix_id_digest_package_path_ru3szdlp65": {
 							"columns": [
 								{
 									"direction": "asc",
-									"field": "package",
+									"field": "idDigest",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "idDigest",
+									"field": "package",
 									"kind": "field"
 								},
 								{
@@ -23830,13 +23865,8 @@
 				},
 				"placed_math_rank": {
 					"indexes": {
-						"__placed_math_rank_ix_package_assembly_instance_path_xlmxodty27": {
+						"__placed_math_rank_ix_assembly_instance_package_path_sbwh2q74x2": {
 							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
 								{
 									"direction": "asc",
 									"field": "assembly",
@@ -23845,6 +23875,11 @@
 								{
 									"direction": "asc",
 									"field": "instance",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "package",
 									"kind": "field"
 								},
 								{
@@ -23935,16 +23970,11 @@
 				},
 				"placed_share_target": {
 					"indexes": {
-						"__placed_share_target_ix_assembly_package_assembly_gtvlyfppdi": {
+						"__placed_share_target_ix_assembly_assembly_kind_aq6uuxrfxp": {
 							"columns": [
 								{
 									"direction": "asc",
 									"field": "assembly",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "package",
 									"kind": "field"
 								},
 								{
@@ -23955,6 +23985,11 @@
 								{
 									"direction": "asc",
 									"field": "instance",
+									"kind": "field"
+								},
+								{
+									"direction": "asc",
+									"field": "package",
 									"kind": "field"
 								},
 								{
@@ -24153,16 +24188,16 @@
 				},
 				"placed_variable_ref": {
 					"indexes": {
-						"__placed_variable_ref_ix_package_assembly_resolution_ymsbodsibl": {
+						"__placed_variable_ref_ix_assembly_package_resolution_65pde67kdy": {
 							"columns": [
 								{
 									"direction": "asc",
-									"field": "package",
+									"field": "assembly",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "assembly",
+									"field": "package",
 									"kind": "field"
 								},
 								{
@@ -24192,16 +24227,16 @@
 								}
 							]
 						},
-						"__placed_variable_ref_ix_package_assembly_root_kind_ox6jmeuv4f": {
+						"__placed_variable_ref_ix_assembly_package_root_kind_56g44g5h5b": {
 							"columns": [
 								{
 									"direction": "asc",
-									"field": "package",
+									"field": "assembly",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "assembly",
+									"field": "package",
 									"kind": "field"
 								},
 								{
@@ -25879,7 +25914,7 @@
 				},
 				"site_target": {
 					"indexes": {
-						"__site_target_ix_package_target_splices_ufrlh7idlc": {
+						"__site_target_ix_package_splices_target_24yg3jerix": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -25888,12 +25923,12 @@
 								},
 								{
 									"direction": "asc",
-									"field": "target",
+									"field": "splices",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "splices",
+									"field": "target",
 									"kind": "field"
 								}
 							],
@@ -26966,8 +27001,13 @@
 				},
 				"variable_ref": {
 					"indexes": {
-						"__variable_ref_ix_package_path_attribute_identifier_fhzai5nn5j": {
+						"__variable_ref_ix_attribute_package_path_identifier_hk7rx53lzh": {
 							"columns": [
+								{
+									"direction": "asc",
+									"field": "attribute",
+									"kind": "field"
+								},
 								{
 									"direction": "asc",
 									"field": "package",
@@ -26976,11 +27016,6 @@
 								{
 									"direction": "asc",
 									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "attribute",
 									"kind": "field"
 								},
 								{
@@ -26996,7 +27031,7 @@
 								}
 							]
 						},
-						"__variable_ref_ix_package_path_identifier_start_xf557pdhpw": {
+						"__variable_ref_ix_package_identifier_path_start_253xsoczom": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -27005,12 +27040,12 @@
 								},
 								{
 									"direction": "asc",
-									"field": "path",
+									"field": "identifier",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "identifier",
+									"field": "path",
 									"kind": "field"
 								},
 								{
@@ -27482,8 +27517,8 @@
 			"fa90810d9401bf0a81bfec203c004cd0f8847433ed32c3733b3f55991eea413d": "3cd53cc0df2c42f1b44a53e1d672bc47fed1067e25cfaf7059cdd1021552f469"
 		}
 	},
-	"fingerprint": "99da31a70492dcadb70c955de2e5da764bd5b23d7f377d4d4d78c13b5f0083e4",
-	"format": "8:d5ac3e66297bd1a403fa479868321c1e300610ce15d613c6cc8972026558c3d2",
+	"fingerprint": "3cc0c0a43c5bdb1481cf754a1ba8bea491dc50dec2ba11e4981953bc8f488be6",
+	"format": "8:46b2458739d2323ae3bba6dd2941595bc932f92323ff3ec5b037202fe4c95619",
 	"levels": [
 		{
 			"fingerprint": "a0504bf487c58b16937f0e93f80f4a91376996c7ec7a10152d30c5c82f16133f",
@@ -27994,13 +28029,13 @@
 			"schema": "qti"
 		},
 		{
-			"fingerprint": "62c15380ca2bcb149cd90cdc73a9618c70eb7212720dfd075c5a698ce706bf50",
+			"fingerprint": "6f1ce78aff63aeaaf6180c154a213abfb72295128915c06e57f143e0913f05f0",
 			"laws": [],
 			"name": "QtiViews",
 			"schema": "qti_views"
 		},
 		{
-			"fingerprint": "78e4936f7bb9d8743212e33845c02929b3038e7c7df66babd4cf8a4ace1c3f16",
+			"fingerprint": "2fc08cd7161e68f6d691e1058e9545712053434e102b2c5a3081671bd312ba4e",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"AnchoredId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"idDigest","kind":"field"}]}},"law":"__anchored_id_key_package_assembly_anchor_id_digest_5ksp7mxkzx"},
 				{"described":{"entry":{"kind":"declared","name":"Test name key","source":"reading 86: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_AssessmentSection.Attr_identifier (§4.2.1: 'The identifier of the section or item reference must be unique within the test and must not be the identifier of any testPart'), §5.159.1 and §7.5.3 ('A test may refer to the same section multiple times within a test. Note however that each reference must have a unique identifier'), read over the assembled test (reading 5): the test document and every document its section refs and includes place; a section document placed twice is one document and names nothing twice: no two written test parts, sections, section refs or item refs of one test's assembly share an identifier (overlay-queries/tests.ts AssembledName)"},"kind":"key","side":{"relation":"AnchoredName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__anchored_name_key_package_assembly_anchor_l25sk7zs37"},

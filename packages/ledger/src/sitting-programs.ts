@@ -86,29 +86,34 @@ import {
 import { Moment, Reading } from "#ledger/sittings.ts";
 
 /**
- * The relations the test runtime's programs write of a sitting beside its item sessions, by name,
- * for a role's insert list: its test session, its moments, candidate sessions, suspensions,
- * budgets, presentations and end, a save's rows and its snapshot's given reading, and the close's
- * `DefaultSubmission` of a presented member with no save.
+ * The relations the test runtime's programs write of a sitting beside its item sessions, by name
+ * and by the mode a role writes each by: its test session, its moments, candidate sessions,
+ * suspensions, budgets, presentations and end, a save's rows and its snapshot's given reading, and
+ * the close's `DefaultSubmission` of a presented member with no save, each closed, so a role's
+ * insert list names it.
  */
-export const sittingTables = [
-  "TestSession",
-  "TestMoment",
-  "TestVisit",
-  "TestSuspension",
-  "TestBudget",
-  "TestPresented",
-  "TestEnd",
-  "Save",
-  "SnapshotGiven",
-  "DefaultSubmission",
-] as const;
+export const sittingWrites = {
+  insert: [
+    "TestSession",
+    "TestMoment",
+    "TestVisit",
+    "TestSuspension",
+    "TestBudget",
+    "TestPresented",
+    "TestEnd",
+    "Save",
+    "SnapshotGiven",
+    "DefaultSubmission",
+  ],
+  write: [],
+} as const;
 
 /**
- * The relation the presence beacon puts, by name, for a role's write list: `Presence`, the
- * ledger's one open relation, whose window a beacon's put displaces (`beaconTest`).
+ * The relation the presence beacon puts, by name and by the mode a role writes it by: `Presence`,
+ * the ledger's one open relation, whose window a beacon's put displaces (`beaconTest`), so a role's
+ * write list names it.
  */
-export const presenceTables = ["Presence"] as const;
+export const presenceWrites = { insert: [], write: ["Presence"] } as const;
 
 /**
  * The delivery level the builders write over.

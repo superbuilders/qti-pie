@@ -180,7 +180,7 @@ describe("qti/roles.ts, the author role", () => {
       member.kind === "relation" ? [name] : [],
     );
 
-    assert.sameMembers([...Author.write], stored);
+    assert.sameMembers([...Author.insert, ...Author.write], stored);
   });
 });
 

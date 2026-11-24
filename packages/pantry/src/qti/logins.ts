@@ -2,7 +2,7 @@
  * The author application's login, the import's write program, and the author login's reads, plain
  * grizzle values over `Qti`: an application's grizzle config lists {@link AuthorApp} beside its own
  * logins, or puts {@link insertWrite} and the reads ({@link authorReads}) in a workload of a role
- * of its own, a role that inserts {@link authorWrites}.
+ * of its own, a role that writes {@link authorWrites} by their modes.
  *
  * A package is published whole and never changed or removed: every relation of `Qti` is closed, so
  * its name is one revision forever, `(package, item)` names the exact tree a child was served in
@@ -59,19 +59,20 @@ const packageInserts = writtenFactsOf(
  * It is over the schema, so a workload of any role that inserts every relation of `Qti` holds it,
  * the author role's ({@link AuthorApp}) or an application's own. An application that writes rows of
  * its own in the same transaction applies the union of this and its own ChangeSet
- * (`ChangeSet.union(insertWrite, its own)`), through a role that inserts {@link authorWrites}.
+ * (`ChangeSet.union(insertWrite, its own)`), through a role that writes {@link authorWrites}.
  */
 export const insertWrite = ChangeSet.empty(Qti).insertAllComputed(packageInserts, {
   package: param("package", PackageName),
 });
 
 /**
- * The relations the author role writes, by name ({@link Author}): every stored relation of `Qti`,
- * each only inserted into, never updated or deleted from. An application whose own role over its
- * level writes content beside rows of its own, in one transaction and under one login
- * ({@link insertWrite}), lists these in its role's insert list beside its own relations.
+ * The relations the author role writes, by name and by the mode it writes each by ({@link Author}):
+ * every stored relation of `Qti`, each closed, so under `insert`, only inserted into, never updated
+ * or deleted from. An application whose own role over its level writes content beside rows of its
+ * own, in one transaction and under one login ({@link insertWrite}), spreads each list into its
+ * role's list of the same mode beside its own relations.
  */
-export const authorWrites = Author.write;
+export const authorWrites = { insert: Author.insert, write: Author.write } as const;
 
 /**
  * The author login's reads, as its first workload holds them, the export's: one document's ordered

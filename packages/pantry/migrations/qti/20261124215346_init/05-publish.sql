@@ -3279,17 +3279,15 @@ COMMENT ON INDEX "qti_views"."__header_token_key_package_path_start_token_digest
 
 COMMENT ON INDEX "qti"."__attribute_ix_name_path_start_package_a_4_p_2_u_7_hk4lma32u7" IS 'btree index Attribute(name, path, start, __package_a4p2u7pv6l)';
 
-COMMENT ON INDEX "qti"."__attribute_ix_package_kind_name_start_path_jmvc4xtkis" IS 'btree index Attribute(package, kind, name, start, path), value filtered beside it, not indexed: no byte bound fits the entry';
-
-COMMENT ON INDEX "qti"."__attribute_ix_package_name_path_start_2urjynczwy" IS 'btree index Attribute(package, name, path, start), value filtered beside it, not indexed: no byte bound fits the entry';
+COMMENT ON INDEX "qti"."__attribute_ix_package_name_kind_start_path_brs3pod6d3" IS 'btree index Attribute(package, name, kind, start, path), value filtered beside it, not indexed: no byte bound fits the entry';
 
 COMMENT ON INDEX "qti"."__attribute_ix_package_path_name_kind_value_digest_nuvl7i75vd" IS 'btree index Attribute(package, path, name, kind, valueDigest), value filtered beside it, not indexed: no byte bound fits the entry';
 
 COMMENT ON INDEX "qti"."__attribute_ix_package_path_value_digest_start_xk5kxxtbgv" IS 'btree index Attribute(package, path, valueDigest, start)';
 
-COMMENT ON INDEX "qti"."__bound_variable_ix_package_attribute_path_ej2y7oq7v2" IS 'btree index BoundVariable(package, attribute, path)';
+COMMENT ON INDEX "qti"."__bound_variable_ix_adaptive_package_path_vykdhcnses" IS 'btree index BoundVariable(adaptive, package, path)';
 
-COMMENT ON INDEX "qti"."__bound_variable_ix_package_path_adaptive_khkcbwhnkh" IS 'btree index BoundVariable(package, path, adaptive)';
+COMMENT ON INDEX "qti"."__bound_variable_ix_package_attribute_path_ej2y7oq7v2" IS 'btree index BoundVariable(package, attribute, path)';
 
 COMMENT ON INDEX "qti"."__bound_variable_ix_package_path_attribute_ophjg3fmft" IS 'btree index BoundVariable(package, path, attribute)';
 
@@ -3299,7 +3297,7 @@ COMMENT ON INDEX "qti"."__candidate_path_ix_package_target_6vqzdz37df" IS 'btree
 
 COMMENT ON INDEX "qti"."__choice_ix_package_path_identifier_gja2ztdp2y" IS 'btree index Choice(package, path, identifier)';
 
-COMMENT ON INDEX "qti"."__choice_interaction_ix_package_interaction_k6iqlgrqib" IS 'btree index ChoiceInteraction(package, interaction, interactionPath, path)';
+COMMENT ON INDEX "qti"."__choice_interaction_ix_interaction_interaction_path_eltlb3fxvv" IS 'btree index ChoiceInteraction(interaction, interactionPath, package, path)';
 
 COMMENT ON INDEX "qti"."__data_ssml_property_ix_member_package_path_start_yctyt4mr3r" IS 'btree index DataSsmlProperty(member, package, path, start, memberNameDigest)';
 
@@ -3333,33 +3331,29 @@ COMMENT ON INDEX "qti"."__idref_ix_package_path_token_digest_32nufrmpv6" IS 'btr
 
 COMMENT ON INDEX "qti"."__idref_target_ix_package_path_assembled_4j2motbov2" IS 'btree index IdrefTarget(package, path, assembled)';
 
-COMMENT ON INDEX "qti"."__instance_ix_assembly_assembly_kind_package_gx4vwly74d" IS 'btree index Instance(assembly, assemblyKind, package)';
+COMMENT ON INDEX "qti"."__instance_ix_assembly_assembly_kind_package_cxxugxc5qj" IS 'btree index Instance(assembly, assemblyKind, package, document)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_end_6c3k3mjz3l" IS 'btree index Instance(package, assembly, assemblyKind, end, document)';
+COMMENT ON INDEX "qti"."__instance_ix_choices_document_hottexts_idref_5im6kvrdif" IS 'btree index Instance(choices, document, hottexts, idrefTargets, ids, package)';
+
+COMMENT ON INDEX "qti"."__instance_ix_document_package_root_kind_nkgaklmucx" IS 'btree index Instance(document, package, rootKind)';
+
+COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_fofo6ivhpq" IS 'btree index Instance(package, assembly, assemblyKind, document, siteDocument)';
 
 COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_end_q7wzhnaz2c" IS 'btree index Instance(package, assembly, assemblyKind, end, parent)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_parent_i6gt6br7ge" IS 'btree index Instance(package, assembly, assemblyKind, parent, site, siteDocument)';
+COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_parent_iqfhp55klk" IS 'btree index Instance(package, assembly, assemblyKind, parent, document)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_parent_znncdu42ko" IS 'btree index Instance(package, assembly, assemblyKind, parent, siteDocument)';
+COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_site_2t5vat5ziy" IS 'btree index Instance(package, assembly, assemblyKind, site, parent)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_site_c7f2vpiy27" IS 'btree index Instance(package, assembly, assemblyKind, site, siteDocument)';
+COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_site_wbxkfyviqk" IS 'btree index Instance(package, assembly, assemblyKind, siteDocument, parent, document)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_site_65ivnxs6hw" IS 'btree index Instance(package, assembly, assemblyKind, siteDocument, document, site)';
-
-COMMENT ON INDEX "qti"."__instance_ix_package_assembly_document_athumb4mf5" IS 'btree index Instance(package, assembly, document)';
-
-COMMENT ON INDEX "qti"."__instance_ix_package_assembly_kind_assembly_zz7dcr5yl2" IS 'btree index Instance(package, assemblyKind, assembly, document, parent, siteDocument, site)';
+COMMENT ON INDEX "qti"."__instance_ix_package_assembly_document_assembly_7ihxhlx23c" IS 'btree index Instance(package, assembly, document, assemblyKind, end)';
 
 COMMENT ON INDEX "qti"."__instance_ix_package_assembly_kind_document_fqoo34oqex" IS 'btree index Instance(package, assemblyKind, document, bindings)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_document_choices_hottexts_qlg6xqawz7" IS 'btree index Instance(package, document, choices, hottexts, idrefTargets, ids)';
+COMMENT ON INDEX "qti"."__instance_ix_package_assembly_kind_site_site_5dou2irxgs" IS 'btree index Instance(package, assemblyKind, site, siteDocument, assembly, parent)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_document_root_kind_rubmvpymix" IS 'btree index Instance(package, document, rootKind)';
-
-COMMENT ON INDEX "qti"."__instance_ix_package_site_site_document_assembly_qbsms3vpvp" IS 'btree index Instance(package, site, siteDocument, assemblyKind)';
-
-COMMENT ON INDEX "qti"."__instance_ix_package_site_site_document_document_bjipxfrcbk" IS 'btree index Instance(package, site, siteDocument, document)';
+COMMENT ON INDEX "qti"."__instance_ix_package_site_site_document_document_w4pi7om2g3" IS 'btree index Instance(package, site, siteDocument, document, assembly, assemblyKind, parent)';
 
 COMMENT ON INDEX "qti"."__instance_ix_package_start_document_ywontbbqhm" IS 'btree index Instance(package, start, document)';
 
@@ -3395,69 +3389,67 @@ COMMENT ON INDEX "qti"."__label_use_ix_package_path_root_kind_gkglyfua6p" IS 'bt
 
 COMMENT ON INDEX "qti"."__named_ix_package_identifier_poryqrycn2" IS 'btree index Named(package, identifier)';
 
-COMMENT ON INDEX "qti"."__node_ix_package_kind_parent_kind_element_children_adichcjcn5" IS 'btree index Node(package, kind, parentKind, elementChildren, path)';
+COMMENT ON INDEX "qti"."__node_ix_package_end_path_kind_parent_j4wpst3jjn" IS 'btree index Node(package, end, path, kind, parent)';
 
-COMMENT ON INDEX "qti"."__node_ix_package_parent_kind_path_start_6zgfzdfjgw" IS 'btree index Node(package, parentKind, path, start)';
+COMMENT ON INDEX "qti"."__node_ix_package_kind_path_start_lmpqq2vqbz" IS 'btree index Node(package, kind, path, start)';
+
+COMMENT ON INDEX "qti"."__node_ix_package_parent_kind_kind_element_children_ilct6rhmkh" IS 'btree index Node(package, parentKind, kind, elementChildren, path)';
 
 COMMENT ON INDEX "qti"."__node_ix_package_path_element_children_kind_parent_st7tbj3vpb" IS 'btree index Node(package, path, elementChildren, kind, parentKind)';
 
-COMMENT ON INDEX "qti"."__node_ix_package_path_end_kind_parent_gyibajsdba" IS 'btree index Node(package, path, end, kind, parent)';
+COMMENT ON INDEX "qti"."__node_ix_package_path_elements_parent_kind_tnqealhfrg" IS 'btree index Node(package, path, elements, parent, kind)';
 
-COMMENT ON INDEX "qti"."__node_ix_package_path_kind_parent_elements_d5l24r3p2o" IS 'btree index Node(package, path, kind, parent, elements)';
+COMMENT ON INDEX "qti"."__node_ix_package_path_kind_parent_ctzjat3gnu" IS 'btree index Node(package, path, kind, parent)';
 
 COMMENT ON INDEX "qti"."__node_ix_package_path_kind_parent_kind_elements_joehbu4lt4" IS 'btree index Node(package, path, kind, parentKind, elements)';
 
 COMMENT ON INDEX "qti"."__node_ix_package_path_parent_at_3js7ucei5d" IS 'btree index Node(package, path, parent, at)';
 
-COMMENT ON INDEX "qti"."__node_ix_package_path_parent_elements_eiswbbzaxd" IS 'btree index Node(package, path, parent, elements)';
-
-COMMENT ON INDEX "qti"."__node_ix_package_path_parent_parent_kind_p6opm4cre4" IS 'btree index Node(package, path, parent, parentKind)';
-
-COMMENT ON INDEX "qti"."__node_ix_package_path_parent_kind_kind_parent_h6snizktuj" IS 'btree index Node(package, path, parentKind, kind, parent)';
+COMMENT ON INDEX "qti"."__node_ix_package_path_parent_kind_parent_kind_d5hqnr55hg" IS 'btree index Node(package, path, parentKind, parent, kind)';
 
 COMMENT ON INDEX "qti"."__node_ix_package_start_kind_path_wfqsgvcv6x" IS 'btree index Node(package, start, kind, path)';
 
 COMMENT ON INDEX "qti"."__numbered_reading_ix_package_assembly_scope_scope_3jdhtpwvdv" IS 'btree index NumberedReading(package, assembly, scope, scopeInstance, scopePath, variable)';
 
-COMMENT ON INDEX "qti"."__open_attribute_ix_package_path_start_element_e42jbn5dtd" IS 'btree index OpenAttribute(package, path, start, elementNamespace, kind)';
+COMMENT ON INDEX "qti"."__open_attribute_ix_element_namespace_kind_package_miiko3525k" IS 'btree index OpenAttribute(elementNamespace, kind, package, path, start)';
 
-COMMENT ON INDEX "qti"."__placed_binding_ix_package_assembly_adaptive_lv5atayv6x" IS 'btree index PlacedBinding(package, assembly, adaptive)';
+COMMENT ON INDEX "qti"."__placed_binding_ix_adaptive_assembly_package_7gm4mjnnud" IS 'btree index PlacedBinding(adaptive, assembly, package)';
 
-COMMENT ON INDEX "qti"."__placed_binding_ix_package_assembly_instance_path_u7y4ztcx7f" IS 'btree index PlacedBinding(package, assembly, instance, path)';
+COMMENT ON INDEX "qti"."__placed_binding_ix_assembly_instance_package_path_lpkwyl5gz4" IS 'btree index PlacedBinding(assembly, instance, package, path)';
 
 COMMENT ON INDEX "qti"."__placed_binding_ix_package_attribute_path_start_v2fpmoweun" IS 'btree index PlacedBinding(package, attribute, path, start, identifier)';
 
 COMMENT ON INDEX "qti"."__placed_binding_ix_path_start_package_pyofn_3_cand_2mhddflj74" IS 'btree index PlacedBinding(path, start, __package_pyofn3cand)';
 
+COMMENT ON INDEX "qti"."__placed_choice_ix_identifier_package_path_start_b4qfx73qw3" IS 'btree index PlacedChoice(identifier, package, path, start)';
+
+COMMENT ON INDEX "qti"."__placed_choice_ix_kind_package_path_start_mldz5gffdb" IS 'btree index PlacedChoice(kind, package, path, start)';
+
 COMMENT ON INDEX "qti"."__placed_choice_ix_package_assembly_identifier_uhvul24o7s" IS 'btree index PlacedChoice(package, assembly, identifier)';
-
-COMMENT ON INDEX "qti"."__placed_choice_ix_package_identifier_path_start_4ff4uctojl" IS 'btree index PlacedChoice(package, identifier, path, start)';
-
-COMMENT ON INDEX "qti"."__placed_choice_ix_package_kind_path_start_6u6xdpvxrk" IS 'btree index PlacedChoice(package, kind, path, start)';
 
 COMMENT ON INDEX "qti"."__placed_expression_ix_package_base_type_assembly_qxi577w7ks" IS 'btree index PlacedExpression(package, baseType, assembly, instance, path)';
 
 COMMENT ON INDEX "qti"."__placed_expression_ix_package_path_start_5zxaoolb7y" IS 'btree index PlacedExpression(package, path, start)';
 
-COMMENT ON INDEX "qti"."__placed_hottext_ix_package_identifier_path_start_hz2kbnxvhq" IS 'btree index PlacedHottext(package, identifier, path, start)';
+COMMENT ON INDEX "qti"."__placed_hottext_ix_identifier_package_path_start_6mrbhc7y7h" IS 'btree index PlacedHottext(identifier, package, path, start)';
 
 COMMENT ON INDEX "qti"."__placed_id_ix_package_assembly_id_digest_instance_33p6wamnaw" IS 'btree index PlacedId(package, assembly, idDigest, instance, owner, path)';
 
-COMMENT ON INDEX "qti"."__placed_idref_ix_package_id_digest_path_whg3pktib3" IS 'btree index PlacedIdref(package, idDigest, path)';
+COMMENT ON INDEX "qti"."__placed_idref_ix_id_digest_package_path_ru3szdlp65" IS 'btree index PlacedIdref(idDigest, package, path)';
 
-COMMENT ON INDEX "qti"."__placed_math_rank_ix_package_assembly_instance_path_xlmxodty27" IS 'btree index PlacedMathRank(package, assembly, instance, path)';
+COMMENT ON INDEX "qti"."__placed_math_rank_ix_assembly_instance_package_path_sbwh2q74x2" IS 'btree index PlacedMathRank(assembly, instance, package, path)';
 
 COMMENT ON INDEX "qti"."__placed_math_rank_ix_package_path_start_v42fxoxi7w" IS 'btree index PlacedMathRank(package, path, start)';
 
-COMMENT ON INDEX "qti"."__placed_share_target_ix_assembly_package_assembly_gtvlyfppdi" IS 'btree index PlacedShareTarget(assembly, package, assemblyKind, instance, path)';
+COMMENT ON INDEX "qti"."__placed_share_target_ix_assembly_assembly_kind_aq6uuxrfxp" IS 'btree index PlacedShareTarget(assembly, assemblyKind, instance, package, path)';
 
 COMMENT ON INDEX "qti"."__placed_share_target_ix_assembly_package_target_l6gfxbsrsm" IS 'btree index PlacedShareTarget(assembly, package, target, targetInstance)';
 
 COMMENT ON INDEX "qti"."__placed_share_target_ix_assembly_package_target_2xc2tepmfu" IS 'btree index PlacedShareTarget(assembly, package, targetInstance, targetStart)';
 
-COMMENT ON INDEX "qti"."__placed_variable_ref_ix_package_assembly_resolution_ymsbodsibl" IS 'btree index PlacedVariableRef(package, assembly, resolution, attribute, identifier)';
+COMMENT ON INDEX "qti"."__placed_variable_ref_ix_assembly_package_resolution_65pde67kdy" IS 'btree index PlacedVariableRef(assembly, package, resolution, attribute, identifier)';
 
-COMMENT ON INDEX "qti"."__placed_variable_ref_ix_package_assembly_root_kind_ox6jmeuv4f" IS 'btree index PlacedVariableRef(package, assembly, rootKind)';
+COMMENT ON INDEX "qti"."__placed_variable_ref_ix_assembly_package_root_kind_56g44g5h5b" IS 'btree index PlacedVariableRef(assembly, package, rootKind)';
 
 COMMENT ON INDEX "qti"."__placed_variable_ref_ix_package_attribute_3vpsdcsq4l" IS 'btree index PlacedVariableRef(package, attribute, resolution, path, start, assembly)';
 
@@ -3481,355 +3473,1111 @@ COMMENT ON INDEX "qti"."__site_path_ix_entry_package_target_wrj5ssqldp" IS 'btre
 
 COMMENT ON INDEX "qti"."__site_path_ix_package_path_entry_kind_cw75fb42kr" IS 'btree index SitePath(package, path, entry, kind)';
 
-COMMENT ON INDEX "qti"."__site_target_ix_package_target_splices_ufrlh7idlc" IS 'btree index SiteTarget(package, target, splices)';
+COMMENT ON INDEX "qti"."__site_target_ix_package_splices_target_24yg3jerix" IS 'btree index SiteTarget(package, splices, target)';
 
 COMMENT ON INDEX "qti"."__text_idref_ix_package_path_token_digest_6rnu6d6nqb" IS 'btree index TextIdref(package, path, tokenDigest)';
 
 COMMENT ON INDEX "qti"."__text_reference_path_ix_package_target_zlcnodi5ns" IS 'btree index TextReferencePath(package, target)';
 
-COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_attribute_identifier_fhzai5nn5j" IS 'btree index VariableRef(package, path, attribute, identifier)';
+COMMENT ON INDEX "qti"."__variable_ref_ix_attribute_package_path_identifier_hk7rx53lzh" IS 'btree index VariableRef(attribute, package, path, identifier)';
 
-COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_identifier_start_xf557pdhpw" IS 'btree index VariableRef(package, path, identifier, start)';
+COMMENT ON INDEX "qti"."__variable_ref_ix_package_identifier_path_start_253xsoczom" IS 'btree index VariableRef(package, identifier, path, start)';
 
 COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_root_kind_merm4oeh73" IS 'btree index VariableRef(package, path, rootKind)';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_assembled_catalog_ebmxrkpcnb"() IS 'the reader of the delta of olds of AssembledCatalog';
+COMMENT ON FUNCTION "qti"."__reader_olds_assembled_catalog_t5dmdm2odd"() IS 'the reader of the delta of olds of AssembledCatalog';
 
-COMMENT ON FUNCTION "qti"."__reader_news_assembled_document_6uia4xcajl"() IS 'the reader of the delta of news of AssembledDocument';
+COMMENT ON FUNCTION "qti"."__reader_news_assembled_document_cn4yloaup3"() IS 'the reader of the delta of news of AssembledDocument';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_assembled_document_hw6qsevoql"() IS 'the reader of the delta of olds of AssembledDocument';
+COMMENT ON FUNCTION "qti"."__reader_olds_assembled_document_w36g44ph7x"() IS 'the reader of the delta of olds of AssembledDocument';
 
-COMMENT ON FUNCTION "qti"."__reader_news_attribute_6khon4bwwl"() IS 'the reader of the delta of news of Attribute';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_3lvxk6owve"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_attribute_4bshbuu52i"() IS 'the reader of the delta of olds of Attribute';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_2ehhr7kqjn"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_binding_name_gxtl45ye3k"() IS 'the reader of the delta of news of BindingName';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_5guedmj3lz"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_bound_variable_h3r42nun5d"() IS 'the reader of the delta of news of BoundVariable';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_maq6xer7b3"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_bound_variable_262twswcch"() IS 'the reader of the delta of olds of BoundVariable';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_oxd76dk5nb"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_candidate_path_4vdrg624u2"() IS 'the reader of the delta of news of CandidatePath';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_rb6l6lnu3s"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_candidate_path_5bhv3luysh"() IS 'the reader of the delta of olds of CandidatePath';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_6hl52ppnbg"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_catalog_id_pxt4ubbuag"() IS 'the reader of the delta of news of CatalogId';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_hveeqopn4m"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_catalog_id_pfafit4k3i"() IS 'the reader of the delta of olds of CatalogId';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_a2b6rrhdph"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_catalog_scope_vh54uabtv6"() IS 'the reader of the delta of news of CatalogScope';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_ac5euu4ydd"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_catalog_scope_2xcn6z6xi3"() IS 'the reader of the delta of olds of CatalogScope';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_5xetpakhdp"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_cell_leaf_xx7ihsy4yc"() IS 'the reader of the delta of news of CellLeaf';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_ahliuqpru4"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_cell_leaf_sqodrfux43"() IS 'the reader of the delta of olds of CellLeaf';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_4aixwgdgj7"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_cell_table_xdupzfnyuo"() IS 'the reader of the delta of news of CellTable';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_45y7bl7wfs"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_cell_table_ncgo7uw5pn"() IS 'the reader of the delta of olds of CellTable';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_jqtop2ub4z"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_choice_r2bhewc2aw"() IS 'the reader of the delta of news of Choice';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_7b3yubuuos"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_choice_427cfy7ja5"() IS 'the reader of the delta of olds of Choice';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_ku6wd4wcbt"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_choice_interaction_ujac7c34hg"() IS 'the reader of the delta of news of ChoiceInteraction';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_llds4mblit"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_choice_interaction_crptzssfuw"() IS 'the reader of the delta of olds of ChoiceInteraction';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_dy2nqyuexe"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_cn_attribute_4bcniq7h7q"() IS 'the reader of the delta of news of CnAttribute';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_avnvbvg6gh"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_cn_attribute_hj7jxpqh5h"() IS 'the reader of the delta of olds of CnAttribute';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_lwtavs4rj4"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_cn_count_u6l2mrjnco"() IS 'the reader of the delta of news of CnCount';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_gv5sedyhtq"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_comment_kkykl6u6fp"() IS 'the reader of the delta of news of Comment';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_5rjwrmljyj"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_comment_cy3f44qdbp"() IS 'the reader of the delta of olds of Comment';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_deyel2bi54"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_context_ref_dul6toz33e"() IS 'the reader of the delta of news of ContextRef';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_5fw5cg2gi7"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_count_bound_m4xg2hrxga"() IS 'the reader of the delta of news of CountBound';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_pvbrfsbxdu"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_count_bound_f2ow3vm4ks"() IS 'the reader of the delta of olds of CountBound';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_wm2w5nboke"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_data_ssml_gtutkkflto"() IS 'the reader of the delta of news of DataSsml';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_npeguxhwj3"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_data_ssml_f6aycnsqgu"() IS 'the reader of the delta of olds of DataSsml';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_36ev64xs26"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_data_ssml_member_liqs5krwmg"() IS 'the reader of the delta of news of DataSsmlMember';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_5my45a5b35"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_data_ssml_property_wwrjzlal6g"() IS 'the reader of the delta of olds of DataSsmlProperty';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_p5pwoesa67"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_doctype_r2i3ziokxs"() IS 'the reader of the delta of news of Doctype';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_asejnfnxfq"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_doctype_3cqihzyxyf"() IS 'the reader of the delta of olds of Doctype';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_2oofbxv6xb"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_document_pelygifh5a"() IS 'the reader of the delta of news of Document';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_734hculgk7"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_document_acmx44ders"() IS 'the reader of the delta of olds of Document';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_wy63je5mev"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_document_id_dhhnmn5jzh"() IS 'the reader of the delta of news of DocumentId';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_fz7xjhsevf"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_document_id_wbiukhgtox"() IS 'the reader of the delta of olds of DocumentId';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_hnklukr6lm"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_element_type_km2vzm6yoy"() IS 'the reader of the delta of olds of ElementType';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_v7qe5bmr2h"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_entry_wtglkeqo66"() IS 'the reader of the delta of news of Entry';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_37asdeya5e"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_entry_sa5knswku6"() IS 'the reader of the delta of olds of Entry';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_vxgkrzcjm7"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_expression_5kdfzsj2ai"() IS 'the reader of the delta of news of Expression';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_pa2xphf2ck"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_expression_4jricmplbf"() IS 'the reader of the delta of olds of Expression';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_titmez4chz"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_feedback_ref_jfytalyimg"() IS 'the reader of the delta of news of FeedbackRef';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_di4niye5kj"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_file_od4cjshdm5"() IS 'the reader of the delta of news of File';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_2f2ebpwo5j"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_file_ip4hikvfqd"() IS 'the reader of the delta of olds of File';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_2frz3qnmot"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_file_outside_jow2opme5r"() IS 'the reader of the delta of news of FileOutside';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_rbyq2d4owt"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_file_outside_tljueldmrf"() IS 'the reader of the delta of olds of FileOutside';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_6bme476lfe"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_file_path_7dj6hk66hn"() IS 'the reader of the delta of news of FilePath';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_aszzuycvce"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_file_path_lxndmkfbfj"() IS 'the reader of the delta of olds of FilePath';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_dceoxrzdmf"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_fragment_context_ref_dhaxig44iq"() IS 'the reader of the delta of news of FragmentContextRef';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_oayr467yuh"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_fragment_feedback_ref_7imhd4dvkc"() IS 'the reader of the delta of news of FragmentFeedbackRef';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_pvpvbrcpyk"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_fragment_printed_ref_5txud456rr"() IS 'the reader of the delta of news of FragmentPrintedRef';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_o5aqhbkz7t"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_fragment_scope_ilhbtrczzf"() IS 'the reader of the delta of olds of FragmentScope';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_mm34eafbkv"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_fragment_template_ref_2zqmu5pu5o"() IS 'the reader of the delta of news of FragmentTemplateRef';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_tjibzzdd7k"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_hottext_7s7fbqvouh"() IS 'the reader of the delta of news of Hottext';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_y63xalotsv"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_hottext_no27fmagnk"() IS 'the reader of the delta of olds of Hottext';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_trag3jqbvk"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_identity_text_xt257bexgl"() IS 'the reader of the delta of news of IdentityText';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_gdcgeebf5r"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_identity_text_vqfsngpqzk"() IS 'the reader of the delta of olds of IdentityText';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_oozrmx3zjc"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_idref_grzl6kjqam"() IS 'the reader of the delta of news of Idref';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_cxl23ikive"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_idref_target_tuxqjr2kgp"() IS 'the reader of the delta of news of IdrefTarget';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_w4szkwka5g"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_inclusion_yrh5xw47p3"() IS 'the reader of the delta of olds of Inclusion';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_63ihiuey3f"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_instance_r6xjn4pgt3"() IS 'the reader of the delta of news of Instance';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_tlg6pq6tgo"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_instance_dosajpfnme"() IS 'the reader of the delta of olds of Instance';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_2vgxf2iltv"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_interaction_dopqjs72p3"() IS 'the reader of the delta of news of Interaction';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_4yuiucppwg"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_interaction_lmrfzqjqyw"() IS 'the reader of the delta of olds of Interaction';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_xviaamgikn"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_jnzewzkmbs"() IS 'the reader of the delta of news of InteractionAttribute';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_lsl2dgfhsh"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_interaction_attribute_5nrcv6dpqm"() IS 'the reader of the delta of olds of InteractionAttribute';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_mgsmkxu64n"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_item_ref_document_z6a3f3syen"() IS 'the reader of the delta of news of ItemRefDocument';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_qyfxgrqysp"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_item_ref_document_aiwx233fyu"() IS 'the reader of the delta of olds of ItemRefDocument';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_vre3as636j"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_item_ref_href_ymsqhfwbo7"() IS 'the reader of the delta of news of ItemRefHref';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_3zzaywdips"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_item_ref_href_tbyp3zbyx6"() IS 'the reader of the delta of olds of ItemRefHref';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_uhxoclgbuf"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_label_use_fvhrxqhhac"() IS 'the reader of the delta of news of LabelUse';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_eujfzq7xfw"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_label_use_jea7xoraqh"() IS 'the reader of the delta of olds of LabelUse';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_3d7je3df3q"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_least_count_g4syavjvcl"() IS 'the reader of the delta of news of LeastCount';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_hdarhkrmb3"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_least_count_moowkdvaam"() IS 'the reader of the delta of olds of LeastCount';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_7o3en5uyln"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_link_reading_h3vppkk7m6"() IS 'the reader of the delta of news of LinkReading';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_qbvt5jbqob"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_link_reading_3ytdn6tz7r"() IS 'the reader of the delta of olds of LinkReading';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_2iphio5pxq"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_literal_4v4eedvc6d"() IS 'the reader of the delta of olds of Literal';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_v3uuyt77s7"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_literal_typed_czdg5lxrkk"() IS 'the reader of the delta of olds of LiteralTyped';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_f27zverzlo"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_lookup_value_bki72xv35i"() IS 'the reader of the delta of news of LookupValue';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_at2qhj4e6f"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_map_key_nmmaknhaoo"() IS 'the reader of the delta of news of MapKey';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_hbijypf7pq"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_math_action_wxdku3okqx"() IS 'the reader of the delta of news of MathAction';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_wghgzo325v"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_math_action_k2o75zlqqu"() IS 'the reader of the delta of olds of MathAction';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_dwpojiniqw"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_math_align_group_6cyh425a4l"() IS 'the reader of the delta of olds of MathAlignGroup';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_sf3xlgjyz4"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_math_align_scope_h7qwluaslv"() IS 'the reader of the delta of news of MathAlignScope';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_daivdvq7kq"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_math_align_scope_sv72hwjqap"() IS 'the reader of the delta of olds of MathAlignScope';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_6xdolsjeo4"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_math_cell_shj2dqepwi"() IS 'the reader of the delta of news of MathCell';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_4wh3wfjlg5"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_math_cell_xjrwrxksm2"() IS 'the reader of the delta of olds of MathCell';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_ayvuo6dmmy"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_math_cn_7mrjzz7uuo"() IS 'the reader of the delta of news of MathCn';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_o3cidhifca"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_math_rank_zai3tgofmy"() IS 'the reader of the delta of news of MathRank';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_2cugkrdzi2"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_math_rank_vmm2emi63a"() IS 'the reader of the delta of olds of MathRank';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_udjntvoy2g"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_media_j7g2jn2tpl"() IS 'the reader of the delta of news of Media';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_pztmdskse5"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_media_ogso2wjimn"() IS 'the reader of the delta of olds of Media';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_amv7zo75ks"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_most_count_pbfx4ab5pi"() IS 'the reader of the delta of news of MostCount';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_4x4kh3murw"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_most_count_fodnb7ca2j"() IS 'the reader of the delta of olds of MostCount';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_q4hq6vdyyn"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_named_e4zczmqimn"() IS 'the reader of the delta of news of Named';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_neuzuiw4rc"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_named_4yazsptd7c"() IS 'the reader of the delta of olds of Named';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_4p5db6hrxk"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_node_st5fwmhhxd"() IS 'the reader of the delta of news of Node';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_wfqor6m7sr"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_node_6ifx6gx7bv"() IS 'the reader of the delta of olds of Node';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_flaf2m6siv"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_numbered_reading_eeh447z3mg"() IS 'the reader of the delta of news of NumberedReading';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_w7vlwferbk"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_numbered_reading_2snsonzla5"() IS 'the reader of the delta of olds of NumberedReading';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_5gwf2wn4lg"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_open_attribute_fwd43d4uig"() IS 'the reader of the delta of news of OpenAttribute';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_23vz33papi"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_open_element_name_quwyu43la4"() IS 'the reader of the delta of news of OpenElementName';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_tfuclzqc5l"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_open_element_name_jz25txm7ww"() IS 'the reader of the delta of olds of OpenElementName';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_wbn4wgr2bg"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_open_element_type_lqqzi5n6gt"() IS 'the reader of the delta of news of OpenElementType';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_2okoeujpkc"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_open_element_type_cg2c6tnfcq"() IS 'the reader of the delta of olds of OpenElementType';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_fflmbtzvsv"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_pci_module_form_jxb53vcrl2"() IS 'the reader of the delta of news of PciModuleForm';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_5tujwleciw"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_pci_module_form_yu35zasrmc"() IS 'the reader of the delta of olds of PciModuleForm';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_5kienhgaac"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_pi_hggp3ctnqa"() IS 'the reader of the delta of news of Pi';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_djnjbontpv"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_pi_vq6mwc6h2g"() IS 'the reader of the delta of olds of Pi';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_irsefkq5ta"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_binding_fwob4xa76a"() IS 'the reader of the delta of news of PlacedBinding';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_tmmag74egu"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_placed_binding_uvb4tsvkcb"() IS 'the reader of the delta of olds of PlacedBinding';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_sga2ppndok"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_choice_yinnsmlrpp"() IS 'the reader of the delta of news of PlacedChoice';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_nfh26v3nmg"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_placed_choice_3qxh6zptpd"() IS 'the reader of the delta of olds of PlacedChoice';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_vsrpp6mmmp"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_expression_dagjmbqofl"() IS 'the reader of the delta of news of PlacedExpression';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_u3lagepzhh"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_placed_expression_3swg7yha3g"() IS 'the reader of the delta of olds of PlacedExpression';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_a54aemmd2u"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_hottext_a2nawf5rsm"() IS 'the reader of the delta of news of PlacedHottext';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_5rertyiza2"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_placed_hottext_yxceq7nqd5"() IS 'the reader of the delta of olds of PlacedHottext';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_vzwzh3ovcw"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_id_kltbul7bzu"() IS 'the reader of the delta of news of PlacedId';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_5acjwejjrw"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_placed_id_jy3oem3ydr"() IS 'the reader of the delta of olds of PlacedId';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_r65l63mcsy"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_idref_yqvsjvnhpx"() IS 'the reader of the delta of news of PlacedIdref';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_mg432gqr34"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_math_rank_7e3g73vwgk"() IS 'the reader of the delta of news of PlacedMathRank';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_gvtojjnujz"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_placed_math_rank_sadsu7ieob"() IS 'the reader of the delta of olds of PlacedMathRank';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_qypqotkkop"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_share_target_nocoiebhmu"() IS 'the reader of the delta of news of PlacedShareTarget';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_mscc3wvdxt"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_variable_ref_5e3iemfk5x"() IS 'the reader of the delta of news of PlacedVariableRef';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_qzbkfkwjo2"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_placed_variable_ref_dn2glrd3lt"() IS 'the reader of the delta of olds of PlacedVariableRef';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_cdfpweip4y"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_printed_variable_ref_ubk5ihnmec"() IS 'the reader of the delta of news of PrintedVariableRef';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_oojs6yjvzx"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_processing_ukrbdmugqf"() IS 'the reader of the delta of news of Processing';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_oj4ei7ujfx"() IS 'the reader of the delta of olds of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_processing_e6ojt57liq"() IS 'the reader of the delta of olds of Processing';
+COMMENT ON FUNCTION "qti"."__reader_news_binding_name_iidrtktwem"() IS 'the reader of the delta of news of BindingName';
 
-COMMENT ON FUNCTION "qti"."__reader_news_reference_yl52yhdu2y"() IS 'the reader of the delta of news of Reference';
+COMMENT ON FUNCTION "qti"."__reader_news_bound_variable_kdruaps5gw"() IS 'the reader of the delta of news of BoundVariable';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_reference_y6dy7rxtrr"() IS 'the reader of the delta of olds of Reference';
+COMMENT ON FUNCTION "qti"."__reader_news_bound_variable_mojgfkw2in"() IS 'the reader of the delta of news of BoundVariable';
 
-COMMENT ON FUNCTION "qti"."__reader_news_reference_path_fggyz5vrtd"() IS 'the reader of the delta of news of ReferencePath';
+COMMENT ON FUNCTION "qti"."__reader_olds_bound_variable_e2kwnwhyv2"() IS 'the reader of the delta of olds of BoundVariable';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_reference_path_zxh5cexbjs"() IS 'the reader of the delta of olds of ReferencePath';
+COMMENT ON FUNCTION "qti"."__reader_news_candidate_path_fsomeey6yz"() IS 'the reader of the delta of news of CandidatePath';
 
-COMMENT ON FUNCTION "qti"."__reader_news_resource_document_tqxpbq6sfs"() IS 'the reader of the delta of news of ResourceDocument';
+COMMENT ON FUNCTION "qti"."__reader_olds_candidate_path_aswxc5tylq"() IS 'the reader of the delta of olds of CandidatePath';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_resource_document_f55lqbsujw"() IS 'the reader of the delta of olds of ResourceDocument';
+COMMENT ON FUNCTION "qti"."__reader_news_catalog_id_i337ycyglw"() IS 'the reader of the delta of news of CatalogId';
 
-COMMENT ON FUNCTION "qti"."__reader_news_resource_href_vsg6df7oe4"() IS 'the reader of the delta of news of ResourceHref';
+COMMENT ON FUNCTION "qti"."__reader_olds_catalog_id_ju6o4w6lfc"() IS 'the reader of the delta of olds of CatalogId';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_resource_href_cfbutdrgsp"() IS 'the reader of the delta of olds of ResourceHref';
+COMMENT ON FUNCTION "qti"."__reader_news_catalog_scope_2kycdulbuf"() IS 'the reader of the delta of news of CatalogScope';
 
-COMMENT ON FUNCTION "qti"."__reader_news_resource_href_outside_wxigucqskt"() IS 'the reader of the delta of news of ResourceHrefOutside';
+COMMENT ON FUNCTION "qti"."__reader_olds_catalog_scope_mht4mqofne"() IS 'the reader of the delta of olds of CatalogScope';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_resource_href_outside_kevcofdnuw"() IS 'the reader of the delta of olds of ResourceHrefOutside';
+COMMENT ON FUNCTION "qti"."__reader_news_cell_leaf_lnnzhmhqsq"() IS 'the reader of the delta of news of CellLeaf';
 
-COMMENT ON FUNCTION "qti"."__reader_news_resource_href_path_3v6u2nzztp"() IS 'the reader of the delta of news of ResourceHrefPath';
+COMMENT ON FUNCTION "qti"."__reader_olds_cell_leaf_k3ailq5fsg"() IS 'the reader of the delta of olds of CellLeaf';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_resource_href_path_p75iaa3qwz"() IS 'the reader of the delta of olds of ResourceHrefPath';
+COMMENT ON FUNCTION "qti"."__reader_news_cell_table_ingja6e6cf"() IS 'the reader of the delta of news of CellTable';
 
-COMMENT ON FUNCTION "qti"."__reader_news_share_fragment_kygoq7js5f"() IS 'the reader of the delta of news of ShareFragment';
+COMMENT ON FUNCTION "qti"."__reader_olds_cell_table_bnolt5hvhz"() IS 'the reader of the delta of olds of CellTable';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_share_fragment_jovhlpjdca"() IS 'the reader of the delta of olds of ShareFragment';
+COMMENT ON FUNCTION "qti"."__reader_news_choice_ogyazsncpm"() IS 'the reader of the delta of news of Choice';
 
-COMMENT ON FUNCTION "qti"."__reader_news_share_target_ve2tr7xdpn"() IS 'the reader of the delta of news of ShareTarget';
+COMMENT ON FUNCTION "qti"."__reader_olds_choice_auqfbfg2rx"() IS 'the reader of the delta of olds of Choice';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_share_target_afnj3xp7ln"() IS 'the reader of the delta of olds of ShareTarget';
+COMMENT ON FUNCTION "qti"."__reader_news_choice_interaction_5ifcvnzopn"() IS 'the reader of the delta of news of ChoiceInteraction';
 
-COMMENT ON FUNCTION "qti"."__reader_news_site_dohvl7ns4y"() IS 'the reader of the delta of news of Site';
+COMMENT ON FUNCTION "qti"."__reader_news_choice_interaction_m7j4agm73l"() IS 'the reader of the delta of news of ChoiceInteraction';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_site_t2suo7tne3"() IS 'the reader of the delta of olds of Site';
+COMMENT ON FUNCTION "qti"."__reader_olds_choice_interaction_4c6f7p4tv4"() IS 'the reader of the delta of olds of ChoiceInteraction';
 
-COMMENT ON FUNCTION "qti"."__reader_news_site_path_vx555dvhzt"() IS 'the reader of the delta of news of SitePath';
+COMMENT ON FUNCTION "qti"."__reader_news_cn_attribute_zfus7qv7br"() IS 'the reader of the delta of news of CnAttribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_site_path_wral7atudy"() IS 'the reader of the delta of olds of SitePath';
+COMMENT ON FUNCTION "qti"."__reader_olds_cn_attribute_oowftifl4y"() IS 'the reader of the delta of olds of CnAttribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_site_target_kgcy3ugc2u"() IS 'the reader of the delta of news of SiteTarget';
+COMMENT ON FUNCTION "qti"."__reader_olds_cn_attribute_42sfkplz42"() IS 'the reader of the delta of olds of CnAttribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_site_target_aywdiveo47"() IS 'the reader of the delta of olds of SiteTarget';
+COMMENT ON FUNCTION "qti"."__reader_olds_cn_attribute_zp3ubxww7r"() IS 'the reader of the delta of olds of CnAttribute';
 
-COMMENT ON FUNCTION "qti"."__reader_news_srcset_oxqzkt3tbf"() IS 'the reader of the delta of news of Srcset';
+COMMENT ON FUNCTION "qti"."__reader_news_cn_count_j6cemo5hmu"() IS 'the reader of the delta of news of CnCount';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_srcset_z3dfrfqjo7"() IS 'the reader of the delta of olds of Srcset';
+COMMENT ON FUNCTION "qti"."__reader_news_cn_count_jhzq7dlbr4"() IS 'the reader of the delta of news of CnCount';
 
-COMMENT ON FUNCTION "qti"."__reader_news_srcset_candidate_vv4kfykyiq"() IS 'the reader of the delta of news of SrcsetCandidate';
+COMMENT ON FUNCTION "qti"."__reader_news_comment_sqrosxox4r"() IS 'the reader of the delta of news of Comment';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_srcset_candidate_nlpj5le2ah"() IS 'the reader of the delta of olds of SrcsetCandidate';
+COMMENT ON FUNCTION "qti"."__reader_olds_comment_o6clsml5uw"() IS 'the reader of the delta of olds of Comment';
 
-COMMENT ON FUNCTION "qti"."__reader_news_ssml_scope_ovhd6uzegr"() IS 'the reader of the delta of news of SsmlScope';
+COMMENT ON FUNCTION "qti"."__reader_news_context_ref_khblrzt6az"() IS 'the reader of the delta of news of ContextRef';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_ssml_scope_ktpqteh3mw"() IS 'the reader of the delta of olds of SsmlScope';
+COMMENT ON FUNCTION "qti"."__reader_news_count_bound_6iixoopbdj"() IS 'the reader of the delta of news of CountBound';
 
-COMMENT ON FUNCTION "qti"."__reader_news_stimulus_ref_ifcbds6byo"() IS 'the reader of the delta of news of StimulusRef';
+COMMENT ON FUNCTION "qti"."__reader_news_count_bound_uku6tdypj4"() IS 'the reader of the delta of news of CountBound';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_stimulus_ref_wnn2jyzbyc"() IS 'the reader of the delta of olds of StimulusRef';
+COMMENT ON FUNCTION "qti"."__reader_news_count_bound_lqwc7tm7ex"() IS 'the reader of the delta of news of CountBound';
 
-COMMENT ON FUNCTION "qti"."__reader_news_template_ref_cfq5rgfr6a"() IS 'the reader of the delta of news of TemplateRef';
+COMMENT ON FUNCTION "qti"."__reader_olds_count_bound_lw37yb2pic"() IS 'the reader of the delta of olds of CountBound';
 
-COMMENT ON FUNCTION "qti"."__reader_news_text_reference_6vcght4z7s"() IS 'the reader of the delta of news of TextReference';
+COMMENT ON FUNCTION "qti"."__reader_olds_count_bound_d33nx4db4z"() IS 'the reader of the delta of olds of CountBound';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_text_reference_qmflznk6pt"() IS 'the reader of the delta of olds of TextReference';
+COMMENT ON FUNCTION "qti"."__reader_olds_count_bound_cecdigrw36"() IS 'the reader of the delta of olds of CountBound';
 
-COMMENT ON FUNCTION "qti"."__reader_news_text_reference_path_pmvejjwegm"() IS 'the reader of the delta of news of TextReferencePath';
+COMMENT ON FUNCTION "qti"."__reader_news_data_ssml_r76w2xjpcd"() IS 'the reader of the delta of news of DataSsml';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_text_reference_path_xbp6hkt6oi"() IS 'the reader of the delta of olds of TextReferencePath';
+COMMENT ON FUNCTION "qti"."__reader_olds_data_ssml_bhplodnzbg"() IS 'the reader of the delta of olds of DataSsml';
 
-COMMENT ON FUNCTION "qti"."__reader_news_variable_ref_ovyfyafjwi"() IS 'the reader of the delta of news of VariableRef';
+COMMENT ON FUNCTION "qti"."__reader_news_data_ssml_member_ht7zqhsjxb"() IS 'the reader of the delta of news of DataSsmlMember';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_variable_ref_g7sqkzw5qu"() IS 'the reader of the delta of olds of VariableRef';
+COMMENT ON FUNCTION "qti"."__reader_news_data_ssml_member_ttnmntybkv"() IS 'the reader of the delta of news of DataSsmlMember';
+
+COMMENT ON FUNCTION "qti"."__reader_news_data_ssml_member_wfx2qtalzl"() IS 'the reader of the delta of news of DataSsmlMember';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_data_ssml_property_shtmdhinmj"() IS 'the reader of the delta of olds of DataSsmlProperty';
+
+COMMENT ON FUNCTION "qti"."__reader_news_doctype_rv2gew6lit"() IS 'the reader of the delta of news of Doctype';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_doctype_lybqgha34y"() IS 'the reader of the delta of olds of Doctype';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_dzpgbk4tc3"() IS 'the reader of the delta of news of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_dlq43jmksr"() IS 'the reader of the delta of news of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_z7rucmczqd"() IS 'the reader of the delta of news of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_r4rxld3cry"() IS 'the reader of the delta of news of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_hhx3szdtaz"() IS 'the reader of the delta of news of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_qtgtaqmoe2"() IS 'the reader of the delta of news of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_6nyrz7lzi6"() IS 'the reader of the delta of news of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_wpmyhbxnie"() IS 'the reader of the delta of olds of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_6kdxcg6olp"() IS 'the reader of the delta of olds of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_oh3s7yw7g3"() IS 'the reader of the delta of olds of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_ftuhmejkkv"() IS 'the reader of the delta of olds of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_qg6h22pbad"() IS 'the reader of the delta of olds of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_ujz635knuc"() IS 'the reader of the delta of olds of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_bsnq2uvnrx"() IS 'the reader of the delta of olds of Document';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_id_aafrwrqfxc"() IS 'the reader of the delta of news of DocumentId';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_id_vux7wfpt5t"() IS 'the reader of the delta of news of DocumentId';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_id_wcc7o37pme"() IS 'the reader of the delta of news of DocumentId';
+
+COMMENT ON FUNCTION "qti"."__reader_news_document_id_tdbqaqoflr"() IS 'the reader of the delta of news of DocumentId';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_id_6rqqbo7wbr"() IS 'the reader of the delta of olds of DocumentId';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_id_p2nguepvpp"() IS 'the reader of the delta of olds of DocumentId';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_document_id_oo2lschdsb"() IS 'the reader of the delta of olds of DocumentId';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_element_type_rk6up7iqkj"() IS 'the reader of the delta of olds of ElementType';
+
+COMMENT ON FUNCTION "qti"."__reader_news_entry_iohqq4u7cx"() IS 'the reader of the delta of news of Entry';
+
+COMMENT ON FUNCTION "qti"."__reader_news_entry_hyvedr66cr"() IS 'the reader of the delta of news of Entry';
+
+COMMENT ON FUNCTION "qti"."__reader_news_entry_7m4sf4yjdv"() IS 'the reader of the delta of news of Entry';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_entry_3jfky4jsy6"() IS 'the reader of the delta of olds of Entry';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_entry_wg5vavqyed"() IS 'the reader of the delta of olds of Entry';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_entry_zwvxu3i4em"() IS 'the reader of the delta of olds of Entry';
+
+COMMENT ON FUNCTION "qti"."__reader_news_expression_lactx5ezbw"() IS 'the reader of the delta of news of Expression';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_expression_papkt3q7p2"() IS 'the reader of the delta of olds of Expression';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_expression_j7qeakimnl"() IS 'the reader of the delta of olds of Expression';
+
+COMMENT ON FUNCTION "qti"."__reader_news_feedback_ref_4yo25r5rc6"() IS 'the reader of the delta of news of FeedbackRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_feedback_ref_r3axmcpts2"() IS 'the reader of the delta of news of FeedbackRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_file_2sedel44f3"() IS 'the reader of the delta of news of File';
+
+COMMENT ON FUNCTION "qti"."__reader_news_file_qgegmaaseu"() IS 'the reader of the delta of news of File';
+
+COMMENT ON FUNCTION "qti"."__reader_news_file_ih733cqoow"() IS 'the reader of the delta of news of File';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_file_rbv5erzzzd"() IS 'the reader of the delta of olds of File';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_file_36sq7u5ubr"() IS 'the reader of the delta of olds of File';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_file_vlszdzeval"() IS 'the reader of the delta of olds of File';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_file_czsml6wddc"() IS 'the reader of the delta of olds of File';
+
+COMMENT ON FUNCTION "qti"."__reader_news_file_outside_fauwd3mso6"() IS 'the reader of the delta of news of FileOutside';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_file_outside_jareeklvac"() IS 'the reader of the delta of olds of FileOutside';
+
+COMMENT ON FUNCTION "qti"."__reader_news_file_path_lmrtp7cpvv"() IS 'the reader of the delta of news of FilePath';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_file_path_obf6th742s"() IS 'the reader of the delta of olds of FilePath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_fragment_context_ref_dcnqqdka27"() IS 'the reader of the delta of news of FragmentContextRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_fragment_feedback_ref_fwncitm4sy"() IS 'the reader of the delta of news of FragmentFeedbackRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_fragment_feedback_ref_vi3k6kjpcl"() IS 'the reader of the delta of news of FragmentFeedbackRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_fragment_printed_ref_oevhwy57gu"() IS 'the reader of the delta of news of FragmentPrintedRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_fragment_printed_ref_wzjamj2pan"() IS 'the reader of the delta of news of FragmentPrintedRef';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_fragment_scope_b2k7mdrhrx"() IS 'the reader of the delta of olds of FragmentScope';
+
+COMMENT ON FUNCTION "qti"."__reader_news_fragment_template_ref_52fesbjidr"() IS 'the reader of the delta of news of FragmentTemplateRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_fragment_template_ref_p5in3zng6d"() IS 'the reader of the delta of news of FragmentTemplateRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_hottext_4jyeno3nar"() IS 'the reader of the delta of news of Hottext';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_hottext_7k5vlltpdl"() IS 'the reader of the delta of olds of Hottext';
+
+COMMENT ON FUNCTION "qti"."__reader_news_identity_text_37tk755zdq"() IS 'the reader of the delta of news of IdentityText';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_identity_text_7it5m7oe7v"() IS 'the reader of the delta of olds of IdentityText';
+
+COMMENT ON FUNCTION "qti"."__reader_news_idref_zuqyiv4rvp"() IS 'the reader of the delta of news of Idref';
+
+COMMENT ON FUNCTION "qti"."__reader_news_idref_target_4yfah3tbfp"() IS 'the reader of the delta of news of IdrefTarget';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_inclusion_myolsk4yrz"() IS 'the reader of the delta of olds of Inclusion';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_7eicc6ik7d"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_rnawy53yxr"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_lsht2eniey"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_g3mje4qxlm"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_aw3hh6ifii"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_7bn75j6xqz"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_du4ptqx3vu"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_ryechoeokl"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_s2zfixxbeq"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_instance_az3ij5yi2i"() IS 'the reader of the delta of news of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_instance_aqii6ivp27"() IS 'the reader of the delta of olds of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_instance_rprau6fhy7"() IS 'the reader of the delta of olds of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_instance_pfwwv2tl7v"() IS 'the reader of the delta of olds of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_instance_yqdx2heakc"() IS 'the reader of the delta of olds of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_instance_xeqpcv7q3l"() IS 'the reader of the delta of olds of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_instance_62gwhywgvc"() IS 'the reader of the delta of olds of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_instance_5cs53m5luy"() IS 'the reader of the delta of olds of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_instance_57ibtyfs42"() IS 'the reader of the delta of olds of Instance';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_ebaqz52yye"() IS 'the reader of the delta of news of Interaction';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_interaction_ricadcxs57"() IS 'the reader of the delta of olds of Interaction';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_i7axy5sfb2"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_ornpqtllia"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_63cf34loes"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_3klqs3fqbb"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_badxsfi52s"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_7wcxzxn3ko"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_p5cp2nsqo5"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_scciw77v22"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_s2q6nhk5ao"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_kzbv42or3b"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_lbwlyeiukj"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_mv5ikmya6p"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_interaction_attribute_mvyzkr7s2e"() IS 'the reader of the delta of news of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_interaction_attribute_yalklcendv"() IS 'the reader of the delta of olds of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_interaction_attribute_x7llnvusw7"() IS 'the reader of the delta of olds of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_interaction_attribute_rxvtekk7t3"() IS 'the reader of the delta of olds of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_interaction_attribute_5rmf5mmzfz"() IS 'the reader of the delta of olds of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_interaction_attribute_7k7hibwpjm"() IS 'the reader of the delta of olds of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_interaction_attribute_gboq4szqnv"() IS 'the reader of the delta of olds of InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_item_ref_document_ij3t37egq5"() IS 'the reader of the delta of news of ItemRefDocument';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_item_ref_document_nebq75yjy2"() IS 'the reader of the delta of olds of ItemRefDocument';
+
+COMMENT ON FUNCTION "qti"."__reader_news_item_ref_href_ejpnwupzv3"() IS 'the reader of the delta of news of ItemRefHref';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_item_ref_href_loalm6h265"() IS 'the reader of the delta of olds of ItemRefHref';
+
+COMMENT ON FUNCTION "qti"."__reader_news_label_use_ar6cdv4z5f"() IS 'the reader of the delta of news of LabelUse';
+
+COMMENT ON FUNCTION "qti"."__reader_news_label_use_75b5edpfbe"() IS 'the reader of the delta of news of LabelUse';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_label_use_efywd3rer4"() IS 'the reader of the delta of olds of LabelUse';
+
+COMMENT ON FUNCTION "qti"."__reader_news_least_count_ryqassm5eb"() IS 'the reader of the delta of news of LeastCount';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_least_count_hpg77y6e5r"() IS 'the reader of the delta of olds of LeastCount';
+
+COMMENT ON FUNCTION "qti"."__reader_news_link_reading_yctpnzu3jp"() IS 'the reader of the delta of news of LinkReading';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_link_reading_54ohypxfsi"() IS 'the reader of the delta of olds of LinkReading';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_literal_eqcddvsz7s"() IS 'the reader of the delta of olds of Literal';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_literal_typed_awficfcty3"() IS 'the reader of the delta of olds of LiteralTyped';
+
+COMMENT ON FUNCTION "qti"."__reader_news_lookup_value_d73wchvzo3"() IS 'the reader of the delta of news of LookupValue';
+
+COMMENT ON FUNCTION "qti"."__reader_news_map_key_cczetl4tod"() IS 'the reader of the delta of news of MapKey';
+
+COMMENT ON FUNCTION "qti"."__reader_news_math_action_fgnmrk5yyw"() IS 'the reader of the delta of news of MathAction';
+
+COMMENT ON FUNCTION "qti"."__reader_news_math_action_gyqj6paihk"() IS 'the reader of the delta of news of MathAction';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_math_action_qcy32u2lcv"() IS 'the reader of the delta of olds of MathAction';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_math_action_wwo6bualvc"() IS 'the reader of the delta of olds of MathAction';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_math_align_group_jtdeeugmmj"() IS 'the reader of the delta of olds of MathAlignGroup';
+
+COMMENT ON FUNCTION "qti"."__reader_news_math_align_scope_zgjxyift56"() IS 'the reader of the delta of news of MathAlignScope';
+
+COMMENT ON FUNCTION "qti"."__reader_news_math_align_scope_mxjcspc6e7"() IS 'the reader of the delta of news of MathAlignScope';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_math_align_scope_6pcpiq7chv"() IS 'the reader of the delta of olds of MathAlignScope';
+
+COMMENT ON FUNCTION "qti"."__reader_news_math_cell_pqjlkyqymv"() IS 'the reader of the delta of news of MathCell';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_math_cell_lswedvtrn2"() IS 'the reader of the delta of olds of MathCell';
+
+COMMENT ON FUNCTION "qti"."__reader_news_math_cn_cotmfyqvc5"() IS 'the reader of the delta of news of MathCn';
+
+COMMENT ON FUNCTION "qti"."__reader_news_math_cn_tmadd67toz"() IS 'the reader of the delta of news of MathCn';
+
+COMMENT ON FUNCTION "qti"."__reader_news_math_cn_djrpd6sxur"() IS 'the reader of the delta of news of MathCn';
+
+COMMENT ON FUNCTION "qti"."__reader_news_math_rank_uwobscga4q"() IS 'the reader of the delta of news of MathRank';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_math_rank_p267v4ootf"() IS 'the reader of the delta of olds of MathRank';
+
+COMMENT ON FUNCTION "qti"."__reader_news_media_cxpinawsa5"() IS 'the reader of the delta of news of Media';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_media_4j3ogtghi6"() IS 'the reader of the delta of olds of Media';
+
+COMMENT ON FUNCTION "qti"."__reader_news_most_count_kbfopbqidc"() IS 'the reader of the delta of news of MostCount';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_most_count_t3kv4zfj6n"() IS 'the reader of the delta of olds of MostCount';
+
+COMMENT ON FUNCTION "qti"."__reader_news_named_ksgdpoviwv"() IS 'the reader of the delta of news of Named';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_named_eljtoyimvz"() IS 'the reader of the delta of olds of Named';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_b3oyd5lweu"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_qr6ql47jvy"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_bslgzaufrg"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_qlwvmektzo"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_7damsez45u"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_zc3ygxmss6"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_v37ph5ujpz"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_c5ebg4hshp"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_6andps27uv"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_hp3gnkqn3h"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_4ar6h3ufix"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_g2yh2f72xr"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_r7nxb5nuuu"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_elis4hyaxe"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_udrgl35npe"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_weqlnuvyb2"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_wp3cl3fx43"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_67qfmwm44p"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_nvk4enxuz4"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_d4ftcko7re"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_6nffwcuv6v"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_y4sw3y2dal"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_j3vnxawvul"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_jvwpi33kit"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_s2ygb7dfng"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_vsr4qyen7o"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_ctigbvgb4f"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_gn77a5gjoi"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_2525x3wjmn"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_tfrvxdug2z"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_cae2gnqx32"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_enhtt2w75e"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_ehis3x2qsk"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_fx27cdpvbq"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_edwggxyv2f"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_e3kcvjj7rj"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_wdum53dpgj"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_qhzgd2y6vj"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_3poggbnkuu"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_au7dbojk4s"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_ffooklrfom"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_y5fureufh2"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_4uwlkdegil"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_dinxthqaqt"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_docjq5xqs3"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_lkc73iyvzx"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_26mfzgne2a"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_5t4y6vzcdt"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_57jzcofg4v"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_ytrpx7ndbl"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_3mdk24crae"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_yl7xmosam4"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_f527lmesqo"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_5gh73flixh"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_r7ersh7mvf"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_flcpnpaftv"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_3tmgecxe6l"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_3hxynsgdln"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_276b2yiffq"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_nr6s5p2333"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_po2wx4ypwx"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_7mqpigspnu"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_27lx6ydsa7"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_of6drjfopj"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_vvpewmub7n"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_6geeqcbyfe"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_ljc56vdsh3"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_33cg2waw2e"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_6oyva3kgzi"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_obiwnkcf3f"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_outt57m2rd"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_3wpn3xxfgl"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_node_fzsgyvi5nm"() IS 'the reader of the delta of news of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_fzsgerodzm"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_omtbbnhleq"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_nbq47euk5u"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_lilzf5lmko"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_zjrc5cawjb"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_um3p4okcuj"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_xc277jlvgz"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_6opalj3nvt"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_pga2akbtym"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_coyi4uaxwt"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_e6uf73iqtg"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_mibd3l62oq"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_hau3ukp6l2"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_dksi5xesuj"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_ja3dsh6mnt"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_ljjbc43psi"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_kpn37thtwf"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_fodwaqhec7"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_tjztr37b2o"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_rfhe4i6flq"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_zcyjuyqwwd"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_y5wibqa5jf"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_sqzzhqsdud"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_rud4vqlyir"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_i4zqrx2wja"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_zjq354qbp5"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_6tswvuipip"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_5dzr6d5usy"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_ic4rjsntvg"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_oyxnqdk23r"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_imd7gg26ak"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_37n3frucce"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_6kn7wfghdg"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_kku3qspz5i"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_rslphmzocs"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_w4s6kw6rqq"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_zom44oynfw"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_bqrofg2jd5"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_fxos625p6i"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_trwrw45wfb"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_3tvltbvido"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_qzhmuhbw42"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_baf52kgzyi"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_ob24f3u3b4"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_nwmd2fstll"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_hoev76bcmg"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_mamlqtiy34"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_7tzvhus6pw"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_ikauoxogcq"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_onj4ijy445"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_ay3vgidkkr"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_sl37alxfdm"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_lfayqjzr4a"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_ezmspwjqzn"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_wvawqx7r32"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_uguptfvvta"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_xdr2iqx5es"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_ggjs2amel4"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_4yztpl67gi"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_brxyoyxmot"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_node_o37x3ekd54"() IS 'the reader of the delta of olds of Node';
+
+COMMENT ON FUNCTION "qti"."__reader_news_numbered_reading_56gem5yumx"() IS 'the reader of the delta of news of NumberedReading';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_numbered_reading_3rtxuf552n"() IS 'the reader of the delta of olds of NumberedReading';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_numbered_reading_uemepswj6r"() IS 'the reader of the delta of olds of NumberedReading';
+
+COMMENT ON FUNCTION "qti"."__reader_news_open_attribute_lb3i26crnp"() IS 'the reader of the delta of news of OpenAttribute';
+
+COMMENT ON FUNCTION "qti"."__reader_news_open_element_name_wxhyzsu4dr"() IS 'the reader of the delta of news of OpenElementName';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_open_element_name_dnfsgezzqk"() IS 'the reader of the delta of olds of OpenElementName';
+
+COMMENT ON FUNCTION "qti"."__reader_news_open_element_type_62uwyxdqrw"() IS 'the reader of the delta of news of OpenElementType';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_open_element_type_lyl2tmawtw"() IS 'the reader of the delta of olds of OpenElementType';
+
+COMMENT ON FUNCTION "qti"."__reader_news_pci_module_form_4642xxcqav"() IS 'the reader of the delta of news of PciModuleForm';
+
+COMMENT ON FUNCTION "qti"."__reader_news_pci_module_form_qddbzflfc3"() IS 'the reader of the delta of news of PciModuleForm';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_pci_module_form_4en5salzpq"() IS 'the reader of the delta of olds of PciModuleForm';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_pci_module_form_yxhbvwdjbx"() IS 'the reader of the delta of olds of PciModuleForm';
+
+COMMENT ON FUNCTION "qti"."__reader_news_pi_uahuuuvepq"() IS 'the reader of the delta of news of Pi';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_pi_6q3nxmjuf5"() IS 'the reader of the delta of olds of Pi';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_binding_fywb7erzwr"() IS 'the reader of the delta of news of PlacedBinding';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_binding_fkjdm4yiui"() IS 'the reader of the delta of news of PlacedBinding';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_binding_qheul45max"() IS 'the reader of the delta of olds of PlacedBinding';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_choice_5netss4dny"() IS 'the reader of the delta of news of PlacedChoice';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_choice_drv4b2d3cv"() IS 'the reader of the delta of olds of PlacedChoice';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_expression_ehtk3xlexi"() IS 'the reader of the delta of news of PlacedExpression';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_expression_74gbeemoio"() IS 'the reader of the delta of olds of PlacedExpression';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_hottext_6xgbko5lum"() IS 'the reader of the delta of news of PlacedHottext';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_hottext_doruaspbc4"() IS 'the reader of the delta of olds of PlacedHottext';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_id_wjf3cvuflx"() IS 'the reader of the delta of news of PlacedId';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_id_qsligjrmks"() IS 'the reader of the delta of olds of PlacedId';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_idref_4anps55th7"() IS 'the reader of the delta of news of PlacedIdref';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_math_rank_pft64xjoec"() IS 'the reader of the delta of news of PlacedMathRank';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_math_rank_e2ng2pldpo"() IS 'the reader of the delta of olds of PlacedMathRank';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_share_target_xkok4miuea"() IS 'the reader of the delta of news of PlacedShareTarget';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_variable_ref_vxxcqwsr2z"() IS 'the reader of the delta of news of PlacedVariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_variable_ref_qffry4u5fq"() IS 'the reader of the delta of news of PlacedVariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_placed_variable_ref_f7anvqjnoj"() IS 'the reader of the delta of news of PlacedVariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_variable_ref_wk66elrvf6"() IS 'the reader of the delta of olds of PlacedVariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_variable_ref_lgsov3gqei"() IS 'the reader of the delta of olds of PlacedVariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_printed_variable_ref_by7egv3npa"() IS 'the reader of the delta of news of PrintedVariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_printed_variable_ref_mj76dxiv6j"() IS 'the reader of the delta of news of PrintedVariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_processing_isi3rkx4ox"() IS 'the reader of the delta of news of Processing';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_processing_tszny76uqb"() IS 'the reader of the delta of olds of Processing';
+
+COMMENT ON FUNCTION "qti"."__reader_news_reference_gc6bzbxpkb"() IS 'the reader of the delta of news of Reference';
+
+COMMENT ON FUNCTION "qti"."__reader_news_reference_egzl7y7xbw"() IS 'the reader of the delta of news of Reference';
+
+COMMENT ON FUNCTION "qti"."__reader_news_reference_7lr4be2ano"() IS 'the reader of the delta of news of Reference';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_reference_rimdq2ffdp"() IS 'the reader of the delta of olds of Reference';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_reference_wbamajjxpu"() IS 'the reader of the delta of olds of Reference';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_reference_s5cphnwhmp"() IS 'the reader of the delta of olds of Reference';
+
+COMMENT ON FUNCTION "qti"."__reader_news_reference_path_rchuxigfrl"() IS 'the reader of the delta of news of ReferencePath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_reference_path_owa65xdh32"() IS 'the reader of the delta of news of ReferencePath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_reference_path_5c5abmpgyb"() IS 'the reader of the delta of news of ReferencePath';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_reference_path_iyunmgz727"() IS 'the reader of the delta of olds of ReferencePath';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_reference_path_bsu3avinug"() IS 'the reader of the delta of olds of ReferencePath';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_reference_path_zai2sw74ci"() IS 'the reader of the delta of olds of ReferencePath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_resource_document_gbg5rjrsfi"() IS 'the reader of the delta of news of ResourceDocument';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_resource_document_n4evq5pqrj"() IS 'the reader of the delta of olds of ResourceDocument';
+
+COMMENT ON FUNCTION "qti"."__reader_news_resource_href_dlrxixund4"() IS 'the reader of the delta of news of ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__reader_news_resource_href_xkyqhg54ki"() IS 'the reader of the delta of news of ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__reader_news_resource_href_7dccvm4f4y"() IS 'the reader of the delta of news of ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__reader_news_resource_href_vsfkhhcqpr"() IS 'the reader of the delta of news of ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_resource_href_mxxl6gowgr"() IS 'the reader of the delta of olds of ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_resource_href_5pbfb774o4"() IS 'the reader of the delta of olds of ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_resource_href_g24saqrkqh"() IS 'the reader of the delta of olds of ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__reader_news_resource_href_outside_3vzucwjhsj"() IS 'the reader of the delta of news of ResourceHrefOutside';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_resource_href_outside_7k2cr7vjph"() IS 'the reader of the delta of olds of ResourceHrefOutside';
+
+COMMENT ON FUNCTION "qti"."__reader_news_resource_href_path_ftqblvvcpp"() IS 'the reader of the delta of news of ResourceHrefPath';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_resource_href_path_maud6qkvhe"() IS 'the reader of the delta of olds of ResourceHrefPath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_share_fragment_2wipozkod6"() IS 'the reader of the delta of news of ShareFragment';
+
+COMMENT ON FUNCTION "qti"."__reader_news_share_fragment_bdg5yezjjv"() IS 'the reader of the delta of news of ShareFragment';
+
+COMMENT ON FUNCTION "qti"."__reader_news_share_fragment_4ycpjbw4l2"() IS 'the reader of the delta of news of ShareFragment';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_share_fragment_ti3xzfsrcz"() IS 'the reader of the delta of olds of ShareFragment';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_share_fragment_3l44gqlveu"() IS 'the reader of the delta of olds of ShareFragment';
+
+COMMENT ON FUNCTION "qti"."__reader_news_share_target_3ym3r2m6o3"() IS 'the reader of the delta of news of ShareTarget';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_share_target_uxlxivqlh6"() IS 'the reader of the delta of olds of ShareTarget';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_hr33gfghyk"() IS 'the reader of the delta of news of Site';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_lhla5xcv7d"() IS 'the reader of the delta of news of Site';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_w6zaolk7yu"() IS 'the reader of the delta of news of Site';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_lbdgsguxmy"() IS 'the reader of the delta of news of Site';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_site_ryc3pmhjvo"() IS 'the reader of the delta of olds of Site';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_site_tzikkzzvoh"() IS 'the reader of the delta of olds of Site';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_path_dgjjjtykuz"() IS 'the reader of the delta of news of SitePath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_path_7jyqyxubou"() IS 'the reader of the delta of news of SitePath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_path_pzvb6xn4l2"() IS 'the reader of the delta of news of SitePath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_path_pvpilwzarn"() IS 'the reader of the delta of news of SitePath';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_site_path_iwyb56b75o"() IS 'the reader of the delta of olds of SitePath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_target_ylwegthd6l"() IS 'the reader of the delta of news of SiteTarget';
+
+COMMENT ON FUNCTION "qti"."__reader_news_site_target_rtemvj2h7v"() IS 'the reader of the delta of news of SiteTarget';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_site_target_osyypa6t4y"() IS 'the reader of the delta of olds of SiteTarget';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_site_target_ntpxdnh2pi"() IS 'the reader of the delta of olds of SiteTarget';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_site_target_yzm4fw3xim"() IS 'the reader of the delta of olds of SiteTarget';
+
+COMMENT ON FUNCTION "qti"."__reader_news_srcset_jh624prlsy"() IS 'the reader of the delta of news of Srcset';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_srcset_br4drwgwef"() IS 'the reader of the delta of olds of Srcset';
+
+COMMENT ON FUNCTION "qti"."__reader_news_srcset_candidate_zsmsjyguqs"() IS 'the reader of the delta of news of SrcsetCandidate';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_srcset_candidate_6gsw4lm3m7"() IS 'the reader of the delta of olds of SrcsetCandidate';
+
+COMMENT ON FUNCTION "qti"."__reader_news_ssml_scope_4452moktir"() IS 'the reader of the delta of news of SsmlScope';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_ssml_scope_4zytjrg6o5"() IS 'the reader of the delta of olds of SsmlScope';
+
+COMMENT ON FUNCTION "qti"."__reader_news_stimulus_ref_aoe7os7zz6"() IS 'the reader of the delta of news of StimulusRef';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_stimulus_ref_pfuziqhvgg"() IS 'the reader of the delta of olds of StimulusRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_template_ref_wwlys3bj5n"() IS 'the reader of the delta of news of TemplateRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_template_ref_mv44rjpnn7"() IS 'the reader of the delta of news of TemplateRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_text_reference_2gssldtjcr"() IS 'the reader of the delta of news of TextReference';
+
+COMMENT ON FUNCTION "qti"."__reader_news_text_reference_oq5s3flcyt"() IS 'the reader of the delta of news of TextReference';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_text_reference_f7aesnkn35"() IS 'the reader of the delta of olds of TextReference';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_text_reference_bujbkuwblb"() IS 'the reader of the delta of olds of TextReference';
+
+COMMENT ON FUNCTION "qti"."__reader_news_text_reference_path_lnixejtof3"() IS 'the reader of the delta of news of TextReferencePath';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_text_reference_path_i3j3j3dfdn"() IS 'the reader of the delta of olds of TextReferencePath';
+
+COMMENT ON FUNCTION "qti"."__reader_news_variable_ref_kcq6dpafuz"() IS 'the reader of the delta of news of VariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_news_variable_ref_yvh4mcslzz"() IS 'the reader of the delta of news of VariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_variable_ref_qsscakvudi"() IS 'the reader of the delta of olds of VariableRef';
+
+COMMENT ON FUNCTION "qti"."__reader_olds_variable_ref_n45zrltfwg"() IS 'the reader of the delta of olds of VariableRef';
 
 COMMENT ON FUNCTION "qti"."__judge_area_mapping_base_type_check_area_mapping_vbbvt7kxjl"() IS 'the rule judge''s block of rule check AreaMapping_base_type of AreaMappingBaseType over its units';
 

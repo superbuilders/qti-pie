@@ -14,63 +14,70 @@ import { sittingHeading } from "#ledger/sitting-queries.ts";
 import { dueOf, runOf } from "#ledger/test-run-call.ts";
 
 /**
- * The relations a run writes, by name, for a role's insert list: a writer that composes the run
- * grants them all.
+ * The relations a run writes, by name and by the mode a role writes each by: a writer that composes
+ * the run grants them all, each closed, so its insert list names it.
  */
-export const testOutcomeRunTables = [
-  "TestOutcomeRun",
-  "TestOutcomeSingleIdentifier",
-  "TestOutcomeSingleBoolean",
-  "TestOutcomeSingleInteger",
-  "TestOutcomeSingleFloat",
-  "TestOutcomeSingleString",
-  "TestOutcomeSinglePoint",
-  "TestOutcomeSinglePair",
-  "TestOutcomeSingleDirectedPair",
-  "TestOutcomeSingleDuration",
-  "TestOutcomeSingleUri",
-  "TestOutcomeSingleFile",
-  "TestOutcomeMultipleIdentifier",
-  "TestOutcomeMultipleBoolean",
-  "TestOutcomeMultipleInteger",
-  "TestOutcomeMultipleFloat",
-  "TestOutcomeMultipleString",
-  "TestOutcomeMultiplePoint",
-  "TestOutcomeMultiplePair",
-  "TestOutcomeMultipleDirectedPair",
-  "TestOutcomeMultipleDuration",
-  "TestOutcomeMultipleUri",
-  "TestOutcomeMultipleFile",
-  "TestOutcomeOrderedIdentifier",
-  "TestOutcomeOrderedBoolean",
-  "TestOutcomeOrderedInteger",
-  "TestOutcomeOrderedFloat",
-  "TestOutcomeOrderedString",
-  "TestOutcomeOrderedPoint",
-  "TestOutcomeOrderedPair",
-  "TestOutcomeOrderedDirectedPair",
-  "TestOutcomeOrderedDuration",
-  "TestOutcomeOrderedUri",
-  "TestOutcomeOrderedFile",
-  "TestOutcomeRecord",
-  "TestOutcomeRecordIdentifier",
-  "TestOutcomeRecordBoolean",
-  "TestOutcomeRecordInteger",
-  "TestOutcomeRecordFloat",
-  "TestOutcomeRecordString",
-  "TestOutcomeRecordPoint",
-  "TestOutcomeRecordPair",
-  "TestOutcomeRecordDirectedPair",
-  "TestOutcomeRecordDuration",
-  "TestOutcomeRecordUri",
-  "TestOutcomeRecordFile",
-] as const;
+export const testOutcomeRunWrites = {
+  insert: [
+    "TestOutcomeRun",
+    "TestOutcomeSingleIdentifier",
+    "TestOutcomeSingleBoolean",
+    "TestOutcomeSingleInteger",
+    "TestOutcomeSingleFloat",
+    "TestOutcomeSingleString",
+    "TestOutcomeSinglePoint",
+    "TestOutcomeSinglePair",
+    "TestOutcomeSingleDirectedPair",
+    "TestOutcomeSingleDuration",
+    "TestOutcomeSingleUri",
+    "TestOutcomeSingleFile",
+    "TestOutcomeMultipleIdentifier",
+    "TestOutcomeMultipleBoolean",
+    "TestOutcomeMultipleInteger",
+    "TestOutcomeMultipleFloat",
+    "TestOutcomeMultipleString",
+    "TestOutcomeMultiplePoint",
+    "TestOutcomeMultiplePair",
+    "TestOutcomeMultipleDirectedPair",
+    "TestOutcomeMultipleDuration",
+    "TestOutcomeMultipleUri",
+    "TestOutcomeMultipleFile",
+    "TestOutcomeOrderedIdentifier",
+    "TestOutcomeOrderedBoolean",
+    "TestOutcomeOrderedInteger",
+    "TestOutcomeOrderedFloat",
+    "TestOutcomeOrderedString",
+    "TestOutcomeOrderedPoint",
+    "TestOutcomeOrderedPair",
+    "TestOutcomeOrderedDirectedPair",
+    "TestOutcomeOrderedDuration",
+    "TestOutcomeOrderedUri",
+    "TestOutcomeOrderedFile",
+    "TestOutcomeRecord",
+    "TestOutcomeRecordIdentifier",
+    "TestOutcomeRecordBoolean",
+    "TestOutcomeRecordInteger",
+    "TestOutcomeRecordFloat",
+    "TestOutcomeRecordString",
+    "TestOutcomeRecordPoint",
+    "TestOutcomeRecordPair",
+    "TestOutcomeRecordDirectedPair",
+    "TestOutcomeRecordDuration",
+    "TestOutcomeRecordUri",
+    "TestOutcomeRecordFile",
+  ],
+  write: [],
+} as const;
 
 /**
- * The relations settling a sitting writes, by name, for a role's insert list: its test outcome
- * run's, and the fact that its outcomes are final (`SittingFinal`).
+ * The relations settling a sitting writes, by name and by the mode a role writes each by: its test
+ * outcome run's, and the fact that its outcomes are final (`SittingFinal`), each closed, so a
+ * role's insert list names it.
  */
-export const settleTables = [...testOutcomeRunTables, "SittingFinal"] as const;
+export const settleWrites = {
+  insert: [...testOutcomeRunWrites.insert, "SittingFinal"],
+  write: testOutcomeRunWrites.write,
+} as const;
 
 /**
  * The writes of one run of the outcome processing of each of the call's sittings, the `sittings`

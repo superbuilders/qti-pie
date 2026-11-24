@@ -231,7 +231,7 @@ describe("Node's declarations", () => {
         "author",
         { Node, StandInAttribute },
         {
-          write: ["Node", "StandInAttribute"],
+          insert: ["Node", "StandInAttribute"],
         },
       );
 

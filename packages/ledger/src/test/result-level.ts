@@ -57,31 +57,31 @@ import { QtiLom } from "@qti-pie/pantry/qti/lom.ts";
 import { deliveryOf } from "#ledger/delivery.ts";
 import {
   evaluationProgramsOf,
-  evaluationTables,
+  evaluationWrites,
   personValueOf,
-  personValueTables,
+  personValueWrites,
 } from "#ledger/evaluation-programs.ts";
 import { finishTestOf } from "#ledger/finish.ts";
 import {
   gradeAttemptOf,
-  gradeAttemptTables,
+  gradeAttemptWrites,
   takeArgumentsOf,
   takeValuesOf,
-  takeValuesTables,
+  takeValuesWrites,
 } from "#ledger/grade.ts";
 import { templateProcessingOf } from "#ledger/grading.ts";
 import { LearnerId } from "#ledger/keys.ts";
-import { ledgerOf, sessionTables } from "#ledger/ledger.ts";
+import { ledgerOf, sessionWrites } from "#ledger/ledger.ts";
 import { Moment } from "#ledger/sittings.ts";
 import type { GraderVersion } from "#ledger/registry/contract.ts";
 import { registryOf } from "#ledger/registry/levels.ts";
 import { customOperators } from "#ledger/registry/operators.ts";
 import { sessionControlOf } from "#ledger/session-control.ts";
-import { presenceTables, sittingProgramsOf, sittingTables } from "#ledger/sitting-programs.ts";
+import { presenceWrites, sittingProgramsOf, sittingWrites } from "#ledger/sitting-programs.ts";
 import { attemptRowsOf } from "#ledger/attempt-rows.ts";
 import { savedRowsOf } from "#ledger/saved-rows.ts";
 import { sittingHeading, sittingOfSessionOf, takenHeading } from "#ledger/sitting-queries.ts";
-import { settleTables } from "#ledger/test-run-writes.ts";
+import { settleWrites } from "#ledger/test-run-writes.ts";
 
 /**
  * The grader version of `rubric-score` the composition registers, in force for every item that
@@ -180,21 +180,33 @@ const facts = ChangeSet.empty(ResultLevel).insertAll({
 });
 
 /**
- * The suite's role: every relation to read, and a package's relations, an item session's, the
- * evaluations and a person's value, the take's values, grading's, what settling a sitting writes,
- * and what the test runtime's programs write of a sitting, to write.
+ * The suite's role: every relation to read, and each family it writes by the mode the ledger
+ * exports it in (pantry's `authorWrites` and the ledger's `*Writes`): a package's relations, an
+ * item session's, the evaluations and a person's value, the take's values, grading's, what settling
+ * a sitting writes, what the test runtime's programs write of a sitting, and the presence window.
  */
 const Suite = role(ResultLevel, "result_runner", wholeEntriesOf(ResultLevel), {
+  insert: [
+    ...authorWrites.insert,
+    ...sessionWrites.insert,
+    ...evaluationWrites.insert,
+    ...personValueWrites.insert,
+    ...takeValuesWrites.insert,
+    ...gradeAttemptWrites.insert,
+    ...settleWrites.insert,
+    ...sittingWrites.insert,
+    ...presenceWrites.insert,
+  ],
   write: [
-    ...authorWrites,
-    ...sessionTables,
-    ...evaluationTables,
-    ...personValueTables,
-    ...takeValuesTables,
-    ...gradeAttemptTables,
-    ...settleTables,
-    ...sittingTables,
-    ...presenceTables,
+    ...authorWrites.write,
+    ...sessionWrites.write,
+    ...evaluationWrites.write,
+    ...personValueWrites.write,
+    ...takeValuesWrites.write,
+    ...gradeAttemptWrites.write,
+    ...settleWrites.write,
+    ...sittingWrites.write,
+    ...presenceWrites.write,
   ],
 });
 
