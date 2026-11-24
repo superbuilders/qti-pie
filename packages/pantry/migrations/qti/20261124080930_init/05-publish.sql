@@ -517,8 +517,6 @@ GRANT :"qti_queries__author" TO :"qti_queries__author_app" WITH INHERIT FALSE, S
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 GRANT USAGE ON SCHEMA "qti", "qti_views", "qti_queries", "__qti" TO :"qti_queries__author";
 
-GRANT USAGE ON DOMAIN "qti"."__attribute_slot_bits_112_aecznthxg5", "qti"."__flag_bits_16_llpdtzgaon", "qti"."__value_base_bits_16_7t6pwwxbsh", "qti"."__value_cardinality_bits_8_mma4mwhphy", "qti"."__domain_gfw43vigph", "qti"."__sha256", "qti"."admission_map", "qti"."align_direction", "qti"."align_state", "qti"."attribute_model", "qti"."attribute_name", "qti"."attribute_slot", "qti"."base_type", "qti"."bound_facet", "qti"."bound_zero", "qti"."built_in", "qti"."cardinality", "qti"."cn_base", "qti"."cn_part", "qti"."cn_part_form", "qti"."cn_type", "qti"."content_model", "qti"."declaration_kind", "qti"."document_type", "qti"."domain_primitive", "qti"."entry_kind", "qti"."flag", "qti"."follow_set", "qti"."governor", "qti"."href_scope", "qti"."identity", "qti"."include_set", "qti"."language", "qti"."node_kind", "qti"."position", "qti"."reference_form", "qti"."reference_resolution", "qti"."reference_spelling", "qti"."resource_type", "qti"."rounding_holds", "qti"."shared_model", "qti"."symbol_set", "qti"."type_name", "qti"."unplaced_cause", "qti"."use", "qti"."value_base", "qti"."value_cardinality", "qti"."value_domain", "qti"."white_space", "qti"."xml_standalone", "qti"."__text_xj3zno7u3h", "qti"."__text_phcitidkqs", "qti"."__text_netnsfkgs7", "qti"."__text_c6iptmtj2x", "qti"."__text_4s4od7s5or", "qti"."__text_iyotu5swho", "qti"."__text_gke7uypkov", "qti"."__text_l7nqeazg5h", "qti"."__text_r2monji6i2", "qti"."__text_k5kwygzatl", "qti"."__text_7dfilirtp3", "qti"."__text_7j6kgluyjp", "qti"."__text_xey6ryorh5", "qti"."__text_lecej62lgl", "qti"."__text_tn2inwix7f", "qti"."__text_23rzixl3a2", "qti"."__text_aqc6inemva", "qti"."__text_nhrekaddjj", "qti"."__text_kgtzfmq7x6", "qti"."__text_zij47sgley", "qti"."__text_gysgx5gkhi", "qti"."__text_tfkvgtjblt", "qti"."__text_b6ykamoeho", "qti"."__text_3dlgl63rv6", "qti"."__text_aezrarw5qb", "qti"."__text_3adwbksayk" TO :"qti_queries__author";
-
 GRANT SELECT ON TABLE "__qti"."assembled_catalog", "__qti"."assembled_document", "__qti"."attribute", "__qti"."attribute_entity", "__qti"."binding_name", "__qti"."bound_variable", "__qti"."candidate_path", "__qti"."catalog_id", "__qti"."catalog_scope", "__qti"."cell_headers", "__qti"."cell_leaf", "__qti"."choice", "__qti"."choice_interaction", "__qti"."cn_attribute", "__qti"."cn_count", "__qti"."cn_part_text", "__qti"."cn_slot", "__qti"."comment", "__qti"."context_ref", "__qti"."count_bound", "__qti"."data_ssml", "__qti"."data_ssml_member", "__qti"."data_ssml_property", "__qti"."doctype", "__qti"."document", "__qti"."document_id", "__qti"."element_type", "__qti"."encoding_decl", "__qti"."entry", "__qti"."expression", "__qti"."feedback_ref", "__qti"."file", "__qti"."file_outside", "__qti"."file_path", "__qti"."fragment_context_name", "__qti"."fragment_context_ref", "__qti"."fragment_feedback_name", "__qti"."fragment_feedback_ref", "__qti"."fragment_printed_name", "__qti"."fragment_printed_ref", "__qti"."fragment_scope", "__qti"."fragment_template_name", "__qti"."fragment_template_ref", "__qti"."header_token", "__qti"."hottext", "__qti"."identity_text", "__qti"."idref", "__qti"."idref_target", "__qti"."inclusion", "__qti"."instance", "__qti"."interaction", "__qti"."interaction_attribute", "__qti"."item_mode", "__qti"."item_ref_document", "__qti"."item_ref_href", "__qti"."label_use", "__qti"."least_count", "__qti"."link_reading", "__qti"."literal", "__qti"."literal_typed", "__qti"."lookup_value", "__qti"."map_key", "__qti"."math_action", "__qti"."math_align_group", "__qti"."math_align_scope", "__qti"."math_cell", "__qti"."math_cn", "__qti"."math_rank", "__qti"."media", "__qti"."most_count", "__qti"."named", "__qti"."namespace", "__qti"."node", "__qti"."numbered_reading", "__qti"."open_attribute", "__qti"."open_attribute_entity", "__qti"."open_element_name", "__qti"."open_element_type", "__qti"."package", "__qti"."pci_module_form", "__qti"."pi", "__qti"."placed_binding", "__qti"."placed_choice", "__qti"."placed_expression", "__qti"."placed_hottext", "__qti"."placed_id", "__qti"."placed_idref", "__qti"."placed_math_rank", "__qti"."placed_share_target", "__qti"."placed_variable_ref", "__qti"."printed_variable_ref", "__qti"."processing", "__qti"."reference", "__qti"."reference_path", "__qti"."referring_document", "__qti"."resource_document", "__qti"."resource_href", "__qti"."resource_href_outside", "__qti"."resource_href_path", "__qti"."rounding", "__qti"."rounding_figures", "__qti"."rounding_mode_figures", "__qti"."sd_decl", "__qti"."share_fragment", "__qti"."share_target", "__qti"."site", "__qti"."site_path", "__qti"."site_target", "__qti"."srcset", "__qti"."srcset_candidate", "__qti"."ssml_scope", "__qti"."stimulus_ref", "__qti"."table_header", "__qti"."table_scope", "__qti"."template_ref", "__qti"."text_idref", "__qti"."text_reference", "__qti"."text_reference_path", "__qti"."tolerance", "__qti"."tolerance_token", "__qti"."usage_value", "__qti"."usage_value_base_type", "__qti"."variable_ref", "__qti"."xml_decl" TO :"qti_queries__author";
 
 GRANT SELECT, INSERT ON TABLE "qti"."assembled_catalog" TO :"qti_queries__author";
@@ -777,6 +775,8 @@ GRANT EXECUTE ON FUNCTION "qti"."__constant_uij2fonltq"(), "qti"."__constant_bkq
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 GRANT TEMPORARY ON DATABASE :"DBNAME" TO :"qti_queries__author";
+
+GRANT EXECUTE ON FUNCTION "qti"."__stand_assembled_catalog_555anehjhj"(), "qti"."__stand_assembled_document_hwwdv6cnpm"(), "qti"."__stand_attribute_ibvutlmrai"(), "qti"."__stand_binding_name_ye63gc6vro"(), "qti"."__stand_bound_variable_7vtgjbh6hv"(), "qti"."__stand_candidate_path_qhg7xli4wt"(), "qti"."__stand_catalog_id_zitsqacyrp"(), "qti"."__stand_catalog_scope_vudqbkxslz"(), "qti"."__stand_cell_headers_bg7fga3rec"(), "qti"."__stand_cell_leaf_ptjwgogbl7"(), "qti"."__stand_choice_xzzdvjuvsd"(), "qti"."__stand_choice_interaction_c645kfugmv"(), "qti"."__stand_cn_attribute_63nfyqksr3"(), "qti"."__stand_cn_count_eejhcf4izw"(), "qti"."__stand_comment_3l7okcxyxf"(), "qti"."__stand_context_ref_ujo5dooa7f"(), "qti"."__stand_count_bound_2z6orlcix6"(), "qti"."__stand_data_ssml_k52kzmf2vn"(), "qti"."__stand_data_ssml_member_2xkysqbugo"(), "qti"."__stand_data_ssml_property_6yi5in6iis"(), "qti"."__stand_doctype_gj2wct2uyg"(), "qti"."__stand_document_pondgr3rqo"(), "qti"."__stand_document_id_633p5hpydz"(), "qti"."__stand_element_type_7tgopoucgl"(), "qti"."__stand_entry_pmmpk3imf3"(), "qti"."__stand_expression_u7lcjyvsn7"(), "qti"."__stand_feedback_ref_d7224uniti"(), "qti"."__stand_file_tcw2ukyhyi"(), "qti"."__stand_file_outside_lhyrdnu5ai"(), "qti"."__stand_file_path_7r6oexjmsr"(), "qti"."__stand_fragment_context_ref_h4natgpneo"(), "qti"."__stand_fragment_feedback_ref_gojudisgmf"(), "qti"."__stand_fragment_printed_ref_g5dbleutzc"(), "qti"."__stand_fragment_scope_2oggx422cm"(), "qti"."__stand_fragment_template_ref_mqrpgto2fj"(), "qti"."__stand_header_token_6sdnbemvum"(), "qti"."__stand_hottext_apulsizq3w"(), "qti"."__stand_identity_text_b52n3op6xe"(), "qti"."__stand_idref_aho5h2elqy"(), "qti"."__stand_idref_target_jjhutks3nm"(), "qti"."__stand_inclusion_km3rxqqunr"(), "qti"."__stand_instance_fxskpasuzx"(), "qti"."__stand_interaction_3potcpsocf"(), "qti"."__stand_interaction_attribute_wmzckdz5tm"(), "qti"."__stand_item_mode_56txvl4owv"(), "qti"."__stand_item_ref_document_i66s3vh6ga"(), "qti"."__stand_item_ref_href_jrjueitx27"(), "qti"."__stand_label_use_o4brmrb7aq"(), "qti"."__stand_least_count_ya6wrr6a3v"(), "qti"."__stand_link_reading_uenjcz5dvs"(), "qti"."__stand_literal_tiziliumbt"(), "qti"."__stand_literal_typed_2ilx4mlegz"(), "qti"."__stand_lookup_value_hx7624x4iw"(), "qti"."__stand_map_key_4gd3dvrew7"(), "qti"."__stand_math_action_f5wwzdrvm5"(), "qti"."__stand_math_align_group_6xltg6lxo2"(), "qti"."__stand_math_align_scope_u2bech2ml5"(), "qti"."__stand_math_cell_7pwv53nkxm"(), "qti"."__stand_math_cn_d6ecu3zp5g"(), "qti"."__stand_math_rank_nqeqnb4u7t"(), "qti"."__stand_media_5bf42f2xah"(), "qti"."__stand_most_count_2kgjd3owwn"(), "qti"."__stand_named_rt75iqktd4"(), "qti"."__stand_node_ufvsoeyzmq"(), "qti"."__stand_numbered_reading_em4eroit7v"(), "qti"."__stand_open_attribute_kus4ehgwz4"(), "qti"."__stand_open_element_name_yc423a5h3x"(), "qti"."__stand_open_element_type_ntz3lqtaqc"(), "qti"."__stand_pci_module_form_yzlgznmelb"(), "qti"."__stand_pi_xg74jk6xwy"(), "qti"."__stand_placed_binding_rbegxbfbcg"(), "qti"."__stand_placed_choice_54ymy46b3e"(), "qti"."__stand_placed_expression_eajdtujnrh"(), "qti"."__stand_placed_hottext_donabbhxss"(), "qti"."__stand_placed_id_kbkipg3veh"(), "qti"."__stand_placed_idref_64inmhwtyc"(), "qti"."__stand_placed_math_rank_5572svkpcq"(), "qti"."__stand_placed_share_target_bt6g4coqwv"(), "qti"."__stand_placed_variable_ref_m4ro6tg5kc"(), "qti"."__stand_printed_variable_ref_e7jd2rdh3z"(), "qti"."__stand_processing_fc2mn4yln3"(), "qti"."__stand_reference_5zvivb5s2f"(), "qti"."__stand_reference_path_wo5g5edty7"(), "qti"."__stand_resource_document_j6gjtwm5zs"(), "qti"."__stand_resource_href_m3jxi2ub6r"(), "qti"."__stand_resource_href_outside_h5ayb4ywy5"(), "qti"."__stand_resource_href_path_cetda5wlcb"(), "qti"."__stand_rounding_c2ifmdme7j"(), "qti"."__stand_rounding_figures_lqklyjsczn"(), "qti"."__stand_rounding_mode_figures_xtki3xbmlh"(), "qti"."__stand_share_fragment_vlshgysorq"(), "qti"."__stand_share_target_uodbsrbtr7"(), "qti"."__stand_site_tjfl6cjoct"(), "qti"."__stand_site_path_5texh73t5e"(), "qti"."__stand_site_target_7dcfpspkwp"(), "qti"."__stand_srcset_rftu4ffapo"(), "qti"."__stand_srcset_candidate_rjuo7n5ahk"(), "qti"."__stand_ssml_scope_qlkcnlkody"(), "qti"."__stand_stimulus_ref_3r7jqd3al5"(), "qti"."__stand_table_header_yxurhvfvyx"(), "qti"."__stand_table_scope_fpjvpoyvle"(), "qti"."__stand_template_ref_5rw7gnm6ga"(), "qti"."__stand_text_reference_xbgifadnt4"(), "qti"."__stand_text_reference_path_ijtliptx3w"(), "qti"."__stand_tolerance_j3naktmm3s"(), "qti"."__stand_usage_value_jbqmhc66yy"(), "qti"."__stand_usage_value_base_type_ss7bxv4pjb"(), "qti"."__stand_variable_ref_htgoqewgip"() TO :"qti_queries__author";
 
 SELECT "pg_catalog"."pg_advisory_xact_lock"(5448515225636816524::bigint);
 GRANT USAGE ON SCHEMA "qti" TO :"qti_queries__author_app";
@@ -1563,9 +1563,9 @@ COMMENT ON TYPE "qti"."__row_news_assembled_document_4waj2i2okj" IS 'the row typ
 
 COMMENT ON TYPE "qti"."__row_olds_assembled_document_qwbvnwhx3x" IS 'the row type of the delta of olds of AssembledDocument';
 
-COMMENT ON TYPE "qti"."__row_news_attribute_xhxeojvr6o" IS 'the row type of the delta of news of Attribute';
+COMMENT ON TYPE "qti"."__row_news_attribute_r7tty75nde" IS 'the row type of the delta of news of Attribute';
 
-COMMENT ON TYPE "qti"."__row_olds_attribute_37t7c3skxz" IS 'the row type of the delta of olds of Attribute';
+COMMENT ON TYPE "qti"."__row_olds_attribute_qvwoava6zu" IS 'the row type of the delta of olds of Attribute';
 
 COMMENT ON TYPE "qti"."__row_news_binding_name_uoz3c2uauk" IS 'the row type of the delta of news of BindingName';
 
@@ -1629,9 +1629,9 @@ COMMENT ON TYPE "qti"."__row_news_doctype_4jkrj63b7g" IS 'the row type of the de
 
 COMMENT ON TYPE "qti"."__row_olds_doctype_wuvzyqbcje" IS 'the row type of the delta of olds of Doctype';
 
-COMMENT ON TYPE "qti"."__row_news_document_cbygubjl7x" IS 'the row type of the delta of news of Document';
+COMMENT ON TYPE "qti"."__row_news_document_xxbe6bp5cf" IS 'the row type of the delta of news of Document';
 
-COMMENT ON TYPE "qti"."__row_olds_document_ytxgjf4afa" IS 'the row type of the delta of olds of Document';
+COMMENT ON TYPE "qti"."__row_olds_document_s57nhjv2nt" IS 'the row type of the delta of olds of Document';
 
 COMMENT ON TYPE "qti"."__row_news_document_id_b5gnhjoaes" IS 'the row type of the delta of news of DocumentId';
 
@@ -1767,15 +1767,15 @@ COMMENT ON TYPE "qti"."__row_news_named_4bzny7q5zb" IS 'the row type of the delt
 
 COMMENT ON TYPE "qti"."__row_olds_named_io53u6lyoj" IS 'the row type of the delta of olds of Named';
 
-COMMENT ON TYPE "qti"."__row_news_node_23dccpkmi2" IS 'the row type of the delta of news of Node';
+COMMENT ON TYPE "qti"."__row_news_node_sq5ktt54ec" IS 'the row type of the delta of news of Node';
 
-COMMENT ON TYPE "qti"."__row_olds_node_qykn7vcn23" IS 'the row type of the delta of olds of Node';
+COMMENT ON TYPE "qti"."__row_olds_node_w4luks6idx" IS 'the row type of the delta of olds of Node';
 
 COMMENT ON TYPE "qti"."__row_news_numbered_reading_o24ojffayb" IS 'the row type of the delta of news of NumberedReading';
 
 COMMENT ON TYPE "qti"."__row_olds_numbered_reading_fhapu4fwfl" IS 'the row type of the delta of olds of NumberedReading';
 
-COMMENT ON TYPE "qti"."__row_news_open_attribute_h7nt6isv6q" IS 'the row type of the delta of news of OpenAttribute';
+COMMENT ON TYPE "qti"."__row_news_open_attribute_g2624hmizp" IS 'the row type of the delta of news of OpenAttribute';
 
 COMMENT ON TYPE "qti"."__row_news_open_element_name_xbfltrgqxf" IS 'the row type of the delta of news of OpenElementName';
 
@@ -1801,9 +1801,9 @@ COMMENT ON TYPE "qti"."__row_news_placed_choice_d4735rljg3" IS 'the row type of 
 
 COMMENT ON TYPE "qti"."__row_olds_placed_choice_uqukc4rtgy" IS 'the row type of the delta of olds of PlacedChoice';
 
-COMMENT ON TYPE "qti"."__row_news_placed_expression_ml2o6ofsj2" IS 'the row type of the delta of news of PlacedExpression';
+COMMENT ON TYPE "qti"."__row_news_placed_expression_liuyc6fuyd" IS 'the row type of the delta of news of PlacedExpression';
 
-COMMENT ON TYPE "qti"."__row_olds_placed_expression_dmjedik7gm" IS 'the row type of the delta of olds of PlacedExpression';
+COMMENT ON TYPE "qti"."__row_olds_placed_expression_zb4apsrevs" IS 'the row type of the delta of olds of PlacedExpression';
 
 COMMENT ON TYPE "qti"."__row_news_placed_hottext_ermemztp4d" IS 'the row type of the delta of news of PlacedHottext';
 
@@ -1875,17 +1875,17 @@ COMMENT ON TYPE "qti"."__row_news_share_target_iynfbk3xlv" IS 'the row type of t
 
 COMMENT ON TYPE "qti"."__row_olds_share_target_2q5afkovdu" IS 'the row type of the delta of olds of ShareTarget';
 
-COMMENT ON TYPE "qti"."__row_news_site_zw27fzjohf" IS 'the row type of the delta of news of Site';
+COMMENT ON TYPE "qti"."__row_news_site_ccniqd5yfs" IS 'the row type of the delta of news of Site';
 
-COMMENT ON TYPE "qti"."__row_olds_site_yhbx7dgvpx" IS 'the row type of the delta of olds of Site';
+COMMENT ON TYPE "qti"."__row_olds_site_sqgjmsfl3h" IS 'the row type of the delta of olds of Site';
 
 COMMENT ON TYPE "qti"."__row_news_site_path_v6xssr3rsf" IS 'the row type of the delta of news of SitePath';
 
 COMMENT ON TYPE "qti"."__row_olds_site_path_ejfwr4dayi" IS 'the row type of the delta of olds of SitePath';
 
-COMMENT ON TYPE "qti"."__row_news_site_target_7vylgiyr7o" IS 'the row type of the delta of news of SiteTarget';
+COMMENT ON TYPE "qti"."__row_news_site_target_yg23jxxoij" IS 'the row type of the delta of news of SiteTarget';
 
-COMMENT ON TYPE "qti"."__row_olds_site_target_qr62grrtjl" IS 'the row type of the delta of olds of SiteTarget';
+COMMENT ON TYPE "qti"."__row_olds_site_target_bqg73i5pff" IS 'the row type of the delta of olds of SiteTarget';
 
 COMMENT ON TYPE "qti"."__row_news_srcset_ugswjhqap4" IS 'the row type of the delta of news of Srcset';
 
@@ -3473,9 +3473,9 @@ COMMENT ON CONSTRAINT "__variable_ref_fk_package_path_start_attribute_mtdx46lozb
 
 COMMENT ON CONSTRAINT "__xml_decl_fk_package_path_ge2web3hon" ON "qti"."xml_decl" IS 'foreign key XmlDecl(package, path) to Document(package, path)';
 
-COMMENT ON INDEX "qti"."__assembled_catalog_ix_package_path_owner_yng35odexo" IS 'btree index AssembledCatalog(package, path, owner)';
+COMMENT ON INDEX "qti"."__assembled_catalog_ix_owner_package_path_4lvcwn7xg3" IS 'btree index AssembledCatalog(owner, package, path)';
 
-COMMENT ON INDEX "qti"."__attribute_ix_package_a_4_p_2_u_7_pv_6_l_path_start_2cajllfvyt" IS 'btree index Attribute(__package_a4p2u7pv6l, path, start, name)';
+COMMENT ON INDEX "qti"."__attribute_ix_name_path_start_package_a_4_p_2_u_7_hk4lma32u7" IS 'btree index Attribute(name, path, start, __package_a4p2u7pv6l)';
 
 COMMENT ON INDEX "qti"."__attribute_ix_package_kind_name_start_path_jmvc4xtkis" IS 'btree index Attribute(package, kind, name, start, path), value filtered beside it, not indexed: no byte bound fits the entry';
 
@@ -3485,21 +3485,23 @@ COMMENT ON INDEX "qti"."__attribute_ix_package_path_name_kind_value_digest_nuvl7
 
 COMMENT ON INDEX "qti"."__attribute_ix_package_path_start_kind_name_dh3aepikkd" IS 'btree index Attribute(package, path, start, kind, name), value filtered beside it, not indexed: no byte bound fits the entry';
 
-COMMENT ON INDEX "qti"."__bound_variable_ix_package_pyofn_3_cand_path_start_msbzzspyze" IS 'btree index BoundVariable(__package_pyofn3cand, path, start)';
-
 COMMENT ON INDEX "qti"."__bound_variable_ix_package_attribute_path_ej2y7oq7v2" IS 'btree index BoundVariable(package, attribute, path)';
 
 COMMENT ON INDEX "qti"."__bound_variable_ix_package_path_adaptive_khkcbwhnkh" IS 'btree index BoundVariable(package, path, adaptive)';
 
 COMMENT ON INDEX "qti"."__bound_variable_ix_package_path_attribute_ophjg3fmft" IS 'btree index BoundVariable(package, path, attribute)';
 
+COMMENT ON INDEX "qti"."__bound_variable_ix_path_start_package_pyofn_3_cand_ggzllvtzhh" IS 'btree index BoundVariable(path, start, __package_pyofn3cand)';
+
 COMMENT ON INDEX "qti"."__candidate_path_ix_package_target_6vqzdz37df" IS 'btree index CandidatePath(package, target)';
 
-COMMENT ON INDEX "qti"."__choice_ix_package_path_identifier_start_v4shno6kmh" IS 'btree index Choice(package, path, identifier, start)';
+COMMENT ON INDEX "qti"."__choice_ix_package_path_identifier_gja2ztdp2y" IS 'btree index Choice(package, path, identifier)';
 
-COMMENT ON INDEX "qti"."__data_ssml_property_ix_package_path_start_member_i4quh7scqt" IS 'btree index DataSsmlProperty(package, path, start, member, memberNameDigest)';
+COMMENT ON INDEX "qti"."__choice_interaction_ix_package_interaction_k6iqlgrqib" IS 'btree index ChoiceInteraction(package, interaction, interactionPath, path)';
 
-COMMENT ON INDEX "qti"."__data_ssml_property_ix_package_path_start_member_22jp6hx6so" IS 'btree index DataSsmlProperty(package, path, start, member, nameDigest)';
+COMMENT ON INDEX "qti"."__data_ssml_property_ix_member_package_path_start_yctyt4mr3r" IS 'btree index DataSsmlProperty(member, package, path, start, memberNameDigest)';
+
+COMMENT ON INDEX "qti"."__data_ssml_property_ix_member_package_path_start_3ibi7dhxxr" IS 'btree index DataSsmlProperty(member, package, path, start, nameDigest)';
 
 COMMENT ON INDEX "qti"."__document_ix_package_assembled_path_6hx6cticyt" IS 'btree index Document(package, assembled, path)';
 
@@ -3511,15 +3513,15 @@ COMMENT ON INDEX "qti"."__file_path_ix_package_path_target_km6qcynmsz" IS 'btree
 
 COMMENT ON INDEX "qti"."__file_path_ix_package_target_path_el6yhgey5m" IS 'btree index FilePath(package, target, path)';
 
-COMMENT ON INDEX "qti"."__fragment_context_ref_ix_package_path_start_nmvpv5crfw" IS 'btree index FragmentContextRef(package, path, start, attribute, kind, identifier)';
+COMMENT ON INDEX "qti"."__fragment_context_ref_ix_attribute_identifier_kind_pwcxnr27km" IS 'btree index FragmentContextRef(attribute, identifier, kind, package, path, start)';
 
-COMMENT ON INDEX "qti"."__fragment_feedback_ref_ix_package_path_start_eodgr2j77q" IS 'btree index FragmentFeedbackRef(package, path, start, attribute, kind, identifier)';
+COMMENT ON INDEX "qti"."__fragment_feedback_ref_ix_attribute_identifier_kind_seb6fwpevd" IS 'btree index FragmentFeedbackRef(attribute, identifier, kind, package, path, start)';
 
-COMMENT ON INDEX "qti"."__fragment_printed_ref_ix_package_path_start_icd2lzsmbv" IS 'btree index FragmentPrintedRef(package, path, start, attribute, kind, identifier)';
+COMMENT ON INDEX "qti"."__fragment_printed_ref_ix_attribute_identifier_kind_rvyu6hyn5x" IS 'btree index FragmentPrintedRef(attribute, identifier, kind, package, path, start)';
 
-COMMENT ON INDEX "qti"."__fragment_scope_ix_package_document_feedbacks_txlrykzdtc" IS 'btree index FragmentScope(package, document, feedbacks, prints, templates, contexts)';
+COMMENT ON INDEX "qti"."__fragment_scope_ix_contexts_document_feedbacks_7o6ndg23f4" IS 'btree index FragmentScope(contexts, document, feedbacks, package, prints, templates)';
 
-COMMENT ON INDEX "qti"."__fragment_template_ref_ix_package_path_start_w5snz3je32" IS 'btree index FragmentTemplateRef(package, path, start, attribute, kind, identifier)';
+COMMENT ON INDEX "qti"."__fragment_template_ref_ix_attribute_identifier_kind_ypbawdd6ec" IS 'btree index FragmentTemplateRef(attribute, identifier, kind, package, path, start)';
 
 COMMENT ON INDEX "qti"."__idref_ix_package_name_path_nielih3bso" IS 'btree index Idref(package, name, path)';
 
@@ -3529,7 +3531,7 @@ COMMENT ON INDEX "qti"."__idref_ix_package_path_token_digest_32nufrmpv6" IS 'btr
 
 COMMENT ON INDEX "qti"."__idref_target_ix_package_path_assembled_4j2motbov2" IS 'btree index IdrefTarget(package, path, assembled)';
 
-COMMENT ON INDEX "qti"."__instance_ix_assembly_assembly_kind_package_start_gnufbb5gu4" IS 'btree index Instance(assembly, assemblyKind, package, start)';
+COMMENT ON INDEX "qti"."__instance_ix_assembly_assembly_kind_package_gx4vwly74d" IS 'btree index Instance(assembly, assemblyKind, package)';
 
 COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_end_6c3k3mjz3l" IS 'btree index Instance(package, assembly, assemblyKind, end, document)';
 
@@ -3543,39 +3545,41 @@ COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_site_c7f2vp
 
 COMMENT ON INDEX "qti"."__instance_ix_package_assembly_assembly_kind_site_65ivnxs6hw" IS 'btree index Instance(package, assembly, assemblyKind, siteDocument, document, site)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_assembly_document_start_ggh4saptf3" IS 'btree index Instance(package, assembly, document, start)';
+COMMENT ON INDEX "qti"."__instance_ix_package_assembly_document_athumb4mf5" IS 'btree index Instance(package, assembly, document)';
 
 COMMENT ON INDEX "qti"."__instance_ix_package_assembly_kind_assembly_zz7dcr5yl2" IS 'btree index Instance(package, assemblyKind, assembly, document, parent, siteDocument, site)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_assembly_kind_document_apug2ak2ps" IS 'btree index Instance(package, assemblyKind, document, assembly, start)';
+COMMENT ON INDEX "qti"."__instance_ix_package_assembly_kind_document_fqoo34oqex" IS 'btree index Instance(package, assemblyKind, document, bindings)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_document_ids_idref_targets_3kuzxyrfyq" IS 'btree index Instance(package, document, ids, idrefTargets, choices, hottexts)';
+COMMENT ON INDEX "qti"."__instance_ix_package_document_choices_hottexts_qlg6xqawz7" IS 'btree index Instance(package, document, choices, hottexts, idrefTargets, ids)';
 
 COMMENT ON INDEX "qti"."__instance_ix_package_document_root_kind_rubmvpymix" IS 'btree index Instance(package, document, rootKind)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_site_document_site_assembly_5ddwbrwco4" IS 'btree index Instance(package, siteDocument, site, assemblyKind)';
+COMMENT ON INDEX "qti"."__instance_ix_package_site_site_document_assembly_qbsms3vpvp" IS 'btree index Instance(package, site, siteDocument, assemblyKind)';
 
-COMMENT ON INDEX "qti"."__instance_ix_package_start_document_assembly_rmwvqsnjiw" IS 'btree index Instance(package, start, document, assembly)';
+COMMENT ON INDEX "qti"."__instance_ix_package_site_site_document_document_bjipxfrcbk" IS 'btree index Instance(package, site, siteDocument, document)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_23_kaj_6_k_72_g_gqsdbb2ba7" IS 'btree index InteractionAttribute(__package_23kaj6k72g, path, start, name, kind, rootKind)';
+COMMENT ON INDEX "qti"."__instance_ix_package_start_document_ywontbbqhm" IS 'btree index Instance(package, start, document)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_em_5_smlkv_7_y_lxvozf472c" IS 'btree index InteractionAttribute(__package_em5smlkv7y, path, start, name, kind)';
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_kind_name_path_root_kind_vikix6lasa" IS 'btree index InteractionAttribute(kind, name, path, rootKind, start, __package_23kaj6k72g)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_mh_3_ihjeic_4_qt7rogj5ce" IS 'btree index InteractionAttribute(__package_mh3ihjeic4, path, start, name, kind, rootKind)';
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_kind_name_path_root_kind_ekx7mv2pwx" IS 'btree index InteractionAttribute(kind, name, path, rootKind, start, __package_mh3ihjeic4)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_ml_42_oesjn_5_6erdbwhr2b" IS 'btree index InteractionAttribute(__package_ml42oesjn5, path, start, name, kind)';
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_kind_name_path_root_kind_s2cghdj5s6" IS 'btree index InteractionAttribute(kind, name, path, rootKind, start, __package_u66bjij63r)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_ph_3_lmj_2_a_3_i_yxarmm2vwu" IS 'btree index InteractionAttribute(__package_ph3lmj2a3i, path, start, name, kind)';
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_kind_name_path_root_kind_o3a4plelvq" IS 'btree index InteractionAttribute(kind, name, path, rootKind, start, __package_vavgyyjccm)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_py_2_hqgnzbf_path_3n54sjiys5" IS 'btree index InteractionAttribute(__package_py2hqgnzbf, path, start, name)';
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_kind_name_path_start_l2s7ywszoy" IS 'btree index InteractionAttribute(kind, name, path, start, __package_em5smlkv7y)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_sl_6_clonewv_path_qbpieanhqd" IS 'btree index InteractionAttribute(__package_sl6clonewv, path, start, name, kind)';
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_kind_name_path_start_7udfl4bz3c" IS 'btree index InteractionAttribute(kind, name, path, start, __package_ml42oesjn5)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_u_66_bjij_63_r_ehfdjvoodq" IS 'btree index InteractionAttribute(__package_u66bjij63r, path, start, name, kind, rootKind)';
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_kind_name_path_start_v22vf6pmu6" IS 'btree index InteractionAttribute(kind, name, path, start, __package_ph3lmj2a3i)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_u_7_v_2_jd_53_lp_d7oa422xem" IS 'btree index InteractionAttribute(__package_u7v2jd53lp, path, start, name)';
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_kind_name_path_start_6ekwrewu4j" IS 'btree index InteractionAttribute(kind, name, path, start, __package_sl6clonewv)';
 
-COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_vavgyyjccm_path_4e6557ihz4" IS 'btree index InteractionAttribute(__package_vavgyyjccm, path, start, name, kind, rootKind)';
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_name_path_start_package_4kzzuik4c4" IS 'btree index InteractionAttribute(name, path, start, __package_py2hqgnzbf)';
+
+COMMENT ON INDEX "qti"."__interaction_attribute_ix_name_path_start_package_u_h45ljcxfzp" IS 'btree index InteractionAttribute(name, path, start, __package_u7v2jd53lp)';
 
 COMMENT ON INDEX "qti"."__interaction_attribute_ix_package_path_name_kind_xlbfjajq5d" IS 'btree index InteractionAttribute(package, path, name, kind, start), value filtered beside it, not indexed: no byte bound fits the entry';
 
@@ -3613,41 +3617,41 @@ COMMENT ON INDEX "qti"."__node_ix_package_start_kind_path_wfqsgvcv6x" IS 'btree 
 
 COMMENT ON INDEX "qti"."__numbered_reading_ix_package_assembly_scope_scope_3jdhtpwvdv" IS 'btree index NumberedReading(package, assembly, scope, scopeInstance, scopePath, variable)';
 
-COMMENT ON INDEX "qti"."__open_attribute_ix_package_path_start_kind_2umcdya4be" IS 'btree index OpenAttribute(package, path, start, kind)';
-
-COMMENT ON INDEX "qti"."__pci_module_form_ix_package_path_element_start_j6pwi6afuc" IS 'btree index PciModuleForm(package, path, element, start)';
-
-COMMENT ON INDEX "qti"."__placed_binding_ix_package_pyofn_3_cand_path_start_xuyitwy3ee" IS 'btree index PlacedBinding(__package_pyofn3cand, path, start)';
+COMMENT ON INDEX "qti"."__open_attribute_ix_package_path_start_kind_ne45h6usf5" IS 'btree index OpenAttribute(package, path, start, kind), elementNamespace filtered beside it, not indexed: no byte bound fits the entry';
 
 COMMENT ON INDEX "qti"."__placed_binding_ix_package_assembly_adaptive_lv5atayv6x" IS 'btree index PlacedBinding(package, assembly, adaptive)';
 
+COMMENT ON INDEX "qti"."__placed_binding_ix_package_assembly_instance_path_u7y4ztcx7f" IS 'btree index PlacedBinding(package, assembly, instance, path)';
+
 COMMENT ON INDEX "qti"."__placed_binding_ix_package_attribute_path_start_v2fpmoweun" IS 'btree index PlacedBinding(package, attribute, path, start, identifier)';
+
+COMMENT ON INDEX "qti"."__placed_binding_ix_path_start_package_pyofn_3_cand_2mhddflj74" IS 'btree index PlacedBinding(path, start, __package_pyofn3cand)';
 
 COMMENT ON INDEX "qti"."__placed_choice_ix_package_assembly_identifier_uhvul24o7s" IS 'btree index PlacedChoice(package, assembly, identifier)';
 
-COMMENT ON INDEX "qti"."__placed_choice_ix_package_path_start_identifier_jk6vt35bcx" IS 'btree index PlacedChoice(package, path, start, identifier)';
+COMMENT ON INDEX "qti"."__placed_choice_ix_package_identifier_path_start_4ff4uctojl" IS 'btree index PlacedChoice(package, identifier, path, start)';
 
-COMMENT ON INDEX "qti"."__placed_choice_ix_package_path_start_kind_5miftnmzpk" IS 'btree index PlacedChoice(package, path, start, kind)';
+COMMENT ON INDEX "qti"."__placed_choice_ix_package_kind_path_start_6u6xdpvxrk" IS 'btree index PlacedChoice(package, kind, path, start)';
 
 COMMENT ON INDEX "qti"."__placed_expression_ix_package_base_type_assembly_qxi577w7ks" IS 'btree index PlacedExpression(package, baseType, assembly, instance, path)';
 
 COMMENT ON INDEX "qti"."__placed_expression_ix_package_path_start_5zxaoolb7y" IS 'btree index PlacedExpression(package, path, start)';
 
-COMMENT ON INDEX "qti"."__placed_hottext_ix_package_path_start_identifier_svnx5dat5y" IS 'btree index PlacedHottext(package, path, start, identifier)';
+COMMENT ON INDEX "qti"."__placed_hottext_ix_package_identifier_path_start_hz2kbnxvhq" IS 'btree index PlacedHottext(package, identifier, path, start)';
 
 COMMENT ON INDEX "qti"."__placed_id_ix_package_assembly_owner_path_instance_c76iqalxom" IS 'btree index PlacedId(package, assembly, owner, path, instance), id filtered beside it, not indexed: no byte bound fits the entry';
 
-COMMENT ON INDEX "qti"."__placed_idref_ix_package_path_id_digest_fdq5qztrv7" IS 'btree index PlacedIdref(package, path, idDigest)';
+COMMENT ON INDEX "qti"."__placed_idref_ix_package_id_digest_path_whg3pktib3" IS 'btree index PlacedIdref(package, idDigest, path)';
 
 COMMENT ON INDEX "qti"."__placed_math_rank_ix_package_assembly_instance_path_xlmxodty27" IS 'btree index PlacedMathRank(package, assembly, instance, path)';
 
 COMMENT ON INDEX "qti"."__placed_math_rank_ix_package_path_start_v42fxoxi7w" IS 'btree index PlacedMathRank(package, path, start)';
 
-COMMENT ON INDEX "qti"."__placed_share_target_ix_package_assembly_instance_iapuqjl64s" IS 'btree index PlacedShareTarget(package, assembly, instance, path, assemblyKind)';
+COMMENT ON INDEX "qti"."__placed_share_target_ix_assembly_package_assembly_gtvlyfppdi" IS 'btree index PlacedShareTarget(assembly, package, assemblyKind, instance, path)';
 
-COMMENT ON INDEX "qti"."__placed_share_target_ix_package_assembly_target_k66b7bmx5u" IS 'btree index PlacedShareTarget(package, assembly, targetInstance, target)';
+COMMENT ON INDEX "qti"."__placed_share_target_ix_assembly_package_target_l6gfxbsrsm" IS 'btree index PlacedShareTarget(assembly, package, target, targetInstance)';
 
-COMMENT ON INDEX "qti"."__placed_share_target_ix_package_assembly_target_fpl23rvteo" IS 'btree index PlacedShareTarget(package, assembly, targetInstance, targetStart)';
+COMMENT ON INDEX "qti"."__placed_share_target_ix_assembly_package_target_2xc2tepmfu" IS 'btree index PlacedShareTarget(assembly, package, targetInstance, targetStart)';
 
 COMMENT ON INDEX "qti"."__placed_variable_ref_ix_package_assembly_resolution_ymsbodsibl" IS 'btree index PlacedVariableRef(package, assembly, resolution, attribute, identifier)';
 
@@ -3657,25 +3661,23 @@ COMMENT ON INDEX "qti"."__placed_variable_ref_ix_package_attribute_3vpsdcsq4l" I
 
 COMMENT ON INDEX "qti"."__placed_variable_ref_ix_package_resolution_assembly_zzk4vby5a7" IS 'btree index PlacedVariableRef(package, resolution, assembly)';
 
-COMMENT ON INDEX "qti"."__reference_path_ix_package_kind_name_path_target_xuquekdgd7" IS 'btree index ReferencePath(package, kind, name, path, target)';
+COMMENT ON INDEX "qti"."__reference_path_ix_package_target_kind_name_path_nc25mlby5o" IS 'btree index ReferencePath(package, target, kind, name, path)';
 
-COMMENT ON INDEX "qti"."__reference_path_ix_package_target_path_start_37so7ufnoh" IS 'btree index ReferencePath(package, target, path, start)';
-
-COMMENT ON INDEX "qti"."__resource_href_ix_package_path_scope_start_rkpqugj43q" IS 'btree index ResourceHref(package, path, scope, start)';
+COMMENT ON INDEX "qti"."__resource_href_ix_package_path_scope_qkrp53ev3n" IS 'btree index ResourceHref(package, path, scope)';
 
 COMMENT ON INDEX "qti"."__resource_href_path_ix_package_target_w6il6mi33e" IS 'btree index ResourceHrefPath(package, target)';
 
-COMMENT ON INDEX "qti"."__share_fragment_ix_package_path_assembled_start_njqql36dxw" IS 'btree index ShareFragment(package, path, assembled, start)';
+COMMENT ON INDEX "qti"."__share_fragment_ix_assembled_package_path_nqr4ku73uk" IS 'btree index ShareFragment(assembled, package, path, placements)';
 
-COMMENT ON INDEX "qti"."__share_fragment_ix_package_path_id_digest_nauvwqgz7q" IS 'btree index ShareFragment(package, path, idDigest)';
+COMMENT ON INDEX "qti"."__share_fragment_ix_id_digest_package_path_jpajpi2hz2" IS 'btree index ShareFragment(idDigest, package, path)';
 
 COMMENT ON INDEX "qti"."__share_target_ix_package_path_target_start_vj2n53ubgi" IS 'btree index ShareTarget(package, path, targetStart)';
 
-COMMENT ON INDEX "qti"."__site_ix_package_external_kind_path_start_z6n3kpl2eq" IS 'btree index Site(package, external, kind, path, start)';
+COMMENT ON INDEX "qti"."__site_ix_package_external_kind_path_lntm7cebfg" IS 'btree index Site(package, external, kind, path)';
 
-COMMENT ON INDEX "qti"."__site_path_ix_package_entry_path_start_lzli5pxkzl" IS 'btree index SitePath(package, entry, path, start)';
+COMMENT ON INDEX "qti"."__site_path_ix_entry_package_target_wrj5ssqldp" IS 'btree index SitePath(entry, package, target)';
 
-COMMENT ON INDEX "qti"."__site_path_ix_package_path_entry_kind_start_qbgtz4urvv" IS 'btree index SitePath(package, path, entry, kind, start)';
+COMMENT ON INDEX "qti"."__site_path_ix_package_path_entry_kind_cw75fb42kr" IS 'btree index SitePath(package, path, entry, kind)';
 
 COMMENT ON INDEX "qti"."__site_target_ix_package_target_splices_ufrlh7idlc" IS 'btree index SiteTarget(package, target, splices)';
 
@@ -3691,6 +3693,20 @@ COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_identifier_start_xf557pdh
 
 COMMENT ON INDEX "qti"."__variable_ref_ix_package_path_root_kind_merm4oeh73" IS 'btree index VariableRef(package, path, rootKind)';
 
+COMMENT ON STATISTICS "qti"."__attribute_dep_package_path_37ouah6cle" IS 'dependencies Attribute(package, path)';
+
+COMMENT ON STATISTICS "qti"."__bound_variable_dep_package_path_h3xeuy73k4" IS 'dependencies BoundVariable(package, path)';
+
+COMMENT ON STATISTICS "qti"."__data_ssml_property_dep_package_member_76cqu4jubz" IS 'dependencies DataSsmlProperty(package, member)';
+
+COMMENT ON STATISTICS "qti"."__instance_dep_package_assembly_47a3l5vrjf" IS 'dependencies Instance(package, assembly)';
+
+COMMENT ON STATISTICS "qti"."__interaction_attribute_dep_package_path_dh4uatylra" IS 'dependencies InteractionAttribute(package, path)';
+
+COMMENT ON STATISTICS "qti"."__placed_share_target_dep_package_assembly_763o2p4rif" IS 'dependencies PlacedShareTarget(package, assembly)';
+
+COMMENT ON STATISTICS "qti"."__share_fragment_dep_package_id_digest_art5xi2qsi" IS 'dependencies ShareFragment(package, idDigest)';
+
 COMMENT ON FUNCTION "qti"."__reader_news_assembled_catalog_z3igbb5mrk"() IS 'the reader of the delta of news of AssembledCatalog';
 
 COMMENT ON FUNCTION "qti"."__reader_olds_assembled_catalog_feoyt677yo"() IS 'the reader of the delta of olds of AssembledCatalog';
@@ -3699,9 +3715,9 @@ COMMENT ON FUNCTION "qti"."__reader_news_assembled_document_6uia4xcajl"() IS 'th
 
 COMMENT ON FUNCTION "qti"."__reader_olds_assembled_document_hw6qsevoql"() IS 'the reader of the delta of olds of AssembledDocument';
 
-COMMENT ON FUNCTION "qti"."__reader_news_attribute_wov7msmueh"() IS 'the reader of the delta of news of Attribute';
+COMMENT ON FUNCTION "qti"."__reader_news_attribute_6khon4bwwl"() IS 'the reader of the delta of news of Attribute';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_attribute_oi2bc5f6qf"() IS 'the reader of the delta of olds of Attribute';
+COMMENT ON FUNCTION "qti"."__reader_olds_attribute_4bshbuu52i"() IS 'the reader of the delta of olds of Attribute';
 
 COMMENT ON FUNCTION "qti"."__reader_news_binding_name_gxtl45ye3k"() IS 'the reader of the delta of news of BindingName';
 
@@ -3765,9 +3781,9 @@ COMMENT ON FUNCTION "qti"."__reader_news_doctype_r2i3ziokxs"() IS 'the reader of
 
 COMMENT ON FUNCTION "qti"."__reader_olds_doctype_3cqihzyxyf"() IS 'the reader of the delta of olds of Doctype';
 
-COMMENT ON FUNCTION "qti"."__reader_news_document_sjbgfky7xb"() IS 'the reader of the delta of news of Document';
+COMMENT ON FUNCTION "qti"."__reader_news_document_pelygifh5a"() IS 'the reader of the delta of news of Document';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_document_n7q4fojmkc"() IS 'the reader of the delta of olds of Document';
+COMMENT ON FUNCTION "qti"."__reader_olds_document_acmx44ders"() IS 'the reader of the delta of olds of Document';
 
 COMMENT ON FUNCTION "qti"."__reader_news_document_id_dhhnmn5jzh"() IS 'the reader of the delta of news of DocumentId';
 
@@ -3903,15 +3919,15 @@ COMMENT ON FUNCTION "qti"."__reader_news_named_e4zczmqimn"() IS 'the reader of t
 
 COMMENT ON FUNCTION "qti"."__reader_olds_named_4yazsptd7c"() IS 'the reader of the delta of olds of Named';
 
-COMMENT ON FUNCTION "qti"."__reader_news_node_uqn4dh7bu4"() IS 'the reader of the delta of news of Node';
+COMMENT ON FUNCTION "qti"."__reader_news_node_st5fwmhhxd"() IS 'the reader of the delta of news of Node';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_node_ekiasdp4it"() IS 'the reader of the delta of olds of Node';
+COMMENT ON FUNCTION "qti"."__reader_olds_node_6ifx6gx7bv"() IS 'the reader of the delta of olds of Node';
 
 COMMENT ON FUNCTION "qti"."__reader_news_numbered_reading_eeh447z3mg"() IS 'the reader of the delta of news of NumberedReading';
 
 COMMENT ON FUNCTION "qti"."__reader_olds_numbered_reading_2snsonzla5"() IS 'the reader of the delta of olds of NumberedReading';
 
-COMMENT ON FUNCTION "qti"."__reader_news_open_attribute_miqbhvfwwb"() IS 'the reader of the delta of news of OpenAttribute';
+COMMENT ON FUNCTION "qti"."__reader_news_open_attribute_fwd43d4uig"() IS 'the reader of the delta of news of OpenAttribute';
 
 COMMENT ON FUNCTION "qti"."__reader_news_open_element_name_quwyu43la4"() IS 'the reader of the delta of news of OpenElementName';
 
@@ -3937,9 +3953,9 @@ COMMENT ON FUNCTION "qti"."__reader_news_placed_choice_yinnsmlrpp"() IS 'the rea
 
 COMMENT ON FUNCTION "qti"."__reader_olds_placed_choice_3qxh6zptpd"() IS 'the reader of the delta of olds of PlacedChoice';
 
-COMMENT ON FUNCTION "qti"."__reader_news_placed_expression_ni47p6zzhd"() IS 'the reader of the delta of news of PlacedExpression';
+COMMENT ON FUNCTION "qti"."__reader_news_placed_expression_dagjmbqofl"() IS 'the reader of the delta of news of PlacedExpression';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_placed_expression_rjt4ekjmec"() IS 'the reader of the delta of olds of PlacedExpression';
+COMMENT ON FUNCTION "qti"."__reader_olds_placed_expression_3swg7yha3g"() IS 'the reader of the delta of olds of PlacedExpression';
 
 COMMENT ON FUNCTION "qti"."__reader_news_placed_hottext_a2nawf5rsm"() IS 'the reader of the delta of news of PlacedHottext';
 
@@ -4011,17 +4027,17 @@ COMMENT ON FUNCTION "qti"."__reader_news_share_target_ve2tr7xdpn"() IS 'the read
 
 COMMENT ON FUNCTION "qti"."__reader_olds_share_target_afnj3xp7ln"() IS 'the reader of the delta of olds of ShareTarget';
 
-COMMENT ON FUNCTION "qti"."__reader_news_site_iyoubaj7pg"() IS 'the reader of the delta of news of Site';
+COMMENT ON FUNCTION "qti"."__reader_news_site_dohvl7ns4y"() IS 'the reader of the delta of news of Site';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_site_rmrx5lj7bn"() IS 'the reader of the delta of olds of Site';
+COMMENT ON FUNCTION "qti"."__reader_olds_site_t2suo7tne3"() IS 'the reader of the delta of olds of Site';
 
 COMMENT ON FUNCTION "qti"."__reader_news_site_path_vx555dvhzt"() IS 'the reader of the delta of news of SitePath';
 
 COMMENT ON FUNCTION "qti"."__reader_olds_site_path_wral7atudy"() IS 'the reader of the delta of olds of SitePath';
 
-COMMENT ON FUNCTION "qti"."__reader_news_site_target_mcrdg54mwi"() IS 'the reader of the delta of news of SiteTarget';
+COMMENT ON FUNCTION "qti"."__reader_news_site_target_kgcy3ugc2u"() IS 'the reader of the delta of news of SiteTarget';
 
-COMMENT ON FUNCTION "qti"."__reader_olds_site_target_mgednvobbe"() IS 'the reader of the delta of olds of SiteTarget';
+COMMENT ON FUNCTION "qti"."__reader_olds_site_target_aywdiveo47"() IS 'the reader of the delta of olds of SiteTarget';
 
 COMMENT ON FUNCTION "qti"."__reader_news_srcset_oxqzkt3tbf"() IS 'the reader of the delta of news of Srcset';
 
@@ -4297,55 +4313,103 @@ COMMENT ON FUNCTION "qti"."__judge_arity_floor_in_expression_operand_7uj7tkdxnn"
 
 COMMENT ON FUNCTION "qti"."__judge_assembled_catalog_in_assembled_id_h6mmkqr35h"() IS 'the rule judge''s block of rule AssembledCatalog(package, assembly, id, path, owner) in AssembledId(package, assembly, id, path, owner) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_assembled_document_in_document_e52c7wz6m4"() IS 'the rule judge''s block of rule AssembledDocument(package, path) in Document(package, path) where Logic.eq(assembled, true) over its units';
+COMMENT ON FUNCTION "qti"."__judge_assembled_document_in_document_s4ejk6f67k"() IS 'the rule judge''s block of rule AssembledDocument(package, path) in Document(package, path) where Logic.eq(assembled, true) over the rows a write adds to AssembledDocument';
+
+COMMENT ON FUNCTION "qti"."__judge_assembled_document_in_document_lr74ktyss2"() IS 'the rule judge''s block of rule AssembledDocument(package, path) in Document(package, path) where Logic.eq(assembled, true) over the rows a write removes from Document';
 
 COMMENT ON FUNCTION "qti"."__judge_assembled_document_in_instance_document_oncsn3m2jk"() IS 'the rule judge''s block of rule AssembledDocument(package, path) in InstanceDocument(package, document) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_label_use_rje6oedm3s"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(kind, ["a", "abbr", "acronym", "address", "article", "aside", "audio", "b", "bdi", "bdo", "big", "blockquote", "br", "caption", "cite", "code", "col", "colgroup", "dd", "details", "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "kbd", "label", "li", "nav", "object", "ol", "p", "picture", "pre", "q", "qti-assessment-item", "qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-gap", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-choice", "qti-hotspot-interaction", "qti-hottext", "qti-hottext-interaction", "qti-inline-choice", "qti-inline-choice-interaction", "qti-item-body", "qti-label", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-prompt", "qti-rubric-block", "qti-rubric-block.test", "qti-select-point-interaction", "qti-simple-associable-choice", "qti-simple-choice", "qti-slider-interaction", "qti-stimulus-body", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-text-entry-interaction", "qti-upload-interaction", "rb", "rp", "rt", "rtc", "ruby", "samp", "section", "small", "source", "span", "strong", "sub", "summary", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "track", "tt", "ul", "var", "video"]) and Logic.eq(name, "label") in LabelUse(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_label_use_pvrbgrtag3"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(kind, ["a", "abbr", "acronym", "address", "article", "aside", "audio", "b", "bdi", "bdo", "big", "blockquote", "br", "caption", "cite", "code", "col", "colgroup", "dd", "details", "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "kbd", "label", "li", "nav", "object", "ol", "p", "picture", "pre", "q", "qti-assessment-item", "qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-gap", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-choice", "qti-hotspot-interaction", "qti-hottext", "qti-hottext-interaction", "qti-inline-choice", "qti-inline-choice-interaction", "qti-item-body", "qti-label", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-prompt", "qti-rubric-block", "qti-rubric-block.test", "qti-select-point-interaction", "qti-simple-associable-choice", "qti-simple-choice", "qti-slider-interaction", "qti-stimulus-body", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-text-entry-interaction", "qti-upload-interaction", "rb", "rp", "rt", "rtc", "ruby", "samp", "section", "small", "source", "span", "strong", "sub", "summary", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "track", "tt", "ul", "var", "video"]) and Logic.eq(name, "label") in LabelUse(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_cell_headers_6rj74kepmr"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(kind, ["td", "th"]) and Logic.eq(name, "headers") in CellHeaders(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_label_use_4c464bmztk"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(kind, ["a", "abbr", "acronym", "address", "article", "aside", "audio", "b", "bdi", "bdo", "big", "blockquote", "br", "caption", "cite", "code", "col", "colgroup", "dd", "details", "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "kbd", "label", "li", "nav", "object", "ol", "p", "picture", "pre", "q", "qti-assessment-item", "qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-gap", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-choice", "qti-hotspot-interaction", "qti-hottext", "qti-hottext-interaction", "qti-inline-choice", "qti-inline-choice-interaction", "qti-item-body", "qti-label", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-prompt", "qti-rubric-block", "qti-rubric-block.test", "qti-select-point-interaction", "qti-simple-associable-choice", "qti-simple-choice", "qti-slider-interaction", "qti-stimulus-body", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-text-entry-interaction", "qti-upload-interaction", "rb", "rp", "rt", "rtc", "ruby", "samp", "section", "small", "source", "span", "strong", "sub", "summary", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "track", "tt", "ul", "var", "video"]) and Logic.eq(name, "label") in LabelUse(package, path, start) over the rows a write removes from LabelUse';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_lexical_kind_name_in_tolerance_v2hwhqrufg"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(lexical, ["absolute", "relative"]) and Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance-mode") in Tolerance(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_cell_headers_qnf5ksx5vb"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(kind, ["td", "th"]) and Logic.eq(name, "headers") in CellHeaders(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_lookup_value_ojilykz3xu"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(Logic.in(kind, ["qti-interpolation-table", "qti-match-table"]), Logic.eq(name, "default-value")), Logic.and(Logic.in(kind, ["qti-interpolation-table-entry", "qti-match-table-entry"]), Logic.eq(name, "target-value"))) in LookupValue(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_cell_headers_kmwceqc6cc"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(kind, ["td", "th"]) and Logic.eq(name, "headers") in CellHeaders(package, path, start) over the rows a write removes from CellHeaders';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_governor_kind_name_in_document_id_ifixnc7g7g"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) in DocumentId(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_lexical_kind_name_in_tolerance_bldm4hsw4e"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(lexical, ["absolute", "relative"]) and Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance-mode") in Tolerance(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_ssml_scope_rw4l7s63tp"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(Logic.eq(kind, "ssml:lexicon"), Logic.eq(name, "xml:id")), Logic.and(Logic.eq(kind, "ssml:lookup"), Logic.eq(name, "ref")), Logic.and(Logic.eq(kind, "ssml:mark"), Logic.eq(name, "name")), Logic.and(Logic.eq(kind, "ssml:speak"), Logic.eq(name, "endmark")), Logic.and(Logic.eq(kind, "ssml:speak"), Logic.eq(name, "startmark"))) in SsmlScope(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_lexical_kind_name_in_tolerance_jdzwic5flb"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.in(lexical, ["absolute", "relative"]) and Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance-mode") in Tolerance(package, path, start) over the rows a write removes from Tolerance';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_path_in_file_kqlxqwz3ex"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "cp:file") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") in File(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_lookup_value_ql4qgxa2iu"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(Logic.in(kind, ["qti-interpolation-table", "qti-match-table"]), Logic.eq(name, "default-value")), Logic.and(Logic.in(kind, ["qti-interpolation-table-entry", "qti-match-table-entry"]), Logic.eq(name, "target-value"))) in LookupValue(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_path_in_resource_href_lgp7s5robb"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "cp:resource") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") in ResourceHref(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_lookup_value_baevrypnbl"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(Logic.in(kind, ["qti-interpolation-table", "qti-match-table"]), Logic.eq(name, "default-value")), Logic.and(Logic.in(kind, ["qti-interpolation-table-entry", "qti-match-table-entry"]), Logic.eq(name, "target-value"))) in LookupValue(package, path, start) over the rows a write removes from LookupValue';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_stimulus_ref_einmgedfg3"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-assessment-stimulus-ref") and Logic.eq(name, "identifier") in StimulusRef(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_governor_kind_name_in_document_id_zrggbqqifb"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) in DocumentId(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_catalog_id_gzqjekduef"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-catalog") and Logic.eq(name, "id") in CatalogId(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_governor_kind_name_in_document_id_4ge5qfvlgh"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) in DocumentId(package, path, start) over the rows a write removes from DocumentId';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_tolerance_niyhs3uhtw"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") in Tolerance(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_ssml_scope_5p6664y56j"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(Logic.eq(kind, "ssml:lexicon"), Logic.eq(name, "xml:id")), Logic.and(Logic.eq(kind, "ssml:lookup"), Logic.eq(name, "ref")), Logic.and(Logic.eq(kind, "ssml:mark"), Logic.eq(name, "name")), Logic.and(Logic.eq(kind, "ssml:speak"), Logic.eq(name, "endmark")), Logic.and(Logic.eq(kind, "ssml:speak"), Logic.eq(name, "startmark"))) in SsmlScope(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_map_key_dnl4rnpbte"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-map-entry") and Logic.eq(name, "map-key") in MapKey(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_ssml_scope_jftenhjgwk"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.or(Logic.and(Logic.eq(kind, "ssml:lexicon"), Logic.eq(name, "xml:id")), Logic.and(Logic.eq(kind, "ssml:lookup"), Logic.eq(name, "ref")), Logic.and(Logic.eq(kind, "ssml:mark"), Logic.eq(name, "name")), Logic.and(Logic.eq(kind, "ssml:speak"), Logic.eq(name, "endmark")), Logic.and(Logic.eq(kind, "ssml:speak"), Logic.eq(name, "startmark"))) in SsmlScope(package, path, start) over the rows a write removes from SsmlScope';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_pci_module_form_s2odm7jpxt"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-portable-custom-interaction") and Logic.eq(name, "module") in PciModuleForm(package, path, start) where Logic.eq(element, false) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_path_in_file_jqkfs7vycs"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "cp:file") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") in File(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_srcset_kc3ibi3dk5"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "source") and Logic.eq(name, "srcset") in Srcset(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_path_in_file_3fiybeq3yt"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "cp:file") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") in File(package, path, start) over the rows a write removes from File';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_table_header_6m5t5fabf5"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "th") and Logic.eq(name, "id") in TableHeader(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_path_in_resource_href_lqpsglpydj"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "cp:resource") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") in ResourceHref(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_lexical_name_in_attribute_2kmanlylvo"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "track") and Logic.eq(lexical, "subtitles") and Logic.eq(name, "kind") in Attribute(package, path, start) where Logic.eq(kind, "track") and Logic.eq(name, "srclang") over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_path_in_resource_href_ds55o7lpdg"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "cp:resource") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") in ResourceHref(package, path, start) over the rows a write removes from ResourceHref';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_name_in_data_ssml_zfwrzzwctd"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(name, "data-ssml") in DataSsml(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_stimulus_ref_xw3wcg5tnr"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-assessment-stimulus-ref") and Logic.eq(name, "identifier") in StimulusRef(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_name_in_catalog_scope_5bupg3cpf3"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(name, "xml:lang") in CatalogScope(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_stimulus_ref_gcbbze5ima"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-assessment-stimulus-ref") and Logic.eq(name, "identifier") in StimulusRef(package, path, start) over the rows a write removes from StimulusRef';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_rounding_figures_hzws5jvlf3"() IS 'the rule judge''s block of rule Attribute(package, path, start, lexicalDigest) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") in RoundingFigures(package, path, start, figuresLexicalDigest) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_catalog_id_tzz64h3tgv"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-catalog") and Logic.eq(name, "id") in CatalogId(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_math_action_4bzlfcfrau"() IS 'the rule judge''s block of rule Attribute(package, path, start, lexicalDigest) where Logic.eq(kind, "m:maction") and Logic.eq(name, "selection") in MathAction(package, path, start, selectionLexicalDigest) where Logic.eq(selectionWritten, true) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_catalog_id_u357tjxdzd"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-catalog") and Logic.eq(name, "id") in CatalogId(package, path, start) over the rows a write removes from CatalogId';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_reference_x6575ljsdh"() IS 'the rule judge''s block of rule Attribute(package, path, start, name, kind) where Logic.in(ReferenceAttribute.at("form", kind, name), ["module", "package", "uri"]) in Reference(package, path, start, name, kind) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_tolerance_2ub2yr6o5n"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") in Tolerance(package, path, start) over the rows a write adds to Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_interaction_attribute_kyvi2a2y3m"() IS 'the rule judge''s block of rule Attribute(package, path, start, name, kind, lexicalDigest) where Logic.or(Logic.in(name, ["aria-valuemax", "aria-valuemin"]), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-context-variable", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-printed-variable", "qti-simple-associable-choice", "qti-simple-choice"]), Logic.eq(name, "identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-simple-associable-choice", "qti-simple-choice", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-template-variable"]), Logic.eq(name, "template-identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-max")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-min")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-hotspot-choice"]), Logic.eq(name, "shape")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]), Logic.eq(name, "response-identifier")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "max-associations")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "min-associations")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "max-choices")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "min-choices")), Logic.and(Logic.in(kind, ["qti-extended-text-interaction", "qti-text-entry-interaction"]), Logic.eq(name, "string-identifier")), Logic.and(Logic.in(kind, ["qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-modal-feedback", "qti-test-feedback"]), Logic.eq(name, "outcome-identifier")), Logic.and(Logic.eq(kind, "qti-assessment-item"), Logic.eq(name, "adaptive")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "max-strings")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "min-strings")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "max-plays")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "min-plays")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "base")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "index")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "lower-bound")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "upper-bound"))) in InteractionAttribute(package, path, start, name, kind, lexicalDigest) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_tolerance_xdhohhppto"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") in Tolerance(package, path, start) over the rows a write removes from Tolerance';
 
-COMMENT ON FUNCTION "qti"."__judge_attribute_name_kind_in_cn_attribute_gbduvb54v4"() IS 'the rule judge''s block of rule Attribute(package, path, start, name, lexicalDigest) where Logic.in(name, ["base", "type"]) and Logic.eq(kind, "m:cn") in CnAttribute(package, path, start, name, lexicalDigest) over its units';
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_map_key_dwmruqmpfp"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-map-entry") and Logic.eq(name, "map-key") in MapKey(package, path, start) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_map_key_ywr3cfjmqx"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-map-entry") and Logic.eq(name, "map-key") in MapKey(package, path, start) over the rows a write removes from MapKey';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_pci_module_form_7xexnu4ber"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-portable-custom-interaction") and Logic.eq(name, "module") in PciModuleForm(package, path, start) where Logic.eq(element, false) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_pci_module_form_buwozzctmc"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "qti-portable-custom-interaction") and Logic.eq(name, "module") in PciModuleForm(package, path, start) where Logic.eq(element, false) over the rows a write removes from PciModuleForm';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_srcset_fngqelvgvl"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "source") and Logic.eq(name, "srcset") in Srcset(package, path, start) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_srcset_vrztobcjsu"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "source") and Logic.eq(name, "srcset") in Srcset(package, path, start) over the rows a write removes from Srcset';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_table_header_lgkp3nqsea"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "th") and Logic.eq(name, "id") in TableHeader(package, path, start) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_table_header_56o5kgu2x4"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "th") and Logic.eq(name, "id") in TableHeader(package, path, start) over the rows a write removes from TableHeader';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_lexical_name_in_attribute_m2xch452xb"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "track") and Logic.eq(lexical, "subtitles") and Logic.eq(name, "kind") in Attribute(package, path, start) where Logic.eq(kind, "track") and Logic.eq(name, "srclang") over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_lexical_name_in_attribute_unluqpy2xw"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(kind, "track") and Logic.eq(lexical, "subtitles") and Logic.eq(name, "kind") in Attribute(package, path, start) where Logic.eq(kind, "track") and Logic.eq(name, "srclang") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_name_in_data_ssml_2jlpes45rm"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(name, "data-ssml") in DataSsml(package, path, start) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_name_in_data_ssml_wfvwlhstvy"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(name, "data-ssml") in DataSsml(package, path, start) over the rows a write removes from DataSsml';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_name_in_catalog_scope_3pxsrlwkrh"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(name, "xml:lang") in CatalogScope(package, path, start) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_name_in_catalog_scope_jovrqlkfz4"() IS 'the rule judge''s block of rule Attribute(package, path, start) where Logic.eq(name, "xml:lang") in CatalogScope(package, path, start) over the rows a write removes from CatalogScope';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_rounding_figures_73fwx6kbb4"() IS 'the rule judge''s block of rule Attribute(package, path, start, lexicalDigest) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") in RoundingFigures(package, path, start, figuresLexicalDigest) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_rounding_figures_udayk7yfmf"() IS 'the rule judge''s block of rule Attribute(package, path, start, lexicalDigest) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") in RoundingFigures(package, path, start, figuresLexicalDigest) over the rows a write removes from RoundingFigures';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_math_action_pi5kawylw7"() IS 'the rule judge''s block of rule Attribute(package, path, start, lexicalDigest) where Logic.eq(kind, "m:maction") and Logic.eq(name, "selection") in MathAction(package, path, start, selectionLexicalDigest) where Logic.eq(selectionWritten, true) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_math_action_z4ukxdfjlo"() IS 'the rule judge''s block of rule Attribute(package, path, start, lexicalDigest) where Logic.eq(kind, "m:maction") and Logic.eq(name, "selection") in MathAction(package, path, start, selectionLexicalDigest) where Logic.eq(selectionWritten, true) over the rows a write removes from MathAction';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_reference_vm3zio74rn"() IS 'the rule judge''s block of rule Attribute(package, path, start, name, kind) where Logic.in(ReferenceAttribute.at("form", kind, name), ["module", "package", "uri"]) in Reference(package, path, start, name, kind) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_reference_b27ug5yqcy"() IS 'the rule judge''s block of rule Attribute(package, path, start, name, kind) where Logic.in(ReferenceAttribute.at("form", kind, name), ["module", "package", "uri"]) in Reference(package, path, start, name, kind) over the rows a write removes from Reference';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_interaction_attribute_vlbassbzx3"() IS 'the rule judge''s block of rule Attribute(package, path, start, name, kind, lexicalDigest) where Logic.or(Logic.in(name, ["aria-valuemax", "aria-valuemin"]), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-context-variable", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-printed-variable", "qti-simple-associable-choice", "qti-simple-choice"]), Logic.eq(name, "identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-simple-associable-choice", "qti-simple-choice", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-template-variable"]), Logic.eq(name, "template-identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-max")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-min")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-hotspot-choice"]), Logic.eq(name, "shape")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]), Logic.eq(name, "response-identifier")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "max-associations")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "min-associations")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "max-choices")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "min-choices")), Logic.and(Logic.in(kind, ["qti-extended-text-interaction", "qti-text-entry-interaction"]), Logic.eq(name, "string-identifier")), Logic.and(Logic.in(kind, ["qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-modal-feedback", "qti-test-feedback"]), Logic.eq(name, "outcome-identifier")), Logic.and(Logic.eq(kind, "qti-assessment-item"), Logic.eq(name, "adaptive")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "max-strings")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "min-strings")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "max-plays")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "min-plays")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "base")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "index")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "lower-bound")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "upper-bound"))) in InteractionAttribute(package, path, start, name, kind, lexicalDigest) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_kind_name_in_interaction_attribute_iexjqtvmzh"() IS 'the rule judge''s block of rule Attribute(package, path, start, name, kind, lexicalDigest) where Logic.or(Logic.in(name, ["aria-valuemax", "aria-valuemin"]), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-context-variable", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-printed-variable", "qti-simple-associable-choice", "qti-simple-choice"]), Logic.eq(name, "identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-simple-associable-choice", "qti-simple-choice", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-template-variable"]), Logic.eq(name, "template-identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-max")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-min")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-hotspot-choice"]), Logic.eq(name, "shape")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]), Logic.eq(name, "response-identifier")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "max-associations")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "min-associations")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "max-choices")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "min-choices")), Logic.and(Logic.in(kind, ["qti-extended-text-interaction", "qti-text-entry-interaction"]), Logic.eq(name, "string-identifier")), Logic.and(Logic.in(kind, ["qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-modal-feedback", "qti-test-feedback"]), Logic.eq(name, "outcome-identifier")), Logic.and(Logic.eq(kind, "qti-assessment-item"), Logic.eq(name, "adaptive")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "max-strings")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "min-strings")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "max-plays")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "min-plays")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "base")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "index")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "lower-bound")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "upper-bound"))) in InteractionAttribute(package, path, start, name, kind, lexicalDigest) over the rows a write removes from InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_name_kind_in_cn_attribute_qicmsaveer"() IS 'the rule judge''s block of rule Attribute(package, path, start, name, lexicalDigest) where Logic.in(name, ["base", "type"]) and Logic.eq(kind, "m:cn") in CnAttribute(package, path, start, name, lexicalDigest) over the rows a write adds to Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_attribute_name_kind_in_cn_attribute_fxwkzqewuu"() IS 'the rule judge''s block of rule Attribute(package, path, start, name, lexicalDigest) where Logic.in(name, ["base", "type"]) and Logic.eq(kind, "m:cn") in CnAttribute(package, path, start, name, lexicalDigest) over the rows a write removes from CnAttribute';
 
 COMMENT ON FUNCTION "qti"."__judge_binary_math_operator_in_expression_operand_p4suu7whs6"() IS 'the rule judge''s block of rule BinaryMathOperator(package, path, start) in ExpressionOperand(package, path, operator) where Logic.eq(rank, 2n) over its units';
 
@@ -4363,17 +4427,25 @@ COMMENT ON FUNCTION "qti"."__judge_binding_cardinality_node_in_record_binding_gv
 
 COMMENT ON FUNCTION "qti"."__judge_binding_cardinality_node_in_count_bound_qp5cv5srpi"() IS 'the rule judge''s block of rule BindingCardinalityNode(package, path, start) where Logic.in(cardinality, ["multiple", "ordered"]) and Logic.eq(attribute, "response-identifier") and Logic.eq(kind, "qti-extended-text-interaction") in CountBound(package, path, start) where Logic.eq(maxWritten, true) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_binding_name_in_interaction_attribute_rhl6737hig"() IS 'the rule judge''s block of rule BindingName(package, path, start) in InteractionAttribute(package, path, start) where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(name, "response-identifier") over its units';
+COMMENT ON FUNCTION "qti"."__judge_binding_name_in_interaction_attribute_qsamkcqom7"() IS 'the rule judge''s block of rule BindingName(package, path, start) in InteractionAttribute(package, path, start) where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(name, "response-identifier") over the rows a write adds to BindingName';
+
+COMMENT ON FUNCTION "qti"."__judge_binding_name_in_interaction_attribute_6wg2sisfdy"() IS 'the rule judge''s block of rule BindingName(package, path, start) in InteractionAttribute(package, path, start) where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(name, "response-identifier") over the rows a write removes from InteractionAttribute';
 
 COMMENT ON FUNCTION "qti"."__judge_bound_variable_in_named_declaration_6vnbbbteq4"() IS 'the rule judge''s block of rule BoundVariable(package, path, identifier) in NamedDeclaration(package, path, identifier) where Logic.eq(declarationKind, "qti-response-declaration") over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_bound_variable_in_interaction_attribute_iqawoxa2e4"() IS 'the rule judge''s block of rule BoundVariable(package, path, start) in InteractionAttribute(package, path, start) where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(name, "response-identifier") over its units';
+COMMENT ON FUNCTION "qti"."__judge_bound_variable_in_interaction_attribute_hutoawl3p4"() IS 'the rule judge''s block of rule BoundVariable(package, path, start) in InteractionAttribute(package, path, start) where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(name, "response-identifier") over the rows a write adds to BoundVariable';
+
+COMMENT ON FUNCTION "qti"."__judge_bound_variable_in_interaction_attribute_w6knhinxmu"() IS 'the rule judge''s block of rule BoundVariable(package, path, start) in InteractionAttribute(package, path, start) where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(name, "response-identifier") over the rows a write removes from InteractionAttribute';
 
 COMMENT ON FUNCTION "qti"."__judge_branch_resolution_in_resolved_branch_rule_ozlq6aqbel"() IS 'the rule judge''s block of rule BranchResolution(package, assembly, instance, start) in ResolvedBranchRule(package, assembly, instance, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_candidate_path_in_srcset_candidate_sa3gisog46"() IS 'the rule judge''s block of rule CandidatePath(package, path, start, at) in SrcsetCandidate(package, path, start, at) where Logic.eq(scope, "entry") over its units';
+COMMENT ON FUNCTION "qti"."__judge_candidate_path_in_srcset_candidate_qlbfzkjh6h"() IS 'the rule judge''s block of rule CandidatePath(package, path, start, at) in SrcsetCandidate(package, path, start, at) where Logic.eq(scope, "entry") over the rows a write adds to CandidatePath';
 
-COMMENT ON FUNCTION "qti"."__judge_catalog_id_in_attribute_pqhnv53vai"() IS 'the rule judge''s block of rule CatalogId(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "qti-catalog") and Logic.eq(name, "id") over its units';
+COMMENT ON FUNCTION "qti"."__judge_candidate_path_in_srcset_candidate_jvbfsnojbf"() IS 'the rule judge''s block of rule CandidatePath(package, path, start, at) in SrcsetCandidate(package, path, start, at) where Logic.eq(scope, "entry") over the rows a write removes from SrcsetCandidate';
+
+COMMENT ON FUNCTION "qti"."__judge_catalog_id_in_attribute_ypqppgsmfc"() IS 'the rule judge''s block of rule CatalogId(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "qti-catalog") and Logic.eq(name, "id") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_catalog_id_in_attribute_75prtuveym"() IS 'the rule judge''s block of rule CatalogId(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "qti-catalog") and Logic.eq(name, "id") over the rows a write adds to CatalogId';
 
 COMMENT ON FUNCTION "qti"."__judge_catalog_id_in_id_value_7k7it37zjd"() IS 'the rule judge''s block of rule CatalogId(package, path, start, id, owner) in IdValue(package, path, start, id, owner) over its units';
 
@@ -4381,37 +4453,55 @@ COMMENT ON FUNCTION "qti"."__judge_catalog_scope_node_in_catalog_scope_siyoaubus
 
 COMMENT ON FUNCTION "qti"."__judge_cell_child_in_math_align_scope_y6fielkgrs"() IS 'the rule judge''s block of rule CellChild(package, path, start) where Logic.not(Logic.in(kind, ["comment", "doctype", "document", "entityRef", "pi", "text", "ws"])) in MathAlignScope(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_cell_headers_in_attribute_gpr2rsg5ft"() IS 'the rule judge''s block of rule CellHeaders(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["td", "th"]) and Logic.eq(name, "headers") over its units';
+COMMENT ON FUNCTION "qti"."__judge_cell_headers_in_attribute_6y2mu43rs5"() IS 'the rule judge''s block of rule CellHeaders(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["td", "th"]) and Logic.eq(name, "headers") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_cell_headers_in_attribute_ra6tne4pkd"() IS 'the rule judge''s block of rule CellHeaders(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["td", "th"]) and Logic.eq(name, "headers") over the rows a write adds to CellHeaders';
 
 COMMENT ON FUNCTION "qti"."__judge_cell_leaf_in_scope_node_mk36zy4u3d"() IS 'the rule judge''s block of rule CellLeaf(package, path, start) in ScopeNode(package, path, start) where Logic.eq(elementChildren, 0n) and Logic.ne(kind, "m:mtd") over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_cell_token_in_table_header_r63ctqjkv5"() IS 'the rule judge''s block of rule CellToken(package, path, table, token) in TableHeader(package, path, table, id) where Logic.ne(table, 0n) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_choice_interaction_interaction_path_path_in_7yxbrfxbg4"() IS 'the rule judge''s block of rule ChoiceInteraction(package, path, interactionPath, interaction) where Logic.ne(interactionPath, path) in Document(package, path, contextPath, contextNearest) over its units';
+COMMENT ON FUNCTION "qti"."__judge_choice_interaction_interaction_path_path_in_ksu4ntntp4"() IS 'the rule judge''s block of rule ChoiceInteraction(package, path, interactionPath, interaction) where Logic.ne(interactionPath, path) in Document(package, path, contextPath, contextNearest) over the rows a write adds to ChoiceInteraction';
+
+COMMENT ON FUNCTION "qti"."__judge_choice_interaction_interaction_path_path_in_7bd365ysfm"() IS 'the rule judge''s block of rule ChoiceInteraction(package, path, interactionPath, interaction) where Logic.ne(interactionPath, path) in Document(package, path, contextPath, contextNearest) over the rows a write removes from Document';
 
 COMMENT ON FUNCTION "qti"."__judge_choice_node_in_count_bound_r57c36aziu"() IS 'the rule judge''s block of rule ChoiceNode(package, path, start) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) in CountBound(package, path, start) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_choice_or_hottext_in_unclaimed_name_uyxncalelf"() IS 'the rule judge''s block of rule ChoiceOrHottext(package, path, identifier) in UnclaimedName(package, path, identifier) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_cn_attribute_in_attribute_3xf3sgzpk5"() IS 'the rule judge''s block of rule CnAttribute(package, path, start, name) in Attribute(package, path, start, name) where Logic.in(name, ["base", "type"]) and Logic.eq(kind, "m:cn") over its units';
+COMMENT ON FUNCTION "qti"."__judge_cn_attribute_in_attribute_itlm5fhjzb"() IS 'the rule judge''s block of rule CnAttribute(package, path, start, name) in Attribute(package, path, start, name) where Logic.in(name, ["base", "type"]) and Logic.eq(kind, "m:cn") over the rows a write removes from Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_cn_count_in_node_cwvm5jlela"() IS 'the rule judge''s block of rule CnCount(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:cn") over its units';
+COMMENT ON FUNCTION "qti"."__judge_cn_attribute_in_attribute_gqimheyevo"() IS 'the rule judge''s block of rule CnAttribute(package, path, start, name) in Attribute(package, path, start, name) where Logic.in(name, ["base", "type"]) and Logic.eq(kind, "m:cn") over the rows a write adds to CnAttribute';
 
-COMMENT ON FUNCTION "qti"."__judge_cn_count_type_lexical_in_cn_attribute_4n3jrifank"() IS 'the rule judge''s block of rule CnCount(package, path, start, typeLexicalDigest) where Logic.ne(typeLexical, "") in CnAttribute(package, path, start, lexicalDigest) where Logic.eq(name, "type") over its units';
+COMMENT ON FUNCTION "qti"."__judge_cn_count_in_node_ikvut5dwb7"() IS 'the rule judge''s block of rule CnCount(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:cn") over the rows a write adds to CnCount';
 
-COMMENT ON FUNCTION "qti"."__judge_comment_in_node_wef6gew3oj"() IS 'the rule judge''s block of rule Comment(package, path, start) in Node(package, path, start) where Logic.eq(kind, "comment") over its units';
+COMMENT ON FUNCTION "qti"."__judge_cn_count_in_node_hgpzinikyj"() IS 'the rule judge''s block of rule CnCount(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:cn") over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_cn_count_type_lexical_in_cn_attribute_ueevxz4g7e"() IS 'the rule judge''s block of rule CnCount(package, path, start, typeLexicalDigest) where Logic.ne(typeLexical, "") in CnAttribute(package, path, start, lexicalDigest) where Logic.eq(name, "type") over the rows a write removes from CnAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_cn_count_type_lexical_in_cn_attribute_pvt37oqsnt"() IS 'the rule judge''s block of rule CnCount(package, path, start, typeLexicalDigest) where Logic.ne(typeLexical, "") in CnAttribute(package, path, start, lexicalDigest) where Logic.eq(name, "type") over the rows a write adds to CnCount';
+
+COMMENT ON FUNCTION "qti"."__judge_comment_in_node_y3d6b4h64m"() IS 'the rule judge''s block of rule Comment(package, path, start) in Node(package, path, start) where Logic.eq(kind, "comment") over the rows a write adds to Comment';
+
+COMMENT ON FUNCTION "qti"."__judge_comment_in_node_pnihdlw4oe"() IS 'the rule judge''s block of rule Comment(package, path, start) in Node(package, path, start) where Logic.eq(kind, "comment") over the rows a write removes from Node';
 
 COMMENT ON FUNCTION "qti"."__judge_context_ref_in_referable_name_6jyxlcw7hc"() IS 'the rule judge''s block of rule ContextRef(package, path, identifier, kind, attribute) where Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "completionStatus", "duration", "numAttempts"])), Logic.ne(assemblyKind, "qti-assessment-item")) and Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "completionStatus", "duration", "numAttempts"])), Logic.ne(assemblyKind, "qti-response-processing")) and Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "duration"])), Logic.ne(assemblyKind, "qti-assessment-section")) and Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "duration"])), Logic.ne(assemblyKind, "qti-assessment-test")) in ReferableName(package, path, identifier, kind, attribute) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_count_bound_max_written_in_interaction_tgmgqqtzul"() IS 'the rule judge''s block of rule CountBound(package, path, start, maxName) where Logic.eq(maxWritten, true) in InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-max", "max-associations", "max-choices", "max-plays", "max-strings"]) over its units';
+COMMENT ON FUNCTION "qti"."__judge_count_bound_max_written_in_interaction_ynewhg65ih"() IS 'the rule judge''s block of rule CountBound(package, path, start, maxName) where Logic.eq(maxWritten, true) in InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-max", "max-associations", "max-choices", "max-plays", "max-strings"]) over the rows a write adds to CountBound';
 
-COMMENT ON FUNCTION "qti"."__judge_count_bound_min_written_in_interaction_xxvjdlw4nj"() IS 'the rule judge''s block of rule CountBound(package, path, start, minName) where Logic.eq(minWritten, true) in InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-min", "min-associations", "min-choices", "min-plays", "min-strings"]) over its units';
+COMMENT ON FUNCTION "qti"."__judge_count_bound_max_written_in_interaction_h76ovx6wwg"() IS 'the rule judge''s block of rule CountBound(package, path, start, maxName) where Logic.eq(maxWritten, true) in InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-max", "max-associations", "max-choices", "max-plays", "max-strings"]) over the rows a write removes from InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_count_bound_min_written_in_interaction_u5eerzgux3"() IS 'the rule judge''s block of rule CountBound(package, path, start, minName) where Logic.eq(minWritten, true) in InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-min", "min-associations", "min-choices", "min-plays", "min-strings"]) over the rows a write adds to CountBound';
+
+COMMENT ON FUNCTION "qti"."__judge_count_bound_min_written_in_interaction_be4an44hay"() IS 'the rule judge''s block of rule CountBound(package, path, start, minName) where Logic.eq(minWritten, true) in InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-min", "min-associations", "min-choices", "min-plays", "min-strings"]) over the rows a write removes from InteractionAttribute';
 
 COMMENT ON FUNCTION "qti"."__judge_count_bound_node_in_least_count_c72avmgnm2"() IS 'the rule judge''s block of rule CountBoundNode(package, path, start) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-text", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.eq(minWritten, false) in LeastCount(package, path, start) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_count_bound_node_in_most_count_snojg3c3w3"() IS 'the rule judge''s block of rule CountBoundNode(package, path, start) where Logic.or(Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-position-object-interaction"]), Logic.in(kind, ["qti-media-interaction", "qti-select-point-interaction"])) and Logic.eq(maxWritten, false) in MostCount(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_data_ssml_in_attribute_uvw3l5spfp"() IS 'the rule judge''s block of rule DataSsml(package, path, start) in Attribute(package, path, start) where Logic.eq(name, "data-ssml") over its units';
+COMMENT ON FUNCTION "qti"."__judge_data_ssml_in_attribute_5sbn7nx45f"() IS 'the rule judge''s block of rule DataSsml(package, path, start) in Attribute(package, path, start) where Logic.eq(name, "data-ssml") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_data_ssml_in_attribute_rkkugcswca"() IS 'the rule judge''s block of rule DataSsml(package, path, start) in Attribute(package, path, start) where Logic.eq(name, "data-ssml") over the rows a write adds to DataSsml';
 
 COMMENT ON FUNCTION "qti"."__judge_declaration_cardinality_in_attribute_is6owvhjpo"() IS 'the rule judge''s block of rule DeclarationCardinality(package, path, start) where Logic.ne(code, "record") in Attribute(package, path, start) where Logic.in(kind, ["qti-context-declaration", "qti-outcome-declaration", "qti-response-declaration", "qti-template-declaration"]) and Logic.eq(name, "base-type") over its units';
 
@@ -4421,31 +4511,57 @@ COMMENT ON FUNCTION "qti"."__judge_described_assembled_lang_in_listed_lang_nhbll
 
 COMMENT ON FUNCTION "qti"."__judge_described_lang_in_listed_lang_xwyz4nje2x"() IS 'the rule judge''s block of rule DescribedLang(package, path, general, value) in ListedLang(package, path, general, lang) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_doctype_in_node_twstcnxdqs"() IS 'the rule judge''s block of rule Doctype(package, path, start) in Node(package, path, start) where Logic.eq(kind, "doctype") over its units';
+COMMENT ON FUNCTION "qti"."__judge_doctype_in_node_xpvcvzwbkn"() IS 'the rule judge''s block of rule Doctype(package, path, start) in Node(package, path, start) where Logic.eq(kind, "doctype") over the rows a write adds to Doctype';
 
-COMMENT ON FUNCTION "qti"."__judge_document_in_entry_p2lsbfrdmv"() IS 'the rule judge''s block of rule Document(package, path) in Entry(package, path) where Logic.eq(kind, "document") over its units';
+COMMENT ON FUNCTION "qti"."__judge_doctype_in_node_6bpy3l5spi"() IS 'the rule judge''s block of rule Doctype(package, path, start) in Node(package, path, start) where Logic.eq(kind, "doctype") over the rows a write removes from Node';
 
-COMMENT ON FUNCTION "qti"."__judge_document_in_node_emt3udpfpe"() IS 'the rule judge''s block of rule Document(package, path) in Node(package, path) where Logic.eq(kind, "document") and Logic.eq(start, 0n) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_in_entry_sjapsggrlf"() IS 'the rule judge''s block of rule Document(package, path) in Entry(package, path) where Logic.eq(kind, "document") over the rows a write adds to Document';
 
-COMMENT ON FUNCTION "qti"."__judge_document_root_kind_in_assembled_document_4h5ycqrz6l"() IS 'the rule judge''s block of rule Document(package, path) where Logic.in(rootKind, ["qti-assessment-section", "qti-assessment-test"]) in AssembledDocument(package, path) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_in_entry_uhiedw3bac"() IS 'the rule judge''s block of rule Document(package, path) in Entry(package, path) where Logic.eq(kind, "document") over the rows a write removes from Entry';
 
-COMMENT ON FUNCTION "qti"."__judge_document_assembled_in_assembled_document_rjmoy4lcik"() IS 'the rule judge''s block of rule Document(package, path) where Logic.eq(assembled, true) in AssembledDocument(package, path) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_in_node_bnnn2algs5"() IS 'the rule judge''s block of rule Document(package, path) in Node(package, path) where Logic.eq(kind, "document") and Logic.eq(start, 0n) over the rows a write adds to Document';
 
-COMMENT ON FUNCTION "qti"."__judge_document_document_type_in_resource_document_jo3agi6iyv"() IS 'the rule judge''s block of rule Document(package, path) where Logic.ne(documentType, "manifest") in ResourceDocument(package, path) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_in_node_4wxya2yssh"() IS 'the rule judge''s block of rule Document(package, path) in Node(package, path) where Logic.eq(kind, "document") and Logic.eq(start, 0n) over the rows a write removes from Node';
 
-COMMENT ON FUNCTION "qti"."__judge_document_in_node_l5zsnklmgp"() IS 'the rule judge''s block of rule Document(package, path, nodeChildren, context, contextNearest, contextNearestKind, contextPath) in Node(package, path, children, ancestry, nearest, nearestKind, nearestPath) where Logic.eq(governor, "document") and Logic.eq(kind, "document") and Logic.eq(parentKind, "document") and Logic.eq(start, 0n) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_root_kind_in_assembled_document_rhbun5dywe"() IS 'the rule judge''s block of rule Document(package, path) where Logic.in(rootKind, ["qti-assessment-section", "qti-assessment-test"]) in AssembledDocument(package, path) over the rows a write removes from AssembledDocument';
 
-COMMENT ON FUNCTION "qti"."__judge_document_id_admitted_in_node_wbiazcauyn"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.eq(admitted, false) in Node(package, path, start) where Logic.not(AdmissionIn.has(ContentModelOf.at("admission", parentKind), kind)) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_root_kind_in_assembled_document_vjyb66cn7y"() IS 'the rule judge''s block of rule Document(package, path) where Logic.in(rootKind, ["qti-assessment-section", "qti-assessment-test"]) in AssembledDocument(package, path) over the rows a write adds to Document';
 
-COMMENT ON FUNCTION "qti"."__judge_document_id_admitted_in_node_yh44nbg3w7"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.eq(admitted, true) in Node(package, path, start) where AdmissionIn.has(ContentModelOf.at("admission", parentKind), kind) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_assembled_in_assembled_document_fcmhwklsat"() IS 'the rule judge''s block of rule Document(package, path) where Logic.eq(assembled, true) in AssembledDocument(package, path) over the rows a write removes from AssembledDocument';
 
-COMMENT ON FUNCTION "qti"."__judge_document_id_owner_start_in_attribute_nufbfglgmt"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.eq(owner, start) in Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_assembled_in_assembled_document_5ti73cc46n"() IS 'the rule judge''s block of rule Document(package, path) where Logic.eq(assembled, true) in AssembledDocument(package, path) over the rows a write adds to Document';
 
-COMMENT ON FUNCTION "qti"."__judge_document_id_owner_start_in_node_rdafnopdu4"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.ne(owner, start) in Node(package, path, start) where Logic.eq(ValueIdentity.at("identity", TextDomain.at("domain", governor)), "ID") over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_document_type_in_resource_document_fpvjwkioup"() IS 'the rule judge''s block of rule Document(package, path) where Logic.ne(documentType, "manifest") in ResourceDocument(package, path) over the rows a write adds to Document';
 
-COMMENT ON FUNCTION "qti"."__judge_entry_kind_in_document_tu6wjwimnb"() IS 'the rule judge''s block of rule Entry(package, path) where Logic.eq(kind, "document") in Document(package, path) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_document_type_in_resource_document_lqqhjrb5mf"() IS 'the rule judge''s block of rule Document(package, path) where Logic.ne(documentType, "manifest") in ResourceDocument(package, path) over the rows a write removes from ResourceDocument';
 
-COMMENT ON FUNCTION "qti"."__judge_entry_kind_in_media_atqzb5ve5f"() IS 'the rule judge''s block of rule Entry(package, path) where Logic.eq(kind, "media") in Media(package, path) over its units';
+COMMENT ON FUNCTION "qti"."__judge_document_in_node_pghsppcojb"() IS 'the rule judge''s block of rule Document(package, path, nodeChildren, context, contextNearest, contextNearestKind, contextPath) in Node(package, path, children, ancestry, nearest, nearestKind, nearestPath) where Logic.eq(governor, "document") and Logic.eq(kind, "document") and Logic.eq(parentKind, "document") and Logic.eq(start, 0n) over the rows a write adds to Document';
+
+COMMENT ON FUNCTION "qti"."__judge_document_in_node_b7p7prticc"() IS 'the rule judge''s block of rule Document(package, path, nodeChildren, context, contextNearest, contextNearestKind, contextPath) in Node(package, path, children, ancestry, nearest, nearestKind, nearestPath) where Logic.eq(governor, "document") and Logic.eq(kind, "document") and Logic.eq(parentKind, "document") and Logic.eq(start, 0n) over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_document_id_admitted_in_node_k32knprq46"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.eq(admitted, false) in Node(package, path, start) where Logic.not(AdmissionIn.has(ContentModelOf.at("admission", parentKind), kind)) over the rows a write adds to DocumentId';
+
+COMMENT ON FUNCTION "qti"."__judge_document_id_admitted_in_node_ptyjuw7ypr"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.eq(admitted, false) in Node(package, path, start) where Logic.not(AdmissionIn.has(ContentModelOf.at("admission", parentKind), kind)) over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_document_id_admitted_in_node_dqm3bdpu3s"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.eq(admitted, true) in Node(package, path, start) where AdmissionIn.has(ContentModelOf.at("admission", parentKind), kind) over the rows a write adds to DocumentId';
+
+COMMENT ON FUNCTION "qti"."__judge_document_id_admitted_in_node_o36ne25x3j"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.eq(admitted, true) in Node(package, path, start) where AdmissionIn.has(ContentModelOf.at("admission", parentKind), kind) over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_document_id_owner_start_in_attribute_3t56skfs2a"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.eq(owner, start) in Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_document_id_owner_start_in_attribute_3jel3escbo"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.eq(owner, start) in Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) over the rows a write adds to DocumentId';
+
+COMMENT ON FUNCTION "qti"."__judge_document_id_owner_start_in_node_nuytw5q5cw"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.ne(owner, start) in Node(package, path, start) where Logic.eq(ValueIdentity.at("identity", TextDomain.at("domain", governor)), "ID") over the rows a write adds to DocumentId';
+
+COMMENT ON FUNCTION "qti"."__judge_document_id_owner_start_in_node_t2goigrbd4"() IS 'the rule judge''s block of rule DocumentId(package, path, start) where Logic.ne(owner, start) in Node(package, path, start) where Logic.eq(ValueIdentity.at("identity", TextDomain.at("domain", governor)), "ID") over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_entry_kind_in_document_6t5p6z6n6j"() IS 'the rule judge''s block of rule Entry(package, path) where Logic.eq(kind, "document") in Document(package, path) over the rows a write removes from Document';
+
+COMMENT ON FUNCTION "qti"."__judge_entry_kind_in_document_rxn26b7rmd"() IS 'the rule judge''s block of rule Entry(package, path) where Logic.eq(kind, "document") in Document(package, path) over the rows a write adds to Entry';
+
+COMMENT ON FUNCTION "qti"."__judge_entry_kind_in_media_4jr6pvnnir"() IS 'the rule judge''s block of rule Entry(package, path) where Logic.eq(kind, "media") in Media(package, path) over the rows a write adds to Entry';
+
+COMMENT ON FUNCTION "qti"."__judge_entry_kind_in_media_uyki4q5msm"() IS 'the rule judge''s block of rule Entry(package, path) where Logic.eq(kind, "media") in Media(package, path) over the rows a write removes from Media';
 
 COMMENT ON FUNCTION "qti"."__judge_entry_in_entry_file_target_w6i34ovtz7"() IS 'the rule judge''s block of rule Entry(package, path) where Logic.ne(path, "imsmanifest.xml") in EntryFileTarget(package, target) over its units';
 
@@ -4457,15 +4573,25 @@ COMMENT ON FUNCTION "qti"."__judge_expression_node_in_processing_zzmowumv5s"() I
 
 COMMENT ON FUNCTION "qti"."__judge_feedback_ref_in_referable_name_hase3mb2yu"() IS 'the rule judge''s block of rule FeedbackRef(package, path, identifier, kind, attribute) where Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "completionStatus", "duration", "numAttempts"])), Logic.ne(assemblyKind, "qti-assessment-item")) and Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "completionStatus", "duration", "numAttempts"])), Logic.ne(assemblyKind, "qti-response-processing")) and Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "duration"])), Logic.ne(assemblyKind, "qti-assessment-section")) and Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "duration"])), Logic.ne(assemblyKind, "qti-assessment-test")) in ReferableName(package, path, identifier, kind, attribute) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_file_in_node_36el4n6axb"() IS 'the rule judge''s block of rule File(package, path, start) in Node(package, path, start) where Logic.eq(kind, "cp:file") over its units';
+COMMENT ON FUNCTION "qti"."__judge_file_in_node_dowc57kcbn"() IS 'the rule judge''s block of rule File(package, path, start) in Node(package, path, start) where Logic.eq(kind, "cp:file") over the rows a write adds to File';
 
-COMMENT ON FUNCTION "qti"."__judge_file_scope_in_file_path_bfgpilj7lq"() IS 'the rule judge''s block of rule File(package, path, start) where Logic.eq(scope, "entry") in FilePath(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_file_in_node_gorh63lbls"() IS 'the rule judge''s block of rule File(package, path, start) in Node(package, path, start) where Logic.eq(kind, "cp:file") over the rows a write removes from Node';
 
-COMMENT ON FUNCTION "qti"."__judge_file_scope_in_file_outside_q5jcr4raod"() IS 'the rule judge''s block of rule File(package, path, start) where Logic.eq(scope, "external") in FileOutside(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_file_scope_in_file_path_jeflxqr43u"() IS 'the rule judge''s block of rule File(package, path, start) where Logic.eq(scope, "entry") in FilePath(package, path, start) over the rows a write adds to File';
 
-COMMENT ON FUNCTION "qti"."__judge_file_outside_in_file_xp33gju4jx"() IS 'the rule judge''s block of rule FileOutside(package, path, start) in File(package, path, start) where Logic.eq(scope, "external") over its units';
+COMMENT ON FUNCTION "qti"."__judge_file_scope_in_file_path_jgborkhirf"() IS 'the rule judge''s block of rule File(package, path, start) where Logic.eq(scope, "entry") in FilePath(package, path, start) over the rows a write removes from FilePath';
 
-COMMENT ON FUNCTION "qti"."__judge_file_path_in_file_zo6xyzhljs"() IS 'the rule judge''s block of rule FilePath(package, path, start) in File(package, path, start) where Logic.eq(scope, "entry") over its units';
+COMMENT ON FUNCTION "qti"."__judge_file_scope_in_file_outside_ntggn6rkfa"() IS 'the rule judge''s block of rule File(package, path, start) where Logic.eq(scope, "external") in FileOutside(package, path, start) over the rows a write adds to File';
+
+COMMENT ON FUNCTION "qti"."__judge_file_scope_in_file_outside_6bbbh4r2ok"() IS 'the rule judge''s block of rule File(package, path, start) where Logic.eq(scope, "external") in FileOutside(package, path, start) over the rows a write removes from FileOutside';
+
+COMMENT ON FUNCTION "qti"."__judge_file_outside_in_file_vde7sxdsil"() IS 'the rule judge''s block of rule FileOutside(package, path, start) in File(package, path, start) where Logic.eq(scope, "external") over the rows a write removes from File';
+
+COMMENT ON FUNCTION "qti"."__judge_file_outside_in_file_db772nn3rr"() IS 'the rule judge''s block of rule FileOutside(package, path, start) in File(package, path, start) where Logic.eq(scope, "external") over the rows a write adds to FileOutside';
+
+COMMENT ON FUNCTION "qti"."__judge_file_path_in_file_2etontbxjx"() IS 'the rule judge''s block of rule FilePath(package, path, start) in File(package, path, start) where Logic.eq(scope, "entry") over the rows a write removes from File';
+
+COMMENT ON FUNCTION "qti"."__judge_file_path_in_file_zj5fltgb7j"() IS 'the rule judge''s block of rule FilePath(package, path, start) in File(package, path, start) where Logic.eq(scope, "entry") over the rows a write adds to FilePath';
 
 COMMENT ON FUNCTION "qti"."__judge_forbidden_resource_type_in_other_vocabulary_c3f4mcio3c"() IS 'the rule judge''s block of rule ForbiddenResourceType(package, path, type) in OtherVocabularyType(package, path, type) over its units';
 
@@ -4481,7 +4607,9 @@ COMMENT ON FUNCTION "qti"."__judge_head_document_in_instance_xv7rhhzvrn"() IS 't
 
 COMMENT ON FUNCTION "qti"."__judge_head_qualifier_pair_in_head_qualifier_hzoxoa7jfg"() IS 'the rule judge''s block of rule HeadQualifierPair(head, kind) in HeadQualifier(head, qualifier) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_hottext_in_node_f6mk4xurod"() IS 'the rule judge''s block of rule Hottext(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-hottext") over its units';
+COMMENT ON FUNCTION "qti"."__judge_hottext_in_node_4brh7b5kyu"() IS 'the rule judge''s block of rule Hottext(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-hottext") over the rows a write adds to Hottext';
+
+COMMENT ON FUNCTION "qti"."__judge_hottext_in_node_vre3mbwmuc"() IS 'the rule judge''s block of rule Hottext(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-hottext") over the rows a write removes from Node';
 
 COMMENT ON FUNCTION "qti"."__judge_hottext_node_in_interaction_node_basx24omht"() IS 'the rule judge''s block of rule HottextNode(package, nearestPath, nearest, nearestKind) where Logic.in(nearestKind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) in InteractionNode(package, path, start, kind) over its units';
 
@@ -4489,31 +4617,51 @@ COMMENT ON FUNCTION "qti"."__judge_hottext_node_in_document_f4d2jdjlct"() IS 'th
 
 COMMENT ON FUNCTION "qti"."__judge_idref_target_in_id_binding_bfejuvrwcd"() IS 'the rule judge''s block of rule IdrefTarget(package, path, id) where Logic.eq(assembled, false) in IdBinding(package, path, id) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_instance_root_kind_assembly_kind_in_fragment_i7w6a3qjy4"() IS 'the rule judge''s block of rule Instance(package, assembly, start, document, assemblyKind) where Logic.not(Logic.in(rootKind, ["qti-assessment-item", "qti-assessment-test"])) and Logic.in(assemblyKind, ["qti-assessment-item", "qti-assessment-test"]) in FragmentScope(package, assembly, instance, document, assemblyKind) over its units';
+COMMENT ON FUNCTION "qti"."__judge_instance_root_kind_assembly_kind_in_fragment_7ju5cjlocv"() IS 'the rule judge''s block of rule Instance(package, assembly, start, document, assemblyKind) where Logic.not(Logic.in(rootKind, ["qti-assessment-item", "qti-assessment-test"])) and Logic.in(assemblyKind, ["qti-assessment-item", "qti-assessment-test"]) in FragmentScope(package, assembly, instance, document, assemblyKind) over the rows a write removes from FragmentScope';
+
+COMMENT ON FUNCTION "qti"."__judge_instance_root_kind_assembly_kind_in_fragment_33gudehumy"() IS 'the rule judge''s block of rule Instance(package, assembly, start, document, assemblyKind) where Logic.not(Logic.in(rootKind, ["qti-assessment-item", "qti-assessment-test"])) and Logic.in(assemblyKind, ["qti-assessment-item", "qti-assessment-test"]) in FragmentScope(package, assembly, instance, document, assemblyKind) over the rows a write adds to Instance';
 
 COMMENT ON FUNCTION "qti"."__judge_instance_in_head_document_p5odsgngt5"() IS 'the rule judge''s block of rule Instance(package, document) where Logic.eq(start, 0n) in HeadDocument(package, path) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_instance_assembly_kind_in_document_tfl5khk6o5"() IS 'the rule judge''s block of rule Instance(package, document, bindings) where Logic.eq(assemblyKind, "qti-assessment-item") in Document(package, path, bindings) over its units';
+COMMENT ON FUNCTION "qti"."__judge_instance_assembly_kind_in_document_lejswbcsvd"() IS 'the rule judge''s block of rule Instance(package, document, bindings) where Logic.eq(assemblyKind, "qti-assessment-item") in Document(package, path, bindings) over the rows a write removes from Document';
 
-COMMENT ON FUNCTION "qti"."__judge_instance_start_in_site_target_l6iiilokni"() IS 'the rule judge''s block of rule Instance(package, siteDocument, site, document) where Logic.gt(start, 0n) in SiteTarget(package, path, start, target) where Logic.eq(places, true) over its units';
+COMMENT ON FUNCTION "qti"."__judge_instance_assembly_kind_in_document_r62w6rdr5m"() IS 'the rule judge''s block of rule Instance(package, document, bindings) where Logic.eq(assemblyKind, "qti-assessment-item") in Document(package, path, bindings) over the rows a write adds to Instance';
 
-COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_value_kind_name_in_dwt3rnne2d"() IS 'the rule judge''s block of rule InteractionAttribute(package, path) where Logic.in(value, ["1", "true"]) and Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "adaptive") in ItemMode(package, path) where Logic.eq(adaptive, true) over its units';
+COMMENT ON FUNCTION "qti"."__judge_instance_start_in_site_target_3ztdllhalz"() IS 'the rule judge''s block of rule Instance(package, siteDocument, site, document) where Logic.gt(start, 0n) in SiteTarget(package, path, start, target) where Logic.eq(places, true) over the rows a write adds to Instance';
 
-COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_gdzpmakdj7"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start) where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(name, "response-identifier") in Interaction(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_instance_start_in_site_target_4o5tk5s2k2"() IS 'the rule judge''s block of rule Instance(package, siteDocument, site, document) where Logic.gt(start, 0n) in SiteTarget(package, path, start, target) where Logic.eq(places, true) over the rows a write removes from SiteTarget';
 
-COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_in_attribute_jz3fi7myti"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name) in Attribute(package, path, start, name) where Logic.or(Logic.in(name, ["aria-valuemax", "aria-valuemin"]), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-context-variable", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-printed-variable", "qti-simple-associable-choice", "qti-simple-choice"]), Logic.eq(name, "identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-simple-associable-choice", "qti-simple-choice", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-template-variable"]), Logic.eq(name, "template-identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-max")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-min")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-hotspot-choice"]), Logic.eq(name, "shape")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]), Logic.eq(name, "response-identifier")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "max-associations")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "min-associations")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "max-choices")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "min-choices")), Logic.and(Logic.in(kind, ["qti-extended-text-interaction", "qti-text-entry-interaction"]), Logic.eq(name, "string-identifier")), Logic.and(Logic.in(kind, ["qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-modal-feedback", "qti-test-feedback"]), Logic.eq(name, "outcome-identifier")), Logic.and(Logic.eq(kind, "qti-assessment-item"), Logic.eq(name, "adaptive")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "max-strings")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "min-strings")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "max-plays")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "min-plays")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "base")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "index")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "lower-bound")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "upper-bound"))) over its units';
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_value_kind_name_in_tquobyqg7m"() IS 'the rule judge''s block of rule InteractionAttribute(package, path) where Logic.in(value, ["1", "true"]) and Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "adaptive") in ItemMode(package, path) where Logic.eq(adaptive, true) over the rows a write adds to InteractionAttribute';
 
-COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_count_ayuoof6twg"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-max", "max-associations", "max-choices", "max-plays", "max-strings"]) in CountBound(package, path, start, maxName) where Logic.eq(maxWritten, true) over its units';
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_value_kind_name_in_tafvq2345g"() IS 'the rule judge''s block of rule InteractionAttribute(package, path) where Logic.in(value, ["1", "true"]) and Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "adaptive") in ItemMode(package, path) where Logic.eq(adaptive, true) over the rows a write removes from ItemMode';
 
-COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_count_cw4wma2ywe"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-min", "min-associations", "min-choices", "min-plays", "min-strings"]) in CountBound(package, path, start, minName) where Logic.eq(minWritten, true) over its units';
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_4aebosbkg4"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start) where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(name, "response-identifier") in Interaction(package, path, start) over the rows a write removes from Interaction';
+
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_36mwe7k6t2"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start) where Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]) and Logic.eq(name, "response-identifier") in Interaction(package, path, start) over the rows a write adds to InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_in_attribute_df6smytnjm"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name) in Attribute(package, path, start, name) where Logic.or(Logic.in(name, ["aria-valuemax", "aria-valuemin"]), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-context-variable", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-printed-variable", "qti-simple-associable-choice", "qti-simple-choice"]), Logic.eq(name, "identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-simple-associable-choice", "qti-simple-choice", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-template-variable"]), Logic.eq(name, "template-identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-max")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-min")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-hotspot-choice"]), Logic.eq(name, "shape")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]), Logic.eq(name, "response-identifier")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "max-associations")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "min-associations")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "max-choices")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "min-choices")), Logic.and(Logic.in(kind, ["qti-extended-text-interaction", "qti-text-entry-interaction"]), Logic.eq(name, "string-identifier")), Logic.and(Logic.in(kind, ["qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-modal-feedback", "qti-test-feedback"]), Logic.eq(name, "outcome-identifier")), Logic.and(Logic.eq(kind, "qti-assessment-item"), Logic.eq(name, "adaptive")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "max-strings")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "min-strings")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "max-plays")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "min-plays")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "base")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "index")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "lower-bound")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "upper-bound"))) over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_in_attribute_vld5tjhklx"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name) in Attribute(package, path, start, name) where Logic.or(Logic.in(name, ["aria-valuemax", "aria-valuemin"]), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-context-variable", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-printed-variable", "qti-simple-associable-choice", "qti-simple-choice"]), Logic.eq(name, "identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-hottext", "qti-inline-choice", "qti-simple-associable-choice", "qti-simple-choice", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-template-variable"]), Logic.eq(name, "template-identifier")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-max")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-gap-img", "qti-gap-text", "qti-simple-associable-choice"]), Logic.eq(name, "match-min")), Logic.and(Logic.in(kind, ["qti-associable-hotspot", "qti-hotspot-choice"]), Logic.eq(name, "shape")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-inline-choice-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-slider-interaction", "qti-text-entry-interaction", "qti-upload-interaction"]), Logic.eq(name, "response-identifier")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "max-associations")), Logic.and(Logic.in(kind, ["qti-associate-interaction", "qti-gap-match-interaction", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-match-interaction"]), Logic.eq(name, "min-associations")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "max-choices")), Logic.and(Logic.in(kind, ["qti-choice-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction"]), Logic.eq(name, "min-choices")), Logic.and(Logic.in(kind, ["qti-extended-text-interaction", "qti-text-entry-interaction"]), Logic.eq(name, "string-identifier")), Logic.and(Logic.in(kind, ["qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-modal-feedback", "qti-test-feedback"]), Logic.eq(name, "outcome-identifier")), Logic.and(Logic.eq(kind, "qti-assessment-item"), Logic.eq(name, "adaptive")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "max-strings")), Logic.and(Logic.eq(kind, "qti-extended-text-interaction"), Logic.eq(name, "min-strings")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "max-plays")), Logic.and(Logic.eq(kind, "qti-media-interaction"), Logic.eq(name, "min-plays")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "base")), Logic.and(Logic.eq(kind, "qti-printed-variable"), Logic.eq(name, "index")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "lower-bound")), Logic.and(Logic.eq(kind, "qti-slider-interaction"), Logic.eq(name, "upper-bound"))) over the rows a write adds to InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_count_bbqzpz3ijw"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-max", "max-associations", "max-choices", "max-plays", "max-strings"]) in CountBound(package, path, start, maxName) where Logic.eq(maxWritten, true) over the rows a write removes from CountBound';
+
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_count_otzibsd7zx"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-max", "max-associations", "max-choices", "max-plays", "max-strings"]) in CountBound(package, path, start, maxName) where Logic.eq(maxWritten, true) over the rows a write adds to InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_count_gns7l5r3bd"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-min", "min-associations", "min-choices", "min-plays", "min-strings"]) in CountBound(package, path, start, minName) where Logic.eq(minWritten, true) over the rows a write removes from CountBound';
+
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_count_363lkrf7vv"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-min", "min-associations", "min-choices", "min-plays", "min-strings"]) in CountBound(package, path, start, minName) where Logic.eq(minWritten, true) over the rows a write adds to InteractionAttribute';
 
 COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_in_most_count_node_x67otjhwhy"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name, value) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-max", "max-associations", "max-choices", "max-plays", "max-strings"]) and Text.matches(value, Text.pattern(<language 5c9151c4e7e65fb8eb6a78468f4f1ac0a2aabe15b78b4265f0d3a3d9dede18b9>)) and Text.matches(value, Text.pattern(<language 7340417c049b8caba4cdc443c0a5a8c4b06b93ed6e1a6c08bfc55f6d4f36f88d>)) in MostCountNode(package, path, start, maxName, most) where Logic.eq(maxWritten, true) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_in_least_count_node_wzhhxqvx6l"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, name, value) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-min", "min-associations", "min-choices", "min-plays", "min-strings"]) and Text.matches(value, Text.pattern(<language 5c9151c4e7e65fb8eb6a78468f4f1ac0a2aabe15b78b4265f0d3a3d9dede18b9>)) and Text.matches(value, Text.pattern(<language 7340417c049b8caba4cdc443c0a5a8c4b06b93ed6e1a6c08bfc55f6d4f36f88d>)) in LeastCountNode(package, path, start, minName, least) where Logic.eq(minWritten, true) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_choice_6z7off3iir"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, value) where Logic.in(kind, ["qti-associable-hotspot", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-inline-choice", "qti-simple-associable-choice", "qti-simple-choice"]) and Logic.eq(name, "identifier") in Choice(package, path, start, identifier) over its units';
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_choice_da2sr3uz4a"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, value) where Logic.in(kind, ["qti-associable-hotspot", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-inline-choice", "qti-simple-associable-choice", "qti-simple-choice"]) and Logic.eq(name, "identifier") in Choice(package, path, start, identifier) over the rows a write removes from Choice';
 
-COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_hottext_xxjwfhida7"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, value) where Logic.eq(kind, "qti-hottext") and Logic.eq(name, "identifier") in Hottext(package, path, start, identifier) over its units';
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_choice_5lpwwdurvi"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, value) where Logic.in(kind, ["qti-associable-hotspot", "qti-gap", "qti-gap-img", "qti-gap-text", "qti-hotspot-choice", "qti-inline-choice", "qti-simple-associable-choice", "qti-simple-choice"]) and Logic.eq(name, "identifier") in Choice(package, path, start, identifier) over the rows a write adds to InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_hottext_os45tbydae"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, value) where Logic.eq(kind, "qti-hottext") and Logic.eq(name, "identifier") in Hottext(package, path, start, identifier) over the rows a write removes from Hottext';
+
+COMMENT ON FUNCTION "qti"."__judge_interaction_attribute_kind_name_in_hottext_6mwydoyegb"() IS 'the rule judge''s block of rule InteractionAttribute(package, path, start, value) where Logic.eq(kind, "qti-hottext") and Logic.eq(name, "identifier") in Hottext(package, path, start, identifier) over the rows a write adds to InteractionAttribute';
 
 COMMENT ON FUNCTION "qti"."__judge_interaction_node_in_count_bound_372prpjjg2"() IS 'the rule judge''s block of rule InteractionNode(package, path, start) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) in CountBound(package, path, start) over its units';
 
@@ -4523,15 +4671,23 @@ COMMENT ON FUNCTION "qti"."__judge_item_mapping_in_named_declaration_owdypizzmf"
 
 COMMENT ON FUNCTION "qti"."__judge_item_mapping_in_free_mapping_target_tenhs4ieej"() IS 'the rule judge''s block of rule ItemMapping(package, path, start) in FreeMappingTarget(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_item_mode_adaptive_in_interaction_attribute_ysc2jrwadi"() IS 'the rule judge''s block of rule ItemMode(package, path) where Logic.eq(adaptive, true) in InteractionAttribute(package, path) where Logic.in(value, ["1", "true"]) and Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "adaptive") over its units';
+COMMENT ON FUNCTION "qti"."__judge_item_mode_adaptive_in_interaction_attribute_7il52l5lkw"() IS 'the rule judge''s block of rule ItemMode(package, path) where Logic.eq(adaptive, true) in InteractionAttribute(package, path) where Logic.in(value, ["1", "true"]) and Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "adaptive") over the rows a write removes from InteractionAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_item_mode_adaptive_in_interaction_attribute_nl44pacq6u"() IS 'the rule judge''s block of rule ItemMode(package, path) where Logic.eq(adaptive, true) in InteractionAttribute(package, path) where Logic.in(value, ["1", "true"]) and Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "adaptive") over the rows a write adds to ItemMode';
 
 COMMENT ON FUNCTION "qti"."__judge_item_ref_document_in_item_ref_target_rk6hubkxqc"() IS 'the rule judge''s block of rule ItemRefDocument(package, path, start, target) in ItemRefTarget(package, path, start, target) where Logic.eq(type, "imsqti_item_xmlv3p0") over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_item_ref_document_in_document_7ycbfhezin"() IS 'the rule judge''s block of rule ItemRefDocument(package, target) in Document(package, path) where Logic.eq(rootKind, "qti-assessment-item") over its units';
+COMMENT ON FUNCTION "qti"."__judge_item_ref_document_in_document_fultyrmk6y"() IS 'the rule judge''s block of rule ItemRefDocument(package, target) in Document(package, path) where Logic.eq(rootKind, "qti-assessment-item") over the rows a write removes from Document';
 
-COMMENT ON FUNCTION "qti"."__judge_item_ref_href_in_node_5j52ad42sm"() IS 'the rule judge''s block of rule ItemRefHref(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-assessment-item-ref") over its units';
+COMMENT ON FUNCTION "qti"."__judge_item_ref_document_in_document_qq6benaalc"() IS 'the rule judge''s block of rule ItemRefDocument(package, target) in Document(package, path) where Logic.eq(rootKind, "qti-assessment-item") over the rows a write adds to ItemRefDocument';
 
-COMMENT ON FUNCTION "qti"."__judge_item_ref_href_in_reference_path_52xijbbedz"() IS 'the rule judge''s block of rule ItemRefHref(package, path, start, target) in ReferencePath(package, path, start, target) where Logic.eq(name, "href") over its units';
+COMMENT ON FUNCTION "qti"."__judge_item_ref_href_in_node_wfmzwqhltt"() IS 'the rule judge''s block of rule ItemRefHref(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-assessment-item-ref") over the rows a write adds to ItemRefHref';
+
+COMMENT ON FUNCTION "qti"."__judge_item_ref_href_in_node_lhgnai6vtb"() IS 'the rule judge''s block of rule ItemRefHref(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-assessment-item-ref") over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_item_ref_href_in_reference_path_r2wysozm4l"() IS 'the rule judge''s block of rule ItemRefHref(package, path, start, target) in ReferencePath(package, path, start, target) where Logic.eq(name, "href") over the rows a write adds to ItemRefHref';
+
+COMMENT ON FUNCTION "qti"."__judge_item_ref_href_in_reference_path_ndgij3ns7j"() IS 'the rule judge''s block of rule ItemRefHref(package, path, start, target) in ReferencePath(package, path, start, target) where Logic.eq(name, "href") over the rows a write removes from ReferencePath';
 
 COMMENT ON FUNCTION "qti"."__judge_item_ref_target_in_item_ref_document_ouldl2v5q6"() IS 'the rule judge''s block of rule ItemRefTarget(package, path, start, target) where Logic.eq(type, "imsqti_item_xmlv3p0") in ItemRefDocument(package, path, start, target) over its units';
 
@@ -4539,11 +4695,17 @@ COMMENT ON FUNCTION "qti"."__judge_item_template_default_in_named_declaration_bm
 
 COMMENT ON FUNCTION "qti"."__judge_judged_placed_idref_in_assembled_id_szogkxenbp"() IS 'the rule judge''s block of rule JudgedPlacedIdref(package, assembly, id) in AssembledId(package, assembly, id) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_label_use_root_kind_in_attribute_bclr5yhwul"() IS 'the rule judge''s block of rule LabelUse(package, path) where Logic.eq(rootKind, "qti-assessment-item") in Attribute(package, path) where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-name") over its units';
+COMMENT ON FUNCTION "qti"."__judge_label_use_root_kind_in_attribute_sxl6rz232b"() IS 'the rule judge''s block of rule LabelUse(package, path) where Logic.eq(rootKind, "qti-assessment-item") in Attribute(package, path) where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-name") over the rows a write removes from Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_label_use_root_kind_in_attribute_sfrrvr2tfc"() IS 'the rule judge''s block of rule LabelUse(package, path) where Logic.eq(rootKind, "qti-assessment-item") in Attribute(package, path) where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-version") over its units';
+COMMENT ON FUNCTION "qti"."__judge_label_use_root_kind_in_attribute_3opdgb773q"() IS 'the rule judge''s block of rule LabelUse(package, path) where Logic.eq(rootKind, "qti-assessment-item") in Attribute(package, path) where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-name") over the rows a write adds to LabelUse';
 
-COMMENT ON FUNCTION "qti"."__judge_label_use_in_attribute_wjtcctmhbe"() IS 'the rule judge''s block of rule LabelUse(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["a", "abbr", "acronym", "address", "article", "aside", "audio", "b", "bdi", "bdo", "big", "blockquote", "br", "caption", "cite", "code", "col", "colgroup", "dd", "details", "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "kbd", "label", "li", "nav", "object", "ol", "p", "picture", "pre", "q", "qti-assessment-item", "qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-gap", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-choice", "qti-hotspot-interaction", "qti-hottext", "qti-hottext-interaction", "qti-inline-choice", "qti-inline-choice-interaction", "qti-item-body", "qti-label", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-prompt", "qti-rubric-block", "qti-rubric-block.test", "qti-select-point-interaction", "qti-simple-associable-choice", "qti-simple-choice", "qti-slider-interaction", "qti-stimulus-body", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-text-entry-interaction", "qti-upload-interaction", "rb", "rp", "rt", "rtc", "ruby", "samp", "section", "small", "source", "span", "strong", "sub", "summary", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "track", "tt", "ul", "var", "video"]) and Logic.eq(name, "label") over its units';
+COMMENT ON FUNCTION "qti"."__judge_label_use_root_kind_in_attribute_3eyz5vbfvw"() IS 'the rule judge''s block of rule LabelUse(package, path) where Logic.eq(rootKind, "qti-assessment-item") in Attribute(package, path) where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-version") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_label_use_root_kind_in_attribute_zip26i3xdl"() IS 'the rule judge''s block of rule LabelUse(package, path) where Logic.eq(rootKind, "qti-assessment-item") in Attribute(package, path) where Logic.eq(kind, "qti-assessment-item") and Logic.eq(name, "tool-version") over the rows a write adds to LabelUse';
+
+COMMENT ON FUNCTION "qti"."__judge_label_use_in_attribute_klcdcvh5qa"() IS 'the rule judge''s block of rule LabelUse(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["a", "abbr", "acronym", "address", "article", "aside", "audio", "b", "bdi", "bdo", "big", "blockquote", "br", "caption", "cite", "code", "col", "colgroup", "dd", "details", "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "kbd", "label", "li", "nav", "object", "ol", "p", "picture", "pre", "q", "qti-assessment-item", "qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-gap", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-choice", "qti-hotspot-interaction", "qti-hottext", "qti-hottext-interaction", "qti-inline-choice", "qti-inline-choice-interaction", "qti-item-body", "qti-label", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-prompt", "qti-rubric-block", "qti-rubric-block.test", "qti-select-point-interaction", "qti-simple-associable-choice", "qti-simple-choice", "qti-slider-interaction", "qti-stimulus-body", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-text-entry-interaction", "qti-upload-interaction", "rb", "rp", "rt", "rtc", "ruby", "samp", "section", "small", "source", "span", "strong", "sub", "summary", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "track", "tt", "ul", "var", "video"]) and Logic.eq(name, "label") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_label_use_in_attribute_bmr4iy634l"() IS 'the rule judge''s block of rule LabelUse(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["a", "abbr", "acronym", "address", "article", "aside", "audio", "b", "bdi", "bdo", "big", "blockquote", "br", "caption", "cite", "code", "col", "colgroup", "dd", "details", "dfn", "div", "dl", "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "img", "kbd", "label", "li", "nav", "object", "ol", "p", "picture", "pre", "q", "qti-assessment-item", "qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-custom-interaction", "qti-drawing-interaction", "qti-end-attempt-interaction", "qti-extended-text-interaction", "qti-feedback-block", "qti-feedback-block.template", "qti-feedback-inline", "qti-gap", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-choice", "qti-hotspot-interaction", "qti-hottext", "qti-hottext-interaction", "qti-inline-choice", "qti-inline-choice-interaction", "qti-item-body", "qti-label", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-portable-custom-interaction", "qti-position-object-interaction", "qti-prompt", "qti-rubric-block", "qti-rubric-block.test", "qti-select-point-interaction", "qti-simple-associable-choice", "qti-simple-choice", "qti-slider-interaction", "qti-stimulus-body", "qti-template-block", "qti-template-block.rubric", "qti-template-inline", "qti-template-inline.rubric", "qti-text-entry-interaction", "qti-upload-interaction", "rb", "rp", "rt", "rtc", "ruby", "samp", "section", "small", "source", "span", "strong", "sub", "summary", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "track", "tt", "ul", "var", "video"]) and Logic.eq(name, "label") over the rows a write adds to LabelUse';
 
 COMMENT ON FUNCTION "qti"."__judge_least_count_node_in_interaction_attribute_l6vh5ejg6k"() IS 'the rule judge''s block of rule LeastCountNode(package, path, start, minName, least) where Logic.eq(minWritten, true) in InteractionAttribute(package, path, start, name, value) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-min", "min-associations", "min-choices", "min-plays", "min-strings"]) and Text.matches(value, Text.pattern(<language 5c9151c4e7e65fb8eb6a78468f4f1ac0a2aabe15b78b4265f0d3a3d9dede18b9>)) and Text.matches(value, Text.pattern(<language 7340417c049b8caba4cdc443c0a5a8c4b06b93ed6e1a6c08bfc55f6d4f36f88d>)) over its units';
 
@@ -4559,11 +4721,15 @@ COMMENT ON FUNCTION "qti"."__judge_listed_identifier_in_matched_identifier_jjfez
 
 COMMENT ON FUNCTION "qti"."__judge_listed_title_in_matched_title_kgmlfutjrq"() IS 'the rule judge''s block of rule ListedTitle(package, path, record) in MatchedTitle(package, path, record) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_lookup_value_in_attribute_nbja5pznlf"() IS 'the rule judge''s block of rule LookupValue(package, path, start) in Attribute(package, path, start) where Logic.or(Logic.and(Logic.in(kind, ["qti-interpolation-table", "qti-match-table"]), Logic.eq(name, "default-value")), Logic.and(Logic.in(kind, ["qti-interpolation-table-entry", "qti-match-table-entry"]), Logic.eq(name, "target-value"))) over its units';
+COMMENT ON FUNCTION "qti"."__judge_lookup_value_in_attribute_cyepbjxqcc"() IS 'the rule judge''s block of rule LookupValue(package, path, start) in Attribute(package, path, start) where Logic.or(Logic.and(Logic.in(kind, ["qti-interpolation-table", "qti-match-table"]), Logic.eq(name, "default-value")), Logic.and(Logic.in(kind, ["qti-interpolation-table-entry", "qti-match-table-entry"]), Logic.eq(name, "target-value"))) over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_lookup_value_in_attribute_mqju3mtya4"() IS 'the rule judge''s block of rule LookupValue(package, path, start) in Attribute(package, path, start) where Logic.or(Logic.and(Logic.in(kind, ["qti-interpolation-table", "qti-match-table"]), Logic.eq(name, "default-value")), Logic.and(Logic.in(kind, ["qti-interpolation-table-entry", "qti-match-table-entry"]), Logic.eq(name, "target-value"))) over the rows a write adds to LookupValue';
 
 COMMENT ON FUNCTION "qti"."__judge_lookup_value_in_lookup_attribute_text_c7hhudf667"() IS 'the rule judge''s block of rule LookupValue(package, path, start, value) in LookupAttributeText(package, path, start, lexical) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_map_key_in_node_ljewsr6g5q"() IS 'the rule judge''s block of rule MapKey(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-map-entry") over its units';
+COMMENT ON FUNCTION "qti"."__judge_map_key_in_node_z4xscef5tk"() IS 'the rule judge''s block of rule MapKey(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-map-entry") over the rows a write adds to MapKey';
+
+COMMENT ON FUNCTION "qti"."__judge_map_key_in_node_3ioktajam4"() IS 'the rule judge''s block of rule MapKey(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-map-entry") over the rows a write removes from Node';
 
 COMMENT ON FUNCTION "qti"."__judge_map_key_in_map_key_attribute_text_m7gkjtn7xu"() IS 'the rule judge''s block of rule MapKey(package, path, start, key) in MapKeyAttributeText(package, path, start, value) over its units';
 
@@ -4571,23 +4737,37 @@ COMMENT ON FUNCTION "qti"."__judge_mapping_base_type_in_mappable_base_type_vmi22
 
 COMMENT ON FUNCTION "qti"."__judge_mapping_base_type_in_mappable_base_type_7gxvjsv3ni"() IS 'the rule judge''s block of rule MappingBaseType(baseType) in MappableBaseType(baseType) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_math_action_in_node_5suwkx5gi3"() IS 'the rule judge''s block of rule MathAction(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:maction") over its units';
+COMMENT ON FUNCTION "qti"."__judge_math_action_in_node_qwhx5nmpvn"() IS 'the rule judge''s block of rule MathAction(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:maction") over the rows a write adds to MathAction';
 
-COMMENT ON FUNCTION "qti"."__judge_math_action_selection_written_in_attribute_g4vou3atrw"() IS 'the rule judge''s block of rule MathAction(package, path, start) where Logic.eq(selectionWritten, true) in Attribute(package, path, start) where Logic.eq(kind, "m:maction") and Logic.eq(name, "selection") over its units';
+COMMENT ON FUNCTION "qti"."__judge_math_action_in_node_lh3miyd7vn"() IS 'the rule judge''s block of rule MathAction(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:maction") over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_math_action_selection_written_in_attribute_dmev5yfy6d"() IS 'the rule judge''s block of rule MathAction(package, path, start) where Logic.eq(selectionWritten, true) in Attribute(package, path, start) where Logic.eq(kind, "m:maction") and Logic.eq(name, "selection") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_math_action_selection_written_in_attribute_73wyoen5hx"() IS 'the rule judge''s block of rule MathAction(package, path, start) where Logic.eq(selectionWritten, true) in Attribute(package, path, start) where Logic.eq(kind, "m:maction") and Logic.eq(name, "selection") over the rows a write adds to MathAction';
 
 COMMENT ON FUNCTION "qti"."__judge_math_align_scope_in_scoped_dir_fq3qe27snp"() IS 'the rule judge''s block of rule MathAlignScope(package, path, start, own) where Logic.ne(inherited, own) in ScopedDir(package, path, start, direction) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_math_cell_in_node_7nqytk5ywc"() IS 'the rule judge''s block of rule MathCell(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:mtd") over its units';
+COMMENT ON FUNCTION "qti"."__judge_math_cell_in_node_u5m3rontek"() IS 'the rule judge''s block of rule MathCell(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:mtd") over the rows a write adds to MathCell';
 
-COMMENT ON FUNCTION "qti"."__judge_math_cn_in_node_2a6sew65on"() IS 'the rule judge''s block of rule MathCn(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:cn") over its units';
+COMMENT ON FUNCTION "qti"."__judge_math_cell_in_node_nfojgk5pze"() IS 'the rule judge''s block of rule MathCell(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:mtd") over the rows a write removes from Node';
 
-COMMENT ON FUNCTION "qti"."__judge_math_cn_base_lexical_in_cn_attribute_lvua72evtw"() IS 'the rule judge''s block of rule MathCn(package, path, start, baseLexicalDigest) where Logic.ne(baseLexical, "") in CnAttribute(package, path, start, lexicalDigest) where Logic.eq(name, "base") over its units';
+COMMENT ON FUNCTION "qti"."__judge_math_cn_in_node_tagdr7vhlf"() IS 'the rule judge''s block of rule MathCn(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:cn") over the rows a write adds to MathCn';
 
-COMMENT ON FUNCTION "qti"."__judge_math_cn_type_lexical_in_cn_attribute_f3una2trsj"() IS 'the rule judge''s block of rule MathCn(package, path, start, typeLexicalDigest) where Logic.ne(typeLexical, "") in CnAttribute(package, path, start, lexicalDigest) where Logic.eq(name, "type") over its units';
+COMMENT ON FUNCTION "qti"."__judge_math_cn_in_node_gq7mj4blic"() IS 'the rule judge''s block of rule MathCn(package, path, start) in Node(package, path, start) where Logic.eq(kind, "m:cn") over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_math_cn_base_lexical_in_cn_attribute_t2mbv5ax7o"() IS 'the rule judge''s block of rule MathCn(package, path, start, baseLexicalDigest) where Logic.ne(baseLexical, "") in CnAttribute(package, path, start, lexicalDigest) where Logic.eq(name, "base") over the rows a write removes from CnAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_math_cn_base_lexical_in_cn_attribute_zianth7glo"() IS 'the rule judge''s block of rule MathCn(package, path, start, baseLexicalDigest) where Logic.ne(baseLexical, "") in CnAttribute(package, path, start, lexicalDigest) where Logic.eq(name, "base") over the rows a write adds to MathCn';
+
+COMMENT ON FUNCTION "qti"."__judge_math_cn_type_lexical_in_cn_attribute_s6xpqmiquk"() IS 'the rule judge''s block of rule MathCn(package, path, start, typeLexicalDigest) where Logic.ne(typeLexical, "") in CnAttribute(package, path, start, lexicalDigest) where Logic.eq(name, "type") over the rows a write removes from CnAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_math_cn_type_lexical_in_cn_attribute_pfgzjqjc2b"() IS 'the rule judge''s block of rule MathCn(package, path, start, typeLexicalDigest) where Logic.ne(typeLexical, "") in CnAttribute(package, path, start, lexicalDigest) where Logic.eq(name, "type") over the rows a write adds to MathCn';
 
 COMMENT ON FUNCTION "qti"."__judge_math_rank_node_in_math_rank_sd66a7za5w"() IS 'the rule judge''s block of rule MathRankNode(package, path, parent) where Logic.ne(kind, "m:math") and Logic.ne(parent, start) in MathRank(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_media_in_entry_5uq3ubg7xs"() IS 'the rule judge''s block of rule Media(package, path) in Entry(package, path) where Logic.eq(kind, "media") over its units';
+COMMENT ON FUNCTION "qti"."__judge_media_in_entry_quqrddwivu"() IS 'the rule judge''s block of rule Media(package, path) in Entry(package, path) where Logic.eq(kind, "media") over the rows a write removes from Entry';
+
+COMMENT ON FUNCTION "qti"."__judge_media_in_entry_dzlxu3kyqq"() IS 'the rule judge''s block of rule Media(package, path) in Entry(package, path) where Logic.eq(kind, "media") over the rows a write adds to Media';
 
 COMMENT ON FUNCTION "qti"."__judge_most_count_node_in_interaction_attribute_pbdlblsprx"() IS 'the rule judge''s block of rule MostCountNode(package, path, start, maxName, most) where Logic.eq(maxWritten, true) in InteractionAttribute(package, path, start, name, value) where Logic.in(kind, ["qti-associable-hotspot", "qti-associate-interaction", "qti-choice-interaction", "qti-extended-text-interaction", "qti-gap-img", "qti-gap-match-interaction", "qti-gap-text", "qti-graphic-associate-interaction", "qti-graphic-gap-match-interaction", "qti-graphic-order-interaction", "qti-hotspot-interaction", "qti-hottext-interaction", "qti-match-interaction", "qti-media-interaction", "qti-order-interaction", "qti-position-object-interaction", "qti-select-point-interaction", "qti-simple-associable-choice"]) and Logic.in(name, ["match-max", "max-associations", "max-choices", "max-plays", "max-strings"]) and Text.matches(value, Text.pattern(<language 5c9151c4e7e65fb8eb6a78468f4f1ac0a2aabe15b78b4265f0d3a3d9dede18b9>)) and Text.matches(value, Text.pattern(<language 7340417c049b8caba4cdc443c0a5a8c4b06b93ed6e1a6c08bfc55f6d4f36f88d>)) over its units';
 
@@ -4595,45 +4775,85 @@ COMMENT ON FUNCTION "qti"."__judge_named_in_test_identifier_syehmpldfc"() IS 'th
 
 COMMENT ON FUNCTION "qti"."__judge_named_item_ref_in_object_identifier_62wj7qla5o"() IS 'the rule judge''s block of rule NamedItemRef(package, item, identifier) in ObjectIdentifier(package, path, value) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_start_in_document_zrfezeh3cx"() IS 'the rule judge''s block of rule Node(package, path) where Logic.eq(kind, "document") and Logic.eq(start, 0n) in Document(package, path) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_start_in_document_k6k5wpme62"() IS 'the rule judge''s block of rule Node(package, path) where Logic.eq(kind, "document") and Logic.eq(start, 0n) in Document(package, path) over the rows a write removes from Document';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_parent_kind_in_document_24fbnojvft"() IS 'the rule judge''s block of rule Node(package, path, kind) where Logic.not(Logic.in(kind, ["comment", "doctype", "document", "entityRef", "pi", "text", "ws"])) and Logic.eq(parentKind, "document") in Document(package, path, rootKind) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_start_in_document_f7unhma5xc"() IS 'the rule judge''s block of rule Node(package, path) where Logic.eq(kind, "document") and Logic.eq(start, 0n) in Document(package, path) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_parent_kind_in_pci_module_form_tnwxgxwpyu"() IS 'the rule judge''s block of rule Node(package, path, parent) where Logic.eq(kind, "qti-interaction-modules") and Logic.eq(parentKind, "qti-portable-custom-interaction") in PciModuleForm(package, path, start) where Logic.eq(element, true) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_parent_kind_in_document_m6m55zy7hu"() IS 'the rule judge''s block of rule Node(package, path, kind) where Logic.not(Logic.in(kind, ["comment", "doctype", "document", "entityRef", "pi", "text", "ws"])) and Logic.eq(parentKind, "document") in Document(package, path, rootKind) over the rows a write removes from Document';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_kind_kind_in_element_type_mmg2xmgvio"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.not(Logic.in(kind, ["comment", "doctype", "document", "entityRef", "pi", "text", "ws"])) and Logic.not(Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"])) and Logic.not(AnonymousType.has(kind)) in ElementType(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_parent_kind_in_document_key7lmqiqe"() IS 'the rule judge''s block of rule Node(package, path, kind) where Logic.not(Logic.in(kind, ["comment", "doctype", "document", "entityRef", "pi", "text", "ws"])) and Logic.eq(parentKind, "document") in Document(package, path, rootKind) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_governor_in_identity_text_jsqkj5ltqu"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(ValueIdentity.at("identity", TextDomain.at("domain", governor)), ["ID", "IDREF", "IDREFS"]) in IdentityText(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_parent_kind_in_pci_module_form_ve5tbo7ntk"() IS 'the rule judge''s block of rule Node(package, path, parent) where Logic.eq(kind, "qti-interaction-modules") and Logic.eq(parentKind, "qti-portable-custom-interaction") in PciModuleForm(package, path, start) where Logic.eq(element, true) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_open_element_name_ym7cptpfal"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"]) in OpenElementName(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_parent_kind_in_pci_module_form_wylhun6gga"() IS 'the rule judge''s block of rule Node(package, path, parent) where Logic.eq(kind, "qti-interaction-modules") and Logic.eq(parentKind, "qti-portable-custom-interaction") in PciModuleForm(package, path, start) where Logic.eq(element, true) over the rows a write removes from PciModuleForm';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_governor_kind_in_open_element_type_xwbtktlvzg"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"]) and Logic.ne(KindGovernor.at("governor", kind), governor) in OpenElementType(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_kind_kind_in_element_type_5l52x6yiko"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.not(Logic.in(kind, ["comment", "doctype", "document", "entityRef", "pi", "text", "ws"])) and Logic.not(Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"])) and Logic.not(AnonymousType.has(kind)) in ElementType(package, path, start) over the rows a write removes from ElementType';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_expression_a4j36wuakm"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-and", "qti-any-n", "qti-base-value", "qti-container-size", "qti-contains", "qti-correct", "qti-custom-operator", "qti-default", "qti-delete", "qti-divide", "qti-duration-gte", "qti-duration-lt", "qti-equal", "qti-equal-rounded", "qti-field-value", "qti-gcd", "qti-gt", "qti-gte", "qti-index", "qti-inside", "qti-integer-divide", "qti-integer-modulus", "qti-integer-to-float", "qti-is-null", "qti-lcm", "qti-lt", "qti-lte", "qti-map-response", "qti-map-response-point", "qti-match", "qti-math-constant", "qti-math-operator", "qti-max", "qti-member", "qti-min", "qti-multiple", "qti-not", "qti-null", "qti-number-correct", "qti-number-incorrect", "qti-number-presented", "qti-number-responded", "qti-number-selected", "qti-or", "qti-ordered", "qti-outcome-maximum", "qti-outcome-minimum", "qti-pattern-match", "qti-power", "qti-product", "qti-random", "qti-random-float", "qti-random-integer", "qti-repeat", "qti-round", "qti-round-to", "qti-stats-operator", "qti-string-match", "qti-substring", "qti-subtract", "qti-sum", "qti-test-variables", "qti-truncate", "qti-variable"]) in Expression(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_kind_kind_in_element_type_wle3mcdmor"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.not(Logic.in(kind, ["comment", "doctype", "document", "entityRef", "pi", "text", "ws"])) and Logic.not(Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"])) and Logic.not(AnonymousType.has(kind)) in ElementType(package, path, start) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_rounding_smb64xtpz3"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) in Rounding(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_governor_in_identity_text_s3wity7c4d"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(ValueIdentity.at("identity", TextDomain.at("domain", governor)), ["ID", "IDREF", "IDREFS"]) in IdentityText(package, path, start) over the rows a write removes from IdentityText';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_processing_62vtwja25b"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-exit-response", "qti-exit-template", "qti-exit-test", "qti-lookup-outcome-value", "qti-outcome-condition", "qti-outcome-else", "qti-outcome-else-if", "qti-outcome-if", "qti-outcome-processing", "qti-outcome-processing-fragment", "qti-response-condition", "qti-response-else", "qti-response-else-if", "qti-response-if", "qti-response-processing", "qti-response-processing-fragment", "qti-set-correct-response", "qti-set-default-value", "qti-set-outcome-value", "qti-set-template-value", "qti-template-condition", "qti-template-constraint", "qti-template-else", "qti-template-else-if", "qti-template-if", "qti-template-processing"]) in Processing(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_governor_in_identity_text_7umxr33yk7"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(ValueIdentity.at("identity", TextDomain.at("domain", governor)), ["ID", "IDREF", "IDREFS"]) in IdentityText(package, path, start) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_comment_v6zxzt6uc5"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "comment") in Comment(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_open_element_name_bpp6rkn6t5"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"]) in OpenElementName(package, path, start) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_doctype_6loz6u5fs4"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "doctype") in Doctype(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_open_element_name_n7pmvma4ij"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"]) in OpenElementName(package, path, start) over the rows a write removes from OpenElementName';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_math_action_gkwusyim2n"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "m:maction") in MathAction(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_governor_kind_in_open_element_type_hcu4hwk534"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"]) and Logic.ne(KindGovernor.at("governor", kind), governor) in OpenElementType(package, path, start) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_math_align_scope_dfmjpcyrvq"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "m:mtd") in MathAlignScope(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_governor_kind_in_open_element_type_bg2n3mg46d"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"]) and Logic.ne(KindGovernor.at("governor", kind), governor) in OpenElementType(package, path, start) over the rows a write removes from OpenElementType';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_math_cell_6jjzj6eg2h"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "m:mtd") in MathCell(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_expression_oxp552kpkh"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-and", "qti-any-n", "qti-base-value", "qti-container-size", "qti-contains", "qti-correct", "qti-custom-operator", "qti-default", "qti-delete", "qti-divide", "qti-duration-gte", "qti-duration-lt", "qti-equal", "qti-equal-rounded", "qti-field-value", "qti-gcd", "qti-gt", "qti-gte", "qti-index", "qti-inside", "qti-integer-divide", "qti-integer-modulus", "qti-integer-to-float", "qti-is-null", "qti-lcm", "qti-lt", "qti-lte", "qti-map-response", "qti-map-response-point", "qti-match", "qti-math-constant", "qti-math-operator", "qti-max", "qti-member", "qti-min", "qti-multiple", "qti-not", "qti-null", "qti-number-correct", "qti-number-incorrect", "qti-number-presented", "qti-number-responded", "qti-number-selected", "qti-or", "qti-ordered", "qti-outcome-maximum", "qti-outcome-minimum", "qti-pattern-match", "qti-power", "qti-product", "qti-random", "qti-random-float", "qti-random-integer", "qti-repeat", "qti-round", "qti-round-to", "qti-stats-operator", "qti-string-match", "qti-substring", "qti-subtract", "qti-sum", "qti-test-variables", "qti-truncate", "qti-variable"]) in Expression(package, path, start) over the rows a write removes from Expression';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_pi_y3uk4l3wat"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "pi") in Pi(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_expression_sdwby4w55o"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-and", "qti-any-n", "qti-base-value", "qti-container-size", "qti-contains", "qti-correct", "qti-custom-operator", "qti-default", "qti-delete", "qti-divide", "qti-duration-gte", "qti-duration-lt", "qti-equal", "qti-equal-rounded", "qti-field-value", "qti-gcd", "qti-gt", "qti-gte", "qti-index", "qti-inside", "qti-integer-divide", "qti-integer-modulus", "qti-integer-to-float", "qti-is-null", "qti-lcm", "qti-lt", "qti-lte", "qti-map-response", "qti-map-response-point", "qti-match", "qti-math-constant", "qti-math-operator", "qti-max", "qti-member", "qti-min", "qti-multiple", "qti-not", "qti-null", "qti-number-correct", "qti-number-incorrect", "qti-number-presented", "qti-number-responded", "qti-number-selected", "qti-or", "qti-ordered", "qti-outcome-maximum", "qti-outcome-minimum", "qti-pattern-match", "qti-power", "qti-product", "qti-random", "qti-random-float", "qti-random-integer", "qti-repeat", "qti-round", "qti-round-to", "qti-stats-operator", "qti-string-match", "qti-substring", "qti-subtract", "qti-sum", "qti-test-variables", "qti-truncate", "qti-variable"]) in Expression(package, path, start) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_site_ma43jaxroz"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "qti-assessment-section-ref") in Site(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_rounding_2rz32ccb5d"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) in Rounding(package, path, start) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_text_reference_lsxeb6x5jk"() IS 'the rule judge''s block of rule Node(package, path, start, kind) where Logic.in(kind, ["qti-file-href", "qti-file-href.card", "qti-resource-icon"]) in TextReference(package, path, start, kind) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_rounding_jtqqxvwby6"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) in Rounding(package, path, start) over the rows a write removes from Rounding';
 
-COMMENT ON FUNCTION "qti"."__judge_node_governor_in_document_id_5ejmecqkx3"() IS 'the rule judge''s block of rule Node(package, path, start, parent) where Logic.eq(ValueIdentity.at("identity", TextDomain.at("domain", governor)), "ID") in DocumentId(package, path, start, owner) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_processing_g66n3h275c"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-exit-response", "qti-exit-template", "qti-exit-test", "qti-lookup-outcome-value", "qti-outcome-condition", "qti-outcome-else", "qti-outcome-else-if", "qti-outcome-if", "qti-outcome-processing", "qti-outcome-processing-fragment", "qti-response-condition", "qti-response-else", "qti-response-else-if", "qti-response-if", "qti-response-processing", "qti-response-processing-fragment", "qti-set-correct-response", "qti-set-default-value", "qti-set-outcome-value", "qti-set-template-value", "qti-template-condition", "qti-template-constraint", "qti-template-else", "qti-template-else-if", "qti-template-if", "qti-template-processing"]) in Processing(package, path, start) over the rows a write adds to Node';
 
-COMMENT ON FUNCTION "qti"."__judge_node_kind_in_literal_icf5mapvjt"() IS 'the rule judge''s block of rule Node(package, path, start, stringValue) where Logic.eq(kind, "qti-base-value") in Literal(package, path, start, text) over its units';
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_processing_jsf3pyrqrs"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.in(kind, ["qti-exit-response", "qti-exit-template", "qti-exit-test", "qti-lookup-outcome-value", "qti-outcome-condition", "qti-outcome-else", "qti-outcome-else-if", "qti-outcome-if", "qti-outcome-processing", "qti-outcome-processing-fragment", "qti-response-condition", "qti-response-else", "qti-response-else-if", "qti-response-if", "qti-response-processing", "qti-response-processing-fragment", "qti-set-correct-response", "qti-set-default-value", "qti-set-outcome-value", "qti-set-template-value", "qti-template-condition", "qti-template-constraint", "qti-template-else", "qti-template-else-if", "qti-template-if", "qti-template-processing"]) in Processing(package, path, start) over the rows a write removes from Processing';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_comment_w2s2sntlpq"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "comment") in Comment(package, path, start) over the rows a write removes from Comment';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_comment_ab57m5aehp"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "comment") in Comment(package, path, start) over the rows a write adds to Node';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_doctype_qvmphc7s7f"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "doctype") in Doctype(package, path, start) over the rows a write removes from Doctype';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_doctype_bo644gxc5x"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "doctype") in Doctype(package, path, start) over the rows a write adds to Node';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_math_action_yo74segxzc"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "m:maction") in MathAction(package, path, start) over the rows a write removes from MathAction';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_math_action_r6ko5fub7s"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "m:maction") in MathAction(package, path, start) over the rows a write adds to Node';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_math_align_scope_5zywsqegwn"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "m:mtd") in MathAlignScope(package, path, start) over the rows a write removes from MathAlignScope';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_math_align_scope_jy2ww5r7qp"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "m:mtd") in MathAlignScope(package, path, start) over the rows a write adds to Node';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_math_cell_u2guuwiykd"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "m:mtd") in MathCell(package, path, start) over the rows a write removes from MathCell';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_math_cell_twue42lrlt"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "m:mtd") in MathCell(package, path, start) over the rows a write adds to Node';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_pi_q7jdefxzmj"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "pi") in Pi(package, path, start) over the rows a write adds to Node';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_pi_rpflacykid"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "pi") in Pi(package, path, start) over the rows a write removes from Pi';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_site_gmyuwfo4pt"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "qti-assessment-section-ref") in Site(package, path, start) over the rows a write adds to Node';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_site_kxwlimydrh"() IS 'the rule judge''s block of rule Node(package, path, start) where Logic.eq(kind, "qti-assessment-section-ref") in Site(package, path, start) over the rows a write removes from Site';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_text_reference_ds2q2v44va"() IS 'the rule judge''s block of rule Node(package, path, start, kind) where Logic.in(kind, ["qti-file-href", "qti-file-href.card", "qti-resource-icon"]) in TextReference(package, path, start, kind) over the rows a write adds to Node';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_text_reference_3j4p2wxich"() IS 'the rule judge''s block of rule Node(package, path, start, kind) where Logic.in(kind, ["qti-file-href", "qti-file-href.card", "qti-resource-icon"]) in TextReference(package, path, start, kind) over the rows a write removes from TextReference';
+
+COMMENT ON FUNCTION "qti"."__judge_node_governor_in_document_id_t72riq5vgr"() IS 'the rule judge''s block of rule Node(package, path, start, parent) where Logic.eq(ValueIdentity.at("identity", TextDomain.at("domain", governor)), "ID") in DocumentId(package, path, start, owner) over the rows a write removes from DocumentId';
+
+COMMENT ON FUNCTION "qti"."__judge_node_governor_in_document_id_2fc734h47u"() IS 'the rule judge''s block of rule Node(package, path, start, parent) where Logic.eq(ValueIdentity.at("identity", TextDomain.at("domain", governor)), "ID") in DocumentId(package, path, start, owner) over the rows a write adds to Node';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_literal_e5lmjutrkq"() IS 'the rule judge''s block of rule Node(package, path, start, stringValue) where Logic.eq(kind, "qti-base-value") in Literal(package, path, start, text) over the rows a write removes from Literal';
+
+COMMENT ON FUNCTION "qti"."__judge_node_kind_in_literal_jrwqu4miuy"() IS 'the rule judge''s block of rule Node(package, path, start, stringValue) where Logic.eq(kind, "qti-base-value") in Literal(package, path, start, text) over the rows a write adds to Node';
 
 COMMENT ON FUNCTION "qti"."__judge_numbered_reading_in_placed_test_reference_zafni3vczq"() IS 'the rule judge''s block of rule NumberedReading(package, assembly, path, start, attribute) in PlacedTestReference(package, assembly, path, start, attribute) over its units';
 
@@ -4641,21 +4861,31 @@ COMMENT ON FUNCTION "qti"."__judge_numbered_reading_in_numbered_target_dsbi3oxtg
 
 COMMENT ON FUNCTION "qti"."__judge_numbered_reading_in_assembled_replaceable_ijilkt3uhd"() IS 'the rule judge''s block of rule NumberedReading(package, assembly, scopeInstance, scopePath, scope) in AssembledReplaceable(package, assembly, instance, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_open_attribute_kind_in_open_element_name_pwfp5myjmn"() IS 'the rule judge''s block of rule OpenAttribute(package, path, start, elementNamespace) where Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"]) in OpenElementName(package, path, start, namespace) over its units';
+COMMENT ON FUNCTION "qti"."__judge_open_attribute_kind_in_open_element_name_xw54mdoffj"() IS 'the rule judge''s block of rule OpenAttribute(package, path, start, elementNamespace) where Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"]) in OpenElementName(package, path, start, namespace) over the rows a write adds to OpenAttribute';
+
+COMMENT ON FUNCTION "qti"."__judge_open_attribute_kind_in_open_element_name_lryukbia3l"() IS 'the rule judge''s block of rule OpenAttribute(package, path, start, elementNamespace) where Logic.in(kind, ["foreign-element", "no-namespace-element", "own-namespace-element"]) in OpenElementName(package, path, start, namespace) over the rows a write removes from OpenElementName';
 
 COMMENT ON FUNCTION "qti"."__judge_open_name_node_in_open_element_type_fcsyhf2l5y"() IS 'the rule judge''s block of rule OpenNameNode(package, path, start) where Logic.not(Text.matches(expanded, HeldRootsUnder.at("names", parentKind))) and Logic.or(Logic.and(Logic.eq(Bits.disjoint(StrictlyHeld.row(parentKind), ["foreign-element"]), false), Logic.eq(kind, "foreign-element")), Logic.and(Logic.eq(Bits.disjoint(StrictlyHeld.row(parentKind), ["no-namespace-element"]), false), Logic.eq(kind, "no-namespace-element")), Logic.and(Logic.eq(Bits.disjoint(StrictlyHeld.row(parentKind), ["own-namespace-element"]), false), Logic.eq(kind, "own-namespace-element"))) in OpenElementType(package, path, start) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_packaged_template_default_in_item_ref_33osfbsdkp"() IS 'the rule judge''s block of rule PackagedTemplateDefault(package, path, ref) in ItemRefDocument(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_pci_module_form_element_in_attribute_oedywbf57n"() IS 'the rule judge''s block of rule PciModuleForm(package, path, start) where Logic.eq(element, false) in Attribute(package, path, start) where Logic.eq(kind, "qti-portable-custom-interaction") and Logic.eq(name, "module") over its units';
+COMMENT ON FUNCTION "qti"."__judge_pci_module_form_element_in_attribute_od6262tvqk"() IS 'the rule judge''s block of rule PciModuleForm(package, path, start) where Logic.eq(element, false) in Attribute(package, path, start) where Logic.eq(kind, "qti-portable-custom-interaction") and Logic.eq(name, "module") over the rows a write removes from Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_pci_module_form_element_in_node_7cvo6oseff"() IS 'the rule judge''s block of rule PciModuleForm(package, path, start) where Logic.eq(element, true) in Node(package, path, parent) where Logic.eq(kind, "qti-interaction-modules") and Logic.eq(parentKind, "qti-portable-custom-interaction") over its units';
+COMMENT ON FUNCTION "qti"."__judge_pci_module_form_element_in_attribute_z7pl7tbygw"() IS 'the rule judge''s block of rule PciModuleForm(package, path, start) where Logic.eq(element, false) in Attribute(package, path, start) where Logic.eq(kind, "qti-portable-custom-interaction") and Logic.eq(name, "module") over the rows a write adds to PciModuleForm';
 
-COMMENT ON FUNCTION "qti"."__judge_pi_in_node_hl5ewr4m2y"() IS 'the rule judge''s block of rule Pi(package, path, start) in Node(package, path, start) where Logic.eq(kind, "pi") over its units';
+COMMENT ON FUNCTION "qti"."__judge_pci_module_form_element_in_node_tcgihyv3xz"() IS 'the rule judge''s block of rule PciModuleForm(package, path, start) where Logic.eq(element, true) in Node(package, path, parent) where Logic.eq(kind, "qti-interaction-modules") and Logic.eq(parentKind, "qti-portable-custom-interaction") over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_pci_module_form_element_in_node_6rhlpgac52"() IS 'the rule judge''s block of rule PciModuleForm(package, path, start) where Logic.eq(element, true) in Node(package, path, parent) where Logic.eq(kind, "qti-interaction-modules") and Logic.eq(parentKind, "qti-portable-custom-interaction") over the rows a write adds to PciModuleForm';
+
+COMMENT ON FUNCTION "qti"."__judge_pi_in_node_z6azvvbpxq"() IS 'the rule judge''s block of rule Pi(package, path, start) in Node(package, path, start) where Logic.eq(kind, "pi") over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_pi_in_node_2p5xbgivdf"() IS 'the rule judge''s block of rule Pi(package, path, start) in Node(package, path, start) where Logic.eq(kind, "pi") over the rows a write adds to Pi';
 
 COMMENT ON FUNCTION "qti"."__judge_placed_binding_in_named_declaration_laa4jy7plq"() IS 'the rule judge''s block of rule PlacedBinding(package, assembly, identifier) in NamedDeclaration(package, path, identifier) where Logic.eq(declarationKind, "qti-response-declaration") over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_placed_binding_in_instance_nofjmyop5o"() IS 'the rule judge''s block of rule PlacedBinding(package, assembly, instance, path) in Instance(package, assembly, start, document) where Logic.eq(assemblyKind, "qti-assessment-item") over its units';
+COMMENT ON FUNCTION "qti"."__judge_placed_binding_in_instance_i4qehlkf52"() IS 'the rule judge''s block of rule PlacedBinding(package, assembly, instance, path) in Instance(package, assembly, start, document) where Logic.eq(assemblyKind, "qti-assessment-item") over the rows a write removes from Instance';
+
+COMMENT ON FUNCTION "qti"."__judge_placed_binding_in_instance_epjux4k27a"() IS 'the rule judge''s block of rule PlacedBinding(package, assembly, instance, path) in Instance(package, assembly, start, document) where Logic.eq(assemblyKind, "qti-assessment-item") over the rows a write adds to PlacedBinding';
 
 COMMENT ON FUNCTION "qti"."__judge_placed_binding_base_type_node_in_binding_fit_jq37ljyvup"() IS 'the rule judge''s block of rule PlacedBindingBaseTypeNode(baseType, cardinality, kind) where Logic.not(Logic.in(kind, ["qti-custom-interaction", "qti-order-interaction", "qti-portable-custom-interaction"])) and Logic.eq(attribute, "response-identifier") and Logic.ne(cardinality, "record") in BindingFit(baseType, cardinality, kind) over the rows a write adds to Attribute';
 
@@ -4769,15 +4999,25 @@ COMMENT ON FUNCTION "qti"."__judge_record_set_value_in_attribute_pamcgaegai"() I
 
 COMMENT ON FUNCTION "qti"."__judge_record_set_value_in_attribute_syg2uc77ur"() IS 'the rule judge''s block of rule RecordSetValue(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "qti-value") and Logic.eq(name, "field-identifier") over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_reference_kind_name_scope_in_item_ref_href_5k2dbdfa4a"() IS 'the rule judge''s block of rule Reference(package, path, start) where Logic.eq(kind, "qti-assessment-item-ref") and Logic.eq(name, "href") and Logic.ne(scope, "external") in ItemRefHref(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_reference_kind_name_scope_in_item_ref_href_vf3ybnmgws"() IS 'the rule judge''s block of rule Reference(package, path, start) where Logic.eq(kind, "qti-assessment-item-ref") and Logic.eq(name, "href") and Logic.ne(scope, "external") in ItemRefHref(package, path, start) over the rows a write removes from ItemRefHref';
 
-COMMENT ON FUNCTION "qti"."__judge_reference_in_attribute_bfpwsn2hml"() IS 'the rule judge''s block of rule Reference(package, path, start, name) in Attribute(package, path, start, name) where Logic.in(ReferenceAttribute.at("form", kind, name), ["module", "package", "uri"]) over its units';
+COMMENT ON FUNCTION "qti"."__judge_reference_kind_name_scope_in_item_ref_href_db5wjzokoe"() IS 'the rule judge''s block of rule Reference(package, path, start) where Logic.eq(kind, "qti-assessment-item-ref") and Logic.eq(name, "href") and Logic.ne(scope, "external") in ItemRefHref(package, path, start) over the rows a write adds to Reference';
 
-COMMENT ON FUNCTION "qti"."__judge_reference_scope_in_reference_path_rdihgx4ukl"() IS 'the rule judge''s block of rule Reference(package, path, start, name, kind) where Logic.eq(scope, "entry") in ReferencePath(package, path, start, name, kind) over its units';
+COMMENT ON FUNCTION "qti"."__judge_reference_in_attribute_nvr4gqu7qw"() IS 'the rule judge''s block of rule Reference(package, path, start, name) in Attribute(package, path, start, name) where Logic.in(ReferenceAttribute.at("form", kind, name), ["module", "package", "uri"]) over the rows a write removes from Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_reference_path_in_reference_4asznolu7n"() IS 'the rule judge''s block of rule ReferencePath(package, path, start, name, kind) in Reference(package, path, start, name, kind) where Logic.eq(scope, "entry") over its units';
+COMMENT ON FUNCTION "qti"."__judge_reference_in_attribute_tdu2bini5i"() IS 'the rule judge''s block of rule Reference(package, path, start, name) in Attribute(package, path, start, name) where Logic.in(ReferenceAttribute.at("form", kind, name), ["module", "package", "uri"]) over the rows a write adds to Reference';
 
-COMMENT ON FUNCTION "qti"."__judge_reference_path_kind_in_document_qh4pwy6dbk"() IS 'the rule judge''s block of rule ReferencePath(package, target) where Logic.eq(kind, "qti-assessment-stimulus-ref") in Document(package, path) where Logic.eq(rootKind, "qti-assessment-stimulus") over its units';
+COMMENT ON FUNCTION "qti"."__judge_reference_scope_in_reference_path_xqbzw4ifdt"() IS 'the rule judge''s block of rule Reference(package, path, start, name, kind) where Logic.eq(scope, "entry") in ReferencePath(package, path, start, name, kind) over the rows a write adds to Reference';
+
+COMMENT ON FUNCTION "qti"."__judge_reference_scope_in_reference_path_jp74s2kug2"() IS 'the rule judge''s block of rule Reference(package, path, start, name, kind) where Logic.eq(scope, "entry") in ReferencePath(package, path, start, name, kind) over the rows a write removes from ReferencePath';
+
+COMMENT ON FUNCTION "qti"."__judge_reference_path_in_reference_3ezrqqsnlj"() IS 'the rule judge''s block of rule ReferencePath(package, path, start, name, kind) in Reference(package, path, start, name, kind) where Logic.eq(scope, "entry") over the rows a write removes from Reference';
+
+COMMENT ON FUNCTION "qti"."__judge_reference_path_in_reference_t472wjwnof"() IS 'the rule judge''s block of rule ReferencePath(package, path, start, name, kind) in Reference(package, path, start, name, kind) where Logic.eq(scope, "entry") over the rows a write adds to ReferencePath';
+
+COMMENT ON FUNCTION "qti"."__judge_reference_path_kind_in_document_dxcifqjxh7"() IS 'the rule judge''s block of rule ReferencePath(package, target) where Logic.eq(kind, "qti-assessment-stimulus-ref") in Document(package, path) where Logic.eq(rootKind, "qti-assessment-stimulus") over the rows a write removes from Document';
+
+COMMENT ON FUNCTION "qti"."__judge_reference_path_kind_in_document_3ofg4tjcaf"() IS 'the rule judge''s block of rule ReferencePath(package, target) where Logic.eq(kind, "qti-assessment-stimulus-ref") in Document(package, path) where Logic.eq(rootKind, "qti-assessment-stimulus") over the rows a write adds to ReferencePath';
 
 COMMENT ON FUNCTION "qti"."__judge_required_parts_in_requirement_met_pfkli5s36z"() IS 'the rule judge''s block of rule RequiredParts(package, path, section) in RequirementMet(package, path, section) over its units';
 
@@ -4785,39 +5025,63 @@ COMMENT ON FUNCTION "qti"."__judge_required_ssml_property_in_data_ssml_property_
 
 COMMENT ON FUNCTION "qti"."__judge_resource_document_in_typed_path_imht7jyi3v"() IS 'the rule judge''s block of rule ResourceDocument(package, path, type) in TypedPath(package, target, type) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_resource_href_in_attribute_gnyao4wi75"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "cp:resource") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") over its units';
+COMMENT ON FUNCTION "qti"."__judge_resource_href_in_attribute_5xliax2lru"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "cp:resource") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") over the rows a write removes from Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_resource_href_in_node_aknhitam5m"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) in Node(package, path, start) where Logic.eq(kind, "cp:resource") over its units';
+COMMENT ON FUNCTION "qti"."__judge_resource_href_in_attribute_v6mjq6no6g"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "cp:resource") and Logic.eq(name, "href") and Logic.eq(path, "imsmanifest.xml") over the rows a write adds to ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__judge_resource_href_in_node_n6af4twa63"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) in Node(package, path, start) where Logic.eq(kind, "cp:resource") over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_resource_href_in_node_bzqub2kh3v"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) in Node(package, path, start) where Logic.eq(kind, "cp:resource") over the rows a write adds to ResourceHref';
 
 COMMENT ON FUNCTION "qti"."__judge_resource_href_in_resource_file_document_qn7rsras4g"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) where Logic.eq(scope, "document") in ResourceFileDocument(package, path, resource) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_resource_href_scope_in_resource_href_path_nufjtrdzbo"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) where Logic.eq(scope, "entry") in ResourceHrefPath(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_resource_href_scope_in_resource_href_path_5a2ic5xgkp"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) where Logic.eq(scope, "entry") in ResourceHrefPath(package, path, start) over the rows a write adds to ResourceHref';
 
-COMMENT ON FUNCTION "qti"."__judge_resource_href_scope_in_resource_href_outside_4ob5gi5guc"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) where Logic.eq(scope, "external") in ResourceHrefOutside(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_resource_href_scope_in_resource_href_path_zfrtbtb2cj"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) where Logic.eq(scope, "entry") in ResourceHrefPath(package, path, start) over the rows a write removes from ResourceHrefPath';
 
-COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_in_resource_href_hhomwvk55l"() IS 'the rule judge''s block of rule ResourceHrefOutside(package, path, start) in ResourceHref(package, path, start) where Logic.eq(scope, "external") over its units';
+COMMENT ON FUNCTION "qti"."__judge_resource_href_scope_in_resource_href_outside_2banlt6fza"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) where Logic.eq(scope, "external") in ResourceHrefOutside(package, path, start) over the rows a write adds to ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__judge_resource_href_scope_in_resource_href_outside_ym3n2dgrny"() IS 'the rule judge''s block of rule ResourceHref(package, path, start) where Logic.eq(scope, "external") in ResourceHrefOutside(package, path, start) over the rows a write removes from ResourceHrefOutside';
+
+COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_in_resource_href_njkg7tduy3"() IS 'the rule judge''s block of rule ResourceHrefOutside(package, path, start) in ResourceHref(package, path, start) where Logic.eq(scope, "external") over the rows a write removes from ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_in_resource_href_rxgozvdgsd"() IS 'the rule judge''s block of rule ResourceHrefOutside(package, path, start) in ResourceHref(package, path, start) where Logic.eq(scope, "external") over the rows a write adds to ResourceHrefOutside';
 
 COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_in_resource_file_iqunqhzsrf"() IS 'the rule judge''s block of rule ResourceHrefOutside(package, path, start, targetDigest, target) in ResourceFileOutside(package, path, resource, targetDigest, target) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_resource_href_path_in_resource_href_m5yhlqlkt5"() IS 'the rule judge''s block of rule ResourceHrefPath(package, path, start) in ResourceHref(package, path, start) where Logic.eq(scope, "entry") over its units';
+COMMENT ON FUNCTION "qti"."__judge_resource_href_path_in_resource_href_lqtit4z4j2"() IS 'the rule judge''s block of rule ResourceHrefPath(package, path, start) in ResourceHref(package, path, start) where Logic.eq(scope, "entry") over the rows a write removes from ResourceHref';
+
+COMMENT ON FUNCTION "qti"."__judge_resource_href_path_in_resource_href_gue657k2ny"() IS 'the rule judge''s block of rule ResourceHrefPath(package, path, start) in ResourceHref(package, path, start) where Logic.eq(scope, "entry") over the rows a write adds to ResourceHrefPath';
 
 COMMENT ON FUNCTION "qti"."__judge_resource_href_path_in_resource_file_path_4fdzdqmxmd"() IS 'the rule judge''s block of rule ResourceHrefPath(package, path, start, target) in ResourceFilePath(package, path, resource, target) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_rounding_in_node_cb4zmsn4yg"() IS 'the rule judge''s block of rule Rounding(package, path, start) in Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) over its units';
+COMMENT ON FUNCTION "qti"."__judge_rounding_in_node_vdkfqeprwq"() IS 'the rule judge''s block of rule Rounding(package, path, start) in Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) over the rows a write removes from Node';
 
-COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_figures_j2valfzhqr"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) in RoundingFigures(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_rounding_in_node_mpmhhwop5o"() IS 'the rule judge''s block of rule Rounding(package, path, start) in Node(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) over the rows a write adds to Rounding';
+
+COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_figures_j2lu5p222q"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) in RoundingFigures(package, path, start) over the rows a write adds to Rounding';
+
+COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_figures_f2j7yg3sat"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) in RoundingFigures(package, path, start) over the rows a write removes from RoundingFigures';
 
 COMMENT ON FUNCTION "qti"."__judge_rounding_in_rounding_mode_6geuz5667c"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.in(holds, ["both", "mode"]) in RoundingMode(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_mode_figures_uxdb3j54mh"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.eq(holds, "both") in RoundingModeFigures(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_mode_figures_wpsvhqnozr"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.eq(holds, "both") in RoundingModeFigures(package, path, start) over the rows a write adds to Rounding';
 
-COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_attribute_jlrjkodwew"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") over its units';
+COMMENT ON FUNCTION "qti"."__judge_rounding_holds_in_rounding_mode_figures_u3fqnzn2gx"() IS 'the rule judge''s block of rule Rounding(package, path, start) where Logic.eq(holds, "both") in RoundingModeFigures(package, path, start) over the rows a write removes from RoundingModeFigures';
 
-COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_rounding_lion7ixtrs"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) over its units';
+COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_attribute_gfknrqmveq"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_attribute_bky2cxagfl"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Attribute(package, path, start) where Logic.in(kind, ["qti-equal-rounded", "qti-round-to"]) and Logic.eq(name, "figures") over the rows a write adds to RoundingFigures';
+
+COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_rounding_b7bus5gte7"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) over the rows a write removes from Rounding';
+
+COMMENT ON FUNCTION "qti"."__judge_rounding_figures_in_rounding_ibbjba64hh"() IS 'the rule judge''s block of rule RoundingFigures(package, path, start) in Rounding(package, path, start) where Logic.in(holds, ["both", "figures"]) over the rows a write adds to RoundingFigures';
 
 COMMENT ON FUNCTION "qti"."__judge_rounding_mode_in_rounding_esbh5hi542"() IS 'the rule judge''s block of rule RoundingMode(package, path, start) in Rounding(package, path, start) where Logic.in(holds, ["both", "mode"]) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_in_rounding_ylaa3vyqeb"() IS 'the rule judge''s block of rule RoundingModeFigures(package, path, start) in Rounding(package, path, start) where Logic.eq(holds, "both") over its units';
+COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_in_rounding_zzxbeas5p4"() IS 'the rule judge''s block of rule RoundingModeFigures(package, path, start) in Rounding(package, path, start) where Logic.eq(holds, "both") over the rows a write removes from Rounding';
+
+COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_in_rounding_2uw6nmafpv"() IS 'the rule judge''s block of rule RoundingModeFigures(package, path, start) in Rounding(package, path, start) where Logic.eq(holds, "both") over the rows a write adds to RoundingModeFigures';
 
 COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_in_rounding_mode_5zudd4zspn"() IS 'the rule judge''s block of rule RoundingModeFigures(package, path, start, mode) in RoundingMode(package, path, start, mode) over its units';
 
@@ -4831,39 +5095,63 @@ COMMENT ON FUNCTION "qti"."__judge_scope_node_in_math_align_group_37gc2we3rj"() 
 
 COMMENT ON FUNCTION "qti"."__judge_selection_without_replacement_in_bounded_rq3pwixcla"() IS 'the rule judge''s block of rule SelectionWithoutReplacement(package, path, section) in BoundedSelection(package, path, section) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_share_fragment_assembled_in_assembled_pygfxbtugz"() IS 'the rule judge''s block of rule ShareFragment(package, path, placements) where Logic.eq(assembled, true) in AssembledDocument(package, path, instances) over its units';
+COMMENT ON FUNCTION "qti"."__judge_share_fragment_assembled_in_assembled_myf3dn7vdb"() IS 'the rule judge''s block of rule ShareFragment(package, path, placements) where Logic.eq(assembled, true) in AssembledDocument(package, path, instances) over the rows a write removes from AssembledDocument';
+
+COMMENT ON FUNCTION "qti"."__judge_share_fragment_assembled_in_assembled_vbgxkigxwi"() IS 'the rule judge''s block of rule ShareFragment(package, path, placements) where Logic.eq(assembled, true) in AssembledDocument(package, path, instances) over the rows a write adds to ShareFragment';
 
 COMMENT ON FUNCTION "qti"."__judge_share_fragment_in_share_source_pz2yiw3tyu"() IS 'the rule judge''s block of rule ShareFragment(package, path, start) in ShareSource(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_share_fragment_assembled_in_share_target_oycwt32ew2"() IS 'the rule judge''s block of rule ShareFragment(package, path, start, idDigest) where Logic.eq(assembled, false) in ShareTarget(package, path, start, idDigest) over its units';
+COMMENT ON FUNCTION "qti"."__judge_share_fragment_assembled_in_share_target_tiszl67tly"() IS 'the rule judge''s block of rule ShareFragment(package, path, start, idDigest) where Logic.eq(assembled, false) in ShareTarget(package, path, start, idDigest) over the rows a write adds to ShareFragment';
+
+COMMENT ON FUNCTION "qti"."__judge_share_fragment_assembled_in_share_target_ngqlvr64ut"() IS 'the rule judge''s block of rule ShareFragment(package, path, start, idDigest) where Logic.eq(assembled, false) in ShareTarget(package, path, start, idDigest) over the rows a write removes from ShareTarget';
 
 COMMENT ON FUNCTION "qti"."__judge_share_source_in_share_fragment_fmvo4kaezi"() IS 'the rule judge''s block of rule ShareSource(package, path, start) in ShareFragment(package, path, start) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_share_target_in_id_binding_4uxmpjdwt7"() IS 'the rule judge''s block of rule ShareTarget(package, path, id, targetStart) in IdBinding(package, path, id, owner) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_share_target_in_share_fragment_wxznyjeyai"() IS 'the rule judge''s block of rule ShareTarget(package, path, start, id) in ShareFragment(package, path, start, id) where Logic.eq(assembled, false) over its units';
+COMMENT ON FUNCTION "qti"."__judge_share_target_in_share_fragment_k632fooma6"() IS 'the rule judge''s block of rule ShareTarget(package, path, start, id) in ShareFragment(package, path, start, id) where Logic.eq(assembled, false) over the rows a write removes from ShareFragment';
 
-COMMENT ON FUNCTION "qti"."__judge_site_external_in_reference_bmrq7waeqs"() IS 'the rule judge''s block of rule Site(package, path, start) where Logic.eq(external, true) in Reference(package, path, start) where Logic.eq(name, "href") and Logic.eq(scope, "external") over its units';
+COMMENT ON FUNCTION "qti"."__judge_share_target_in_share_fragment_3jzk2seq2h"() IS 'the rule judge''s block of rule ShareTarget(package, path, start, id) in ShareFragment(package, path, start, id) where Logic.eq(assembled, false) over the rows a write adds to ShareTarget';
+
+COMMENT ON FUNCTION "qti"."__judge_site_external_in_reference_nz47ettjyg"() IS 'the rule judge''s block of rule Site(package, path, start) where Logic.eq(external, true) in Reference(package, path, start) where Logic.eq(name, "href") and Logic.eq(scope, "external") over the rows a write removes from Reference';
+
+COMMENT ON FUNCTION "qti"."__judge_site_external_in_reference_f7wnqweo4s"() IS 'the rule judge''s block of rule Site(package, path, start) where Logic.eq(external, true) in Reference(package, path, start) where Logic.eq(name, "href") and Logic.eq(scope, "external") over the rows a write adds to Site';
 
 COMMENT ON FUNCTION "qti"."__judge_site_in_read_include_edxuzxblcr"() IS 'the rule judge''s block of rule Site(package, path, start) where Logic.eq(kind, "xi:include") in ReadInclude(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_site_external_kind_in_site_path_7yem4aaqob"() IS 'the rule judge''s block of rule Site(package, path, start, kind) where Logic.eq(external, false) and Logic.eq(kind, "qti-assessment-section-ref") in SitePath(package, path, start, kind) over its units';
+COMMENT ON FUNCTION "qti"."__judge_site_external_kind_in_site_path_k35b4pbcbn"() IS 'the rule judge''s block of rule Site(package, path, start, kind) where Logic.eq(external, false) and Logic.eq(kind, "qti-assessment-section-ref") in SitePath(package, path, start, kind) over the rows a write adds to Site';
 
-COMMENT ON FUNCTION "qti"."__judge_site_external_kind_in_site_path_nlgonkes7l"() IS 'the rule judge''s block of rule Site(package, path, start, kind) where Logic.eq(external, false) and Logic.eq(kind, "xi:include") in SitePath(package, path, start, kind) over its units';
+COMMENT ON FUNCTION "qti"."__judge_site_external_kind_in_site_path_haxaeun2ju"() IS 'the rule judge''s block of rule Site(package, path, start, kind) where Logic.eq(external, false) and Logic.eq(kind, "qti-assessment-section-ref") in SitePath(package, path, start, kind) over the rows a write removes from SitePath';
 
-COMMENT ON FUNCTION "qti"."__judge_site_path_entry_kind_in_site_target_m7lyoor5z3"() IS 'the rule judge''s block of rule SitePath(package, path, start) where Logic.eq(entry, true) and Logic.eq(kind, "qti-assessment-section-ref") in SiteTarget(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_site_external_kind_in_site_path_bszep42hpg"() IS 'the rule judge''s block of rule Site(package, path, start, kind) where Logic.eq(external, false) and Logic.eq(kind, "xi:include") in SitePath(package, path, start, kind) over the rows a write adds to Site';
 
-COMMENT ON FUNCTION "qti"."__judge_site_path_in_reference_path_xrrvfnx4te"() IS 'the rule judge''s block of rule SitePath(package, path, start, target) in ReferencePath(package, path, start, target) where Logic.eq(name, "href") over its units';
+COMMENT ON FUNCTION "qti"."__judge_site_external_kind_in_site_path_fpo3qnyrxd"() IS 'the rule judge''s block of rule Site(package, path, start, kind) where Logic.eq(external, false) and Logic.eq(kind, "xi:include") in SitePath(package, path, start, kind) over the rows a write removes from SitePath';
 
-COMMENT ON FUNCTION "qti"."__judge_site_path_entry_in_entry_ardc3s45qt"() IS 'the rule judge''s block of rule SitePath(package, target) where Logic.eq(entry, true) in Entry(package, path) over its units';
+COMMENT ON FUNCTION "qti"."__judge_site_path_entry_kind_in_site_target_j6s7emnkmr"() IS 'the rule judge''s block of rule SitePath(package, path, start) where Logic.eq(entry, true) and Logic.eq(kind, "qti-assessment-section-ref") in SiteTarget(package, path, start) over the rows a write adds to SitePath';
 
-COMMENT ON FUNCTION "qti"."__judge_site_target_kind_in_inclusion_evz4qdlcfb"() IS 'the rule judge''s block of rule SiteTarget(package, path, start) where Logic.eq(kind, "xi:include") in Inclusion(package, path, start) over its units';
+COMMENT ON FUNCTION "qti"."__judge_site_path_entry_kind_in_site_target_s3vyrx6jae"() IS 'the rule judge''s block of rule SitePath(package, path, start) where Logic.eq(entry, true) and Logic.eq(kind, "qti-assessment-section-ref") in SiteTarget(package, path, start) over the rows a write removes from SiteTarget';
+
+COMMENT ON FUNCTION "qti"."__judge_site_path_in_reference_path_tkta3m2bqp"() IS 'the rule judge''s block of rule SitePath(package, path, start, target) in ReferencePath(package, path, start, target) where Logic.eq(name, "href") over the rows a write removes from ReferencePath';
+
+COMMENT ON FUNCTION "qti"."__judge_site_path_in_reference_path_zm5zuh5osc"() IS 'the rule judge''s block of rule SitePath(package, path, start, target) in ReferencePath(package, path, start, target) where Logic.eq(name, "href") over the rows a write adds to SitePath';
+
+COMMENT ON FUNCTION "qti"."__judge_site_path_entry_in_entry_zb72qyoxxe"() IS 'the rule judge''s block of rule SitePath(package, target) where Logic.eq(entry, true) in Entry(package, path) over the rows a write removes from Entry';
+
+COMMENT ON FUNCTION "qti"."__judge_site_path_entry_in_entry_cyx4opydyq"() IS 'the rule judge''s block of rule SitePath(package, target) where Logic.eq(entry, true) in Entry(package, path) over the rows a write adds to SitePath';
+
+COMMENT ON FUNCTION "qti"."__judge_site_target_kind_in_inclusion_2ubiapt3wt"() IS 'the rule judge''s block of rule SiteTarget(package, path, start) where Logic.eq(kind, "xi:include") in Inclusion(package, path, start) over the rows a write removes from Inclusion';
+
+COMMENT ON FUNCTION "qti"."__judge_site_target_kind_in_inclusion_grsvyxbmzk"() IS 'the rule judge''s block of rule SiteTarget(package, path, start) where Logic.eq(kind, "xi:include") in Inclusion(package, path, start) over the rows a write adds to SiteTarget';
 
 COMMENT ON FUNCTION "qti"."__judge_sole_reading_in_placed_variable_ref_inw76664fp"() IS 'the rule judge''s block of rule SoleReading(package, assembly, instance, path, start, attribute) in PlacedVariableRef(package, assembly, instance, path, start, attribute) where Logic.eq(resolution, "read") over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_srcset_in_attribute_ppgtiuubvn"() IS 'the rule judge''s block of rule Srcset(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "source") and Logic.eq(name, "srcset") over its units';
+COMMENT ON FUNCTION "qti"."__judge_srcset_in_attribute_6oem3jmqro"() IS 'the rule judge''s block of rule Srcset(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "source") and Logic.eq(name, "srcset") over the rows a write removes from Attribute';
 
-COMMENT ON FUNCTION "qti"."__judge_srcset_candidate_scope_in_candidate_path_yi5lvfpitz"() IS 'the rule judge''s block of rule SrcsetCandidate(package, path, start, at) where Logic.eq(scope, "entry") in CandidatePath(package, path, start, at) over its units';
+COMMENT ON FUNCTION "qti"."__judge_srcset_in_attribute_tnmle4lok5"() IS 'the rule judge''s block of rule Srcset(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "source") and Logic.eq(name, "srcset") over the rows a write adds to Srcset';
+
+COMMENT ON FUNCTION "qti"."__judge_srcset_candidate_scope_in_candidate_path_t5ehszemhe"() IS 'the rule judge''s block of rule SrcsetCandidate(package, path, start, at) where Logic.eq(scope, "entry") in CandidatePath(package, path, start, at) over the rows a write removes from CandidatePath';
+
+COMMENT ON FUNCTION "qti"."__judge_srcset_candidate_scope_in_candidate_path_6blf5yyxfp"() IS 'the rule judge''s block of rule SrcsetCandidate(package, path, start, at) where Logic.eq(scope, "entry") in CandidatePath(package, path, start, at) over the rows a write adds to SrcsetCandidate';
 
 COMMENT ON FUNCTION "qti"."__judge_ssml_scope_node_in_ssml_scope_mk4lvybzot"() IS 'the rule judge''s block of rule SsmlScopeNode(package, path, parent, fragment) where Logic.ne(kind, "ssml:speak") and Logic.ne(parent, 0n) in SsmlScope(package, path, start, fragment) over its units';
 
@@ -4871,13 +5159,17 @@ COMMENT ON FUNCTION "qti"."__judge_ssml_value_in_ssml_value_fuse53jjeg"() IS 'th
 
 COMMENT ON FUNCTION "qti"."__judge_ssml_value_in_trimmed_mark_yt7rwpsw22"() IS 'the rule judge''s block of rule SsmlValue(package, path, start, value) where Logic.eq(kind, "ssml:speak") in TrimmedMark(package, path, fragment, value) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_stimulus_ref_in_node_zua6m4vyya"() IS 'the rule judge''s block of rule StimulusRef(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-assessment-stimulus-ref") over its units';
+COMMENT ON FUNCTION "qti"."__judge_stimulus_ref_in_node_poqx5ecim2"() IS 'the rule judge''s block of rule StimulusRef(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-assessment-stimulus-ref") over the rows a write removes from Node';
+
+COMMENT ON FUNCTION "qti"."__judge_stimulus_ref_in_node_jsez6mfieg"() IS 'the rule judge''s block of rule StimulusRef(package, path, start) in Node(package, path, start) where Logic.eq(kind, "qti-assessment-stimulus-ref") over the rows a write adds to StimulusRef';
 
 COMMENT ON FUNCTION "qti"."__judge_stimulus_ref_in_test_identifier_qu6fc3vcub"() IS 'the rule judge''s block of rule StimulusRef(package, path, start, identifier) in TestIdentifier(package, path, start, value) over its units';
 
 COMMENT ON FUNCTION "qti"."__judge_structure_naming_in_named_i7g7ynxwbq"() IS 'the rule judge''s block of rule StructureNaming(package, path, start) in Named(package, path, start) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_table_header_in_attribute_7nkosldt6r"() IS 'the rule judge''s block of rule TableHeader(package, path, start) in Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) and Logic.eq(kind, "th") over its units';
+COMMENT ON FUNCTION "qti"."__judge_table_header_in_attribute_hqshxfudov"() IS 'the rule judge''s block of rule TableHeader(package, path, start) in Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) and Logic.eq(kind, "th") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_table_header_in_attribute_wwah2hvd3c"() IS 'the rule judge''s block of rule TableHeader(package, path, start) in Attribute(package, path, start) where Logic.or(Logic.and(ValueIdentity.has(AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), Logic.eq(ValueIdentity.at("identity", AttributeGrammar.at("domain", AttributeModelOf.at("model", governor), name)), "ID")), Logic.and(Logic.eq(kind, "qti-context-declaration"), Logic.eq(name, "identifier"))) and Logic.eq(kind, "th") over the rows a write adds to TableHeader';
 
 COMMENT ON FUNCTION "qti"."__judge_table_header_in_id_value_fssakiz6q3"() IS 'the rule judge''s block of rule TableHeader(package, path, start, id, owner) in IdValue(package, path, start, id, owner) over its units';
 
@@ -4899,13 +5191,21 @@ COMMENT ON FUNCTION "qti"."__judge_template_processing_in_named_declaration_rm7f
 
 COMMENT ON FUNCTION "qti"."__judge_template_ref_in_referable_name_ukivozws2i"() IS 'the rule judge''s block of rule TemplateRef(package, path, identifier, kind, attribute) where Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "completionStatus", "duration", "numAttempts"])), Logic.ne(assemblyKind, "qti-assessment-item")) and Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "completionStatus", "duration", "numAttempts"])), Logic.ne(assemblyKind, "qti-response-processing")) and Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "duration"])), Logic.ne(assemblyKind, "qti-assessment-section")) and Logic.or(Logic.not(Logic.in(identifier, ["QTI_CONTEXT", "duration"])), Logic.ne(assemblyKind, "qti-assessment-test")) in ReferableName(package, path, identifier, kind, attribute) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_text_reference_in_node_53qikdtacg"() IS 'the rule judge''s block of rule TextReference(package, path, start) in Node(package, path, start) where Logic.in(kind, ["qti-file-href", "qti-file-href.card", "qti-resource-icon"]) over its units';
+COMMENT ON FUNCTION "qti"."__judge_text_reference_in_node_75qxuaxcuf"() IS 'the rule judge''s block of rule TextReference(package, path, start) in Node(package, path, start) where Logic.in(kind, ["qti-file-href", "qti-file-href.card", "qti-resource-icon"]) over the rows a write removes from Node';
 
-COMMENT ON FUNCTION "qti"."__judge_text_reference_scope_in_text_reference_path_jskl7fnlfe"() IS 'the rule judge''s block of rule TextReference(package, path, start, kind) where Logic.eq(scope, "entry") in TextReferencePath(package, path, start, kind) over its units';
+COMMENT ON FUNCTION "qti"."__judge_text_reference_in_node_evtdxodxzr"() IS 'the rule judge''s block of rule TextReference(package, path, start) in Node(package, path, start) where Logic.in(kind, ["qti-file-href", "qti-file-href.card", "qti-resource-icon"]) over the rows a write adds to TextReference';
 
-COMMENT ON FUNCTION "qti"."__judge_text_reference_path_in_text_reference_mdhkytieaf"() IS 'the rule judge''s block of rule TextReferencePath(package, path, start, kind) in TextReference(package, path, start, kind) where Logic.eq(scope, "entry") over its units';
+COMMENT ON FUNCTION "qti"."__judge_text_reference_scope_in_text_reference_path_7xyy2odgom"() IS 'the rule judge''s block of rule TextReference(package, path, start, kind) where Logic.eq(scope, "entry") in TextReferencePath(package, path, start, kind) over the rows a write adds to TextReference';
 
-COMMENT ON FUNCTION "qti"."__judge_tolerance_in_attribute_xprs2ln2ad"() IS 'the rule judge''s block of rule Tolerance(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") over its units';
+COMMENT ON FUNCTION "qti"."__judge_text_reference_scope_in_text_reference_path_g3kb45f2uz"() IS 'the rule judge''s block of rule TextReference(package, path, start, kind) where Logic.eq(scope, "entry") in TextReferencePath(package, path, start, kind) over the rows a write removes from TextReferencePath';
+
+COMMENT ON FUNCTION "qti"."__judge_text_reference_path_in_text_reference_6iyxmkief6"() IS 'the rule judge''s block of rule TextReferencePath(package, path, start, kind) in TextReference(package, path, start, kind) where Logic.eq(scope, "entry") over the rows a write removes from TextReference';
+
+COMMENT ON FUNCTION "qti"."__judge_text_reference_path_in_text_reference_7k7swwgynq"() IS 'the rule judge''s block of rule TextReferencePath(package, path, start, kind) in TextReference(package, path, start, kind) where Logic.eq(scope, "entry") over the rows a write adds to TextReferencePath';
+
+COMMENT ON FUNCTION "qti"."__judge_tolerance_in_attribute_zbufixqgxp"() IS 'the rule judge''s block of rule Tolerance(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") over the rows a write removes from Attribute';
+
+COMMENT ON FUNCTION "qti"."__judge_tolerance_in_attribute_duyccra5c5"() IS 'the rule judge''s block of rule Tolerance(package, path, start) in Attribute(package, path, start) where Logic.eq(kind, "qti-equal") and Logic.eq(name, "tolerance") over the rows a write adds to Tolerance';
 
 COMMENT ON FUNCTION "qti"."__judge_typed_path_in_resource_document_k5nhgvc4ub"() IS 'the rule judge''s block of rule TypedPath(package, target, type) where Logic.in(type, ["imsqti_fragment_xmlv3p0", "imsqti_item_xmlv3p0", "imsqti_outcomes_xmlv3p0", "imsqti_resprocessing_xmlv3p0", "imsqti_rptemplate_xmlv3p0", "imsqti_section_xmlv3p0", "imsqti_stimulus_xmlv3p0", "imsqti_test_xmlv3p0", "qtiusagedata/xml", "resourcemetadata/xml"]) in ResourceDocument(package, path, type) over its units';
 
@@ -4915,9 +5215,13 @@ COMMENT ON FUNCTION "qti"."__judge_untargeted_item_ref_in_unread_type_href_7b4c5
 
 COMMENT ON FUNCTION "qti"."__judge_usage_value_in_usage_base_type_nwm76d7aw5"() IS 'the rule judge''s block of rule UsageValue(package, path, start, baseTypeLexical) in UsageBaseType(package, path, start, value) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_lexical_in_usage_value_zuwktxy3mb"() IS 'the rule judge''s block of rule UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) in UsageValueBaseType(package, path, start, baseTypeLexicalDigest) over its units';
+COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_lexical_in_usage_value_rvhbvv7ozx"() IS 'the rule judge''s block of rule UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) in UsageValueBaseType(package, path, start, baseTypeLexicalDigest) over the rows a write adds to UsageValue';
 
-COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_in_usage_value_olfc7k7hdr"() IS 'the rule judge''s block of rule UsageValueBaseType(package, path, start, baseTypeLexicalDigest) in UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) over its units';
+COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_lexical_in_usage_value_en4myfmbls"() IS 'the rule judge''s block of rule UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) in UsageValueBaseType(package, path, start, baseTypeLexicalDigest) over the rows a write removes from UsageValueBaseType';
+
+COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_in_usage_value_bspiumxxhx"() IS 'the rule judge''s block of rule UsageValueBaseType(package, path, start, baseTypeLexicalDigest) in UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) over the rows a write removes from UsageValue';
+
+COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_in_usage_value_gz7b6ecdmn"() IS 'the rule judge''s block of rule UsageValueBaseType(package, path, start, baseTypeLexicalDigest) in UsageValue(package, path, start, baseTypeLexicalDigest) where Logic.in(baseTypeLexical, ["boolean", "directedPair", "duration", "file", "float", "identifier", "integer", "pair", "point", "string", "uri"]) over the rows a write adds to UsageValueBaseType';
 
 COMMENT ON FUNCTION "qti"."__judge_variable_ref_node_in_expression_2jiipu6mjc"() IS 'the rule judge''s block of rule VariableRefNode(package, path, start, language) where Logic.in(kind, ["qti-and", "qti-any-n", "qti-base-value", "qti-container-size", "qti-contains", "qti-correct", "qti-custom-operator", "qti-default", "qti-delete", "qti-divide", "qti-duration-gte", "qti-duration-lt", "qti-equal", "qti-equal-rounded", "qti-field-value", "qti-gcd", "qti-gt", "qti-gte", "qti-index", "qti-inside", "qti-integer-divide", "qti-integer-modulus", "qti-integer-to-float", "qti-is-null", "qti-lcm", "qti-lt", "qti-lte", "qti-map-response", "qti-map-response-point", "qti-match", "qti-math-constant", "qti-math-operator", "qti-max", "qti-member", "qti-min", "qti-multiple", "qti-not", "qti-null", "qti-number-correct", "qti-number-incorrect", "qti-number-presented", "qti-number-responded", "qti-number-selected", "qti-or", "qti-ordered", "qti-outcome-maximum", "qti-outcome-minimum", "qti-pattern-match", "qti-power", "qti-product", "qti-random", "qti-random-float", "qti-random-integer", "qti-repeat", "qti-round", "qti-round-to", "qti-stats-operator", "qti-string-match", "qti-substring", "qti-subtract", "qti-sum", "qti-test-variables", "qti-truncate", "qti-variable"]) in Expression(package, path, start, language) over its units';
 
@@ -4961,15 +5265,121 @@ COMMENT ON FUNCTION "qti"."__judge_test_reading_key_package_assembly_path_start_
 
 COMMENT ON FUNCTION "qti"."__judge_trimmed_mark_key_package_path_fragment_value_t7jxdfhmxy"() IS 'the rule judge''s block of rule key TrimmedMark(package, path, fragment, value) over its units';
 
-COMMENT ON FUNCTION "qti"."__judge_assembled_catalog_dbrsealp32"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledCatalog and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_assembled_catalog_ld64nokci6"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledCatalog and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_candidate_path_eyks4qxbc5"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of CandidatePath and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_assembled_document_4u6x2mwpnm"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of AssembledDocument and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_binding_name_gemsksmiq7"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of BindingName and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_candidate_path_6psahny56j"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of CandidatePath and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_candidate_path_am2d75nch3"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of CandidatePath and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_cell_headers_avgq3mgwkh"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of CellHeaders and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_cn_attribute_sbgxds2pat"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of CnAttribute and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_cn_attribute_hp7mafegkn"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of CnAttribute and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_cn_count_36f3w437ok"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of CnCount and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_comment_trfw3pfsui"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Comment and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_comment_buwejyelbw"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Comment and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_data_ssml_6gszispnmq"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of DataSsml and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_data_ssml_nwrnj3vksd"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of DataSsml and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__judge_data_ssml_member_wamg5k5f5q"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of DataSsmlMember and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_srcset_candidate_ehvwpxx5f5"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of SrcsetCandidate and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_doctype_o3ckpdftex"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Doctype and the relations its rules join it to';
 
-COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_22ijkb6zc4"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of UsageValueBaseType and the relations its rules join it to';
+COMMENT ON FUNCTION "qti"."__judge_doctype_hrsgiwq7zp"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Doctype and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_element_type_clxdpe7f4u"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ElementType and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_entry_o6nexgoa6n"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Entry and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_file_bfqdpdagia"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of File and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_file_outside_r27ookop5f"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of FileOutside and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_file_path_m55e3dz3zb"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of FilePath and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_fragment_scope_rahqr2afgn"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of FragmentScope and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_identity_text_edtg3qnnen"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of IdentityText and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_inclusion_g7lfw4jzbs"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Inclusion and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_item_mode_22q4pue5uv"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ItemMode and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_item_mode_suz7ugktml"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ItemMode and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_label_use_ptej2oklny"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of LabelUse and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_label_use_cfjrl77akc"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of LabelUse and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_lookup_value_voodno62g3"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of LookupValue and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_map_key_xcpqg3uoun"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of MapKey and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_math_cn_4aujddi7fl"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of MathCn and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_media_k7nuqbh2qv"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Media and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_media_y34gnxkhjp"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Media and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_open_attribute_gzw76ltxgv"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of OpenAttribute and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_open_element_name_rwryoianel"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of OpenElementName and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_pci_module_form_756anblqje"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of PciModuleForm and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_pci_module_form_pgh72d3ug6"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of PciModuleForm and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_pi_rfv5w2guki"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Pi and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_pi_ztggxw3qd5"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Pi and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_reference_xh3cst2bxr"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Reference and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_resource_href_lwllourm5u"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ResourceHref and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_resource_href_outside_puyn3bghgt"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ResourceHrefOutside and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_rounding_figures_ejzeve7kkr"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of RoundingFigures and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_rounding_figures_apuhzaslid"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of RoundingFigures and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_rounding_mode_figures_zxt2jfduhv"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of RoundingModeFigures and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_share_target_bm5dyz6buk"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of ShareTarget and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_site_path_g7o4ekld2u"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of SitePath and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_srcset_xykb3yckmz"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Srcset and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_srcset_candidate_lsg5oflsio"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of SrcsetCandidate and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_srcset_candidate_5kuns5ivoz"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of SrcsetCandidate and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_stimulus_ref_v26y2brjed"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of StimulusRef and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_text_reference_ayzonoljhk"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of TextReference and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_text_reference_path_ajucpwxch4"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of TextReferencePath and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_text_reference_path_irf73jwdgt"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of TextReferencePath and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_tolerance_qrfzm6r5dn"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of Tolerance and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_usage_value_aopaid42o2"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of UsageValue and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_irq5krczu4"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of UsageValueBaseType and the relations its rules join it to';
+
+COMMENT ON FUNCTION "qti"."__judge_usage_value_base_type_wuuyvbajaw"("pg_catalog"."text"[]) IS 'the rule judge of the deltas of UsageValueBaseType and the relations its rules join it to';
 
 COMMENT ON FUNCTION "qti"."__capture_assembled_catalog_3z2sfh4yla"() IS 'rule capture of AssembledCatalog';
 
@@ -5186,6 +5596,222 @@ COMMENT ON FUNCTION "qti"."__capture_usage_value_d4x3vydjzt"() IS 'rule capture 
 COMMENT ON FUNCTION "qti"."__capture_usage_value_base_type_a6p2zwmowi"() IS 'rule capture of UsageValueBaseType';
 
 COMMENT ON FUNCTION "qti"."__capture_variable_ref_lckeobxqnf"() IS 'rule capture of VariableRef';
+
+COMMENT ON FUNCTION "qti"."__stand_assembled_catalog_555anehjhj"() IS 'the stand-up of the rule judge''s session tables a write of AssembledCatalog needs';
+
+COMMENT ON FUNCTION "qti"."__stand_assembled_document_hwwdv6cnpm"() IS 'the stand-up of the rule judge''s session tables a write of AssembledDocument needs';
+
+COMMENT ON FUNCTION "qti"."__stand_attribute_ibvutlmrai"() IS 'the stand-up of the rule judge''s session tables a write of Attribute needs';
+
+COMMENT ON FUNCTION "qti"."__stand_binding_name_ye63gc6vro"() IS 'the stand-up of the rule judge''s session tables a write of BindingName needs';
+
+COMMENT ON FUNCTION "qti"."__stand_bound_variable_7vtgjbh6hv"() IS 'the stand-up of the rule judge''s session tables a write of BoundVariable needs';
+
+COMMENT ON FUNCTION "qti"."__stand_candidate_path_qhg7xli4wt"() IS 'the stand-up of the rule judge''s session tables a write of CandidatePath needs';
+
+COMMENT ON FUNCTION "qti"."__stand_catalog_id_zitsqacyrp"() IS 'the stand-up of the rule judge''s session tables a write of CatalogId needs';
+
+COMMENT ON FUNCTION "qti"."__stand_catalog_scope_vudqbkxslz"() IS 'the stand-up of the rule judge''s session tables a write of CatalogScope needs';
+
+COMMENT ON FUNCTION "qti"."__stand_cell_headers_bg7fga3rec"() IS 'the stand-up of the rule judge''s session tables a write of CellHeaders needs';
+
+COMMENT ON FUNCTION "qti"."__stand_cell_leaf_ptjwgogbl7"() IS 'the stand-up of the rule judge''s session tables a write of CellLeaf needs';
+
+COMMENT ON FUNCTION "qti"."__stand_choice_xzzdvjuvsd"() IS 'the stand-up of the rule judge''s session tables a write of Choice needs';
+
+COMMENT ON FUNCTION "qti"."__stand_choice_interaction_c645kfugmv"() IS 'the stand-up of the rule judge''s session tables a write of ChoiceInteraction needs';
+
+COMMENT ON FUNCTION "qti"."__stand_cn_attribute_63nfyqksr3"() IS 'the stand-up of the rule judge''s session tables a write of CnAttribute needs';
+
+COMMENT ON FUNCTION "qti"."__stand_cn_count_eejhcf4izw"() IS 'the stand-up of the rule judge''s session tables a write of CnCount needs';
+
+COMMENT ON FUNCTION "qti"."__stand_comment_3l7okcxyxf"() IS 'the stand-up of the rule judge''s session tables a write of Comment needs';
+
+COMMENT ON FUNCTION "qti"."__stand_context_ref_ujo5dooa7f"() IS 'the stand-up of the rule judge''s session tables a write of ContextRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_count_bound_2z6orlcix6"() IS 'the stand-up of the rule judge''s session tables a write of CountBound needs';
+
+COMMENT ON FUNCTION "qti"."__stand_data_ssml_k52kzmf2vn"() IS 'the stand-up of the rule judge''s session tables a write of DataSsml needs';
+
+COMMENT ON FUNCTION "qti"."__stand_data_ssml_member_2xkysqbugo"() IS 'the stand-up of the rule judge''s session tables a write of DataSsmlMember needs';
+
+COMMENT ON FUNCTION "qti"."__stand_data_ssml_property_6yi5in6iis"() IS 'the stand-up of the rule judge''s session tables a write of DataSsmlProperty needs';
+
+COMMENT ON FUNCTION "qti"."__stand_doctype_gj2wct2uyg"() IS 'the stand-up of the rule judge''s session tables a write of Doctype needs';
+
+COMMENT ON FUNCTION "qti"."__stand_document_pondgr3rqo"() IS 'the stand-up of the rule judge''s session tables a write of Document needs';
+
+COMMENT ON FUNCTION "qti"."__stand_document_id_633p5hpydz"() IS 'the stand-up of the rule judge''s session tables a write of DocumentId needs';
+
+COMMENT ON FUNCTION "qti"."__stand_element_type_7tgopoucgl"() IS 'the stand-up of the rule judge''s session tables a write of ElementType needs';
+
+COMMENT ON FUNCTION "qti"."__stand_entry_pmmpk3imf3"() IS 'the stand-up of the rule judge''s session tables a write of Entry needs';
+
+COMMENT ON FUNCTION "qti"."__stand_expression_u7lcjyvsn7"() IS 'the stand-up of the rule judge''s session tables a write of Expression needs';
+
+COMMENT ON FUNCTION "qti"."__stand_feedback_ref_d7224uniti"() IS 'the stand-up of the rule judge''s session tables a write of FeedbackRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_file_tcw2ukyhyi"() IS 'the stand-up of the rule judge''s session tables a write of File needs';
+
+COMMENT ON FUNCTION "qti"."__stand_file_outside_lhyrdnu5ai"() IS 'the stand-up of the rule judge''s session tables a write of FileOutside needs';
+
+COMMENT ON FUNCTION "qti"."__stand_file_path_7r6oexjmsr"() IS 'the stand-up of the rule judge''s session tables a write of FilePath needs';
+
+COMMENT ON FUNCTION "qti"."__stand_fragment_context_ref_h4natgpneo"() IS 'the stand-up of the rule judge''s session tables a write of FragmentContextRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_fragment_feedback_ref_gojudisgmf"() IS 'the stand-up of the rule judge''s session tables a write of FragmentFeedbackRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_fragment_printed_ref_g5dbleutzc"() IS 'the stand-up of the rule judge''s session tables a write of FragmentPrintedRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_fragment_scope_2oggx422cm"() IS 'the stand-up of the rule judge''s session tables a write of FragmentScope needs';
+
+COMMENT ON FUNCTION "qti"."__stand_fragment_template_ref_mqrpgto2fj"() IS 'the stand-up of the rule judge''s session tables a write of FragmentTemplateRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_header_token_6sdnbemvum"() IS 'the stand-up of the rule judge''s session tables a write of HeaderToken needs';
+
+COMMENT ON FUNCTION "qti"."__stand_hottext_apulsizq3w"() IS 'the stand-up of the rule judge''s session tables a write of Hottext needs';
+
+COMMENT ON FUNCTION "qti"."__stand_identity_text_b52n3op6xe"() IS 'the stand-up of the rule judge''s session tables a write of IdentityText needs';
+
+COMMENT ON FUNCTION "qti"."__stand_idref_aho5h2elqy"() IS 'the stand-up of the rule judge''s session tables a write of Idref needs';
+
+COMMENT ON FUNCTION "qti"."__stand_idref_target_jjhutks3nm"() IS 'the stand-up of the rule judge''s session tables a write of IdrefTarget needs';
+
+COMMENT ON FUNCTION "qti"."__stand_inclusion_km3rxqqunr"() IS 'the stand-up of the rule judge''s session tables a write of Inclusion needs';
+
+COMMENT ON FUNCTION "qti"."__stand_instance_fxskpasuzx"() IS 'the stand-up of the rule judge''s session tables a write of Instance needs';
+
+COMMENT ON FUNCTION "qti"."__stand_interaction_3potcpsocf"() IS 'the stand-up of the rule judge''s session tables a write of Interaction needs';
+
+COMMENT ON FUNCTION "qti"."__stand_interaction_attribute_wmzckdz5tm"() IS 'the stand-up of the rule judge''s session tables a write of InteractionAttribute needs';
+
+COMMENT ON FUNCTION "qti"."__stand_item_mode_56txvl4owv"() IS 'the stand-up of the rule judge''s session tables a write of ItemMode needs';
+
+COMMENT ON FUNCTION "qti"."__stand_item_ref_document_i66s3vh6ga"() IS 'the stand-up of the rule judge''s session tables a write of ItemRefDocument needs';
+
+COMMENT ON FUNCTION "qti"."__stand_item_ref_href_jrjueitx27"() IS 'the stand-up of the rule judge''s session tables a write of ItemRefHref needs';
+
+COMMENT ON FUNCTION "qti"."__stand_label_use_o4brmrb7aq"() IS 'the stand-up of the rule judge''s session tables a write of LabelUse needs';
+
+COMMENT ON FUNCTION "qti"."__stand_least_count_ya6wrr6a3v"() IS 'the stand-up of the rule judge''s session tables a write of LeastCount needs';
+
+COMMENT ON FUNCTION "qti"."__stand_link_reading_uenjcz5dvs"() IS 'the stand-up of the rule judge''s session tables a write of LinkReading needs';
+
+COMMENT ON FUNCTION "qti"."__stand_literal_tiziliumbt"() IS 'the stand-up of the rule judge''s session tables a write of Literal needs';
+
+COMMENT ON FUNCTION "qti"."__stand_literal_typed_2ilx4mlegz"() IS 'the stand-up of the rule judge''s session tables a write of LiteralTyped needs';
+
+COMMENT ON FUNCTION "qti"."__stand_lookup_value_hx7624x4iw"() IS 'the stand-up of the rule judge''s session tables a write of LookupValue needs';
+
+COMMENT ON FUNCTION "qti"."__stand_map_key_4gd3dvrew7"() IS 'the stand-up of the rule judge''s session tables a write of MapKey needs';
+
+COMMENT ON FUNCTION "qti"."__stand_math_action_f5wwzdrvm5"() IS 'the stand-up of the rule judge''s session tables a write of MathAction needs';
+
+COMMENT ON FUNCTION "qti"."__stand_math_align_group_6xltg6lxo2"() IS 'the stand-up of the rule judge''s session tables a write of MathAlignGroup needs';
+
+COMMENT ON FUNCTION "qti"."__stand_math_align_scope_u2bech2ml5"() IS 'the stand-up of the rule judge''s session tables a write of MathAlignScope needs';
+
+COMMENT ON FUNCTION "qti"."__stand_math_cell_7pwv53nkxm"() IS 'the stand-up of the rule judge''s session tables a write of MathCell needs';
+
+COMMENT ON FUNCTION "qti"."__stand_math_cn_d6ecu3zp5g"() IS 'the stand-up of the rule judge''s session tables a write of MathCn needs';
+
+COMMENT ON FUNCTION "qti"."__stand_math_rank_nqeqnb4u7t"() IS 'the stand-up of the rule judge''s session tables a write of MathRank needs';
+
+COMMENT ON FUNCTION "qti"."__stand_media_5bf42f2xah"() IS 'the stand-up of the rule judge''s session tables a write of Media needs';
+
+COMMENT ON FUNCTION "qti"."__stand_most_count_2kgjd3owwn"() IS 'the stand-up of the rule judge''s session tables a write of MostCount needs';
+
+COMMENT ON FUNCTION "qti"."__stand_named_rt75iqktd4"() IS 'the stand-up of the rule judge''s session tables a write of Named needs';
+
+COMMENT ON FUNCTION "qti"."__stand_node_ufvsoeyzmq"() IS 'the stand-up of the rule judge''s session tables a write of Node needs';
+
+COMMENT ON FUNCTION "qti"."__stand_numbered_reading_em4eroit7v"() IS 'the stand-up of the rule judge''s session tables a write of NumberedReading needs';
+
+COMMENT ON FUNCTION "qti"."__stand_open_attribute_kus4ehgwz4"() IS 'the stand-up of the rule judge''s session tables a write of OpenAttribute needs';
+
+COMMENT ON FUNCTION "qti"."__stand_open_element_name_yc423a5h3x"() IS 'the stand-up of the rule judge''s session tables a write of OpenElementName needs';
+
+COMMENT ON FUNCTION "qti"."__stand_open_element_type_ntz3lqtaqc"() IS 'the stand-up of the rule judge''s session tables a write of OpenElementType needs';
+
+COMMENT ON FUNCTION "qti"."__stand_pci_module_form_yzlgznmelb"() IS 'the stand-up of the rule judge''s session tables a write of PciModuleForm needs';
+
+COMMENT ON FUNCTION "qti"."__stand_pi_xg74jk6xwy"() IS 'the stand-up of the rule judge''s session tables a write of Pi needs';
+
+COMMENT ON FUNCTION "qti"."__stand_placed_binding_rbegxbfbcg"() IS 'the stand-up of the rule judge''s session tables a write of PlacedBinding needs';
+
+COMMENT ON FUNCTION "qti"."__stand_placed_choice_54ymy46b3e"() IS 'the stand-up of the rule judge''s session tables a write of PlacedChoice needs';
+
+COMMENT ON FUNCTION "qti"."__stand_placed_expression_eajdtujnrh"() IS 'the stand-up of the rule judge''s session tables a write of PlacedExpression needs';
+
+COMMENT ON FUNCTION "qti"."__stand_placed_hottext_donabbhxss"() IS 'the stand-up of the rule judge''s session tables a write of PlacedHottext needs';
+
+COMMENT ON FUNCTION "qti"."__stand_placed_id_kbkipg3veh"() IS 'the stand-up of the rule judge''s session tables a write of PlacedId needs';
+
+COMMENT ON FUNCTION "qti"."__stand_placed_idref_64inmhwtyc"() IS 'the stand-up of the rule judge''s session tables a write of PlacedIdref needs';
+
+COMMENT ON FUNCTION "qti"."__stand_placed_math_rank_5572svkpcq"() IS 'the stand-up of the rule judge''s session tables a write of PlacedMathRank needs';
+
+COMMENT ON FUNCTION "qti"."__stand_placed_share_target_bt6g4coqwv"() IS 'the stand-up of the rule judge''s session tables a write of PlacedShareTarget needs';
+
+COMMENT ON FUNCTION "qti"."__stand_placed_variable_ref_m4ro6tg5kc"() IS 'the stand-up of the rule judge''s session tables a write of PlacedVariableRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_printed_variable_ref_e7jd2rdh3z"() IS 'the stand-up of the rule judge''s session tables a write of PrintedVariableRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_processing_fc2mn4yln3"() IS 'the stand-up of the rule judge''s session tables a write of Processing needs';
+
+COMMENT ON FUNCTION "qti"."__stand_reference_5zvivb5s2f"() IS 'the stand-up of the rule judge''s session tables a write of Reference needs';
+
+COMMENT ON FUNCTION "qti"."__stand_reference_path_wo5g5edty7"() IS 'the stand-up of the rule judge''s session tables a write of ReferencePath needs';
+
+COMMENT ON FUNCTION "qti"."__stand_resource_document_j6gjtwm5zs"() IS 'the stand-up of the rule judge''s session tables a write of ResourceDocument needs';
+
+COMMENT ON FUNCTION "qti"."__stand_resource_href_m3jxi2ub6r"() IS 'the stand-up of the rule judge''s session tables a write of ResourceHref needs';
+
+COMMENT ON FUNCTION "qti"."__stand_resource_href_outside_h5ayb4ywy5"() IS 'the stand-up of the rule judge''s session tables a write of ResourceHrefOutside needs';
+
+COMMENT ON FUNCTION "qti"."__stand_resource_href_path_cetda5wlcb"() IS 'the stand-up of the rule judge''s session tables a write of ResourceHrefPath needs';
+
+COMMENT ON FUNCTION "qti"."__stand_rounding_c2ifmdme7j"() IS 'the stand-up of the rule judge''s session tables a write of Rounding needs';
+
+COMMENT ON FUNCTION "qti"."__stand_rounding_figures_lqklyjsczn"() IS 'the stand-up of the rule judge''s session tables a write of RoundingFigures needs';
+
+COMMENT ON FUNCTION "qti"."__stand_rounding_mode_figures_xtki3xbmlh"() IS 'the stand-up of the rule judge''s session tables a write of RoundingModeFigures needs';
+
+COMMENT ON FUNCTION "qti"."__stand_share_fragment_vlshgysorq"() IS 'the stand-up of the rule judge''s session tables a write of ShareFragment needs';
+
+COMMENT ON FUNCTION "qti"."__stand_share_target_uodbsrbtr7"() IS 'the stand-up of the rule judge''s session tables a write of ShareTarget needs';
+
+COMMENT ON FUNCTION "qti"."__stand_site_tjfl6cjoct"() IS 'the stand-up of the rule judge''s session tables a write of Site needs';
+
+COMMENT ON FUNCTION "qti"."__stand_site_path_5texh73t5e"() IS 'the stand-up of the rule judge''s session tables a write of SitePath needs';
+
+COMMENT ON FUNCTION "qti"."__stand_site_target_7dcfpspkwp"() IS 'the stand-up of the rule judge''s session tables a write of SiteTarget needs';
+
+COMMENT ON FUNCTION "qti"."__stand_srcset_rftu4ffapo"() IS 'the stand-up of the rule judge''s session tables a write of Srcset needs';
+
+COMMENT ON FUNCTION "qti"."__stand_srcset_candidate_rjuo7n5ahk"() IS 'the stand-up of the rule judge''s session tables a write of SrcsetCandidate needs';
+
+COMMENT ON FUNCTION "qti"."__stand_ssml_scope_qlkcnlkody"() IS 'the stand-up of the rule judge''s session tables a write of SsmlScope needs';
+
+COMMENT ON FUNCTION "qti"."__stand_stimulus_ref_3r7jqd3al5"() IS 'the stand-up of the rule judge''s session tables a write of StimulusRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_table_header_yxurhvfvyx"() IS 'the stand-up of the rule judge''s session tables a write of TableHeader needs';
+
+COMMENT ON FUNCTION "qti"."__stand_table_scope_fpjvpoyvle"() IS 'the stand-up of the rule judge''s session tables a write of TableScope needs';
+
+COMMENT ON FUNCTION "qti"."__stand_template_ref_5rw7gnm6ga"() IS 'the stand-up of the rule judge''s session tables a write of TemplateRef needs';
+
+COMMENT ON FUNCTION "qti"."__stand_text_reference_xbgifadnt4"() IS 'the stand-up of the rule judge''s session tables a write of TextReference needs';
+
+COMMENT ON FUNCTION "qti"."__stand_text_reference_path_ijtliptx3w"() IS 'the stand-up of the rule judge''s session tables a write of TextReferencePath needs';
+
+COMMENT ON FUNCTION "qti"."__stand_tolerance_j3naktmm3s"() IS 'the stand-up of the rule judge''s session tables a write of Tolerance needs';
+
+COMMENT ON FUNCTION "qti"."__stand_usage_value_jbqmhc66yy"() IS 'the stand-up of the rule judge''s session tables a write of UsageValue needs';
+
+COMMENT ON FUNCTION "qti"."__stand_usage_value_base_type_ss7bxv4pjb"() IS 'the stand-up of the rule judge''s session tables a write of UsageValueBaseType needs';
+
+COMMENT ON FUNCTION "qti"."__stand_variable_ref_htgoqewgip"() IS 'the stand-up of the rule judge''s session tables a write of VariableRef needs';
 
 COMMENT ON FUNCTION "qti"."__immutable_assembled_catalog_vcladehbpw"() IS 'immutability guard of AssembledCatalog';
 
