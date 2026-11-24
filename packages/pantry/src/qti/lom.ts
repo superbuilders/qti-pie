@@ -100,8 +100,7 @@ import { matchedText } from "#pantry/qti/limits.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 
 /**
- * LOM 2.2's status vocabulary: "draft", "final", "revised", "unavailable". A deletion version is
- * `unavailable` (decision 6b: "the learning object itself is not available").
+ * LOM 2.2's status vocabulary: "draft", "final", "revised", "unavailable".
  */
 export const LifeCycleStatus = closed.ordered("LifeCycleStatus", [
   "draft",
@@ -762,7 +761,7 @@ const lessonClaims = query(QtiLomVocabulary).rule((r) => {
 /**
  * Each lesson's heads: each package of the lesson no package of the same lesson names as an
  * earlier revision (decision 2). A lesson whose versions fork has several, and one whose every
- * version a version names has none. A head whose status is `unavailable` is a deletion version.
+ * version a version names has none.
  */
 export const Head = derived(
   "Head",
