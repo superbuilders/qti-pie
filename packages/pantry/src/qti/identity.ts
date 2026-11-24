@@ -121,6 +121,7 @@ import {
   Crypto,
   drawn,
   fin,
+  generated,
   key,
   law,
   on,
@@ -347,11 +348,12 @@ export const ShareFragment = law(
  * it in the instance's document, `path`: an ID of that document, its {@link DocumentId}'s value
  * and owner as `IdValue` (`#pantry/qti/names.ts`) holds them, with the instance's assembly kind.
  * The instance is the copy of the document's elements the assembly's merged document holds it in,
- * so a fragment placed twice holds its IDs twice.
+ * so a fragment placed twice holds its IDs twice. `idDigest`, the id's SHA-256, is what a law that
+ * finds a placed ID by its value reads, since the id has no bound.
  */
 export const PlacedId = law(
   entryOf("E1 derived"),
-  relation(
+  relation.generated(
     "PlacedId",
     {
       assembly: EntryPath,
@@ -364,6 +366,7 @@ export const PlacedId = law(
       start: natural,
     },
     ["package", "assembly", "instance", "start"],
+    (p) => ({ idDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(p.id))) }),
   ),
 );
 

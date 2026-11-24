@@ -7,10 +7,12 @@
  * itself (grizzle's `keyTextBytes`), so that no key could hold it as itself, and at 64 KiB. It
  * imports the item whole, then exports it byte for byte as it was read.
  *
- * Its names are held in no key as themselves: a namespace prefix and an open attribute's local name
- * and namespace name by their SHA-256s, and a foreign element's own names in no key, so each stays
- * of any length the regex engine reads (`foreignNameBytes`). An item whose names are each 64 KiB is
- * imported and exported byte for byte.
+ * Its names are held in no key as themselves but one: a namespace prefix and an open attribute's
+ * local name and namespace name by their SHA-256s, and a foreign element's local name in no key,
+ * so each stays of any length the regex engine reads (`foreignNameBytes`); the namespace name of an
+ * element an open attribute is keyed beside (`OpenAttribute.elementNamespace`) is held to
+ * `namespaceNameBytes`. An item whose names are each 64 KiB, but that one at its bound, is imported
+ * and exported byte for byte, and one whose namespace name is a byte past it refused.
  */
 import { keyTextBytes } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";
@@ -22,7 +24,7 @@ import { comparePackage } from "#pantry/export/compare.ts";
 import { exportPackage } from "#pantry/export/package.ts";
 import { ImportRefused } from "#pantry/import/rules.ts";
 import { memoryMediaStore } from "#pantry/package/media.ts";
-import { entryPathBytes, utf8Length } from "#pantry/qti/limits.ts";
+import { entryPathBytes, namespaceNameBytes, utf8Length } from "#pantry/qti/limits.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { importDir } from "#pantry/test/import-dir.ts";
 import { hasLease } from "#pantry/test/settings.ts";
@@ -88,23 +90,26 @@ const packageOf = (answer: string, path = "item.xml"): ReadonlyMap<string, Uint8
  * The UTF-8 bytes of each name of an item ({@link namedPackageOf}): its paragraph's prefix and the
  * declaration binding it, its `data-*` attribute's local name, a foreign attribute's local name and
  * namespace name, and a foreign element's local name and namespace name, none held in a key as
- * itself.
+ * itself but the foreign element's namespace name, which its open attribute's key holds.
  */
 interface NameBytes {
   readonly attributeNamespace: number;
   readonly dataLocal: number;
   readonly elementName: number;
+  readonly elementNamespace: number;
   readonly foreignLocal: number;
   readonly prefix: number;
 }
 
 /**
- * Every name at 64 KiB, far past any bound a key could hold a name to as itself.
+ * Every name at 64 KiB, far past any bound a key could hold a name to as itself, but the foreign
+ * element's namespace name, at the most its open attribute's key holds.
  */
 const longNameBytes: NameBytes = {
   attributeNamespace: 65_536,
   dataLocal: 65_536,
   elementName: 65_536,
+  elementNamespace: namespaceNameBytes,
   foreignLocal: 65_536,
   prefix: 65_536,
 };
@@ -122,7 +127,7 @@ const namedPackageOf = (bytes: NameBytes): ReadonlyMap<string, Uint8Array> => {
   const prefix = `p${"a".repeat(bytes.prefix - 1)}`;
   const data = `data-${"a".repeat(bytes.dataLocal - 5)}`;
   const element = `e${"a".repeat(bytes.elementName - 1)}`;
-  const elementNamespace = `urn:${"a".repeat(bytes.elementName - 4)}`;
+  const elementNamespace = `urn:${"a".repeat(bytes.elementNamespace - 4)}`;
   const local = `l${"a".repeat(bytes.foreignLocal - 1)}`;
   const attributeNamespace = `urn:${"b".repeat(bytes.attributeNamespace - 4)}`;
   const asi = "http://www.imsglobal.org/xsd/imsqtiasi_v3p0";
@@ -221,18 +226,20 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
     );
 
     it.effect(
-      "imports an item whose prefix, open attribute names and foreign element's names are each 64 KiB, and exports it as it was read",
+      "imports an item whose prefix, open attribute names and foreign element's local name are each 64 KiB and its namespace name namespaceNameBytes, and exports it as it was read, and refuses one whose namespace name is a byte longer under key-text-bound",
       () =>
         // Oracle: as above, PostgreSQL and the exporter's comparison: Namespaces in XML 1.0 §4 and
         // XML 1.0 put no bound on a prefix or a name (reading 94), so a key holds each by its
-        // SHA-256 or holds none. Bound: one item, every name at 64 KiB.
+        // SHA-256 or holds none, but the namespace name of an element an open attribute is keyed
+        // beside, which the domain `ElementNamespace` declares (`#pantry/qti/limits.ts`) holds to
+        // `namespaceNameBytes`. Bound: one item with every name at its bound, one a byte past it.
         Effect.gen(function* longNames() {
           const fs = yield* FileSystem.FileSystem;
           const dir = yield* scopedPackage(namedPackageOf(longNameBytes));
           const target = yield* fs.makeTempDirectoryScoped();
           const imported = yield* importDir(dir);
 
-          assert.include(["accepted", "unchanged"], imported.outcome, "every name at 64 KiB");
+          assert.include(["accepted", "unchanged"], imported.outcome, "every name at its bound");
           yield* exportPackage(imported.package, target);
           assert.deepStrictEqual(
             (yield* comparePackage(dir, target)).filter(
@@ -240,6 +247,24 @@ describe.skipIf(!hasLease)("qti/long-values.db.test.ts, on the lease", () => {
             ),
             [],
             "the export differs from its source",
+          );
+
+          const refused = yield* Effect.flip(
+            importDir(
+              yield* scopedPackage(
+                namedPackageOf({ ...longNameBytes, elementNamespace: namespaceNameBytes + 1 }),
+              ),
+            ),
+          );
+          const rules: readonly string[] =
+            refused instanceof ImportRefused
+              ? refused.rules
+              : ["_tag" in refused ? refused._tag : refused.kind];
+
+          assert.include(
+            rules,
+            "key-text-bound",
+            "a namespace name a byte past namespaceNameBytes",
           );
         }).pipe(Effect.scoped),
     );

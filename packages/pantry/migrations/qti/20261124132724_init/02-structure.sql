@@ -769,6 +769,7 @@ CREATE TABLE "qti"."interaction_attribute" (
   "start" "qti"."__domain_gfw43vigph" NOT NULL,
   "lexical_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("lexical")) STORED NOT NULL,
   "value" "qti"."__text_tfkvgtjblt" GENERATED ALWAYS AS ("pg_catalog"."btrim"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("lexical", E'\t'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\n'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\r'::"pg_catalog"."text", ' '::"pg_catalog"."text"), '  '::"pg_catalog"."text", E' \t'::"pg_catalog"."text"), E'\t '::"pg_catalog"."text", E'\t\t'::"pg_catalog"."text"), E'\t'::"pg_catalog"."text", ''::"pg_catalog"."text"))) STORED NOT NULL,
+  "value_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("pg_catalog"."btrim"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("lexical", E'\t'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\n'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\r'::"pg_catalog"."text", ' '::"pg_catalog"."text"), '  '::"pg_catalog"."text", E' \t'::"pg_catalog"."text"), E'\t '::"pg_catalog"."text", E'\t\t'::"pg_catalog"."text"), E'\t'::"pg_catalog"."text", ''::"pg_catalog"."text")))) STORED NOT NULL,
   "__package_em5smlkv7y" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN NOT "root_kind" IN (299::smallint, 302::smallint) AND "kind" IN (155::smallint, 13::smallint, 154::smallint, 153::smallint, 156::smallint, 11::smallint, 162::smallint, 114::smallint, 143::smallint, 116::smallint, 200::smallint, 15::smallint, 201::smallint, 185::smallint) AND "name" = 87::smallint AND "qti"."__row_ek5jzsyr3n"("lexical") THEN "package" END) STORED,
   "__package_ph3lmj2a3i" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN NOT "root_kind" IN (299::smallint, 302::smallint) AND "kind" IN (115::smallint, 209::smallint, 14::smallint, 97::smallint, 113::smallint) AND "name" = 96::smallint AND "qti"."__row_ek5jzsyr3n"("lexical") THEN "package" END) STORED,
   "__package_sl6clonewv" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN NOT "root_kind" IN (299::smallint, 302::smallint) AND ("name" IN (77::smallint, 89::smallint) AND "kind" = 12::smallint OR "kind" = 12::smallint AND "name" = 86::smallint) AND "qti"."__row_ek5jzsyr3n"("lexical") THEN "package" END) STORED,
@@ -779,17 +780,19 @@ CREATE TABLE "qti"."interaction_attribute" (
   "__package_u66bjij63r" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" IN (115::smallint, 209::smallint, 14::smallint, 97::smallint, 113::smallint) AND "root_kind" IN (299::smallint, 302::smallint) AND "name" = 96::smallint AND "qti"."__row_ek5jzsyr3n"("lexical") THEN "package" END) STORED,
   "__package_23kaj6k72g" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "root_kind" IN (299::smallint, 302::smallint) AND ("name" IN (77::smallint, 89::smallint) AND "kind" = 12::smallint OR "kind" = 12::smallint AND "name" = 86::smallint) AND "qti"."__row_ek5jzsyr3n"("lexical") THEN "package" END) STORED,
   "__package_vavgyyjccm" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "root_kind" IN (299::smallint, 302::smallint) AND "kind" = 186::smallint AND "name" = 86::smallint AND "qti"."__row_ek5jzsyr3n"("lexical") THEN "package" END) STORED,
-  "__package_baq2s5ijok" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "pg_catalog"."btrim"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("lexical", E'\t'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\n'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\r'::"pg_catalog"."text", ' '::"pg_catalog"."text"), '  '::"pg_catalog"."text", E' \t'::"pg_catalog"."text"), E'\t '::"pg_catalog"."text", E'\t\t'::"pg_catalog"."text"), E'\t'::"pg_catalog"."text", ''::"pg_catalog"."text")) IN ('1'::"pg_catalog"."text", 'true'::"pg_catalog"."text") AND "kind" = 299::smallint AND "name" = 231::smallint THEN "package" END) STORED,
+  "__package_lccfor32hz" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" = 299::smallint AND "name" = 231::smallint AND "qti"."__row_y3yv7uwbvr"("lexical") THEN "package" END) STORED,
   CONSTRAINT "__interaction_attribute_pk_sbz3kmx43v" PRIMARY KEY ("package", "path", "start", "name"),
-  CONSTRAINT "__interaction_attribute_key_package_path_d3uq7hzxwt" UNIQUE NULLS DISTINCT ("__package_baq2s5ijok", "path")
+  CONSTRAINT "__interaction_attribute_key_package_path_d24yaqymgd" UNIQUE NULLS DISTINCT ("__package_lccfor32hz", "path")
 );
 
 CREATE TABLE "qti"."item_mode" (
   "adaptive" boolean NOT NULL,
   "package" "qti"."__text_aqc6inemva" NOT NULL,
   "path" "qti"."__text_tn2inwix7f" NOT NULL,
+  "__package_bvmctmknpe" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "adaptive" = true THEN "package" END) STORED,
   CONSTRAINT "__item_mode_pk_rmbrjefggb" PRIMARY KEY ("package", "path"),
-  CONSTRAINT "__item_mode_key_package_path_adaptive_jyslhwwydx" UNIQUE NULLS DISTINCT ("package", "path", "adaptive")
+  CONSTRAINT "__item_mode_key_package_path_adaptive_jyslhwwydx" UNIQUE NULLS DISTINCT ("package", "path", "adaptive"),
+  CONSTRAINT "__item_mode_key_package_path_jm5fxkgpbj" UNIQUE NULLS DISTINCT ("__package_bvmctmknpe", "path")
 );
 
 CREATE TABLE "qti"."item_ref_document" (
@@ -1105,7 +1108,7 @@ CREATE TABLE "qti"."numbered_reading" (
 CREATE TABLE "qti"."open_attribute" (
   "at" "qti"."__domain_gfw43vigph" NOT NULL,
   "class" "qti"."attribute_name" NOT NULL,
-  "element_namespace" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
+  "element_namespace" "qti"."__text_dtweupoh47" NOT NULL,
   "governor" "qti"."governor" NOT NULL,
   "kind" "qti"."node_kind" NOT NULL,
   "lexical" "qti"."__text_c6iptmtj2x" NOT NULL,
@@ -1126,7 +1129,7 @@ CREATE TABLE "qti"."open_attribute" (
   CONSTRAINT "double_bound" CHECK (("qti"."__row_ha47wb6n3x"("governor", "class", "lexical")) IS TRUE),
   CONSTRAINT "al_4_declared_data_name" CHECK (("class" <> 0::smallint OR "qti"."__row_i5mf4eas2d"("governor", "local")) IS TRUE),
   CONSTRAINT "value_domain" CHECK (("qti"."__row_pqxt7rruix"("governor", "class", "lexical")) IS TRUE),
-  CONSTRAINT "foreign_attribute_class" CHECK (("qti"."__row_hmc3tirhdj"("kind", "element_namespace", "class", "uri")) IS TRUE),
+  CONSTRAINT "foreign_attribute_class" CHECK (("qti"."__row_wzgwunci5v"("kind", "element_namespace", "class", "uri")) IS TRUE),
   CONSTRAINT "attribute_prefix" CHECK ((CASE WHEN "class" IN (1::smallint, 3::smallint) THEN NOT "prefix" IN (''::"pg_catalog"."text", 'xml'::"pg_catalog"."text", 'xmlns'::"pg_catalog"."text") ELSE "prefix" = ''::"pg_catalog"."text" END) IS TRUE),
   CONSTRAINT "al_1_admission" CHECK (("qti"."__row_76bhwjyl6b"("governor", "class")) IS TRUE),
   CONSTRAINT "e_1_derived" CHECK (("qti"."__row_i3ibdsoyj4"("governor", "class", "slot")) IS TRUE),
@@ -1271,6 +1274,7 @@ CREATE TABLE "qti"."placed_id" (
   "package" "qti"."__text_aqc6inemva" NOT NULL,
   "path" "qti"."__text_tn2inwix7f" NOT NULL,
   "start" "qti"."__domain_gfw43vigph" NOT NULL,
+  "id_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("id")) STORED NOT NULL,
   "__copy_ids_tljj3gujvw" bigint NOT NULL,
   "__index_ids_ojwjtnxm2y" bigint NOT NULL,
   "__predecessor_ids_rtodazzhin" bigint GENERATED ALWAYS AS (CASE WHEN "__index_ids_ojwjtnxm2y" > 0::bigint THEN "__index_ids_ojwjtnxm2y"::numeric - (1::bigint)::numeric END) STORED,
@@ -2372,7 +2376,7 @@ ALTER TABLE "qti"."binding_name"
   ADD CONSTRAINT "__binding_name_fk_package_path_predecessor_bindings_livsfb6g7c" FOREIGN KEY ("package", "path", "__predecessor_bindings_hnpwjkvxqw") REFERENCES "qti"."binding_name" ("package", "path", "__index_bindings_unk6tk2t53") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "qti"."bound_variable"
-  ADD CONSTRAINT "__bound_variable_fk_package_path_adaptive_o67xwxciik" FOREIGN KEY ("package", "path", "adaptive") REFERENCES "qti"."item_mode" ("package", "path", "adaptive") MATCH SIMPLE,
+  ADD CONSTRAINT "__bound_variable_fk_package_path_adaptive_o67xwxciik" FOREIGN KEY ("package", "path", "adaptive") REFERENCES "qti"."item_mode" ("package", "path", "adaptive") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED,
   ADD CONSTRAINT "__bound_variable_fk_package_path_start_dl2i2rfart" FOREIGN KEY ("__package_pyofn3cand", "path", "start") REFERENCES "qti"."node" ("__package_p5yblwgnua", "path", "start") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "qti"."candidate_path" ADD CONSTRAINT "__candidate_path_fk_package_target_aynqp2vyvf" FOREIGN KEY ("package", "target") REFERENCES "qti"."entry" ("package", "path") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
@@ -2527,7 +2531,10 @@ ALTER TABLE "qti"."interaction_attribute"
   ADD CONSTRAINT "__interaction_attribute_fk_package_path_start_name_llk67yupum" FOREIGN KEY ("__package_u7v2jd53lp", "path", "start", "name", "value") REFERENCES "qti"."bound_variable" ("package", "path", "start", "attribute", "identifier") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED,
   ADD CONSTRAINT "__interaction_attribute_fk_package_path_start_name_ervei6ym3k" FOREIGN KEY ("__package_u66bjij63r", "path", "start", "name", "kind", "root_kind", "value") REFERENCES "qti"."feedback_ref" ("package", "path", "start", "attribute", "kind", "assembly_kind", "identifier") MATCH SIMPLE,
   ADD CONSTRAINT "__interaction_attribute_fk_package_path_start_name_mlmmcfwe3t" FOREIGN KEY ("__package_23kaj6k72g", "path", "start", "name", "kind", "root_kind", "value") REFERENCES "qti"."printed_variable_ref" ("package", "path", "start", "attribute", "kind", "assembly_kind", "identifier") MATCH SIMPLE,
-  ADD CONSTRAINT "__interaction_attribute_fk_package_path_start_name_rvobaq2zub" FOREIGN KEY ("__package_vavgyyjccm", "path", "start", "name", "kind", "root_kind", "value") REFERENCES "qti"."context_ref" ("package", "path", "start", "attribute", "kind", "assembly_kind", "identifier") MATCH SIMPLE;
+  ADD CONSTRAINT "__interaction_attribute_fk_package_path_start_name_rvobaq2zub" FOREIGN KEY ("__package_vavgyyjccm", "path", "start", "name", "kind", "root_kind", "value") REFERENCES "qti"."context_ref" ("package", "path", "start", "attribute", "kind", "assembly_kind", "identifier") MATCH SIMPLE,
+  ADD CONSTRAINT "__interaction_attribute_fk_package_path_nnor4wfvfx" FOREIGN KEY ("__package_lccfor32hz", "path") REFERENCES "qti"."item_mode" ("__package_bvmctmknpe", "path") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE "qti"."item_mode" ADD CONSTRAINT "__item_mode_fk_package_path_ho3tnecemv" FOREIGN KEY ("__package_bvmctmknpe", "path") REFERENCES "qti"."interaction_attribute" ("__package_lccfor32hz", "path") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "qti"."label_use" ADD CONSTRAINT "__label_use_fk_package_path_root_kind_5odzayuwy3" FOREIGN KEY ("package", "path", "root_kind") REFERENCES "qti"."document" ("package", "path", "root_kind") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 

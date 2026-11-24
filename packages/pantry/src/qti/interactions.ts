@@ -278,7 +278,8 @@ export const templateVariableKind = "qti-template-variable" satisfies Kind;
  * The lexical form and its collapse are `matchedText` (`#pantry/qti/limits.ts`), of any length a
  * query's match reads, since QTI bounds no attribute's value; `lexicalDigest`, the form's SHA-256,
  * is what the copy's containment from `Attribute` holds, `Attribute.lexicalDigest`'s, so no key
- * holds the form itself. A parse that reads
+ * holds the form itself, and `valueDigest`, the collapse's, is what a law that finds an attribute
+ * by its value reads. A parse that reads
  * a value bounds its own operand
  * where it reads it ("Aria value range", `#pantry/qti/overlay-queries/interaction.ts`), so no
  * identifier O3 reads is held to a decimal's bound.
@@ -297,10 +298,15 @@ export const InteractionAttribute = law(
       start: natural,
     },
     ["package", "path", "start", "name"],
-    (v) => ({
-      lexicalDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(v.lexical))),
-      value: law(entryOf("E1 derived"), generated(matchedText, Text.collapse(v.lexical))),
-    }),
+    (v) => {
+      const value = Text.collapse(v.lexical);
+
+      return {
+        lexicalDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(v.lexical))),
+        value: law(entryOf("E1 derived"), generated(matchedText, value)),
+        valueDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(value))),
+      };
+    },
   ),
 );
 
@@ -1219,10 +1225,19 @@ const outsideFeedback = select(Node, (n) =>
 );
 
 /**
- * The read `adaptive` of each item whose value is true.
+ * The read `adaptive` of each item whose value is true, found by its value's SHA-256: one of
+ * {@link booleanTrue}'s.
  */
 const adaptiveTrue = select(InteractionAttribute, (v) =>
-  v.and(v.eq(v.name, adaptiveName), v.eq(v.kind, itemKind), v.in(v.value, booleanTrue)),
+  v.and(
+    v.eq(v.name, adaptiveName),
+    v.eq(v.kind, itemKind),
+    v.or(
+      ...booleanTrue.map((form) =>
+        v.eq(v.valueDigest, Crypto.sha256(Type.literal(matchedText, form))),
+      ),
+    ),
+  ),
 );
 
 /**

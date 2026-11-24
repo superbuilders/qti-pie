@@ -107,9 +107,10 @@ const IdBinding = derived(
 );
 
 /**
- * The ID/IDREF table of each assembly, a projection of its placed IDs: an id, the element it is
- * bound to (its document's `path` and its `owner` position), and the instance of the document that
- * holds it, which "Idref target" resolves IDREFs among. "DocumentId key" keys it through
+ * The ID/IDREF table of each assembly, a projection of its placed IDs: an id, by its SHA-256
+ * (`PlacedId.idDigest`), the element it is bound to (its document's `path` and its `owner`
+ * position), and the instance of the document that holds it, which "Idref target" resolves IDREFs
+ * among. "DocumentId key" keys it through
  * {@link AnchoredId} and {@link CopiedId}: an included fragment's ID is distinct from its item's, a
  * fragment placed twice in one item holds its IDs twice, as its merged document does (information
  * model §2.12), and a section document a test references twice holds its IDs once (§7.5.3).
@@ -117,29 +118,29 @@ const IdBinding = derived(
 export const AssembledId = derived(
   "AssembledId",
   query(QtiBase).rule((r) => {
-    const { assembly, id, instance, owner, package: pkg, path } = v(PlacedId, "placed");
+    const { assembly, idDigest, instance, owner, package: pkg, path } = v(PlacedId, "placed");
 
     return r
-      .match(PlacedId, { assembly, id, instance, owner, package: pkg, path })
-      .find({ assembly, id, instance, owner, package: pkg, path });
+      .match(PlacedId, { assembly, idDigest, instance, owner, package: pkg, path })
+      .find({ assembly, idDigest, instance, owner, package: pkg, path });
   }),
 );
 
 /**
- * Each placed ID with the anchor of its instance (`instanceAnchors`,
- * `#pantry/qti/overlay-queries/tests.ts`): the copy of a section or of the assembly's root that
- * holds it. Its key on `(package, assembly, anchor, id)` is cvc-id clause 2 within a copy, so a
- * fragment placed twice in one item, or in one test's copy, holds its IDs twice, as the merged
- * document does.
+ * Each placed ID, by its SHA-256 (`PlacedId.idDigest`), with the anchor of its instance
+ * (`instanceAnchors`, `#pantry/qti/overlay-queries/tests.ts`): the copy of a section or of the
+ * assembly's root that holds it. Its key on `(package, assembly, anchor, idDigest)` is cvc-id
+ * clause 2 within a copy, so a fragment placed twice in one item, or in one test's copy, holds its
+ * IDs twice, as the merged document does.
  */
 const anchoredIdRows = query(QtiBase).rule((r) => {
   const { anchor, anchorDocument, assembly, instance, package: pkg } = v(instanceAnchors, "anchor");
-  const { id, owner, path } = v(PlacedId, "placed");
+  const { idDigest, owner, path } = v(PlacedId, "placed");
 
   return r
     .match(instanceAnchors, { anchor, anchorDocument, assembly, instance, package: pkg })
-    .match(PlacedId, { assembly, id, instance, owner, package: pkg, path })
-    .find({ anchor, anchorDocument, assembly, id, instance, owner, package: pkg, path });
+    .match(PlacedId, { assembly, idDigest, instance, owner, package: pkg, path })
+    .find({ anchor, anchorDocument, assembly, idDigest, instance, owner, package: pkg, path });
 });
 
 /**
@@ -152,16 +153,23 @@ const AnchoredId = derived("AnchoredId", anchoredIdRows);
  * the anchor's document and the bound element. Two copies of one section document a test references
  * twice hold its IDs once, since "A test may refer to the same section multiple times within a
  * test" (information model §7.5.3); every other binding is its own, so its key on `(package,
- * assembly, id)` is cvc-id clause 2 across the merged document.
+ * assembly, idDigest)` is cvc-id clause 2 across the merged document.
  */
 const CopiedId = derived(
   "CopiedId",
   query(QtiBase).rule((r) => {
-    const { anchorDocument, assembly, id, owner, package: pkg, path } = v(anchoredIdRows, "id");
+    const {
+      anchorDocument,
+      assembly,
+      idDigest,
+      owner,
+      package: pkg,
+      path,
+    } = v(anchoredIdRows, "id");
 
     return r
-      .match(anchoredIdRows, { anchorDocument, assembly, id, owner, package: pkg, path })
-      .find({ anchorDocument, assembly, id, owner, package: pkg, path });
+      .match(anchoredIdRows, { anchorDocument, assembly, idDigest, owner, package: pkg, path })
+      .find({ anchorDocument, assembly, idDigest, owner, package: pkg, path });
   }),
 );
 
@@ -180,23 +188,24 @@ const externalAssemblies = query(QtiBase).rule((r) => {
 });
 
 /**
- * Each id an instance's IDREFs name ({@link PlacedIdref}) in an assembly that holds no external
- * include: "Idref target" holds each to its assembly's IDs. An assembly that holds one merges a
- * resource pantry never fetches, whose IDs an IDREF of the assembly may name (XInclude 1.0 Second
- * Edition §4: the result "merges the source infoset with the infosets of resources identified by
- * URI references"), so pantry cannot tell a dangling IDREF from one the resource binds: it admits
- * the assembly's IDREFs unjudged, and the assembly's include is `UnplacedInclude`'s `external`, so
- * no player delivers its item (QTI 3.0 Conformance §3, "ignore or remove the unsupported data").
+ * Each id an instance's IDREFs name ({@link PlacedIdref}), by its SHA-256, in an assembly that
+ * holds no external include: "Idref target" holds each to its assembly's IDs. An assembly that
+ * holds one merges a resource pantry never fetches, whose IDs an IDREF of the assembly may name
+ * (XInclude 1.0 Second Edition §4: the result "merges the source infoset with the infosets of
+ * resources identified by URI references"), so pantry cannot tell a dangling IDREF from one the
+ * resource binds: it admits the assembly's IDREFs unjudged, and the assembly's include is
+ * `UnplacedInclude`'s `external`, so no player delivers its item (QTI 3.0 Conformance §3, "ignore
+ * or remove the unsupported data").
  */
 const JudgedPlacedIdref = derived(
   "JudgedPlacedIdref",
   query(QtiBase).rule((r) => {
-    const { assembly, id, package: pkg } = v(PlacedIdref, "idref");
+    const { assembly, idDigest, package: pkg } = v(PlacedIdref, "idref");
 
     return r
-      .match(PlacedIdref, { assembly, id, package: pkg })
+      .match(PlacedIdref, { assembly, idDigest, package: pkg })
       .where(r.not(externalAssemblies, { assembly, package: pkg }))
-      .find({ assembly, id, package: pkg });
+      .find({ assembly, idDigest, package: pkg });
   }),
 );
 
@@ -336,8 +345,8 @@ const inheritedCatalogScopes = select(CatalogScopeNode, (s) =>
 export const identityOverlayLawsByName = {
   "DocumentId key": declared("DocumentId key", [
     key(on(IdBinding, "package", "path", "id")),
-    key(on(AnchoredId, "package", "assembly", "anchor", "id")),
-    key(on(CopiedId, "package", "assembly", "id")),
+    key(on(AnchoredId, "package", "assembly", "anchor", "idDigest")),
+    key(on(CopiedId, "package", "assembly", "idDigest")),
   ]),
   "E1 derived": declared("E1 derived", [
     contained(
@@ -356,8 +365,16 @@ export const identityOverlayLawsByName = {
       on(IdBinding, "package", "path", "id", "owner"),
     ),
     contained(
-      on(PlacedShareTarget, "package", "assembly", "id", "target", "targetStart", "targetInstance"),
-      on(AssembledId, "package", "assembly", "id", "path", "owner", "instance"),
+      on(
+        PlacedShareTarget,
+        "package",
+        "assembly",
+        "idDigest",
+        "target",
+        "targetStart",
+        "targetInstance",
+      ),
+      on(AssembledId, "package", "assembly", "idDigest", "path", "owner", "instance"),
     ),
     check("E1_derived", IdentityTextNode, (t) => {
       const identity = textIdentityOf(t.governor);
@@ -404,8 +421,8 @@ export const identityOverlayLawsByName = {
       on(IdBinding, "package", "path", "id"),
     ),
     contained(
-      on(JudgedPlacedIdref, "package", "assembly", "id"),
-      on(AssembledId, "package", "assembly", "id"),
+      on(JudgedPlacedIdref, "package", "assembly", "idDigest"),
+      on(AssembledId, "package", "assembly", "idDigest"),
     ),
   ]),
   "SSML lexicon reference": declared("SSML lexicon reference", [

@@ -126,6 +126,7 @@ import {
   foreignNameBytes,
   identifierBytes,
   matchedTextBytes,
+  namespaceNameBytes,
   parsedDecimalBytes,
   utf8Length,
 } from "#pantry/qti/limits.ts";
@@ -3043,9 +3044,12 @@ const checkedIdentifiers: readonly {
  *   ({@link checkedIdentifiers});
  * - As a parse's operand, each ARIA bound of an element that writes both that is an `xs:decimal`
  *   ({@link ariaFields}), at `parsedDecimalBytes`;
- * - And a foreign element's namespace name and local name (`OpenElementName.namespace`,
+ * - A foreign element's namespace name and local name (`OpenElementName.namespace`,
  *   `OpenElementName.local`), each at `foreignNameBytes`, half of the regex engine's bytes, within
- *   which a query matches the two as one expanded name, and which no key holds.
+ *   which a query matches the two as one expanded name, and which no key holds;
+ * - And the namespace name of each element that holds an open attribute
+ *   (`OpenAttribute.elementNamespace`), its foreign namespace or its kind's, at
+ *   `namespaceNameBytes`, which its key holds it to.
  *
  * An entry's path is the package's ({@link packageBreaches}), held to `entryPathBytes` there.
  *
@@ -3151,6 +3155,18 @@ const keyTexts = (
       },
       { bound: foreignNameBytes, field: "OpenElementName.local", node: start, value: local },
     ]),
+    ...view.members.flatMap((node) =>
+      (view.openAttributesOf.get(node.start)?.length ?? 0) > 0
+        ? [
+            {
+              bound: namespaceNameBytes,
+              field: "OpenAttribute.elementNamespace",
+              node: node.start,
+              value: Option.getOrElse(namespaceOf(view, laws.grammar, node), () => ""),
+            },
+          ]
+        : [],
+    ),
   ];
 };
 

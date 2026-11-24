@@ -144,7 +144,7 @@ import { namingText, referenceIdentities } from "#pantry/grammar/domains.ts";
 import { openClasses } from "#pantry/grammar/kinds.ts";
 import { handlePrefixes } from "#pantry/model/xdm.ts";
 import { NamespacePrefix, OpenElementName } from "#pantry/qti/chardata.ts";
-import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
+import { ElementNamespace, EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { holdsCheckedText, Node } from "#pantry/qti/node.ts";
 import { tokenFields, tokenPiece, whitespaceTokens } from "#pantry/qti/token-list.ts";
 import { dataName } from "#pantry/vocab/open.ts";
@@ -317,7 +317,7 @@ export const Attribute = law(
  *   open class its name falls in; `local` and `uri`, its local name and namespace name as written
  *   (an empty namespace for `data-*` and `no-namespace`), each of any length; `prefix`, `lexical`
  *   and `slot`, as a closed attribute's; and `elementNamespace`, its element's namespace name,
- *   which the class is read against;
+ *   which the class is read against, within the bound its key holds it to (`ElementNamespace`);
  * - **generated:** `uriDigest` and `localDigest`, the namespace name's and the local name's SHA-256s;
  * - **accumulated** along the owner axis: its element's `kind` and `governor`, by which
  *   `AL4_declared_data_name` reads its attribute model.
@@ -329,7 +329,7 @@ export const OpenAttribute = law(
     {
       at: natural,
       class: closedId(AttributeName, { only: openClasses }),
-      elementNamespace: anyText,
+      elementNamespace: ElementNamespace,
       governor: accumulated(closedId(Governor), "document"),
       kind: accumulated(closedId(NodeKind), "document"),
       lexical: Chars,

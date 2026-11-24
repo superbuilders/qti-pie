@@ -42,6 +42,7 @@ import {
 import { mathmlNamespace } from "#pantry/vocab/namespaces.ts";
 import { readXml } from "@qti-pie/crust/read.ts";
 import { grammar } from "#pantry/grammar/install.ts";
+import { namespaceNameBytes } from "#pantry/qti/limits.ts";
 import { laws } from "#pantry/test/installed-laws.ts";
 import { searchTimeout } from "#pantry/test/settings.ts";
 
@@ -995,24 +996,29 @@ describe("each law, on a package that breaks it", () => {
 /**
  * The UTF-8 bytes of each name the long-names case writes ({@link longNamed}): its paragraph's
  * prefix and the declaration binding it, its `data-*` attribute's local name, a foreign attribute's
- * local name and namespace name, and a foreign element's local name and namespace name: none held
- * in a key as itself (a prefix and an open attribute's names are held by their SHA-256s).
+ * local name and namespace name, and a foreign element's local name and namespace name. None but
+ * the foreign element's namespace name is held in a key as itself (a prefix and an open attribute's
+ * names are held by their SHA-256s); that one, the namespace name of an element its open attribute
+ * is keyed beside (`OpenAttribute.elementNamespace`), is held to `namespaceNameBytes`.
  */
 interface NameBytes {
   readonly attributeNamespace: number;
   readonly dataLocal: number;
   readonly elementName: number;
+  readonly elementNamespace: number;
   readonly foreignLocal: number;
   readonly prefix: number;
 }
 
 /**
- * Every name at 64 KiB, far past any bound a key could hold a name to as itself.
+ * Every name at 64 KiB, far past any bound a key could hold a name to as itself, but the foreign
+ * element's namespace name, at the most its open attribute's key holds.
  */
 const longNameBytes: NameBytes = {
   attributeNamespace: 65_536,
   dataLocal: 65_536,
   elementName: 65_536,
+  elementNamespace: namespaceNameBytes,
   foreignLocal: 65_536,
   prefix: 65_536,
 };
@@ -1030,7 +1036,7 @@ const longNamed = (bytes: NameBytes): readonly (readonly [string, string])[] => 
   const prefix = `p${"a".repeat(bytes.prefix - 1)}`;
   const data = `data-${"a".repeat(bytes.dataLocal - 5)}`;
   const elementName = `e${"a".repeat(bytes.elementName - 1)}`;
-  const elementNamespace = `urn:${"a".repeat(bytes.elementName - 4)}`;
+  const elementNamespace = `urn:${"a".repeat(bytes.elementNamespace - 4)}`;
   const local = `l${"a".repeat(bytes.foreignLocal - 1)}`;
   const attributeNamespace = `urn:${"b".repeat(bytes.attributeNamespace - 4)}`;
 
@@ -1087,18 +1093,31 @@ describe("open names and attribute entity references", () => {
   );
 
   it.effect(
-    "a prefix, an open attribute's names and a foreign element's names, each at 64 KiB, break no law",
+    "a prefix, an open attribute's names and a foreign element's local name, each at 64 KiB, and its namespace name at namespaceNameBytes break no law, and a namespace name a byte longer breaks Key text bound",
     () =>
       // Oracle: Namespaces in XML 1.0 §4 and XML 1.0, which put no bound on a prefix or a name
       // (reading 94): a key holds a prefix and an open attribute's names by their SHA-256s, and a
-      // foreign element's names in none, so each is read only at `foreignNameBytes`, half of the
-      // regex engine's bytes, far past these. Bound: every name at 64 KiB.
+      // foreign element's local name in none, so each is read only at `foreignNameBytes`, half of
+      // the regex engine's bytes, far past these; the namespace name of an element an open
+      // attribute is keyed beside is held to `namespaceNameBytes` (`#pantry/qti/limits.ts`).
+      // Bound: every name at 64 KiB but that one, at the bound and a byte past it.
       Effect.gen(function* longNames() {
         const breaches = breachesOf(
           yield* judged({ ...base, "item.xml": namedItemOf(longNameBytes) }),
         );
+        const past = breachesOf(
+          yield* judged({
+            ...base,
+            "item.xml": namedItemOf({ ...longNameBytes, elementNamespace: namespaceNameBytes + 1 }),
+          }),
+        );
 
-        assert.deepStrictEqual(breaches, [], `every name at 64 KiB: ${shown(breaches)}`);
+        assert.deepStrictEqual(breaches, [], `every name at its bound: ${shown(breaches)}`);
+        assert.deepStrictEqual(
+          past.map(({ keys, law }) => [law, keys["field"]]),
+          [["Key text bound", "OpenAttribute.elementNamespace"]],
+          shown(past),
+        );
       }),
   );
 });

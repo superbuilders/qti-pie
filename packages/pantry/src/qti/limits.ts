@@ -28,7 +28,7 @@ import {
   Type,
 } from "@bjornpagen/grizzle";
 import type { Facts, Term } from "@bjornpagen/grizzle";
-import { Chars } from "#pantry/grammar/install.ts";
+import { anyText, Chars } from "#pantry/grammar/install.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
 
 /**
@@ -203,6 +203,35 @@ export const keyedIdentifier = (identifier: TextTerm) =>
  * @from nameMaxBytes, entryPathBytes
  */
 export const uriBytes = 792;
+
+/**
+ * The most UTF-8 bytes an element's namespace name holds where an open attribute's laws key it
+ * (`OpenAttribute.elementNamespace`, `#pantry/qti/attributes.ts`): what one B-tree entry leaves it
+ * beside the rest of the lookup its rules probe it by.
+ *
+ * @limitKind derived
+ * @owner PostgreSQL 19's B-tree entry limit (BTMaxItemSize, 2,704 B at 8 kB blocks)
+ * @unit UTF-8 bytes
+ * @scope one element's namespace name in any key or index grizzle builds over an open attribute's
+ * @constraint Namespaces in XML and RFC 3986 put no bound on a namespace name; a longer one is
+ *   refused at import under "Key text bound": the longest real one is 51 bytes, of 5 distinct names
+ *   in 306,002 declarations of 115,452 XML documents (2,813 converted AlphaTest packages of
+ *   20261123T080622Z, 364 published packages and 118 metis packages, 2026-11-24), 3% of the bound
+ * @derivation grizzle's `keyTextBytes` over the lookup "Foreign attribute class" probes an open
+ *   attribute by, `(elementNamespace, kind, package, path, start)`: the namespace name beside a code,
+ *   a name of {@link nameMaxBytes}, a path of {@link entryPathBytes} and a natural
+ * @from nameMaxBytes, entryPathBytes
+ */
+export const namespaceNameBytes = 1604;
+
+/**
+ * An element's namespace name as an open attribute's key holds it, of at most
+ * {@link namespaceNameBytes} UTF-8 bytes, empty for none.
+ */
+export const ElementNamespace = law(
+  entryOf("Key text bound"),
+  str.bytes(namespaceNameBytes, anyText),
+);
 
 /**
  * The most UTF-8 bytes a base value's text holds: what one B-tree entry leaves it in the ledger's
