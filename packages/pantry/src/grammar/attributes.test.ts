@@ -160,9 +160,9 @@ describe("The departures from the XSD", () => {
 
   it("are gone: a cell's headers are a plain list of identifiers in the attribute grammar, with no IDREF identity, since reading 126's same-table rule is an overlay's law", () => {
     // Reading 126's rule, each token unique and the id of a th of the cell's own table, is
-    // `src/qti/html.ts`'s, `HeaderToken`'s key and `tableHeaders`, over the rows
-    // `src/import/overlays/html.ts` splits from the attribute's lexical form; the grammar reads no
-    // reference on them.
+    // `src/qti/overlay-queries/html.ts`'s, `HeaderToken`'s key and `CellToken`'s containment in
+    // `TableHeader`, over the tokens `HeaderToken` splits from the attribute's lexical form; the
+    // grammar reads no reference on them.
     for (const kind of ["td", "th"]) {
       const headers = Option.getOrThrow(domainAt(kind, "headers"));
 

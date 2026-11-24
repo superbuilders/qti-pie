@@ -1,14 +1,3 @@
-CREATE TABLE "qti"."assembled_catalog" (
-  "assembly" "qti"."__text_tn2inwix7f" NOT NULL,
-  "id" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "id_digest" "qti"."__sha256" NOT NULL,
-  "owner" "qti"."__domain_gfw43vigph" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  CONSTRAINT "__assembled_catalog_pk_b5tgxmgzjo" PRIMARY KEY ("package", "assembly", "id_digest"),
-  CONSTRAINT "e_1_derived" CHECK (("qti"."__text_digest_2x5x4iwe4m"("id") = "id_digest") IS TRUE)
-);
-
 CREATE TABLE "qti"."assembled_document" (
   "instances" "qti"."__domain_gfw43vigph" NOT NULL,
   "package" "qti"."__text_aqc6inemva" NOT NULL,
@@ -47,7 +36,6 @@ CREATE TABLE "qti"."attribute" (
   "__predecessor_attributes_wqkk3l5mnd" bigint GENERATED ALWAYS AS (CASE WHEN "__index_attributes_7arzckayvr" > 0::bigint THEN "__index_attributes_7arzckayvr"::numeric - (1::bigint)::numeric END) STORED,
   "__package_a4p2u7pv6l" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" IN (51::smallint, 49::smallint, 50::smallint, 40::smallint, 44::smallint, 178::smallint, 69::smallint, 68::smallint, 67::smallint, 61::smallint, 60::smallint, 71::smallint, 72::smallint, 217::smallint, 216::smallint, 180::smallint, 213::smallint, 62::smallint) AND "qti"."__row_qx3rdjvde7"("lexical", "kind", "name") THEN "package" END) STORED,
   "__package_c6ealb2c5z" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" = 140::smallint AND "name" = 181::smallint AND "qti"."__row_dbnwees6vb"("governor", "name", "lexical") THEN "package" END) STORED,
-  "__package_2uyqqvm75y" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" IN (177::smallint, 176::smallint) AND "name" = 196::smallint OR "kind" IN (164::smallint, 170::smallint) AND "name" = 193::smallint THEN "package" END) STORED,
   "__package_zq4aso5g6f" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" = 88::smallint AND "name" = 86::smallint OR "qti"."__row_djwisegva5"("governor", "name") THEN "package" END) STORED,
   "__package_tkzla6ex7r" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" = 299::smallint AND "name" = 229::smallint THEN "package" END) STORED,
   "__package_gw6es3z53z" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "kind" = 299::smallint AND "name" = 230::smallint THEN "package" END) STORED,
@@ -68,7 +56,6 @@ CREATE TABLE "qti"."attribute" (
   CONSTRAINT "__attribute_key_package_path_start_index_attributes_7vvrfnxvf7" UNIQUE NULLS DISTINCT ("package", "path", "start", "__index_attributes_7arzckayvr", "__after_attributes_0_4xdbd7d2wd"),
   CONSTRAINT "__attribute_key_package_path_start_predecessor_2x7ppgesjy" UNIQUE NULLS DISTINCT ("package", "path", "start", "__predecessor_attributes_wqkk3l5mnd"),
   CONSTRAINT "__attribute_key_package_path_parent_3pbuan3ddy" UNIQUE NULLS DISTINCT ("__package_c6ealb2c5z", "path", "parent"),
-  CONSTRAINT "__attribute_key_package_path_start_mefsvkm3fq" UNIQUE NULLS DISTINCT ("__package_2uyqqvm75y", "path", "start"),
   CONSTRAINT "__attribute_key_package_path_start_54iub2w3d4" UNIQUE NULLS DISTINCT ("__package_zq4aso5g6f", "path", "start"),
   CONSTRAINT "__attribute_key_package_path_ooxw5d3335" UNIQUE NULLS DISTINCT ("__package_tkzla6ex7r", "path"),
   CONSTRAINT "__attribute_key_package_path_pvjib3644a" UNIQUE NULLS DISTINCT ("__package_gw6es3z53z", "path"),
@@ -128,37 +115,12 @@ CREATE TABLE "qti"."candidate_path" (
   CONSTRAINT "e_1_derived" CHECK (("qti"."__row_xjnskhk2gh"("target")) IS TRUE)
 );
 
-CREATE TABLE "qti"."catalog_id" (
-  "id" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "owner" "qti"."__domain_gfw43vigph" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "id_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("id")) STORED NOT NULL,
-  CONSTRAINT "__catalog_id_pk_6linalpnqr" PRIMARY KEY ("package", "path", "start"),
-  CONSTRAINT "__catalog_id_key_package_path_id_digest_mciepy4knc" UNIQUE NULLS DISTINCT ("package", "path", "id_digest"),
-  CONSTRAINT "e_1_derived" CHECK (("owner" = "start") IS TRUE)
-);
-
 CREATE TABLE "qti"."catalog_scope" (
   "package" "qti"."__text_aqc6inemva" NOT NULL,
   "path" "qti"."__text_tn2inwix7f" NOT NULL,
   "scope" "qti"."__domain_gfw43vigph" NOT NULL,
   "start" "qti"."__domain_gfw43vigph" NOT NULL,
   CONSTRAINT "__catalog_scope_pk_kb6w3u5zbp" PRIMARY KEY ("package", "path", "start")
-);
-
-CREATE TABLE "qti"."cell_headers" (
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "token_text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
-  "tokens" "qti"."__domain_gfw43vigph" NOT NULL,
-  "token_text_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("token_text")) STORED NOT NULL,
-  "__pred_tokens_ip7mlgrtju" bigint GENERATED ALWAYS AS (CASE WHEN "tokens" > 0::bigint THEN "tokens"::numeric - (1::bigint)::numeric END) STORED,
-  CONSTRAINT "__cell_headers_pk_kjevq3pul6" PRIMARY KEY ("package", "path", "start"),
-  CONSTRAINT "__cell_headers_key_package_path_start_tokens_mdrwqv4pvh" UNIQUE NULLS DISTINCT ("package", "path", "start", "tokens"),
-  CONSTRAINT "__cell_headers_check_cell_headers_tokens_concat_fold_afimjxmaif" CHECK (("tokens" > 0::bigint OR "token_text" = ''::"pg_catalog"."text") IS TRUE)
 );
 
 CREATE TABLE "qti"."cell_leaf" (
@@ -648,31 +610,6 @@ CREATE TABLE "qti"."fragment_template_ref" (
   CONSTRAINT "__fragment_template_ref_check_fragment_template_ref_atbcyakfoz" CHECK (("__index_templates_tyl4zqwugp" >= 0::bigint AND "__index_templates_tyl4zqwugp" < "__copy_templates_k5hlr5akya") IS TRUE)
 );
 
-CREATE TABLE "qti"."header_token" (
-  "after" "qti"."__text_7dfilirtp3" NOT NULL,
-  "at" "qti"."__domain_gfw43vigph" NOT NULL,
-  "before" "qti"."__text_7dfilirtp3" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "pieces_after" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
-  "pieces_was" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "token" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "piece" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS ("before" || "token" || "after") STORED NOT NULL,
-  "pieces_after_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("pieces_after")) STORED NOT NULL,
-  "pieces_was_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("pieces_was")) STORED NOT NULL,
-  "token_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("token")) STORED NOT NULL,
-  "__copy_tokens_vmvzbmawj6" bigint NOT NULL,
-  "__pred_at_xktcobhsti" bigint GENERATED ALWAYS AS (CASE WHEN "at" > 0::bigint THEN "at"::numeric - (1::bigint)::numeric END) STORED,
-  CONSTRAINT "__header_token_pk_ybyt5ap6zk" PRIMARY KEY ("package", "path", "start", "at"),
-  CONSTRAINT "__header_token_key_package_path_start_token_digest_t2bfemyied" UNIQUE NULLS DISTINCT ("package", "path", "start", "token_digest"),
-  CONSTRAINT "__header_token_key_package_path_start_at_pieces_utrcymsvwh" UNIQUE NULLS DISTINCT ("package", "path", "start", "at", "pieces_after_digest"),
-  CONSTRAINT "e_1_derived" CHECK ((("at" = 0::bigint OR "before" <> ''::"pg_catalog"."text") AND "qti"."__row_e62lbw2mpq"("token")) IS TRUE),
-  CONSTRAINT "__header_token_check_cell_headers_tokens_concat_fold_itur244bbk" CHECK ((("at" > 0::bigint OR "pieces_was" = ''::"pg_catalog"."text") AND ("pg_catalog"."octet_length"("pieces_after") = "pg_catalog"."octet_length"("pieces_was")::bigint + "pg_catalog"."octet_length"("piece")::bigint AND "pieces_after" = CASE WHEN "pg_catalog"."octet_length"("pieces_was")::bigint + "pg_catalog"."octet_length"("piece")::bigint > 1073741819::bigint THEN ''::"pg_catalog"."text" ELSE "pieces_was" || "piece" END)) IS TRUE),
-  CONSTRAINT "__header_token_key_package_path_start_pred_at_cd75c4zmnj" UNIQUE NULLS DISTINCT ("package", "path", "start", "__pred_at_xktcobhsti"),
-  CONSTRAINT "__header_token_check_header_token_ordered_cell_d6xcw4szqv" CHECK (("at" < "__copy_tokens_vmvzbmawj6") IS TRUE)
-);
-
 CREATE TABLE "qti"."hottext" (
   "identifier" "qti"."__text_r2monji6i2" NOT NULL,
   "package" "qti"."__text_aqc6inemva" NOT NULL,
@@ -922,22 +859,6 @@ CREATE TABLE "qti"."literal_typed" (
   "base_type" "qti"."value_base" GENERATED ALWAYS AS ("qti"."__row_cdxyb64h3n"("type_code")) STORED NOT NULL,
   CONSTRAINT "__literal_typed_pk_uqez5pzkc2" PRIMARY KEY ("package", "path", "start"),
   CONSTRAINT "literal_lexical" CHECK (("qti"."__row_xkataczrlc"("text", "type_code")) IS TRUE)
-);
-
-CREATE TABLE "qti"."lookup_value" (
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "value" "qti"."__text_tfkvgtjblt" NOT NULL,
-  CONSTRAINT "__lookup_value_pk_dtzddogytm" PRIMARY KEY ("package", "path", "start")
-);
-
-CREATE TABLE "qti"."map_key" (
-  "key" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  CONSTRAINT "__map_key_pk_vv52s26trb" PRIMARY KEY ("package", "path", "start")
 );
 
 CREATE TABLE "qti"."math_action" (
@@ -1722,29 +1643,6 @@ CREATE TABLE "qti"."stimulus_ref" (
   CONSTRAINT "__stimulus_ref_key_package_path_identifier_vhtin76k3a" UNIQUE NULLS DISTINCT ("package", "path", "identifier")
 );
 
-CREATE TABLE "qti"."table_header" (
-  "id" "qti"."__text_tfkvgtjblt" NOT NULL,
-  "owner" "qti"."__domain_gfw43vigph" NOT NULL,
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "table" "qti"."__domain_gfw43vigph" NOT NULL,
-  "id_digest" "qti"."__sha256" GENERATED ALWAYS AS ("qti"."__text_digest_2x5x4iwe4m"("id")) STORED NOT NULL,
-  "__package_ccgb34afwq" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" GENERATED ALWAYS AS (CASE WHEN "table" <> 0::bigint THEN "package" END) STORED,
-  CONSTRAINT "__table_header_pk_d7hkmir5zb" PRIMARY KEY ("package", "path", "start"),
-  CONSTRAINT "e_1_derived" CHECK (("owner" = "start") IS TRUE),
-  CONSTRAINT "__table_header_key_package_path_table_id_digest_hp2zy2cco6" UNIQUE NULLS DISTINCT ("__package_ccgb34afwq", "path", "table", "id_digest")
-);
-
-CREATE TABLE "qti"."table_scope" (
-  "package" "qti"."__text_aqc6inemva" NOT NULL,
-  "path" "qti"."__text_tn2inwix7f" NOT NULL,
-  "start" "qti"."__domain_gfw43vigph" NOT NULL,
-  "table" "qti"."__domain_gfw43vigph" NOT NULL,
-  CONSTRAINT "__table_scope_pk_ujje6dmtif" PRIMARY KEY ("package", "path", "start"),
-  CONSTRAINT "__table_scope_key_package_path_start_table_k6mhb5efs3" UNIQUE NULLS DISTINCT ("package", "path", "start", "table")
-);
-
 CREATE TABLE "qti"."template_ref" (
   "assembly_kind" "qti"."node_kind" NOT NULL,
   "attribute" "qti"."attribute_name" NOT NULL,
@@ -1897,10 +1795,6 @@ CREATE TABLE "qti"."__live_secret" ("secret") AS SELECT "pg_catalog"."sha256"("p
 REVOKE ALL ON TABLE "qti"."__live_secret" FROM PUBLIC;
 
 CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."assembled_catalog"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
   BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."assembled_document"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
@@ -1925,15 +1819,7 @@ CREATE TRIGGER "__isolation"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
 CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."catalog_id"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
   BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."catalog_scope"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."cell_headers"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
 CREATE TRIGGER "__isolation"
@@ -2069,10 +1955,6 @@ CREATE TRIGGER "__isolation"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
 CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."header_token"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
   BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."hottext"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
@@ -2134,14 +2016,6 @@ CREATE TRIGGER "__isolation"
 
 CREATE TRIGGER "__isolation"
   BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."literal_typed"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."lookup_value"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."map_key"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
 CREATE TRIGGER "__isolation"
@@ -2345,14 +2219,6 @@ CREATE TRIGGER "__isolation"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
 CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."table_header"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
-  BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."table_scope"
-  FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
-
-CREATE TRIGGER "__isolation"
   BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."template_ref"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
@@ -2392,7 +2258,102 @@ CREATE TRIGGER "__isolation"
   BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON "qti"."xml_decl"
   FOR EACH STATEMENT EXECUTE FUNCTION "qti"."__require_serializable"();
 
-ALTER TABLE "qti"."assembled_catalog" ADD CONSTRAINT "__assembled_catalog_fk_package_path_owner_cwkxri6hfw" FOREIGN KEY ("package", "path", "owner") REFERENCES "qti"."catalog_id" ("package", "path", "start") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
+CREATE TABLE "qti_views"."catalog_id" ("id", "id_digest", "package", "path", "start") AS
+SELECT "r4"."c13"::"qti"."__text_c6iptmtj2x" AS "id", "r4"."c14" AS "idDigest", "r4"."c15"::"qti"."__text_aqc6inemva" AS "package", "r4"."c16"::"qti"."__text_tn2inwix7f" AS "path", "r4"."c17" AS "start"
+FROM (SELECT "r2"."c6", "r2"."c7", "r2"."c3", "r2"."c4", "r2"."c5" FROM (SELECT "r1"."kind", "r1"."name", "r1"."package", "r1"."path", "r1"."start", "r1"."value", "r1"."value_digest" FROM "qti"."attribute" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6", "c7") WHERE "r2"."c1" = 142::smallint AND "r2"."c2" = 69::smallint) AS "r4"("c13", "c14", "c15", "c16", "c17")
+WITH NO DATA;
+
+ALTER TABLE "qti_views"."catalog_id" ADD CONSTRAINT "__catalog_id_key_package_path_start_xmcdisxi2k" PRIMARY KEY ("package", "path", "start");
+
+REVOKE ALL ON TABLE "qti_views"."catalog_id" FROM PUBLIC;
+
+CREATE TABLE "qti_queries"."assembled_catalog" ("assembly", "id_digest", "package") AS
+SELECT "r6"."c17"::"qti"."__text_tn2inwix7f" AS "assembly", "r6"."c18" AS "idDigest", "r6"."c19"::"qti"."__text_aqc6inemva" AS "package"
+FROM (SELECT DISTINCT "r2"."c1", "r4"."c8", "r2"."c4" FROM (SELECT "r1"."assembly", "r1"."instance", "r1"."owner", "r1"."package", "r1"."path", "r1"."start" FROM "qti"."placed_id" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6"), (SELECT "r3"."id", "r3"."id_digest", "r3"."package", "r3"."path", "r3"."start" FROM "qti_views"."catalog_id" AS "r3") AS "r4"("c7", "c8", "c9", "c10", "c11") WHERE "r2"."c4" = "r4"."c9" AND "r2"."c5" = "r4"."c10" AND "r2"."c3" = "r4"."c11") AS "r6"("c17", "c18", "c19")
+WITH NO DATA;
+
+ALTER TABLE "qti_queries"."assembled_catalog" ADD CONSTRAINT "__assembled_catalog_key_assembly_id_digest_package_nlao5vwurp" PRIMARY KEY ("package", "assembly", "id_digest");
+
+REVOKE ALL ON TABLE "qti_queries"."assembled_catalog" FROM PUBLIC;
+
+CREATE TABLE "qti_views"."cell_table" ("package", "path", "start", "table") AS
+SELECT "r39"."c198"::"qti"."__text_aqc6inemva" AS "package", "r39"."c199"::"qti"."__text_tn2inwix7f" AS "path", "r39"."c200"::"qti"."__domain_gfw43vigph" AS "start", "r39"."c201"::"qti"."__domain_gfw43vigph" AS "table"
+FROM ((SELECT "r20"."c96"::"pg_catalog"."text", "r20"."c97"::"pg_catalog"."text", "r20"."c98"::bigint, "r20"."c99"::bigint FROM (SELECT "r14"."c80", "r14"."c81", "r14"."c79", "r14"."c78" FROM (SELECT "r13"."c74", "r13"."c75", "r13"."c76", "r13"."c77" FROM (WITH RECURSIVE "r1"("c1", "c2", "c3", "c4") AS (SELECT "r5"."c16"::bigint, "r5"."c16"::bigint, "r5"."c14"::"pg_catalog"."text", "r5"."c15"::"pg_catalog"."text" FROM (SELECT "r4"."c9", "r4"."c10", "r4"."c11", "r4"."c12" FROM (SELECT "r2"."kind", "r2"."package", "r2"."path", "r2"."start" FROM "qti"."node" AS "r2") AS "r4"("c9", "c10", "c11", "c12") WHERE "r4"."c9" IN (288::smallint, 291::smallint)) AS "r5"("c13", "c14", "c15", "c16") UNION SELECT "r11"."c73"::bigint, "r11"."c69"::bigint, "r11"."c70"::"pg_catalog"."text", "r11"."c71"::"pg_catalog"."text" FROM (SELECT "r10"."c62", "r10"."c63", "r10"."c64", "r10"."c65", "r10"."c66", "r10"."c67" FROM (SELECT "r7"."c17", "r7"."c18", "r7"."c19", "r7"."c20", "r9"."c39", "r9"."c47" FROM (SELECT "r6"."c1", "r6"."c2", "r6"."c3", "r6"."c4" FROM "r1" AS "r6") AS "r7"("c17", "c18", "c19", "c20"), (SELECT "r8"."ancestry", "r8"."at", "r8"."attributes", "r8"."attrs", "r8"."barred_children", "r8"."chars", "r8"."chars_after", "r8"."chars_after_digest", "r8"."chars_was", "r8"."chars_was_digest", "r8"."children", "r8"."counted_children", "r8"."element_children", "r8"."elements", "r8"."elements_was", "r8"."end", "r8"."first", "r8"."governor", "r8"."kind", "r8"."last", "r8"."last_state", "r8"."nearest", "r8"."nearest_kind", "r8"."nearest_path", "r8"."open_attributes", "r8"."package", "r8"."parent", "r8"."parent_ancestry", "r8"."parent_governor", "r8"."parent_kind", "r8"."parent_nearest", "r8"."parent_nearest_kind", "r8"."parent_nearest_path", "r8"."parent_parent_kind", "r8"."path", "r8"."prefix", "r8"."start", "r8"."state", "r8"."string_value", "r8"."string_value_digest", "r8"."was" FROM "qti"."node" AS "r8") AS "r9"("c21", "c22", "c23", "c24", "c25", "c26", "c27", "c28", "c29", "c30", "c31", "c32", "c33", "c34", "c35", "c36", "c37", "c38", "c39", "c40", "c41", "c42", "c43", "c44", "c45", "c46", "c47", "c48", "c49", "c50", "c51", "c52", "c53", "c54", "c55", "c56", "c57", "c58", "c59", "c60", "c61") WHERE "r7"."c19" = "r9"."c46" AND "r7"."c20" = "r9"."c55" AND "r7"."c17" = "r9"."c57") AS "r10"("c62", "c63", "c64", "c65", "c66", "c67") WHERE "r10"."c66" <> 286::smallint AND "r10"."c67" <> 0::bigint) AS "r11"("c68", "c69", "c70", "c71", "c72", "c73")) SELECT "r12"."c1", "r12"."c2", "r12"."c3", "r12"."c4" FROM "r1" AS "r12") AS "r13"("c74", "c75", "c76", "c77")) AS "r14"("c78", "c79", "c80", "c81") WHERE EXISTS (SELECT 1 FROM (SELECT "r17"."c86", "r17"."c87", "r17"."c88" FROM (SELECT "r16"."c83", "r16"."c84", "r16"."c85" FROM (SELECT "r15"."kind", "r15"."package", "r15"."path", "r15"."start" FROM "qti"."node" AS "r15") AS "r16"("c82", "c83", "c84", "c85") WHERE "r16"."c82" = 286::smallint) AS "r17"("c86", "c87", "c88") WHERE "r17"."c86" = "r14"."c80" AND "r17"."c87" = "r14"."c81" AND "r17"."c88" = "r14"."c78" OFFSET 0) AS "r18"("c89", "c90", "c91"))) AS "r20"("c96", "c97", "c98", "c99") UNION SELECT "r38"."c194"::"pg_catalog"."text", "r38"."c195"::"pg_catalog"."text", "r38"."c196"::bigint, "r38"."c197"::bigint FROM (SELECT "r36"."c184", "r36"."c185", "r36"."c183", "r36"."c187" FROM (SELECT "r33"."c173", "r33"."c174", "r33"."c175", "r33"."c176", "r35"."c177", "r35"."c179" FROM (WITH RECURSIVE "r21"("c100", "c101", "c102", "c103") AS (SELECT "r25"."c115"::bigint, "r25"."c115"::bigint, "r25"."c113"::"pg_catalog"."text", "r25"."c114"::"pg_catalog"."text" FROM (SELECT "r24"."c108", "r24"."c109", "r24"."c110", "r24"."c111" FROM (SELECT "r22"."kind", "r22"."package", "r22"."path", "r22"."start" FROM "qti"."node" AS "r22") AS "r24"("c108", "c109", "c110", "c111") WHERE "r24"."c108" IN (288::smallint, 291::smallint)) AS "r25"("c112", "c113", "c114", "c115") UNION SELECT "r31"."c172"::bigint, "r31"."c168"::bigint, "r31"."c169"::"pg_catalog"."text", "r31"."c170"::"pg_catalog"."text" FROM (SELECT "r30"."c161", "r30"."c162", "r30"."c163", "r30"."c164", "r30"."c165", "r30"."c166" FROM (SELECT "r27"."c116", "r27"."c117", "r27"."c118", "r27"."c119", "r29"."c138", "r29"."c146" FROM (SELECT "r26"."c100", "r26"."c101", "r26"."c102", "r26"."c103" FROM "r21" AS "r26") AS "r27"("c116", "c117", "c118", "c119"), (SELECT "r28"."ancestry", "r28"."at", "r28"."attributes", "r28"."attrs", "r28"."barred_children", "r28"."chars", "r28"."chars_after", "r28"."chars_after_digest", "r28"."chars_was", "r28"."chars_was_digest", "r28"."children", "r28"."counted_children", "r28"."element_children", "r28"."elements", "r28"."elements_was", "r28"."end", "r28"."first", "r28"."governor", "r28"."kind", "r28"."last", "r28"."last_state", "r28"."nearest", "r28"."nearest_kind", "r28"."nearest_path", "r28"."open_attributes", "r28"."package", "r28"."parent", "r28"."parent_ancestry", "r28"."parent_governor", "r28"."parent_kind", "r28"."parent_nearest", "r28"."parent_nearest_kind", "r28"."parent_nearest_path", "r28"."parent_parent_kind", "r28"."path", "r28"."prefix", "r28"."start", "r28"."state", "r28"."string_value", "r28"."string_value_digest", "r28"."was" FROM "qti"."node" AS "r28") AS "r29"("c120", "c121", "c122", "c123", "c124", "c125", "c126", "c127", "c128", "c129", "c130", "c131", "c132", "c133", "c134", "c135", "c136", "c137", "c138", "c139", "c140", "c141", "c142", "c143", "c144", "c145", "c146", "c147", "c148", "c149", "c150", "c151", "c152", "c153", "c154", "c155", "c156", "c157", "c158", "c159", "c160") WHERE "r27"."c118" = "r29"."c145" AND "r27"."c119" = "r29"."c154" AND "r27"."c116" = "r29"."c156") AS "r30"("c161", "c162", "c163", "c164", "c165", "c166") WHERE "r30"."c165" <> 286::smallint AND "r30"."c166" <> 0::bigint) AS "r31"("c167", "c168", "c169", "c170", "c171", "c172")) SELECT "r32"."c100", "r32"."c101", "r32"."c102", "r32"."c103" FROM "r21" AS "r32") AS "r33"("c173", "c174", "c175", "c176"), (SELECT "r34"."kind", "r34"."package", "r34"."parent", "r34"."path", "r34"."start" FROM "qti"."node" AS "r34") AS "r35"("c177", "c178", "c179", "c180", "c181") WHERE "r33"."c175" = "r35"."c178" AND "r33"."c176" = "r35"."c180" AND "r33"."c173" = "r35"."c181") AS "r36"("c182", "c183", "c184", "c185", "c186", "c187") WHERE "r36"."c186" <> 286::smallint AND "r36"."c187" = 0::bigint) AS "r38"("c194", "c195", "c196", "c197"))) AS "r39"("c198", "c199", "c200", "c201")
+WITH NO DATA;
+
+ALTER TABLE "qti_views"."cell_table" ADD CONSTRAINT "__cell_table_key_package_path_start_table_fpxritt234" PRIMARY KEY ("package", "path", "start", "table");
+
+REVOKE ALL ON TABLE "qti_views"."cell_table" FROM PUBLIC;
+
+CREATE TABLE "qti_queries"."table_header" ("id", "id_digest", "package", "path", "start", "table") AS
+SELECT "r7"."c24"::"qti"."__text_c6iptmtj2x" AS "id", "r7"."c25" AS "idDigest", "r7"."c26"::"qti"."__text_aqc6inemva" AS "package", "r7"."c27"::"qti"."__text_tn2inwix7f" AS "path", "r7"."c28" AS "start", "r7"."c29"::"qti"."__domain_gfw43vigph" AS "table"
+FROM (SELECT "r5"."c15", "r5"."c16", "r5"."c12", "r5"."c13", "r5"."c14", "r5"."c17" FROM (SELECT "r2"."c3", "r2"."c4", "r2"."c5", "r2"."c6", "r2"."c7", "r4"."c11" FROM (SELECT "r1"."kind", "r1"."name", "r1"."package", "r1"."path", "r1"."start", "r1"."value", "r1"."value_digest" FROM "qti"."attribute" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6", "c7"), (SELECT "r3"."package", "r3"."path", "r3"."start", "r3"."table" FROM "qti_views"."cell_table" AS "r3") AS "r4"("c8", "c9", "c10", "c11") WHERE "r2"."c3" = "r4"."c8" AND "r2"."c4" = "r4"."c9" AND "r2"."c5" = "r4"."c10" AND "r2"."c1" = 291::smallint AND "r2"."c2" = 69::smallint) AS "r5"("c12", "c13", "c14", "c15", "c16", "c17") WHERE "r5"."c17" <> 0::bigint) AS "r7"("c24", "c25", "c26", "c27", "c28", "c29")
+WITH NO DATA;
+
+ALTER TABLE "qti_queries"."table_header" ADD CONSTRAINT "__table_header_key_package_path_start_table_5brsrb45gl" PRIMARY KEY ("package", "path", "start", "table");
+
+REVOKE ALL ON TABLE "qti_queries"."table_header" FROM PUBLIC;
+
+CREATE TABLE "qti_views"."header_token" ("at", "package", "path", "start", "token", "token_digest") AS
+SELECT "r7"."c25"::"qti"."__domain_gfw43vigph" AS "at", "r7"."c26"::"qti"."__text_aqc6inemva" AS "package", "r7"."c27"::"qti"."__text_tn2inwix7f" AS "path", "r7"."c28" AS "start", ("r7"."c29"::"qti"."__text_7nkeqry66t")::"qti"."__text_7nkeqry66t" AS "token", "r7"."c30" AS "tokenDigest"
+FROM (SELECT DISTINCT "r6"."c23", "r6"."c20", "r6"."c21", "r6"."c22", "r6"."c24", "qti"."__text_digest_2x5x4iwe4m"("r6"."c24") FROM (SELECT "r5"."c11", "r5"."c12", "r5"."c13", "r5"."c14", "r5"."c15", "r5"."c16", "r5"."c17" FROM (SELECT "r2"."c1", "r2"."c2", "r2"."c4", "r2"."c5", "r2"."c6", "r4"."c9", "r4"."c10" FROM (SELECT "r1"."kind", "r1"."lexical", "r1"."name", "r1"."package", "r1"."path", "r1"."start" FROM "qti"."attribute" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6"), LATERAL (SELECT "r3"."c8" - 1::bigint, "r3"."c7" FROM "pg_catalog"."unnest"("pg_catalog"."string_to_array"("pg_catalog"."btrim"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("r2"."c2", E'\t'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\n'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\r'::"pg_catalog"."text", ' '::"pg_catalog"."text"), '  '::"pg_catalog"."text", E' \t'::"pg_catalog"."text"), E'\t '::"pg_catalog"."text", E'\t\t'::"pg_catalog"."text"), E'\t'::"pg_catalog"."text", ''::"pg_catalog"."text")), ' '::"pg_catalog"."text")) WITH ORDINALITY AS "r3"("c7", "c8")) AS "r4"("c9", "c10") WHERE "r2"."c3" = 218::smallint) AS "r5"("c11", "c12", "c13", "c14", "c15", "c16", "c17") WHERE "r5"."c11" IN (288::smallint, 291::smallint)) AS "r6"("c18", "c19", "c20", "c21", "c22", "c23", "c24")) AS "r7"("c25", "c26", "c27", "c28", "c29", "c30")
+WITH NO DATA;
+
+ALTER TABLE "qti_views"."header_token" ADD CONSTRAINT "__header_token_key_at_package_path_start_sk7i7uyonf" PRIMARY KEY ("package", "path", "start", "at");
+
+REVOKE ALL ON TABLE "qti_views"."header_token" FROM PUBLIC;
+
+CREATE TABLE "qti_views"."lookup_value" ("name", "package", "path", "start", "value") AS
+SELECT "r5"."c19" AS "name", "r5"."c20"::"qti"."__text_aqc6inemva" AS "package", "r5"."c21"::"qti"."__text_tn2inwix7f" AS "path", "r5"."c22" AS "start", "r5"."c23"::"qti"."__text_c6iptmtj2x" AS "value"
+FROM (SELECT "r3"."c9", "r3"."c10", "r3"."c11", "r3"."c12", "r3"."c8" FROM (SELECT "r1"."kind", "r1"."lexical", "r1"."name", "r1"."package", "r1"."path", "r1"."start" FROM "qti"."attribute" AS "r1") AS "r3"("c7", "c8", "c9", "c10", "c11", "c12") WHERE "r3"."c9" = 193::smallint AND "r3"."c7" IN (164::smallint, 170::smallint) OR "r3"."c9" = 196::smallint AND "r3"."c7" IN (177::smallint, 176::smallint)) AS "r5"("c19", "c20", "c21", "c22", "c23")
+WITH NO DATA;
+
+ALTER TABLE "qti_views"."lookup_value" ADD CONSTRAINT "__lookup_value_key_name_package_path_start_7z6wncue2i" PRIMARY KEY ("package", "path", "start", "name");
+
+REVOKE ALL ON TABLE "qti_views"."lookup_value" FROM PUBLIC;
+
+CREATE TABLE "qti_views"."map_key" ("key", "package", "path", "start") AS
+SELECT "r4"."c11"::"qti"."__text_c6iptmtj2x" AS "key", "r4"."c12"::"qti"."__text_aqc6inemva" AS "package", "r4"."c13"::"qti"."__text_tn2inwix7f" AS "path", "r4"."c14" AS "start"
+FROM (SELECT "r2"."c6", "r2"."c3", "r2"."c4", "r2"."c5" FROM (SELECT "r1"."kind", "r1"."name", "r1"."package", "r1"."path", "r1"."start", "r1"."value" FROM "qti"."attribute" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6") WHERE "r2"."c1" = 168::smallint AND "r2"."c2" = 194::smallint) AS "r4"("c11", "c12", "c13", "c14")
+WITH NO DATA;
+
+ALTER TABLE "qti_views"."map_key" ADD CONSTRAINT "__map_key_key_package_path_start_4oetgjnq4e" PRIMARY KEY ("package", "path", "start");
+
+REVOKE ALL ON TABLE "qti_views"."map_key" FROM PUBLIC;
+
+CREATE UNIQUE INDEX "__table_header_key_package_path_table_id_digest_ll7spl6q4s" ON "qti_queries"."table_header" USING btree ("package", "path", "table", "id_digest");
+
+CREATE UNIQUE INDEX "__catalog_id_key_package_path_id_digest_mciepy4knc" ON "qti_views"."catalog_id" USING btree ("package", "path", "id_digest");
+
+CREATE UNIQUE INDEX "__header_token_key_package_path_start_token_digest_t2bfemyied" ON "qti_views"."header_token" USING btree ("package", "path", "start", "token_digest");
+
+INSERT INTO "qti_views"."catalog_id" ("id", "id_digest", "package", "path", "start")
+SELECT "r4"."c13"::"qti"."__text_c6iptmtj2x" AS "id", "r4"."c14" AS "idDigest", "r4"."c15"::"qti"."__text_aqc6inemva" AS "package", "r4"."c16"::"qti"."__text_tn2inwix7f" AS "path", "r4"."c17" AS "start"
+FROM (SELECT "r2"."c6", "r2"."c7", "r2"."c3", "r2"."c4", "r2"."c5" FROM (SELECT "r1"."kind", "r1"."name", "r1"."package", "r1"."path", "r1"."start", "r1"."value", "r1"."value_digest" FROM "qti"."attribute" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6", "c7") WHERE "r2"."c1" = 142::smallint AND "r2"."c2" = 69::smallint) AS "r4"("c13", "c14", "c15", "c16", "c17");
+
+INSERT INTO "qti_queries"."assembled_catalog" ("assembly", "id_digest", "package")
+SELECT "r6"."c17"::"qti"."__text_tn2inwix7f" AS "assembly", "r6"."c18" AS "idDigest", "r6"."c19"::"qti"."__text_aqc6inemva" AS "package"
+FROM (SELECT DISTINCT "r2"."c1", "r4"."c8", "r2"."c4" FROM (SELECT "r1"."assembly", "r1"."instance", "r1"."owner", "r1"."package", "r1"."path", "r1"."start" FROM "qti"."placed_id" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6"), (SELECT "r3"."id", "r3"."id_digest", "r3"."package", "r3"."path", "r3"."start" FROM "qti_views"."catalog_id" AS "r3") AS "r4"("c7", "c8", "c9", "c10", "c11") WHERE "r2"."c4" = "r4"."c9" AND "r2"."c5" = "r4"."c10" AND "r2"."c3" = "r4"."c11") AS "r6"("c17", "c18", "c19");
+
+INSERT INTO "qti_views"."cell_table" ("package", "path", "start", "table")
+SELECT "r39"."c198"::"qti"."__text_aqc6inemva" AS "package", "r39"."c199"::"qti"."__text_tn2inwix7f" AS "path", "r39"."c200"::"qti"."__domain_gfw43vigph" AS "start", "r39"."c201"::"qti"."__domain_gfw43vigph" AS "table"
+FROM ((SELECT "r20"."c96"::"pg_catalog"."text", "r20"."c97"::"pg_catalog"."text", "r20"."c98"::bigint, "r20"."c99"::bigint FROM (SELECT "r14"."c80", "r14"."c81", "r14"."c79", "r14"."c78" FROM (SELECT "r13"."c74", "r13"."c75", "r13"."c76", "r13"."c77" FROM (WITH RECURSIVE "r1"("c1", "c2", "c3", "c4") AS (SELECT "r5"."c16"::bigint, "r5"."c16"::bigint, "r5"."c14"::"pg_catalog"."text", "r5"."c15"::"pg_catalog"."text" FROM (SELECT "r4"."c9", "r4"."c10", "r4"."c11", "r4"."c12" FROM (SELECT "r2"."kind", "r2"."package", "r2"."path", "r2"."start" FROM "qti"."node" AS "r2") AS "r4"("c9", "c10", "c11", "c12") WHERE "r4"."c9" IN (288::smallint, 291::smallint)) AS "r5"("c13", "c14", "c15", "c16") UNION SELECT "r11"."c73"::bigint, "r11"."c69"::bigint, "r11"."c70"::"pg_catalog"."text", "r11"."c71"::"pg_catalog"."text" FROM (SELECT "r10"."c62", "r10"."c63", "r10"."c64", "r10"."c65", "r10"."c66", "r10"."c67" FROM (SELECT "r7"."c17", "r7"."c18", "r7"."c19", "r7"."c20", "r9"."c39", "r9"."c47" FROM (SELECT "r6"."c1", "r6"."c2", "r6"."c3", "r6"."c4" FROM "r1" AS "r6") AS "r7"("c17", "c18", "c19", "c20"), (SELECT "r8"."ancestry", "r8"."at", "r8"."attributes", "r8"."attrs", "r8"."barred_children", "r8"."chars", "r8"."chars_after", "r8"."chars_after_digest", "r8"."chars_was", "r8"."chars_was_digest", "r8"."children", "r8"."counted_children", "r8"."element_children", "r8"."elements", "r8"."elements_was", "r8"."end", "r8"."first", "r8"."governor", "r8"."kind", "r8"."last", "r8"."last_state", "r8"."nearest", "r8"."nearest_kind", "r8"."nearest_path", "r8"."open_attributes", "r8"."package", "r8"."parent", "r8"."parent_ancestry", "r8"."parent_governor", "r8"."parent_kind", "r8"."parent_nearest", "r8"."parent_nearest_kind", "r8"."parent_nearest_path", "r8"."parent_parent_kind", "r8"."path", "r8"."prefix", "r8"."start", "r8"."state", "r8"."string_value", "r8"."string_value_digest", "r8"."was" FROM "qti"."node" AS "r8") AS "r9"("c21", "c22", "c23", "c24", "c25", "c26", "c27", "c28", "c29", "c30", "c31", "c32", "c33", "c34", "c35", "c36", "c37", "c38", "c39", "c40", "c41", "c42", "c43", "c44", "c45", "c46", "c47", "c48", "c49", "c50", "c51", "c52", "c53", "c54", "c55", "c56", "c57", "c58", "c59", "c60", "c61") WHERE "r7"."c19" = "r9"."c46" AND "r7"."c20" = "r9"."c55" AND "r7"."c17" = "r9"."c57") AS "r10"("c62", "c63", "c64", "c65", "c66", "c67") WHERE "r10"."c66" <> 286::smallint AND "r10"."c67" <> 0::bigint) AS "r11"("c68", "c69", "c70", "c71", "c72", "c73")) SELECT "r12"."c1", "r12"."c2", "r12"."c3", "r12"."c4" FROM "r1" AS "r12") AS "r13"("c74", "c75", "c76", "c77")) AS "r14"("c78", "c79", "c80", "c81") WHERE EXISTS (SELECT 1 FROM (SELECT "r17"."c86", "r17"."c87", "r17"."c88" FROM (SELECT "r16"."c83", "r16"."c84", "r16"."c85" FROM (SELECT "r15"."kind", "r15"."package", "r15"."path", "r15"."start" FROM "qti"."node" AS "r15") AS "r16"("c82", "c83", "c84", "c85") WHERE "r16"."c82" = 286::smallint) AS "r17"("c86", "c87", "c88") WHERE "r17"."c86" = "r14"."c80" AND "r17"."c87" = "r14"."c81" AND "r17"."c88" = "r14"."c78" OFFSET 0) AS "r18"("c89", "c90", "c91"))) AS "r20"("c96", "c97", "c98", "c99") UNION SELECT "r38"."c194"::"pg_catalog"."text", "r38"."c195"::"pg_catalog"."text", "r38"."c196"::bigint, "r38"."c197"::bigint FROM (SELECT "r36"."c184", "r36"."c185", "r36"."c183", "r36"."c187" FROM (SELECT "r33"."c173", "r33"."c174", "r33"."c175", "r33"."c176", "r35"."c177", "r35"."c179" FROM (WITH RECURSIVE "r21"("c100", "c101", "c102", "c103") AS (SELECT "r25"."c115"::bigint, "r25"."c115"::bigint, "r25"."c113"::"pg_catalog"."text", "r25"."c114"::"pg_catalog"."text" FROM (SELECT "r24"."c108", "r24"."c109", "r24"."c110", "r24"."c111" FROM (SELECT "r22"."kind", "r22"."package", "r22"."path", "r22"."start" FROM "qti"."node" AS "r22") AS "r24"("c108", "c109", "c110", "c111") WHERE "r24"."c108" IN (288::smallint, 291::smallint)) AS "r25"("c112", "c113", "c114", "c115") UNION SELECT "r31"."c172"::bigint, "r31"."c168"::bigint, "r31"."c169"::"pg_catalog"."text", "r31"."c170"::"pg_catalog"."text" FROM (SELECT "r30"."c161", "r30"."c162", "r30"."c163", "r30"."c164", "r30"."c165", "r30"."c166" FROM (SELECT "r27"."c116", "r27"."c117", "r27"."c118", "r27"."c119", "r29"."c138", "r29"."c146" FROM (SELECT "r26"."c100", "r26"."c101", "r26"."c102", "r26"."c103" FROM "r21" AS "r26") AS "r27"("c116", "c117", "c118", "c119"), (SELECT "r28"."ancestry", "r28"."at", "r28"."attributes", "r28"."attrs", "r28"."barred_children", "r28"."chars", "r28"."chars_after", "r28"."chars_after_digest", "r28"."chars_was", "r28"."chars_was_digest", "r28"."children", "r28"."counted_children", "r28"."element_children", "r28"."elements", "r28"."elements_was", "r28"."end", "r28"."first", "r28"."governor", "r28"."kind", "r28"."last", "r28"."last_state", "r28"."nearest", "r28"."nearest_kind", "r28"."nearest_path", "r28"."open_attributes", "r28"."package", "r28"."parent", "r28"."parent_ancestry", "r28"."parent_governor", "r28"."parent_kind", "r28"."parent_nearest", "r28"."parent_nearest_kind", "r28"."parent_nearest_path", "r28"."parent_parent_kind", "r28"."path", "r28"."prefix", "r28"."start", "r28"."state", "r28"."string_value", "r28"."string_value_digest", "r28"."was" FROM "qti"."node" AS "r28") AS "r29"("c120", "c121", "c122", "c123", "c124", "c125", "c126", "c127", "c128", "c129", "c130", "c131", "c132", "c133", "c134", "c135", "c136", "c137", "c138", "c139", "c140", "c141", "c142", "c143", "c144", "c145", "c146", "c147", "c148", "c149", "c150", "c151", "c152", "c153", "c154", "c155", "c156", "c157", "c158", "c159", "c160") WHERE "r27"."c118" = "r29"."c145" AND "r27"."c119" = "r29"."c154" AND "r27"."c116" = "r29"."c156") AS "r30"("c161", "c162", "c163", "c164", "c165", "c166") WHERE "r30"."c165" <> 286::smallint AND "r30"."c166" <> 0::bigint) AS "r31"("c167", "c168", "c169", "c170", "c171", "c172")) SELECT "r32"."c100", "r32"."c101", "r32"."c102", "r32"."c103" FROM "r21" AS "r32") AS "r33"("c173", "c174", "c175", "c176"), (SELECT "r34"."kind", "r34"."package", "r34"."parent", "r34"."path", "r34"."start" FROM "qti"."node" AS "r34") AS "r35"("c177", "c178", "c179", "c180", "c181") WHERE "r33"."c175" = "r35"."c178" AND "r33"."c176" = "r35"."c180" AND "r33"."c173" = "r35"."c181") AS "r36"("c182", "c183", "c184", "c185", "c186", "c187") WHERE "r36"."c186" <> 286::smallint AND "r36"."c187" = 0::bigint) AS "r38"("c194", "c195", "c196", "c197"))) AS "r39"("c198", "c199", "c200", "c201");
+
+INSERT INTO "qti_queries"."table_header" ("id", "id_digest", "package", "path", "start", "table")
+SELECT "r7"."c24"::"qti"."__text_c6iptmtj2x" AS "id", "r7"."c25" AS "idDigest", "r7"."c26"::"qti"."__text_aqc6inemva" AS "package", "r7"."c27"::"qti"."__text_tn2inwix7f" AS "path", "r7"."c28" AS "start", "r7"."c29"::"qti"."__domain_gfw43vigph" AS "table"
+FROM (SELECT "r5"."c15", "r5"."c16", "r5"."c12", "r5"."c13", "r5"."c14", "r5"."c17" FROM (SELECT "r2"."c3", "r2"."c4", "r2"."c5", "r2"."c6", "r2"."c7", "r4"."c11" FROM (SELECT "r1"."kind", "r1"."name", "r1"."package", "r1"."path", "r1"."start", "r1"."value", "r1"."value_digest" FROM "qti"."attribute" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6", "c7"), (SELECT "r3"."package", "r3"."path", "r3"."start", "r3"."table" FROM "qti_views"."cell_table" AS "r3") AS "r4"("c8", "c9", "c10", "c11") WHERE "r2"."c3" = "r4"."c8" AND "r2"."c4" = "r4"."c9" AND "r2"."c5" = "r4"."c10" AND "r2"."c1" = 291::smallint AND "r2"."c2" = 69::smallint) AS "r5"("c12", "c13", "c14", "c15", "c16", "c17") WHERE "r5"."c17" <> 0::bigint) AS "r7"("c24", "c25", "c26", "c27", "c28", "c29");
+
+INSERT INTO "qti_views"."header_token" ("at", "package", "path", "start", "token", "token_digest")
+SELECT "r7"."c25"::"qti"."__domain_gfw43vigph" AS "at", "r7"."c26"::"qti"."__text_aqc6inemva" AS "package", "r7"."c27"::"qti"."__text_tn2inwix7f" AS "path", "r7"."c28" AS "start", ("r7"."c29"::"qti"."__text_7nkeqry66t")::"qti"."__text_7nkeqry66t" AS "token", "r7"."c30" AS "tokenDigest"
+FROM (SELECT DISTINCT "r6"."c23", "r6"."c20", "r6"."c21", "r6"."c22", "r6"."c24", "qti"."__text_digest_2x5x4iwe4m"("r6"."c24") FROM (SELECT "r5"."c11", "r5"."c12", "r5"."c13", "r5"."c14", "r5"."c15", "r5"."c16", "r5"."c17" FROM (SELECT "r2"."c1", "r2"."c2", "r2"."c4", "r2"."c5", "r2"."c6", "r4"."c9", "r4"."c10" FROM (SELECT "r1"."kind", "r1"."lexical", "r1"."name", "r1"."package", "r1"."path", "r1"."start" FROM "qti"."attribute" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6"), LATERAL (SELECT "r3"."c8" - 1::bigint, "r3"."c7" FROM "pg_catalog"."unnest"("pg_catalog"."string_to_array"("pg_catalog"."btrim"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("pg_catalog"."replace"("r2"."c2", E'\t'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\n'::"pg_catalog"."text", ' '::"pg_catalog"."text"), E'\r'::"pg_catalog"."text", ' '::"pg_catalog"."text"), '  '::"pg_catalog"."text", E' \t'::"pg_catalog"."text"), E'\t '::"pg_catalog"."text", E'\t\t'::"pg_catalog"."text"), E'\t'::"pg_catalog"."text", ''::"pg_catalog"."text")), ' '::"pg_catalog"."text")) WITH ORDINALITY AS "r3"("c7", "c8")) AS "r4"("c9", "c10") WHERE "r2"."c3" = 218::smallint) AS "r5"("c11", "c12", "c13", "c14", "c15", "c16", "c17") WHERE "r5"."c11" IN (288::smallint, 291::smallint)) AS "r6"("c18", "c19", "c20", "c21", "c22", "c23", "c24")) AS "r7"("c25", "c26", "c27", "c28", "c29", "c30");
+
+INSERT INTO "qti_views"."lookup_value" ("name", "package", "path", "start", "value")
+SELECT "r5"."c19" AS "name", "r5"."c20"::"qti"."__text_aqc6inemva" AS "package", "r5"."c21"::"qti"."__text_tn2inwix7f" AS "path", "r5"."c22" AS "start", "r5"."c23"::"qti"."__text_c6iptmtj2x" AS "value"
+FROM (SELECT "r3"."c9", "r3"."c10", "r3"."c11", "r3"."c12", "r3"."c8" FROM (SELECT "r1"."kind", "r1"."lexical", "r1"."name", "r1"."package", "r1"."path", "r1"."start" FROM "qti"."attribute" AS "r1") AS "r3"("c7", "c8", "c9", "c10", "c11", "c12") WHERE "r3"."c9" = 193::smallint AND "r3"."c7" IN (164::smallint, 170::smallint) OR "r3"."c9" = 196::smallint AND "r3"."c7" IN (177::smallint, 176::smallint)) AS "r5"("c19", "c20", "c21", "c22", "c23");
+
+INSERT INTO "qti_views"."map_key" ("key", "package", "path", "start")
+SELECT "r4"."c11"::"qti"."__text_c6iptmtj2x" AS "key", "r4"."c12"::"qti"."__text_aqc6inemva" AS "package", "r4"."c13"::"qti"."__text_tn2inwix7f" AS "path", "r4"."c14" AS "start"
+FROM (SELECT "r2"."c6", "r2"."c3", "r2"."c4", "r2"."c5" FROM (SELECT "r1"."kind", "r1"."name", "r1"."package", "r1"."path", "r1"."start", "r1"."value" FROM "qti"."attribute" AS "r1") AS "r2"("c1", "c2", "c3", "c4", "c5", "c6") WHERE "r2"."c1" = 168::smallint AND "r2"."c2" = 194::smallint) AS "r4"("c11", "c12", "c13", "c14");
 
 ALTER TABLE "qti"."assembled_document"
   ADD CONSTRAINT "__assembled_document_fk_package_path_pred_instances_opgs5mrscf" FOREIGN KEY ("package", "path", "__pred_instances_jnofs7e7gu") REFERENCES "qti"."instance" ("package", "document", "__index_instances_x7qgj6n3ho") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED,
@@ -2417,10 +2378,6 @@ ALTER TABLE "qti"."bound_variable"
 ALTER TABLE "qti"."candidate_path" ADD CONSTRAINT "__candidate_path_fk_package_target_aynqp2vyvf" FOREIGN KEY ("package", "target") REFERENCES "qti"."entry" ("package", "path") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "qti"."catalog_scope" ADD CONSTRAINT "__catalog_scope_fk_package_path_start_naheth2be3" FOREIGN KEY ("package", "path", "start") REFERENCES "qti"."node" ("package", "path", "start") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
-
-ALTER TABLE "qti"."cell_headers"
-  ADD CONSTRAINT "__cell_headers_fk_package_path_start_5bbvstgdmm" FOREIGN KEY ("package", "path", "start") REFERENCES "qti"."table_scope" ("package", "path", "start") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED,
-  ADD CONSTRAINT "__cell_headers_fk_package_path_start_pred_tokens_jwegdg25jk" FOREIGN KEY ("package", "path", "start", "__pred_tokens_ip7mlgrtju", "token_text_digest") REFERENCES "qti"."header_token" ("package", "path", "start", "at", "pieces_after_digest") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "qti"."cell_leaf"
   ADD CONSTRAINT "__cell_leaf_fk_package_path_cell_copy_leaves_ikzmqguvf6" FOREIGN KEY ("package", "path", "cell", "__copy_leaves_zbyyqc6flc") REFERENCES "qti"."math_cell" ("package", "path", "start", "leaves") MATCH SIMPLE ON UPDATE CASCADE,
@@ -2520,10 +2477,6 @@ ALTER TABLE "qti"."fragment_template_ref"
   ADD CONSTRAINT "__fragment_template_ref_fk_package_assembly_instance_ns4u6kvl5n" FOREIGN KEY ("package", "assembly", "instance", "__copy_templates_k5hlr5akya", "assembly_kind", "path") REFERENCES "qti"."fragment_scope" ("package", "assembly", "instance", "templates", "assembly_kind", "document") MATCH SIMPLE ON UPDATE CASCADE,
   ADD CONSTRAINT "__fragment_template_ref_fk_package_assembly_instance_k6kjvp4vr7" FOREIGN KEY ("package", "assembly", "instance", "__predecessor_templates_phvu6yyk7k") REFERENCES "qti"."fragment_template_ref" ("package", "assembly", "instance", "__index_templates_tyl4zqwugp") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED,
   ADD CONSTRAINT "__fragment_template_ref_fk_package_path_start_4qkjshzcvx" FOREIGN KEY ("package", "path", "start", "attribute", "kind", "identifier") REFERENCES "qti"."fragment_template_name" ("package", "path", "start", "attribute", "kind", "identifier") MATCH SIMPLE;
-
-ALTER TABLE "qti"."header_token"
-  ADD CONSTRAINT "__header_token_fk_package_path_start_copy_tokens_mukpeaaqnv" FOREIGN KEY ("package", "path", "start", "__copy_tokens_vmvzbmawj6") REFERENCES "qti"."cell_headers" ("package", "path", "start", "tokens") MATCH SIMPLE ON UPDATE CASCADE,
-  ADD CONSTRAINT "__header_token_fk_package_path_start_pred_at_pieces_ecabgvyiac" FOREIGN KEY ("package", "path", "start", "__pred_at_xktcobhsti", "pieces_was_digest") REFERENCES "qti"."header_token" ("package", "path", "start", "at", "pieces_after_digest") MATCH SIMPLE;
 
 ALTER TABLE "qti"."hottext"
   ADD CONSTRAINT "__hottext_fk_package_path_copy_hottexts_nqhkueuyyr" FOREIGN KEY ("package", "path", "__copy_hottexts_b24kbb6m65") REFERENCES "qti"."document" ("package", "path", "hottexts") MATCH SIMPLE ON UPDATE CASCADE,
@@ -2716,10 +2669,6 @@ ALTER TABLE "qti"."srcset_candidate"
   ADD CONSTRAINT "__srcset_candidate_fk_package_path_start_pred_at_vspikv6tay" FOREIGN KEY ("package", "path", "start", "__pred_at_xktcobhsti", "pieces_was_digest") REFERENCES "qti"."srcset_candidate" ("package", "path", "start", "at", "pieces_after_digest") MATCH SIMPLE;
 
 ALTER TABLE "qti"."ssml_scope" ADD CONSTRAINT "__ssml_scope_fk_package_path_start_ixilycttqs" FOREIGN KEY ("package", "path", "start") REFERENCES "qti"."node" ("package", "path", "start") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
-
-ALTER TABLE "qti"."table_header" ADD CONSTRAINT "__table_header_fk_package_path_start_table_iy2pcs7mtk" FOREIGN KEY ("package", "path", "start", "table") REFERENCES "qti"."table_scope" ("package", "path", "start", "table") MATCH SIMPLE;
-
-ALTER TABLE "qti"."table_scope" ADD CONSTRAINT "__table_scope_fk_package_path_start_scalw6ieaw" FOREIGN KEY ("package", "path", "start") REFERENCES "qti"."node" ("package", "path", "start") MATCH SIMPLE DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "qti"."text_idref"
   ADD CONSTRAINT "__text_idref_fk_package_path_start_copy_tokens_hkmj36vgbn" FOREIGN KEY ("package", "path", "start", "__copy_tokens_rrsly23qzp") REFERENCES "qti"."identity_text" ("package", "path", "start", "tokens") MATCH SIMPLE ON UPDATE CASCADE,

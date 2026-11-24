@@ -552,6 +552,35 @@ const typedAttribute = (baseType: string, written: string): boolean => {
 };
 
 /**
+ * The attributes "Typed attribute value" reads, each with the place of the declaration whose base
+ * type it is read in: a `qti-map-entry`'s `map-key` (`MapKey`), a lookup table entry's
+ * `target-value` and a lookup table's `default-value` (`LookupValue`), each as written. A map key's
+ * value is its `xs:normalizedString` normalization, which no base type reads apart from its
+ * lexical form: a string's pattern admits every text, and every other base type's reads it
+ * collapsed.
+ *
+ * @param index - The index.
+ * @returns Each attribute's declaration's place, none where it is in no table of a declaration, and
+ *   its text.
+ */
+const typedAttributesOf = (
+  index: Index,
+): readonly (readonly [declaration: string | undefined, text: string])[] =>
+  index.all("Attribute").flatMap((attribute) => {
+    const kind = index.kindAt(placeOf(attribute));
+    const name = textOfField("Attribute", "name", attribute["name"]);
+    const text = textOfField("Attribute", "lexical", attribute["lexical"]);
+    if (kind === "qti-map-entry" && name === "map-key") {
+      return [[mapKeyDeclarationOf(index, attribute), text] as const];
+    }
+
+    const entry = name === "target-value" && lookupEntryKinds.some((held) => held === kind);
+    const table = name === "default-value" && lookupTableKinds.some((held) => held === kind);
+
+    return entry || table ? [[lookupDeclarationOf(index, attribute), text] as const] : [];
+  });
+
+/**
  * State "Typed attribute value" over a query: a map key, read in its mapping's declaration's base
  * type, and a lookup value, read in its table's, are each a lexical form of it, where the
  * declaration has one.
@@ -560,26 +589,11 @@ const typedAttribute = (baseType: string, written: string): boolean => {
  * @returns Whether it holds.
  */
 const typedAttributeHolds = (index: Index): boolean =>
-  [
-    ...index
-      .all("MapKey")
-      .map(
-        (key) =>
-          [
-            baseTypeAt(index, mapKeyDeclarationOf(index, key)),
-            textOfField("MapKey", "key", key["key"]),
-          ] as const,
-      ),
-    ...index
-      .all("LookupValue")
-      .map(
-        (value) =>
-          [
-            baseTypeAt(index, lookupDeclarationOf(index, value)),
-            textOfField("LookupValue", "value", value["value"]),
-          ] as const,
-      ),
-  ].every(([baseType, text]) => baseType === undefined || typedAttribute(baseType, text));
+  typedAttributesOf(index).every(([declaration, text]) => {
+    const baseType = baseTypeAt(index, declaration);
+
+    return baseType === undefined || typedAttribute(baseType, text);
+  });
 
 /**
  * The `qti-value` nodes, each a value of some set.

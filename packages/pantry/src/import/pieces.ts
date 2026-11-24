@@ -112,7 +112,7 @@ export interface Token {
  * Split a whitespace-separated list into its tokens, each a maximal run of no whitespace with the
  * whitespace written before it, and the last with the whitespace after it, so the pieces
  * concatenate to the list and every token but the first follows whitespace (`E1_derived` on
- * `Idref`, `HeaderToken`, `ToleranceToken` and `TextIdref`).
+ * `Idref`, `ToleranceToken` and `TextIdref`).
  *
  * @param text - The list, as written.
  * @returns Its tokens, in order; none for a list of whitespace alone.

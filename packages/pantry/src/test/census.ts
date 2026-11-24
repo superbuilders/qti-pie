@@ -133,8 +133,9 @@ export interface Census {
      */
     readonly folders: number;
     /**
-     * Every `INSERT INTO` a migration runs: wherever its text holds one outside a dollar-quoted
-     * body.
+     * Every `INSERT INTO` a migration runs: wherever its text holds one outside a function's body,
+     * but a stored derived relation's fill, which inserts its definition's rows into the table
+     * grizzle creates for it, no data step's.
      */
     readonly inserts: number;
     /**
@@ -359,12 +360,48 @@ const occurrences = (sql: string, pattern: RegExp): number => [...sql.matchAll(p
 const dollarQuoted = /\$(?<tag>[A-Za-z_][A-Za-z0-9_]*)?\$[\s\S]*?\$\k<tag>\$/gu;
 
 /**
- * A migration's text with every dollar-quoted body taken out, so what remains is what it runs.
+ * A function's body as an escape string constant, `AS E'…'`, each line after it a constant of its
+ * own, which PostgreSQL joins to it across the newline between them: the form grizzle writes a
+ * body in where a dollar quote cannot hold its text.
+ */
+const quotedBody = /\bAS E'(?:[^'\\]|\\[\s\S]|'')*'(?:\n'(?:[^'\\]|\\[\s\S]|'')*')*/gu;
+
+/**
+ * A migration's text with every function's body taken out, so what remains is what it runs.
  *
  * @param sql - The text.
- * @returns The text outside its dollar-quoted strings.
+ * @returns The text outside its functions' bodies.
  */
-const outsideBodies = (sql: string): string => sql.replaceAll(dollarQuoted, "$$$$");
+const outsideBodies = (sql: string): string =>
+  sql.replaceAll(dollarQuoted, "$$$$").replaceAll(quotedBody, "AS ''");
+
+/**
+ * A stored derived relation's table as grizzle creates it, `AS` its definition `WITH NO DATA`, by
+ * its schema-qualified name.
+ */
+const storedTablePattern = /^CREATE TABLE (?<table>"[a-z0-9_]+"\."[a-z0-9_]+") \([^)]*\) AS$/gmu;
+
+/**
+ * An `INSERT INTO` a schema-qualified table, by the table.
+ */
+const insertIntoPattern = /\bINSERT\s+INTO\s+(?<table>"[a-z0-9_]+"\."[a-z0-9_]+")/giu;
+
+/**
+ * Count the `INSERT INTO`s a migration runs that are no stored derived relation's fill.
+ *
+ * @param sql - Every migration's text, joined.
+ * @returns How many it runs.
+ */
+const dataInserts = (sql: string): number => {
+  const run = outsideBodies(sql);
+  const stored = new Set(run.matchAll(storedTablePattern).map(({ groups }) => groups?.["table"]));
+  const fills = run
+    .matchAll(insertIntoPattern)
+    .filter(({ groups }) => stored.has(groups?.["table"]))
+    .toArray().length;
+
+  return occurrences(run, /\bINSERT\s+INTO\b/giu) - fills;
+};
 
 /**
  * Count the members of `values` equal to `value`.
@@ -508,7 +545,7 @@ const countRows = (sql: string): Omit<Census["seed"], "folders"> => {
 
   return {
     admission: { pairs: pairs.size },
-    inserts: occurrences(outsideBodies(sql), /\bINSERT\s+INTO\b/giu),
+    inserts: dataInserts(sql),
     rows: Object.fromEntries([...rows].toSorted(([a], [b]) => (a < b ? -1 : 1))),
   };
 };

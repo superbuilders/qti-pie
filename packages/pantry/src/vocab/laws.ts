@@ -292,7 +292,7 @@ export const lawTable = {
   "Catalog reference": {
     rule: "idref-target",
     source:
-      "reading R9-a: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Catalog (§5.28.1, a catalog's id, which §5.15.9's data-catalog-idref names): each IDREF token of a data-catalog-idref, an xs:IDREF, is the id of a qti-catalog of its assembly (reading 117: its document with every fragment spliced in and every document its assembly places whole), and no other ID of it (catalog.ts CatalogTarget, CatalogId)",
+      "reading R9-a: https://www.imsglobal.org/spec/qti/v3p0/info#Data_Catalog (§5.28.1, a catalog's id, which §5.15.9's data-catalog-idref names): each IDREF token of a data-catalog-idref, an xs:IDREF, is the id of a qti-catalog of its assembly (reading 117: its document with every fragment spliced in and every document its assembly places whole), and no other ID of it (names.ts CatalogId; overlay-queries/catalog.ts UnassembledReference, PlacedReference, AssembledCatalog)",
   },
   "Choice bounds": {
     rule: "choice-bounds",
@@ -542,11 +542,6 @@ export const lawTable = {
     rule: "P27",
     source:
       "https://www.imsglobal.org/spec/qti/v3p0/info#Derived_MapResponse (§7.22, MapResponse: it 'transforms it using the associated mapping, which must have been declared'; §6.9.46, MapResponsePoint: it takes 'a response variable that must be of base-type point, and transforms it using the associated areaMapping', which §5.115.7 says 'may only be present in declarations of variables with base-type point') (expressions.ts Mapped_response; the old checker's P27); a located response processing template's rules run as its item's own (https://www.imsglobal.org/spec/qti/v3p0/info#Root_ResponseProcessing, §4.6.1 template: 'The rules obtained from the external template may be used instead of the rules defined within the item itself, though if both are given the internal rules are still preferred'; §4.6.2 template-location: 'an alternative URI, typically a relative URI to be resolved relative to the location of the qti-assessment-item itself, that can be used to obtain a copy of the response processing template'), so its references are judged among the item's declarations, as reading 117 judges an included fragment's (names.ts LocatedTemplate; overlay-queries/expression.ts placedDocuments; overlay-queries/reference.ts PlacedVariableRefDeclaration, placedTableReaders); and a test's prefixed map response or map response point, read through an item's ref, claims that item variable's mapping or area mapping, an item built-in none (reading 166; overlay-queries/readings.ts PrefixedMapResponse, PrefixedMapResponsePoint, ItemRefTable)",
-  },
-  "Mapping overlay": {
-    rule: "reachability",
-    source:
-      "plan §1.7 O5 and the W5 amendment's C18: each O5 overlay (MapKey, LookupValue) is its element's row, keyed by its node: a map key names a map entry and copies its element's map-key attribute, and a lookup value its table entry's target-value or its table's default-value, each exactly where its element writes it (Q5.11); a mapping, an area mapping and a lookup table are their nodes, and each law over their declaration's cardinality or base type reads it through Node, where the declaration has one, a record's base type none (lane NIL's audit, B12; spec reading 158; decision S3)",
   },
   "Mastery range": {
     rule: "mastery-range",
@@ -882,7 +877,7 @@ export const lawTable = {
   "Table headers": {
     rule: "table-headers",
     source:
-      "reading 126: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_TDH.Attr_headers (§5.140.1: \"an unordered set of unique space-separated tokens that are case-sensitive, each of which must have the value of an ID of a 'th' tag taking part in the same table as the 'td' or 'th' tag\"); https://html.spec.whatwg.org/multipage/tables.html#attr-tdth-headers: a cell's headers tokens are unique, and each is the id of a th whose nearest table is the cell's, a cell no table holds taking part in none (html.ts TableScope, TableHeader, tableHeaders)",
+      "reading 126: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_TDH.Attr_headers (§5.140.1: \"an unordered set of unique space-separated tokens that are case-sensitive, each of which must have the value of an ID of a 'th' tag taking part in the same table as the 'td' or 'th' tag\"); https://html.spec.whatwg.org/multipage/tables.html#attr-tdth-headers: a cell's headers tokens are unique, and each is the id of a th whose nearest table is the cell's, a cell no table holds taking part in none (names.ts HeaderToken, CellTable; overlay-queries/html.ts TableHeader, CellToken)",
   },
   "Template default target": {
     rule: "template-default-target",

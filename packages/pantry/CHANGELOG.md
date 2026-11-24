@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased: the mapping, catalog and table copies are views
+
+The importer writes no copy of an attribute a view reads. Breaking changes:
+
+- `MapKey` and `LookupValue` (`qti/mapping.ts`), `CatalogId`, `HeaderToken` and `CellTable` (`qti/names.ts`),
+  `AssembledCatalog` (`qti/overlay-queries/catalog.ts`) and `TableHeader` (`qti/overlay-queries/html.ts`) are stored
+  derived relations, which grizzle keeps equal to their definitions over `Attribute`, `Node` and `PlacedId`: no import
+  writes them, and the author role reads each whole. `CellHeaders` and `TableScope` are removed; a cell's table is
+  `CellTable`'s, and a `th` no `table` holds has no `TableHeader`.
+- The law "Mapping overlay" is removed, with the statements of "E1 derived" that held those copies to their sources.
+  A map key or a lookup value is held to no byte bound; one past `matchedTextBytes` is refused under "Typed attribute
+  value" where its declaration has a base type.
+
 ## Unreleased: one spelling of unchanged
 
 - `importPackage`'s outcome (`import/package.ts` `Imported`) and `--output json`'s `outcome` (`schema/import.json`) say

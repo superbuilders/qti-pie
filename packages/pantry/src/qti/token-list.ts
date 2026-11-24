@@ -9,10 +9,10 @@
  * family's axes by its SHA-256 digest, a generated field beside it ({@link piecesDigests},
  * {@link tokenTextDigest}).
  *
- * A whitespace list's token (`Idref`, `TextIdref`, `HeaderToken` and `ToleranceToken`) is a run of
- * no XML whitespace, each but the first after whitespace ({@link whitespaceTokens}). That check
- * proves the split alone. What a token may be is its list's datatype: an IDREF item's NCName, a
- * `headers` identifier, or a tolerance's number or variable reference. The datatype is judged once,
+ * A whitespace list's token (`Idref`, `TextIdref` and `ToleranceToken`) is a run of no XML
+ * whitespace, each but the first after whitespace ({@link whitespaceTokens}). That check proves
+ * the split alone. What a token may be is its list's datatype: an IDREF item's NCName, or a
+ * tolerance's number or variable reference. The datatype is judged once,
  * by the value domain of the whole form: AL1's lexical half for an attribute, and TextDomain for an
  * element's text (both `#pantry/qti/attributes.ts`). It is never judged a second time on each
  * token. A `srcset`'s candidates are another grammar, HTML's image candidate strings, and their

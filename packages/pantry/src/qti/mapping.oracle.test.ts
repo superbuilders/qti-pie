@@ -3,7 +3,7 @@
  * reading 165) and a typed value written with whitespace its simple type collapses (reading 7), and
  * refuse a typed value no lexical form of its base type spells.
  *
- * The builder's rows are `#pantry/import/overlays/mapping.test.ts`'s.
+ * The views the laws read are `#pantry/qti/attribute-views.db.test.ts`'s.
  */
 import { assert, describe, it } from "@effect/vitest";
 import { exhaust } from "@bjornpagen/testing/explore";

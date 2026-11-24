@@ -2,18 +2,18 @@
  * A declaration whose identifier names nothing is still a declaration (spec reading 157): its
  * `identifier` unwritten, empty, whitespace alone or no NCName (reading 152) leaves it no name, so
  * AL3 or its value domain refuses it alone, and nothing references it by name, while its row, its
- * values, its mapping and its map keys are written and judged as any other declaration's. The
+ * values, its mapping and its map keys are read and judged as any other declaration's. The
  * import wrote no `Declaration` row for it before, so "Declaration overlay"'s copy of its
- * cardinality and "Mapping overlay"'s copy of each map key broke beside the value domain the law
- * oracle alone raised, and a map key past the key-text bound, a repeated key or one outside its
- * base type went unjudged on the import's rows where the oracle named "Key text bound", "Map key"
- * or "Typed attribute value"; the oracle in turn read two such declarations as one name and raised
- * "Declaration key", and judged none of the laws over a nameless declaration's type and values.
+ * cardinality broke beside the value domain the law oracle alone raised, and a map key past the
+ * key-text bound, a repeated key or one outside its base type went unjudged on the import's rows
+ * where the oracle named "Key text bound", "Map key" or "Typed attribute value"; the oracle in turn
+ * read two such declarations as one name and raised "Declaration key", and judged none of the laws
+ * over a nameless declaration's type and values. No row stands for a declaration or a map key now
+ * (C18): each is a view, so no law can refuse one's absence.
  *
  * Oracle: a second implementation, the law oracle (`#pantry/test/oracle.ts` `judge`), against the
  * laws the import's rows break on the host (`#pantry/test/gen/genetic/judge.ts` `judgeOne`): no
- * case shows a disagreement but a class a lane's open fix owns (`known`), and never a class this
- * reading closed, wherever `known` records them for another cause.
+ * case shows a disagreement but a class a lane's open fix owns (`known`).
  *
  * Bound: an item with one response declaration that holds a correct response and a mapping, its
  * identifier each of {@link identifiers}, its mapping each of {@link mappings}, alone or beside an
@@ -30,15 +30,9 @@ import { Duration, Effect } from "effect";
 import { grammar } from "#pantry/grammar/install.ts";
 import type { PackageEntries } from "#pantry/test/gen/every-relation.ts";
 import { genomeOf } from "#pantry/test/gen/genetic/genome.ts";
-import {
-  judgeOne,
-  recordsClassOf,
-  sameSignature,
-  shownDisagreement,
-  shownSignature,
-} from "#pantry/test/gen/genetic/judge.ts";
+import { judgeOne, recordsClassOf, shownDisagreement } from "#pantry/test/gen/genetic/judge.ts";
 import type { Signature } from "#pantry/test/gen/genetic/judge.ts";
-import { fixed, known } from "#pantry/test/gen/genetic/known.ts";
+import { known } from "#pantry/test/gen/genetic/known.ts";
 import { lawsOf } from "#pantry/test/oracle.ts";
 import { scratchDirectory } from "#pantry/test/scratch.ts";
 import { searchTimeout } from "#pantry/test/settings.ts";
@@ -49,60 +43,10 @@ import { searchTimeout } from "#pantry/test/settings.ts";
 const laws = lawsOf(grammar);
 
 /**
- * The classes this reading closed, `fixed`'s entries for an identifier that names nothing, which
- * no case may show whatever `known` records. Its first, a declaring node's containment into
- * `Declaration`, went with that relation (C18, the declaration counts' lift): no row stands for a
- * declaration now, so no law can refuse one's absence.
- */
-const closed: readonly Signature[] = [
-  {
-    kind: "import-only-law",
-    law: {
-      from: {
-        relation: "Attribute",
-        selection: {
-          conjuncts: [
-            {
-              kind: "compare",
-              left: { field: "kind", kind: "field" },
-              op: "eq",
-              right: { kind: "literal", value: "qti-map-entry" },
-            },
-            {
-              kind: "compare",
-              left: { field: "name", kind: "field" },
-              op: "eq",
-              right: { kind: "literal", value: "map-key" },
-            },
-          ],
-        },
-        terms: [
-          { field: "package", kind: "field" },
-          { field: "path", kind: "field" },
-          { field: "start", kind: "field" },
-        ],
-      },
-      kind: "contained",
-      to: {
-        relation: "MapKey",
-        selection: { conjuncts: [] },
-        terms: [
-          { field: "package", kind: "field" },
-          { field: "path", kind: "field" },
-          { field: "start", kind: "field" },
-        ],
-      },
-    },
-  },
-];
-
-/**
  * The signatures of the disagreements a lane's open fix owns (`#pantry/test/gen/genetic/known.ts`),
- * which the box sets aside, but for the classes it guards.
+ * which the box sets aside.
  */
-const recorded: readonly Signature[] = known.flatMap(({ signature }) =>
-  closed.some((shut) => sameSignature(shut, signature)) ? [] : [signature],
-);
+const recorded: readonly Signature[] = known.map(({ signature }) => signature);
 
 /**
  * What an identifier of the box is: none written, one that is no NCName once collapsed, or a name.
@@ -206,15 +150,6 @@ layer(NodeServices.layer, { excludeTestServices: true })(
           Effect.gen(function* unnamedDeclarationRuns() {
             const directory = yield* scratchDirectory("unnamed-declarations-");
             const bench = { directory, grammar, laws };
-            assert.deepStrictEqual(
-              closed.flatMap((signature) =>
-                fixed.some((entry) => sameSignature(entry.signature, signature))
-                  ? []
-                  : [shownSignature(signature)],
-              ),
-              [],
-              "fixed records each class this reading closed",
-            );
 
             return yield* exhaust(
               {

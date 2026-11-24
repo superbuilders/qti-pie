@@ -17,8 +17,6 @@
  * holds.
  */
 import { Equal, Formatter, Option, Result, Schema, Struct } from "effect";
-import { placedCatalogRowsOf, rowsOf as catalogRowsOf } from "#pantry/import/overlays/catalog.ts";
-import type { CatalogRows, PlacedCatalogRows } from "#pantry/import/overlays/catalog.ts";
 import { rowsOf as dataSsmlRowsOf } from "#pantry/import/overlays/data-ssml.ts";
 import type { DataSsmlRows } from "#pantry/import/overlays/data-ssml.ts";
 import { documentNamesOf } from "#pantry/import/overlays/declarations.ts";
@@ -41,8 +39,6 @@ import type {
   ExpressionRows,
   PlacedRows,
 } from "#pantry/import/overlays/expressions.ts";
-import { rowsOf as htmlRowsOf } from "#pantry/import/overlays/html.ts";
-import type { HtmlRows } from "#pantry/import/overlays/html.ts";
 import {
   idValuesOf,
   placedIdRowsOf,
@@ -59,8 +55,6 @@ import type {
   PlacedBindingRows,
   FragmentRows,
 } from "#pantry/import/overlays/interactions.ts";
-import { rowsOf as mappingRowsOf } from "#pantry/import/overlays/mapping.ts";
-import type { MappingRows } from "#pantry/import/overlays/mapping.ts";
 import { rowsOf as metadataRowsOf } from "#pantry/import/overlays/metadata.ts";
 import type { MetadataRows } from "#pantry/import/overlays/metadata.ts";
 import { mathmlRowsOf } from "#pantry/import/overlays/mathml.ts";
@@ -90,19 +84,15 @@ import { manifestPath } from "#pantry/vocab/terms/package.ts";
  */
 type OverlayRows = AssembledExpressionRows &
   AssembledRows &
-  CatalogRows &
   DataSsmlRows &
   ExpressionRows &
-  HtmlRows &
   IdentityRows &
   InteractionRows &
-  MappingRows &
   MathmlRows &
   MetadataRows &
   OperatorRows &
   PackageRows &
   PlacedBindingRows &
-  PlacedCatalogRows &
   PlacedIdRows &
   PlacedRows &
   PlacedShareRows &
@@ -115,13 +105,10 @@ type OverlayRows = AssembledExpressionRows &
  * One document's rows from every document builder.
  */
 interface DocumentRows {
-  readonly catalog: CatalogRows;
   readonly dataSsml: DataSsmlRows;
   readonly expressions: ExpressionRows;
-  readonly html: HtmlRows;
   readonly identity: IdentityRows;
   readonly interactions: InteractionRows;
-  readonly mapping: MappingRows;
   readonly mathml: MathmlRows;
   readonly metadata: MetadataRows;
   readonly operators: OperatorRows;
@@ -145,13 +132,10 @@ interface DocumentRows {
  * @returns Every builder's rows.
  */
 const documentRowsOf = ({ ids, listed: { path }, view }: PlacedDocument): DocumentRows => ({
-  catalog: catalogRowsOf(view, ids),
   dataSsml: dataSsmlRowsOf(view, ids),
   expressions: expressionRowsOf(view, ids),
-  html: htmlRowsOf(view, ids),
   identity: identityRowsOf(view, ids),
   interactions: interactionRowsOf(view, ids),
-  mapping: mappingRowsOf(view, ids),
   mathml: mathmlRowsOf(view, ids),
   metadata: metadataRowsOf(view, ids),
   operators: operatorRowsOf(view, ids),
@@ -349,13 +333,10 @@ export const overlayPartsOf = (
 
   return [
     ...built.flatMap(({ rows }) => [
-      rows.catalog,
       rows.dataSsml,
       rows.expressions,
-      rows.html,
       rows.identity,
       rows.interactions,
-      rows.mapping,
       rows.mathml,
       rows.metadata,
       rows.operators,
@@ -376,10 +357,6 @@ export const overlayPartsOf = (
     }),
     placedIds,
     placedShares,
-    placedCatalogRowsOf({
-      assembledIds: placedIds.PlacedId.values(),
-      catalogs: built.flatMap(({ rows }) => [...rows.catalog.CatalogId.values()]),
-    }),
     fragmentRowsOf({
       contexts: built.flatMap(({ rows }) => [...rows.interactions.FragmentContextName.values()]),
       feedbacks: built.flatMap(({ rows }) => [...rows.interactions.FragmentFeedbackName.values()]),

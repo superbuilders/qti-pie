@@ -21,7 +21,8 @@ export type WritingFile =
   | "oracle"
   | "refusals"
   | "long_values"
-  | "corpus";
+  | "corpus"
+  | "views";
 
 /**
  * A pantry database test file's own database, for every connection its layer and its effects build

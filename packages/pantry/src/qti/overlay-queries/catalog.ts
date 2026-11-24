@@ -1,19 +1,17 @@
 /**
- * The catalog laws over attributes' values, tokens and IDs (`#pantry/qti/catalog.ts`): a card's
- * `support` and an entry's `default` are each its attribute's `value`, a `data-catalog-idref`'s
- * tokens its `Idref` pieces (C18), and a catalog's `id` its ID's value, which `IdValue` reads where
- * it stands; a card's catalog and an entry's card are each its node's parent, which its attribute
- * holds (`Attribute.parent`), so both keys are the stored level's (`#pantry/qti/catalog.ts`); and a
- * reference resolves in its
+ * The catalog laws over attributes' tokens and IDs (`#pantry/qti/catalog.ts`): a
+ * `data-catalog-idref`'s tokens are its `Idref` pieces (C18), and a catalog's `id` its attribute's
+ * `value` ({@link CatalogId}, a view of `#pantry/qti/names.ts`); a reference resolves in its
  * document, or under each instance of it in its assembly, which only `Document` and `Instance`
- * hold.
+ * hold. A card's catalog and an entry's card are each its node's parent, which its attribute holds
+ * (`Attribute.parent`), so those keys are the stored level's (`#pantry/qti/catalog.ts`).
  */
-import { contained, Crypto, derived, on, query, v } from "@bjornpagen/grizzle";
+import { contained, Crypto, derived, key, on, query, v } from "@bjornpagen/grizzle";
 import { Idref } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
-import { AssembledCatalog, CatalogId } from "#pantry/qti/catalog.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { IdValue } from "#pantry/qti/names.ts";
+import { PlacedId } from "#pantry/qti/identity.ts";
+import { CatalogId, QtiViews } from "#pantry/qti/names.ts";
 import { Instance } from "#pantry/qti/tests.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 
@@ -61,7 +59,7 @@ const UnassembledReference = derived(
  * assembly's catalogs. A document is assembled exactly where an instance places it (the laws
  * {@link UnassembledReference} cites), so every token of an assembled document is here once for each
  * assembly that places it, and the join is complete by its definition, with no row stored or
- * counted.
+ * counted. It resolves among {@link AssembledCatalog}.
  */
 const PlacedReference = derived(
   "PlacedReference",
@@ -77,12 +75,31 @@ const PlacedReference = derived(
 );
 
 /**
- * The catalog laws over attributes' values (`#pantry/qti/catalog.ts`): a catalog holds one card for
- * each support, and a card at most one designated entry; each reference's token is a catalog's `id`
- * of its document where the document is in no assembly ({@link UnassembledReference}), and a
- * catalog's binding in each assembly that places the document otherwise ({@link PlacedReference},
- * `AssembledCatalog`), as "Idref target" resolves an IDREF; and a catalog's `id` and `owner` are
- * its ID's ({@link IdValue}).
+ * Each catalog's binding in its assembly's ID table (spec reading 117), by the assembly and the
+ * id's SHA-256: every `PlacedId` of the assembly whose owner is a {@link CatalogId}'s element, so a
+ * catalog of a fragment two items include is bound in each item's assembly, and a catalog placed
+ * twice in one assembly is one binding. Its `idDigest` is the catalog's.
+ */
+export const AssembledCatalog = derived.stored(
+  "AssembledCatalog",
+  query(QtiViews).rule((r) => {
+    const { assembly, owner, package: pkg, path } = v(PlacedId, "placed");
+    const { idDigest } = v(CatalogId, "catalog");
+
+    return r
+      .match(PlacedId, { assembly, owner, package: pkg, path })
+      .match(CatalogId, { idDigest, package: pkg, path, start: owner })
+      .find({ assembly, idDigest, package: pkg });
+  }),
+);
+
+/**
+ * The catalog laws over the views (`#pantry/qti/catalog.ts`): a document's catalogs carry distinct
+ * IDs, its `id`s by their SHA-256 ("DocumentId key", which an ID held twice in a document already
+ * breaks); and each reference's token is a catalog's `id` of its document where the document is in
+ * no assembly ({@link UnassembledReference}), and a catalog's binding in each assembly that places
+ * the document otherwise ({@link PlacedReference}, {@link AssembledCatalog}), as "Idref target"
+ * resolves an IDREF.
  */
 export const catalogOverlayLawsByName = {
   "Catalog reference": declared("Catalog reference", [
@@ -95,18 +112,17 @@ export const catalogOverlayLawsByName = {
       on(AssembledCatalog, "package", "assembly", "idDigest"),
     ),
   ]),
-  "E1 derived": declared("E1 derived", [
-    contained(
-      on(CatalogId, "package", "path", "start", "id", "owner"),
-      on(IdValue, "package", "path", "start", "id", "owner"),
-    ),
-  ]),
+  "DocumentId key": declared("DocumentId key", [key(on(CatalogId, "package", "path", "idDigest"))]),
 } as const;
 
 /**
  * The queries of this module, each carrying its own name.
  */
-export const catalogOverlayRelations = [PlacedReference, UnassembledReference] as const;
+export const catalogOverlayRelations = [
+  AssembledCatalog,
+  PlacedReference,
+  UnassembledReference,
+] as const;
 
 /**
  * The rules of this module, {@link catalogOverlayLawsByName} flattened.

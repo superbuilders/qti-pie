@@ -76,6 +76,7 @@ type Statement = Readonly<{ sql: string }> &
     | Readonly<{ alwaysTrue: boolean; form: "policy"; table: string }>
     | Readonly<{ form: "view"; table: string }>
     | Readonly<{ form: "insert"; relation: string; tuples: readonly (readonly string[])[] }>
+    | Readonly<{ form: "stored"; name: string }>
   );
 
 /**
@@ -226,6 +227,19 @@ const statementOf: Gen<Statement> = (source) => {
       };
     },
     () => ({ form: "view", sql: `CREATE VIEW "qti__author"."${name}" AS SELECT 1;`, table: name }),
+    // A stored derived relation, as grizzle prints one: its table created as its definition with
+    // no data, filled by an insert of the definition's rows, and its upkeep function, whose body,
+    // an escape string constant over several lines, inserts into it too. No INSERT INTO here is a
+    // data step's; the function is an `other` one.
+    () => ({
+      form: "stored",
+      name,
+      sql: [
+        `CREATE TABLE "qti_queries"."${name}" ("a", "b") AS\nSELECT 'x'::text AS "a", 'y'::text AS "b"\nWITH NO DATA;`,
+        `INSERT INTO "qti_queries"."${name}" ("a", "b")\nSELECT 'x', 'y';`,
+        `CREATE OR REPLACE FUNCTION "qti"."__upkeep_${name}"() RETURNS "pg_catalog"."void"\nLANGUAGE plpgsql VOLATILE SECURITY DEFINER AS E'\\n'\n'BEGIN\\n'\n'  INSERT INTO "qti_queries"."${name}" ("a", "b") SELECT ''x'', ''it\\'s'';\\n'\n'END\\n';`,
+      ].join("\n\n"),
+    }),
     (inner) => {
       const relation = inner.draw(element(["note", "admission_like"] as const));
       const tuples = inner.draw(array(array(tupleValue, { max: 3, min: 1 }), { max: 4, min: 1 }));
@@ -326,7 +340,7 @@ const modelOf = (statements: readonly Statement[]): Census => {
       law: countOf(functions, (f) => f.kind === "law"),
       live: countOf(functions, (f) => f.kind === "live"),
       names: countOf(functions, (f) => f.kind === "names"),
-      other: countOf(functions, (f) => f.kind === "other"),
+      other: countOf(functions, (f) => f.kind === "other") + pick("stored").length,
       payload: countOf(functions, (f) => f.kind === "payload"),
     },
     laws: {

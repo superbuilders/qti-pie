@@ -38,6 +38,12 @@
  * ID-typed attribute's `value` or its text collapsed, which every rule that reads an ID matches.
  * Its language view, {@link LangValue}, is the one statement of the language an `xml:lang` states
  * and of its compared value, which every rule that reads a language matches.
+ * Its stored views of an attribute and the tree, which grizzle keeps equal to their definitions
+ * (`derived.stored`, every relation they read closed): each catalog's `id` ({@link CatalogId}),
+ * each table cell's `headers` tokens ({@link HeaderToken}) and its nearest table
+ * ({@link CellTable}), and, from `#pantry/qti/mapping.ts`, each map entry's key and each lookup
+ * table's typed values (`MapKey`, `LookupValue`); each is read where the tree states it, so no row
+ * copies one (C18).
  *
  * The views are a level of their own because a derived relation reads only the levels below its
  * own: a rule's query at `QtiQueries`, or at a level over it, matches a view here as it matches a
@@ -45,6 +51,7 @@
  */
 import {
   check,
+  Crypto,
   derived,
   doubleText,
   Logic,
@@ -63,6 +70,7 @@ import {
   BaseTypeLexical,
   CardinalityLexical,
   Declares,
+  natural,
   ValueIdentity,
 } from "#pantry/grammar/install.ts";
 import type { AttributeName, ResourceTypeLexical } from "#pantry/grammar/install.ts";
@@ -70,19 +78,20 @@ import { Attribute } from "#pantry/qti/attributes.ts";
 import type { SelectedKinds } from "#pantry/qti/attributes.ts";
 import { QtiBase } from "#pantry/qti/base.ts";
 import { Document } from "#pantry/qti/chardata.ts";
-import { keyedIdentifier, matchedTextBytes } from "#pantry/qti/limits.ts";
+import { EntryPath, keyedIdentifier, matchedTextBytes, PackageName } from "#pantry/qti/limits.ts";
 import { CatalogScope, DocumentId, SsmlScope } from "#pantry/qti/identity.ts";
 import { normalMinimumDefault } from "#pantry/vocab/terms/declarations.ts";
 import { idSpaceAttributes, ssmlReads } from "#pantry/vocab/terms/identity.ts";
 import { declarationKinds } from "#pantry/qti/declarations.ts";
 import { ValueBaseOf } from "#pantry/qti/expression-types.ts";
 import { PlacedVariableRef, VariableRef } from "#pantry/qti/expressions.ts";
-import type { CellHeaders } from "#pantry/qti/html.ts";
-import { Node } from "#pantry/qti/node.ts";
+import { LookupValue, MapKey } from "#pantry/qti/mapping.ts";
+import { documentStart, Node } from "#pantry/qti/node.ts";
 import { ReferencePath } from "#pantry/qti/package.ts";
 import { publishedTemplates, urisOf } from "#pantry/qti/templates.ts";
 import type { Tolerance } from "#pantry/qti/operators.ts";
 import { recordDocumentTypes } from "#pantry/vocab/terms/metadata.ts";
+import { cellKinds } from "#pantry/vocab/terms/html.ts";
 import { itemKind } from "#pantry/vocab/terms/tests.ts";
 
 /**
@@ -356,13 +365,11 @@ export const attributeCodes = <L extends Lexical>(
 };
 
 /**
- * The owners of an attribute's whitespace list split into tokens (`#pantry/qti/token-list.ts`),
- * each keyed by its element with its count of tokens, `tokens`, and the end of their
- * concatenation, `tokenText`: a cell's `headers` and a `qti-equal`'s `tolerance`. grizzle types a
- * query over several relations only where each is named (its README, "Generic helpers"), so
- * {@link listForms} reads these, which share one heading.
+ * The owner of an attribute's whitespace list split into tokens (`#pantry/qti/token-list.ts`),
+ * keyed by its element with its count of tokens, `tokens`, and the end of their concatenation,
+ * `tokenText`: a `qti-equal`'s `tolerance`.
  */
-type ListOwner = typeof CellHeaders | typeof Tolerance;
+type ListOwner = typeof Tolerance;
 
 /**
  * Each owner of an attribute's whitespace list ({@link ListOwner}), by its element's place, beside
@@ -927,6 +934,121 @@ export const LocatedTemplate = derived(
 );
 
 /**
+ * Each `qti-catalog` that carries an ID, by its element's place (spec reading R9-a,
+ * `#pantry/qti/catalog.ts`): its `id`, the attribute's `value` (an `xs:ID` collapsed), the ID's
+ * value as {@link IdValue} holds it, and `idDigest`, that value's SHA-256, by which "DocumentId
+ * key" keys a document's catalogs and "Catalog reference" resolves a token among them
+ * (`#pantry/qti/overlay-queries/catalog.ts`), since XML Schema bounds no `xs:ID`. AL1 holds the
+ * form to an NCName once collapsed where it is written (spec readings 152 and 156).
+ */
+export const CatalogId = derived.stored(
+  "CatalogId",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start, value, valueDigest } = v(Attribute, "attribute");
+
+    return r
+      .match(Attribute, {
+        kind: "qti-catalog",
+        name: "id",
+        package: pkg,
+        path,
+        start,
+        value,
+        valueDigest,
+      })
+      .find({ id: value, idDigest: valueDigest, package: pkg, path, start });
+  }),
+);
+
+/**
+ * Each token of a table cell's `headers` (spec reading 126), by the cell's place and the token's
+ * place among them, `at`, from 0: the attribute's lexical form collapsed and split at its spaces,
+ * grizzle's whitespace list split (`r.tokens`), so the split is true by definition and no row
+ * holds it. `tokenDigest` is the token's SHA-256, by which "Table headers" keys a cell's tokens
+ * (the tokens are a set, "an unordered set of unique space-separated tokens", info §5.140.1) and
+ * resolves each among its table's headers (`#pantry/qti/overlay-queries/html.ts`), since a token
+ * is of any length. A form of whitespace alone has no token.
+ */
+export const HeaderToken = derived.stored(
+  "HeaderToken",
+  query(QtiBase).rule((r) => {
+    const { kind, lexical, package: pkg, path, start } = v(Attribute, "attribute");
+    const split = r.tokens(lexical);
+    const { at, token } = v(split, "token");
+
+    return r
+      .match(Attribute, { kind, lexical, name: "headers", package: pkg, path, start })
+      .where(r.in(kind, cellKinds))
+      .match(split, { at, token })
+      .find({ at, package: pkg, path, start, token, tokenDigest: Crypto.sha256(token) });
+  }),
+);
+
+/**
+ * The walk from each table cell up to the table it takes part in (spec reading 126), each step by
+ * the cell's place and the element it has reached, `at`: the cell itself, then each parent while
+ * the element reached is no `table` and has a parent element, so the walk ends at the cell's
+ * nearest `table` or at its document's root element.
+ */
+const tableWalk = query(QtiBase).recursive("TableWalk", {
+  base: [
+    (r) => {
+      const { kind, package: pkg, path, start } = v(Node, "cell");
+
+      return r
+        .match(Node, { kind, package: pkg, path, start })
+        .where(r.in(kind, cellKinds))
+        .find({ at: start, cell: start, package: pkg, path });
+    },
+  ],
+  rec: [
+    (r, self) => {
+      const { at, cell, package: pkg, path } = v(self, "walk");
+      const { kind, parent } = v(Node, "reached");
+
+      return r
+        .match(self, { at, cell, package: pkg, path })
+        .match(Node, { kind, package: pkg, parent, path, start: at })
+        .where(r.ne(kind, "table"))
+        .where(r.ne(parent, documentStart))
+        .find({ at: parent, cell, package: pkg, path });
+    },
+  ],
+  row: { at: natural, cell: natural, package: PackageName, path: EntryPath },
+});
+
+/**
+ * Each table cell beside the table it takes part in, by the cell's place (spec reading 126): its
+ * nearest `table`, nested tables included, where its walk up the tree ({@link tableWalk}) reaches
+ * one, and the document node where it reaches its document's root element and that is no `table`,
+ * so a cell no `table` holds takes part in no table. "Table headers" reads it
+ * (`#pantry/qti/overlay-queries/html.ts`).
+ */
+export const CellTable = derived.stored(
+  "CellTable",
+  query(QtiBase)
+    .rule((r) => {
+      const { at, cell, package: pkg, path } = v(tableWalk, "walk");
+
+      return r
+        .match(tableWalk, { at, cell, package: pkg, path })
+        .match(Node, { kind: "table", package: pkg, path, start: at })
+        .find({ package: pkg, path, start: cell, table: at });
+    })
+    .rule((r) => {
+      const { at, cell, package: pkg, path } = v(tableWalk, "walk");
+      const { kind, parent } = v(Node, "root");
+
+      return r
+        .match(tableWalk, { at, cell, package: pkg, path })
+        .match(Node, { kind, package: pkg, parent, path, start: at })
+        .where(r.ne(kind, "table"))
+        .where(r.eq(parent, documentStart))
+        .find({ package: pkg, path, start: cell, table: parent });
+    }),
+);
+
+/**
  * The shared views, each carrying its own name.
  */
 export const viewRelations = [
@@ -946,6 +1068,11 @@ export const viewRelations = [
   VariableRefNode,
   PlacedVariableRefNode,
   LocatedTemplate,
+  CatalogId,
+  CellTable,
+  HeaderToken,
+  LookupValue,
+  MapKey,
 ] as const;
 
 /**

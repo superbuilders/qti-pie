@@ -14,7 +14,6 @@ import { attributeLawsByName } from "#pantry/qti/attributes.ts";
 import { expressionLawsByName } from "#pantry/qti/expressions.ts";
 import { chardataLawsByName } from "#pantry/qti/chardata.ts";
 import { interactionLawsByName } from "#pantry/qti/interactions.ts";
-import { mappingLawsByName } from "#pantry/qti/mapping.ts";
 import { metadataLawsByName } from "#pantry/qti/metadata.ts";
 import { nodeLawsByName } from "#pantry/qti/node.ts";
 import { catalogLawsByName } from "#pantry/qti/catalog.ts";
@@ -94,7 +93,6 @@ export const namedLaws: readonly LawsByName[] = [
   attributeLawsByName,
   packageLawsByName,
   identityLawsByName,
-  mappingLawsByName,
   interactionLawsByName,
   expressionLawsByName,
   metadataLawsByName,

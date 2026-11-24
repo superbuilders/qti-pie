@@ -552,7 +552,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     98,
     {
       owner:
-        "Q5.11's map keys (`src/qti/mapping.ts`): one `MapKey` row per `qti-map-entry`, in its mapping's order, under no key, so a repeat, as written or as a typed value, is admitted (reading 98, F5); `Typed_attribute_value` judges each key's lexical form; how a response meets a key, case-folded unless its entry is `case-sensitive=\"true\"`, is the scorer's, read from the entry's `case-sensitive` attribute; the oracle's mapping law raises no repeat (`src/test/oracle.ts`); held by `src/qti/mapping.oracle.test.ts`, `src/import/overlays/mapping.test.ts` and `src/test/restored.oracle.test.ts`",
+        "Q5.11's map keys (`src/qti/mapping.ts`): one `MapKey` row per `qti-map-entry`, a view of its `map-key` attribute, under no law of its own, so a repeat, as written or as a typed value, is admitted (reading 98, F5); `Typed_attribute_value` judges each key's lexical form; how a response meets a key, case-folded unless its entry is `case-sensitive=\"true\"`, is the scorer's, read from the entry's `case-sensitive` attribute; the oracle's mapping law raises no repeat (`src/test/oracle.ts`); held by `src/qti/mapping.oracle.test.ts`, `src/qti/attribute-views.db.test.ts` and `src/test/restored.oracle.test.ts`",
       status: "G",
     },
   ],
@@ -775,7 +775,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     126,
     {
       owner:
-        "H's `TableScope`, `CellHeaders`, `HeaderToken` and `TableHeader` (`src/qti/html.ts`, rows from `src/import/overlays/html.ts`): `tableHeaders` and `HeaderToken`'s key on (node, token)",
+        "H's views `HeaderToken` and `CellTable` (`src/qti/names.ts`) and `TableHeader` (`src/qti/overlay-queries/html.ts`), each of `Attribute` and `Node`: `CellToken`'s containment in `TableHeader` and `HeaderToken`'s key on (cell, token); held by `src/qti/attribute-views.db.test.ts`",
       status: "G",
     },
   ],
@@ -1015,7 +1015,7 @@ export const readings: ReadonlyMap<number, ReadingEntry> = new Map<number, Readi
     156,
     {
       owner:
-        "the value domains of the ID-typed attributes and texts (AL1 and TextDomain), whose patterns lie inside `ncNamePattern`'s with XML whitespace around it (`src/grammar/domains.ts`), so every `DocumentId` source (`idAttributes` and `idTextNodes`, `src/qti/identity.ts`), a `th`'s `headerIds` (`src/qti/html.ts`) and a catalog's `catalogIdAttributes` (`src/qti/catalog.ts`) is each ID-typed form, no filter restating the domain, and each ID's value is `IdValue`'s (`src/qti/names.ts`); the import's `documentIdOf` (`src/import/overlays/identity.ts`), `th` headers (`src/import/overlays/html.ts`) and catalogs (`src/import/overlays/catalog.ts`), each value by `attributeValueOf` (`src/import/names.ts`); the oracle's `idsOf` by each ID's value domain and `tableHeadersOf` by `nameForm` (`src/test/oracle.ts`)",
+        "the value domains of the ID-typed attributes and texts (AL1 and TextDomain), whose patterns lie inside `ncNamePattern`'s with XML whitespace around it (`src/grammar/domains.ts`), so every `DocumentId` source (`idAttributes` and `idTextNodes`, `src/qti/identity.ts`), a `th`'s `id` (`TableHeader`, `src/qti/overlay-queries/html.ts`) and a catalog's (`CatalogId`, `src/qti/names.ts`) is each ID-typed form, no filter restating the domain, and each ID's value is its attribute's `value`, as `IdValue`'s is (`src/qti/names.ts`); the import's `documentIdOf` (`src/import/overlays/identity.ts`), its value by `attributeValueOf` (`src/import/names.ts`); the oracle's `idsOf` by each ID's value domain and `tableHeadersOf` by `nameForm` (`src/test/oracle.ts`)",
       status: "G",
     },
   ],

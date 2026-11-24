@@ -2956,48 +2956,6 @@ const copiedTexts = (
 };
 
 /**
- * The attributes whose value the import writes into a bounded text no statement copies it from
- * `Attribute` into, each held to its attribute by a rule over a query instead, so {@link keyCopies},
- * which reads the statements over `Attribute`, does not list them: a `qti-map-entry`'s `map-key`
- * (`MapKey.key`, its `xs:normalizedString` value, each tab, line feed and carriage return a space,
- * which keeps its UTF-8 length) and a lookup table's entry's `target-value` or table's
- * `default-value` as written (`LookupValue.value`). Each is a `matchedText`, the interim bound a
- * text a query reads by a pattern holds (`#pantry/qti/limits.ts`): a typed value read beside its
- * declaration's base type.
- */
-const heldAttributes: readonly {
-  readonly field: string;
-  readonly kinds: readonly string[];
-  readonly name: string;
-}[] = [
-  { field: "MapKey.key", kinds: ["qti-map-entry"], name: "map-key" },
-  {
-    field: "LookupValue.value",
-    kinds: ["qti-match-table-entry", "qti-interpolation-table-entry"],
-    name: "target-value",
-  },
-  {
-    field: "LookupValue.value",
-    kinds: ["qti-match-table", "qti-interpolation-table"],
-    name: "default-value",
-  },
-];
-
-/**
- * Read the bounded texts the import writes from an attribute's value where no statement copies it
- * ({@link heldAttributes}).
- *
- * @param attribute - The attribute.
- * @returns Each field it fills with its value, none for any other attribute.
- */
-const heldValuesOf = (
-  attribute: FoldedAttribute<Composed>,
-): readonly { readonly field: string; readonly value: string }[] =>
-  heldAttributes
-    .filter(({ kinds, name }) => attribute.name === name && kinds.includes(attribute.kind))
-    .map((held) => ({ field: held.field, value: attribute.lexical }));
-
-/**
  * The ARIA bounds "Aria value range" parses, by name, each with the field of `AriaBounds`
  * (`#pantry/qti/overlay-queries/interaction.ts`) that holds it.
  */
@@ -3077,8 +3035,6 @@ const checkedIdentifiers: readonly {
  *   a manifest's, a declaration's, an `m:cn`'s `type` and `base` and every other attribute a
  *   containment or a check copies, and the string value of each element whose text is checked or
  *   copied), at the narrower field's bound;
- * - Every value the import writes into a `matchedText` field that a rule over a query holds
- *   ({@link heldValuesOf});
  * - The texts the host writes from the document where they stand, each at its type's bound (a
  *   namespace prefix and an open attribute's names are held by their SHA-256s, of any length): each
  *   choice's and hottext's identifier (`Choice.identifier`, `Hottext.identifier`,
@@ -3175,14 +3131,6 @@ const keyTexts = (
             value: collapsed(lexical),
           })),
         ),
-    ),
-    ...view.rows.attributes.flatMap((attribute) =>
-      heldValuesOf(attribute).map((held) => ({
-        bound: matchedTextBytes,
-        field: held.field,
-        node: attribute.start,
-        value: held.value,
-      })),
     ),
     ...view.rows.attributes.flatMap(({ lexical, name, start }) => {
       const ariaField = ariaFields.get(name);
@@ -3715,14 +3663,16 @@ const typedFormHolds = (baseType: string, text: string): boolean =>
  * Decide whether an attribute's typed value is a lexical form of its base type (Typed attribute
  * value): a map key, a table entry's target or a table's default, read as written for `string` and
  * for every other base type after XML Schema's `collapse`, the whitespace facet each typed simple
- * type fixes (XML Schema 1.0 Part 2 §4.3.6; reading 7), so `" 3 "` is the integer 3.
+ * type fixes (XML Schema 1.0 Part 2 §4.3.6; reading 7), so `" 3 "` is the integer 3. QTI bounds
+ * no such value, and a text past what PostgreSQL's regex engine reads (`matchedTextBytes`) is no
+ * form the law can read, which it refuses.
  *
  * @param baseType - The value's base type, its declaration's.
  * @param text - The attribute's lexical form.
  * @returns Whether it is one.
  */
 const typedAttributeHolds = (baseType: string, text: string): boolean =>
-  typedFormHolds(baseType, baseType === "string" ? text : collapsed(text));
+  !overKeyText(text) && typedFormHolds(baseType, baseType === "string" ? text : collapsed(text));
 
 /**
  * Decide whether an element's text is a lexical form of a base type, as reading 7 reads a typed

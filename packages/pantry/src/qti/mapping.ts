@@ -12,19 +12,16 @@
  * beside its declaration's cardinality, a mapping and an area mapping beside its base type, and a
  * map key and a lookup value beside the base type it is read in.
  *
- * Two overlays hold the text the laws read, each a flat row keyed by its element's place,
- * `(package, path, start)`, the key `Node` holds it by:
+ * The text those laws read is two views of `Attribute`, each keyed by its element's place,
+ * `(package, path, start)`, the key `Node` holds it by, and stored by grizzle, which keeps each
+ * equal to its definition (shared views of the level `QtiViews`, `#pantry/qti/names.ts`):
  *
- * - {@link MapKey} (`qti-map-entry`) copies its entry's `map-key` from `Attribute` (C18), one row per
- *   entry, so two entries with one key are two facts, in the order the mapping lists them, and
- *   never one fact that set semantics collapses (rows-first §0);
- * - {@link LookupValue} copies each table entry's `target-value` and each table's `default-value`.
+ * - {@link MapKey}, each `qti-map-entry`'s `map-key` (C18), one row per entry, so two entries with
+ *   one key are two facts, in the order the mapping lists them, and never one fact that set
+ *   semantics collapses (rows-first §0);
+ * - {@link LookupValue}, each table entry's `target-value` and each table's `default-value`.
  *
- * A map key and a lookup value are held to no bound of QTI's, a string mapping's expected answer
- * being of any length, but PostgreSQL's ({@link matchedText}): no key holds either, and a
- * rule over a query holds each copy to its source (`#pantry/qti/queries.ts`, "Mapping overlay").
- *
- * The laws, by the rule each states, all rules over a query but the copies' own:
+ * The laws, by the rule each states, all rules over a query:
  *
  * - **`mapping-base-type`** (reading 78): a mapping is no record's ("cannot be applied to variables
  *   of record cardinality", information model §2.11.1.5), and its base type is in
@@ -48,67 +45,13 @@
  * A string's, identifier's and URI's value is its lexical form, whitespace included (reading 7), so
  * the lexical key is their typed key. A boolean's lexical forms are `xs:boolean`'s, `1` and `true`
  * one value and `0` and `false` another (reading 34), and map keys may repeat (reading 165), so no
- * law compares them. Every check is named by its oracle law with spaces written as underscores.
+ * law compares them.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Mapping | QTI 3.0 information model, §5.88 Mapping}
  */
-import { contained, key, law, on, relation, select } from "@bjornpagen/grizzle";
-
-import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
-import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
-import { Node } from "#pantry/qti/node.ts";
-import { declared } from "#pantry/qti/law-entries.ts";
-import { entryOf } from "#pantry/vocab/laws.ts";
-import { natural } from "#pantry/grammar/install.ts";
-
-/**
- * A map entry's overlay, keyed by its `qti-map-entry` element's place: its `map-key` as written.
- * How a response meets the key (reading 98, §7.21.3: case-folded for a string mapping unless the
- * entry's `case-sensitive` is true) is the scorer's, which reads the entry's `case-sensitive` from
- * `Attribute`; the database states nothing of it. The base type it is read in is its mapping's
- * declaration's, its node's grandparent's, read through `Node` (`MapKeyType`,
- * `#pantry/qti/overlay-queries/declaration.ts`).
- */
-export const MapKey = law(
-  entryOf("Mapping overlay"),
-  relation(
-    "MapKey",
-    {
-      key: matchedText,
-      package: PackageName,
-      path: EntryPath,
-      start: natural,
-    },
-    ["package", "path", "start"],
-  ),
-);
-
-/**
- * A lookup table's typed attribute value, keyed by the place of the element that carries it: a
- * `qti-match-table-entry`'s or `qti-interpolation-table-entry`'s `target-value`, or a
- * `qti-match-table`'s or `qti-interpolation-table`'s `default-value`, as written. Its table is its
- * node, a table's default, or its node's parent, an entry's target, and the base type it is read in
- * the table's declaration's, read through `Node` (`LookupValueType`,
- * `#pantry/qti/overlay-queries/declaration.ts`).
- *
- * The value is copied (C18) because `Typed_attribute_value` reads it beside its declaration's base
- * type (reading 8). QTI bounds no value, so it is held to no bound of QTI's but PostgreSQL's regex
- * limit ({@link matchedText}, grizzle's `regexTextMaxBytes`), and no key holds it, its copy
- * held to its attribute by a rule over a query (`#pantry/qti/queries.ts`, "Mapping overlay").
- */
-export const LookupValue = law(
-  entryOf("Mapping overlay"),
-  relation(
-    "LookupValue",
-    {
-      package: PackageName,
-      path: EntryPath,
-      start: natural,
-      value: matchedText,
-    },
-    ["package", "path", "start"],
-  ),
-);
+import { derived, query, v } from "@bjornpagen/grizzle";
+import { Attribute } from "#pantry/qti/attributes.ts";
+import { QtiBase } from "#pantry/qti/base.ts";
 
 /**
  * The lookup tables' kinds, each a child of its outcome declaration.
@@ -121,74 +64,57 @@ export const lookupTableKinds = ["qti-interpolation-table", "qti-match-table"] a
 export const lookupEntryKinds = ["qti-interpolation-table-entry", "qti-match-table-entry"] as const;
 
 /**
- * The map entries, a constant selection: the containment into it references the one
- * `UNIQUE (package, path, start, kind)` on `Node` the document layer's arms share.
+ * Each map entry's key, by its `qti-map-entry` element's place: its `map-key`'s `value`, an
+ * `xs:normalizedString`, each tab, line feed and carriage return a space (the ASI XSD's `map-key`;
+ * XML Schema 1.0 Part 2, §4.3.6; spec reading 7). An entry that writes no `map-key` has none, and
+ * AL3 refuses the element. A key written twice is two rows, one per entry (reading 165). How a
+ * response meets the key (reading 98, §7.21.3: case-folded for a string mapping unless the entry's
+ * `case-sensitive` is true) is the scorer's, which reads the entry's `case-sensitive` from
+ * `Attribute`; the database states nothing of it. The base type it is read in is its mapping's
+ * declaration's, its node's grandparent's, read through `Node` (`MapKeyType`,
+ * `#pantry/qti/overlay-queries/declaration.ts`).
  */
-const mapEntries = select(Node, (n) => n.eq(n.kind, "qti-map-entry"));
+export const MapKey = derived.stored(
+  "MapKey",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start, value } = v(Attribute, "attribute");
 
-/**
- * The `map-key` of each `qti-map-entry`: the source of {@link MapKey}'s copy (C18), keyed at its
- * element's place by `Attribute`'s key, `(package, path, start, name)`, since it fixes the name,
- * whose index over the selection's place serves the copy's reverse probe, so no index holds the
- * attribute's lexical form (the addendum's "Text in keys").
- */
-const mapKeyAttributes = select(Attribute, (a) =>
-  a.and(a.eq(a.name, "map-key"), a.eq(a.kind, "qti-map-entry")),
+    return r
+      .match(Attribute, {
+        kind: "qti-map-entry",
+        name: "map-key",
+        package: pkg,
+        path,
+        start,
+        value,
+      })
+      .find({ key: value, package: pkg, path, start });
+  }),
 );
 
 /**
- * The lookup tables' typed attribute values: each table entry's `target-value` and each table's
- * `default-value`, the source of {@link LookupValue}'s copy, beside its key (C18; AL2 makes it
- * hold). It states a key of its own: its two names lie under an `or`, so no conjunct fixes `name`,
- * and `Attribute`'s key, `(package, path, start, name)`, keys no containment into it at its
- * element's place alone.
+ * Each lookup table's typed attribute value, by the place of the element that carries it and the
+ * attribute's name: a `qti-match-table-entry`'s or `qti-interpolation-table-entry`'s
+ * `target-value`, or a `qti-match-table`'s or `qti-interpolation-table`'s `default-value`, as
+ * written, each whatever its table's declaration spells (spec readings 157 and 158): a law that
+ * reads the declaration's cardinality or base type judges it where the declaration has one. Its
+ * table is its node, a table's default, or its node's parent, an entry's target, and the base type
+ * it is read in the table's declaration's, read through `Node` (`LookupValueType`,
+ * `#pantry/qti/overlay-queries/declaration.ts`).
  */
-const lookupAttributes = select(Attribute, (a) =>
-  a.or(
-    namedOn(a, "target-value", ["qti-match-table-entry", "qti-interpolation-table-entry"]),
-    namedOn(a, "default-value", ["qti-match-table", "qti-interpolation-table"]),
-  ),
+export const LookupValue = derived.stored(
+  "LookupValue",
+  query(QtiBase).rule((r) => {
+    const { kind, lexical, name, package: pkg, path, start } = v(Attribute, "attribute");
+
+    return r
+      .match(Attribute, { kind, lexical, name, package: pkg, path, start })
+      .where(
+        r.or(
+          r.and(r.eq(name, "target-value"), r.in(kind, lookupEntryKinds)),
+          r.and(r.eq(name, "default-value"), r.in(kind, lookupTableKinds)),
+        ),
+      )
+      .find({ name, package: pkg, path, start, value: lexical });
+  }),
 );
-
-/**
- * Every statement over the mapping overlays' own rows, each named by its oracle law:
- *
- * - **the overlays:** a map key names a map entry and every entry's `map-key` has its copy, and a
- *   lookup value stands exactly where its element writes its typed attribute value, its copy's text
- *   held to its attribute by a rule over a query (`#pantry/qti/queries.ts`);
- * - **map keys:** under no key, a key may repeat (reading 165).
- *
- * Every law over a table's declaration, `mapping-base-type`, `Lookup_table_cardinality` and
- * `Typed_attribute_value`, reads the table's node beside the declaration's typed rows, a rule over
- * a query (`#pantry/qti/overlay-queries/declaration.ts`), stated there under the same names.
- */
-export const mappingLawsByName = {
-  "DocumentId key": declared("DocumentId key", [
-    key(on(lookupAttributes, "package", "path", "start")),
-  ]),
-  "Mapping overlay": declared("Mapping overlay", [
-    contained(on(MapKey, "package", "path", "start"), on(mapEntries, "package", "path", "start")),
-    contained(
-      on(mapKeyAttributes, "package", "path", "start"),
-      on(MapKey, "package", "path", "start"),
-    ),
-    contained(
-      on(lookupAttributes, "package", "path", "start"),
-      on(LookupValue, "package", "path", "start"),
-    ),
-    contained(
-      on(LookupValue, "package", "path", "start"),
-      on(lookupAttributes, "package", "path", "start"),
-    ),
-  ]),
-} as const;
-
-/**
- * {@link mappingLawsByName}'s statements in one list, the module's laws as the schema composes them.
- */
-export const mappingLaws = Object.values(mappingLawsByName).flat();
-
-/**
- * `mapping.ts`'s relations: each map entry's key and each lookup table's typed values.
- */
-export const mappingRelations = [LookupValue, MapKey] as const;

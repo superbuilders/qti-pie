@@ -25,115 +25,32 @@
  *   attribute that holds a token, as "Idref target" reads only an attribute the schema checks as
  *   IDREF and only its tokens (an unchecked one, or an empty or blank one, names nothing): the
  *   references `catalogReferences` reads (`#pantry/qti/overlay-queries/catalog.ts`), each such
- *   attribute's `Idref` pieces' tokens, one for a lawful `xs:IDREF`, its value collapsed.
- *   {@link CatalogId} is one row per `qti-catalog`'s `id`, from the attribute as a `TableHeader`
- *   is, its `id` the ID's value as `IdValue` (`#pantry/qti/names.ts`) holds it. A document in no
- *   assembly resolves each token among its own catalogs: the containment of every token's
- *   `(document, token)` in the catalogs' `(document, id)` (`UnassembledReference`). A document in
- *   an assembly resolves it once per instance, as "Idref target" does its IDREFs (`PlacedIdref`,
- *   `#pantry/qti/identity.ts`): a fragment's reference names a catalog of the item it is included
- *   in, and a fragment two items include is judged in each. Each token of an instance's document,
- *   the join of the instance and its document's references that no row stores (`PlacedReference`),
- *   is held by {@link AssembledCatalog}, a catalog's binding in its assembly's ID table, under the
- *   instance's assembly. Neither stores the tokens or counts them: the joins are complete by their
- *   definition.
+ *   attribute's `Idref` pieces' tokens, one for a lawful `xs:IDREF`, its value collapsed. A
+ *   document in no assembly resolves each token among its own catalogs' `id`s (`CatalogId`, a view
+ *   of `Attribute`, `#pantry/qti/names.ts`); a document in an assembly resolves it once per
+ *   instance, as "Idref target" does its IDREFs (`PlacedIdref`, `#pantry/qti/identity.ts`), among
+ *   its assembly's catalogs' bindings (`AssembledCatalog`,
+ *   `#pantry/qti/overlay-queries/catalog.ts`): a fragment's reference names a catalog of the item
+ *   it is included in, and a fragment two items include is judged in each. No row stores the tokens
+ *   or counts them: the joins are complete by their definition.
  *
- * No row here copies a card's `support`, an entry's `default` or a reference's token: each is its
- * attribute's `value` or its `Idref` piece, selected by the queries of
- * `#pantry/qti/overlay-queries/catalog.ts` (C18). Every copied text that takes part in a cross-row
- * equality is of its type's bound in a key (`#pantry/qti/limits.ts`), so a key, a containment's
- * target and a lookup hold it as itself. Every check is named by its oracle law
- * (`#pantry/test/oracle.ts` `LawName`) with spaces written as underscores; the overlays' agreement
- * with what the tree holds is "E1 derived" (rule `derived`).
+ * No row copies a card's `support`, an entry's `default`, a catalog's `id` or a reference's token:
+ * each is its attribute's `value` or its `Idref` piece (C18), read where it stands.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Card | QTI 3.0 information model, §5.26 Card}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_CardEntry | QTI 3.0 information model, §5.27 CardEntry}
  */
-import {
-  check,
-  contained,
-  Crypto,
-  generated,
-  key,
-  law,
-  on,
-  relation,
-  select,
-  sha256,
-} from "@bjornpagen/grizzle";
+import { key, on, select } from "@bjornpagen/grizzle";
 import { booleanTrue } from "#pantry/grammar/domains.ts";
-import { Attribute, attributesOf, namedOn } from "#pantry/qti/attributes.ts";
-import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
+import { Attribute, namedOn } from "#pantry/qti/attributes.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
-import { entryOf } from "#pantry/vocab/laws.ts";
-import { natural } from "#pantry/grammar/install.ts";
 
 /**
- * One `qti-catalog` that carries an ID, keyed by its element: its `id`, the ID's value as `IdValue`
- * (`#pantry/qti/names.ts`) holds it (an `xs:ID` collapsed), with `owner` the element's own start,
- * an attribute ID's binding, so its copy shares the superkey `IdValue` reads.
- */
-export const CatalogId = law(
-  entryOf("E1 derived"),
-  relation.generated(
-    "CatalogId",
-    {
-      id: matchedText,
-      owner: natural,
-      package: PackageName,
-      path: EntryPath,
-      start: natural,
-    },
-    ["package", "path", "start"],
-    (c) => ({ idDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(c.id))) }),
-  ),
-);
-
-/**
- * One binding of an assembly's ID table whose owner is a `qti-catalog`, keyed by the assembly and
- * the id: the query `AssembledId` of the assembly, its owner, `(path, owner)`, a {@link CatalogId}'s
- * element.
- */
-export const AssembledCatalog = law(
-  entryOf("E1 derived"),
-  relation(
-    "AssembledCatalog",
-    {
-      assembly: EntryPath,
-      id: matchedText,
-      idDigest: sha256,
-      owner: natural,
-      package: PackageName,
-      path: EntryPath,
-    },
-    ["package", "assembly", "idDigest"],
-  ),
-);
-
-/**
- * Every relation this module declares, in one list, as `base.ts` composes them.
- */
-export const catalogRelations = [AssembledCatalog, CatalogId] as const;
-
-/**
- * Every catalog's `id`, one of its document's IDs, the source of {@link CatalogId}: AL1 holds its
- * form to its domain, an `xs:ID`, an NCName once collapsed (spec readings 152 and 156).
- */
-const catalogIdAttributes = attributesOf("id", ["qti-catalog"]);
-
-/**
- * Every statement over the catalog overlays, each `check` named by its oracle law. "Card support",
- * "Card default entry" and "Catalog reference" read attributes' `value`s or tokens, the first two
- * a node's parent and the last a document's assembly and instances, so they are rules over a query
- * (`#pantry/qti/overlay-queries/catalog.ts`):
- *
- * - **DocumentId key:** {@link CatalogId}'s `(package, path, idDigest)`, its id by its SHA-256, which
- *   an ID held twice in a document already breaks and which the containment of "Catalog reference"
- *   needs of its target; the attribute selection the copy reads is keyed by `Attribute`'s key, its
- *   name fixed;
- * - **E1 derived:** a catalog's `id` owned by the catalog itself, its value its ID's, a rule over a
- *   query over `IdValue` (`#pantry/qti/overlay-queries/catalog.ts`); and each
- *   {@link AssembledCatalog} a binding of the query `AssembledId` owned by a catalog.
+ * Every statement over the catalogs' attributes, each named by its oracle law: "Card support" and
+ * "Card default entry", each a key over an attribute selection beside its element's parent, which
+ * the attribute holds (`Attribute.parent`). "Catalog reference" and the key over a document's
+ * catalog `id`s read views, so they are rules over a query
+ * (`#pantry/qti/overlay-queries/catalog.ts`).
  */
 export const catalogLawsByName = {
   "Card default entry": declared("Card default entry", [
@@ -157,23 +74,6 @@ export const catalogLawsByName = {
         "parent",
         "valueDigest",
       ),
-    ),
-  ]),
-  "DocumentId key": declared("DocumentId key", [key(on(CatalogId, "package", "path", "idDigest"))]),
-  "E1 derived": declared("E1 derived", [
-    check("E1_derived", AssembledCatalog, (c) => c.eq(c.idDigest, Crypto.sha256(c.id))),
-    contained(
-      on(catalogIdAttributes, "package", "path", "start"),
-      on(CatalogId, "package", "path", "start"),
-    ),
-    contained(
-      on(CatalogId, "package", "path", "start"),
-      on(catalogIdAttributes, "package", "path", "start"),
-    ),
-    check("E1_derived", CatalogId, (c) => c.eq(c.owner, c.start)),
-    contained(
-      on(AssembledCatalog, "package", "path", "owner"),
-      on(CatalogId, "package", "path", "start"),
     ),
   ]),
 } as const;

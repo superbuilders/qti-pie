@@ -339,9 +339,8 @@ describe("the oracle's key-text list", () => {
     // where its column is a stored field of the target's own type read unchanged: a placed
     // reference site's identifier, its `VariableRef.identifier`. A required SSML property's name
     // is held to a written one by their SHA-256s (queries.ts), no copy of a text into a narrower
-    // field. A cell's header token names a header of its table, a selection of `TableHeader`
-    // ("Table headers"): the token and the header's `id` are both a matched text, so the copy
-    // narrows no bound. A copy into an entry path holds an entry's path, which
+    // field, and so is a cell's header token to its table's header's `id` ("Table headers"). A
+    // copy into an entry path holds an entry's path, which
     // `Entry.path` bounds where the import writes its entry, so none is listed: a file's target in
     // the package is an entry path already (`FilePath.target`), so "File exists" narrows no bound.
     // Read by the oracle where its
@@ -361,7 +360,6 @@ describe("the oracle's key-text list", () => {
         ),
       ].toSorted(),
       [
-        "CellToken.token → TableHeader.id",
         "InteractionAttribute.value → BindingName.identifier",
         "InteractionAttribute.value → BoundVariable.identifier",
         "InteractionAttribute.value → Choice.identifier",
@@ -397,7 +395,8 @@ describe("the oracle's key-text list", () => {
  *   each a QTI identifier a key holds (`DeclaredIdentifierText`, `BindingName.identifier`);
  * - `choice identifier`: a choice's, a QTI identifier a key holds (`Choice.identifier`), and the
  *   correct response's value, a copied string value;
- * - `map key`: a map entry's `map-key`, `MapKey.key`;
+ * - `map key`: a map entry's `map-key`, whose value `MapKey` reads where it stands and no key text
+ *   holds;
  * - `string value`: a string outcome's default value, a copied string value;
  * - `resource identifier`, `manifest identifier`: the manifest's `xs:ID`s, whose values
  *   `resourceIdentifiers` and `manifestIdentifiers` read as written, of any length;
@@ -1046,9 +1045,9 @@ const heldItemOf = (body: string, after = ""): ReadonlyMap<string, Uint8Array> =
   ]);
 
 /**
- * The values the import writes into a key text that a rule over a query holds, and no statement
- * over `Attribute` copies: a `th`'s `id` (`TableHeader.id`), a catalog's `id` (`CatalogId.id`), a
- * share's fragment (`ShareFragment.id`), an ID of a document in an assembly, here an item that
+ * The IDs a key holds by their SHA-256 that no statement over `Attribute` copies: a `th`'s `id` and
+ * a catalog's `id`, each its attribute's value as the views `TableHeader` and `CatalogId` read it,
+ * a share's fragment (`ShareFragment.id`), an ID of a document in an assembly, here an item that
  * holds an include (`PlacedId.id`), and an element's text typed `xs:ID`, each an `xs:ID` of any
  * length, which a key holds by its SHA-256, as every ID of a document is. Each is an NCName of `n`
  * ASCII bytes, and the oracle reads each where it stands, as an ID of its document.
@@ -1259,7 +1258,7 @@ layer(NodeServices.layer, { excludeTestServices: true })(
       "admits a th's id, a catalog's id, a share's fragment, an assembled document's ID and an ID text past any B-tree entry, on the import's rows and in the oracle",
       () =>
         // Oracle: QTI bounds no ID (`xs:ID`) and no URI's fragment (XML Schema Part 2 §3.3.8), so
-        // each value a key holds (`TableHeader.id`, `CatalogId.id`, `ShareFragment.id`,
+        // each value a key holds (`TableHeader`'s and `CatalogId`'s `id`, `ShareFragment.id`,
         // `PlacedId.id`) and every ID of a document is held whole, a key holding it by its
         // SHA-256, and none is refused for its length. Bound: each place a byte past what one
         // B-tree entry holds of a text as itself.

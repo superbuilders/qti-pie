@@ -1,7 +1,6 @@
 /**
- * The terms of HTML content that the schema (`#pantry/qti/html.ts`) and the importer
- * (`#pantry/import/overlays/html.ts`) both read. Loading this module builds no relation of the
- * schema.
+ * The terms of HTML content the schema's views read (`#pantry/qti/names.ts`). Loading this module
+ * builds no relation of the schema.
  */
 
 /**

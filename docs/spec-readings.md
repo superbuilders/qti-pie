@@ -20,8 +20,8 @@ operator ruling. A new reading lands here by pull request, and a package that ne
    - **Key-text bound** (`key-text-bound`): a text a query reads by a pattern is at most 268,435,454 UTF-8 bytes
      (`matchedText`, `matchedTextBytes`, grizzle's `regexTextMaxBytes`, the longest text PostgreSQL's regex engine
      reads): an element's string value (`Node.stringValue`, which every `qti-value`, `qti-base-value`, LOM string and
-     text reference copies), a map key (`MapKey.key`), a lookup table's value (`LookupValue.value`), a mastery value
-     and a normal bound. An `aria-valuemin` or `aria-valuemax` of an element that
+     text reference copies), a mastery value and a normal bound; a map key and a lookup table's value past it are no
+     form "Typed attribute value" can read, and refused there where their declaration has a base type. An `aria-valuemin` or `aria-valuemax` of an element that
      writes both, where it is an `xs:decimal`, is at most 16,384 bytes (`parsedDecimalBytes`, grizzle's
      `decimalTextMaxBytes`, what `Text.parseDecimal` reads), past which a decimal may name a value PostgreSQL's
      numeric does not hold. A text a key holds is at most what the widest key it stands in leaves it, one bound per
@@ -1890,9 +1890,9 @@ against it. A reading that is not an information-model-over-XSD case says which 
     `case-sensitive` says ("Used to control whether or not a qti-map-entry string is matched case sensitively. The
     default value is false", section 7.21.3). An entry a value an earlier entry matches never reaches is never used, as
     BG010 (`QTI3_BeginnersGuide_Examples/items/BG010.xml`) shows, writing `York` with `case-sensitive="true"` mapped to
-    1 before `york` with the default mapped to 0.5. pantry stores every entry as one `MapKey` row in its mapping's
-    order, under no key, and refuses only a key its base type spells no value of (`Typed_attribute_value`, readings 7
-    and 8); plate takes the first listed entry that matches. The corpus holds no exact or typed repeat, and four
+    1 before `york` with the default mapped to 0.5. pantry holds every entry as one `MapKey` row, a view of its
+    `map-key`, under no key, and refuses only a key its base type spells no value of (`Typed_attribute_value`, readings
+    7 and 8); plate takes the first listed entry that matches. The corpus holds no exact or typed repeat, and four
     case-only pairs, which both sides accept. This binds pantry and plate alike. This is not a case of documents in
     conflict. (Decided 2026-11-06 by W5 seat Q5.11; restated 2026-11-14 by the operator's ruling on the conformance
     sweep's F5, "repeated map keys are admitted, and the first match wins", which lifts the uniqueness the 2026-11-06
@@ -2701,8 +2701,8 @@ against it. A reading that is not an information-model-over-XSD case says which 
      rule Bjorn's ruling of 2026-11-05 (question 3) removed, which Bjorn's ruling of 2026-11-06 on
      Aiden's review reverses. HTML's further rule, "A th element must not be targeted by itself", is not stated by the
      information model and is not read. Law "Table headers" (rule `table-headers`): each `HeaderToken(table, token)` is
-     a `(table, id)` of the `th`s that take part in a table, and `HeaderToken` is keyed by `(node, token)`
-     (`src/qti/html.ts`: `TableScope`, `CellHeaders`, `HeaderToken`, `TableHeader`). (Decided 2026-11-06 by RV seat H,
+     a `(table, id)` of the `th`s that take part in a table, and `HeaderToken` is keyed by `(node, token)` (the views
+     `HeaderToken` and `CellTable`, `src/qti/names.ts`, and `TableHeader`, `src/qti/overlay-queries/html.ts`). (Decided 2026-11-06 by RV seat H,
      on the review of PR #46, under Bjorn's standing ruling of 2026-11-05 that the spec wins.)
 127. **No quotation punctuation stands immediately before, after or inside a `q`.** The information model says of Q:
      "Quotation punctuation (such as quotation marks) that is quoting the contents of the tag must not appear
@@ -2875,8 +2875,8 @@ against it. A reading that is not an information-model-over-XSD case says which 
      on the host). The bounds that remain are each a stated
      limit of the representation: `matchedText`, at most `matchedTextBytes`, 268,435,454 bytes (`src/qti/limits.ts`, grizzle's
      `regexTextMaxBytes`, the longest text PostgreSQL's regex engine reads), a text a query reads by `Text.matches`:
-     an element's string value (`Node.stringValue`), a map key (`MapKey.key`), a lookup table's value
-     (`LookupValue.value`), a mastery value, a normal bound and an interaction attribute's value; `parsedDecimalBytes`,
+     an element's string value (`Node.stringValue`), a mastery value, a normal bound and an interaction attribute's
+     value, and, under "Typed attribute value", a map key and a lookup table's value; `parsedDecimalBytes`,
      16,384 bytes (grizzle's `decimalTextMaxBytes`), an `xs:decimal` ARIA bound of an element that writes both, which
      "Aria value range" parses by `Text.parseDecimal` under its own byte guard and "Key text bound" refuses past it,
      since a longer decimal may name a value numeric does not hold; and `foreignNameBytes`, 134,217,726 bytes, a

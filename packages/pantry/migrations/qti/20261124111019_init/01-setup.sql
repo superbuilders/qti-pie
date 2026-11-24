@@ -1853,6 +1853,8 @@ CREATE DOMAIN "qti"."__text_phcitidkqs" AS "pg_catalog"."text" COLLATE "pg_catal
 
 CREATE DOMAIN "qti"."__text_netnsfkgs7" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR ("pg_catalog"."octet_length"(VALUE) <= 268435454 AND VALUE ~ '\A[\u0001-\u0008\u000B\u000C\u000E-\u001F\!-\+\--\U0010FFFF](?:[\u0001-\u0008\u000B\u000C\u000E-\u001F\!-\U0010FFFF]*[\u0001-\u0008\u000B\u000C\u000E-\u001F\!-\+\--\U0010FFFF])?\Z'::"pg_catalog"."text") IS TRUE);
 
+CREATE DOMAIN "qti"."__text_7nkeqry66t" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR (VALUE ~ '\A[\!-\uFFFD\U00010000-\U0010FFFF]+\Z'::"pg_catalog"."text") IS TRUE);
+
 CREATE DOMAIN "qti"."__text_c6iptmtj2x" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR (VALUE ~ '\A[\u0009\u000A\u000D -\uFFFD\U00010000-\U0010FFFF]*\Z'::"pg_catalog"."text") IS TRUE);
 
 CREATE FUNCTION "qti"."__row_mf5tbjlvzq"("p1" "qti"."__text_c6iptmtj2x") RETURNS boolean
@@ -2234,13 +2236,9 @@ CREATE DOMAIN "qti"."__text_aezrarw5qb" AS "pg_catalog"."text" COLLATE "pg_catal
 
 CREATE DOMAIN "qti"."__text_3adwbksayk" AS "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8" CONSTRAINT "check" CHECK (VALUE IS NULL OR (VALUE ~ '\A(?:[A-WYZ\_a-wyz\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF][\-\.0-9A-Z\_a-z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C\u200D\u203F\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF]{2}|[A-Z\_a-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF][\-\.0-9A-Z\_a-z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C\u200D\u203F\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF]?|[A-Z\_a-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF\u200C\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF][\-\.0-9A-Z\_a-z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C\u200D\u203F\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF]{3}[\-\.0-9A-Z\_a-z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C\u200D\u203F\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF]*|[Xx](?:[\-\.0-9A-LN-Z\_a-ln-z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C\u200D\u203F\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF][\-\.0-9A-Z\_a-z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C\u200D\u203F\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF]|[Mm][\-\.0-9A-KM-Z\_a-km-z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C\u200D\u203F\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\U00010000-\U000EFFFF]))\Z'::"pg_catalog"."text") IS TRUE);
 
-CREATE TYPE "qti"."__row_news_assembled_catalog_6ne5lu5rmq" AS ("assembly" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "owner" bigint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8");
+CREATE TYPE "qti"."__row_olds_assembled_catalog_ssgtwjezlz" AS ("assembly" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8");
 
-REVOKE ALL ON TYPE "qti"."__row_news_assembled_catalog_6ne5lu5rmq" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_assembled_catalog_4wwryvtula" AS ("assembly" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "owner" bigint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8");
-
-REVOKE ALL ON TYPE "qti"."__row_olds_assembled_catalog_4wwryvtula" FROM PUBLIC;
+REVOKE ALL ON TYPE "qti"."__row_olds_assembled_catalog_ssgtwjezlz" FROM PUBLIC;
 
 CREATE TYPE "qti"."__row_news_assembled_document_4waj2i2okj" AS ("instances" bigint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "sites" bigint, "targets" bigint);
 
@@ -2278,13 +2276,13 @@ CREATE TYPE "qti"."__row_olds_candidate_path_lckjc3gnmm" AS ("at" bigint, "packa
 
 REVOKE ALL ON TYPE "qti"."__row_olds_candidate_path_lckjc3gnmm" FROM PUBLIC;
 
-CREATE TYPE "qti"."__row_news_catalog_id_wtnb22ruqn" AS ("id" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "owner" bigint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
+CREATE TYPE "qti"."__row_news_catalog_id_w4vbcph7fc" AS ("id" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
 
-REVOKE ALL ON TYPE "qti"."__row_news_catalog_id_wtnb22ruqn" FROM PUBLIC;
+REVOKE ALL ON TYPE "qti"."__row_news_catalog_id_w4vbcph7fc" FROM PUBLIC;
 
-CREATE TYPE "qti"."__row_olds_catalog_id_2rn7wrya5c" AS ("id" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "owner" bigint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
+CREATE TYPE "qti"."__row_olds_catalog_id_5yh226wx5a" AS ("id" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
 
-REVOKE ALL ON TYPE "qti"."__row_olds_catalog_id_2rn7wrya5c" FROM PUBLIC;
+REVOKE ALL ON TYPE "qti"."__row_olds_catalog_id_5yh226wx5a" FROM PUBLIC;
 
 CREATE TYPE "qti"."__row_news_catalog_scope_pjojxeyx34" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "scope" bigint, "start" bigint);
 
@@ -2294,14 +2292,6 @@ CREATE TYPE "qti"."__row_olds_catalog_scope_o3hp2dmfkf" AS ("package" "pg_catalo
 
 REVOKE ALL ON TYPE "qti"."__row_olds_catalog_scope_o3hp2dmfkf" FROM PUBLIC;
 
-CREATE TYPE "qti"."__row_news_cell_headers_2qk62aakmr" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "token_text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "token_text_digest" "pg_catalog"."bytea", "tokens" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_news_cell_headers_2qk62aakmr" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_cell_headers_raae2iezt3" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "token_text" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "token_text_digest" "pg_catalog"."bytea", "tokens" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_olds_cell_headers_raae2iezt3" FROM PUBLIC;
-
 CREATE TYPE "qti"."__row_news_cell_leaf_c7nhnilth7" AS ("at" bigint, "cell" bigint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "start_after" bigint, "start_was" bigint);
 
 REVOKE ALL ON TYPE "qti"."__row_news_cell_leaf_c7nhnilth7" FROM PUBLIC;
@@ -2309,6 +2299,14 @@ REVOKE ALL ON TYPE "qti"."__row_news_cell_leaf_c7nhnilth7" FROM PUBLIC;
 CREATE TYPE "qti"."__row_olds_cell_leaf_lij62iyost" AS ("at" bigint, "cell" bigint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "start_after" bigint, "start_was" bigint);
 
 REVOKE ALL ON TYPE "qti"."__row_olds_cell_leaf_lij62iyost" FROM PUBLIC;
+
+CREATE TYPE "qti"."__row_news_cell_table_l2zbat5wzr" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "table" bigint);
+
+REVOKE ALL ON TYPE "qti"."__row_news_cell_table_l2zbat5wzr" FROM PUBLIC;
+
+CREATE TYPE "qti"."__row_olds_cell_table_xbt4zmvqmu" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "table" bigint);
+
+REVOKE ALL ON TYPE "qti"."__row_olds_cell_table_xbt4zmvqmu" FROM PUBLIC;
 
 CREATE TYPE "qti"."__row_news_choice_kqwz52ilaz" AS ("identifier" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "kind" smallint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
 
@@ -2466,10 +2464,6 @@ CREATE TYPE "qti"."__row_news_fragment_template_ref_76js52a724" AS ("assembly" "
 
 REVOKE ALL ON TYPE "qti"."__row_news_fragment_template_ref_76js52a724" FROM PUBLIC;
 
-CREATE TYPE "qti"."__row_news_header_token_5rle6aggc7" AS ("after" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "at" bigint, "before" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "piece" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "pieces_after" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "pieces_after_digest" "pg_catalog"."bytea", "pieces_was" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "pieces_was_digest" "pg_catalog"."bytea", "start" bigint, "token" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "token_digest" "pg_catalog"."bytea");
-
-REVOKE ALL ON TYPE "qti"."__row_news_header_token_5rle6aggc7" FROM PUBLIC;
-
 CREATE TYPE "qti"."__row_news_hottext_saxfk42pjz" AS ("identifier" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
 
 REVOKE ALL ON TYPE "qti"."__row_news_hottext_saxfk42pjz" FROM PUBLIC;
@@ -2578,21 +2572,13 @@ CREATE TYPE "qti"."__row_olds_literal_typed_kgpvrii4gs" AS ("base_type" smallint
 
 REVOKE ALL ON TYPE "qti"."__row_olds_literal_typed_kgpvrii4gs" FROM PUBLIC;
 
-CREATE TYPE "qti"."__row_news_lookup_value_6yzi2rxk3o" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "value" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8");
+CREATE TYPE "qti"."__row_news_lookup_value_xufg7clhy2" AS ("name" smallint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "value" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8");
 
-REVOKE ALL ON TYPE "qti"."__row_news_lookup_value_6yzi2rxk3o" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_lookup_value_juhn5qgo47" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "value" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8");
-
-REVOKE ALL ON TYPE "qti"."__row_olds_lookup_value_juhn5qgo47" FROM PUBLIC;
+REVOKE ALL ON TYPE "qti"."__row_news_lookup_value_xufg7clhy2" FROM PUBLIC;
 
 CREATE TYPE "qti"."__row_news_map_key_cr65pyynnv" AS ("key" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
 
 REVOKE ALL ON TYPE "qti"."__row_news_map_key_cr65pyynnv" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_map_key_mv26etm73q" AS ("key" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_olds_map_key_mv26etm73q" FROM PUBLIC;
 
 CREATE TYPE "qti"."__row_news_math_action_44a25dssuk" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "selection" bigint, "selection_lexical" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "selection_lexical_digest" "pg_catalog"."bytea", "selection_written" boolean, "start" bigint);
 
@@ -2929,22 +2915,6 @@ REVOKE ALL ON TYPE "qti"."__row_news_stimulus_ref_l24b3sqslb" FROM PUBLIC;
 CREATE TYPE "qti"."__row_olds_stimulus_ref_36d27ppvxa" AS ("identifier" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
 
 REVOKE ALL ON TYPE "qti"."__row_olds_stimulus_ref_36d27ppvxa" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_news_table_header_5dhoaz3zbc" AS ("id" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "owner" bigint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "table" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_news_table_header_5dhoaz3zbc" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_table_header_rvmqzvrhof" AS ("id" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "id_digest" "pg_catalog"."bytea", "owner" bigint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "table" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_olds_table_header_rvmqzvrhof" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_news_table_scope_qvwb6ga3nv" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "table" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_news_table_scope_qvwb6ga3nv" FROM PUBLIC;
-
-CREATE TYPE "qti"."__row_olds_table_scope_cmqcgsgewh" AS ("package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint, "table" bigint);
-
-REVOKE ALL ON TYPE "qti"."__row_olds_table_scope_cmqcgsgewh" FROM PUBLIC;
 
 CREATE TYPE "qti"."__row_news_template_ref_wskhib2cad" AS ("assembly_kind" smallint, "attribute" smallint, "identifier" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "kind" smallint, "package" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "path" "pg_catalog"."text" COLLATE "pg_catalog"."pg_c_utf8", "start" bigint);
 

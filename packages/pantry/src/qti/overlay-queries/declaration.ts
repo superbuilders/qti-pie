@@ -9,7 +9,21 @@
  * Each law that pairs an overlay row or a node with one of them reads `Node` through a query here,
  * under the law's own name.
  */
-import { check, contained, derived, key, on, query, select, Text, v } from "@bjornpagen/grizzle";
+import {
+  check,
+  contained,
+  derived,
+  key,
+  Logic,
+  Num,
+  on,
+  pg,
+  query,
+  select,
+  Text,
+  Type,
+  v,
+} from "@bjornpagen/grizzle";
 import type { RowScalars } from "@bjornpagen/grizzle";
 import { referencedTables, tableReaders } from "#pantry/grammar/expression.ts";
 import { BaseTypeLexical, MappableBaseType } from "#pantry/grammar/install.ts";
@@ -42,7 +56,7 @@ import {
   NormalMinimum,
   QtiViews,
 } from "#pantry/qti/names.ts";
-import { identifierBytes } from "#pantry/qti/limits.ts";
+import { identifierBytes, matchedTextBytes } from "#pantry/qti/limits.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
 
@@ -534,6 +548,17 @@ const RootedDeclaration = derived(
 );
 
 /**
+ * A guarded match's true, as a typed term.
+ */
+const matched = Type.literal(pg.boolean, true);
+
+/**
+ * A guarded match's false, as a typed term: a text past what PostgreSQL's regex engine reads is no
+ * form a law can read.
+ */
+const unmatched = Type.literal(pg.boolean, false);
+
+/**
  * The declaration and mapping overlays' rules over their node, each named by its oracle law:
  *
  * - **AreaMapping base type:** an area mapping's declaration is no record, where it has a
@@ -555,7 +580,9 @@ const RootedDeclaration = derived(
  * - **Typed attribute value:** a map key, a table entry's target and a table's default are lexical
  *   forms of their declaration's base type, where it has one: read as written for `string`, and for
  *   every other base type after XML Schema's `collapse`, the whitespace facet each typed simple
- *   type fixes (XML Schema 1.0 Part 2 §4.3.6), so `" 3 "` is the integer 3 (reading 7);
+ *   type fixes (XML Schema 1.0 Part 2 §4.3.6), so `" 3 "` is the integer 3 (reading 7). QTI bounds
+ *   neither text, and PostgreSQL's regex engine reads at most `matchedTextBytes` of one, so a
+ *   longer text is no form the law can read, and is refused;
  * - **Typed value:** each value's text is a lexical form of its base type, its declaration's or, a
  *   record's field's, its own, each value its node's string value, its set its parent and its
  *   declaration its grandparent;
@@ -633,27 +660,51 @@ export const declarationOverlayLawsByName = {
   ]),
   "Typed attribute value": declared("Typed attribute value", [
     check("Typed_attribute_value", MapKeyType, (k) =>
-      k.or(
-        k.and(
-          k.eq(k.baseType, "string"),
-          Text.matches(k.key, BaseTypePattern.at("pattern", k.baseType)),
+      k.eq(
+        Logic.when(
+          Num.within(Text.octetLength(k.key), 0, matchedTextBytes),
+          () =>
+            Logic.cond(
+              k.or(
+                k.and(
+                  k.eq(k.baseType, "string"),
+                  Text.matches(k.key, BaseTypePattern.at("pattern", k.baseType)),
+                ),
+                k.and(
+                  k.ne(k.baseType, "string"),
+                  Text.matches(Text.collapse(k.key), BaseTypePattern.at("pattern", k.baseType)),
+                ),
+              ),
+              matched,
+              unmatched,
+            ),
+          unmatched,
         ),
-        k.and(
-          k.ne(k.baseType, "string"),
-          Text.matches(Text.collapse(k.key), BaseTypePattern.at("pattern", k.baseType)),
-        ),
+        true,
       ),
     ),
     check("Typed_attribute_value", LookupValueType, (l) =>
-      l.or(
-        l.and(
-          l.eq(l.baseType, "string"),
-          Text.matches(l.value, BaseTypePattern.at("pattern", l.baseType)),
+      l.eq(
+        Logic.when(
+          Num.within(Text.octetLength(l.value), 0, matchedTextBytes),
+          () =>
+            Logic.cond(
+              l.or(
+                l.and(
+                  l.eq(l.baseType, "string"),
+                  Text.matches(l.value, BaseTypePattern.at("pattern", l.baseType)),
+                ),
+                l.and(
+                  l.ne(l.baseType, "string"),
+                  Text.matches(Text.collapse(l.value), BaseTypePattern.at("pattern", l.baseType)),
+                ),
+              ),
+              matched,
+              unmatched,
+            ),
+          unmatched,
         ),
-        l.and(
-          l.ne(l.baseType, "string"),
-          Text.matches(Text.collapse(l.value), BaseTypePattern.at("pattern", l.baseType)),
-        ),
+        true,
       ),
     ),
   ]),

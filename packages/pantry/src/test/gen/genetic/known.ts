@@ -453,63 +453,6 @@ export const fixed: readonly Known[] = [
         "item.xml",
         "xml",
         `<?xml version="1.0" encoding="UTF-8"?>
-<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="i" title="t" adaptive="false" time-dependent="false"><qti-response-declaration identifier="" cardinality="many" base-type="identifier"><qti-mapping default-value="0"><qti-map-entry map-key="A" mapped-value="1"/></qti-mapping></qti-response-declaration></qti-assessment-item>`,
-      ],
-    ],
-    fix: "spec readings 157 and 158: a response declaration keeps its Declaration row whatever its identifier, cardinality and base type spell, so its mapping and each map key have their rows, judged as any other's (FIX-DECLNAME closed a nameless declaration's case, FIX-DECLCARD one whose cardinality or base type spells nothing)",
-    owner: "FIX-DECLCARD",
-    signature: {
-      kind: "import-only-law",
-      law: {
-        from: {
-          relation: "Attribute",
-          selection: {
-            conjuncts: [
-              {
-                kind: "compare",
-                left: { field: "kind", kind: "field" },
-                op: "eq",
-                right: { kind: "literal", value: "qti-map-entry" },
-              },
-              {
-                kind: "compare",
-                left: { field: "name", kind: "field" },
-                op: "eq",
-                right: { kind: "literal", value: "map-key" },
-              },
-            ],
-          },
-          terms: [
-            { field: "package", kind: "field" },
-            { field: "path", kind: "field" },
-            { field: "start", kind: "field" },
-          ],
-        },
-        kind: "contained",
-        to: {
-          relation: "MapKey",
-          selection: { conjuncts: [] },
-          terms: [
-            { field: "package", kind: "field" },
-            { field: "path", kind: "field" },
-            { field: "start", kind: "field" },
-          ],
-        },
-      },
-    },
-  },
-  {
-    files: [
-      [
-        "imsmanifest.xml",
-        "xml",
-        `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="M"><metadata><schemaversion>3.0.1</schemaversion></metadata><resources><resource identifier="R" type="imsqti_item_xmlv3p0" href="item.xml"><file href="item.xml"/></resource></resources></manifest>`,
-      ],
-      [
-        "item.xml",
-        "xml",
-        `<?xml version="1.0" encoding="UTF-8"?>
 <qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqtiasi_v3p0" identifier="i" title="t" adaptive="false" time-dependent="false"><qti-item-body><p>a <qti-gap identifier="G1"/> b</p></qti-item-body></qti-assessment-item>`,
       ],
     ],

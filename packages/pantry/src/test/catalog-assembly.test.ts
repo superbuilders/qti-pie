@@ -15,6 +15,7 @@ import type { PreviewRows } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
 import { Array as Arr, Effect, Formatter, Option, Predicate } from "effect";
+import { collapse } from "#pantry/grammar/domains.ts";
 import { keyTextOf } from "#pantry/import/key-text.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import { readEntries } from "#pantry/package/read.ts";
@@ -148,8 +149,9 @@ const at = (row: HeldRow, field: string): bigint | string => {
  * Restate "Catalog reference" (rule `idref-target`) over the import's rows as the database judges
  * its two rules over a query (`UnassembledReference` and `PlacedReference`,
  * `#pantry/qti/overlay-queries/catalog.ts`): each `data-catalog-idref` token, its `Idref` piece's,
- * of a document in no assembly is the `id` of a `CatalogId` of that document, and each one of a
- * document an `Instance` places is the `id` of an `AssembledCatalog` of the instance's assembly.
+ * of a document in no assembly is the `id` of a `qti-catalog` of that document, its attribute's
+ * value collapsed (`CatalogId`), and each one of a document an `Instance` places is the `id` of a
+ * catalog some `PlacedId` of the instance's assembly binds (`AssembledCatalog`).
  *
  * @param rows - The import's rows as the database holds them.
  * @returns Whether some token resolves nowhere.
@@ -162,13 +164,23 @@ const unresolvedReference = (rows: PreviewRows<typeof Qti>): boolean => {
       .filter((row) => row["assembled"] === false)
       .map((row) => keyTextOf(at(row, "package"), at(row, "path"))),
   );
+  const catalogIds = rowsOf("Attribute").filter(
+    (row) => row["kind"] === "qti-catalog" && row["name"] === "id",
+  );
   const catalogs = new Set(
-    rowsOf("CatalogId").map((row) => keyTextOf(at(row, "package"), at(row, "path"), at(row, "id"))),
+    catalogIds.map((row) =>
+      keyTextOf(at(row, "package"), at(row, "path"), collapse(String(at(row, "lexical")))),
+    ),
+  );
+  const catalogElements = new Set(
+    catalogIds.map((row) => keyTextOf(at(row, "package"), at(row, "path"), at(row, "start"))),
   );
   const bound = new Set(
-    rowsOf("AssembledCatalog").map((row) =>
-      keyTextOf(at(row, "package"), at(row, "assembly"), at(row, "id")),
-    ),
+    rowsOf("PlacedId")
+      .filter((row) =>
+        catalogElements.has(keyTextOf(at(row, "package"), at(row, "path"), at(row, "owner"))),
+      )
+      .map((row) => keyTextOf(at(row, "package"), at(row, "assembly"), at(row, "id"))),
   );
   const instances = rowsOf("Instance");
 

@@ -31,7 +31,6 @@ import {
   textIdentityOf,
   unassembledTargets,
 } from "#pantry/qti/identity.ts";
-import { AssembledCatalog } from "#pantry/qti/catalog.ts";
 import { PlacedShareTarget, ShareTarget } from "#pantry/qti/mathml-share.ts";
 import { attributeValues, IdValue, QtiViews, SsmlValue } from "#pantry/qti/names.ts";
 import { documentStart, Node } from "#pantry/qti/node.ts";
@@ -359,10 +358,6 @@ export const identityOverlayLawsByName = {
     contained(
       on(PlacedShareTarget, "package", "assembly", "id", "target", "targetStart", "targetInstance"),
       on(AssembledId, "package", "assembly", "id", "path", "owner", "instance"),
-    ),
-    contained(
-      on(AssembledCatalog, "package", "assembly", "id", "path", "owner"),
-      on(AssembledId, "package", "assembly", "id", "path", "owner"),
     ),
     check("E1_derived", IdentityTextNode, (t) => {
       const identity = textIdentityOf(t.governor);

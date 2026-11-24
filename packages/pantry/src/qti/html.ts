@@ -19,8 +19,8 @@
  *   a `th` that takes part in the cell's table, and the tokens are unique ("an unordered set of
  *   unique space-separated tokens that are case-sensitive, each of which must have the value of an
  *   ID of a 'th' tag taking part in the same table as the 'td' or 'th' tag", info §5.140.1). A
- *   cell's table is its nearest `table`, nested tables included ({@link TableScope}); a cell no
- *   `table` holds takes part in no table, so none of its tokens names a header.
+ *   cell's table is its nearest `table`, nested tables included (`CellTable`); a cell no `table`
+ *   holds takes part in no table, so none of its tokens names a header.
  *
  * Reading 124 and the missing-`kind` half of reading 125 are presence laws, AL3's pattern: a row
  * check on `Node` that a slot is in `attrs`, the fold of its attributes' slots (AL2). Each is its
@@ -29,19 +29,11 @@
  * valid non-empty URL, and `srclang` a BCP 47 tag, is each attribute's value domain (AL1's lexical
  * half, readings 124, 125 and 129).
  *
- * No overlay copies a cell's `headers` (C18): {@link CellHeaders} holds its parse alone, at the
- * attribute's element both ways, and the parse is held to the lexical form it reads where the form
- * stands, `Attribute`'s (`#pantry/qti/overlay-queries/html.ts`). A `th`'s `id` has its
- * {@link TableHeader}, from `attributesOf` into the overlay, keyed by `Attribute`'s own key,
- * `(package, path, start, name)` (`#pantry/qti/attributes.ts`); it lies inside the ID-typed
- * attributes (`idAttributes` of `#pantry/qti/identity.ts`), which the key over them holds to one
- * per element, and the way back meets them at the `th` kind ({@link thIdAttributes}). Every overlay
- * is keyed by its element, `(package, path, start)`, and names another element of its document by
- * its position. Every copied text that takes part in a cross-row equality is of its type's bound in
- * a key (`#pantry/qti/limits.ts`), so a key, a containment's target and a lookup hold it as itself.
- * Every
- * check is named by its oracle law (`#pantry/test/oracle.ts` `LawName`) with spaces written as
- * underscores.
+ * Reading 126 reads views of `Attribute` and `Node`, each a projection no row copies (C18), so its
+ * laws are rules over a query (`#pantry/qti/overlay-queries/html.ts`): each cell's `headers` split
+ * into its tokens (`HeaderToken`), each cell's nearest table (`CellTable`) and each tabled `th`'s
+ * `id` beside its table (`TableHeader`). Every check is named by its oracle law
+ * (`#pantry/test/oracle.ts` `LawName`) with spaces written as underscores.
  *
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Source | QTI 3.0 information model, §5.135 Source}
  * @see {@link https://www.imsglobal.org/spec/qti/v3p0/info#Data_Track | QTI 3.0 information model, §5.163 Track}
@@ -50,136 +42,15 @@
  * @see {@link https://html.spec.whatwg.org/multipage/media.html#the-track-element | HTML, the track element}
  * @see {@link https://html.spec.whatwg.org/multipage/tables.html#attr-tdth-headers | HTML, the headers attribute}
  */
-import {
-  check,
-  contained,
-  Crypto,
-  generated,
-  key,
-  law,
-  mirrors,
-  on,
-  relation,
-  select,
-  sha256,
-} from "@bjornpagen/grizzle";
-import { Attribute, attributesOf, carries } from "#pantry/qti/attributes.ts";
-import { thIdAttributes } from "#pantry/qti/identity.ts";
-import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
-import { documentStart, Node } from "#pantry/qti/node.ts";
-import {
-  listTokens,
-  tokenFields,
-  tokenList,
-  tokenTextDigest,
-  whitespaceTokens,
-} from "#pantry/qti/token-list.ts";
-import { cellKinds } from "#pantry/vocab/terms/html.ts";
+import { check, contained, on, select } from "@bjornpagen/grizzle";
+import { Attribute, carries } from "#pantry/qti/attributes.ts";
+import { Node } from "#pantry/qti/node.ts";
 import { declared } from "#pantry/qti/law-entries.ts";
-import { entryOf } from "#pantry/vocab/laws.ts";
-import { natural } from "#pantry/grammar/install.ts";
 
 /**
  * The kinds of the media elements, whose `source` children carry `src` (reading 124).
  */
 const mediaKinds = ["audio", "video"] as const;
-
-/**
- * One element on the way from a table cell an overlay reads up to the table it takes part in, keyed
- * by the element: `table`, the position of its nearest `table`, itself included, or of the document
- * node for an element no `table` holds. A `table` is its own table, a document's root the
- * document's where it is no `table`, and every other element its parent's, so a cell's table is
- * read up the tree with no copy on `Node`, as `identity.ts`'s `SsmlScope` reads an SSML fragment.
- * The element's kind and parent are its node's, which the scope's laws read through `Node`
- * (`#pantry/qti/overlay-queries/html.ts`).
- */
-export const TableScope = law(
-  entryOf("E1 derived"),
-  relation(
-    "TableScope",
-    { package: PackageName, path: EntryPath, start: natural, table: natural },
-    ["package", "path", "start"],
-  ),
-);
-
-/**
- * One table cell's `headers`, keyed by the cell: the owner of the attribute's parse, which holds no
- * copy of its lexical form (C18).
- *
- * - **the attribute's element:** `package`, `path` and `start`;
- * - **drawn:** `tokens`, its {@link HeaderToken} count;
- * - **accumulated:** `tokenText`, the end of its tokens' concatenation, which "E1 derived" holds to
- *   the attribute's lexical form where it stands (`#pantry/qti/overlay-queries/html.ts`);
- * - **generated:** `tokenTextDigest`, its digest, the fold's end on the family's last axis.
- *
- * Its table is its cell's {@link TableScope}, which "Table headers" reads through a query.
- */
-export const CellHeaders = law(
-  entryOf("E1 derived"),
-  relation.generated(
-    "CellHeaders",
-    {
-      package: PackageName,
-      path: EntryPath,
-      start: natural,
-      tokenText: tokenFields.piecesWas,
-      tokens: tokenFields.at,
-    },
-    ["package", "path", "start"],
-    (c) => tokenTextDigest(c),
-  ),
-);
-
-/**
- * One token of a cell's `headers`, in order, with the whitespace written before and after it, so
- * its `piece` is a stretch of the value and the pieces concatenate to it: a whitespace list's token
- * (`#pantry/qti/token-list.ts`), its family's group the cell's.
- *
- * The tokens are a set (reading 126: "an unordered set of unique space-separated tokens"), which
- * the key over `(package, path, start, token)` holds; the order is the lexical form's, the order of
- * its stretches, which the concatenation that proves the split against the value reads.
- *
- * Its cell's table is the cell's {@link TableScope}, which "Table headers" reads through a query.
- */
-export const HeaderToken = law(entryOf("E1 derived"), listTokens("HeaderToken"));
-
-/**
- * One `th` that carries an ID, keyed by the `th`: its `id`, the ID's value as `IdValue`
- * (`#pantry/qti/names.ts`) holds it (an `xs:ID` collapsed), with `owner` its own position, an
- * attribute ID's binding, so its copy shares the superkey `PlacedId` reads; and `table`, its
- * {@link TableScope}'s, which "E1 derived" holds it to, so "DocumentId key" keys a table's headers
- * by the table itself. The key reads the ID by `idDigest`, its SHA-256, since XML Schema bounds no
- * `xs:ID` and a key holds no text of any length.
- */
-export const TableHeader = law(
-  entryOf("E1 derived"),
-  relation.generated(
-    "TableHeader",
-    {
-      id: matchedText,
-      owner: natural,
-      package: PackageName,
-      path: EntryPath,
-      start: natural,
-      table: natural,
-    },
-    ["package", "path", "start"],
-    (h) => ({ idDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(h.id))) }),
-  ),
-);
-
-/**
- * The headers that take part in a table, each `th`'s ID beside its table, by the `th`'s place:
- * those whose nearest `table` is one, not the document node. "DocumentId key" keys them by table
- * and ID, and "Table headers" resolves a cell's header tokens among them
- * (`#pantry/qti/overlay-queries/html.ts`).
- */
-export const tabledHeaders = select(TableHeader, (h) => h.ne(h.table, documentStart));
-
-/**
- * Every relation this module declares, in one list, as `schema.ts` composes them.
- */
-export const htmlRelations = [CellHeaders, HeaderToken, TableHeader, TableScope] as const;
 
 /**
  * Reading 124's picture half (law "Picture source srcset", rule `source-srcset`; info §5.135.3:
@@ -232,73 +103,20 @@ export const subtitleTrackSrclang = contained(
 );
 
 /**
- * A table cell's `headers`, each with its {@link CellHeaders} row.
- */
-const headersAttributes = attributesOf("headers", cellKinds);
-
-/**
- * A `th`'s `id`, one of its document's IDs, the source of {@link TableHeader}: AL1 holds its form
- * to its domain, an `xs:ID`, an NCName once collapsed (spec readings 152 and 156).
- */
-const headerIds = attributesOf("id", ["th"]);
-
-/**
- * Every statement over the HTML overlays, each `check` named by its oracle law:
+ * Every statement over the HTML elements' nodes and attributes, each `check` named by its oracle
+ * law:
  *
  * - **Reading 124:** {@link pictureSourceSrcset} and {@link mediaSourceSrc};
  * - **Reading 125:** {@link defaultTrackSrclang}, and {@link subtitleTrackSrclang}, whose target, the
  *   `srclang` selection, is keyed by `Attribute`'s own key at its fixed name
- *   (`#pantry/qti/attributes.ts`);
- * - **TableScope:** each scope at a node; a `table` its own table, a root that is no `table` the
- *   document's and every other element its parent's, which read the node's kind and parent and so
- *   are rules over a query (`#pantry/qti/overlay-queries/html.ts`);
- * - **CellHeaders:** a row for each cell's `headers` and for no other element (both ways), at its
- *   scope; its tokens a family, each token a maximal run of no whitespace (`E1_derived`), whose
- *   concatenation the attribute's lexical form is, or none for a form of whitespace alone, a rule
- *   over a query that reads the form where it stands (`#pantry/qti/overlay-queries/html.ts`);
- * - **TableHeader:** each `th`'s `id` with its row, both ways, the way back an ID-typed attribute of
- *   a `th` at its node, since a `th`'s one ID-typed attribute is its `id`
- *   (`#pantry/qti/identity.copyback.test.ts`); at its scope; its value and owner the ID's, a rule
- *   over a query over `IdValue` (`#pantry/qti/overlay-queries/html.ts`);
- * - **Reading 126:** a cell's tokens unique; and, through its cell's and its header's scope, which is
- *   a rule over a query (`#pantry/qti/overlay-queries/html.ts`), each token the `id` of a `th`
- *   taking part in the cell's table, and one header per (table, id) among those in a table
- *   ("DocumentId key"), which an ID held twice in a document already breaks.
+ *   (`#pantry/qti/attributes.ts`).
+ *
+ * Reading 126's laws read views, so they are rules over a query
+ * (`#pantry/qti/overlay-queries/html.ts`).
  */
 export const htmlLawsByName = {
-  "DocumentId key": declared("DocumentId key", [
-    key(on(tabledHeaders, "package", "path", "table", "idDigest")),
-  ]),
-  "E1 derived": declared("E1 derived", [
-    contained(on(TableScope, "package", "path", "start"), on(Node, "package", "path", "start")),
-    mirrors(
-      on(headersAttributes, "package", "path", "start"),
-      on(CellHeaders, "package", "path", "start"),
-    ),
-    contained(
-      on(CellHeaders, "package", "path", "start"),
-      on(TableScope, "package", "path", "start"),
-    ),
-    ...tokenList(HeaderToken, CellHeaders, whitespaceTokens(HeaderToken)),
-    contained(
-      on(headerIds, "package", "path", "start"),
-      on(TableHeader, "package", "path", "start"),
-    ),
-    contained(
-      on(TableHeader, "package", "path", "start"),
-      on(thIdAttributes, "package", "path", "start"),
-    ),
-    check("E1_derived", TableHeader, (h) => h.eq(h.owner, h.start)),
-    contained(
-      on(TableHeader, "package", "path", "start", "table"),
-      on(TableScope, "package", "path", "start", "table"),
-    ),
-  ]),
   "Media source src": declared("Media source src", [mediaSourceSrc]),
   "Picture source srcset": declared("Picture source srcset", [pictureSourceSrcset]),
-  "Table headers": declared("Table headers", [
-    key(on(HeaderToken, "package", "path", "start", "tokenDigest")),
-  ]),
   "Track srclang": declared("Track srclang", [defaultTrackSrclang, subtitleTrackSrclang]),
 } as const;
 

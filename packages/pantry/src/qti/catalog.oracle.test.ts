@@ -3,8 +3,8 @@
  * (information model §5.26.1, §5.27.2 and §5.28.1) over packages whose catalogs repeat a support or
  * a default, and whose `data-catalog-idref`s name or miss a catalog.
  *
- * The database tests judge the laws through PostgreSQL, and the builder's tests
- * (`#pantry/import/overlays/catalog.test.ts`) its rows.
+ * The database tests judge the laws through PostgreSQL, and
+ * `#pantry/qti/attribute-views.db.test.ts` the views they read.
  */
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";

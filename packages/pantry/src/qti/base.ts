@@ -12,12 +12,11 @@ import { schema } from "@bjornpagen/grizzle";
 import { grammarRelations, grammarRosters } from "#pantry/grammar/install.ts";
 import { attributeLaws, attributeRelations } from "#pantry/qti/attributes.ts";
 import { chardataLaws, chardataRelations } from "#pantry/qti/chardata.ts";
-import { catalogLaws, catalogRelations } from "#pantry/qti/catalog.ts";
+import { catalogLaws } from "#pantry/qti/catalog.ts";
 import { dataSsmlLaws, dataSsmlRelations } from "#pantry/qti/data-ssml.ts";
-import { htmlLaws, htmlRelations } from "#pantry/qti/html.ts";
+import { htmlLaws } from "#pantry/qti/html.ts";
 import { identityLaws, identityRelations } from "#pantry/qti/identity.ts";
 import { interactionLaws, interactionRelations } from "#pantry/qti/interactions.ts";
-import { mappingLaws, mappingRelations } from "#pantry/qti/mapping.ts";
 import { metadataLaws, metadataRelations } from "#pantry/qti/metadata.ts";
 import { expressionLaws, expressionRelations } from "#pantry/qti/expressions.ts";
 import { nodeLaws, nodeRelations } from "#pantry/qti/node.ts";
@@ -38,7 +37,6 @@ type QtiStatement =
   | (typeof packageLaws)[number]
   | (typeof identityLaws)[number]
   | (typeof testLaws)[number]
-  | (typeof mappingLaws)[number]
   | (typeof interactionLaws)[number]
   | (typeof expressionLaws)[number]
   | (typeof metadataLaws)[number]
@@ -50,7 +48,7 @@ type QtiStatement =
 
 /**
  * Every module's statements, in module order, each module's list one element: a list of lists
- * holds fifteen types, where a list literal of every statement would hold them all.
+ * holds fourteen types, where a list literal of every statement would hold them all.
  */
 const moduleLaws: readonly (readonly QtiStatement[])[] = [
   nodeLaws,
@@ -59,7 +57,6 @@ const moduleLaws: readonly (readonly QtiStatement[])[] = [
   packageLaws,
   identityLaws,
   testLaws,
-  mappingLaws,
   interactionLaws,
   expressionLaws,
   metadataLaws,
@@ -84,14 +81,11 @@ export const qtiRelations = [
   ...packageRelations,
   ...identityRelations,
   ...testRelations,
-  ...mappingRelations,
   ...interactionRelations,
   ...expressionRelations,
   ...metadataRelations,
-  ...htmlRelations,
   ...operatorRelations,
   ...mathmlRelations,
-  ...catalogRelations,
   ...dataSsmlRelations,
 ] as const;
 

@@ -236,10 +236,6 @@ export const rowCountsOf = (program: ImportProgram): ReadonlyMap<string, number>
     add("TextIdref", text.tokens.length);
   }
 
-  for (const headers of flat.CellHeaders.values()) {
-    add("HeaderToken", headers.tokens.length);
-  }
-
   for (const cell of flat.MathCell.values()) {
     add("CellLeaf", cell.leaves.length);
   }

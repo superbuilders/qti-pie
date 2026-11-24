@@ -485,14 +485,6 @@ const idTyped = (a: AttributeRow) =>
 export const idAttributes = select(Attribute, idTyped);
 
 /**
- * The ID-typed attributes of `th` elements, which a `th`'s `TableHeader` copies back into
- * (`#pantry/qti/html.ts`). Its conditions include every one of {@link idAttributes}', whose key
- * over the element holds it, and its kind is a field it fixes to a value beyond its terms, so it
- * needs no key of its own (grizzle's README, "Fixed fields").
- */
-export const thIdAttributes = select(Attribute, (a) => a.and(idTyped(a), a.eq(a.kind, "th")));
-
-/**
  * The elements whose text is of an identity type, the source of {@link IdentityText}.
  */
 const identityNodes = select(Node, (n) => n.in(textIdentityOf(n.governor), Identity.handles));

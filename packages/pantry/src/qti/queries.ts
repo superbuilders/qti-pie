@@ -46,7 +46,6 @@ import {
 import { QtiBase } from "#pantry/qti/base.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { DataSsmlMember, DataSsmlProperty } from "#pantry/qti/data-ssml.ts";
-import { LookupValue, MapKey } from "#pantry/qti/mapping.ts";
 import {
   attributeCodes,
   attributeValues,
@@ -374,60 +373,6 @@ const TextReferenceStringValue = derived(
       .find({ lead, package: pkg, params, path, start, stringValue, target, trail });
   }),
 );
-
-/**
- * Every `map-key` of a `qti-map-entry` as written, by its element's place: what a {@link MapKey}
- * copies, compared as text. QTI bounds no map key, and a string mapping's key is an expected answer
- * of any length.
- */
-const MapKeyAttributeText = derived(
-  "MapKeyAttributeText",
-  query(QtiBase).rule((r) => {
-    const { kind, name, package: pkg, path, start, value, valueDigest } = v(Attribute, "attribute");
-
-    return r
-      .match(Attribute, { kind, name, package: pkg, path, start, value, valueDigest })
-      .where(r.eq(name, "map-key"))
-      .where(r.eq(kind, "qti-map-entry"))
-      .find({ package: pkg, path, start, value, valueDigest });
-  }),
-);
-
-/**
- * Every lookup table's typed attribute value as written, by its element's place: a table entry's
- * `target-value` and a table's `default-value`, what a {@link LookupValue} copies, compared as text.
- * An element of a lookup table writes at most one of the two, its kind's, so one row names each
- * place (AL1 refuses the other).
- */
-const LookupAttributeText = derived(
-  "LookupAttributeText",
-  query(QtiBase).rule((r) => {
-    const { lexical, name, package: pkg, path, start } = v(Attribute, "attribute");
-
-    return r
-      .match(Attribute, { lexical, name, package: pkg, path, start })
-      .where(r.or(r.eq(name, "target-value"), r.eq(name, "default-value")))
-      .find({ lexical, package: pkg, path, start });
-  }),
-);
-
-/**
- * The mapping overlays' copies of free text, each held to its source by a rule over a query, which
- * compares the two texts and no index holds ("Mapping overlay"): a map key's and a lookup value's
- * copy of its attribute.
- */
-const mappingQueryLawsByName = {
-  "Mapping overlay": declared("Mapping overlay", [
-    contained(
-      on(MapKey, "package", "path", "start", "key"),
-      on(MapKeyAttributeText, "package", "path", "start", "value"),
-    ),
-    contained(
-      on(LookupValue, "package", "path", "start", "value"),
-      on(LookupAttributeText, "package", "path", "start", "lexical"),
-    ),
-  ]),
-} as const;
 
 /**
  * Every rule over a typed href, each `check` named by its oracle law with spaces written as
@@ -2090,8 +2035,6 @@ export const queryRelations = [
   ListedIdentifier,
   ListedLang,
   ListedTitle,
-  LookupAttributeText,
-  MapKeyAttributeText,
   MappedResponseDeclaration,
   MatchedIdentifier,
   MatchedTitle,
@@ -2127,7 +2070,6 @@ export const queryLawsByName = [
   identityQueryLawsByName,
   metadataQueryLawsByName,
   expressionQueryLawsByName,
-  mappingQueryLawsByName,
   dataSsmlQueryLawsByName,
   testQueryLawsByName,
   interactionQueryLawsByName,
@@ -2153,7 +2095,6 @@ type QueryStatement =
   | StatementOf<typeof identityQueryLawsByName>
   | StatementOf<typeof metadataQueryLawsByName>
   | StatementOf<typeof expressionQueryLawsByName>
-  | StatementOf<typeof mappingQueryLawsByName>
   | StatementOf<typeof dataSsmlQueryLawsByName>
   | StatementOf<typeof testQueryLawsByName>
   | StatementOf<typeof interactionQueryLawsByName>
@@ -2169,7 +2110,6 @@ export const queryLaws: readonly QueryStatement[] = [
   ...Object.values(identityQueryLawsByName).flat(),
   ...Object.values(metadataQueryLawsByName).flat(),
   ...Object.values(expressionQueryLawsByName).flat(),
-  ...Object.values(mappingQueryLawsByName).flat(),
   ...Object.values(dataSsmlQueryLawsByName).flat(),
   ...Object.values(testQueryLawsByName).flat(),
   ...Object.values(interactionQueryLawsByName).flat(),
