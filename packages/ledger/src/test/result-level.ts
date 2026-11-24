@@ -150,6 +150,7 @@ const {
   SnapshotSingleString,
   StartVariable,
   TestBudget,
+  TestPresented,
   TestSession,
   TestVisit,
   UnendedSitting,
@@ -899,6 +900,27 @@ const startsOf = query(ResultLevel).rule((r) => {
 });
 
 /**
+ * The entry at the member a call names (`namedEntries`, its `item`), and the entry where its
+ * candidate left the sitting (`resumedEntries`): each the ledger's one entry, its `entries` bound
+ * on its own part.
+ */
+const namedEntry = sittingPrograms.enterTest.bind({ entries: sittingPrograms.namedEntries });
+
+const resumedEntry = sittingPrograms.enterTest.bind({ entries: sittingPrograms.resumedEntries });
+
+/**
+ * The child's presentations (`TestPresented`), each by its sitting, its candidate session and its
+ * item document.
+ */
+const presentationsOf = query(ResultLevel).rule((r) => {
+  const { stage, at, k, path } = v(TestPresented, "presentation");
+
+  return r
+    .match(TestPresented, { at, child: r.param("child", LearnerId), k, path, stage })
+    .find({ at, k, path, stage });
+});
+
+/**
  * The child's final sittings (`SittingFinal`), each by its stage: an ended sitting none of whose
  * attempts waits for its response processing or an external score.
  */
@@ -939,8 +961,8 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       drawsOf,
       durationsOf,
       endTest: sittingPrograms.endTest.bind({ sittings: namedSitting }),
-      enterTest: sittingPrograms.enterTest.bind({ sittings: namedSitting }),
-      enterTimedTest: ChangeSet.union(sittingPrograms.enterTest, firstBudget).bind({
+      enterTest: namedEntry.bind({ sittings: namedSitting }),
+      enterTimedTest: ChangeSet.union(namedEntry, firstBudget).bind({
         sittings: namedSitting,
       }),
       evaluate,
@@ -962,8 +984,10 @@ export const ResultSuite = login(ResultLevel, "result_suite", [Suite], {
       ),
       presentItem: sittingPrograms.presentItem.bind({ sittings: namedSitting }),
       presentTimesOf,
+      presentationsOf,
       publish: ChangeSet.union(insertWrite, ChangeSet.empty(ResultLevel)),
       recordEvaluations: ChangeSet.over(Suite, evaluations.recordEvaluations),
+      resumeTest: resumedEntry.bind({ sittings: namedSitting }),
       saveTestItem: sittingPrograms.saveTestItem.bind({ sittings: namedSitting }),
       savesOf,
       sessionsOf,

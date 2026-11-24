@@ -11,14 +11,16 @@
  *   takeValuesOf), all in one stratum, so `taken` is read once. The application binds `taken` to
  *   its query of what its decision wrote, in the stratum after it, its guard in that query
  *   (`ChangeSet.sequence(appDecide, take.bind({ taken: appTaken }))`).
- * - `enterTest` { sittings, item }: the sitting's next candidate session (§1.5, §2.2.1), its `k` the
- *   count of the sessions before it, presenting the member whose item ref is `item`, at the start
- *   and on a resumption alike: in a nonlinear part "the candidate is free to navigate to any item
- *   in the test at any time" (the overview, from TestPart's `navigation-mode`, Table 5.159.4), and
- *   in a linear part the delivery level's laws hold it to the member order ("Linear in order",
- *   "Linear never back") and, in an individual part, to the member the candidate is on ("In turn");
- *   a timed sitting's later budget is what its suspended session left (`NextBudget`). The start's
- *   budget is the application's applied limit, which it unions in.
+ * - `enterTest` { sittings, entries }: the sitting's next candidate session (§1.5, §2.2.1), its `k`
+ *   the count of the sessions before it, presenting the member whose item ref its entry names, at
+ *   the start and on a resumption alike, the application binding `entries` to the entries its call
+ *   makes (`resumedEntries`, where its candidate left it; `namedEntries`, the member a call names):
+ *   in a nonlinear part "the candidate is free to navigate to any item in the test at any time"
+ *   (the overview, from TestPart's `navigation-mode`, Table 5.159.4), and in a linear part the
+ *   delivery level's laws hold it to the member order ("Linear in order", "Linear never back") and,
+ *   in an individual part, to the member the candidate is on ("In turn"); a timed sitting's later
+ *   budget is what its suspended session left (`NextBudget`). The start's budget is the
+ *   application's applied limit, which it unions in.
  * - `presentItem` { sittings, item }: the candidate moves to the member whose item ref is `item`.
  * - `saveTestItem` { sittings, item, given, …values }: a response given and not submitted, QTI's
  *   suspended values (§2.2.4).
@@ -69,12 +71,18 @@
  * database's stamp, is admitted, the latest save winning.
  */
 import { ChangeSet, Fn, Logic, Num, pg, query, Range, Type, v } from "@bjornpagen/grizzle";
+import { memberPositions } from "@qti-pie/pantry/qti/positions.ts";
 import { presenceGraceMicros } from "#ledger/delivery.ts";
 import type { deliveryOf } from "#ledger/delivery.ts";
 import { memberAnswerAdmissionOf, takeValuesOf } from "#ledger/grade.ts";
 import { processingSeed } from "#ledger/grading.ts";
 import { SnapshotKind } from "#ledger/ledger.ts";
-import { sittingHeading, sittingStandingOf, takenHeading } from "#ledger/sitting-queries.ts";
+import {
+  shownMemberOf,
+  sittingHeading,
+  sittingStandingOf,
+  takenHeading,
+} from "#ledger/sitting-queries.ts";
 import { Moment, Reading } from "#ledger/sittings.ts";
 
 /**
@@ -337,20 +345,84 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   );
 
   /**
-   * A sitting of `sittings` the call enters ({@link closedSitting}) with the member it names by its
-   * item ref's identifier, `item` ({@link sittingMember}): the member the candidate session
-   * presents. A name of no member of the sitting's test enters nothing.
+   * The entries a call makes, the `entries` relation parameter its entry reads ({@link enterTest}):
+   * each a sitting by its key ({@link sittingHeading}) with the identifier of the item ref whose
+   * member its next candidate session presents. An application binds it to the entries its call
+   * makes: {@link resumedEntries}, or {@link namedEntries}.
+   */
+  const entryHeading = { ...sittingHeading, item: ItemRef } as const;
+
+  /**
+   * Each of the call's sittings' member last presented: where {@link resumedEntries} resumes it.
+   */
+  const lastPresented = shownMemberOf(delivery);
+
+  /**
+   * The entries that resume each of the call's sittings where its candidate left it: the member
+   * last presented, where a candidate session showed one, else the test's first member in its
+   * delivered order (`memberPositions`, DeliveredTest admitting no selection or ordering). QTI
+   * names no member a start or a resumption opens at ("Test delivery systems are free to implement
+   * their own user interface elements to facilitate navigation provided they honour the navigation
+   * mode currently in effect", §2.8.2), so this is a delivery's choice, stated once for every
+   * application that makes it, and the delivery level's laws judge it as any other entry.
+   */
+  const resumedEntries = query(delivery)
+    .rule((r) => {
+      const shown = lastPresented.bind({ sittings: r.relation("sittings", sittingHeading) });
+      const { child, stage, package: pkg, path } = v(shown, "resumedAt");
+      const { path: test } = v(f.TestSession, "resumedTest");
+      const { item } = v(f.TestMember, "resumedMember");
+
+      return r
+        .match(shown, { child, package: pkg, path, stage })
+        .match(f.TestSession, { child, package: pkg, path: test, stage })
+        .match(f.TestMember, { document: path, item, package: pkg, path: test })
+        .find({ child, item, stage });
+    })
+    .rule((r) => {
+      const sittings = r.relation("sittings", sittingHeading);
+      const { child, stage } = v(sittings, "startedAt");
+      const { package: pkg, path: test } = v(f.TestSession, "startedTest");
+      const { item } = v(memberPositions, "firstMember");
+
+      return r
+        .match(sittings, { child, stage })
+        .match(f.TestSession, { child, package: pkg, path: test, stage })
+        .match(memberPositions, { item, k: 1n, package: pkg, path: test })
+        .where(r.not(f.TestPresented, { child, stage }))
+        .find({ child, item, stage });
+    });
+
+  /**
+   * The entries that present, in each of the call's sittings, the member a call names by its item
+   * ref's identifier, `item`: a page that shows a member of a sitting outside its candidate
+   * sessions.
+   */
+  const namedEntries = query(delivery).rule((r) => {
+    const sittings = r.relation("sittings", sittingHeading);
+    const { child, stage } = v(sittings, "namedAt");
+
+    return r
+      .match(sittings, { child, stage })
+      .find({ child, item: r.param("item", ItemRef), stage });
+  });
+
+  /**
+   * A sitting of `sittings` the call enters ({@link closedSitting}) with the member its entry names
+   * (`entries`, {@link entryHeading}): the member the candidate session presents, by its item
+   * document. An entry of no member of the sitting's test enters nothing.
    */
   const enteringSitting = query(delivery).rule((r) => {
-    const sittings = r.relation("sittings", sittingHeading);
-    const closed = closedSitting.bind({ sittings });
-    const member = sittingMember.bind({ item: r.param("item", ItemRef), sittings });
+    const closed = closedSitting.bind({ sittings: r.relation("sittings", sittingHeading) });
+    const entries = r.relation("entries", entryHeading);
     const { child, stage, package: pkg, path: test } = v(closed, "enteringTest");
-    const { path } = v(member, "enteringMember");
+    const { item } = v(entries, "entry");
+    const { document: path } = v(f.TestMember, "enteringMember");
 
     return r
       .match(closed, { child, package: pkg, path: test, stage })
-      .match(member, { child, package: pkg, path, stage })
+      .match(entries, { child, item, stage })
+      .match(f.TestMember, { document: path, item, package: pkg, path: test })
       .find({ child, package: pkg, path, stage, test });
   });
 
@@ -366,7 +438,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
       f.TestMoment,
       query(delivery).rule((r) => {
         const entering = enteringSitting.bind({
-          item: r.param("item", ItemRef),
+          entries: r.relation("entries", entryHeading),
           sittings: r.relation("sittings", sittingHeading),
         });
         const { child, stage } = v(entering, "entered");
@@ -379,7 +451,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
       query(delivery)
         .rule((r) => {
           const entering = enteringSitting.bind({
-            item: r.param("item", ItemRef),
+            entries: r.relation("entries", entryHeading),
             sittings: r.relation("sittings", sittingHeading),
           });
           const { child, stage } = v(entering, "started");
@@ -391,7 +463,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
         })
         .rule((r) => {
           const entering = enteringSitting.bind({
-            item: r.param("item", ItemRef),
+            entries: r.relation("entries", entryHeading),
             sittings: r.relation("sittings", sittingHeading),
           });
           const { child, stage, package: pkg, path, test } = v(entering, "resumed");
@@ -408,7 +480,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
       query(delivery)
         .rule((r) => {
           const entering = enteringSitting.bind({
-            item: r.param("item", ItemRef),
+            entries: r.relation("entries", entryHeading),
             sittings: r.relation("sittings", sittingHeading),
           });
           const { child, stage, package: pkg, path } = v(entering, "startedMember");
@@ -420,7 +492,7 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
         })
         .rule((r) => {
           const entering = enteringSitting.bind({
-            item: r.param("item", ItemRef),
+            entries: r.relation("entries", entryHeading),
             sittings: r.relation("sittings", sittingHeading),
           });
           const { child, stage, package: pkg, path, test } = v(entering, "resumedMember");
@@ -436,7 +508,10 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
       f.TestBudget,
       query(delivery).rule((r) => {
         const sittings = r.relation("sittings", sittingHeading);
-        const entering = enteringSitting.bind({ item: r.param("item", ItemRef), sittings });
+        const entering = enteringSitting.bind({
+          entries: r.relation("entries", entryHeading),
+          sittings,
+        });
         const leftOf = lastLeft.bind({ sittings });
         const { child, stage, package: pkg, path, test } = v(entering, "resumedBudget");
         const { k: visited, at } = v(f.TestVisit, "budgetVisit");
@@ -3772,9 +3847,11 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
     endTest,
     enterTest,
     memberTarget,
+    namedEntries,
     openVisit,
     presentItem,
     responseTarget,
+    resumedEntries,
     saveTestItem,
     skipTestItem,
     suspendTest,

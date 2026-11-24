@@ -103,11 +103,13 @@
  * waits for its score (`pendingExternalScoring`, Results Reporting Table 2.7.7), so its sitting is
  * final only where the essay was never presented.
  *
- * And a sitting's entries (`enterTest`, `suspendTest`, `saveTestItem`), held to their table
- * ({@link entryExpectedOf}): an entry presents the member it names, any in a nonlinear part, and in
- * a linear part only one whose every member before it was presented ("Linear in order"), and in
- * an individual one the one the candidate is on at a resumption ("In turn", moving on submitting
- * only there); a name of no member enters nothing; and a save of the member entered at is accepted.
+ * And a sitting's entries (`enterTest` at a named member, `resumeTest` where its candidate left it,
+ * `suspendTest`, `saveTestItem`), held to their table ({@link entryExpectedOf}): an entry presents
+ * the member it names, the last presented or else the first for a resumed one, any in a nonlinear
+ * part, and in a linear part only one whose every member before it was presented ("Linear in
+ * order"), and in an individual one the one the candidate is on at a resumption ("In turn", moving
+ * on submitting only there); a name of no member enters nothing; and a save of the member entered
+ * at is accepted.
  */
 import { Sha256 } from "@bjornpagen/grizzle";
 import { factsDecoder } from "@bjornpagen/grizzle/compile";
@@ -3023,11 +3025,34 @@ const holdShown = (c: ShownCase, child: string, note: (situation: ShownSituation
 type EntryTest = typeof SHOWN_TEST | typeof LINEAR_TEST | typeof LINEAR_TOGETHER_TEST;
 
 /**
- * An entry case: a fresh child's sitting of `test`, entered at the member each of `entries` names,
- * in order, the sitting suspended between each two; then, where every entry was accepted, a save of
- * the member the last one named.
+ * A member of an entry test, by its item ref.
  */
-type EntryCase = Readonly<{ name: string; test: EntryTest; entries: readonly string[] }>;
+type EntryMember = typeof MEMBER | typeof SAVED | typeof HUMAN_REF;
+
+/**
+ * The item ref no entry test holds.
+ */
+const NOBODY = "nobody";
+
+/**
+ * An entry of an entry case: at the member an item ref names (`enterTest` bound to
+ * `namedEntries`), or where its candidate left the sitting (`resumeTest`, bound to
+ * `resumedEntries`).
+ */
+type Entry =
+  | Readonly<{ kind: "named"; item: EntryMember | typeof NOBODY }>
+  | Readonly<{ kind: "resumed" }>;
+
+const enteredAt = (item: EntryMember | typeof NOBODY): Entry => ({ item, kind: "named" });
+
+const resumedEntry: Entry = { kind: "resumed" };
+
+/**
+ * An entry case: a fresh child's sitting of `test`, entered as each of `entries` says, in order,
+ * the sitting suspended between each two; then, where every entry was accepted, a save of the
+ * member the last one presented.
+ */
+type EntryCase = Readonly<{ name: string; test: EntryTest; entries: readonly Entry[] }>;
 
 /**
  * Each entry test's members, in its order.
@@ -3036,42 +3061,73 @@ const entryMembers = {
   [LINEAR_TEST]: [MEMBER, SAVED],
   [LINEAR_TOGETHER_TEST]: [MEMBER, SAVED],
   [SHOWN_TEST]: [MEMBER, HUMAN_REF],
-} as const satisfies Record<EntryTest, readonly string[]>;
+} as const satisfies Record<EntryTest, readonly EntryMember[]>;
 
 /**
- * The item ref no entry test holds.
+ * Each entry test member's item document, its item session's path.
  */
-const NOBODY = "nobody";
+const entryDocuments = {
+  [HUMAN_REF]: HUMAN,
+  [MEMBER]: SHORT,
+  [SAVED]: OTHER,
+} as const satisfies Record<EntryMember, string>;
 
 /**
  * Every entry case.
  */
 const entryCases = [
   {
-    entries: [MEMBER, HUMAN_REF],
+    entries: [enteredAt(MEMBER), enteredAt(HUMAN_REF)],
     name: "a nonlinear sitting resumed at its essay",
     test: SHOWN_TEST,
   },
-  { entries: [HUMAN_REF], name: "a nonlinear sitting started at its essay", test: SHOWN_TEST },
-  { entries: [NOBODY], name: "a sitting entered at no member of its test", test: SHOWN_TEST },
-  { entries: [SAVED], name: "a linear sitting started at its second member", test: LINEAR_TEST },
   {
-    entries: [MEMBER, SAVED],
+    entries: [enteredAt(HUMAN_REF)],
+    name: "a nonlinear sitting started at its essay",
+    test: SHOWN_TEST,
+  },
+  {
+    entries: [resumedEntry],
+    name: "a nonlinear sitting started where it begins",
+    test: SHOWN_TEST,
+  },
+  {
+    entries: [enteredAt(HUMAN_REF), resumedEntry],
+    name: "a nonlinear sitting resumed where its candidate left it",
+    test: SHOWN_TEST,
+  },
+  {
+    entries: [enteredAt(NOBODY)],
+    name: "a sitting entered at no member of its test",
+    test: SHOWN_TEST,
+  },
+  {
+    entries: [enteredAt(SAVED)],
+    name: "a linear sitting started at its second member",
+    test: LINEAR_TEST,
+  },
+  {
+    entries: [enteredAt(MEMBER), enteredAt(SAVED)],
     name: "a linear sitting resumed at a member after the one it is on",
     test: LINEAR_TEST,
   },
   {
-    entries: [MEMBER, MEMBER],
+    entries: [enteredAt(MEMBER), enteredAt(MEMBER)],
     name: "a linear sitting resumed at the member it is on",
     test: LINEAR_TEST,
   },
   {
-    entries: [MEMBER, SAVED],
+    entries: [resumedEntry, resumedEntry],
+    name: "a linear sitting started and resumed where its candidate left it",
+    test: LINEAR_TEST,
+  },
+  {
+    entries: [enteredAt(MEMBER), enteredAt(SAVED)],
     name: "a linear simultaneous sitting resumed at its next member",
     test: LINEAR_TOGETHER_TEST,
   },
   {
-    entries: [MEMBER, SAVED, MEMBER],
+    entries: [enteredAt(MEMBER), enteredAt(SAVED), enteredAt(MEMBER)],
     name: "a linear simultaneous sitting moved on, then resumed at the member before",
     test: LINEAR_TOGETHER_TEST,
   },
@@ -3089,20 +3145,28 @@ type EntryLaw =
   | Readonly<{ kind: "check"; name: "Linear_never_back" }>;
 
 type EntryVerdict =
-  | Readonly<{ kind: "accepted" | "unchanged" }>
+  | Readonly<{ kind: "accepted"; item: EntryMember }>
+  | Readonly<{ kind: "unchanged" }>
   | Readonly<{ kind: "refused"; law: EntryLaw }>;
 
 /**
- * What the entry table holds of a case: each entry's verdict, up to the first that is not
- * accepted, and whether the save after the last is accepted.
+ * What the entry table holds of a case: each entry's verdict, the member an accepted one presents,
+ * up to the first that is not accepted, and the member the save after the last presents, where
+ * every one was accepted.
  */
-type EntryExpected = Readonly<{ entries: readonly EntryVerdict[]; saved: boolean }>;
+type EntryExpected = Readonly<{
+  entries: readonly EntryVerdict[];
+  saved: Option.Option<EntryMember>;
+}>;
 
 /**
- * The entry table, a fold over the case's entries of the member the sitting last presented:
+ * The entry table, a fold over the case's entries of the members the sitting presented and the one
+ * it presented last:
  *
- * - An entry names the member its candidate session presents. One naming no member of the sitting's
- *   test enters nothing.
+ * - An entry presents the member its entry names. A named one names its item ref; a resumed one names
+ *   the member last presented, where a candidate session showed one, else the test's first
+ *   (`resumedEntries`: QTI leaves where a delivery starts and resumes to it, §2.8.2). An entry
+ *   naming no member of the sitting's test enters nothing.
  * - In a nonlinear part every named member is presented: "the candidate is free to navigate to any
  *   item in the test at any time" (the overview, from TestPart's `navigation-mode`, Table
  *   5.159.4).
@@ -3120,17 +3184,24 @@ type EntryExpected = Readonly<{ entries: readonly EntryVerdict[]; saved: boolean
  * @param c - The case.
  */
 const entryExpectedOf = (c: EntryCase): EntryExpected => {
-  const members: readonly string[] = entryMembers[c.test];
+  const members: readonly EntryMember[] = entryMembers[c.test];
   const linear = c.test !== SHOWN_TEST;
   const entries: EntryVerdict[] = [];
-  const presented = new Set<string>();
-  let last = Option.none<string>();
-  for (const item of c.entries) {
-    if (!members.includes(item)) {
+  const presented = new Set<EntryMember>();
+  let last = Option.none<EntryMember>();
+  for (const entry of c.entries) {
+    const wanted =
+      entry.kind === "named"
+        ? entry.item
+        : Option.getOrElse(last, () => Option.getOrThrow(Arr.head(members)));
+    const found = Arr.findFirst(members, (member) => member === wanted);
+    if (Option.isNone(found)) {
       entries.push({ kind: "unchanged" });
 
-      return { entries, saved: false };
+      return { entries, saved: Option.none() };
     }
+
+    const item = found.value;
 
     if (linear && members.slice(0, members.indexOf(item)).some((m) => !presented.has(m))) {
       entries.push({
@@ -3138,13 +3209,13 @@ const entryExpectedOf = (c: EntryCase): EntryExpected => {
         law: { from: "LinearPreceding", kind: "contained", to: "PresentedMember" },
       });
 
-      return { entries, saved: false };
+      return { entries, saved: Option.none() };
     }
 
     if (linear && Option.isSome(last) && members.indexOf(item) < members.indexOf(last.value)) {
       entries.push({ kind: "refused", law: { kind: "check", name: "Linear_never_back" } });
 
-      return { entries, saved: false };
+      return { entries, saved: Option.none() };
     }
 
     if (c.test === LINEAR_TEST && Option.isSome(last) && item !== last.value) {
@@ -3153,15 +3224,15 @@ const entryExpectedOf = (c: EntryCase): EntryExpected => {
         law: { from: "MovedOn", kind: "contained", to: "AttemptedMember" },
       });
 
-      return { entries, saved: false };
+      return { entries, saved: Option.none() };
     }
 
-    entries.push({ kind: "accepted" });
+    entries.push({ item, kind: "accepted" });
     presented.add(item);
     last = Option.some(item);
   }
 
-  return { entries, saved: true };
+  return { entries, saved: last };
 };
 
 /**
@@ -3170,6 +3241,8 @@ const entryExpectedOf = (c: EntryCase): EntryExpected => {
 const entrySituations = [
   "a nonlinear resumption presents the member it names, and a save of it is accepted",
   "a nonlinear start presents the member it names",
+  "a start where its candidate left it presents the first member",
+  "a resumption where its candidate left it presents the member last presented",
   "an entry naming no member of its test enters nothing",
   "a linear start at a member after the first is refused",
   "a linear resumption at a member after the one it is on is refused",
@@ -3189,6 +3262,7 @@ type EntrySituation = (typeof entrySituations)[number];
 const entrySituationsOf = (c: EntryCase, expected: EntryExpected): EntrySituation[] => {
   const linear = c.test !== SHOWN_TEST;
   const verdict = Option.getOrThrow(Arr.last(expected.entries));
+  const entry = Option.getOrThrow(Arr.get(c.entries, expected.entries.length - 1));
   if (verdict.kind === "unchanged") {
     return ["an entry naming no member of its test enters nothing"];
   }
@@ -3202,6 +3276,14 @@ const entrySituationsOf = (c: EntryCase, expected: EntryExpected): EntrySituatio
       verdict.law.from === "LinearPreceding"
         ? "a linear start at a member after the first is refused"
         : "a linear resumption at a member after the one it is on is refused",
+    ];
+  }
+
+  if (entry.kind === "resumed") {
+    return [
+      expected.entries.length === 1
+        ? "a start where its candidate left it presents the first member"
+        : "a resumption where its candidate left it presents the member last presented",
     ];
   }
 
@@ -3224,10 +3306,11 @@ const entrySituationsOf = (c: EntryCase, expected: EntryExpected): EntrySituatio
 
 /**
  * One entry case: a fresh child's sitting of the case's test, taken by the test runtime's own take
- * (`takeSitting`); each entry (`enterTest`) at the member it names, its outcome held to the table,
- * a refusal to name its law, the sitting suspended (`suspendTest`) after each accepted entry but
- * the last; then, where every entry was accepted, a save (`saveTestItem`) of the member the last
- * one named, held to be accepted.
+ * (`takeSitting`); each entry, `enterTest` at the member it names or `resumeTest` where its
+ * candidate left the sitting, its outcome held to the table, a refusal to name its law, and an
+ * accepted one's candidate session to present the member the table says (`presentationsOf`); the
+ * sitting suspended (`suspendTest`) before each entry but the first; then, where every entry was
+ * accepted, a save (`saveTestItem`) of the member the last one presented, held to be accepted.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -3250,15 +3333,17 @@ const holdEntry = (c: EntryCase, child: string, note: (situation: EntrySituation
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
     for (const [i, want] of expected.entries.entries()) {
-      const item = Option.getOrThrow(Arr.get(c.entries, i));
-      const what = `${c.name}: entry ${String(i + 1)}, at ${item}`;
+      const entry = Option.getOrThrow(Arr.get(c.entries, i));
+      const what = `${c.name}: entry ${String(i + 1)}, ${entry.kind === "named" ? `at ${entry.item}` : "where its candidate left it"}`;
       if (i > 0) {
         const suspended = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
         assert.strictEqual(suspended.kind, "accepted", `${what}: the suspension before it`);
       }
 
       const entered = yield* Effect.result(
-        db.workload.enterTest.once({ facts: {}, params: { ...sitting, item } }),
+        entry.kind === "named"
+          ? db.workload.enterTest.once({ facts: {}, params: { ...sitting, item: entry.item } })
+          : db.workload.resumeTest.once({ facts: {}, params: sitting }),
       );
       if (want.kind === "refused") {
         assert.isTrue(
@@ -3276,13 +3361,26 @@ const holdEntry = (c: EntryCase, child: string, note: (situation: EntrySituation
       } else {
         assert.strictEqual(Result.getOrThrow(entered).kind, want.kind, what);
       }
+
+      if (want.kind === "accepted") {
+        const presentations = Arr.fromIterable(
+          yield* db.workload.presentationsOf.once({ facts: {}, params: { child } }),
+        );
+        assert.deepStrictEqual<unknown>(
+          presentations
+            .filter((row) => row.stage === sitting.stage && row.k === BigInt(i))
+            .map((row) => row.path),
+          [entryDocuments[want.item]],
+          `${what}: its candidate session presents ${want.item}`,
+        );
+      }
     }
 
-    if (!expected.saved) {
+    if (Option.isNone(expected.saved)) {
       return;
     }
 
-    const item = Option.getOrThrow(Arr.last(c.entries));
+    const item = expected.saved.value;
     const values = yield* responseParamsOf({
       RESPONSE: {
         baseType: "string",
