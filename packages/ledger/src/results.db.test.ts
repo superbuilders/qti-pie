@@ -102,6 +102,12 @@
  * latest save or at its defaults and none never presented, and an attempt of a human-scored essay
  * waits for its score (`pendingExternalScoring`, Results Reporting Table 2.7.7), so its sitting is
  * final only where the essay was never presented.
+ *
+ * And a sitting's entries (`enterTest`, `suspendTest`, `saveTestItem`), held to their table
+ * ({@link entryExpectedOf}): an entry presents the member it names, any in a nonlinear part, and in
+ * a linear part only one whose every member before it was presented ("Linear in order"), and in
+ * an individual one the one the candidate is on at a resumption ("In turn", moving on submitting
+ * only there); a name of no member enters nothing; and a save of the member entered at is accepted.
  */
 import { Sha256 } from "@bjornpagen/grizzle";
 import { factsDecoder } from "@bjornpagen/grizzle/compile";
@@ -224,6 +230,14 @@ const SHOWING_TEST = "showing.xml";
 const SHOWN_TEST = "shown.xml";
 
 /**
+ * The tests of linear navigation ({@link linearTestXmlOf}): one linear part, individual or
+ * simultaneous.
+ */
+const LINEAR_TEST = "linear.xml";
+
+const LINEAR_TOGETHER_TEST = "linear-together.xml";
+
+/**
  * The human-scored essay's document ({@link humanXml}).
  */
 const HUMAN = "items/human.xml";
@@ -242,7 +256,7 @@ const MEMBER = "member";
 
 /**
  * The item ref a test names its second member by, and that item's own identifier, which a response
- * case presents once it enters and then saves: the end alone (`endTest`, no close) attempts
+ * case enters at and then saves: the end alone (`endTest`, no close) attempts
  * nothing, so a save of it after the end reaches the laws, where a save of a member the end closed
  * finds no open item session and writes nothing; and a save before the first candidate session is
  * of a member never presented, which "Shown before saved" refuses too.
@@ -561,6 +575,18 @@ const showingTestXml = `<?xml version="1.0" encoding="UTF-8"?>
 </qti-assessment-test>`;
 
 /**
+ * A test of linear navigation: one linear part of two text entries, {@link MEMBER} first, then
+ * {@link SAVED}.
+ *
+ * @param identifier - The test's identifier.
+ * @param submission - The part's submission mode.
+ */
+const linearTestXmlOf = (identifier: string, submission: "individual" | "simultaneous") =>
+  `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-test xmlns="${asi}" identifier="${identifier}" title="${identifier}"><qti-test-part identifier="part" navigation-mode="linear" submission-mode="${submission}"><qti-assessment-section identifier="section" title="section" visible="true">${refXml(MEMBER, SHORT, "")}${refXml(SAVED, OTHER, "")}</qti-assessment-section></qti-test-part>
+</qti-assessment-test>`;
+
+/**
  * The test of shown members: one simultaneous, nonlinear part, {@link MEMBER} first, the one its
  * start presents, then the human-scored essay {@link HUMAN_REF}.
  */
@@ -604,7 +630,7 @@ const itemResource = (path: string) =>
   `<resource identifier="${path.replace("items/", "").replace(".xml", "")}" type="imsqti_item_xmlv3p0" href="${path}"><file href="${path}"/></resource>`;
 
 const manifest = `<?xml version="1.0" encoding="UTF-8"?>
-<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="wave" type="imsqti_item_xmlv3p0" href="${WAVE}"><file href="${WAVE}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}</resources></manifest>`;
+<manifest xmlns="http://www.imsglobal.org/xsd/qti/qtiv3p0/imscp_v1p1" identifier="${PACKAGE}"><metadata><schema>QTI Package</schema><schemaversion>3.0.1</schemaversion></metadata><organizations/><resources><resource identifier="essay" type="imsqti_item_xmlv3p0" href="${ESSAY}"><file href="${ESSAY}"/></resource><resource identifier="wave" type="imsqti_item_xmlv3p0" href="${WAVE}"><file href="${WAVE}"/></resource><resource identifier="take" type="imsqti_item_xmlv3p0" href="${TAKE}"><file href="${TAKE}"/></resource><resource identifier="operators" type="imsqti_item_xmlv3p0" href="${OPERATORS}"><file href="${OPERATORS}"/></resource><resource identifier="draw-adaptive" type="imsqti_item_xmlv3p0" href="${drawPathOf(true)}"><file href="${drawPathOf(true)}"/></resource><resource identifier="draw" type="imsqti_item_xmlv3p0" href="${drawPathOf(false)}"><file href="${drawPathOf(false)}"/></resource><resource identifier="short" type="imsqti_item_xmlv3p0" href="${SHORT}"><file href="${SHORT}"/></resource><resource identifier="other" type="imsqti_item_xmlv3p0" href="${OTHER}"><file href="${OTHER}"/></resource>${[ESSAY_MIN, MEMBER_MIN, DRAFT_MIN, HUMAN].map(itemResource).join("")}${tests.map(([path]) => testResource(path, ["short", "other"])).join("")}${controlTests.map(([path]) => testResource(path, ["essay-min", "member-min", "draft-min", "other"])).join("")}${testResource(SHOWING_TEST, ["short", "other", "member-min", "draft-min"])}${testResource(SHOWN_TEST, ["short", HUMAN_REF])}${testResource(LINEAR_TEST, ["short", "other"])}${testResource(LINEAR_TOGETHER_TEST, ["short", "other"])}</resources></manifest>`;
 
 /**
  * The response every answered case gives.
@@ -1278,6 +1304,8 @@ const published = Effect.gen(function* publish() {
     ...controlTests,
     [SHOWING_TEST, showingTestXml],
     [SHOWN_TEST, shownTestXml],
+    [LINEAR_TEST, linearTestXmlOf("linear", "individual")],
+    [LINEAR_TOGETHER_TEST, linearTestXmlOf("linear-together", "simultaneous")],
   ]) {
     yield* fs.writeFileString(`${dir}/${path}`, xml);
   }
@@ -2125,12 +2153,12 @@ const standingsOf = (reads: Readonly<{ standing: Iterable<Readonly<{ standing: s
 /**
  * One response case: a fresh child's sitting of the case's test, taken by the test runtime's own
  * take (`takeSitting`, its members' sessions and starts the take's) and, but for a save before its
- * first candidate session, entered, a timed entry with the case's first budget, and {@link SAVED}
- * presented, the member the case saves ("Shown before saved"), then suspended, or
- * ended as the case says, an attempt of {@link MEMBER} before the end, which nothing grades, so the
- * ended sitting waits on it and is not final; then a save of {@link SAVED} with no value, its
- * `given` the case's from the session's beginning, held to the table, and every move's `standing`
- * read-back to the sitting's standing after it.
+ * first candidate session, entered at {@link SAVED}, the member the case saves ("Shown before
+ * saved"), a timed entry with the case's first budget, then suspended, or ended as the case says,
+ * an attempt of {@link MEMBER}, presented, before the end, which nothing grades, so the ended
+ * sitting waits on it and is not final; then a save of {@link SAVED} with no value, its `given` the
+ * case's from the session's beginning, held to the table, and every move's `standing` read-back to
+ * the sitting's standing after it.
  *
  * @param c - The case.
  * @param child - The run's fresh child.
@@ -2159,21 +2187,18 @@ const holdResponse = (
             const entered = Option.isSome(timing.remaining)
               ? yield* db.workload.enterTimedTest.once({
                   facts: {},
-                  params: { ...sitting, remaining: timing.remaining.value },
+                  params: { ...sitting, item: SAVED, remaining: timing.remaining.value },
                 })
-              : yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+              : yield* db.workload.enterTest.once({
+                  facts: {},
+                  params: { ...sitting, item: SAVED },
+                });
             assert.deepStrictEqual<unknown>(
               { kind: entered.kind, standing: standingsOf(entered.reads) },
               { kind: "accepted", standing: ["open"] },
               `${c.name}: the entry, the sitting open after it`,
             );
             note("standing: open");
-
-            const shown = yield* db.workload.presentItem.once({
-              facts: {},
-              params: { ...sitting, item: SAVED },
-            });
-            assert.strictEqual(shown.kind, "accepted", `${c.name}: the saved member presented`);
 
             return Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
           });
@@ -2189,6 +2214,12 @@ const holdResponse = (
     }
 
     if (c.when === "ended") {
+      const shown = yield* db.workload.presentItem.once({
+        facts: {},
+        params: { ...sitting, item: MEMBER },
+      });
+      assert.strictEqual(shown.kind, "accepted", `${c.name}: the member presented`);
+
       const attempt = { child, n: 0n, package: PACKAGE, path: SHORT };
       const attempted = yield* db.workload.sittingFacts.once({
         facts: {
@@ -2604,7 +2635,10 @@ const holdControls = (
     });
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
-    const entered = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    const entered = yield* db.workload.enterTest.once({
+      facts: {},
+      params: { ...sitting, item: MEMBER_REF },
+    });
     assert.strictEqual(entered.kind, "accepted", `${c.name}: the entry`);
 
     const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
@@ -2872,7 +2906,10 @@ const holdShown = (c: ShownCase, child: string, note: (situation: ShownSituation
     });
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
 
-    const entered = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    const entered = yield* db.workload.enterTest.once({
+      facts: {},
+      params: { ...sitting, item: MEMBER },
+    });
     assert.strictEqual(entered.kind, "accepted", `${c.name}: the entry`);
 
     const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
@@ -2981,6 +3018,290 @@ const holdShown = (c: ShownCase, child: string, note: (situation: ShownSituation
   });
 
 /**
+ * A test that names its members, in order: the shown test's, or a linear test's.
+ */
+type EntryTest = typeof SHOWN_TEST | typeof LINEAR_TEST | typeof LINEAR_TOGETHER_TEST;
+
+/**
+ * An entry case: a fresh child's sitting of `test`, entered at the member each of `entries` names,
+ * in order, the sitting suspended between each two; then, where every entry was accepted, a save of
+ * the member the last one named.
+ */
+type EntryCase = Readonly<{ name: string; test: EntryTest; entries: readonly string[] }>;
+
+/**
+ * Each entry test's members, in its order.
+ */
+const entryMembers = {
+  [LINEAR_TEST]: [MEMBER, SAVED],
+  [LINEAR_TOGETHER_TEST]: [MEMBER, SAVED],
+  [SHOWN_TEST]: [MEMBER, HUMAN_REF],
+} as const satisfies Record<EntryTest, readonly string[]>;
+
+/**
+ * The item ref no entry test holds.
+ */
+const NOBODY = "nobody";
+
+/**
+ * Every entry case.
+ */
+const entryCases = [
+  {
+    entries: [MEMBER, HUMAN_REF],
+    name: "a nonlinear sitting resumed at its essay",
+    test: SHOWN_TEST,
+  },
+  { entries: [HUMAN_REF], name: "a nonlinear sitting started at its essay", test: SHOWN_TEST },
+  { entries: [NOBODY], name: "a sitting entered at no member of its test", test: SHOWN_TEST },
+  { entries: [SAVED], name: "a linear sitting started at its second member", test: LINEAR_TEST },
+  {
+    entries: [MEMBER, SAVED],
+    name: "a linear sitting resumed at a member after the one it is on",
+    test: LINEAR_TEST,
+  },
+  {
+    entries: [MEMBER, MEMBER],
+    name: "a linear sitting resumed at the member it is on",
+    test: LINEAR_TEST,
+  },
+  {
+    entries: [MEMBER, SAVED],
+    name: "a linear simultaneous sitting resumed at its next member",
+    test: LINEAR_TOGETHER_TEST,
+  },
+  {
+    entries: [MEMBER, SAVED, MEMBER],
+    name: "a linear simultaneous sitting moved on, then resumed at the member before",
+    test: LINEAR_TOGETHER_TEST,
+  },
+] as const satisfies readonly EntryCase[];
+
+const entrySpace: Gen<EntryCase> = element(entryCases);
+
+/**
+ * A law an entry breaks: "Linear in order" or "In turn", by the relations its containment reads,
+ * or "Linear never back", by its check.
+ */
+type EntryLaw =
+  | Readonly<{ kind: "contained"; from: "LinearPreceding"; to: "PresentedMember" }>
+  | Readonly<{ kind: "contained"; from: "MovedOn"; to: "AttemptedMember" }>
+  | Readonly<{ kind: "check"; name: "Linear_never_back" }>;
+
+type EntryVerdict =
+  | Readonly<{ kind: "accepted" | "unchanged" }>
+  | Readonly<{ kind: "refused"; law: EntryLaw }>;
+
+/**
+ * What the entry table holds of a case: each entry's verdict, up to the first that is not
+ * accepted, and whether the save after the last is accepted.
+ */
+type EntryExpected = Readonly<{ entries: readonly EntryVerdict[]; saved: boolean }>;
+
+/**
+ * The entry table, a fold over the case's entries of the member the sitting last presented:
+ *
+ * - An entry names the member its candidate session presents. One naming no member of the sitting's
+ *   test enters nothing.
+ * - In a nonlinear part every named member is presented: "the candidate is free to navigate to any
+ *   item in the test at any time" (the overview, from TestPart's `navigation-mode`, Table
+ *   5.159.4).
+ * - In a linear part "the candidate [is restricted] to attempt each item in turn" (Table 5.159.4):
+ *   every member before the one presented was presented, else "Linear in order" refuses it, so the
+ *   start presents the first member; and in an individual part a resumption at a member after the
+ *   one last presented, which has no attempt, is refused by "In turn" (moving on submits), so it
+ *   presents the member the candidate is on. In a simultaneous part moving on submits nothing
+ *   ("each item session passes between the interacting and suspended states only", Table 5.159.5),
+ *   so a resumption at the next member presents it. In either, a resumption at a member before the
+ *   one last presented is refused by "Linear never back" ("Once the candidate moves on they are not
+ *   permitted to return").
+ * - A save of the member the last entry presented is accepted ("Shown before saved").
+ *
+ * @param c - The case.
+ */
+const entryExpectedOf = (c: EntryCase): EntryExpected => {
+  const members: readonly string[] = entryMembers[c.test];
+  const linear = c.test !== SHOWN_TEST;
+  const entries: EntryVerdict[] = [];
+  const presented = new Set<string>();
+  let last = Option.none<string>();
+  for (const item of c.entries) {
+    if (!members.includes(item)) {
+      entries.push({ kind: "unchanged" });
+
+      return { entries, saved: false };
+    }
+
+    if (linear && members.slice(0, members.indexOf(item)).some((m) => !presented.has(m))) {
+      entries.push({
+        kind: "refused",
+        law: { from: "LinearPreceding", kind: "contained", to: "PresentedMember" },
+      });
+
+      return { entries, saved: false };
+    }
+
+    if (linear && Option.isSome(last) && members.indexOf(item) < members.indexOf(last.value)) {
+      entries.push({ kind: "refused", law: { kind: "check", name: "Linear_never_back" } });
+
+      return { entries, saved: false };
+    }
+
+    if (c.test === LINEAR_TEST && Option.isSome(last) && item !== last.value) {
+      entries.push({
+        kind: "refused",
+        law: { from: "MovedOn", kind: "contained", to: "AttemptedMember" },
+      });
+
+      return { entries, saved: false };
+    }
+
+    entries.push({ kind: "accepted" });
+    presented.add(item);
+    last = Option.some(item);
+  }
+
+  return { entries, saved: true };
+};
+
+/**
+ * The situations the entry space must reach.
+ */
+const entrySituations = [
+  "a nonlinear resumption presents the member it names, and a save of it is accepted",
+  "a nonlinear start presents the member it names",
+  "an entry naming no member of its test enters nothing",
+  "a linear start at a member after the first is refused",
+  "a linear resumption at a member after the one it is on is refused",
+  "a linear resumption at a member before the one it is on is refused",
+  "a linear resumption at the member it is on presents it",
+  "a linear simultaneous resumption at its next member presents it, moving on submitting nothing",
+] as const;
+
+type EntrySituation = (typeof entrySituations)[number];
+
+/**
+ * The situations a case reaches, read from its entries and the table's verdicts.
+ *
+ * @param c - The case.
+ * @param expected - The table's verdicts.
+ */
+const entrySituationsOf = (c: EntryCase, expected: EntryExpected): EntrySituation[] => {
+  const linear = c.test !== SHOWN_TEST;
+  const verdict = Option.getOrThrow(Arr.last(expected.entries));
+  if (verdict.kind === "unchanged") {
+    return ["an entry naming no member of its test enters nothing"];
+  }
+
+  if (verdict.kind === "refused") {
+    if (verdict.law.kind === "check") {
+      return ["a linear resumption at a member before the one it is on is refused"];
+    }
+
+    return [
+      verdict.law.from === "LinearPreceding"
+        ? "a linear start at a member after the first is refused"
+        : "a linear resumption at a member after the one it is on is refused",
+    ];
+  }
+
+  if (expected.entries.length === 1) {
+    return linear ? [] : ["a nonlinear start presents the member it names"];
+  }
+
+  if (c.test === LINEAR_TOGETHER_TEST) {
+    return [
+      "a linear simultaneous resumption at its next member presents it, moving on submitting nothing",
+    ];
+  }
+
+  return [
+    linear
+      ? "a linear resumption at the member it is on presents it"
+      : "a nonlinear resumption presents the member it names, and a save of it is accepted",
+  ];
+};
+
+/**
+ * One entry case: a fresh child's sitting of the case's test, taken by the test runtime's own take
+ * (`takeSitting`); each entry (`enterTest`) at the member it names, its outcome held to the table,
+ * a refusal to name its law, the sitting suspended (`suspendTest`) after each accepted entry but
+ * the last; then, where every entry was accepted, a save (`saveTestItem`) of the member the last
+ * one named, held to be accepted.
+ *
+ * @param c - The case.
+ * @param child - The run's fresh child.
+ * @param note - Records the situation the case reaches.
+ */
+const holdEntry = (c: EntryCase, child: string, note: (situation: EntrySituation) => void) =>
+  Effect.gen(function* hold() {
+    const expected = entryExpectedOf(c);
+    for (const situation of entrySituationsOf(c, expected)) {
+      note(situation);
+    }
+
+    const { suite } = yield* SuiteLogin;
+    const db = yield* Db.open(suite.roles.result_runner, {});
+    const sitting = { child, stage: 1n };
+    const taken = yield* db.workload.takeSitting.once({
+      facts: {},
+      params: { ...sitting, package: PACKAGE, path: c.test, seed: DECISION },
+    });
+    assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
+
+    for (const [i, want] of expected.entries.entries()) {
+      const item = Option.getOrThrow(Arr.get(c.entries, i));
+      const what = `${c.name}: entry ${String(i + 1)}, at ${item}`;
+      if (i > 0) {
+        const suspended = yield* db.workload.suspendTest.once({ facts: {}, params: sitting });
+        assert.strictEqual(suspended.kind, "accepted", `${what}: the suspension before it`);
+      }
+
+      const entered = yield* Effect.result(
+        db.workload.enterTest.once({ facts: {}, params: { ...sitting, item } }),
+      );
+      if (want.kind === "refused") {
+        assert.isTrue(
+          Result.isFailure(entered) &&
+            entered.failure.kind === "refused" &&
+            refusedLawsOf(entered.failure.refused).some(({ law }) =>
+              want.law.kind === "check"
+                ? law.kind === "check" && law.name === want.law.name
+                : law.kind === "contained" &&
+                  law.from.relation === want.law.from &&
+                  law.to.relation === want.law.to,
+            ),
+          `${what}: refused by ${Formatter.format(want.law)}, got ${Formatter.format(entered)}`,
+        );
+      } else {
+        assert.strictEqual(Result.getOrThrow(entered).kind, want.kind, what);
+      }
+    }
+
+    if (!expected.saved) {
+      return;
+    }
+
+    const item = Option.getOrThrow(Arr.last(c.entries));
+    const values = yield* responseParamsOf({
+      RESPONSE: {
+        baseType: "string",
+        cardinality: "single",
+        values: [{ baseType: "string", value: shownText }],
+      },
+    });
+    const saved = yield* db.workload.saveTestItem.once({
+      facts: {},
+      params: { ...sitting, given: 0n, item, ...values },
+    });
+    assert.strictEqual(
+      saved.kind,
+      "accepted",
+      `${c.name}: a save of ${item}, the member entered at`,
+    );
+  });
+
+/**
  * A supersede case: a timed sitting's member saved in time, then saved again the case's offset past
  * its deadline, by the database's stamp.
  */
@@ -3067,7 +3388,7 @@ const holdSupersede = (
 
     const entered = yield* db.workload.enterTimedTest.once({
       facts: {},
-      params: { ...sitting, remaining: supersedeBudgetMicros },
+      params: { ...sitting, item: MEMBER, remaining: supersedeBudgetMicros },
     });
     assert.strictEqual(entered.kind, "accepted", `${c.name}: the timed entry`);
 
@@ -3253,7 +3574,7 @@ const holdPresence = (
     const budget = presenceBudgetOf(c);
     const entered = yield* db.workload.enterTimedTest.once({
       facts: {},
-      params: { ...sitting, remaining: budget },
+      params: { ...sitting, item: MEMBER, remaining: budget },
     });
     assert.strictEqual(entered.kind, "accepted", `${c.name}: the timed entry`);
 
@@ -3302,7 +3623,10 @@ const holdPresence = (
       return;
     }
 
-    const resumed = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    const resumed = yield* db.workload.enterTest.once({
+      facts: {},
+      params: { ...sitting, item: MEMBER },
+    });
     assert.strictEqual(resumed.kind, "accepted", `${c.name}: the resumption`);
 
     const budgets = Arr.fromIterable(
@@ -3738,7 +4062,10 @@ const holdShowing = (c: ShowingCase, child: string, note: (situation: ShowingSit
     assert.strictEqual(taken.kind, "accepted", `${c.name}: the sitting, as the take writes it`);
     yield* checkpoint(0);
 
-    const entered = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    const entered = yield* db.workload.enterTest.once({
+      facts: {},
+      params: { ...sitting, item: MEMBER },
+    });
     assert.strictEqual(entered.kind, "accepted", `${c.name}: the entry`);
 
     const began = Option.getOrThrow(Arr.head(Arr.fromIterable(entered.reads.entered))).at;
@@ -3810,7 +4137,10 @@ const enteredSitting = (name: string, child: string) =>
     });
     assert.strictEqual(taken.kind, "accepted", `${name}: the sitting, as the take writes it`);
 
-    const entered = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+    const entered = yield* db.workload.enterTest.once({
+      facts: {},
+      params: { ...sitting, item: MEMBER },
+    });
     assert.strictEqual(entered.kind, "accepted", `${name}: the entry`);
 
     return {
@@ -4077,7 +4407,10 @@ const holdWindow = (c: WindowCase, child: string, note: (situation: WindowSituat
       assert.strictEqual(paused.kind, "accepted", `${c.name}: the pause`);
 
       const pausedAt = lastBeaconOf(paused.reads);
-      const resumed = yield* db.workload.enterTest.once({ facts: {}, params: sitting });
+      const resumed = yield* db.workload.enterTest.once({
+        facts: {},
+        params: { ...sitting, item: MEMBER },
+      });
       assert.strictEqual(resumed.kind, "accepted", `${c.name}: the resumption`);
 
       const resumedAt = Option.getOrThrow(Arr.head(Arr.fromIterable(resumed.reads.entered))).at;
@@ -5088,6 +5421,43 @@ describe.skipIf(Option.isNone(migrations))(
                 ),
               );
               yield* Effect.log(`the shown members held over ${String(exhausted.cases)} cases`);
+            }).pipe(Effect.orDie),
+        );
+
+        it.effect(
+          "presents the member an entry names, any in a nonlinear part and the one the candidate is on in a linear part",
+          (ctx) =>
+            Effect.gen(function* holdEveryEntryCase() {
+              yield* Effect.scoped(published);
+
+              const runs = yield* Ref.make(0);
+              const exhausted = yield* searched(
+                ctx,
+                exhaust(
+                  {
+                    box: "each sequence of entries of the shown test and the linear tests, a suspension between each two, then a save of the member entered at, each on a fresh child",
+                    caseHang: Duration.minutes(2),
+                    coverage: requiredInSpace<EntrySituation>(entrySituations),
+                    generator: entrySpace,
+                    literal: (c: EntryCase) => c.name,
+                    oracle: {
+                      kind: "specification",
+                      name: "entryExpectedOf: an entry presents the member it names, any in a nonlinear part (Table 5.159.4: free to navigate to any item), in a linear part only in member order (Table 5.159.4: each item in turn), moving on submitting in an individual part alone (Table 5.159.5), and a save of it is accepted (§2.2.1, §2.3)",
+                    },
+                    suite: "ledger/results/entries",
+                  },
+                  (row, c) =>
+                    Ref.getAndUpdate(runs, (k) => k + 1).pipe(
+                      Effect.flatMap((k) =>
+                        holdEntry(row, `user_ledgerentry${String(k)}`, (situation) => {
+                          c.note(situation);
+                        }),
+                      ),
+                      Effect.orDie,
+                    ),
+                ),
+              );
+              yield* Effect.log(`the entries held over ${String(exhausted.cases)} cases`);
             }).pipe(Effect.orDie),
         );
 

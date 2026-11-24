@@ -1,9 +1,9 @@
 /**
  * The served position of each member of a test: the one statement of where a delivery serves an
- * item ref, which the test runtime's first member (`@qti-pie/ledger`'s sitting programs) and the
- * history of served tests read, so no reader ranks members itself. The order it ranks by is the
- * item ref's place, `start`; a law that needs only that order, as the runtime's linear navigation
- * law does, compares places, since a law reads no derived relation that aggregates.
+ * item ref, which the history of served tests reads, so no reader ranks members itself. The order
+ * it ranks by is the item ref's place, `start`; a law that needs only that order, as the runtime's
+ * linear navigation law does, compares places, since a law reads no derived relation that
+ * aggregates.
  */
 import { query, v } from "@bjornpagen/grizzle";
 import { QtiBase } from "#pantry/qti/base.ts";

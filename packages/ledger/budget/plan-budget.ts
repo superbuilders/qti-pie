@@ -141,8 +141,15 @@ const take = (db: SuiteDb, child: string, test: string) =>
     }),
   );
 
-const enter = (db: SuiteDb, child: string) =>
-  accepted("enterTest", db.workload.enterTest.once({ facts: {}, params: sittingOf(child) }));
+/**
+ * A candidate session entered at the member `item` names, the first at the start and the one last
+ * presented on a resumption.
+ */
+const enter = (db: SuiteDb, child: string, item: string) =>
+  accepted(
+    "enterTest",
+    db.workload.enterTest.once({ facts: {}, params: { ...sittingOf(child), item } }),
+  );
 
 const present = (db: SuiteDb, child: string, item: string) =>
   accepted(
@@ -205,7 +212,7 @@ const fullPath = (db: SuiteDb, child: string, n: number) =>
     const rate = n % 4 === 3;
 
     yield* take(db, child, rate ? rateTest : stdTest);
-    yield* enter(db, child);
+    yield* enter(db, child, firstItem);
 
     for (const [k, q] of choiceItems.entries()) {
       if (rate) {
@@ -229,7 +236,7 @@ const withDb = <A, R>(f: (db: SuiteDb) => Effect.Effect<A, StudentCallFailed, R>
 const taken = (test: string) => (child: string) => withDb((db) => take(db, child, test));
 
 const entered = (test: string) => (child: string) =>
-  withDb((db) => Effect.andThen(take(db, child, test), enter(db, child)));
+  withDb((db) => Effect.andThen(take(db, child, test), enter(db, child, firstItem)));
 
 /**
  * The package, published through the suite's own `publish`: accepted the first time, and unchanged
@@ -276,7 +283,7 @@ const program = Effect.gen(function* planBudget() {
   const layer = yield* layerOf;
   const actions: readonly StudentAction<Effect.Services<ReturnType<typeof openDb>>>[] = [
     {
-      act: (child) => withDb((db) => enter(db, child)),
+      act: (child) => withDb((db) => enter(db, child, firstItem)),
       barMs: 100,
       name: "start",
       prepare: taken(stdTest),
@@ -318,13 +325,13 @@ const program = Effect.gen(function* planBudget() {
       warm: true,
     },
     {
-      act: (child) => withDb((db) => enter(db, child)),
+      act: (child) => withDb((db) => enter(db, child, firstItem)),
       barMs: 100,
       name: "resume",
       prepare: (child) =>
         withDb((db) =>
           Effect.andThen(
-            Effect.andThen(take(db, child, stdTest), enter(db, child)),
+            Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
             suspend(db, child),
           ),
         ),
@@ -337,7 +344,7 @@ const program = Effect.gen(function* planBudget() {
       prepare: (child) =>
         withDb((db) =>
           Effect.andThen(
-            Effect.andThen(take(db, child, stdTest), enter(db, child)),
+            Effect.andThen(take(db, child, stdTest), enter(db, child, firstItem)),
             savedAll(db, child),
           ),
         ),

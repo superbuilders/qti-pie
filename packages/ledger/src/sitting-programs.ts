@@ -11,10 +11,14 @@
  *   takeValuesOf), all in one stratum, so `taken` is read once. The application binds `taken` to
  *   its query of what its decision wrote, in the stratum after it, its guard in that query
  *   (`ChangeSet.sequence(appDecide, take.bind({ taken: appTaken }))`).
- * - `enterTest` { sittings }: the sitting's next candidate session (§2.2.1), its `k` the count of the
- *   sessions before it, presenting the first member at the start and, on a resumption, the member
- *   last presented; a timed sitting's later budget is what its suspended session left
- *   (`NextBudget`). The start's budget is the application's applied limit, which it unions in.
+ * - `enterTest` { sittings, item }: the sitting's next candidate session (§1.5, §2.2.1), its `k` the
+ *   count of the sessions before it, presenting the member whose item ref is `item`, at the start
+ *   and on a resumption alike: in a nonlinear part "the candidate is free to navigate to any item
+ *   in the test at any time" (the overview, from TestPart's `navigation-mode`, Table 5.159.4), and
+ *   in a linear part the delivery level's laws hold it to the member order ("Linear in order",
+ *   "Linear never back") and, in an individual part, to the member the candidate is on ("In turn");
+ *   a timed sitting's later budget is what its suspended session left (`NextBudget`). The start's
+ *   budget is the application's applied limit, which it unions in.
  * - `presentItem` { sittings, item }: the candidate moves to the member whose item ref is `item`.
  * - `saveTestItem` { sittings, item, given, …values }: a response given and not submitted, QTI's
  *   suspended values (§2.2.4).
@@ -65,18 +69,12 @@
  * database's stamp, is admitted, the latest save winning.
  */
 import { ChangeSet, Fn, Logic, Num, pg, query, Range, Type, v } from "@bjornpagen/grizzle";
-import { memberPositions } from "@qti-pie/pantry/qti/positions.ts";
 import { presenceGraceMicros } from "#ledger/delivery.ts";
 import type { deliveryOf } from "#ledger/delivery.ts";
 import { memberAnswerAdmissionOf, takeValuesOf } from "#ledger/grade.ts";
 import { processingSeed } from "#ledger/grading.ts";
 import { SnapshotKind } from "#ledger/ledger.ts";
-import {
-  shownMemberOf,
-  sittingHeading,
-  sittingStandingOf,
-  takenHeading,
-} from "#ledger/sitting-queries.ts";
+import { sittingHeading, sittingStandingOf, takenHeading } from "#ledger/sitting-queries.ts";
 import { Moment, Reading } from "#ledger/sittings.ts";
 
 /**
@@ -226,11 +224,6 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   const standing = sittingStandingOf(delivery);
 
   /**
-   * Each of the call's sittings' member last presented: what a resumption presents again.
-   */
-  const lastPresented = shownMemberOf(delivery);
-
-  /**
    * Each of the call's timed sittings' latest suspended session's next budget, bound to the call's
    * sittings before its maximum, so it reads their budgets alone.
    */
@@ -344,41 +337,68 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
   );
 
   /**
+   * A sitting of `sittings` the call enters ({@link closedSitting}) with the member it names by its
+   * item ref's identifier, `item` ({@link sittingMember}): the member the candidate session
+   * presents. A name of no member of the sitting's test enters nothing.
+   */
+  const enteringSitting = query(delivery).rule((r) => {
+    const sittings = r.relation("sittings", sittingHeading);
+    const closed = closedSitting.bind({ sittings });
+    const member = sittingMember.bind({ item: r.param("item", ItemRef), sittings });
+    const { child, stage, package: pkg, path: test } = v(closed, "enteringTest");
+    const { path } = v(member, "enteringMember");
+
+    return r
+      .match(closed, { child, package: pkg, path: test, stage })
+      .match(member, { child, package: pkg, path, stage })
+      .find({ child, package: pkg, path, stage, test });
+  });
+
+  /**
    * A candidate session's beginning: the sitting's moment, the visit `k`, the count of the visits
    * before it (they run gapless from 0, each after the one before it was suspended), the member it
-   * presents, the first in order at the start and the one last presented on a resumption, and a
-   * timed resumption's budget, what the suspended session left (`NextBudget`). The start's budget
-   * is the application's applied limit, unioned in. Each fold binds its source's whole key.
+   * presents, the one the call names ({@link enteringSitting}), and a timed resumption's budget,
+   * what the suspended session left (`NextBudget`). The start's budget is the application's applied
+   * limit, unioned in. Each fold binds its source's whole key.
    */
   const enterTest = ChangeSet.empty(delivery)
     .insert(
       f.TestMoment,
       query(delivery).rule((r) => {
-        const closed = closedSitting.bind({ sittings: r.relation("sittings", sittingHeading) });
-        const { child, stage } = v(closed, "entered");
+        const entering = enteringSitting.bind({
+          item: r.param("item", ItemRef),
+          sittings: r.relation("sittings", sittingHeading),
+        });
+        const { child, stage } = v(entering, "entered");
 
-        return r.match(closed, { child, stage }).find({ child, stage });
+        return r.match(entering, { child, stage }).find({ child, stage });
       }),
     )
     .insert(
       f.TestVisit,
       query(delivery)
         .rule((r) => {
-          const closed = closedSitting.bind({ sittings: r.relation("sittings", sittingHeading) });
-          const { child, stage } = v(closed, "started");
+          const entering = enteringSitting.bind({
+            item: r.param("item", ItemRef),
+            sittings: r.relation("sittings", sittingHeading),
+          });
+          const { child, stage } = v(entering, "started");
 
           return r
-            .match(closed, { child, stage })
+            .match(entering, { child, stage })
             .where(r.not(f.TestVisit, { child, stage }))
             .find({ child, k: 0n, stage });
         })
         .rule((r) => {
-          const closed = closedSitting.bind({ sittings: r.relation("sittings", sittingHeading) });
-          const { child, stage, package: testPackage, path: test } = v(closed, "resumed");
+          const entering = enteringSitting.bind({
+            item: r.param("item", ItemRef),
+            sittings: r.relation("sittings", sittingHeading),
+          });
+          const { child, stage, package: pkg, path, test } = v(entering, "resumed");
           const { k: visited, at } = v(f.TestVisit, "visited");
 
           return r
-            .match(closed, { child, package: testPackage, path: test, stage })
+            .match(entering, { child, package: pkg, path, stage, test })
             .match(f.TestVisit, { at, child, k: visited, stage })
             .find({ child, k: r.count(), stage });
         }),
@@ -387,30 +407,28 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
       f.TestPresented,
       query(delivery)
         .rule((r) => {
-          const closed = closedSitting.bind({ sittings: r.relation("sittings", sittingHeading) });
-          const { child, stage, package: pkg, path: test } = v(closed, "startedTest");
-          // The first member in the sitting's delivered order (`memberPositions`), since DeliveredTest
-          // admits no selection or ordering.
-          const { document } = v(memberPositions, "firstMember");
+          const entering = enteringSitting.bind({
+            item: r.param("item", ItemRef),
+            sittings: r.relation("sittings", sittingHeading),
+          });
+          const { child, stage, package: pkg, path } = v(entering, "startedMember");
 
           return r
-            .match(closed, { child, package: pkg, path: test, stage })
-            .match(memberPositions, { document, k: 1n, package: pkg, path: test })
+            .match(entering, { child, package: pkg, path, stage })
             .where(r.not(f.TestVisit, { child, stage }))
-            .find({ child, k: 0n, package: pkg, path: document, stage });
+            .find({ child, k: 0n, package: pkg, path, stage });
         })
         .rule((r) => {
-          const sittings = r.relation("sittings", sittingHeading);
-          const closed = closedSitting.bind({ sittings });
-          const shown = lastPresented.bind({ sittings });
-          const { child, stage, package: testPackage, path: test } = v(closed, "resumedTest");
+          const entering = enteringSitting.bind({
+            item: r.param("item", ItemRef),
+            sittings: r.relation("sittings", sittingHeading),
+          });
+          const { child, stage, package: pkg, path, test } = v(entering, "resumedMember");
           const { k: visited, at } = v(f.TestVisit, "resumedVisit");
-          const { package: pkg, path } = v(shown, "resumedMember");
 
           return r
-            .match(closed, { child, package: testPackage, path: test, stage })
+            .match(entering, { child, package: pkg, path, stage, test })
             .match(f.TestVisit, { at, child, k: visited, stage })
-            .match(shown, { child, package: pkg, path, stage })
             .find({ child, k: r.count(), package: pkg, path, stage });
         }),
     )
@@ -418,14 +436,14 @@ export const sittingProgramsOf = (delivery: DeliveryLevel) => {
       f.TestBudget,
       query(delivery).rule((r) => {
         const sittings = r.relation("sittings", sittingHeading);
-        const closed = closedSitting.bind({ sittings });
+        const entering = enteringSitting.bind({ item: r.param("item", ItemRef), sittings });
         const leftOf = lastLeft.bind({ sittings });
-        const { child, stage, package: testPackage, path: test } = v(closed, "resumedBudget");
+        const { child, stage, package: pkg, path, test } = v(entering, "resumedBudget");
         const { k: visited, at } = v(f.TestVisit, "budgetVisit");
         const { left } = v(leftOf, "left");
 
         return r
-          .match(closed, { child, package: testPackage, path: test, stage })
+          .match(entering, { child, package: pkg, path, stage, test })
           .match(f.TestVisit, { at, child, k: visited, stage })
           .match(leftOf, { child, left, stage })
           .find({

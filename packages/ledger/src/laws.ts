@@ -153,7 +153,7 @@ export const ledgerLaws = {
       "src/operands.ts HumanValueBound: a person's value is at most the maximum of every application of its rubric group at the attempt",
   },
   "In turn": {
-    source: `${info}#DataCharacteristic_TestPart.Attr_navigation-mode (Table 5.159.4: 'the candidate [is restricted] to attempt each item in turn. Once the candidate moves on they are not permitted to return'): an attempt is of a presented member, and a linear part's member the candidate moved on from has its attempt (src/test-laws.ts)`,
+    source: `${info}#DataCharacteristic_TestPart.Attr_navigation-mode (Table 5.159.4: 'the candidate [is restricted] to attempt each item in turn. Once the candidate moves on they are not permitted to return'): an attempt is of a presented member, and an individual linear part's member the candidate moved on from has its attempt, a simultaneous part's item sessions passing 'between the interacting and suspended states only' (Table 5.159.5) (src/test-laws.ts)`,
   },
   "Item of the content": {
     source:
@@ -185,6 +185,9 @@ export const ledgerLaws = {
   },
   "Least first": {
     source: `${info}#Enumerated_BaseTypeEnum (§8.14, BaseTypeEnum: 'pair' - 'The association is undirected so (A,B) and (B,A) are equivalent'): 'pair as its two identifiers in code-point order, least and greatest, so the two orders of one pair are one row' (src/ledger.ts)`,
+  },
+  "Linear in order": {
+    source: `${info}#DataCharacteristic_TestPart.Attr_navigation-mode (Table 5.159.4: 'A testPart in linear mode restricts the candidate to attempt each item in turn'): in a linear part every member before a presented member was presented, so presentations run in member order from the first, a skip being a presentation submitted with no response (Table 7.19.6); member order is TestMember's place, sound while a delivered test holds no qti-selection, qti-ordering, qti-pre-condition or qti-branch-rule (src/delivery.ts undeliveredKinds; §2.8.3, §5.23) (src/test-laws.ts LinearPreceding)`,
   },
   "Linear never back": {
     source: `${info}#Main2p8p2 (§2.8.2: 'Once the candidate moves on they are not permitted to return'): a linear part's later presentation is never of an item ref before the earlier's (src/delivery.ts LinearPresentations)`,

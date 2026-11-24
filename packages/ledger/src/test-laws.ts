@@ -20,11 +20,19 @@
  *   "simultaneous ... all submitted together at the end"): every attempt of such a member has its
  *   sitting's end, and an ended sitting's every presented member has its attempt (an item session's
  *   attempt begins when it is presented, so a presented member goes to the end with one).
- * - **In turn**: an attempt is of a presented member, in any part; and in a linear part, where "the
- *   candidate [is restricted] to attempt each item in turn. Once the candidate moves on they are
- *   not permitted to return" (Table 5.159.4, `navigation-mode`), a member presented before a later
- *   presentation of another member has its attempt: moving on submits, and a skip is a submission
- *   of NULL responses (Table 7.19.6, `allow-skipping`).
+ * - **In turn**: an attempt is of a presented member, in any part; and in an individual linear part,
+ *   where "the candidate [is restricted] to attempt each item in turn. Once the candidate moves on
+ *   they are not permitted to return" (Table 5.159.4, `navigation-mode`), a member presented before
+ *   a later presentation of another member has its attempt: moving on submits, and a skip is a
+ *   submission of NULL responses (Table 7.19.6, `allow-skipping`). In a simultaneous part moving on
+ *   submits nothing: "each item session passes between the interacting and suspended states only"
+ *   (Table 5.159.5), its attempts the end's ("Submitted together").
+ * - **Linear in order**: in a linear part every member before a presented member was presented, so
+ *   with "Linear never back" its presentations run in member order from the first: "each item in
+ *   turn" (Table 5.159.4) is every item, a skipped one presented and submitted with no response
+ *   (Table 7.19.6). The members' order is their places, sound while a delivered test holds no
+ *   qti-selection, qti-ordering, qti-pre-condition or qti-branch-rule (`#ledger/delivery.ts`
+ *   undeliveredKinds; a pre-condition skips an item and a branch rule jumps, §2.8.3, §5.23).
  * - **Shown before saved**: a save is of a presented member, in any part. An item session is in its
  *   initial state "before the delivery has taken place" (§2.2.1), and the candidate sets or updates
  *   its response variables only in the interacting state, in which "The body must be presented to
@@ -185,9 +193,9 @@ export const testLawsOf = (ledger: LedgerLevel) => {
   const EndedPresentation = derived("EndedPresentation", endedPresentations);
 
   /**
-   * Each member of a linear part the candidate moved on from: presented before a later presentation
-   * of another member of the sitting. The two instants are the sitting's one clock (`TestMoment`),
-   * so their order is the order the presentations were committed.
+   * Each member of an individual linear part the candidate moved on from: presented before a later
+   * presentation of another member of the sitting. The two instants are the sitting's one clock
+   * (`TestMoment`), so their order is the order the presentations were committed.
    */
   const movesOn = query(ledger).rule((r) => {
     const { child, stage, package: pkg, path, at } = v(TestPresented, "before");
@@ -206,10 +214,51 @@ export const testLawsOf = (ledger: LedgerLevel) => {
       .where(r.lt(at, later.at))
       .where(r.or(r.ne(pkg, later.package), r.ne(path, later.path)))
       .match(sittingMembers, { child, package: pkg, part, path, stage, test })
-      .match(TestPart, { navigation: "linear", package: pkg, path: test, start: part })
+      .match(TestPart, {
+        navigation: "linear",
+        package: pkg,
+        path: test,
+        start: part,
+        submission: "individual",
+      })
       .find({ child, package: pkg, path, stage });
   });
   const MovedOn = derived("MovedOn", movesOn);
+
+  /**
+   * Each member of a linear part's sitting before a presented member: the item document of every
+   * item ref of the part whose place precedes the presented member's. A delivered test selects,
+   * orders, skips and branches nothing (`#ledger/delivery.ts` undeliveredKinds), so the members'
+   * order is their places.
+   */
+  const linearPreceding = query(ledger).rule((r) => {
+    const { child, stage, package: pkg, path } = v(TestPresented, "presentedLater");
+    const { path: test } = v(TestSession, "linearSitting");
+    const shown = v(TestMember, "shownMember");
+    const before = v(TestMember, "beforeMember");
+
+    return r
+      .match(TestPresented, { child, package: pkg, path, stage })
+      .match(TestSession, { child, package: pkg, path: test, stage })
+      .match(TestMember, {
+        document: path,
+        package: pkg,
+        part: shown.part,
+        path: test,
+        start: shown.start,
+      })
+      .match(TestPart, { navigation: "linear", package: pkg, path: test, start: shown.part })
+      .match(TestMember, {
+        document: before.document,
+        package: pkg,
+        part: shown.part,
+        path: test,
+        start: before.start,
+      })
+      .where(r.lt(before.start, shown.start))
+      .find({ child, package: pkg, path: before.document, stage });
+  });
+  const LinearPreceding = derived("LinearPreceding", linearPreceding);
 
   const relations = [
     SittingMember,
@@ -222,6 +271,7 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     SimultaneousAttempt,
     EndedPresentation,
     MovedOn,
+    LinearPreceding,
   ] as const;
 
   /**
@@ -305,7 +355,18 @@ export const testLawsOf = (ledger: LedgerLevel) => {
   );
 
   /**
-   * In turn: a linear part's member the candidate moved on from has its attempt.
+   * Linear in order: in a linear part every member before a presented member was presented.
+   */
+  const presentedInOrder = named(
+    "Linear in order",
+    contained(
+      on(LinearPreceding, "child", "stage", "package", "path"),
+      on(PresentedMember, "child", "stage", "package", "path"),
+    ),
+  );
+
+  /**
+   * In turn: an individual linear part's member the candidate moved on from has its attempt.
    */
   const movingOnSubmits = named(
     "In turn",
@@ -325,6 +386,7 @@ export const testLawsOf = (ledger: LedgerLevel) => {
     attemptedWhenPresented,
     movingOnSubmits,
     savedWhenPresented,
+    presentedInOrder,
   ] as const;
 
   return { laws, relations } as const;
