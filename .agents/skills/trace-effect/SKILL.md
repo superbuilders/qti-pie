@@ -11,7 +11,7 @@ runtime (edullm, metis), so checking export is the host's job; here, check that 
 ## Spans
 
 - A reusable operation worth timing is `Effect.fn("<area>.<operation>")`: `xml.read`, `vocab.loadSchema`,
-  `cli.withTimeout`. Wrap an existing effect with `Effect.withSpan("<area>.<operation>")`.
+  `cli.replaceWith`. Wrap an existing effect with `Effect.withSpan("<area>.<operation>")`.
 - Library internals, small helpers and hot paths are `Effect.fnUntraced`. Unnamed `Effect.fn(function* …)` makes no
   span: a span needs the name string.
 - Pass combinators to `Effect.fn` as extra arguments, never `.pipe` on its result.

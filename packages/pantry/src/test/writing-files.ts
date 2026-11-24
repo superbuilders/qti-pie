@@ -15,7 +15,6 @@ import { fileDatabaseLayer } from "#pantry/test/file-database.ts";
 export type WritingFile =
   | "export"
   | "output"
-  | "timeout"
   | "package"
   | "packaging"
   | "oracle"

@@ -4,7 +4,6 @@ import { ExportData } from "#pantry/cli/export.ts";
 import { ImportData } from "#pantry/cli/import.ts";
 import { ErrorObject, successEnvelope } from "#pantry/cli/output.ts";
 import { RoundtripData } from "#pantry/cli/roundtrip.ts";
-import { withTimeout } from "#pantry/cli/timeout.ts";
 
 /**
  * The envelope each name stands for: a command's success envelope with its full data union, and
@@ -63,7 +62,7 @@ export const schemaCommand = Command.make(
         : Object.fromEntries(names.map((each) => [each, documentOf(each)]));
 
     yield* Console.log(JSON.stringify(document));
-  }, withTimeout),
+  }),
 ).pipe(
   Command.withDescription(
     "Print the JSON Schema (draft 2020-12) of what a command prints with --output json, or of the error object",

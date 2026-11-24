@@ -1,6 +1,5 @@
 import { Console, Effect } from "effect";
 import { Argument, Command, Completions } from "effect/cli";
-import { withTimeout } from "#pantry/cli/timeout.ts";
 
 /**
  * The shells a completion script can be written for.
@@ -26,7 +25,7 @@ export const completionsCommand = (root: () => Command.Command.Any) =>
     { shell: Argument.Literals("shell", shells) },
     Effect.fn("cli.completions")(function* completionsHandler({ shell }) {
       yield* Console.log(Completions.generate("qti", shell, Completions.fromCommand(root())));
-    }, withTimeout),
+    }),
   ).pipe(
     Command.withDescription("Print a shell completion script for qti"),
     Command.withExamples([

@@ -14,8 +14,6 @@ import { withAuthorApp } from "#pantry/cli/engine.ts";
 import { RoundtripDiffers } from "#pantry/cli/errors.ts";
 import { emitSuccess, outputMode } from "#pantry/cli/output.ts";
 import type { OutputMode } from "#pantry/cli/output.ts";
-import { readBackSettlement, settlingWrite } from "#pantry/cli/settle.ts";
-import { finish, withTimeout, WriteStopped } from "#pantry/cli/timeout.ts";
 import type { Outcome, Report } from "#pantry/export/compare.ts";
 
 /**
@@ -150,14 +148,6 @@ const reportRoundtrip = Effect.fnUntraced(function* reportRoundtrip(
  * importer and the exporter load inside the database's pool (`withAuthorApp`), so neither does a
  * run that cannot reach the database. The import, the export and the comparison share that one
  * pool.
- *
- * A stop by `--timeout` before the import's write to the database begins is a plain timeout:
- * nothing was written. From then until the export takes its target's place, the stop is settled
- * by reading the package back by its name (`#pantry/cli/settle.ts`), and fails saying what it
- * found: the package stored, with nothing exported; not stored, with nothing written; or, where
- * the read-back fails, that the package may or may not be stored. Once the export's swap has
- * begun (`replaceWith`), a stop ends the run with the report of the comparison, and the report is
- * the round trip's last step (`finish`), so a stop after it prints nothing again.
  */
 export const roundtripCommand = Command.make(
   "roundtrip",
@@ -214,22 +204,14 @@ export const roundtripCommand = Command.make(
       ([
         { authorDb },
         { readPackage },
-        { importPackage, WrapApply },
+        { importPackage },
         { exportPackage },
         { byPath, compareSource },
       ]) =>
         Effect.gen(function* roundtripOnPool() {
           const db = yield* authorDb;
           const pkg = yield* readPackage(dir, named);
-          const imported = yield* settlingWrite(
-            WrapApply,
-            readBackSettlement("roundtrip", pkg, (after) =>
-              Effect.fail(
-                new WriteStopped({ after, command: "roundtrip", held: "this", package: pkg.name }),
-              ),
-            ),
-            importPackage(db.workload, pkg),
-          );
+          const imported = yield* importPackage(db.workload, pkg);
           const source = new Map(
             yield* Effect.forEach([...pkg.files], ([entryPath, file]) =>
               Effect.map(
@@ -238,22 +220,18 @@ export const roundtripCommand = Command.make(
               ),
             ),
           );
-          const compared = yield* replaceWith(
-            exportDir,
-            (written) =>
-              Effect.flatMap(exportPackage(imported.package, written), (entries) =>
-                compareSource(source, byPath(entries)),
-              ),
-            (written) =>
-              reportRoundtrip(mode, { exportDir, report: written, stored: imported.package }),
+          const compared = yield* replaceWith(exportDir, (written) =>
+            Effect.flatMap(exportPackage(imported.package, written), (entries) =>
+              compareSource(source, byPath(entries)),
+            ),
           );
 
           return { report: compared, stored: imported.package };
         }),
     );
 
-    yield* finish(reportRoundtrip(mode, { exportDir, report, stored }));
-  }, withTimeout),
+    yield* reportRoundtrip(mode, { exportDir, report, stored });
+  }),
 ).pipe(
   Command.withDescription(
     "Import <dir> under the name <name>, export it to work/export/<name> (<name>.zip under --zip), and compare the export with the package the import read (writes the database, the local media store and work/export/<name>; with --dry-run it reads and checks the package, says whether the export would be created or replaced, and writes nothing, and the database's own checks do not run). An export already at work/export/<name> is replaced only with --yes, and the old one goes once the new export is written",

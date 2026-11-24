@@ -40,13 +40,9 @@ import type { insertWrite } from "#pantry/qti/logins.ts";
 
 /**
  * What runs each attempt of the import's apply: by default the attempt as it is, so a caller
- * provides nothing. A wrap runs as each attempt starts, so it marks the moment the import's
- * database write begins: the command line's wraps the attempt it is given in one that first records
- * how a stop by `--timeout` from then on is settled (`#pantry/cli/settle.ts` `settlingWrite`),
- * since grizzle's README says an interrupted write may have committed. A test provides a wrap
- * through `Effect.provideService` to inject a failure the cluster will not raise on demand (a
- * `transient` call error, a `commitUnknown` before or after the apply ran, an interruption while it
- * waits on a lock), and the import then meets that failure as it would meet the database's.
+ * provides nothing. A test provides a wrap through `Effect.provideService` to inject a failure the
+ * cluster will not raise on demand (a `transient` call error, a `commitUnknown` before or after the
+ * apply ran), and the import then meets that failure as it would meet the database's.
  */
 export const WrapApply = Context.Reference<
   <A>(apply: Effect.Effect<A, CallError>) => Effect.Effect<A, CallError>

@@ -1,8 +1,6 @@
 import os from "node:os";
 import { Config, Effect, FileSystem, Option, Path, Schema } from "effect";
 import { Flag } from "effect/cli";
-import { commitPoint } from "#pantry/cli/timeout.ts";
-import type { StopError } from "#pantry/cli/timeout.ts";
 
 /**
  * The path the person named is not there, or is neither a directory nor a `.zip` file.
@@ -261,20 +259,16 @@ export const requireReplaceable = Effect.fn("cli.requireReplaceable")(function* 
  * removed (a symlink as a link, never what it points to) and the written item is renamed onto its
  * place. The staging folder is removed on every exit, so a failure of `write`, a defect or an
  * interruption before the swap leaves the old target as it was. The swap, the removal and the
- * rename, is a commit point (`commitPoint` of `#pantry/cli/timeout.ts`): it runs to its end
- * whatever a stop by `--timeout` does, so no stop leaves the old target removed and the new one
- * unplaced, and a stop from then on ends the run with `replaced` of what `write` returned.
+ * rename, runs uninterruptibly, so no interruption leaves the old target removed and the new one
+ * unplaced.
  *
  * @param target - The directory or file being replaced.
  * @param write - Writes the new content at the path it is given.
- * @param replaced - What a stop once the new content has taken the target's place ends the run
- *   with: the command's report of what `write` returned.
  * @returns What `write` returns, once its content has taken the target's place.
  */
 export const replaceWith = Effect.fn("cli.replaceWith")(function* replaceWith<A, E, R>(
   target: string,
   write: (path: string) => Effect.Effect<A, E, R>,
-  replaced: (written: A) => Effect.Effect<void, StopError>,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -291,12 +285,11 @@ export const replaceWith = Effect.fn("cli.replaceWith")(function* replaceWith<A,
         const written = path.join(staging, name);
         const result = yield* write(written);
 
-        yield* commitPoint(
+        yield* Effect.uninterruptible(
           Effect.andThen(
             fs.remove(absolute, { force: true, recursive: true }),
             fs.rename(written, absolute),
           ),
-          () => replaced(result),
         );
 
         return result;

@@ -4,8 +4,6 @@ import { databaseNotChecked, dryRunFlag, requireName, requirePackage } from "#pa
 import { withAuthorApp } from "#pantry/cli/engine.ts";
 import { emitSuccess, outputMode } from "#pantry/cli/output.ts";
 import type { OutputMode } from "#pantry/cli/output.ts";
-import { readBackSettlement, settlingWrite } from "#pantry/cli/settle.ts";
-import { finish, withTimeout } from "#pantry/cli/timeout.ts";
 import type { Imported, importPackage } from "#pantry/import/package.ts";
 
 /**
@@ -99,14 +97,6 @@ const reportImported = (mode: OutputMode, stored: Imported) =>
  * handler runs, so `--help` and a usage error never pay for
  * it, and the importer loads inside the database's pool (`withAuthorApp`), so neither does a run
  * that cannot reach the database.
- *
- * A stop by `--timeout` before the write to the database begins is a plain timeout: nothing was
- * written. Once it has begun, the write may have committed whatever the stop interrupted, so the
- * stop is settled by reading the package back by its name (`#pantry/cli/settle.ts`): stored as this
- * import wrote it, the import prints that it imported the package (`accepted`), whatever the name
- * held before; not stored, it fails saying nothing was written; and where the read-back fails,
- * saying the package may or may not be stored. The report is the import's last step (`finish`), so
- * a stop after it prints nothing again.
  */
 export const importCommand = Command.make(
   "import",
@@ -140,23 +130,16 @@ export const importCommand = Command.make(
           import("#pantry/import/read.ts"),
           import("#pantry/import/package.ts"),
         ]),
-      ([{ authorDb }, { readPackage }, { importPackage, WrapApply }]) =>
+      ([{ authorDb }, { readPackage }, { importPackage }]) =>
         Effect.gen(function* importOnPool() {
           const db = yield* authorDb;
-          const pkg = yield* readPackage(dir, named);
 
-          return yield* settlingWrite(
-            WrapApply,
-            readBackSettlement("import", pkg, () =>
-              reportImported(mode, { outcome: "accepted", package: pkg.name }),
-            ),
-            importPackage(db.workload, pkg),
-          );
+          return yield* importPackage(db.workload, yield* readPackage(dir, named));
         }),
     );
 
-    yield* finish(reportImported(mode, stored));
-  }, withTimeout),
+    yield* reportImported(mode, stored);
+  }),
 ).pipe(
   Command.withDescription(
     "Import the package in <dir>, a directory or a .zip file, under the name <name>, its key in the database and the name `qti export` takes, and print the name: imported; or unchanged, when the database already holds the same package under it. Another package under a stored name is refused, since a name is one revision (writes the database and the local media store; with --dry-run it reads and checks the package, writes nothing, and the database's own checks do not run)",

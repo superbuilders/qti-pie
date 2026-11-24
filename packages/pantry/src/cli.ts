@@ -8,7 +8,6 @@ import { outputGlobalFlags } from "#pantry/cli/output.ts";
 import { roundtripCommand } from "#pantry/cli/roundtrip.ts";
 import { runMain } from "#pantry/cli/run.ts";
 import { schemaCommand } from "#pantry/cli/schema.ts";
-import { timeoutGlobalFlags } from "#pantry/cli/timeout.ts";
 import { verbosityGlobalFlags, withVerbosity } from "#pantry/cli/verbosity.ts";
 
 /**
@@ -87,8 +86,6 @@ export const cli = Command.make("qti").pipe(
   // `--quiet` and `--verbose` choose the minimum log level the chosen handler runs at.
   withVerbosity,
   Command.withGlobalFlags(verbosityGlobalFlags),
-  // `--timeout` reaches every command; each handler runs under it (`withTimeout`).
-  Command.withGlobalFlags(timeoutGlobalFlags),
   // Log lines are diagnostics: they go to standard error, so standard output carries only the data
   // asked for. The root's handler runs the chosen subcommand's, so this reaches every handler.
   Command.provideSync(Logger.LogToStderr, true),

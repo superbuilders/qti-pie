@@ -11,7 +11,6 @@ import {
 import { withAuthorApp } from "#pantry/cli/engine.ts";
 import { emitSuccess, outputMode } from "#pantry/cli/output.ts";
 import type { OutputMode } from "#pantry/cli/output.ts";
-import { finish, withTimeout } from "#pantry/cli/timeout.ts";
 import type { ZipEntry } from "#pantry/package/zip.ts";
 
 /**
@@ -96,11 +95,6 @@ const reportExported = (
  * write are listed with their sizes, and whether the target would be created or replaced. A dry run
  * refuses what the real run would refuse, before it opens the database: a target with something in
  * it without `--yes`, and the folders no export replaces.
- *
- * A stop by `--timeout` before the export takes the target's place is a plain timeout, and the
- * target is as it was. Its write is the swap (`replaceWith`), which a stop never cuts in two; a
- * stop once it has begun ends the run as an export that wrote the target, and the report is the
- * export's last step (`finish`), so a stop after it prints nothing again.
  */
 export const exportCommand = Command.make(
   "export",
@@ -143,18 +137,15 @@ export const exportCommand = Command.make(
       return;
     }
 
-    const written = yield* replaceWith(
-      target,
-      (staged) =>
-        withAuthorApp(
-          () => import("#pantry/export/package.ts"),
-          ({ exportPackage }) => exportPackage(named, staged),
-        ),
-      (entries) => reportExported(mode, { entries, package: named, target }),
+    const written = yield* replaceWith(target, (staged) =>
+      withAuthorApp(
+        () => import("#pantry/export/package.ts"),
+        ({ exportPackage }) => exportPackage(named, staged),
+      ),
     );
 
-    yield* finish(reportExported(mode, { entries: written, package: named, target }));
-  }, withTimeout),
+    yield* reportExported(mode, { entries: written, package: named, target });
+  }),
 ).pipe(
   Command.withDescription(
     "Export the package named <name>, the name `qti import` stored it under, to <dir>, or to the zip file <dir>.zip under --zip (writes files; --dry-run lists them, writes nothing and refuses what the real run would refuse). A <dir> that already has something in it needs --yes, which replaces it, and the old one goes only once the new export is written; a symlink is replaced, never followed",

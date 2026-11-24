@@ -9,7 +9,6 @@ import type { Effect } from "effect";
 import { CliError } from "effect/cli";
 import { BadName, NotADirectory, TargetNotEmpty, TargetProtected } from "#pantry/cli/args.ts";
 import { databaseRefusalOf, refusalFieldsOf } from "#pantry/cli/refused.ts";
-import { CommandTimedOut, WriteStopped, WriteUnsettled, writeWords } from "#pantry/cli/timeout.ts";
 import type { DatabaseRefusal } from "#pantry/cli/refused.ts";
 import type { exportPackage } from "#pantry/export/package.ts";
 import type { OverlayConflict } from "#pantry/import/overlays/index.ts";
@@ -19,7 +18,7 @@ import type { importPackage } from "#pantry/import/package.ts";
  * Every kind a failure of this program has.
  *
  * - Exit 1, refused or the work failed: `import-refused`, `roundtrip-differs`, `target-not-empty`,
- *   `timeout`, `database`, `not-found`.
+ *   `database`, `not-found`.
  * - Exit 2, the command line is wrong: `cli-usage`, `cli-path-missing`, `cli-bad-argument`.
  * - Exit 70, a defect in qti: `internal`.
  * - Exit 74, reading the package or writing the output failed: `io`.
@@ -36,8 +35,7 @@ export type Kind =
   | "io"
   | "not-found"
   | "roundtrip-differs"
-  | "target-not-empty"
-  | "timeout";
+  | "target-not-empty";
 
 /**
  * The exit code each kind ends the process with. Interrupts exit 130 and success 0; neither has a
@@ -59,7 +57,6 @@ export const kindExitCode: Readonly<Record<Kind, number>> = {
   "not-found": 1,
   "roundtrip-differs": 1,
   "target-not-empty": 1,
-  timeout: 1,
 };
 
 /**
@@ -85,7 +82,6 @@ export const kindHelp: Readonly<Record<Kind, string>> = {
     "Use the name the package was imported under (`qti import <dir> <name>`), in the same database, or import the package first.",
   "roundtrip-differs": "Compare the package with its export by hand to see which entries differ.",
   "target-not-empty": "Choose an empty or new target, or pass --yes to replace what is there.",
-  timeout: "Run the command again with a larger --timeout.",
 };
 
 /**
@@ -103,13 +99,6 @@ const callErrorHelp: Partial<Readonly<Record<CallErrorKind, string>>> = {
   transient:
     "The database refused this attempt, which changed nothing: a concurrent transaction's work met it. Run the command again.",
 };
-
-/**
- * The next step after a stop by `--timeout`, for every stop that leaves nothing written: a longer
- * limit, or a server that answers.
- */
-const longerLimit =
-  "Give --timeout, or QTI_TIMEOUT, a longer limit, or check that the shared database server answers (`systemctl --user status postgres`)";
 
 /**
  * The tags of grizzle's public errors (`adapter/public/errors.ts`), each of kind `database`,
@@ -303,19 +292,15 @@ export class RoundtripDiffers extends Schema.TaggedError<RoundtripDiffers>()("Ro
 }
 
 /**
- * Every error this program defines: the command line's (`#pantry/cli/args.ts`), a round trip's
- * that differs, and a stop by `--timeout`'s (`#pantry/cli/timeout.ts`). {@link describeFailure}
- * decodes a failure as one of them first.
+ * Every error this program defines: the command line's (`#pantry/cli/args.ts`) and a round trip's
+ * that differs. {@link describeFailure} decodes a failure as one of them first.
  */
 const OwnErrors = Schema.Union([
   BadName,
-  CommandTimedOut,
   NotADirectory,
   RoundtripDiffers,
   TargetNotEmpty,
   TargetProtected,
-  WriteStopped,
-  WriteUnsettled,
 ]);
 
 /**
@@ -332,20 +317,16 @@ const isOwnError = Schema.is(OwnErrors);
  * The kind of each error this program defines, by its tag: a name the person gave that is no
  * package's (`BadName`) or a target no command replaces (`TargetProtected`) is
  * `cli-bad-argument`; a path that is neither a directory nor a `.zip` file is `cli-path-missing`; a
- * target with something in it is `target-not-empty`; a round trip whose export differs is
- * `roundtrip-differs`; and a stop by `--timeout`, before a write began or once it had, settled or
- * not, is `timeout`. It is held total over {@link OwnError}'s tags, so an error the program gains
+ * target with something in it is `target-not-empty`; and a round trip whose export differs is
+ * `roundtrip-differs`. It is held total over {@link OwnError}'s tags, so an error the program gains
  * fails to compile here until it has a kind.
  */
 const ownKinds = {
   BadName: "cli-bad-argument",
-  CommandTimedOut: "timeout",
   NotADirectory: "cli-path-missing",
   RoundtripDiffers: "roundtrip-differs",
   TargetNotEmpty: "target-not-empty",
   TargetProtected: "cli-bad-argument",
-  WriteStopped: "timeout",
-  WriteUnsettled: "timeout",
 } as const satisfies Readonly<Record<OwnError["_tag"], Kind>>;
 
 /**
@@ -360,18 +341,11 @@ const ownHelpOf = (error: OwnError): string =>
   Match.valueTags(error, {
     BadName: () =>
       "Name the package with at most 255 bytes of letters, digits, '-', '_' and '.', starting with a letter or '_'; to export, use the name it was imported under.",
-    CommandTimedOut: () => `${longerLimit}.`,
     NotADirectory: () => "Name the directory of an unzipped QTI package, or its .zip file.",
     RoundtripDiffers: ({ exportDir }) =>
       `Run \`diff -r <dir> ${exportDir}\`, with the package you named for <dir>, to see which entries differ.`,
     TargetNotEmpty: () => "Pass --yes to replace it, or name a new or empty directory.",
     TargetProtected: () => "Name a new or empty directory instead, even with --yes.",
-    WriteStopped: ({ command, held }) =>
-      held === "this"
-        ? `The package is stored. Give --timeout, or QTI_TIMEOUT, a longer limit, then ${writeWords[command].again}: the same package imported again under its name is unchanged.`
-        : `Nothing was written. ${longerLimit}, then ${writeWords[command].again}.`,
-    WriteUnsettled: ({ command, package: name }) =>
-      `Check that the shared database server answers (\`systemctl --user status postgres\`), then look for the package by its name (\`qti export --dry-run <dir> ${name}\`) before you ${writeWords[command].again}: the same package imported again under its name is unchanged, never a second copy.`,
   });
 
 /**

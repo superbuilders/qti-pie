@@ -50,7 +50,6 @@ describe("describeFailure and exitCodeOf", () => {
       "not-found": 1,
       "roundtrip-differs": 1,
       "target-not-empty": 1,
-      timeout: 1,
     } satisfies Record<Kind, number>);
   });
 
