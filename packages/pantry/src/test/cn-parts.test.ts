@@ -8,18 +8,28 @@
  * element, is refused for a wrong count as any other is. The host once judged only the `cn`s whose
  * digits it could read, so it accepted those (audit e8db90e1, F7). Each case is a `cn` written into
  * the base item; the controls have the right count and are accepted by both.
+ *
+ * The count of every `cn` whose `type` lists a form is the view `CnCount`'s
+ * (`#pantry/qti/overlay-queries/expression.ts`), a rule over a query the host judge leaves to the
+ * database, so the case restates it on the host over the import's rows ({@link miscounted}).
  */
+import type { PreviewRows } from "@bjornpagen/grizzle";
 import { NodeServices } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
-import { Array as Arr, Effect, Formatter, Option } from "effect";
+import { Array as Arr, Effect, Formatter, Option, Predicate } from "effect";
+import { collapse } from "#pantry/grammar/domains.ts";
+import { CnParts } from "#pantry/grammar/install.ts";
+import { keyTextOf } from "#pantry/import/key-text.ts";
 import { readProgram } from "#pantry/import/program.ts";
 import { Qti } from "#pantry/qti/schema.ts";
 import { scopedPackage } from "#pantry/test/gen/every-relation.ts";
 import { previewRowsOf, judge, judgedLaws } from "#pantry/test/host-judge.ts";
+import type { HeldRow } from "#pantry/test/host-judge.ts";
 import { oracleVerdict } from "#pantry/test/oracle-verdict.ts";
 import { itemResource, manifestOf, packageOf, withItem } from "#pantry/test/probe.ts";
 import { rulesOf } from "#pantry/import/refusal.ts";
 import { nameOf } from "#pantry/test/package-name.ts";
+import { lawTable } from "#pantry/vocab/laws.ts";
 
 /**
  * A `cn` case: its markup, whether both judges must accept it, and the rule they refuse it under.
@@ -130,6 +140,65 @@ const filesOf = (cn: string) => {
 };
 
 /**
+ * Read a row's field that holds a text or a position, as a key text reads it.
+ *
+ * @param row - The row.
+ * @param field - The field.
+ * @returns Its value.
+ */
+const at = (row: HeldRow, field: string): bigint | string => {
+  const value = row[field];
+
+  return Predicate.isString(value) || Predicate.isBigInt(value)
+    ? value
+    : assert.fail(`the row holds no text or position in ${field}`);
+};
+
+/**
+ * Read the key text of the element a row's place names: its package, its path and the position
+ * the row holds in `start`'s field.
+ *
+ * @param row - The row.
+ * @param start - The field that holds the element's position.
+ * @returns The element's key text.
+ */
+const placeOf = (row: HeldRow, start: string): string =>
+  keyTextOf(at(row, "package"), at(row, "path"), at(row, start));
+
+/**
+ * Restate "MathML cn form" over the view `CnCount` (`#pantry/qti/overlay-queries/expression.ts`) on
+ * the host, over the import's rows: each `m:cn` whose `type` lists a form, `real` where it writes
+ * none and else its form collapsed (MathML 3 §4.2.1, §2.1.7), holds as many parts as
+ * {@link CnParts} gives its type, one more than its `m:sep` children.
+ *
+ * @param rows - The import's rows as the database holds them.
+ * @returns Whether some `cn` holds another count.
+ */
+const miscounted = (rows: PreviewRows<typeof Qti>): boolean => {
+  const view: ReadonlyMap<string, readonly HeldRow[]> = new Map(Object.entries(rows));
+  const rowsOf = (relation: string): readonly HeldRow[] => view.get(relation) ?? [];
+  const types = new Map(
+    rowsOf("Attribute")
+      .filter((row) => row["kind"] === "m:cn" && row["name"] === "type")
+      .map((row) => [placeOf(row, "start"), collapse(String(at(row, "lexical")))] as const),
+  );
+  const separators = Map.groupBy(
+    rowsOf("Node").filter((row) => row["kind"] === "m:sep"),
+    (row) => placeOf(row, "parent"),
+  );
+
+  return rowsOf("Node")
+    .filter((row) => row["kind"] === "m:cn")
+    .some((cn) => {
+      const place = placeOf(cn, "start");
+      const type = types.has(place) ? types.get(place) : "real";
+      const parts = CnParts.rows.find((row) => row.type === type)?.parts;
+
+      return parts !== undefined && BigInt((separators.get(place) ?? []).length + 1) !== parts;
+    });
+};
+
+/**
  * Every law the host judges, read once.
  */
 const laws = judgedLaws(Qti);
@@ -143,18 +212,20 @@ layer(NodeServices.layer, { excludeTestServices: true })("the parts of a typed c
         const entries = new Map(
           Object.entries(files).map(([path, text]) => [path, new TextEncoder().encode(text)]),
         );
-        const { broken } = yield* Effect.scoped(
+        const { broken, rows } = yield* Effect.scoped(
           Effect.gen(function* host() {
             const dir = yield* scopedPackage(entries);
             const program = yield* readProgram(dir, nameOf(dir));
+            const held = previewRowsOf(program.inputs);
 
-            return judge(previewRowsOf(program.inputs), laws);
+            return { ...judge(held, laws), rows: held };
           }),
         );
         const [first, ...rest] = broken.map(({ law }) => law);
+        const counted = miscounted(rows) ? lawTable["MathML cn form"].rule : "accepted";
         const rule =
           first === undefined
-            ? "accepted"
+            ? counted
             : Option.getOrElse(Arr.head(rulesOf([first, ...rest])), () => "unnamed");
         const rules = verdict.kind === "accepted" ? new Set(["accepted"]) : verdict.rules;
         const shown = `${name}: the import's rows give ${rule} (${broken.map(({ law }) => Formatter.format(law)).join("; ") || "no law"}), the oracle ${[...rules].join(", ")}`;

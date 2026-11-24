@@ -35,6 +35,9 @@ import {
   mathQualifiers,
 } from "#pantry/grammar/expression.ts";
 import {
+  CnParts,
+  CnType,
+  CnTypeLexical,
   HeadQualifier,
   MathArity,
   MathHeadOperator,
@@ -78,6 +81,7 @@ import {
   MathAlignScope,
   MathCell,
 } from "#pantry/qti/mathml-align.ts";
+import { MathCn } from "#pantry/qti/mathml-cn.ts";
 import {
   MathRank,
   PlacedMathRank,
@@ -1031,6 +1035,73 @@ const PlacedShareRanks = derived(
 );
 
 /**
+ * The type each `m:cn` is counted under, by its node's place, where its `type` {@link CnType}
+ * lists one (MathML 3 §4.2.1): `real` where it writes none ("If the type attribute is omitted, it
+ * defaults to real"), and else the type its `type` spells once collapsed (§2.1.7), read by a join
+ * to {@link CnTypeLexical} (C17). A `cn` of another `type` is text, and has none.
+ */
+const cnTypes = query(QtiBase)
+  .rule((r) => {
+    const { package: pkg, path, start } = v(Node, "cn");
+
+    return r
+      .match(Node, { kind: "m:cn", package: pkg, path, start })
+      .where(r.not(Attribute, { name: "type", package: pkg, path, start }))
+      .find({ package: pkg, path, start, type: CnType.handle("real") });
+  })
+  .rule((r) => {
+    const { lexical, package: pkg, path, start } = v(Attribute, "type");
+    const { code, lexical: name } = v(CnTypeLexical, "spelled");
+
+    return r
+      .match(Attribute, { kind: "m:cn", lexical, name: "type", package: pkg, path, start })
+      .match(CnTypeLexical, { code, lexical: name })
+      .where(r.eq(name, Text.collapse(lexical)))
+      .find({ package: pkg, path, start, type: code });
+  });
+
+/**
+ * Where each part of an `m:cn`'s content opens, by the `cn`'s place and `at`, the start of what
+ * opens it: the `cn` itself for its first part, and each of its `m:sep` children for the part after
+ * it (MathML 3 §4.2.1, "the parts are separated by sep elements"), so a `cn` of n separators has
+ * n + 1 parts, whatever each holds.
+ */
+const cnParts = query(QtiBase)
+  .rule((r) => {
+    const { package: pkg, path, start } = v(Node, "cn");
+
+    return r
+      .match(Node, { kind: "m:cn", package: pkg, path, start })
+      .find({ at: start, cn: start, package: pkg, path });
+  })
+  .rule((r) => {
+    const { package: pkg, parent, path, start } = v(Node, "separator");
+
+    return r
+      .match(Node, { kind: "m:sep", package: pkg, parent, path, start })
+      .find({ at: start, cn: parent, package: pkg, path });
+  });
+
+/**
+ * Each `m:cn` whose `type` {@link CnType} lists, by its node's place, whatever its `base` and
+ * whatever its parts hold: `type`, the one it is counted under ({@link cnTypes}), and `parts`, the
+ * count of its parts ({@link cnParts}). No row copies either (C18): the database reads both where
+ * the tree states them, and "MathML cn form" holds the count to its type's.
+ */
+export const CnCount = derived.stored(
+  "CnCount",
+  query(QtiBase).rule((r) => {
+    const { package: pkg, path, start, type } = v(cnTypes, "cn");
+    const { at } = v(cnParts, "part");
+
+    return r
+      .match(cnTypes, { package: pkg, path, start, type })
+      .match(cnParts, { at, cn: start, package: pkg, path })
+      .find({ package: pkg, parts: r.count(), path, start, type });
+  }),
+);
+
+/**
  * Each `m:maction` beside its node's element count, by its place: its {@link MathAction} row
  * matched with `Node` at its key.
  */
@@ -1569,6 +1640,11 @@ const expressionLawsByName = {
     ),
   ]),
   "E1 derived": declared("E1 derived", [
+    // A judged cn's type is the one it is counted under, read where its attribute stands.
+    contained(
+      on(MathCn, "package", "path", "start", "type"),
+      on(CnCount, "package", "path", "start", "type"),
+    ),
     mirrors(
       on(PlacedExpression, "package", "assembly", "instance", "path", "start"),
       on(PlacedExpressionSite, "package", "assembly", "instance", "path", "start"),
@@ -1916,6 +1992,9 @@ const expressionLawsByName = {
     key(on(MostOneArgument, "package", "path", "apply")),
     key(on(MostTwoArgumentPair, "package", "path", "apply")),
   ]),
+  "MathML cn form": declared("MathML cn form", [
+    contained(on(CnCount, "type", "parts"), on(CnParts, "type", "parts")),
+  ]),
   "MathML head qualifier": declared("MathML head qualifier", [
     contained(on(HeadQualifierPair, "head", "kind"), on(HeadQualifier, "head", "qualifier")),
   ]),
@@ -1979,6 +2058,7 @@ export const expressionOverlayRelations = [
   ApplyArgument,
   ApplyArgumentPair,
   CellLeafNode,
+  CnCount,
   ExpressionNode,
   ExpressionOperand,
   HeadQualifierPair,

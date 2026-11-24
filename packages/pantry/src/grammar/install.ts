@@ -1506,18 +1506,16 @@ export const CnPattern = closed.relation(
 );
 
 /**
- * `CnTypeSpelling`: type → pattern, what spells each {@link CnType} as the raw value of a `cn`'s
- * `type` attribute: the type's name, in XML whitespace (MathML 3 §2.1.7), which a law matches the
- * attribute's lexical form against.
+ * `CnTypeLexical`: code → lexical, each {@link CnType}'s name (C17), which a `cn`'s `type`
+ * attribute spells once collapsed (MathML 3 §2.1.7): a view reads a `cn`'s type by a join to it
+ * (`CnCount`, `#pantry/qti/overlay-queries/expression.ts`), and `MathCn`'s check proves a written
+ * type by it.
  */
-export const CnTypeSpelling = closed.relation(
-  "CnTypeSpelling",
-  { pattern: str.pattern, type: closedId(CnType) },
-  ["type"],
-  CnType.handles.map((type) => ({
-    pattern: `^[ \\t\\n\\r]*${patternLiteral(type)}[ \\t\\n\\r]*$`,
-    type,
-  })),
+export const CnTypeLexical = closed.relation(
+  "CnTypeLexical",
+  { code: closedId(CnType), lexical: anyText },
+  ["code"],
+  CnType.handles.map((code) => ({ code, lexical: code })),
 );
 
 /**
@@ -1940,7 +1938,7 @@ export const grammarRelations = [
   CnForm,
   CnParts,
   CnPattern,
-  CnTypeSpelling,
+  CnTypeLexical,
   ContentModelOf,
   ContentReference,
   CountedMax,

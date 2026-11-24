@@ -310,13 +310,14 @@ operator ruling. A new reading lands here by pull request, and a package that ne
    The importer's checks of some of the rules above stop short of the law oracle's in these cases, each a known limit
    (reading 91), with its cause. Where the two differ the database may judge a document otherwise than the oracle does:
    - a `cn` the database does not judge (`rowsOf`, `src/import/overlays/mathml-cn.ts`): one with a part that holds an
-     element or an entity reference, or a `base` outside 2 to 36, has no `MathCn` row, so its part count is not
-     checked, as the oracle's "MathML cn form" checks it (`src/test/oracle.ts`), nor, under a `base` outside 2 to 36,
-     are its `double` and `hexdouble` parts, which the oracle reads in any base. A `cn` of any other `type` is text in
-     both. A row that carries the part count alone would lift it;
-   - formerly, a `cn`'s `type` or `base` past the 428-byte key-text bound, which `CnAttribute`
-     (`src/qti/mathml-cn.ts`) now holds as written at any length (`anyText`), a key holding it by its image, as the XSD
-     bounds neither attribute's length (Amended 2026-11-20: pantry's `keyText` is gone; findings row 24);
+     element or an entity reference, or a `base` outside 2 to 36, has no `MathCn` row, so its parts' digits are not
+     judged, while its part count is, by the view `CnCount` (`src/qti/overlay-queries/expression.ts`), as the
+     oracle's "MathML cn form" counts it (`src/test/oracle.ts`); under a `base` outside 2 to 36 its `double` and
+     `hexdouble` parts are not read, which the oracle reads in any base. A `cn` of any other `type` is text in both;
+   - formerly, a `cn`'s `type` or `base` past the 428-byte key-text bound, which no row copies now: the database
+     reads both where the tree states them, and `MathCn`'s lexical forms are held to the attributes by their SHA-256s,
+     as the XSD bounds neither attribute's length (Amended 2026-11-20: pantry's `keyText` is gone; findings row 24;
+     Amended 2026-11-24: `CnAttribute` is gone);
    - rows the host states that no statement refutes: a `MathCn` row's empty `typeLexical` or `baseLexical` says the
      attribute is unwritten and nothing refutes it where the node writes one, only a written lexical being proved
      (`cnLaws`, `src/qti/mathml-cn.ts`); a `MathAlignScope` row's existence, its written `dir` and a cell's inherited

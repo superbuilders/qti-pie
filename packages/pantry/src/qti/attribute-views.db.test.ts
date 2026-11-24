@@ -37,7 +37,11 @@ import { PackageName } from "#pantry/qti/limits.ts";
 import { LookupValue, MapKey } from "#pantry/qti/mapping.ts";
 import { CatalogId, CellTable, HeaderToken } from "#pantry/qti/names.ts";
 import { AssembledCatalog } from "#pantry/qti/overlay-queries/catalog.ts";
-import { RoundingModeFigures, ToleranceToken } from "#pantry/qti/overlay-queries/expression.ts";
+import {
+  CnCount,
+  RoundingModeFigures,
+  ToleranceToken,
+} from "#pantry/qti/overlay-queries/expression.ts";
 import { TableHeader } from "#pantry/qti/overlay-queries/html.ts";
 import { UsageValueBaseType } from "#pantry/qti/queries.ts";
 import { Author } from "#pantry/qti/roles.ts";
@@ -60,13 +64,27 @@ const packageName = "views";
 const mapKeys = ["York", "York", "New\tYork"] as const;
 
 /**
+ * The item's `m:cn`s, in document order: a rational of two parts in a base outside 2 to 36, whose
+ * digits are not judged, an integer of one part in that base, a `cn` that writes no `type`, so a
+ * `real`, one whose `type` is written with whitespace around it, and one of a `type` no form lists,
+ * which is text.
+ */
+const cns = [
+  '<m:cn type="rational" base="40">1<m:sep/>2</m:cn>',
+  '<m:cn type="integer" base="40">1</m:cn>',
+  "<m:cn>3</m:cn>",
+  '<m:cn type=" rational&#10;">4<m:sep/>5</m:cn>',
+  '<m:cn type="constant" base="40">1<m:sep/>2<m:sep/>3</m:cn>',
+] as const;
+
+/**
  * The item: a string response's mapping of {@link mapKeys}, an integer outcome's match table with a
  * default, a float outcome's interpolation table whose entry's target has whitespace around it, a
  * table holding a table in one of its cells, and two catalogs, one named by the fragment it
  * includes. Its text holds no whitespace between elements, so its tree holds no whitespace node.
  */
 const itemText = [
-  `<qti-assessment-item xmlns="${asi}" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="item" title="Item" time-dependent="false">`,
+  `<qti-assessment-item xmlns="${asi}" xmlns:m="http://www.w3.org/1998/Math/MathML" xmlns:xi="http://www.w3.org/2001/XInclude" identifier="item" title="Item" time-dependent="false">`,
   '<qti-response-declaration identifier="RESPONSE" cardinality="multiple" base-type="string">',
   '<qti-mapping default-value="0">',
   ...mapKeys.map(
@@ -86,6 +104,7 @@ const itemText = [
   '<table><tbody><tr><th id=" h1 ">H</th><th id="h3">J</th><td headers="h1 h3">a</td></tr>',
   '<tr><td><table><tbody><tr><th id="h2">I</th><td headers=" h2&#9;">b</td></tr></tbody></table></td></tr>',
   "</tbody></table>",
+  `<p><m:math>${cns.join("")}</m:math></p>`,
   '<xi:include href="fragment.xml"/>',
   "</qti-item-body>",
   '<qti-catalog-info><qti-catalog id="C"><qti-card support="spoken"><qti-html-content/></qti-card></qti-catalog>',
@@ -167,6 +186,15 @@ const packageRows = {
       return r
         .match(CellTable, { package: r.param("package", PackageName), path: at, start, table })
         .find({ path: at, start, table });
+    }),
+  ),
+  cnCounts: answered(
+    query(Qti).rule((r) => {
+      const { parts, path: at, start, type } = v(CnCount, "cn");
+
+      return r
+        .match(CnCount, { package: r.param("package", PackageName), parts, path: at, start, type })
+        .find({ parts, path: at, start, type });
     }),
   ),
   headerTokens: answered(
@@ -495,6 +523,20 @@ const viewsRead = Effect.gen(function* viewsRead() {
       .split(" ")
       .map((token, at) => ({ at: BigInt(at), start: nth("qti-equal", 0), token })),
     "ToleranceToken: each tolerance's values, split at XML whitespace",
+  );
+  assert.sameDeepMembers(
+    [...(yield* db.workload.cnCounts.once(read))].map(({ parts, start, type }) => ({
+      parts,
+      start,
+      type,
+    })),
+    [
+      { parts: 2n, start: nth("m:cn", 0), type: "rational" },
+      { parts: 1n, start: nth("m:cn", 1), type: "integer" },
+      { parts: 1n, start: nth("m:cn", 2), type: "real" },
+      { parts: 2n, start: nth("m:cn", 3), type: "rational" },
+    ],
+    "CnCount: each cn of a listed type, real where it writes none, with one part more than its separators, whatever its base",
   );
   assert.deepStrictEqual(
     [...(yield* db.workload.usageValues.once(read))].map(({ baseType, path: at, text }) => ({

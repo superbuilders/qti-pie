@@ -236,18 +236,19 @@ export const EntityName = law(entryOf("XML production"), str.regex(`^[${ncStart}
  *   or `lexical` read where it stands (`MapKey` and `LookupValue` of `#pantry/qti/mapping.ts`,
  *   `CatalogId` of `#pantry/qti/names.ts`, `TableHeader` of `#pantry/qti/overlay-queries/html.ts`),
  *   and so are a rounding operator's `figures` and a tolerance's values (`RoundingModeFigures` and
- *   `ToleranceToken` of `#pantry/qti/overlay-queries/expression.ts`). The rows that still copy an
- *   attribute's lexical form (C18) are of four kinds, each for its reason: a row that reads its
- *   value by a pattern, which a query matches over `value` only under grizzle's byte guard, so it
- *   waits for the guard (`InteractionAttribute`, `CnAttribute`, `MathAction`, `MasteryValue`,
- *   `NormalMinimum` and `NormalMaximum`, each held to its attribute by a statement `keyCopies`
- *   reads off the schema, `#pantry/test/key-copies.ts`); a name, in a relation whose rows `namedBy`
- *   decides (`#pantry/import/names.ts`, whose doc lists them); a collapsed name or ID a key holds,
- *   since a query collapses no unbounded text (Q19): `Choice`'s, `Hottext`'s and `StimulusRef`'s
- *   `identifier`, each held to its attribute's value through `InteractionAttribute`'s copy, past
- *   the first hop `keyCopies` reads; and a copy of another row's copy, which the cut-over records
- *   for later. No law of `Qti` reads whether its lexical form is an address, and no level above it
- *   does either: the package-media level (`#pantry/qti/media.ts`) states no law.
+ *   `ToleranceToken` of `#pantry/qti/overlay-queries/expression.ts`), and a `cn`'s type (`CnCount`
+ *   there). The rows that still copy an attribute's lexical form (C18) are of four kinds, each for
+ *   its reason: a row that reads its value by a pattern, which a query matches over `value` only
+ *   under grizzle's byte guard, so it waits for the guard (`InteractionAttribute`, `MathAction`,
+ *   `MasteryValue`, `NormalMinimum` and `NormalMaximum`, each held to its attribute by a statement
+ *   `keyCopies` reads off the schema, `#pantry/test/key-copies.ts`); a name, in a relation whose
+ *   rows `namedBy` decides (`#pantry/import/names.ts`, whose doc lists them); a collapsed name or
+ *   ID a key holds, since a query collapses no unbounded text (Q19): `Choice`'s, `Hottext`'s and
+ *   `StimulusRef`'s `identifier`, each held to its attribute's value through
+ *   `InteractionAttribute`'s copy, past the first hop `keyCopies` reads; and a copy of another
+ *   row's copy, which the cut-over records for later. No law of `Qti` reads whether its lexical
+ *   form is an address, and no level above it does either: the package-media level
+ *   (`#pantry/qti/media.ts`) states no law.
  */
 export const Attribute = law(
   entryOf("AL2 distinct"),

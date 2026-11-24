@@ -156,7 +156,7 @@ CREATE INDEX "__named_ix_package_identifier_poryqrycn2" ON "qti"."named" USING b
 
 CREATE INDEX "__node_ix_package_end_path_kind_parent_j4wpst3jjn" ON "qti"."node" USING btree ("package", "end", "path", "kind", "parent");
 
-CREATE INDEX "__node_ix_package_kind_path_start_lmpqq2vqbz" ON "qti"."node" USING btree ("package", "kind", "path", "start");
+CREATE INDEX "__node_ix_package_kind_parent_path_ejq2o6dndk" ON "qti"."node" USING btree ("package", "kind", "parent", "path");
 
 CREATE INDEX "__node_ix_package_parent_kind_kind_element_children_ilct6rhmkh" ON "qti"."node" USING btree ("package", "parent_kind", "kind", "element_children", "path");
 
@@ -596,62 +596,6 @@ BEGIN
 END
 $$;
 
-ALTER TABLE "qti"."cn_attribute"
-  SET (autovacuum_analyze_threshold = 2147483647, autovacuum_analyze_scale_factor = 100),
-  ALTER COLUMN "lexical" SET STATISTICS 0,
-  ALTER COLUMN "name" SET STATISTICS 0,
-  ALTER COLUMN "package" SET STATISTICS 0,
-  ALTER COLUMN "path" SET STATISTICS 0,
-  ALTER COLUMN "start" SET STATISTICS 0,
-  ALTER COLUMN "lexical_digest" SET STATISTICS 0;
-DO $$
-BEGIN
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'lexical'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'lexical'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_attribute'::"pg_catalog"."text", COLUMN = 'lexical'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'name'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'name'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_attribute'::"pg_catalog"."text", COLUMN = 'name'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'package'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'package'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('-0.5'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_attribute'::"pg_catalog"."text", COLUMN = 'package'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'path'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'path'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_attribute'::"pg_catalog"."text", COLUMN = 'path'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'start'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'start'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_attribute'::"pg_catalog"."text", COLUMN = 'start'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'lexical_digest'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_attribute'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'lexical_digest'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_attribute'::"pg_catalog"."text", COLUMN = 'lexical_digest'::"pg_catalog"."text"; END IF;
-END
-$$;
-
-ALTER TABLE "qti"."cn_count"
-  SET (autovacuum_analyze_threshold = 2147483647, autovacuum_analyze_scale_factor = 100),
-  ALTER COLUMN "package" SET STATISTICS 0,
-  ALTER COLUMN "parts" SET STATISTICS 0,
-  ALTER COLUMN "path" SET STATISTICS 0,
-  ALTER COLUMN "start" SET STATISTICS 0,
-  ALTER COLUMN "type" SET STATISTICS 0,
-  ALTER COLUMN "type_lexical" SET STATISTICS 0,
-  ALTER COLUMN "type_lexical_digest" SET STATISTICS 0,
-  ALTER COLUMN "__pred_parts_32uebfen7t" SET STATISTICS 0;
-DO $$
-BEGIN
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'package'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'package'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('-0.5'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'package'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'parts'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'parts'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'parts'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'path'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'path'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'path'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'start'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'start'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'start'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'type'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'type'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'type'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'type_lexical'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'type_lexical'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'type_lexical'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'type_lexical_digest'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'type_lexical_digest'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'type_lexical_digest'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", '__pred_parts_32uebfen7t'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", '__pred_parts_32uebfen7t'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = '__pred_parts_32uebfen7t'::"pg_catalog"."text"; END IF;
-END
-$$;
-
 ALTER TABLE "qti"."cn_part_text"
   SET (autovacuum_analyze_threshold = 2147483647, autovacuum_analyze_scale_factor = 100),
   ALTER COLUMN "base" SET STATISTICS 0,
@@ -689,40 +633,6 @@ BEGIN
   IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_part_text'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", '__index_parts_jdo2fld5qx'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_part_text'::"pg_catalog"."text", COLUMN = '__index_parts_jdo2fld5qx'::"pg_catalog"."text"; END IF;
   PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_part_text'::"pg_catalog"."text", '__predecessor_parts_yvk7rmwtkj'::"pg_catalog"."text", false);
   IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_part_text'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", '__predecessor_parts_yvk7rmwtkj'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_part_text'::"pg_catalog"."text", COLUMN = '__predecessor_parts_yvk7rmwtkj'::"pg_catalog"."text"; END IF;
-END
-$$;
-
-ALTER TABLE "qti"."cn_slot"
-  SET (autovacuum_analyze_threshold = 2147483647, autovacuum_analyze_scale_factor = 100),
-  ALTER COLUMN "form" SET STATISTICS 0,
-  ALTER COLUMN "package" SET STATISTICS 0,
-  ALTER COLUMN "part" SET STATISTICS 0,
-  ALTER COLUMN "path" SET STATISTICS 0,
-  ALTER COLUMN "start" SET STATISTICS 0,
-  ALTER COLUMN "type" SET STATISTICS 0,
-  ALTER COLUMN "__copy_parts_n6gcbnw7dj" SET STATISTICS 0,
-  ALTER COLUMN "__index_parts_vspd7yk6z2" SET STATISTICS 0,
-  ALTER COLUMN "__predecessor_parts_odfdgqim4k" SET STATISTICS 0;
-DO $$
-BEGIN
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'form'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'form'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_slot'::"pg_catalog"."text", COLUMN = 'form'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'package'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'package'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('-0.125'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_slot'::"pg_catalog"."text", COLUMN = 'package'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'part'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'part'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_slot'::"pg_catalog"."text", COLUMN = 'part'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'path'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'path'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_slot'::"pg_catalog"."text", COLUMN = 'path'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'start'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'start'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_slot'::"pg_catalog"."text", COLUMN = 'start'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'type'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'type'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_slot'::"pg_catalog"."text", COLUMN = 'type'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", '__copy_parts_n6gcbnw7dj'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", '__copy_parts_n6gcbnw7dj'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_slot'::"pg_catalog"."text", COLUMN = '__copy_parts_n6gcbnw7dj'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", '__index_parts_vspd7yk6z2'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", '__index_parts_vspd7yk6z2'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_slot'::"pg_catalog"."text", COLUMN = '__index_parts_vspd7yk6z2'::"pg_catalog"."text"; END IF;
-  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", '__predecessor_parts_odfdgqim4k'::"pg_catalog"."text", false);
-  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_slot'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", '__predecessor_parts_odfdgqim4k'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti'::"pg_catalog"."text", TABLE = 'cn_slot'::"pg_catalog"."text", COLUMN = '__predecessor_parts_odfdgqim4k'::"pg_catalog"."text"; END IF;
 END
 $$;
 
@@ -3855,6 +3765,28 @@ BEGIN
   IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti_queries'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'assembled_catalog'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'id_digest'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti_queries'::"pg_catalog"."text", TABLE = 'assembled_catalog'::"pg_catalog"."text", COLUMN = 'id_digest'::"pg_catalog"."text"; END IF;
   PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti_queries'::"pg_catalog"."text", 'assembled_catalog'::"pg_catalog"."text", 'package'::"pg_catalog"."text", false);
   IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti_queries'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'assembled_catalog'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'package'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('-0.5'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti_queries'::"pg_catalog"."text", TABLE = 'assembled_catalog'::"pg_catalog"."text", COLUMN = 'package'::"pg_catalog"."text"; END IF;
+END
+$$;
+
+ALTER TABLE "qti_queries"."cn_count"
+  SET (autovacuum_analyze_threshold = 2147483647, autovacuum_analyze_scale_factor = 100),
+  ALTER COLUMN "package" SET STATISTICS 0,
+  ALTER COLUMN "path" SET STATISTICS 0,
+  ALTER COLUMN "start" SET STATISTICS 0,
+  ALTER COLUMN "type" SET STATISTICS 0,
+  ALTER COLUMN "parts" SET STATISTICS 0;
+DO $$
+BEGIN
+  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti_queries'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'package'::"pg_catalog"."text", false);
+  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti_queries'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'package'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('-0.5'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti_queries'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'package'::"pg_catalog"."text"; END IF;
+  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti_queries'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'path'::"pg_catalog"."text", false);
+  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti_queries'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'path'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti_queries'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'path'::"pg_catalog"."text"; END IF;
+  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti_queries'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'start'::"pg_catalog"."text", false);
+  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti_queries'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'start'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti_queries'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'start'::"pg_catalog"."text"; END IF;
+  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti_queries'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'type'::"pg_catalog"."text", false);
+  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti_queries'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'type'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti_queries'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'type'::"pg_catalog"."text"; END IF;
+  PERFORM "pg_catalog"."pg_clear_attribute_stats"('qti_queries'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'parts'::"pg_catalog"."text", false);
+  IF NOT "pg_catalog"."pg_restore_attribute_stats"('schemaname'::"pg_catalog"."text", 'qti_queries'::"pg_catalog"."text", 'relname'::"pg_catalog"."text", 'cn_count'::"pg_catalog"."text", 'attname'::"pg_catalog"."text", 'parts'::"pg_catalog"."text", 'inherited'::"pg_catalog"."text", false, 'n_distinct'::"pg_catalog"."text", ('2'::"pg_catalog"."text")::real) THEN RAISE EXCEPTION 'a declared statistic was not restored' USING ERRCODE = 'internal_error'::"pg_catalog"."text", SCHEMA = 'qti_queries'::"pg_catalog"."text", TABLE = 'cn_count'::"pg_catalog"."text", COLUMN = 'parts'::"pg_catalog"."text"; END IF;
 END
 $$;
 

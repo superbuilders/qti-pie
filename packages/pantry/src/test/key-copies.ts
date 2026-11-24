@@ -12,8 +12,7 @@
  *
  * - **A containment** (`contained`, either way of a `mirrors`) whose source side pairs a field with a
  *   field of its target of a narrower bound: every source row its selection holds is copied, as an
- *   outcome declaration's `mastery-value` is into `MasteryValue.lexical`, and an `m:cn`'s `type`
- *   into `CnAttribute.lexical`.
+ *   outcome declaration's `mastery-value` is into `MasteryValue.lexical`.
  * - **A check** that equates two fields of one row of two bounds where the rest of the check leaves
  *   no other way to hold, which the schema states nowhere now: an IDREF attribute's `idrefText`,
  *   which `E1_derived` equates with its lexical form, is of any length.

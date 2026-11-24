@@ -19,27 +19,26 @@
  *   `type` and `base` of its `cn`, the part's collapsed `text` (MathML 3 §2.1.7) and its `form`. A
  *   part that holds an element or an entity reference is not judged, so a `cn` with one has no
  *   rows.
- * - **{@link CnCount}**, one row per `m:cn` whose `type` {@link CnType} lists, whatever its `base`
- *   and whatever its parts hold, keyed by its node: the `type` with its lexical form, and `parts`,
- *   the count of its {@link CnSlot} rows.
- * - **{@link CnSlot}**, one row per part of such a `cn`, judged or not, keyed by its node and `part`:
- *   the `type` of its `cn` and the `form` of its place. The slots carry the count, never the
- *   digits.
+ * - **`CnCount`**, the database's view of every `m:cn` whose `type` {@link CnType} lists, whatever
+ *   its `base` and whatever its parts hold (`#pantry/qti/overlay-queries/expression.ts`): its
+ *   `type`, read from the attribute where it stands, and `parts`, the count of its parts, which no
+ *   row copies (C18).
  *
  * `MathML_cn_form` is the law's check over {@link CnPartText}: the text lies in the lexical space
  * of its form in its base. Every other statement is a restatement of the tree, "E1 derived"; the
- * check is named by its law, as `#pantry/qti/expressions.ts` names `Literal_lexical`.
+ * check is named by its law, as `#pantry/qti/expressions.ts` names `Literal_lexical`. A `cn`'s
+ * lexical forms are held to its attributes by their SHA-256s, and its `type` to `CnCount`'s.
  *
  * The count of parts is the family: the rows of a `cn` are counted by `MathCn.parts`, which
  * {@link CnParts} fixes for the type, and each row's `(type, part, form)` is in {@link CnForm},
  * whose `part` takes only the slots 0 to its count less one, so the rows of a `cn` are exactly its
  * type's slots, each once (the rows' key), and one part of a `rational` is refused. A part beyond
  * the type's places is written at the place no type lists and refused, so three parts of a
- * `rational` are refused as one is. The same count is made again over {@link CnCount} and
- * {@link CnSlot}, for the `cn`s the digits cannot judge: one whose `base` {@link CnBase} does not
- * list, and one with a part that holds an element or an entity reference. The oracle counts the
- * parts of every `cn` whose `type` lists a form, so a `cn` of `base="40"` with three parts of a
- * `rational` is refused, as it is with a base in range.
+ * `rational` are refused as one is. The same count is made again over `CnCount`, for the `cn`s the
+ * digits cannot judge: one whose `base` {@link CnBase} does not list, and one with a part that
+ * holds an element or an entity reference. The oracle counts the parts of every `cn` whose `type`
+ * lists a form, so a `cn` of `base="40"` with three parts of a `rational` is refused, as it is
+ * with a base in range.
  *
  * {@link MathCn} is not widened to every base, because {@link CnPartText}`.base` is a
  * {@link CnBase} handle that {@link CnPattern}`.at("pattern", form, base)` reads, and grizzle's
@@ -67,7 +66,6 @@ import {
   Text,
 } from "@bjornpagen/grizzle";
 import {
-  AttributeName,
   CnBase,
   CnBaseSpelling,
   CnForm,
@@ -76,11 +74,11 @@ import {
   CnParts,
   CnPattern,
   CnType,
-  CnTypeSpelling,
+  CnTypeLexical,
   anyText,
   natural,
 } from "#pantry/grammar/install.ts";
-import { EntryPath, matchedText, PackageName } from "#pantry/qti/limits.ts";
+import { EntryPath, PackageName } from "#pantry/qti/limits.ts";
 import { Attribute } from "#pantry/qti/attributes.ts";
 import { Node } from "#pantry/qti/node.ts";
 import { entryOf } from "#pantry/vocab/laws.ts";
@@ -146,81 +144,9 @@ export const CnPartText = law(
 );
 
 /**
- * One `m:cn` whose `type` {@link CnType} lists (`real` where it writes none), keyed by its node,
- * whatever its `base` and whatever its parts hold: the `type` and its lexical form as written
- * (empty where unwritten, as on {@link MathCn}), with its SHA-256, and `parts`, the count of its
- * {@link CnSlot} rows. It carries the part count of a `cn` that {@link MathCn} does not judge.
- */
-export const CnCount = law(
-  entryOf("E1 derived"),
-  relation.generated(
-    "CnCount",
-    {
-      package: PackageName,
-      parts: drawn(natural),
-      path: EntryPath,
-      start: natural,
-      type: closedId(CnType),
-      typeLexical: anyText,
-    },
-    ["package", "path", "start"],
-    (c) => ({
-      typeLexicalDigest: law(
-        entryOf("E1 derived"),
-        generated(sha256, Crypto.sha256(c.typeLexical)),
-      ),
-    }),
-  ),
-);
-
-/**
- * One part of an `m:cn` that has a {@link CnCount} row, keyed by its node and its place among the
- * parts `m:sep` separates, judged or not: the `type` of its `cn` and the `form` of its place. A
- * part beyond its type's places sits at the place no type lists, so it is refused.
- */
-export const CnSlot = law(
-  entryOf("E1 derived"),
-  relation(
-    "CnSlot",
-    {
-      form: closedId(CnPartForm),
-      package: PackageName,
-      part: closedId(CnPart),
-      path: EntryPath,
-      start: natural,
-      type: closedId(CnType),
-    },
-    ["package", "path", "start", "part"],
-  ),
-);
-
-/**
- * One `type` or `base` attribute of an `m:cn`, keyed by its node and its name: its lexical form as
- * written, whether or not the `cn` is judged, of any length, copied so that a law can compare it,
- * which a key holds by its SHA-256, `lexicalDigest`.
- */
-export const CnAttribute = law(
-  entryOf("E1 derived"),
-  relation.generated(
-    "CnAttribute",
-    {
-      lexical: matchedText,
-      name: closedId(AttributeName),
-      package: PackageName,
-      path: EntryPath,
-      start: natural,
-    },
-    ["package", "path", "start", "name"],
-    (a) => ({
-      lexicalDigest: law(entryOf("E1 derived"), generated(sha256, Crypto.sha256(a.lexical))),
-    }),
-  ),
-);
-
-/**
  * The relations the cn laws declare, in one list, as `#pantry/qti/schema.ts` composes them.
  */
-export const cnRelations = [CnAttribute, CnCount, CnPartText, CnSlot, MathCn] as const;
+export const cnRelations = [CnPartText, MathCn] as const;
 
 /**
  * The `m:cn` nodes, each of which may hold a {@link MathCn} row.
@@ -228,21 +154,18 @@ export const cnRelations = [CnAttribute, CnCount, CnPartText, CnSlot, MathCn] as
 const cnNodes = select(Node, (n) => n.eq(n.kind, "m:cn"));
 
 /**
- * The `type` and `base` attributes of an `m:cn`.
+ * The `type` or the `base` attributes of an `m:cn`.
+ *
+ * @param name - The attribute's name.
+ * @returns The selection.
  */
-const cnAttributes = select(Attribute, (a) =>
-  a.and(a.eq(a.kind, "m:cn"), a.in(a.name, ["type", "base"])),
-);
+const cnAttributes = (name: "base" | "type") =>
+  select(Attribute, (a) => a.and(a.eq(a.kind, "m:cn"), a.eq(a.name, name)));
 
 /**
  * The {@link MathCn} rows of a `cn` that writes a `type`.
  */
 const typedCns = select(MathCn, (c) => c.ne(c.typeLexical, ""));
-
-/**
- * The {@link CnCount} rows of a `cn` that writes a `type`.
- */
-const typedCounts = select(CnCount, (c) => c.ne(c.typeLexical, ""));
 
 /**
  * The {@link MathCn} rows of a `cn` that writes a `base`.
@@ -255,81 +178,49 @@ const basedCns = select(MathCn, (c) => c.ne(c.baseLexical, ""));
 const partFamily = counted(on(CnPartText, "package", "path", "start"), fin(MathCn, "parts"));
 
 /**
- * The family of the parts of a `cn` the digits cannot judge too, counted by `CnCount.parts`.
- */
-const slotFamily = counted(on(CnSlot, "package", "path", "start"), fin(CnCount, "parts"));
-
-/**
- * The containments that judge a `cn`'s part count: its `(type, parts)` in {@link CnParts}, and
- * each part's `(type, part, form)` in {@link CnForm}, over the judged `cn`s ({@link MathCn},
- * {@link CnPartText}) and again over every `cn` whose `type` lists a form ({@link CnCount},
- * {@link CnSlot}), whatever its base and whatever its parts hold. A `cn` of the wrong part count is
- * a `cn` of the wrong form, "MathML cn form" as the oracle names it, so `mathmlLawsByName`
- * (`#pantry/qti/mathml.ts`) names them so and the rest of the module "E1 derived".
+ * The containments that judge a judged `cn`'s part count: its `(type, parts)` in {@link CnParts},
+ * and each part's `(type, part, form)` in {@link CnForm}. A `cn` of the wrong part count is a `cn`
+ * of the wrong form, "MathML cn form" as the oracle names it, so `mathmlLawsByName`
+ * (`#pantry/qti/mathml.ts`) names them so and the rest of the module "E1 derived". Every `cn` whose
+ * `type` lists a form is counted again over `CnCount`, whatever its base and whatever its parts
+ * hold (`#pantry/qti/overlay-queries/expression.ts`).
  */
 export const cnCountLaws = {
   judgedForm: contained(on(CnPartText, "type", "part", "form"), on(CnForm, "type", "part", "form")),
   judgedParts: contained(on(MathCn, "type", "parts"), on(CnParts, "type", "parts")),
-  typedForm: contained(on(CnSlot, "type", "part", "form"), on(CnForm, "type", "part", "form")),
-  typedParts: contained(on(CnCount, "type", "parts"), on(CnParts, "type", "parts")),
 };
 
 /**
- * The statements over {@link CnAttribute}, {@link MathCn} and {@link CnPartText}, each `check`
- * named by its law:
+ * The statements over {@link MathCn} and {@link CnPartText}, each `check` named by its law:
  *
- * - **the attributes:** a {@link CnAttribute} row for each `type` and `base` of an `m:cn` and no
- *   other (both ways), its lexical form the attribute's;
  * - **the cn:** each row's node an `m:cn`; where it writes a `type` or a `base`, the lexical form is
- *   that of the node's {@link CnAttribute} row, and the handle is the one the form spells, as
- *   {@link CnTypeSpelling} and {@link CnBaseSpelling} hold (`real` and `10` where none is written,
- *   `E1_derived`); its `parts` the count {@link CnParts} gives its type;
+ *   that of the node's attribute, held by their SHA-256s, and the handle is the one the form
+ *   spells, as {@link CnTypeLexical} and {@link CnBaseSpelling} hold (`real` and `10` where none is
+ *   written, `E1_derived`); its `parts` the count {@link CnParts} gives its type;
  * - **the parts:** the family, counted by `MathCn.parts`; each row's `type` and `base` those of its
  *   `cn`, and its `(type, part, form)` a row of {@link CnForm}, so a place beyond the type's parts
  *   is refused;
- * - **the count:** each {@link CnCount} row's node an `m:cn`, its lexical `type` that of the node's
- *   {@link CnAttribute} row and the handle the one it spells (`E1_derived`); the family of its
- *   {@link CnSlot} rows, counted by `CnCount.parts`, its `(type, parts)` in {@link CnParts} and
- *   each slot's `(type, part, form)` in {@link CnForm}; each {@link MathCn} row's node and `type` a
- *   {@link CnCount} row's, so the two count one `cn` alike;
  * - **`MathML_cn_form`:** each part's text matches the pattern of its form in its base.
+ *
+ * Its `type` is `CnCount`'s, the view's, a rule over a query
+ * (`#pantry/qti/overlay-queries/expression.ts`).
  */
 export const cnLaws = [
   contained(on(MathCn, "package", "path", "start"), on(cnNodes, "package", "path", "start")),
   contained(
-    on(cnAttributes, "package", "path", "start", "name", "lexicalDigest"),
-    on(CnAttribute, "package", "path", "start", "name", "lexicalDigest"),
-  ),
-  contained(
-    on(CnAttribute, "package", "path", "start", "name"),
-    on(cnAttributes, "package", "path", "start", "name"),
-  ),
-  contained(
     on(typedCns, "package", "path", "start", "typeLexicalDigest"),
-    on(
-      select(CnAttribute, (a) => a.eq(a.name, "type")),
-      "package",
-      "path",
-      "start",
-      "lexicalDigest",
-    ),
+    on(cnAttributes("type"), "package", "path", "start", "lexicalDigest"),
   ),
   contained(
     on(basedCns, "package", "path", "start", "baseLexicalDigest"),
-    on(
-      select(CnAttribute, (a) => a.eq(a.name, "base")),
-      "package",
-      "path",
-      "start",
-      "lexicalDigest",
-    ),
+    on(cnAttributes("base"), "package", "path", "start", "lexicalDigest"),
   ),
   cnCountLaws.judgedParts,
   check("E1_derived", MathCn, (c) =>
     c.and(
       c.or(
         c.and(c.eq(c.typeLexical, ""), c.eq(c.type, "real")),
-        Text.matches(c.typeLexical, CnTypeSpelling.at("pattern", c.type)),
+        c.eq(Text.collapse(c.typeLexical), CnTypeLexical.at("lexical", c.type)),
       ),
       c.or(
         c.and(c.eq(c.baseLexical, ""), c.eq(c.base, "10")),
@@ -344,35 +235,6 @@ export const cnLaws = [
     on(MathCn, "package", "path", "start", "type", "base"),
   ),
   cnCountLaws.judgedForm,
-
-  contained(on(CnCount, "package", "path", "start"), on(cnNodes, "package", "path", "start")),
-  contained(
-    on(typedCounts, "package", "path", "start", "typeLexicalDigest"),
-    on(
-      select(CnAttribute, (a) => a.eq(a.name, "type")),
-      "package",
-      "path",
-      "start",
-      "lexicalDigest",
-    ),
-  ),
-  check("E1_derived", CnCount, (c) =>
-    c.or(
-      c.and(c.eq(c.typeLexical, ""), c.eq(c.type, "real")),
-      Text.matches(c.typeLexical, CnTypeSpelling.at("pattern", c.type)),
-    ),
-  ),
-  slotFamily,
-  cnCountLaws.typedParts,
-  contained(
-    on(CnSlot, "package", "path", "start", "type"),
-    on(CnCount, "package", "path", "start", "type"),
-  ),
-  cnCountLaws.typedForm,
-  contained(
-    on(MathCn, "package", "path", "start", "type"),
-    on(CnCount, "package", "path", "start", "type"),
-  ),
   check("MathML_cn_form", CnPartText, (p) =>
     Text.matches(p.text, CnPattern.at("pattern", p.form, p.base)),
   ),

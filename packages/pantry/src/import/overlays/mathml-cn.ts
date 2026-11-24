@@ -17,18 +17,10 @@
  *   judged. A part beyond the places its type lists is written at its place, up to the one place no
  *   type lists, under the form `real`, which `CnForm` does not list for it, so the database refuses
  *   a `cn` with more parts than its type lists; a later part adds nothing, as the refusal is made.
- * - **`CnCount`**, one row for every `m:cn` whose `type` {@link cnForms} lists (`real` where it
- *   writes none), whatever its `base` and whatever its parts hold: its node, its `type` and the
- *   lexical form of its `type` attribute (empty where it writes none). `CnCount.parts` is drawn by
- *   the database from the slot rows, so no row carries it.
- * - **`CnSlot`**, one row for every part of such a `cn`, judged or not, at its place as `CnPartText`
- *   places parts (up to the one place no type lists), with the `type` of its `cn` and the form
- *   {@link cnForms} gives its place. A `cn` of a `base` outside the radixes, or with a part that
- *   holds an element or an entity reference, has these rows and no `MathCn` or `CnPartText`, so the
- *   database counts its parts and judges none of its digits.
- * - **`CnAttribute`**, one row for every `type` and every `base` an `m:cn` writes, whatever its type
- *   and whether or not it is judged: the node, the attribute's name and its lexical form as
- *   written. A `type` on another element has no row.
+ *
+ * Every `m:cn` whose `type` {@link cnForms} lists is counted again by the database, whatever its
+ * `base` and whatever its parts hold (`CnCount`, `#pantry/qti/overlay-queries/expression.ts`),
+ * which reads the tree where it stands, so no row here copies it.
  *
  * The rows restate what the tree says and nothing else.
  */
@@ -45,18 +37,14 @@ import { lexicalOf } from "#pantry/import/fold.ts";
 import type { DocumentView } from "#pantry/import/fold.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import type { NodeRow } from "#pantry/model/xdm.ts";
-import type { CnAttribute, CnPartText, CnCount, CnSlot, MathCn } from "#pantry/qti/mathml-cn.ts";
+import type { CnPartText, MathCn } from "#pantry/qti/mathml-cn.ts";
 
 /**
  * A document's cn rows, one keyed set per relation, each by the text of its key
- * ({@link keyTextOf}): a `CnAttribute` row by its node and its name, a `MathCn` row and a
- * `CnCount` row by its node, a `CnPartText` row and a `CnSlot` row by its node and its part.
+ * ({@link keyTextOf}): a `MathCn` row by its node, a `CnPartText` row by its node and its part.
  */
 export interface MathmlCnRows {
-  readonly CnAttribute: ReadonlyMap<string, Addition<typeof CnAttribute>>;
   readonly CnPartText: ReadonlyMap<string, Addition<typeof CnPartText>>;
-  readonly CnCount: ReadonlyMap<string, Addition<typeof CnCount>>;
-  readonly CnSlot: ReadonlyMap<string, Addition<typeof CnSlot>>;
   readonly MathCn: ReadonlyMap<string, Addition<typeof MathCn>>;
 }
 
@@ -180,9 +168,8 @@ const judgementOf = (typed: Typed, baseLexical: Option.Option<string>): Judgemen
 };
 
 /**
- * Write the rows of one `cn` of a listed type: its count and a slot for each of its parts, whatever
- * its base and whatever its parts hold, and, where its base is a radix and no part holds an element
- * or an entity reference, its judged row and a text row for each part.
+ * Write the rows of one `cn` of a listed type where its base is a radix and no part holds an
+ * element or an entity reference: its judged row and a text row for each of its parts.
  *
  * @param rows - The rows of the document, which the `cn`'s are added to.
  * @param ids - Where the document stands in its package.
@@ -193,9 +180,7 @@ const judgementOf = (typed: Typed, baseLexical: Option.Option<string>): Judgemen
  */
 const writeCn = (
   rows: {
-    readonly CnCount: Map<string, Addition<typeof CnCount>>;
     readonly CnPartText: Map<string, Addition<typeof CnPartText>>;
-    readonly CnSlot: Map<string, Addition<typeof CnSlot>>;
     readonly MathCn: Map<string, Addition<typeof MathCn>>;
   },
   ids: Place,
@@ -204,26 +189,13 @@ const writeCn = (
   written: Option.Option<string>,
   stretches: readonly Stretch[],
 ): void => {
-  const { forms, type, typeLexical } = typed;
-  const placed = stretches.slice(0, places.size);
-  const node = { package: ids.package, path: ids.path, start };
-  rows.CnCount.set(keyTextOf(ids.package, ids.path, start), { ...node, type, typeLexical });
-  for (const [at] of placed.entries()) {
-    const part = String(at);
-    rows.CnSlot.set(keyTextOf(ids.package, ids.path, start, part), {
-      ...node,
-      form: forms[at] ?? "real",
-      part,
-      type,
-    });
-  }
-
   const judgement = judgementOf(typed, written);
   if (judgement === undefined || stretches.some(({ judged }) => !judged)) {
     return;
   }
 
-  const { base, baseLexical } = judgement;
+  const { base, baseLexical, forms, type, typeLexical } = judgement;
+  const node = { package: ids.package, path: ids.path, start };
   rows.MathCn.set(keyTextOf(ids.package, ids.path, start), {
     ...node,
     base,
@@ -231,7 +203,7 @@ const writeCn = (
     type,
     typeLexical,
   });
-  for (const [at, { text }] of placed.entries()) {
+  for (const [at, { text }] of stretches.slice(0, places.size).entries()) {
     const part = String(at);
     rows.CnPartText.set(keyTextOf(ids.package, ids.path, start, part), {
       ...node,
@@ -277,26 +249,8 @@ export const rowsOf = (view: DocumentView, ids: Place): MathmlCnRows => {
     textOf.set(start, value);
   }
 
-  const attributes = new Map<string, Addition<typeof CnAttribute>>();
-  for (const start of cns) {
-    for (const name of ["base", "type"] as const) {
-      for (const lexical of Option.toArray(lexicalOf(view, start, name))) {
-        attributes.set(keyTextOf(ids.package, ids.path, start, name), {
-          lexical,
-          name,
-          package: ids.package,
-          path: ids.path,
-          start,
-        });
-      }
-    }
-  }
-
   const rows = {
-    CnAttribute: attributes,
-    CnCount: new Map<string, Addition<typeof CnCount>>(),
     CnPartText: new Map<string, Addition<typeof CnPartText>>(),
-    CnSlot: new Map<string, Addition<typeof CnSlot>>(),
     MathCn: new Map<string, Addition<typeof MathCn>>(),
   } satisfies MathmlCnRows;
   for (const node of flat.nodes) {

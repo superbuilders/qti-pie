@@ -25,14 +25,7 @@ import type {
   XdmText,
   XdmWhitespace,
 } from "#pantry/model/xdm.ts";
-import { utf8Length } from "#pantry/qti/limits.ts";
 import { ownViewOf } from "#pantry/import/fold.ts";
-
-/**
- * PostgreSQL 19's limit on one B-tree entry (BTMaxItemSize at 8 kB blocks), past which no key
- * could hold a text as itself.
- */
-const btreeEntryBytes = 2704;
 
 /**
  * The kinds the cases' elements are of.
@@ -130,16 +123,6 @@ const partKey = (at: number, part: number): string =>
   keyTextOf(ids.package, ids.path, BigInt(at), String(part));
 
 /**
- * The key of an attribute's row.
- *
- * @param at - The `cn`'s number in document order.
- * @param name - The attribute's name.
- * @returns The key the builder keys it by.
- */
-const attributeKey = (at: number, name: string): string =>
-  keyTextOf(ids.package, ids.path, BigInt(at), name);
-
-/**
  * A whitespace run, which is character data too.
  */
 const spacing: XdmWhitespace = { _tag: "ws", value: "\n " };
@@ -163,7 +146,7 @@ const reference: XdmEntityRef = { _tag: "entityRef", name: "amp" };
 const keysOf = (rows: ReadonlyMap<string, unknown>): string[] => [...rows.keys()];
 
 describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
-  it("gives a base-40 rational of three parts a shape and three slots, and no MathCn or CnPartText", () => {
+  it("gives a base-40 rational of three parts no MathCn or CnPartText, its digits being application specific", () => {
     // Nodes: 0 document, 1 math, 2 cn, 3 text, 4 sep, 5 text, 6 sep, 7 text.
     const rows = rowsOf(
       ownViewOf(
@@ -180,25 +163,11 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
       ids,
     );
 
-    assert.sameMembers(keysOf(rows.CnCount), [keyAt(2)]);
-    assert.deepStrictEqual(rows.CnCount.get(keyAt(2)), {
-      ...nodeAt(2),
-      type: "rational",
-      typeLexical: "rational",
-    });
-    assert.sameMembers(keysOf(rows.CnSlot), [partKey(2, 0), partKey(2, 1), partKey(2, 2)]);
-    assert.deepStrictEqual(rows.CnSlot.get(partKey(2, 1)), {
-      form: "integer",
-      ...nodeAt(2),
-      part: "1",
-      type: "rational",
-    });
-    assert.strictEqual(rows.CnSlot.get(partKey(2, 2))?.form, "real");
     assert.sameMembers(keysOf(rows.MathCn), []);
     assert.sameMembers(keysOf(rows.CnPartText), []);
   });
 
-  it("gives a cn with an mglyph part its slots, and a cn of a type no form lists none", () => {
+  it("gives a cn with an mglyph part no MathCn, and a cn of a type no form lists none", () => {
     // Nodes: 0 document, 1 math, 2 cn, 3 mglyph, 4 sep, 5 text; 6 cn, 7 text.
     const rows = rowsOf(
       ownViewOf(
@@ -216,12 +185,10 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
       ids,
     );
 
-    assert.sameMembers(keysOf(rows.CnCount), [keyAt(2)]);
-    assert.sameMembers(keysOf(rows.CnSlot), [partKey(2, 0), partKey(2, 1)]);
     assert.sameMembers(keysOf(rows.MathCn), []);
   });
 
-  it("gives every cn of a listed type a shape and its slots, whatever its base, and writes the slots as the parts are", () => {
+  it("judges a cn of a listed type only where its base is a radix, a surplus of parts among them", () => {
     // Nodes: 0 document, 1 math, 2 cn (no base), 3 text; 4 cn (base 37), 5 text; 6 cn (empty
     // base), 7 text; 8 cn (rational surplus of three), 9 text, 10 sep, 11 text, 12 sep, 13 text.
     const rows = rowsOf(
@@ -242,15 +209,6 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
       ids,
     );
 
-    assert.sameMembers(keysOf(rows.CnCount), [keyAt(2), keyAt(4), keyAt(6), keyAt(8)]);
-    assert.sameMembers(keysOf(rows.CnSlot), [
-      partKey(2, 0),
-      partKey(4, 0),
-      partKey(6, 0),
-      partKey(8, 0),
-      partKey(8, 1),
-      partKey(8, 2),
-    ]);
     assert.sameMembers(keysOf(rows.MathCn), [keyAt(2), keyAt(8)]);
   });
 
@@ -349,63 +307,6 @@ describe("import/overlays/mathml-cn.ts, the cn rows (spec reading 2)", () => {
     });
     assert.strictEqual(rows.CnPartText.get(partKey(2, 0))?.base, "16");
     assert.strictEqual(rows.CnPartText.get(partKey(2, 0))?.text, "ff");
-  });
-
-  it("copies the type and the base of every cn into CnAttribute as written, judged or not, and of no other element", () => {
-    // Nodes: 0 document, 1 math, 2 cn (judged, both), 3 text, 4 cn (type no form lists), 5 text,
-    // 6 cn (no attribute), 7 text, 8 mi (a type), 9 text, 10 cn (base outside the radixes), 11 text.
-    const rows = rowsOf(
-      ownViewOf(
-        documentOf(
-          elementOf("m:math", [
-            elementOf(
-              "m:cn",
-              [text("ff")],
-              [attributeOf("type", " integer\n"), attributeOf("base", " 016 ")],
-            ),
-            elementOf("m:cn", [text("x")], [attributeOf("type", "constant")]),
-            elementOf("m:cn", [text("1")]),
-            elementOf("m:mi", [text("y")], [attributeOf("type", "integer")]),
-            elementOf("m:cn", [text("1")], [attributeOf("base", "37")]),
-          ]),
-        ),
-      ),
-      ids,
-    );
-
-    assert.deepStrictEqual(Object.fromEntries(rows.CnAttribute), {
-      [attributeKey(2, "base")]: { lexical: " 016 ", name: "base", ...nodeAt(2) },
-      [attributeKey(2, "type")]: { lexical: " integer\n", name: "type", ...nodeAt(2) },
-      [attributeKey(4, "type")]: { lexical: "constant", name: "type", ...nodeAt(4) },
-      [attributeKey(10, "base")]: { lexical: "37", name: "base", ...nodeAt(10) },
-    });
-    // The judged cns are 2 and the one that writes nothing (6); the unjudged 4 and 10 still have rows.
-    assert.sameMembers(keysOf(rows.MathCn), [keyAt(2), keyAt(6)]);
-  });
-
-  it("copies a type wider than any B-tree entry unchanged, which a key holds by its digest", () => {
-    // The builder restates the tree whatever its length. Reading 2 bounds no type's spelling, so
-    // `CnAttribute.lexical` is of any length and a key holds it by its SHA-256, `lexicalDigest`,
-    // which the database derives: a type past PostgreSQL's 2,704-byte B-tree entry
-    // (BTMaxItemSize) is copied as written and refused by no bound.
-    const long = "t".repeat(btreeEntryBytes + 1);
-    const rows = rowsOf(
-      ownViewOf(
-        documentOf(
-          elementOf("m:math", [elementOf("m:cn", [text("x")], [attributeOf("type", long)])]),
-        ),
-      ),
-      ids,
-    );
-
-    const copied = rows.CnAttribute.get(attributeKey(2, "type"));
-    assert.strictEqual(copied?.lexical, long);
-    assert.isAbove(
-      utf8Length(copied?.lexical ?? ""),
-      btreeEntryBytes,
-      "the copy is wider than any B-tree entry",
-    );
-    assert.sameMembers(keysOf(rows.MathCn), []);
   });
 
   it("gives a cn of a type no form lists no rows, its content being text", () => {

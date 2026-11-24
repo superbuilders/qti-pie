@@ -61,10 +61,7 @@
 					"__cell_leaf_pattern_package_vzxfecuofm",
 					"__choice_interaction_pattern_package_qvqfiz3fvi",
 					"__choice_pattern_package_dt3kmxawts",
-					"__cn_attribute_pattern_package_5umkeemypi",
-					"__cn_count_pattern_package_dvazmxv6yb",
 					"__cn_part_text_pattern_package_k3g6whski2",
-					"__cn_slot_pattern_package_fflbpobzdf",
 					"__comment_pattern_package_uhrs54w6il",
 					"__context_ref_pattern_package_debywnqust",
 					"__count_bound_pattern_package_jxppasjmen",
@@ -272,7 +269,6 @@
 			},
 			"__text_tfkvgtjblt": {
 				"check": [
-					"__cn_attribute_pattern_lexical_rpqva4dbck",
 					"__idref_pattern_token_qxduls7cyp",
 					"__idref_target_pattern_id_e7zka7ldid",
 					"__interaction_attribute_pattern_lexical_cmbpxlity4",
@@ -303,10 +299,7 @@
 					"__choice_interaction_pattern_interaction_path_reqzxz7xvm",
 					"__choice_interaction_pattern_path_3e7wrldukr",
 					"__choice_pattern_path_bmsplacic6",
-					"__cn_attribute_pattern_path_56w3z6glce",
-					"__cn_count_pattern_path_j57ss5yypj",
 					"__cn_part_text_pattern_path_ofuc3gyuwo",
-					"__cn_slot_pattern_path_bjhvmcbhjz",
 					"__comment_pattern_path_hqh56gibj4",
 					"__context_ref_pattern_path_bfthea3xeo",
 					"__count_bound_pattern_path_na5ic5ar6k",
@@ -622,9 +615,6 @@
 				"__rule_attribute_name_in_data_ssml_h3wvo7xaxt": [
 					"__attribute_name_in_data_ssml_mwwzgqeh64"
 				],
-				"__rule_attribute_name_kind_in_cn_attribute_fboklrtqro": [
-					"__attribute_name_kind_in_cn_attribute_kvirsjqhyu"
-				],
 				"__rule_base_type_cardinality_check_declaration_base_htj3ngfwwl": [
 					"__base_type_cardinality_check_declaration_base_type_du5hijhbph"
 				],
@@ -654,9 +644,6 @@
 				],
 				"__rule_choice_or_hottext_in_unclaimed_name_47iolnkzoi": [
 					"__choice_or_hottext_in_unclaimed_name_sl45esjqpz"
-				],
-				"__rule_cn_attribute_in_attribute_butgsjlumn": [
-					"__cn_attribute_in_attribute_febwmpibnb"
 				],
 				"__rule_context_ref_in_referable_name_k5nfgekguz": [
 					"__context_ref_in_referable_name_taqjmn7bfk"
@@ -795,6 +782,12 @@
 				],
 				"__rule_math_align_scope_in_scoped_dir_v3urz4z4xc": [
 					"__math_align_scope_in_scoped_dir_6ju4wqpvni"
+				],
+				"__rule_math_cn_base_lexical_in_attribute_x7ci2qfppr": [
+					"__math_cn_base_lexical_in_attribute_jx4v22vdos"
+				],
+				"__rule_math_cn_type_lexical_in_attribute_4c47j7p6y4": [
+					"__math_cn_type_lexical_in_attribute_uyyyrbltfn"
 				],
 				"__rule_math_operand_check_arity_fne3qs6j23": [
 					"__math_operand_check_arity_kpqxciys3l"
@@ -1399,51 +1392,9 @@
 					"__single_response_gap_key_package_path_start_glr7weesqf"
 				]
 			},
-			"cn_attribute": {
-				"__cn_attribute_pk_uahvc6us4g": [
-					"__cn_attribute_pk_package_path_start_name_h5thbtcznd"
-				],
-				"__rule_attribute_name_kind_in_cn_attribute_fboklrtqro": [
-					"__attribute_name_kind_in_cn_attribute_kvirsjqhyu"
-				],
-				"__rule_cn_attribute_in_attribute_butgsjlumn": [
-					"__cn_attribute_in_attribute_febwmpibnb"
-				],
-				"__rule_cn_count_type_lexical_in_cn_attribute_b7jjk5txuj": [
-					"__cn_count_type_lexical_in_cn_attribute_rpbkmmdfqh"
-				],
-				"__rule_math_cn_base_lexical_in_cn_attribute_rip3phy7j4": [
-					"__math_cn_base_lexical_in_cn_attribute_ax26oz27n7"
-				],
-				"__rule_math_cn_type_lexical_in_cn_attribute_s2hxcj663e": [
-					"__math_cn_type_lexical_in_cn_attribute_sgp64k3z7t"
-				]
-			},
 			"cn_count": {
-				"__cn_count_check_cn_count_in_cn_parts_cwyirxrado": [
-					"__cn_count_in_cn_parts_ohtpoxcpz2"
-				],
-				"__cn_count_fk_package_path_start_pred_parts_nt76bkyr7u": [
-					"__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-				],
-				"__cn_count_key_package_path_start_parts_type_7wasizqrkb": [
-					"__cn_count_pk_package_path_start_tjsmgcwonj",
-					"__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-				],
-				"__cn_count_key_package_path_start_type_gfzp5vminc": [
-					"__cn_count_pk_package_path_start_tjsmgcwonj"
-				],
-				"__cn_count_pk_5n2ubteh2s": [
-					"__cn_count_pk_package_path_start_tjsmgcwonj"
-				],
-				"__rule_cn_count_in_node_pgmklfni3g": [
-					"__cn_count_in_node_tb3xkvsh6h"
-				],
-				"__rule_cn_count_type_lexical_in_cn_attribute_b7jjk5txuj": [
-					"__cn_count_type_lexical_in_cn_attribute_rpbkmmdfqh"
-				],
-				"e_1_derived": [
-					"__cn_count_check_e_1_derived_wfumusuo5z"
+				"__rule_math_cn_in_cn_count_jkp6h5zjkv": [
+					"__math_cn_in_cn_count_4enjobxkgf"
 				]
 			},
 			"cn_part_text": {
@@ -1471,30 +1422,6 @@
 				],
 				"math_ml_cn_form": [
 					"__cn_part_text_check_math_ml_cn_form_qk7b5wlyo2"
-				]
-			},
-			"cn_slot": {
-				"__cn_slot_check_cn_slot_counted_cn_count_parts_jk47k23d37": [
-					"__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-				],
-				"__cn_slot_check_cn_slot_in_cn_form_sx4ohhn6rj": [
-					"__cn_slot_in_cn_form_3ylpnwit2v"
-				],
-				"__cn_slot_fk_package_path_start_copy_parts_type_nl4o4ioo5f": [
-					"__cn_slot_counted_cn_count_parts_rxew2rj3mb",
-					"__cn_slot_in_cn_count_vuradqfp7f"
-				],
-				"__cn_slot_fk_package_path_start_predecessor_parts_hcel4zxkjz": [
-					"__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-				],
-				"__cn_slot_key_package_path_start_index_parts_dbqcjcnaam": [
-					"__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-				],
-				"__cn_slot_key_package_path_start_predecessor_parts_6cbqntaxth": [
-					"__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-				],
-				"__cn_slot_pk_tkl6mzsgtu": [
-					"__cn_slot_pk_package_path_start_part_spxc3s2nac"
 				]
 			},
 			"comment": {
@@ -3297,9 +3224,6 @@
 				"__math_cn_fk_package_path_start_pred_parts_ob77fltdsw": [
 					"__cn_part_text_counted_math_cn_parts_63kajnhuxj"
 				],
-				"__math_cn_fk_package_path_start_type_gfdns3v3gm": [
-					"__math_cn_in_cn_count_4enjobxkgf"
-				],
 				"__math_cn_key_package_path_start_parts_base_type_k7rpbytgms": [
 					"__cn_part_text_counted_math_cn_parts_63kajnhuxj",
 					"__math_cn_pk_package_path_start_3wqoepnwkh"
@@ -3307,14 +3231,17 @@
 				"__math_cn_pk_3nrusqjv2o": [
 					"__math_cn_pk_package_path_start_3wqoepnwkh"
 				],
-				"__rule_math_cn_base_lexical_in_cn_attribute_rip3phy7j4": [
-					"__math_cn_base_lexical_in_cn_attribute_ax26oz27n7"
+				"__rule_math_cn_base_lexical_in_attribute_x7ci2qfppr": [
+					"__math_cn_base_lexical_in_attribute_jx4v22vdos"
+				],
+				"__rule_math_cn_in_cn_count_jkp6h5zjkv": [
+					"__math_cn_in_cn_count_4enjobxkgf"
 				],
 				"__rule_math_cn_in_node_ae3d6q3wsd": [
 					"__math_cn_in_node_t6734znxjs"
 				],
-				"__rule_math_cn_type_lexical_in_cn_attribute_s2hxcj663e": [
-					"__math_cn_type_lexical_in_cn_attribute_sgp64k3z7t"
+				"__rule_math_cn_type_lexical_in_attribute_4c47j7p6y4": [
+					"__math_cn_type_lexical_in_attribute_uyyyrbltfn"
 				],
 				"e_1_derived": [
 					"__math_cn_check_e_1_derived_tyhpeib6up"
@@ -3658,9 +3585,6 @@
 				],
 				"__rule_choice_space_name_key_package_path_identifier_onkhp4t7qm": [
 					"__choice_space_name_key_package_path_identifier_3uf7mypygq"
-				],
-				"__rule_cn_count_in_node_pgmklfni3g": [
-					"__cn_count_in_node_tb3xkvsh6h"
 				],
 				"__rule_comment_in_node_npercpz3n3": [
 					"__comment_in_node_darh3wj57u"
@@ -6515,18 +6439,17 @@
 				],
 				"width": 7
 			},
-			"CnTypeSpelling": {
+			"CnTypeLexical": {
 				"function": "__constant_is5wq7ypst",
 				"functions": [
 					"__constant_is5wq7ypst",
 					"__constant_przq27rlwm",
-					"__constant_qhszlaty7i",
-					"__constant_zdkkfmabrr"
+					"__constant_cz5a2jxuz5"
 				],
 				"key": {
 					"coordinates": [
 						{
-							"field": "type",
+							"field": "code",
 							"radix": 8
 						}
 					],
@@ -6535,9 +6458,8 @@
 				"keys": "__constant_przq27rlwm",
 				"payload": [
 					{
-						"are": "__constant_zdkkfmabrr",
-						"dictionary": "__constant_qhszlaty7i",
-						"field": "pattern",
+						"dictionary": "__constant_cz5a2jxuz5",
+						"field": "lexical",
 						"radix": 8
 					}
 				],
@@ -7997,7 +7919,6 @@
 			"CellTable",
 			"Choice",
 			"ChoiceInteraction",
-			"CnAttribute",
 			"CnCount",
 			"Comment",
 			"ContextRef",
@@ -8647,6 +8568,10 @@
 									"law": "__test_reading_key_package_assembly_path_start_duaaxujabc"
 								},
 								{
+									"kind": "enforcement",
+									"of": "derived relation CnCount"
+								},
+								{
 									"kind": "law",
 									"law": "__binding_base_type_node_check_binding_fit_zjqg2eweij"
 								},
@@ -9272,6 +9197,10 @@
 								},
 								{
 									"kind": "enforcement",
+									"of": "derived relation CnCount"
+								},
+								{
+									"kind": "enforcement",
 									"of": "derived relation HeaderToken"
 								},
 								{
@@ -9356,10 +9285,6 @@
 								},
 								{
 									"kind": "law",
-									"law": "__attribute_name_kind_in_cn_attribute_kvirsjqhyu"
-								},
-								{
-									"kind": "law",
 									"law": "__base_type_cardinality_check_declaration_base_type_du5hijhbph"
 								},
 								{
@@ -9385,10 +9310,6 @@
 								{
 									"kind": "law",
 									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_attribute_in_attribute_febwmpibnb"
 								},
 								{
 									"kind": "law",
@@ -9509,6 +9430,14 @@
 								{
 									"kind": "law",
 									"law": "__math_align_scope_in_scoped_dir_6ju4wqpvni"
+								},
+								{
+									"kind": "law",
+									"law": "__math_cn_base_lexical_in_attribute_jx4v22vdos"
+								},
+								{
+									"kind": "law",
+									"law": "__math_cn_type_lexical_in_attribute_uyyyrbltfn"
 								},
 								{
 									"kind": "law",
@@ -11001,186 +10930,6 @@
 					},
 					"relation": "ChoiceInteraction"
 				},
-				"cn_attribute": {
-					"indexes": {
-						"__cn_attribute_pk_uahvc6us4g": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "name",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__cn_attribute_pk_package_path_start_name_h5thbtcznd"
-								},
-								{
-									"kind": "law",
-									"law": "__attribute_name_kind_in_cn_attribute_kvirsjqhyu"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_attribute_in_attribute_febwmpibnb"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_count_type_lexical_in_cn_attribute_rpbkmmdfqh"
-								},
-								{
-									"kind": "law",
-									"law": "__math_cn_base_lexical_in_cn_attribute_ax26oz27n7"
-								},
-								{
-									"kind": "law",
-									"law": "__math_cn_type_lexical_in_cn_attribute_sgp64k3z7t"
-								},
-								{
-									"kind": "access"
-								}
-							]
-						}
-					},
-					"relation": "CnAttribute"
-				},
-				"cn_count": {
-					"indexes": {
-						"__cn_count_key_package_path_start_parts_type_7wasizqrkb": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "parts",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "type",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__cn_count_pk_package_path_start_tjsmgcwonj"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_slot_in_cn_count_vuradqfp7f"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-								}
-							]
-						},
-						"__cn_count_key_package_path_start_type_gfzp5vminc": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "type",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__cn_count_pk_package_path_start_tjsmgcwonj"
-								},
-								{
-									"kind": "law",
-									"law": "__math_cn_in_cn_count_4enjobxkgf"
-								}
-							]
-						},
-						"__cn_count_pk_5n2ubteh2s": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__cn_count_pk_package_path_start_tjsmgcwonj"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_count_in_node_tb3xkvsh6h"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_count_type_lexical_in_cn_attribute_rpbkmmdfqh"
-								},
-								{
-									"kind": "access"
-								}
-							]
-						}
-					},
-					"relation": "CnCount"
-				},
 				"cn_part_text": {
 					"indexes": {
 						"__cn_part_text_key_package_path_start_index_parts_5vdus42otu": {
@@ -11295,121 +11044,6 @@
 						}
 					},
 					"relation": "CnPartText"
-				},
-				"cn_slot": {
-					"indexes": {
-						"__cn_slot_key_package_path_start_index_parts_dbqcjcnaam": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"holds": {
-										"field": "parts",
-										"kind": "drawn"
-									},
-									"kind": "law",
-									"laws": [
-										"__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-									]
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-								}
-							]
-						},
-						"__cn_slot_key_package_path_start_predecessor_parts_6cbqntaxth": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"holds": {
-										"field": "parts",
-										"kind": "predecessor"
-									},
-									"kind": "law",
-									"laws": [
-										"__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-									]
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-								}
-							]
-						},
-						"__cn_slot_pk_tkl6mzsgtu": {
-							"columns": [
-								{
-									"direction": "asc",
-									"field": "package",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "path",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "start",
-									"kind": "field"
-								},
-								{
-									"direction": "asc",
-									"field": "part",
-									"kind": "field"
-								}
-							],
-							"reasons": [
-								{
-									"kind": "law",
-									"law": "__cn_slot_pk_package_path_start_part_spxc3s2nac"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_slot_counted_cn_count_parts_rxew2rj3mb"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_slot_in_cn_count_vuradqfp7f"
-								}
-							]
-						}
-					},
-					"relation": "CnSlot"
 				},
 				"comment": {
 					"indexes": {
@@ -18956,11 +18590,11 @@
 								},
 								{
 									"kind": "law",
-									"law": "__math_cn_in_cn_count_4enjobxkgf"
+									"law": "__math_cn_base_lexical_in_attribute_jx4v22vdos"
 								},
 								{
 									"kind": "law",
-									"law": "__math_cn_base_lexical_in_cn_attribute_ax26oz27n7"
+									"law": "__math_cn_in_cn_count_4enjobxkgf"
 								},
 								{
 									"kind": "law",
@@ -18968,7 +18602,7 @@
 								},
 								{
 									"kind": "law",
-									"law": "__math_cn_type_lexical_in_cn_attribute_sgp64k3z7t"
+									"law": "__math_cn_type_lexical_in_attribute_uyyyrbltfn"
 								},
 								{
 									"kind": "access"
@@ -19455,7 +19089,7 @@
 								}
 							]
 						},
-						"__node_ix_package_kind_path_start_lmpqq2vqbz": {
+						"__node_ix_package_kind_parent_path_ejq2o6dndk": {
 							"columns": [
 								{
 									"direction": "asc",
@@ -19469,16 +19103,120 @@
 								},
 								{
 									"direction": "asc",
-									"field": "path",
+									"field": "parent",
 									"kind": "field"
 								},
 								{
 									"direction": "asc",
-									"field": "start",
+									"field": "path",
 									"kind": "field"
 								}
 							],
 							"reasons": [
+								{
+									"kind": "law",
+									"law": "__mapping_base_type_in_mappable_base_type_rf7guqrcb4"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_declaration_in_reference_declaration_x4gjjjhjmz"
+								},
+								{
+									"kind": "law",
+									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
+								},
+								{
+									"kind": "law",
+									"law": "__described_assembled_lang_in_listed_lang_dwhbhmcta6"
+								},
+								{
+									"kind": "law",
+									"law": "__described_lang_in_listed_lang_atvlgqj6pb"
+								},
+								{
+									"kind": "law",
+									"law": "__interpolated_lookup_in_declaration_table_ifyarijokf"
+								},
+								{
+									"kind": "law",
+									"law": "__item_read_check_e_1_derived_v5eug5qkaj"
+								},
+								{
+									"kind": "law",
+									"law": "__listed_identifier_in_matched_identifier_ha5ttd4ekt"
+								},
+								{
+									"kind": "law",
+									"law": "__listed_title_in_matched_title_q4mtn3mzwi"
+								},
+								{
+									"kind": "law",
+									"law": "__numbered_reading_in_assembled_replaceable_ckzauu53v6"
+								},
+								{
+									"kind": "law",
+									"law": "__numbered_reading_in_numbered_target_l4lcixj7in"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_test_reference_in_test_reading_3u63npqz5f"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_base_check_e_1_derived_f5ojib7mwq"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_cardinality_check_e_1_derived_4knmmrc36o"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_declaration_in_typed_declaration_qo5yv5ftpt"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_ref_declaration_in_declaration_bx355ri3r5"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_ref_declaration_in_declaration_jxoulqlecd"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_ref_declaration_in_declaration_kjucbi3hsv"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_variable_ref_in_sole_reading_y7dbmpbrju"
+								},
+								{
+									"kind": "law",
+									"law": "__placed_weighted_variable_in_item_scoped_reading_pbksxep36q"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_map_response_in_item_ref_table_zibsrtnjsa"
+								},
+								{
+									"kind": "law",
+									"law": "__prefixed_map_response_point_in_item_ref_table_s4hqm4kp4f"
+								},
+								{
+									"kind": "law",
+									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
+								},
+								{
+									"kind": "law",
+									"law": "__scope_duration_read_check_e_1_derived_eh7u3n7vgi"
+								},
+								{
+									"kind": "law",
+									"law": "__sole_reading_in_placed_variable_ref_iyibyvmeop"
+								},
+								{
+									"kind": "law",
+									"law": "__test_reading_key_package_assembly_path_start_duaaxujabc"
+								},
 								{
 									"kind": "law",
 									"law": "__anchored_id_key_package_assembly_anchor_id_digest_5ksp7mxkzx"
@@ -19490,10 +19228,6 @@
 								{
 									"kind": "law",
 									"law": "__assembled_name_key_package_assembly_identifier_xphaapsts3"
-								},
-								{
-									"kind": "law",
-									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
 								},
 								{
 									"kind": "law",
@@ -19517,10 +19251,6 @@
 								},
 								{
 									"kind": "law",
-									"law": "__numbered_reading_in_assembled_replaceable_ckzauu53v6"
-								},
-								{
-									"kind": "law",
 									"law": "__placed_expression_node_in_literal_qfvexf32cm"
 								},
 								{
@@ -19534,10 +19264,6 @@
 								{
 									"kind": "law",
 									"law": "__placed_expression_node_in_operand_of_wvuja5ao5o"
-								},
-								{
-									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
 								},
 								{
 									"kind": "law",
@@ -19779,108 +19505,8 @@
 							],
 							"reasons": [
 								{
-									"kind": "law",
-									"law": "__mapping_base_type_in_mappable_base_type_rf7guqrcb4"
-								},
-								{
-									"kind": "law",
-									"law": "__prefixed_declaration_in_reference_declaration_x4gjjjhjmz"
-								},
-								{
-									"kind": "law",
-									"law": "__branch_resolution_in_resolved_branch_rule_sya6wyglim"
-								},
-								{
-									"kind": "law",
-									"law": "__described_assembled_lang_in_listed_lang_dwhbhmcta6"
-								},
-								{
-									"kind": "law",
-									"law": "__described_lang_in_listed_lang_atvlgqj6pb"
-								},
-								{
-									"kind": "law",
-									"law": "__interpolated_lookup_in_declaration_table_ifyarijokf"
-								},
-								{
-									"kind": "law",
-									"law": "__item_read_check_e_1_derived_v5eug5qkaj"
-								},
-								{
-									"kind": "law",
-									"law": "__listed_identifier_in_matched_identifier_ha5ttd4ekt"
-								},
-								{
-									"kind": "law",
-									"law": "__listed_title_in_matched_title_q4mtn3mzwi"
-								},
-								{
-									"kind": "law",
-									"law": "__numbered_reading_in_assembled_replaceable_ckzauu53v6"
-								},
-								{
-									"kind": "law",
-									"law": "__numbered_reading_in_numbered_target_l4lcixj7in"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_test_reference_in_test_reading_3u63npqz5f"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_base_check_e_1_derived_f5ojib7mwq"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_cardinality_check_e_1_derived_4knmmrc36o"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_declaration_in_typed_declaration_qo5yv5ftpt"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_ref_declaration_in_declaration_bx355ri3r5"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_ref_declaration_in_declaration_jxoulqlecd"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_ref_declaration_in_declaration_kjucbi3hsv"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_variable_ref_in_sole_reading_y7dbmpbrju"
-								},
-								{
-									"kind": "law",
-									"law": "__placed_weighted_variable_in_item_scoped_reading_pbksxep36q"
-								},
-								{
-									"kind": "law",
-									"law": "__prefixed_map_response_in_item_ref_table_zibsrtnjsa"
-								},
-								{
-									"kind": "law",
-									"law": "__prefixed_map_response_point_in_item_ref_table_s4hqm4kp4f"
-								},
-								{
-									"kind": "law",
-									"law": "__resolved_branch_rule_in_forward_branch_rule_yu2i7miz25"
-								},
-								{
-									"kind": "law",
-									"law": "__scope_duration_read_check_e_1_derived_eh7u3n7vgi"
-								},
-								{
-									"kind": "law",
-									"law": "__sole_reading_in_placed_variable_ref_iyibyvmeop"
-								},
-								{
-									"kind": "law",
-									"law": "__test_reading_key_package_assembly_path_start_duaaxujabc"
+									"kind": "enforcement",
+									"of": "derived relation CnCount"
 								},
 								{
 									"kind": "law",
@@ -20036,6 +19662,10 @@
 								{
 									"kind": "enforcement",
 									"of": "derived relation CellTable"
+								},
+								{
+									"kind": "enforcement",
+									"of": "derived relation CnCount"
 								},
 								{
 									"kind": "law",
@@ -21046,6 +20676,10 @@
 									"of": "derived relation CellTable"
 								},
 								{
+									"kind": "enforcement",
+									"of": "derived relation CnCount"
+								},
+								{
 									"kind": "law",
 									"law": "__anchored_id_key_package_assembly_anchor_id_digest_5ksp7mxkzx"
 								},
@@ -21120,10 +20754,6 @@
 								{
 									"kind": "law",
 									"law": "__choice_space_name_key_package_path_identifier_3uf7mypygq"
-								},
-								{
-									"kind": "law",
-									"law": "__cn_count_in_node_tb3xkvsh6h"
 								},
 								{
 									"kind": "law",
@@ -27364,6 +26994,10 @@
 					"indexes": {},
 					"relation": "AssembledCatalog"
 				},
+				"cn_count": {
+					"indexes": {},
+					"relation": "CnCount"
+				},
 				"table_header": {
 					"indexes": {
 						"__table_header_key_package_path_table_id_digest_ll7spl6q4s": {
@@ -27517,11 +27151,11 @@
 			"fa90810d9401bf0a81bfec203c004cd0f8847433ed32c3733b3f55991eea413d": "3cd53cc0df2c42f1b44a53e1d672bc47fed1067e25cfaf7059cdd1021552f469"
 		}
 	},
-	"fingerprint": "3cc0c0a43c5bdb1481cf754a1ba8bea491dc50dec2ba11e4981953bc8f488be6",
+	"fingerprint": "f43685af33bd678492034fec1fe67ef35b7601d1ea77d2e2e74ff6fc50f24402",
 	"format": "8:46b2458739d2323ae3bba6dd2941595bc932f92323ff3ec5b037202fe4c95619",
 	"levels": [
 		{
-			"fingerprint": "a0504bf487c58b16937f0e93f80f4a91376996c7ec7a10152d30c5c82f16133f",
+			"fingerprint": "f5eaa492d27cab07f6343b5162fbc1c6fff03ded986d4958bfb22be5972634a1",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"AssembledDocument","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]},"kind":"contained","to":{"relation":"Document","selection":{"conjuncts":[{"kind":"compare","left":{"field":"assembled","kind":"field"},"op":"eq","right":{"kind":"literal","value":true}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]}},"law":"__assembled_document_in_document_h6jcxbzpb7"},
 				{"described":{"entry":{"kind":"declared","name":"Test overlay","source":"plan §1.7 O7 and the W5 amendment's C15, C18, under decision S3: each O7 overlay (AssembledDocument, Named, Site) is its element's row, keyed by its node, and holds its attributes' values, collapsed, each an identifier read where it stands (TestIdentifier, C18); AssembledDocument and Named hold no fact of their node or document, which their laws read through Node and Document (a document's root kind its Document's, at its (package, path)), while a Site holds its node's context (nodeContext: its kind, parent and parent's kind, ancestry, children, governor and nearest interaction), the copy routed with Document's context to the RULEREC follow-up; each exists exactly where its element does (Q5.13)"},"fields":["package","path"],"kind":"primaryKey","relation":"AssembledDocument"},"law":"__assembled_document_pk_package_path_cgour7hrfm"},
@@ -27559,7 +27193,6 @@
 				{"described":{"entry":{"kind":"declared","name":"Equal tolerance","source":"reading 121: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_Equal.Attr_tolerance (§5.46.2: 'If the tolerance mode is absolute or relative then the tolerance must be specified. The tolerance consists of two positive numbers, t0 and t1, that define the lower and upper bounds. If only one value is given it is used for both') and #DataModel_ToleranceList (§9.1.5: 'a space separated list of either strings (must not contain a space) or numbers'): a qti-equal whose tolerance-mode is absolute or relative writes tolerance, every tolerance holds one or two values, and each value in xs:double's lexical space is above 0, a string naming a variable read at run time (operators.ts toleranceRequired; overlay-queries/expression.ts ToleranceToken, Equal_tolerance)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"lexical","kind":"field"},"kind":"in","values":["absolute","relative"]},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-equal"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tolerance-mode"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-equal"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"tolerance"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_lexical_kind_name_in_attribute_ijs3l2vthw"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"xml:lang"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"CatalogScope","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_name_in_catalog_scope_gpvf4qf6qp"},
 				{"described":{"entry":{"kind":"declared","name":"Data SSML","source":"reading 177, over R7-a: https://www.imsglobal.org/sites/default/files/spec/qti/v3/data-ssml_infobind/imsqtiv3p0_datassml_v1p0_InfoBind.html#JSOND (Data-SSML 1.0 §3.4, Description of the JSON Schema, NORMATIVE): a closed data-ssml holds one JSON object whose members are among break, phoneme, prosody, say-as and sub, each an object of the string properties the schema lists for it (break: strength, time; phoneme: ph, alphabet, type; prosody: rate; say-as: interpret-as; sub: alias), with ph, interpret-as and alias required, strength, alphabet, type and interpret-as enumerated, and time and rate normalized strings; a name written twice is admitted and each value judged (RFC 8259 §4). The importer reads the JSON into rows and the database judges them (data-ssml.ts DataSsml, DataSsmlMember, DataSsmlProperty, Data_SSML; queries.ts RequiredSsmlProperty)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"data-ssml"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"DataSsml","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__attribute_name_in_data_ssml_mwwzgqeh64"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"name","kind":"field"},"kind":"in","values":["base","type"]},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:cn"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"},{"field":"lexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"CnAttribute","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"},{"field":"lexicalDigest","kind":"field"}]}},"law":"__attribute_name_kind_in_cn_attribute_kvirsjqhyu"},
 				{"described":{"entry":{"kind":"declared","name":"AL2 distinct","source":"XML 1.0 §3.1, WFC Unique Att Spec, and Namespaces in XML 1.0 §6.3: a closed attribute is its element's at its name, Attribute's key (package, path, start, name), an open class's attribute an OpenAttribute (fin.md §16, D2)"},"fields":["package","path","start","name"],"kind":"primaryKey","relation":"Attribute"},"law":"__attribute_pk_package_path_start_name_5u36wumhan"},
 				{"described":{"entry":{"kind":"declared","name":"Card default entry","source":"reading R9-a: https://www.imsglobal.org/spec/qti/v3p0/info#Data_CardEntry (§5.27.2, CardEntry's default: 'Only one of the CardEntry instances can have a default designation'): a card holds at most one entry whose default, an xs:boolean collapsed, is true or 1 (overlay-queries/catalog.ts defaults, a key over each entry's parent, Attribute.parent)"},"kind":"key","side":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"value","kind":"field"},"kind":"in","values":["1","true"]},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"qti-card-entry"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"default"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"parent","kind":"field"}]}},"law":"__attribute_value_kind_name_key_package_path_parent_54zsfd2dbw"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"family","member":{"relation":"BindingName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]},"order":"counted","slots":{"count":"bindings","owner":"Document"}},"law":"__binding_name_counted_document_bindings_sluukxk2o2"},
@@ -27589,22 +27222,11 @@
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"ChoiceInteraction"},"law":"__choice_interaction_pk_package_path_start_acqvahqkgz"},
 				{"described":{"entry":{"kind":"declared","name":"Choice identifier key","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1, and §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1 and §5.131.1: 'This identifier must not be used by any other choice or item variable', five classes naming their own noun) and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Identifier (§7.16: an identifier is 'a logical reference to another object in the item, such as an itemVariable or choice'); reading 104 as amended: each class's sentence bars its own noun ('any other gap', 'text', 'image', 'hotspot', 'hottext choice'), so no two elements of one class share an identifier, and the four classes' 'any other choice' bars every element the information model calls a choice (§6.17 GapChoice, §5.59, §5.65.1), a gap none (§5.57, gaps filled 'from an associated set of choices'), so a simple, inline, hotspot or simple associable choice shares its identifier with no other choice or hottext of its document, whichever interactions hold them, nor with one its assembly places, compared collapsed; a gap and a gap text may share one (interactions.ts key(on(Choice, \"document\", \"kind\", \"identifier\")), key(on(Hottext, \"document\", \"identifier\")) and their placed keys, and queries.ts key(on(ChoiceSpaceName, \"document\", \"identifier\")) and key(on(PlacedChoiceSpaceName, \"assembly\", \"identifier\")))"},"kind":"key","side":{"relation":"Choice","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"kind","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__choice_key_package_path_kind_identifier_vvnhaytagt"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"Choice"},"law":"__choice_pk_package_path_start_ynonnosqlf"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"CnAttribute","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[{"arg":{"field":"name","kind":"field"},"kind":"in","values":["base","type"]},{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:cn"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"name","kind":"field"}]}},"law":"__cn_attribute_in_attribute_febwmpibnb"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start","name"],"kind":"primaryKey","relation":"CnAttribute"},"law":"__cn_attribute_pk_package_path_start_name_h5thbtcznd"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"CnCount"},"law":"__cn_count_check_e_1_derived_wfumusuo5z"},
-				{"described":{"entry":{"kind":"declared","name":"MathML cn form","source":"spec readings 2 and R6-hexdouble: https://www.w3.org/TR/MathML3/chapter4.html#contm.cn (MathML 3 §4.2.1: the content of a cn has the form its type implies, integer, real, double, hexdouble, e-notation, rational, complex-cartesian and complex-polar, split at m:sep; every other type is text), digits read in its base from 2 to 36; a part holding an element or an entity reference has its digits unjudged, and counts among the parts, and a base beyond the alphabet leaves the digits application specific (expression.ts cnForms and cnPatternOf)"},"from":{"relation":"CnCount","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"parts","kind":"field"}]},"kind":"contained","to":{"relation":"CnParts","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"parts","kind":"field"}]}},"law":"__cn_count_in_cn_parts_ohtpoxcpz2"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"CnCount","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:cn"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__cn_count_in_node_tb3xkvsh6h"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"CnCount"},"law":"__cn_count_pk_package_path_start_tjsmgcwonj"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"CnCount","selection":{"conjuncts":[{"kind":"compare","left":{"field":"typeLexical","kind":"field"},"op":"ne","right":{"kind":"literal","value":""}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"typeLexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"CnAttribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"type"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"lexicalDigest","kind":"field"}]}},"law":"__cn_count_type_lexical_in_cn_attribute_rpbkmmdfqh"},
 				{"described":{"entry":{"kind":"declared","name":"MathML cn form","source":"spec readings 2 and R6-hexdouble: https://www.w3.org/TR/MathML3/chapter4.html#contm.cn (MathML 3 §4.2.1: the content of a cn has the form its type implies, integer, real, double, hexdouble, e-notation, rational, complex-cartesian and complex-polar, split at m:sep; every other type is text), digits read in its base from 2 to 36; a part holding an element or an entity reference has its digits unjudged, and counts among the parts, and a base beyond the alphabet leaves the digits application specific (expression.ts cnForms and cnPatternOf)"},"kind":"check","name":"MathML_cn_form","relation":"CnPartText"},"law":"__cn_part_text_check_math_ml_cn_form_qk7b5wlyo2"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"family","member":{"relation":"CnPartText","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"order":"counted","slots":{"count":"parts","owner":"MathCn"}},"law":"__cn_part_text_counted_math_cn_parts_63kajnhuxj"},
 				{"described":{"entry":{"kind":"declared","name":"MathML cn form","source":"spec readings 2 and R6-hexdouble: https://www.w3.org/TR/MathML3/chapter4.html#contm.cn (MathML 3 §4.2.1: the content of a cn has the form its type implies, integer, real, double, hexdouble, e-notation, rational, complex-cartesian and complex-polar, split at m:sep; every other type is text), digits read in its base from 2 to 36; a part holding an element or an entity reference has its digits unjudged, and counts among the parts, and a base beyond the alphabet leaves the digits application specific (expression.ts cnForms and cnPatternOf)"},"from":{"relation":"CnPartText","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"part","kind":"field"},{"field":"form","kind":"field"}]},"kind":"contained","to":{"relation":"CnForm","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"part","kind":"field"},{"field":"form","kind":"field"}]}},"law":"__cn_part_text_in_cn_form_ykfpxq55bv"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"CnPartText","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"type","kind":"field"},{"field":"base","kind":"field"}]},"kind":"contained","to":{"relation":"MathCn","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"type","kind":"field"},{"field":"base","kind":"field"}]}},"law":"__cn_part_text_in_math_cn_6l5n3a65u5"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start","part"],"kind":"primaryKey","relation":"CnPartText"},"law":"__cn_part_text_pk_package_path_start_part_hupfrcq2hd"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"family","member":{"relation":"CnSlot","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"order":"counted","slots":{"count":"parts","owner":"CnCount"}},"law":"__cn_slot_counted_cn_count_parts_rxew2rj3mb"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"CnSlot","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"type","kind":"field"}]},"kind":"contained","to":{"relation":"CnCount","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"type","kind":"field"}]}},"law":"__cn_slot_in_cn_count_vuradqfp7f"},
-				{"described":{"entry":{"kind":"declared","name":"MathML cn form","source":"spec readings 2 and R6-hexdouble: https://www.w3.org/TR/MathML3/chapter4.html#contm.cn (MathML 3 §4.2.1: the content of a cn has the form its type implies, integer, real, double, hexdouble, e-notation, rational, complex-cartesian and complex-polar, split at m:sep; every other type is text), digits read in its base from 2 to 36; a part holding an element or an entity reference has its digits unjudged, and counts among the parts, and a base beyond the alphabet leaves the digits application specific (expression.ts cnForms and cnPatternOf)"},"from":{"relation":"CnSlot","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"part","kind":"field"},{"field":"form","kind":"field"}]},"kind":"contained","to":{"relation":"CnForm","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"part","kind":"field"},{"field":"form","kind":"field"}]}},"law":"__cn_slot_in_cn_form_3ylpnwit2v"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start","part"],"kind":"primaryKey","relation":"CnSlot"},"law":"__cn_slot_pk_package_path_start_part_spxc3s2nac"},
 				{"described":{"entry":{"kind":"declared","name":"comment arm","source":"the XDM comment nodes as rows (plan §1.4)"},"from":{"relation":"Comment","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"comment"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__comment_in_node_darh3wj57u"},
 				{"described":{"entry":{"kind":"declared","name":"comment arm","source":"the XDM comment nodes as rows (plan §1.4)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"Comment"},"law":"__comment_pk_package_path_start_jxpgngmfc7"},
 				{"described":{"entry":{"kind":"declared","name":"Context variable reference","source":"https://www.imsglobal.org/spec/qti/v3p0/info#DataAttribute_PortableCustomInteraction_qti-context-variable (§5.106.6: 'This allows an item author to bind a context variable to the PCI instance'), https://www.imsglobal.org/spec/qti/v3p0/info#Data_ContextDeclaration (§5.34: 'Context variables, variables declared by context declarations', and 'There is one built-in context variable named \"QTI_CONTEXT\" with record cardinality') and the Schematron's rule 20Ba (reading 9): a PCI's qti-context-variable names QTI_CONTEXT or a declared context variable (references.ts ContentReference)"},"kind":"check","name":"Context_variable_reference","relation":"ContextRef"},"law":"__context_ref_check_context_variable_reference_ympx2to65w"},
@@ -27782,13 +27404,12 @@
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathCell","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:mtd"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__math_cell_in_node_jnpcai3wzo"},
 				{"described":{"end":{"relation":"MathCell","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"lastStart","kind":"field"}]},"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"family":{"count":"leaves","owner":"MathCell"},"kind":"fold","monoid":"max","step":{"relation":"CellLeaf","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"cell","kind":"field"},{"field":"start","kind":"field"},{"field":"startWas","kind":"field"},{"field":"startAfter","kind":"field"}]}},"law":"__math_cell_leaves_max_fold_ux7lbrjygq"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"MathCell"},"law":"__math_cell_pk_package_path_start_tywunozcjo"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathCn","selection":{"conjuncts":[{"kind":"compare","left":{"field":"baseLexical","kind":"field"},"op":"ne","right":{"kind":"literal","value":""}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"baseLexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"CnAttribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"base"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"lexicalDigest","kind":"field"}]}},"law":"__math_cn_base_lexical_in_cn_attribute_ax26oz27n7"},
+				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathCn","selection":{"conjuncts":[{"kind":"compare","left":{"field":"baseLexical","kind":"field"},"op":"ne","right":{"kind":"literal","value":""}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"baseLexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:cn"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"base"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"lexicalDigest","kind":"field"}]}},"law":"__math_cn_base_lexical_in_attribute_jx4v22vdos"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"MathCn"},"law":"__math_cn_check_e_1_derived_tyhpeib6up"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathCn","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"type","kind":"field"}]},"kind":"contained","to":{"relation":"CnCount","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"type","kind":"field"}]}},"law":"__math_cn_in_cn_count_4enjobxkgf"},
 				{"described":{"entry":{"kind":"declared","name":"MathML cn form","source":"spec readings 2 and R6-hexdouble: https://www.w3.org/TR/MathML3/chapter4.html#contm.cn (MathML 3 §4.2.1: the content of a cn has the form its type implies, integer, real, double, hexdouble, e-notation, rational, complex-cartesian and complex-polar, split at m:sep; every other type is text), digits read in its base from 2 to 36; a part holding an element or an entity reference has its digits unjudged, and counts among the parts, and a base beyond the alphabet leaves the digits application specific (expression.ts cnForms and cnPatternOf)"},"from":{"relation":"MathCn","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"parts","kind":"field"}]},"kind":"contained","to":{"relation":"CnParts","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"parts","kind":"field"}]}},"law":"__math_cn_in_cn_parts_cjixt4ryud"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathCn","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:cn"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__math_cn_in_node_t6734znxjs"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"MathCn"},"law":"__math_cn_pk_package_path_start_3wqoepnwkh"},
-				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathCn","selection":{"conjuncts":[{"kind":"compare","left":{"field":"typeLexical","kind":"field"},"op":"ne","right":{"kind":"literal","value":""}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"typeLexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"CnAttribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"type"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"lexicalDigest","kind":"field"}]}},"law":"__math_cn_type_lexical_in_cn_attribute_sgp64k3z7t"},
+				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathCn","selection":{"conjuncts":[{"kind":"compare","left":{"field":"typeLexical","kind":"field"},"op":"ne","right":{"kind":"literal","value":""}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"typeLexicalDigest","kind":"field"}]},"kind":"contained","to":{"relation":"Attribute","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:cn"}},{"kind":"compare","left":{"field":"name","kind":"field"},"op":"eq","right":{"kind":"literal","value":"type"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"lexicalDigest","kind":"field"}]}},"law":"__math_cn_type_lexical_in_attribute_uyyyrbltfn"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathRank","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"Node","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__math_rank_in_node_jsqd6yl3pc"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"fields":["package","path","start"],"kind":"primaryKey","relation":"MathRank"},"law":"__math_rank_pk_package_path_start_k7yqqudvco"},
 				{"described":{"entry":{"kind":"declared","name":"Entry kind","source":"IMS Content Packaging 1.2 (imscp_infov1p2pd2.txt:409, InterchangePackage (b)): every file of a package is an entry, and each is exactly one of a document, held as its tree alone, and a media file, held as the SHA-256 of its bytes, which a content-addressed store holds under it; the database holds no file's bytes (package.ts Entry, EntryKind, Media: alternatives(Entry, kind, EntryKind, { document: Document, media: Media }))"},"from":{"relation":"Media","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]},"kind":"contained","to":{"relation":"Entry","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"media"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"}]}},"law":"__media_in_entry_5z3vqdctzs"},
@@ -28029,13 +27650,13 @@
 			"schema": "qti"
 		},
 		{
-			"fingerprint": "6f1ce78aff63aeaaf6180c154a213abfb72295128915c06e57f143e0913f05f0",
+			"fingerprint": "a0c7fafc9544b9251bb36b0d33cd60a172e71e060053ed1f9b131a5c0e204544",
 			"laws": [],
 			"name": "QtiViews",
 			"schema": "qti_views"
 		},
 		{
-			"fingerprint": "2fc08cd7161e68f6d691e1058e9545712053434e102b2c5a3081671bd312ba4e",
+			"fingerprint": "041676ed2c5c61d6370ea47b5e10f27156d09b08b23dffb0ded7975ae2190d1c",
 			"laws": [
 				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"AnchoredId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"idDigest","kind":"field"}]}},"law":"__anchored_id_key_package_assembly_anchor_id_digest_5ksp7mxkzx"},
 				{"described":{"entry":{"kind":"declared","name":"Test name key","source":"reading 86: https://www.imsglobal.org/spec/qti/v3p0/info#RootCharacteristic_AssessmentSection.Attr_identifier (§4.2.1: 'The identifier of the section or item reference must be unique within the test and must not be the identifier of any testPart'), §5.159.1 and §7.5.3 ('A test may refer to the same section multiple times within a test. Note however that each reference must have a unique identifier'), read over the assembled test (reading 5): the test document and every document its section refs and includes place; a section document placed twice is one document and names nothing twice: no two written test parts, sections, section refs or item refs of one test's assembly share an identifier (overlay-queries/tests.ts AssembledName)"},"kind":"key","side":{"relation":"AnchoredName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"anchor","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__anchored_name_key_package_assembly_anchor_l25sk7zs37"},
@@ -28069,6 +27690,7 @@
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"ChoiceNode","selection":{"conjuncts":[{"arg":{"field":"kind","kind":"field"},"kind":"in","values":["qti-associable-hotspot","qti-associate-interaction","qti-choice-interaction","qti-extended-text-interaction","qti-gap-img","qti-gap-match-interaction","qti-gap-text","qti-graphic-associate-interaction","qti-graphic-gap-match-interaction","qti-graphic-order-interaction","qti-hotspot-interaction","qti-hottext-interaction","qti-match-interaction","qti-media-interaction","qti-order-interaction","qti-position-object-interaction","qti-select-point-interaction","qti-simple-associable-choice"]}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"CountBound","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__choice_node_in_count_bound_vkb53rtjaa"},
 				{"described":{"entry":{"kind":"declared","name":"Choice not variable","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1 and the other choice classes' identifier: 'This identifier must not be used by any other choice or item variable'), https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Variable (§7.47: a variable is one 'declared in a corresponding variable declaration or is one of the built-in variables'), https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ResponseDeclaration.Attr_identifier (§5.115.1, and §4.5.1 and §5.151.1: 'The identifiers of the built-in session variables are reserved. They are completionStatus, numAttempts and duration') and https://www.imsglobal.org/spec/qti/v3p0/info#Data_ContextDeclaration (§5.34: 'There is one built-in context variable named \"QTI_CONTEXT\" with record cardinality'): no choice or hottext bears the identifier of a declaration of its document, nor in an item that of a built-in variable, compared collapsed (queries.ts ChoiceOrHottext and PlacedChoiceOrHottext in UnclaimedName)"},"from":{"relation":"ChoiceOrHottext","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"}]},"kind":"contained","to":{"relation":"UnclaimedName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__choice_or_hottext_in_unclaimed_name_sl45esjqpz"},
 				{"described":{"entry":{"kind":"declared","name":"Choice identifier key","source":"reading 104: https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_SimpleChoice.Attr_identifier (§5.132.1, and §5.7.1, §5.55.1, §5.56.1, §5.58.1, §5.65.1, §5.67.1, §5.73.1 and §5.131.1: 'This identifier must not be used by any other choice or item variable', five classes naming their own noun) and https://www.imsglobal.org/spec/qti/v3p0/info#Derived_Identifier (§7.16: an identifier is 'a logical reference to another object in the item, such as an itemVariable or choice'); reading 104 as amended: each class's sentence bars its own noun ('any other gap', 'text', 'image', 'hotspot', 'hottext choice'), so no two elements of one class share an identifier, and the four classes' 'any other choice' bars every element the information model calls a choice (§6.17 GapChoice, §5.59, §5.65.1), a gap none (§5.57, gaps filled 'from an associated set of choices'), so a simple, inline, hotspot or simple associable choice shares its identifier with no other choice or hottext of its document, whichever interactions hold them, nor with one its assembly places, compared collapsed; a gap and a gap text may share one (interactions.ts key(on(Choice, \"document\", \"kind\", \"identifier\")), key(on(Hottext, \"document\", \"identifier\")) and their placed keys, and queries.ts key(on(ChoiceSpaceName, \"document\", \"identifier\")) and key(on(PlacedChoiceSpaceName, \"assembly\", \"identifier\")))"},"kind":"key","side":{"relation":"ChoiceSpaceName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"}]}},"law":"__choice_space_name_key_package_path_identifier_3uf7mypygq"},
+				{"described":{"entry":{"kind":"declared","name":"MathML cn form","source":"spec readings 2 and R6-hexdouble: https://www.w3.org/TR/MathML3/chapter4.html#contm.cn (MathML 3 §4.2.1: the content of a cn has the form its type implies, integer, real, double, hexdouble, e-notation, rational, complex-cartesian and complex-polar, split at m:sep; every other type is text), digits read in its base from 2 to 36; a part holding an element or an entity reference has its digits unjudged, and counts among the parts, and a base beyond the alphabet leaves the digits application specific (expression.ts cnForms and cnPatternOf)"},"from":{"relation":"CnCount","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"parts","kind":"field"}]},"kind":"contained","to":{"relation":"CnParts","selection":{"conjuncts":[]},"terms":[{"field":"type","kind":"field"},{"field":"parts","kind":"field"}]}},"law":"__cn_count_in_cn_parts_ohtpoxcpz2"},
 				{"described":{"entry":{"kind":"declared","name":"Context variable reference","source":"https://www.imsglobal.org/spec/qti/v3p0/info#DataAttribute_PortableCustomInteraction_qti-context-variable (§5.106.6: 'This allows an item author to bind a context variable to the PCI instance'), https://www.imsglobal.org/spec/qti/v3p0/info#Data_ContextDeclaration (§5.34: 'Context variables, variables declared by context declarations', and 'There is one built-in context variable named \"QTI_CONTEXT\" with record cardinality') and the Schematron's rule 20Ba (reading 9): a PCI's qti-context-variable names QTI_CONTEXT or a declared context variable (references.ts ContentReference)"},"from":{"relation":"ContextRef","selection":{"conjuncts":[{"args":[{"arg":{"arg":{"field":"identifier","kind":"field"},"kind":"in","values":["QTI_CONTEXT","completionStatus","duration","numAttempts"]},"kind":"not"},{"kind":"compare","left":{"field":"assemblyKind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"qti-assessment-item"}}],"kind":"or"},{"args":[{"arg":{"arg":{"field":"identifier","kind":"field"},"kind":"in","values":["QTI_CONTEXT","completionStatus","duration","numAttempts"]},"kind":"not"},{"kind":"compare","left":{"field":"assemblyKind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"qti-response-processing"}}],"kind":"or"},{"args":[{"arg":{"arg":{"field":"identifier","kind":"field"},"kind":"in","values":["QTI_CONTEXT","duration"]},"kind":"not"},{"kind":"compare","left":{"field":"assemblyKind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"qti-assessment-section"}}],"kind":"or"},{"args":[{"arg":{"arg":{"field":"identifier","kind":"field"},"kind":"in","values":["QTI_CONTEXT","duration"]},"kind":"not"},{"kind":"compare","left":{"field":"assemblyKind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"qti-assessment-test"}}],"kind":"or"}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"},{"field":"kind","kind":"field"},{"field":"attribute","kind":"field"}]},"kind":"contained","to":{"relation":"ReferableName","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"identifier","kind":"field"},{"field":"kind","kind":"field"},{"field":"attribute","kind":"field"}]}},"law":"__context_ref_in_referable_name_taqjmn7bfk"},
 				{"described":{"entry":{"kind":"declared","name":"DocumentId key","source":"XML Schema Part 1, Validation Rule: Validation Root (the ID/IDREF table): no id's [binding] has more than one member, an attribute's binding its element, an ID-typed element text's its parent (§3.15.5; reading 101; identity.ts IdBinding); reading 14; reading 74: a context declaration's identifier, a UniqueIdentifier (https://www.imsglobal.org/spec/qti/v3p0/info#DataCharacteristic_ContextDeclaration.Attr_identifier, §5.34.1), is one of the document's IDs, though the 3.0.1 XSD types it an IdentifierDType; and IMS Content Packaging 1.2: the manifest's and its resources' identifiers, xs:IDs of imsmanifest.xml (imsqtiv3p0p1_imscpv1p2_v1p0.xsd lines 272 and 346), are one ID space, so a resource of its manifest's identifier is a second member of that binding"},"kind":"key","side":{"relation":"CopiedId","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"assembly","kind":"field"},{"field":"idDigest","kind":"field"}]}},"law":"__copied_id_key_package_assembly_id_digest_jlyggysnji"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"CountBoundNode"},"law":"__count_bound_node_check_e_1_derived_cgmakmbaam"},
@@ -28150,6 +27772,7 @@
 				{"described":{"entry":{"kind":"declared","name":"MathML maction selection","source":"reading 2: https://www.w3.org/TR/MathML3/chapter3.html#presm.maction (MathML 3 §3.7.1.1: 'If the value specified is out of range, it is an error' and 'If no selected sub-expression exists, it is a MathML error'): an maction has at least one element child and its selection, 1 when absent, is at most their number"},"kind":"check","name":"MathML_maction_selection","relation":"MathActionNode"},"law":"__math_action_node_check_math_ml_maction_selection_xmwub3n7df"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathAlignGroup","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]},"kind":"contained","to":{"relation":"ScopeNode","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"eq","right":{"kind":"literal","value":"m:maligngroup"}},{"kind":"compare","left":{"field":"state","kind":"field"},"op":"eq","right":{"kind":"literal","value":"open"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__math_align_group_in_scope_node_vbyn7eudli"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathAlignScope","selection":{"conjuncts":[{"kind":"compare","left":{"field":"inherited","kind":"field"},"op":"ne","right":{"field":"own","kind":"field"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"own","kind":"field"}]},"kind":"contained","to":{"relation":"ScopedDir","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"direction","kind":"field"}]}},"law":"__math_align_scope_in_scoped_dir_6ju4wqpvni"},
+				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathCn","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"type","kind":"field"}]},"kind":"contained","to":{"relation":"CnCount","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"},{"field":"type","kind":"field"}]}},"law":"__math_cn_in_cn_count_4enjobxkgf"},
 				{"described":{"entry":{"kind":"declared","name":"Arity","source":"https://www.imsglobal.org/spec/qti/v3p0/info#Abstract_ExpressionGroup (§6.9, ExpressionGroup: each operator's attribute is of a container class whose logic attribute's multiplicity is its sub-expression count, §5.83.1 Logic0toMany '[0.. unbounded]', §5.84.1 Logic1toMany and §5.94.1 NumericLogic1toMany '[1.. unbounded]', §5.85.1 LogicPair '[2]' and §5.86.1 LogicSingle '[1]', or of its own class, whose logic attribute states its count, as §5.113.2 Repeat's '[1.. unbounded]' with §5.113's 'The repeat operator takes one or more sub-expressions', over §6.9.49's '0 or more'; a leaf class's children row reads 'There are no children.'; as §6.9.21, https://www.imsglobal.org/spec/qti/v3p0/info#AbstractAttribute_ExpressionGroup_qti-match, 'The match operator takes two sub-expressions') (expression.ts OperatorArity); reading 21; and reading 242, https://www.imsglobal.org/spec/qti/v3p0/info#Data_MathOperator (§5.91, MathOperator: 'The trigonometric functions, sin, cos and tan, take one argument in radians ... Other functions take one numerical argument. Further functions might take more than one numerical argument, e.g. atan2 (two argument arc tan)'; §8.25, MathOperatorNameEnum: 'atan2 - the 2-argument inverse trigonometric tangent obtained from the two arguments', every other token a function of 'the argument'): a math operator named atan2 holds exactly two sub-expressions and one of any other name exactly one (overlay-queries/expression.ts MathOperand, BinaryMathOperator)"},"kind":"check","name":"Arity","relation":"MathOperand"},"law":"__math_operand_check_arity_kpqxciys3l"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"from":{"relation":"MathRankNode","selection":{"conjuncts":[{"kind":"compare","left":{"field":"kind","kind":"field"},"op":"ne","right":{"kind":"literal","value":"m:math"}},{"kind":"compare","left":{"field":"parent","kind":"field"},"op":"ne","right":{"field":"start","kind":"field"}}]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"parent","kind":"field"}]},"kind":"contained","to":{"relation":"MathRank","selection":{"conjuncts":[]},"terms":[{"field":"package","kind":"field"},{"field":"path","kind":"field"},{"field":"start","kind":"field"}]}},"law":"__math_rank_node_in_math_rank_aslq5dh6au"},
 				{"described":{"entry":{"kind":"declared","name":"E1 derived","source":"fin.md §17, E1: the fields closed relations determine, and the string value (folds.ts)"},"kind":"check","name":"E1_derived","relation":"MathRankStep"},"law":"__math_rank_step_check_e_1_derived_uujvhsldw4"},
