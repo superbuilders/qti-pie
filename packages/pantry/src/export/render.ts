@@ -15,20 +15,21 @@ import { unshred } from "#pantry/model/unshred.ts";
 /**
  * Write a document from the rows its whole scan folded.
  *
+ * The rows are a database's, every law held of them, so a scan the read cannot assemble is a
+ * defect (`assembleScan`); and so is a document its export charset cannot write, since the import
+ * chose that charset as one that writes the document, UTF-8 where its own cannot (crust's
+ * `exportCharset`), so crust's `EncodeError` dies here.
+ *
  * @param document - The document's key, its package's name and its path, which its
  *   scan was filtered by.
  * @param scan - The rows the whole scan folded (`#pantry/export/pages.ts` `addRow`).
- * @returns The document's bytes in its export charset. Fails with `assemble`'s refusal of rows that
- *   are not one document's, `DocumentRowCount`, or the encoder's error for a document its charset
- *   cannot write.
+ * @returns The document's bytes in its export charset.
  */
 export const scanXml = Effect.fn("export.scanXml")(function* scanXml(
   document: DocumentKey,
   scan: Scan<Composed>,
 ) {
-  const assembled = yield* Effect.fromResult(assembleScan(document, scan));
-
-  return yield* unshred(assembled, names);
+  return yield* Effect.orDie(unshred(assembleScan(document, scan), names));
 });
 
 /**
@@ -37,7 +38,7 @@ export const scanXml = Effect.fn("export.scanXml")(function* scanXml(
  *
  * @param document - The document's key, which its scan was filtered by.
  * @param rows - Every row the scan delivered.
- * @returns The document's bytes in its export charset, failing as {@link scanXml} does.
+ * @returns The document's bytes in its export charset, dying as {@link scanXml} does.
  */
 export const documentXml = (document: DocumentKey, rows: Iterable<ScanRow<Composed>>) =>
   scanXml(document, Arr.reduce(rows, emptyScan<Composed>(), addRow));

@@ -19,10 +19,9 @@
  * order of theirs is read either. So paging is invisible: the same rows cut into any pages give the
  * same document.
  */
-import { Effect, Option, Result, Schema, Stream } from "effect";
+import { Array as Arr, Effect, Option, Stream } from "effect";
 import type { RowKey, Window } from "@bjornpagen/grizzle/runtime";
 import { readDocument } from "#pantry/model/assemble.ts";
-import type { AssembleError } from "#pantry/model/assemble.ts";
 import type {
   AttributeEntityRow,
   AttributeRow,
@@ -143,8 +142,8 @@ export interface ScanRow<V extends XdmVocabulary> extends Omit<NodeRow<V>, "gove
 
 /**
  * The rows of one document folded from its scan so far, by relation, as `assemble` reads them, the
- * `Document` rows met, which a whole scan holds exactly one of, and the `XmlDecl` rows met, each
- * version as the row holds it.
+ * `Document` row met, the document node's, and the `XmlDecl` row met, its version as the row holds
+ * it.
  *
  * It is a fold's accumulator: {@link addRow} appends to its lists in place and returns it, so a
  * fold over a stream starts each run from a new {@link emptyScan}.
@@ -298,55 +297,30 @@ export const addRow = <V extends XdmVocabulary>(scan: Scan<V>, row: ScanRow<V>):
 };
 
 /**
- * A document's scan held no `Document` row, or more than one: the document node carries exactly
- * one, the document's, and every other node none.
- */
-export class DocumentRowCount extends Schema.TaggedError<DocumentRowCount>()("DocumentRowCount", {
-  found: Schema.Number,
-  /**
-   * The name of the document's package.
-   */
-  package: Schema.String,
-  /**
-   * The document's path in its package.
-   */
-  path: Schema.String,
-}) {
-  /**
-   * The document, how many rows its scan held, and the repair.
-   */
-  override get message(): string {
-    return `The scan of document ${this.path} of package ${this.package} held ${String(this.found)} Document rows, but a document's scan holds exactly one, on its document node, so the document cannot be assembled. Scan every page of the document, each once, as the scan's cursors give them.`;
-  }
-}
-
-/**
  * Assemble a document from the rows its scan folded.
  *
  * Each row is as the database holds it, every law the schema states held of it, so no law is read
  * again here: the rows are read into the tree (`readDocument`), never held to `flatten`'s image of
- * it, and an `XmlDecl` row's version is a `VersionNum` by its type, which its pattern law holds.
- * Only the scan's own paging is checked, its one `Document` row.
+ * it, an `XmlDecl` row's version is a `VersionNum` by its type, which its pattern law holds, and
+ * the `Document` row is the one the document node carries, the document's.
  *
  * @param document - The document's key, which its scan was filtered by.
  * @param scan - The rows the whole scan folded.
- * @returns The document the rows stand for; or `DocumentRowCount` when the scan did not hold
- *   exactly one `Document` row, or the read's refusal of rows it cannot build the tree from.
+ * @returns The document the rows stand for.
+ * @throws {Error} When the scan held no `Document` row, and as `readDocument` throws: a document's
+ *   scan holds its document node, whose `Document` row the laws require, so each is a defect.
  */
 export const assembleScan = <V extends XdmVocabulary>(
   document: DocumentKey,
   scan: Scan<V>,
-): Result.Result<XdmDocument<V>, AssembleError | DocumentRowCount> => {
-  const [only, ...rest] = scan.documents;
-  if (only === undefined || rest.length > 0) {
-    return Result.fail(
-      new DocumentRowCount({
-        found: scan.documents.length,
-        package: document.package,
-        path: document.path,
-      }),
-    );
-  }
+): XdmDocument<V> => {
+  const only = Option.getOrThrowWith(
+    Arr.head(scan.documents),
+    () =>
+      new Error(
+        `The scan of document ${document.path} of package ${document.package} held no Document row, though the laws give every document node one. Scan every page of the document, as the scan's cursors give them.`,
+      ),
+  );
 
   return readDocument<V>({
     attributeEntities: scan.attributeEntities,

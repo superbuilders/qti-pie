@@ -38,14 +38,15 @@
  * `flatten` writes as the same rows in any order. So the second flatten writes the rows again.
  *
  * {@link assemble} is that inverse of `flatten`, the specification the tests hold every writer of
- * a document's rows to. The export reads a document with {@link readDocument}, the read alone: its
- * rows are a database's, whose laws hold every agreement the image states, so serving them checks
- * the image again nowhere (the stored data was checked once, where it entered).
+ * a document's rows to, and its refusals ({@link AssembleError}) are its verdicts on rows a test
+ * built. The export reads a document with {@link readDocument}, the read alone: its rows are a
+ * database's, whose laws hold every agreement the image states, so serving them checks the image
+ * again nowhere (the stored data was checked once, where it entered), and a row the read cannot
+ * place is a defect.
  *
  * Every relation is grouped by its owner once, and the read keeps its own stack, so a tree of any
  * depth or width assembles in time linear in its rows, but for sorting each element's attributes
- * and declarations. Each refusal ({@link AssembleError}) is a defect wherever the rows are a
- * database's.
+ * and declarations.
  */
 import { Array as Arr, Option, Order, Record, Result, Schema } from "effect";
 import { isForeignKind } from "#pantry/grammar/kinds.ts";
@@ -1015,12 +1016,12 @@ const readOf = <V extends XdmVocabulary>(
  * image by its laws, so the export reads them with this.
  *
  * @param rows - Every row of one document, in any order, as a database holds them.
- * @returns The document the rows stand for; or the refusal of a row the read needs and does not
- *   find, a node of a kind its place cannot hold, or no root element.
+ * @returns The document the rows stand for.
+ * @throws {AssembleError} When the read needs a row it does not find, meets a node of a kind its
+ *   place cannot hold, or finds no root element: the laws exclude each, so it is a defect.
  */
-export const readDocument = <V extends XdmVocabulary>(
-  rows: FlatRows<V>,
-): Result.Result<XdmDocument<V>, AssembleError> => readOf(rows);
+export const readDocument = <V extends XdmVocabulary>(rows: FlatRows<V>): XdmDocument<V> =>
+  Result.getOrThrow(readOf(rows));
 
 /**
  * Assemble a document's rows back into its tree, holding them to `flatten`'s image of it.

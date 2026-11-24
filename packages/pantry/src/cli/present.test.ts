@@ -418,39 +418,6 @@ layer(NodeServices.layer, { excludeTestServices: true })("every origin of a refu
 });
 
 layer(NodeServices.layer, { excludeTestServices: true })("a failure qti names", (it) => {
-  it.effect(
-    "an export that cannot rebuild a stored document prints its own message, its tag and a help that keeps the target",
-    () =>
-      Effect.gen(function* rowCount() {
-        const failing = ending(
-          "export",
-          () =>
-            import("#pantry/export/pages.ts").then(
-              ({ DocumentRowCount }) =>
-                new DocumentRowCount({ found: 2, package: "MANIFEST-1", path: "item.xml" }),
-            ),
-          false,
-        );
-        const text = yield* captureCli([], { command: failing });
-        const json = yield* captureCli(["--json"], { command: failing });
-        const error = errorLine(json.stderr);
-
-        assert.strictEqual(exitCodeOf(text.exit), 70);
-        assert.isTrue(
-          text.stderr.startsWith(
-            "error[internal]: The scan of document item.xml of package MANIFEST-1 held 2 Document rows",
-          ),
-          text.stderr,
-        );
-        assert.include(text.stderr, "\n  failure: DocumentRowCount\n");
-        assert.include(text.stderr, "the target is as it was");
-        assert.isTrue(matchesCommittedError(json.stderr), json.stderr);
-        assert.strictEqual(error.failure, "DocumentRowCount");
-        assert.strictEqual(error.kind, "internal");
-        assert.strictEqual(error.exit_code, 70);
-      }),
-  );
-
   it.effect("a defect the importer names prints its message, its tag, its help and its trace", () =>
     Effect.gen(function* conflict() {
       const dying = ending(

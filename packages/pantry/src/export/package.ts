@@ -19,9 +19,7 @@ import type { PlatformError } from "effect";
 import { AuthorLogin } from "#pantry/db/served.ts";
 
 import { addRow, emptyScan, scannedRows } from "#pantry/export/pages.ts";
-import type { DocumentRowCount } from "#pantry/export/pages.ts";
 import { scanXml } from "#pantry/export/render.ts";
-import type { AssembleError } from "#pantry/model/assemble.ts";
 import type { Composed } from "#pantry/model/composed.ts";
 import { MediaStore } from "#pantry/package/media.ts";
 import type { MediaMissing } from "#pantry/package/media.ts";
@@ -29,7 +27,6 @@ import { writeZip } from "#pantry/package/zip.ts";
 import type { ZipEntry } from "#pantry/package/zip.ts";
 import type { AuthorRole } from "#pantry/qti/roles.ts";
 import { codePointOrder } from "@qti-pie/crust/charset.ts";
-import type { EncodeError } from "@qti-pie/crust/errors.ts";
 
 /**
  * The rows each page of a document's export scan asks for. A page is one flight of the scan's
@@ -68,25 +65,17 @@ export class PackageNotFound extends Schema.TaggedError<PackageNotFound>()("Pack
 }
 
 /**
- * What can stop an export before it writes: the database, a name no package has, a document whose
- * scanned rows are not one document's, one that cannot be written in its charset, or a media file
+ * What can stop an export before it writes: the database, a name no package has, or a media file
  * the store does not hold.
  */
-type EntriesError =
-  | OpenError
-  | CallError
-  | PackageNotFound
-  | AssembleError
-  | DocumentRowCount
-  | EncodeError
-  | MediaMissing;
+type EntriesError = OpenError | CallError | PackageNotFound | MediaMissing;
 
 /**
  * The entries an export of the package `name` names writes, by path, without writing any.
  *
  * The entries are read once, each media entry with its digest. Each document is scanned in pages of
- * {@link exportPageRows} rows, assembled, and written by `unshred` in its export charset; a document
- * that cannot be written in that charset fails here, and nothing falls back to another. Each media
+ * {@link exportPageRows} rows, assembled, and written by `unshred` in its export charset, which the
+ * import chose as one that writes it (`scanXml` of `#pantry/export/render.ts`). Each media
  * entry is the bytes the store holds under its digest. Every document is an entry of kind
  * `document` and every media row one of kind `media`: the database holds it, as the law "Entry
  * kind" states (`#pantry/qti/package.ts`), and refused every write that broke it, so the export
@@ -99,8 +88,8 @@ type EntriesError =
  * Fails with `PackageNotFound` when no imported package has the name, before any scan.
  *
  * @param name - The imported package's name, its key.
- * @returns The path and bytes of every entry. Fails with the database's, the scan's, the encoder's
- *   or the store's error, or `PackageNotFound`, every one an export raises before it writes.
+ * @returns The path and bytes of every entry. Fails with the database's or the store's error, or
+ *   `PackageNotFound`, every one an export raises before it writes.
  */
 export const exportEntries = Effect.fn("export.exportEntries")(function* exportEntries(
   name: string,
@@ -170,7 +159,7 @@ export const exportEntries = Effect.fn("export.exportEntries")(function* exportE
  * @param name - The imported package's name.
  * @param target - The directory to write under, or the `.zip` file to write, created when absent.
  * @returns The entries it wrote, in the order it wrote them. Fails with the database's, the
- *   scan's, the encoder's, the store's or the file system's error.
+ *   store's or the file system's error.
  */
 export const exportPackage = Effect.fn("export.exportPackage")(function* exportPackage(
   name: string,

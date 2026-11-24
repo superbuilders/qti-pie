@@ -10,7 +10,6 @@ import { CliError } from "effect/cli";
 import { BadName, NotADirectory, TargetNotEmpty, TargetProtected } from "#pantry/cli/args.ts";
 import { databaseRefusalOf, refusalFieldsOf } from "#pantry/cli/refused.ts";
 import type { DatabaseRefusal } from "#pantry/cli/refused.ts";
-import type { exportPackage } from "#pantry/export/package.ts";
 import type { OverlayConflict } from "#pantry/import/overlays/index.ts";
 import type { importPackage } from "#pantry/import/package.ts";
 
@@ -202,17 +201,6 @@ const isCallError = (failure: unknown): failure is CallError =>
 type TagOf<E> = Extract<E, { readonly _tag: string }>["_tag"];
 
 /**
- * Every other failure the export ends with (`#pantry/export/package.ts`): the database holds the
- * package, but the export cannot rebuild a document of it from its rows (`assemble`'s refusals,
- * `DocumentRowCount`) or write it in its charset (crust's `EncodeError`). Each is a defect of qti,
- * never of the package.
- */
-export type ExportDefectTag = Exclude<
-  TagOf<Effect.Error<ReturnType<typeof exportPackage>>>,
-  KindedTag
->;
-
-/**
  * Every other way the import ends (`#pantry/import/package.ts`): the defect it dies with, two
  * builders that disagree on a row. It is a defect of qti, never of the package; the codec refusing
  * a value the builders wrote is grizzle's `input` call error, `internal` by its kind.
@@ -221,12 +209,6 @@ export type ImportDefectTag = Exclude<
   TagOf<Effect.Error<ReturnType<typeof importPackage>> | OverlayConflict>,
   KindedTag
 >;
-
-/**
- * What to do next after an export that cannot rebuild a package the database holds.
- */
-const exportDefectHelp =
-  "This is a defect in qti, not in the package: the database holds the package, but the export cannot rebuild it. Nothing was exported, and the target is as it was. Report it with the command you ran and everything it printed.";
 
 /**
  * What to do next after an import that ended on a defect of qti.
@@ -248,24 +230,19 @@ const databaseRefusalHelp = {
 } as const satisfies Readonly<Record<DatabaseRefusal["witness"], string>>;
 
 /**
- * A tag {@link namedFailureOf} names: one of the export's defects or the import's.
+ * A tag {@link namedFailureOf} names: one of the import's defects.
  */
-type NamedTag = ExportDefectTag | ImportDefectTag;
+type NamedTag = ImportDefectTag;
 
 /**
- * The help of each named failure, by its tag: every export defect's is {@link exportDefectHelp}
- * and every import defect's {@link importDefectHelp}. It is checked against both error unions both
- * ways, so a failure either gains fails to compile here until it is named, and one it loses until
- * its row goes. Each such failure's kind is `internal`, which {@link kindOf} gives any failure no
- * other kind claims, so its exit code is that kind's.
+ * The help of each named failure, by its tag: every import defect's is {@link importDefectHelp}.
+ * It is checked against the import's error union both ways, so a failure it gains fails to compile
+ * here until it is named, and one it loses until its row goes. Each such failure's kind is
+ * `internal`, which {@link kindOf} gives any failure no other kind claims, so its exit code is
+ * that kind's.
  */
 const namedHelp = {
-  DocumentRowCount: exportDefectHelp,
-  EncodeError: exportDefectHelp,
   OverlayConflict: importDefectHelp,
-  RootMissing: exportDefectHelp,
-  RowMissing: exportDefectHelp,
-  RowsOutsideImage: exportDefectHelp,
 } as const satisfies Readonly<Record<NamedTag, string>>;
 
 /**
@@ -366,8 +343,8 @@ const tagOf = (failure: unknown): Option.Option<string> =>
     : Option.none();
 
 /**
- * The tag of a failure qti can name though its kind is `internal`: one of the export's defects or
- * the import's, which a run prints by that tag and with the help of its own.
+ * The tag of a failure qti can name though its kind is `internal`: one of the import's defects,
+ * which a run prints by that tag and with the help of its own.
  *
  * @param failure - What a run failed or died with.
  * @returns The failure's tag, or none for any other failure.
@@ -530,7 +507,7 @@ const helpOf = (read: ReadFailure, kind: Kind): string => {
  * `not-found`, a `MediaUnstored` and a `PlatformError` are `io`, a missing or unreadable local
  * set-up is `config`, a program grizzle refused to compile before sending any SQL is `internal`, a
  * call error is its kind's ({@link callErrorKinds}), and grizzle's other errors are `database`.
- * Anything else, a defect included, is `internal`; the export's and the import's defects that
+ * Anything else, a defect included, is `internal`; the import's defects that
  * {@link namedFailureOf} names keep that kind, with a help of their own.
  *
  * @param failure - What a run failed with: the squashed cause of its exit.

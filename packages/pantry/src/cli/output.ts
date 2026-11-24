@@ -185,8 +185,8 @@ export const modeOfEnvironment = Effect.gen(function* resolveEnvironmentMode() {
  *   constraint PostgreSQL checks by itself or a law no row the ChangeSet states breaks as grizzle
  *   judges it; `unreproduced`, for a deferred foreign key whose row a concurrent commit changed
  *   before grizzle read it).
- * - `failure` is present only for an `internal` failure qti can name, such as an export that cannot
- *   rebuild a stored package: the failure's tag.
+ * - `failure` is present only for an `internal` failure qti can name, an import's two builders that
+ *   disagree on a row (`OverlayConflict`): the failure's tag.
  */
 export const ErrorObject = Schema.Struct({
   command: Schema.String,

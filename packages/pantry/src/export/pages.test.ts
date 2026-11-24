@@ -8,13 +8,7 @@ import { searched } from "@bjornpagen/testing/vitest";
 import { Array as Arr, Effect, Formatter, Option, Result, Stream } from "effect";
 import type { Window } from "@bjornpagen/grizzle/runtime";
 import { RowKey } from "@bjornpagen/grizzle/client";
-import {
-  DocumentRowCount,
-  addRow,
-  assembleScan,
-  emptyScan,
-  scannedRows,
-} from "#pantry/export/pages.ts";
+import { addRow, assembleScan, emptyScan, scannedRows } from "#pantry/export/pages.ts";
 import type { DocumentKey, ScanRow, WindowRows } from "#pantry/export/pages.ts";
 import { composed } from "#pantry/grammar/compose.ts";
 import type { Composed } from "#pantry/model/composed.ts";
@@ -221,7 +215,7 @@ const pager =
  * and fold.
  *
  * @param pages - The pages the fake scan serves.
- * @returns The document, or the refusal of the rows the pages held.
+ * @returns The document the pages held.
  */
 const assembledFrom = (pages: readonly (readonly ScanRow<Composed>[])[]) =>
   Effect.map(Stream.runFold(scannedRows(pager(pages), 1), emptyScan<Composed>, addRow), (scan) =>
@@ -370,10 +364,7 @@ describe("export/pages.ts", { timeout: searchTimeout }, () => {
 
               const one = yield* assembledFrom([scan]);
 
-              assert.deepStrictEqual(
-                rowSetOf(Result.getOrThrow(one)),
-                rowSetOf(generated.document),
-              );
+              assert.deepStrictEqual(rowSetOf(one), rowSetOf(generated.document));
               for (const cut of cuts) {
                 if (cut.length === 0) {
                   c.note("one page");
@@ -390,57 +381,5 @@ describe("export/pages.ts", { timeout: searchTimeout }, () => {
             }),
         ),
       ),
-  );
-
-  it.effect("refuses the document when a second node carries a Document row", (ctx) =>
-    // Oracle: the specification as a checker: a document holds one Document row, on its document
-    // node, which the read takes the document's charsets from. A page stream is the database's,
-    // read as grizzle's cursors give it (the cuts above), so no page variant is judged here; an
-    // XmlDecl row's version is the database's to hold, by its pattern law, so no case breaks it.
-    // Bound: the generator's drawn bounds, one document a case.
-    searched(
-      ctx,
-      explore(
-        {
-          caseHang,
-          concurrency: 1,
-          coverage: required<"secondDocumentRow">(["secondDocumentRow"], {
-            cases: 200,
-            sense: notesOnly,
-          }),
-          draw: drawn(documents),
-          kept: [],
-          literal: Formatter.format,
-          oracle: {
-            kind: "specification",
-            name: "a document's scan holds one Document row, on its document node",
-          },
-          runs: 50,
-          shrink: completeShrink,
-          steerEvery: 16,
-          suite: "export/pages-variants",
-        },
-        (generated, c) =>
-          Effect.gen(function* secondDocumentRow() {
-            const rows = flatten(generated.document);
-            const [root, ...below] = scanOf(rows, (list) => list);
-            const last = below.at(-1);
-            if (root === undefined || last === undefined) {
-              assert.fail("a scan holds the document node and its root element");
-            }
-
-            c.note("secondDocumentRow");
-
-            const assembled = yield* assembledFrom([
-              [root, ...below.slice(0, -1), { ...last, documentRow: root.documentRow }],
-            ]);
-
-            assert.deepStrictEqual(
-              Result.isFailure(assembled) ? assembled.failure : undefined,
-              new DocumentRowCount({ found: 2, package: key.package, path: key.path }),
-            );
-          }),
-      ),
-    ),
   );
 });

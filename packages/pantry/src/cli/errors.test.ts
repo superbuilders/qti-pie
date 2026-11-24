@@ -10,15 +10,12 @@ import {
   namedFailureOf,
   RoundtripDiffers,
 } from "#pantry/cli/errors.ts";
-import type { ExportDefectTag, ImportDefectTag } from "#pantry/cli/errors.ts";
+import type { ImportDefectTag } from "#pantry/cli/errors.ts";
 import { refusalFieldsOf } from "#pantry/cli/refused.ts";
 import { ClusterConfigError } from "#pantry/db/connection.ts";
 import { ServedLoadError } from "#pantry/db/served.ts";
 import { PackageNotFound } from "#pantry/export/package.ts";
-import { DocumentRowCount } from "#pantry/export/pages.ts";
-import { RootMissing, RowMissing, RowsOutsideImage } from "#pantry/model/assemble.ts";
 import { WitnessKind } from "#pantry/package/refusal-origin.ts";
-import { EncodeError } from "@qti-pie/crust/errors.ts";
 
 /**
  * What a failure is, without its help: the kind and the exit code.
@@ -195,26 +192,9 @@ describe("describeFailure, a name no package has", () => {
 });
 
 /**
- * One failure of every tag the export ends with when it cannot rebuild a package the database
- * holds: `assemble`'s three refusals, the scan's two and crust's encoder refusal. It is keyed by
- * the export's error union, so a tag the export gains or loses fails to compile here until its case
- * is written or deleted.
- */
-const exportDefects = {
-  DocumentRowCount: new DocumentRowCount({ found: 2, package: "MANIFEST-1", path: "item.xml" }),
-  EncodeError: new EncodeError({ codePoint: 0x1_f6_00, threshold: 0xff, where: "comment" }),
-  RootMissing: new RootMissing({}),
-  RowMissing: new RowMissing({ key: "3", rows: "texts" }),
-  RowsOutsideImage: new RowsOutsideImage({
-    departure: { _tag: "differs", field: "at", found: "2", written: "1" },
-    key: "3",
-    rows: "nodes",
-  }),
-} as const satisfies { readonly [K in ExportDefectTag]: { readonly _tag: K } };
-
-/**
  * One failure of every tag the import ends with on a defect of qti: the one the importer dies
- * with, keyed by the import's tags as {@link exportDefects} is by the export's. It is matched by
+ * with, keyed by the import's tags, so a tag the import gains or loses fails to compile here until
+ * its case is written or deleted. It is matched by
  * its tag alone, which `errors.ts` checks against its class by type, so it is written as its tag
  * here: the module that defines it loads the composed grammar, which this file does not need.
  */
@@ -230,25 +210,14 @@ const importDefects = {
 const untagged: readonly unknown[] = [
   null,
   undefined,
-  "RootMissing",
+  "OverlayConflict",
   70,
   {},
   { _tag: 70 },
-  { _tag: { toString: () => "RootMissing" } },
+  { _tag: { toString: () => "OverlayConflict" } },
 ];
 
 describe("describeFailure, the defects qti names", () => {
-  it("each of the export's defects exits 70 as internal, named, with a help that keeps the target", () => {
-    for (const failure of Object.values(exportDefects)) {
-      const { exitCode, help, kind } = describeFailure(failure);
-
-      assert.deepStrictEqual({ exitCode, kind }, { exitCode: 70, kind: "internal" }, failure._tag);
-      assert.include(help, "the export cannot rebuild it", failure._tag);
-      assert.include(help, "the target is as it was", failure._tag);
-      assert.deepStrictEqual(namedFailureOf(failure), Option.some(failure._tag));
-    }
-  });
-
   it("each of the import's defects exits 70 as internal, named, with a help that says nothing was written", () => {
     for (const failure of Object.values(importDefects)) {
       const { exitCode, help, kind } = describeFailure(failure);
