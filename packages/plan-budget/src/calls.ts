@@ -7,7 +7,7 @@
  */
 import type { RelationCounts, WriteOutcome } from "@bjornpagen/grizzle/client";
 import { Cause, Effect } from "effect";
-import { StudentCallFailed } from "#plan-budget/actions.ts";
+import { CallWatch, StudentCallFailed } from "#plan-budget/actions.ts";
 
 /**
  * A call's every way to fail, as the action's failure: the call and Effect's rendering of the
@@ -22,14 +22,17 @@ const failedAs =
     StudentCallFailed.make({ call, outcome: Cause.pretty(cause).slice(0, 400) });
 
 /**
- * A read: its answer, or the action's failure.
+ * A read: its answer, or the action's failure; inside a measurement, watched as one call
+ * (`CallWatch`).
  *
  * @param call - The program's name.
  * @param effect - The call.
  * @returns The call's answer.
  */
 export const read = <A, E, R>(call: string, effect: Effect.Effect<A, E, R>) =>
-  Effect.mapError(Effect.sandbox(effect), failedAs(call));
+  CallWatch.pipe(
+    Effect.flatMap((watch) => watch(call, Effect.mapError(Effect.sandbox(effect), failedAs(call)))),
+  );
 
 /**
  * A write that must be accepted: its outcome, or the action's failure, a refusal among them, and

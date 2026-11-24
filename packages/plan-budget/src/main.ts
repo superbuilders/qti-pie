@@ -204,6 +204,15 @@ const install = (config: string) =>
 const MeasuredSchema = Schema.Struct({
   action: Schema.String,
   cpuMs: Schema.Number,
+  ended: Schema.Union([
+    Schema.Struct({ kind: Schema.Literal("completed") }),
+    Schema.Struct({
+      call: Schema.String,
+      cpuMs: Schema.Number,
+      during: Schema.Literals(["act", "prepare", "warm"]),
+      kind: Schema.Literal("stopped"),
+    }),
+  ]),
   pages: Schema.Number,
   size: Schema.Number,
   waits: Schema.Record(Schema.String, Schema.Number),

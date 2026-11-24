@@ -92,6 +92,20 @@ const suite = served<typeof ResultSuite>(
 const beaconBarMs = 10;
 
 /**
+ * The bar of every student action but the beacon's, and of every call an action's preparation and
+ * warming make: 100 ms of database time from a fresh connection (Bjorn, 2026-11-23).
+ *
+ * @limitKind product
+ * @owner Bjorn's planning budget (edullm out/rc-cutover/PLAN.md, "The planning budget is a test")
+ * @unit milliseconds of database time
+ * @scope one student action of the result composition, from a fresh connection, and each call that readies it
+ * @constraint the bar each action and each of its readying calls is judged by
+ * @source edullm out/rc-cutover/PLAN.md: "100 ms of database time per student action, from a fresh connection"
+ * @verified 2026-11-23
+ */
+const actionBarMs = 100;
+
+/**
  * The decision every seeded sitting is taken under: the seed its members' processing draws from.
  */
 const DECISION = "7d3c2a4e-58b1-4f6a-9c0d-2b8e5f1a6c34";
@@ -301,25 +315,25 @@ const program = (run: Run) =>
     const layer = yield* layerOf;
     const actions: readonly StudentAction<Effect.Services<ReturnType<typeof openDb>>>[] = [
       {
-        barMs: 100,
+        barMs: actionBarMs,
         name: "start",
         prepare: (child) =>
           Effect.as(taken(stdTest)(child), cold(withDb((db) => enter(db, child, firstItem)))),
       },
       {
-        barMs: 100,
+        barMs: actionBarMs,
         name: "present",
         prepare: (child) =>
           Effect.as(entered(stdTest)(child), cold(withDb((db) => present(db, child, secondItem)))),
       },
       {
-        barMs: 100,
+        barMs: actionBarMs,
         name: "save",
         prepare: (child) =>
           Effect.as(entered(stdTest)(child), cold(withDb((db) => save(db, child, firstItem, "C")))),
       },
       {
-        barMs: 100,
+        barMs: actionBarMs,
         name: "answer",
         prepare: (child) =>
           Effect.as(
@@ -328,7 +342,7 @@ const program = (run: Run) =>
           ),
       },
       {
-        barMs: 100,
+        barMs: actionBarMs,
         name: "suspend",
         prepare: (child) =>
           Effect.as(entered(stdTest)(child), cold(withDb((db) => suspend(db, child)))),
@@ -340,7 +354,7 @@ const program = (run: Run) =>
           Effect.as(entered(stdTest)(child), warm(beaconed(child), beaconed(child))),
       },
       {
-        barMs: 100,
+        barMs: actionBarMs,
         name: "resume",
         prepare: (child) =>
           Effect.as(
@@ -354,7 +368,7 @@ const program = (run: Run) =>
           ),
       },
       {
-        barMs: 100,
+        barMs: actionBarMs,
         name: "submit",
         prepare: (child) =>
           Effect.as(
@@ -377,6 +391,7 @@ const program = (run: Run) =>
                 ({ name }) => values.only === undefined || values.only.split(",").includes(name),
               ),
         admin,
+        callBarMs: actionBarMs,
         composition: "ledger-result",
         grow: copyUnits("child"),
         pending: [],

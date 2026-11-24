@@ -28,9 +28,17 @@
  * @module
  */
 import { performance } from "node:perf_hooks";
-import { Effect, Layer, Option, Schema } from "effect";
+import type { Cause } from "effect";
+import { Context, Effect, Exit, Layer, Option, Schema } from "effect";
 import type pg from "pg";
-import { cpuMsBetween, loadNow, queuedMsBetween, scheduledOf } from "#plan-budget/backend.ts";
+import {
+  cancelPast,
+  cpuMsBetween,
+  loadNow,
+  queuedMsBetween,
+  scheduledOf,
+} from "#plan-budget/backend.ts";
+import type { Scheduled } from "#plan-budget/backend.ts";
 
 /**
  * How often the wait sampler reads the action's backend's wait event.
@@ -45,6 +53,55 @@ import { cpuMsBetween, loadNow, queuedMsBetween, scheduledOf } from "#plan-budge
  * @recorded 2026-11-23
  */
 const sampleEveryMs = 1;
+
+/**
+ * How often a call's watchdog reads its backend's CPU: the cancellation lands at most this late
+ * past the bar, plus the cancel's own round trip.
+ *
+ * @limitKind provisional
+ * @owner the second check's call watchdog (#plan-budget/actions.ts)
+ * @unit milliseconds
+ * @scope each call of a measured action's preparation and warming, while it runs
+ * @guards a call that runs minutes past its bar, which the measurement would otherwise wait out
+ * @measure the overshoot of stopped calls past the bar (their CPU at the stop less the bar), kept a small share of it
+ * @origin set with the watchdog, 2026-11-24, as the planning watchdog's period, with no evidence
+ * @recorded 2026-11-24
+ */
+const watchEveryMs = 2;
+
+/**
+ * Where a measurement ended: every call completed, or a call stopped by its watchdog, past its bar
+ * on a CPU: in the preparation or the warming, a call over the composition's call bar, so the
+ * action's own call was never reached, or the action's own calls over the action's bar. A stopped
+ * measurement is over its bar whatever its other numbers say.
+ */
+export type Ended =
+  | { readonly kind: "completed" }
+  | {
+      readonly kind: "stopped";
+      readonly during: "act" | "prepare" | "warm";
+      readonly call: string;
+      readonly cpuMs: number;
+    };
+
+/**
+ * How a call a declaration makes is run: as it is outside a measurement (a seed, a publish); inside
+ * a measurement's preparation and warming, watched by the call's backend's CPU from the call's
+ * start and stopped past the composition's call bar (`measureAction`). Every call a declaration
+ * makes goes through `read`, `accepted`, `acceptedOrHeld` or `wrote` (#plan-budget/calls.ts), which
+ * take it, so each is watched as one call, never statement by statement.
+ */
+export type CallWatcher = <A, E, R>(
+  call: string,
+  effect: Effect.Effect<A, E, R>,
+) => Effect.Effect<A, E, R>;
+
+/**
+ * The call watcher in force: none outside a measurement.
+ */
+export const CallWatch = Context.Reference<CallWatcher>("plan-budget/CallWatch", {
+  defaultValue: () => (_call, effect) => effect,
+});
 
 /**
  * One student action of a composition: its name, its bar where it is tighter than the general one,
@@ -192,6 +249,11 @@ export interface ActionRecord {
   readonly samples: number;
   readonly load: number;
   readonly pid: number;
+  /**
+   * Where it ended; a stop in the preparation or the warming measured no action, its numbers the
+   * stopped call's CPU and nothing else.
+   */
+  readonly ended: Ended;
 }
 
 /**
@@ -246,15 +308,99 @@ const backendOf = async (statistics: pg.Client, role: string) => {
 };
 
 /**
+ * A part of a measurement as it ended: its value, or the record of the stop that ended it.
+ */
+type Part<A> =
+  | { readonly kind: "done"; readonly value: A }
+  | { readonly kind: "stopped"; readonly record: ActionRecord };
+
+/**
+ * The stop a watchdog made, where it made one.
+ */
+interface StopAt {
+  readonly during: "act" | "prepare" | "warm";
+  readonly call: string;
+  readonly cpuMs: number;
+}
+
+/**
+ * A watcher that holds each call it runs to `limitMs` of its backend's CPU from the call's start
+ * (from the backend's fork where the call is the one that connects it), checked every
+ * `watchEveryMs` and cancelled past it; the stop is handed to `stopped`, and the cancelled call
+ * fails as it fails.
+ *
+ * @param subject - What it measures in.
+ * @param limitMs - The call bar.
+ * @param during - The part of the measurement its calls are.
+ * @param stopped - Takes the stop.
+ * @returns The watcher.
+ */
+const watcherOf =
+  <R, E>(
+    subject: ActionsSubject<R, E>,
+    limitMs: number,
+    during: "prepare" | "warm",
+    stopped: (stop: StopAt) => void,
+  ): CallWatcher =>
+  (call, effect) =>
+    Effect.gen(function* watchedCall() {
+      const [present] = yield* Effect.promise(() =>
+        backendOf(subject.statistics, subject.loginRole),
+      );
+      const never: Scheduled = { cpuNs: 0, queuedNs: 0 };
+      const since = present === undefined ? never : scheduledOf(present.pid);
+      let pid = present?.pid;
+      let finding = false;
+      let done = false;
+      const watch = setInterval(() => {
+        if (done) {
+          return;
+        }
+
+        if (pid === undefined) {
+          if (!finding) {
+            finding = true;
+            void (async () => {
+              const rows = await backendOf(subject.statistics, subject.loginRole);
+
+              finding = false;
+              pid = rows[0]?.pid;
+            })();
+          }
+
+          return;
+        }
+
+        const ran = cancelPast(subject.statistics, pid, since, limitMs);
+
+        if (ran !== undefined) {
+          done = true;
+          stopped({ call, cpuMs: ran, during });
+        }
+      }, watchEveryMs);
+
+      return yield* effect.pipe(
+        Effect.ensuring(
+          Effect.sync(() => {
+            clearInterval(watch);
+          }),
+        ),
+      );
+    });
+
+/**
  * One student action measured at one population (see the module's header): the child readied on a
- * connection of its own, then the action on a fresh one. A call of either that fails, a write not
- * accepted with its effect among them, fails the measurement, naming the action: a timing of
- * nothing is never a record.
+ * connection of its own, then the action on a fresh one. Every call of the preparation and the
+ * warming is held to `callBarMs` of its backend's CPU, and the action's own calls together to the
+ * action's bar, each stopped past it (`Ended`), so a measurement takes at most about its bars. A
+ * call of either that fails otherwise, a write not accepted with its effect among them, fails the
+ * measurement, naming the action: a timing of nothing is never a record.
  *
  * @param subject - What it measures in.
  * @param action - The action.
  * @param scale - The population's label.
  * @param child - The fresh child, whom nothing before held.
+ * @param callBarMs - The bar each call of the preparation and the warming is held to.
  * @returns The action's record.
  */
 export const measureAction = <R, E>(
@@ -262,31 +408,103 @@ export const measureAction = <R, E>(
   action: StudentAction<R>,
   scale: string,
   child: string,
+  callBarMs: number,
 ): Effect.Effect<ActionRecord, ActionMeasureFailed | E> =>
   Effect.gen(function* measureActionAt() {
-    const readied = yield* Effect.scoped(
-      Effect.flatMap(Layer.build(subject.layer()), (context) =>
-        Effect.provide(action.prepare(child), context),
+    let stop: StopAt | undefined;
+    const stopped = (at: StopAt) => {
+      stop = at;
+    };
+    const stoppedRecord = (at: StopAt): ActionRecord => ({
+      action: action.name,
+      child,
+      cpuMs: at.cpuMs,
+      ended: { call: at.call, cpuMs: at.cpuMs, during: at.during, kind: "stopped" },
+      execMs: 0,
+      load: loadNow(),
+      pages: 0,
+      pid: 0,
+      planMs: 0,
+      queuedMs: 0,
+      samples: 0,
+      scale,
+      statements: 0,
+      waits: {},
+      wallMs: 0,
+    });
+    /**
+     * A part's failure as the measurement's: its stop's record where its watchdog stopped it,
+     * else the failure.
+     */
+    const stoppedOr = <A, X>(cause: Cause.Cause<X>): Effect.Effect<Part<A>, X> =>
+      stop === undefined
+        ? Effect.failCause(cause)
+        : Effect.succeed({ kind: "stopped", record: stoppedRecord(stop) });
+    /**
+     * A part's outcome: its value, or the stop that ended it.
+     */
+    const orStopped = <A, X>(part: Effect.Effect<A, X>): Effect.Effect<Part<A>, X> =>
+      Effect.exit(part).pipe(
+        Effect.flatMap((exit): Effect.Effect<Part<A>, X> =>
+          Exit.isSuccess(exit)
+            ? Effect.succeed({ kind: "done", value: exit.value })
+            : stoppedOr<A, X>(exit.cause),
+        ),
+      );
+    const prepared = yield* orStopped(
+      Effect.scoped(
+        Effect.flatMap(Layer.build(subject.layer()), (context) =>
+          Effect.provide(
+            Effect.provideService(
+              action.prepare(child),
+              CallWatch,
+              watcherOf(subject, callBarMs, "prepare", stopped),
+            ),
+            context,
+          ),
+        ),
       ),
     );
+
+    if (prepared.kind === "stopped") {
+      return prepared.record;
+    }
+
+    const readied = prepared.value;
 
     return yield* Effect.scoped(
       Effect.gen(function* measuredAt() {
         const context = yield* Layer.build(subject.layer());
-        const warmed = yield* Option.match(readied.warmedBy, {
-          onNone: () => Effect.succeed([]),
-          onSome: (warming) =>
-            Effect.andThen(
-              Effect.provide(warming, context),
-              Effect.promise(() => backendOf(subject.statistics, subject.loginRole)),
-            ),
-        });
+        const warming = yield* orStopped(
+          Option.match(readied.warmedBy, {
+            onNone: () => Effect.succeed([]),
+            onSome: (warmer) =>
+              Effect.andThen(
+                Effect.provide(
+                  Effect.provideService(
+                    warmer,
+                    CallWatch,
+                    watcherOf(subject, callBarMs, "warm", stopped),
+                  ),
+                  context,
+                ),
+                Effect.promise(() => backendOf(subject.statistics, subject.loginRole)),
+              ),
+          }),
+        );
+
+        if (warming.kind === "stopped") {
+          return warming.record;
+        }
+
+        const warmed = warming.value;
         const from =
           warmed[0] === undefined ? { cpuNs: 0, queuedNs: 0 } : scheduledOf(warmed[0].pid);
         const before = yield* sumsOf(subject.statistics, subject.database);
         const waits = new Map<string, number>();
         let samples = 0;
         let sampling = false;
+        let actStopMs: number | undefined;
         const sampler = setInterval(() => {
           if (sampling) {
             return;
@@ -296,19 +514,29 @@ export const measureAction = <R, E>(
           void backendOf(subject.statistics, subject.loginRole).then((rows) => {
             sampling = false;
 
-            for (const { state, wait } of rows) {
+            for (const { pid, state, wait } of rows) {
               if (state === "active" || wait !== null) {
                 samples += 1;
                 waits.set(wait ?? "CPU", (waits.get(wait ?? "CPU") ?? 0) + 1);
               }
+
+              actStopMs ??= cancelPast(subject.statistics, pid, from, action.barMs);
             }
 
             return rows.length;
           });
         }, sampleEveryMs);
         const started = performance.now();
-
-        yield* Effect.provide(readied.act, context).pipe(
+        const acted = yield* Effect.provide(readied.act, context).pipe(
+          Effect.map(() => ({ kind: "done" as const })),
+          Effect.catch((error) =>
+            actStopMs === undefined
+              ? Effect.fail(error)
+              : Effect.succeed({
+                  call: error instanceof StudentCallFailed ? error.call : action.name,
+                  kind: "stopped" as const,
+                }),
+          ),
           Effect.ensuring(
             Effect.sync(() => {
               clearInterval(sampler);
@@ -334,10 +562,16 @@ export const measureAction = <R, E>(
         const scheduled = scheduledOf(backend.pid);
         const after = yield* sumsOf(subject.statistics, subject.database);
 
+        const cpuMs = cpuMsBetween(from, scheduled);
+
         return {
           action: action.name,
           child,
-          cpuMs: cpuMsBetween(from, scheduled),
+          cpuMs,
+          ended:
+            acted.kind === "done"
+              ? { kind: "completed" }
+              : { call: acted.call, cpuMs, during: "act", kind: "stopped" },
           execMs: after.execMs - before.execMs,
           load: loadNow(),
           pages: after.pages - before.pages,

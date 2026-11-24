@@ -13,6 +13,7 @@ import { measureAction } from "#plan-budget/actions.ts";
 import type {
   ActionMeasureFailed,
   ActionRecord,
+  Ended,
   ActionsSubject,
   StudentAction,
   StudentCallFailed,
@@ -60,6 +61,11 @@ export interface ActionsComposition<R, E> {
   readonly scales: readonly number[];
   readonly repeats: number;
   readonly actions: readonly StudentAction<R>[];
+  /**
+   * The bar each call of an action's preparation and warming is held to (`measureAction`): a call
+   * over it is a student write over its cold bar, so the action is stopped there, over.
+   */
+  readonly callBarMs: number;
   readonly pending: readonly PendingAction[];
   /**
    * Where the population's state is kept between runs: the seed written and the copies made.
@@ -104,6 +110,10 @@ export interface ActionVerdict {
     readonly pages: number;
     readonly wallMs: number;
     readonly waits: Readonly<Record<string, number>>;
+    /**
+     * Where the first fresh connection's measurement ended: a stop is over the bar.
+     */
+    readonly ended: Ended;
   }[];
 }
 
@@ -143,13 +153,24 @@ export interface MeasuredAt {
   readonly pages: number;
   readonly wallMs: number;
   readonly waits: Readonly<Record<string, number>>;
+  readonly ended: Ended;
 }
+
+/**
+ * The part of a measurement a stop was in, as a reason names it.
+ */
+const partNames = {
+  act: "own call",
+  prepare: "preparation's call",
+  warm: "warming call",
+} as const;
 
 /**
  * An action's verdict over the scales it was measured at, in order of scale: at each, the first
  * fresh connection's CPU, the bar's number (edullm-bd, 2026-11-23), with the least of its repeats
  * beside it, and the least pages and wall time; over them, the pages' log-log slope; a reason for
- * every scale whose first connection is over its bar and for a slope past the descents' bound.
+ * every scale whose first connection is over its bar or was stopped (a stopped measurement is over
+ * its bar, its CPU the watchdog's reading), and for a slope past the descents' bound.
  *
  * @param action - The action, by its name and bar.
  * @param records - Every record measured, of any action, each scale's in the order it was measured.
@@ -167,6 +188,7 @@ export const verdictOf = (
   )
     .map((runs) => ({
       cpuMs: Arr.headNonEmpty(runs).cpuMs,
+      ended: Arr.headNonEmpty(runs).ended,
       leastCpuMs: Math.min(...runs.map(({ cpuMs }) => cpuMs)),
       pages: Math.min(...runs.map(({ pages }) => pages)),
       scale: Arr.headNonEmpty(runs).size,
@@ -176,11 +198,14 @@ export const verdictOf = (
     .toSorted((a, b) => a.scale - b.scale);
   const slope =
     byScale.length > 1 ? slopeOf(byScale.map(({ pages, scale }) => ({ pages, size: scale }))) : 0;
-  const over = byScale.filter(({ cpuMs }) => cpuMs > action.barMs);
+  const over = byScale.filter(
+    ({ cpuMs, ended }) => ended.kind === "stopped" || cpuMs > action.barMs,
+  );
   const reasons = [
-    ...over.map(
-      ({ cpuMs, scale }) =>
-        `${cpuMs.toFixed(1)} ms of database time at ${String(scale)}x, over ${String(action.barMs)} ms`,
+    ...over.map(({ cpuMs, ended, scale }) =>
+      ended.kind === "stopped"
+        ? `stopped at ${String(scale)}x in its ${partNames[ended.during]} ${ended.call} at ${ended.cpuMs.toFixed(1)} ms, past its bar`
+        : `${cpuMs.toFixed(1)} ms of database time at ${String(scale)}x, over ${String(action.barMs)} ms`,
     ),
     ...(slope > descentSlope
       ? [
@@ -269,6 +294,7 @@ export const measureActions = <R, E>(
             action,
             `${String(scale)}x`,
             child,
+            composition.callBarMs,
           );
 
           records.push({ ...record, size: scale });

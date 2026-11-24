@@ -8,6 +8,7 @@
  * @module
  */
 import { readFileSync } from "node:fs";
+import type pg from "pg";
 
 /**
  * Nanoseconds in a millisecond.
@@ -45,6 +46,36 @@ export const scheduledOf = (pid: number): Scheduled => {
  */
 export const cpuMsBetween = (before: Scheduled, after: Scheduled): number =>
   (after.cpuNs - before.cpuNs) / nanosPerMilli;
+
+/**
+ * A watchdog's one check of a backend: past `limitMs` on a CPU since `since`, its statement is
+ * cancelled on the watcher's session (pg_cancel_backend), and the CPU it had run is answered;
+ * within it, nothing is done. Each watch (#plan-budget/plans.ts, a planning request;
+ * #plan-budget/actions.ts, a measured call) runs it on its own tick and calls it no more once it
+ * answered.
+ *
+ * @param watcher - The session that cancels.
+ * @param pid - The backend.
+ * @param since - Its reading where the watched work began.
+ * @param limitMs - The CPU the work may reach.
+ * @returns The CPU it had run past the limit, or none.
+ */
+export const cancelPast = (
+  watcher: pg.Client,
+  pid: number,
+  since: Scheduled,
+  limitMs: number,
+): number | undefined => {
+  const ran = cpuMsBetween(since, scheduledOf(pid));
+
+  if (ran <= limitMs) {
+    return undefined;
+  }
+
+  void watcher.query("SELECT pg_cancel_backend($1)", [pid]);
+
+  return ran;
+};
 
 /**
  * The run-queue milliseconds between two readings of one backend: how long it was ready to run and

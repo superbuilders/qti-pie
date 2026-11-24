@@ -26,7 +26,7 @@
 import { performance } from "node:perf_hooks";
 import { Effect, Schema } from "effect";
 import type pg from "pg";
-import { cpuMsBetween, scheduledOf } from "#plan-budget/backend.ts";
+import { cancelPast, cpuMsBetween, scheduledOf } from "#plan-budget/backend.ts";
 import type { Scheduled } from "#plan-budget/backend.ts";
 import {
   actionsOf,
@@ -195,9 +195,8 @@ const planOnce = (
     const before: Scheduled = scheduledOf(pid);
     let cancelled = false;
     const watch = setInterval(() => {
-      if (!cancelled && cpuMsBetween(before, scheduledOf(pid)) > limitMs) {
+      if (!cancelled && cancelPast(connections.watcher, pid, before, limitMs) !== undefined) {
         cancelled = true;
-        void connections.watcher.query("SELECT pg_cancel_backend($1)", [pid]);
       }
     }, watchEveryMs);
     const answered = yield* Effect.tryPromise({
